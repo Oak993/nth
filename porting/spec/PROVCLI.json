@@ -2288,27 +2288,29 @@
     },
     {
       "id": "PR-PROVCLI-095",
-      "title": "Codex stops one head by interrupting that head's own thread and turn",
+      "title": "Codex stops one head by interrupting that head's own thread and turn, never the lead's own thread",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CodexSession.swift:337-344 - guard let connection, headThreads.contains(id), let turnID = headTurns[id] else { return false }; request \"turn/interrupt\" with threadId = the head id and turnId = its turn"
+        "DroppyCode/Services/Providers/CodexSession.swift:337-344 - guard let connection, let threadID, id != threadID, headThreads.contains(id), let turnID = headTurns[id] else { return false }; request \"turn/interrupt\" with threadId = the head id and turnId = its turn"
       ],
       "preconditions": "A registered head with a recorded running turn.",
       "action": "The user stops one head.",
-      "expected_result": "Returns false without sending anything when there is no connection, the id is not a known head, or that head has no recorded turn. Otherwise \"turn/interrupt\" is sent with the HEAD's thread id and the head's own turn id, returning true when the request did not throw. Note this interrupts a turn, not the thread; contrast Claude's stop_task (PR-PROVCLI-040) and Pi, whose stopAgent always returns false.",
+      "expected_result": "Returns false without sending anything when there is no connection, there is no lead thread yet, the id equals the lead's own thread id (even if that id is also in headThreads), the id is not a known head, or that head has no recorded turn. Otherwise \"turn/interrupt\" is sent with the HEAD's thread id and the head's own turn id, returning true when the request did not throw. Note this interrupts a turn, not the thread; contrast Claude's stop_task (PR-PROVCLI-040) and Pi, whose stopAgent always returns false.",
       "side_effects": [
         "One RPC round trip"
       ],
       "persistence": "none",
       "failure_cases": [
-        "Unknown head or no running turn: false, nothing sent."
+        "Unknown head or no running turn: false, nothing sent.",
+        "id equals the lead's own thread id: false, nothing sent, even if the id is otherwise in headThreads."
       ],
       "cancellation": "not cancellable",
       "windows_path": "None.",
-      "verification_method": "interaction test with a running head",
-      "status": "IMPLEMENTED",
+      "verification_method": "interaction test with a running head, plus a case passing the lead's own thread id",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 the guard adds `id != threadID` (CodexSession.swift:338), so stopAgent also refuses to stop the lead's own thread. B2 :335-341 -> B3 :337-344."
     },
     {
       "id": "PR-PROVCLI-096",
@@ -2638,16 +2640,17 @@
     },
     {
       "id": "PR-PROVCLI-110",
-      "title": "Codex converts a growing cumulative token total into per-update spend for the lead and records it under the lead thread id",
+      "title": "Codex converts a growing cumulative token total into per-update spend for the lead and records it under the lead thread id, naming the most recent turn's model",
       "source_evidence": [
         "DroppyCode/Services/Providers/CodexSession.swift:597-615 - thread/tokenUsage/updated lead branch with the comment at :603-609: if let total = usage[\"total\"]?[\"totalTokens\"]?.int, total > 0 { let spend = spendTracker.spend(total: total, before: max(0, total - used)); recordCodexSpend(spend, rolloutID: threadID, model: activeModel) } else { recordCodexSpend(used, rolloutID: threadID, model: activeModel) }",
         "DroppyCode/Services/Providers/CodexSession.swift:671-677 - recordCodexSpend (PR-PROVCLI-441)",
         "DroppyCode/Services/Providers/CodexSession.swift:39,:96,:105,:301 - activeModel, set from the thread/start, thread/resume and fork results",
+        "DroppyCode/Services/Providers/CodexSession.swift:147-149 - `if let model = input.model ?? activeModel { // A turn can switch the thread's model; the spend it reports is this turn's model's. activeModel = model ...` inside send(), before turn/start is requested",
         "DroppyCode/Services/Providers/CodexSession.swift:43 - spendTracker"
       ],
       "preconditions": "A thread/tokenUsage/updated notification for the lead.",
       "action": "Usage is recorded.",
-      "expected_result": "Without a tokenUsage object or its \"last\" field the notification is ignored. used = last.totalTokens or zero, emitted as .usage(ContextUsage(usedTokens: used, windowTokens: tokenUsage.modelContextWindow)). When tokenUsage.total.totalTokens is an int GREATER than zero, the spend is spendTracker.spend(total: total, before: max(0, total - used)); the `before` seed means a RESUMED thread's first update does not charge its whole history. When the total is absent or not positive, the per-update `used` value is the spend instead. Either way the spend goes to recordCodexSpend with rolloutID = the lead's threadID and model = activeModel: when the spend is positive and threadID is non-empty it is written with TokenLedger.shared.record(codexSpend:rolloutID:), and a .tokenSpend(TokenSpend(provider: .codex, totalTokens: spend, model: activeModel)) event with no agentID is emitted after the .usage event. A zero spend writes and emits nothing.",
+      "expected_result": "Without a tokenUsage object or its \"last\" field the notification is ignored. used = last.totalTokens or zero, emitted as .usage(ContextUsage(usedTokens: used, windowTokens: tokenUsage.modelContextWindow)). When tokenUsage.total.totalTokens is an int GREATER than zero, the spend is spendTracker.spend(total: total, before: max(0, total - used)); the `before` seed means a RESUMED thread's first update does not charge its whole history. When the total is absent or not positive, the per-update `used` value is the spend instead. Either way the spend goes to recordCodexSpend with rolloutID = the lead's threadID and model = activeModel: when the spend is positive and threadID is non-empty it is written with TokenLedger.shared.record(codexSpend:rolloutID:), and a .tokenSpend(TokenSpend(provider: .codex, totalTokens: spend, model: activeModel)) event with no agentID is emitted after the .usage event. A zero spend writes and emits nothing. activeModel is not only set from the thread/start, thread/resume and fork results: every send() also sets it to input.model ?? activeModel (when that is non-nil) before requesting turn/start, so a turn that switches the thread's model makes the model of THAT turn, not the model the thread started, resumed or forked with, the one later lead .tokenSpend events and TokenLedger records name.",
       "side_effects": [
         "A .usage event",
         "A .tokenSpend event when the spend is positive",
@@ -2660,12 +2663,13 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "None.",
-      "verification_method": "unit test over a fresh thread and a resumed thread's first update, asserting the ledger amount, the lowercased rollout id in liveCodex, and one .tokenSpend with provider codex, the active model and no agentID; plus a case with no thread id asserting the event without a ledger write",
-      "status": "IMPLEMENTED",
+      "verification_method": "unit test over a fresh thread and a resumed thread's first update, asserting the ledger amount, the lowercased rollout id in liveCodex, and one .tokenSpend with provider codex, the active model and no agentID; plus a case with no thread id asserting the event without a ledger write; plus a case where a later turn's input.model differs from the thread's starting model, asserting the ledger and event now name the later turn's model",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "CHANGED: B1 CodexSession.swift:593-611 wrote \"if spend > 0 { TokenLedger.shared.record(spend: spend) }\" (and record(spend: used) in the fallback) and emitted no spend event. B2 :609 and :611 call recordCodexSpend(spend|used, rolloutID: threadID, model: activeModel) (:668-674): the ledger write is record(codexSpend:rolloutID:), keyed by the lowercased thread id, only when the id is non-empty, and a .tokenSpend(provider .codex) event is emitted whenever the spend is positive. The tracker and seed are unchanged. Lines 593-611 -> 594-612."
+      "b2_change": "CHANGED: B1 CodexSession.swift:593-611 wrote \"if spend > 0 { TokenLedger.shared.record(spend: spend) }\" (and record(spend: used) in the fallback) and emitted no spend event. B2 :609 and :611 call recordCodexSpend(spend|used, rolloutID: threadID, model: activeModel) (:668-674): the ledger write is record(codexSpend:rolloutID:), keyed by the lowercased thread id, only when the id is non-empty, and a .tokenSpend(provider .codex) event is emitted whenever the spend is positive. The tracker and seed are unchanged. Lines 593-611 -> 594-612.",
+      "b3_note": "At 1.7.0 send() also sets activeModel = model whenever input.model ?? activeModel is non-nil (CodexSession.swift:147-149), before requesting turn/start. Lead .tokenSpend events and TokenLedger codex records therefore name the model of the most recent turn that carried one, not only the model the thread started, resumed or forked with. Lines: :299 -> :301, :594-612 -> :597-615, :668-674 -> :671-677."
     },
     {
       "id": "PR-PROVCLI-111",
@@ -2791,29 +2795,31 @@
     },
     {
       "id": "PR-PROVCLI-116",
-      "title": "Codex registers a head from thread/started when the lead is its parent, and logs an adoption otherwise",
+      "title": "Codex registers a head from thread/started when the lead is its parent, and logs an adoption otherwise, but never for the lead's own thread id",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CodexSession.swift:679-705 - headStarted: guard let id = thread[\"id\"]?.string, let threadID, !headThreads.contains(id) else { return }; guard thread[\"parentThreadId\"]?.string == threadID else { ... guard nickname != nil || role != nil else { return }; Self.log.notice(...); headThreads.insert(id); headModels[id] = thread[\"model\"]?.string; ... return }; headThreads.insert(id); headModels[id] = thread[\"model\"]?.string; ... onEvent?(.agentStarted(AgentSpawn(id: id, taskID: nil, toolUseID: nil, description: description, prompt: preview.nilIfEmpty, model: thread[\"model\"]?.string))), with the comment at :684-688 and the Logger notice at :690",
+        "DroppyCode/Services/Providers/CodexSession.swift:679-705 - headStarted: guard let id = thread[\"id\"]?.string, let threadID, id != threadID, !headThreads.contains(id) else { return }; guard thread[\"parentThreadId\"]?.string == threadID else { ... guard nickname != nil || role != nil else { return }; Self.log.notice(...); headThreads.insert(id); headModels[id] = thread[\"model\"]?.string; ... return }; headThreads.insert(id); headModels[id] = thread[\"model\"]?.string; ... onEvent?(.agentStarted(AgentSpawn(id: id, taskID: nil, toolUseID: nil, description: description, prompt: preview.nilIfEmpty, model: thread[\"model\"]?.string))), with the comment at :684-688 and the Logger notice at :690",
         "DroppyCode/Services/Providers/CodexSession.swift:13 - Logger(subsystem: \"iordv.droppycode\", category: \"codex\")"
       ],
       "preconditions": "A thread/started notification.",
       "action": "headStarted runs.",
-      "expected_result": "A thread without a string id, with no lead thread id, or already registered, is ignored. When thread.parentThreadId equals the lead's thread id, the thread is registered as a head. When it does not, the thread is still adopted as a head IF it carries an agentNickname or an agentRole - a resumed lead whose id rotated - and that adoption is LOGGED at notice level with the thread id, the named parent or the literal \"none\", and the lead id, all marked public; a thread with neither field is ignored. Either way one .agentStarted is emitted whose description is the thread's trimmed preview flattened to at most 80 characters when non-empty, else the nickname and role joined by \" · \", else the literal \"Subagent\"; prompt is the preview when non-empty; model is thread.model.",
+      "expected_result": "A thread without a string id, with no lead thread id, whose id equals the lead's own thread id, or already registered, is ignored. When thread.parentThreadId equals the lead's thread id, the thread is registered as a head. When it does not, the thread is still adopted as a head IF it carries an agentNickname or an agentRole - a resumed lead whose id rotated - and that adoption is LOGGED at notice level with the thread id, the named parent or the literal \"none\", and the lead id, all marked public; a thread with neither field is ignored. Either way one .agentStarted is emitted whose description is the thread's trimmed preview flattened to at most 80 characters when non-empty, else the nickname and role joined by \" · \", else the literal \"Subagent\"; prompt is the preview when non-empty; model is thread.model. The lead's own thread/started notification is excluded before any of this runs, so it is never registered or adopted as its own head even when it carries an agentNickname or agentRole.",
       "side_effects": [
         "One provider event; a log line on the adoption path"
       ],
       "persistence": "none",
       "failure_cases": [
-        "An unrelated thread with no nickname or role is dropped."
+        "An unrelated thread with no nickname or role is dropped.",
+        "A thread/started whose id equals the lead's own thread id is dropped, whatever fields it carries."
       ],
       "cancellation": "not cancellable",
       "windows_path": "The Logger maps to the Windows logging sink; the message must remain traceable, since it is the only trace of a team that never shows in the panel.",
-      "verification_method": "unit test over a parented thread, an adopted thread and a stranger",
-      "status": "IMPLEMENTED",
+      "verification_method": "unit test over a parented thread, an adopted thread, a stranger, and a thread/started naming the lead's own id (with an agentNickname, to prove exclusion beats adoption)",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED: B1 CodexSession.swift:660-683 -> B2 :676-701. Two lines were added (B2 :688 and :695, headModels[id] = thread[\"model\"]?.string, specified in PR-PROVCLI-440) and the preview trim uses .trimmed. The registration, adoption, logging and .agentStarted behaviour here is unchanged."
+      "b2_change": "MOVED: B1 CodexSession.swift:660-683 -> B2 :676-701. Two lines were added (B2 :688 and :695, headModels[id] = thread[\"model\"]?.string, specified in PR-PROVCLI-440) and the preview trim uses .trimmed. The registration, adoption, logging and .agentStarted behaviour here is unchanged.",
+      "b3_note": "At 1.7.0 the guard adds `id != threadID` (CodexSession.swift:681-682), so a thread/started naming the lead's own thread id is ignored outright, before the parent check or the nickname/role adoption path. B2 :676-701 -> B3 :679-705 (comment :684-687, Logger notice :690); the other cite :660-683 -> :663-687."
     },
     {
       "id": "PR-PROVCLI-117",
@@ -2865,52 +2871,56 @@
     },
     {
       "id": "PR-PROVCLI-119",
-      "title": "Codex registers heads from a spawnAgent collab call, routing them to a profile only on a unique match",
+      "title": "Codex registers heads from a spawnAgent collab call, routing them to a profile only on a unique match, but only once the lead thread id is known and never for a receiver equal to it",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CodexSession.swift:759-780 - describeHeads collabAgentToolCall branch: guard item[\"tool\"]?.string == \"spawnAgent\" else { return }; let matches = HydraPrompts.nativeRoutableProfiles(of: hydra).filter { $0.model == itemModel && $0.effort == itemEffort }; return matches.count == 1 ? matches[0].name : nil; let prompt = item[\"prompt\"]?.string?.trimmed ?? \"\"; for receiver in (item[\"receiverThreadIds\"]?.array ?? []).compactMap(\\.string) { if !headThreads.contains(receiver) { headThreads.insert(receiver) }; onEvent?(.agentStarted(...)) }"
+        "DroppyCode/Services/Providers/CodexSession.swift:759-780 - describeHeads collabAgentToolCall branch: guard let threadID else { return } (:760); guard item[\"tool\"]?.string == \"spawnAgent\" else { return }; let matches = HydraPrompts.nativeRoutableProfiles(of: hydra).filter { $0.model == itemModel && $0.effort == itemEffort }; return matches.count == 1 ? matches[0].name : nil; let prompt = item[\"prompt\"]?.string?.trimmed ?? \"\"; for receiver in (item[\"receiverThreadIds\"]?.array ?? []).compactMap(\\.string) { guard receiver != threadID else { continue }; if !headThreads.contains(receiver) { headThreads.insert(receiver) }; onEvent?(.agentStarted(...)) }"
       ],
       "preconditions": "A collabAgentToolCall item.",
       "action": "describeHeads runs.",
-      "expected_result": "Only a call whose \"tool\" is exactly \"spawnAgent\" does anything. The routed profile is resolved by filtering HydraPrompts.nativeRoutableProfiles(of: hydra) to those whose model equals item.model AND whose effort equals item.reasoningEffort; EXACTLY ONE match is authoritative, while none or several leave the head unrouted (nil). For every string in item.receiverThreadIds: the id is added to headThreads if absent, and .agentStarted is emitted with that id, toolUseID = item.id, description = the trimmed prompt flattened to at most 80 characters or the literal \"Head\" when the prompt is empty, prompt = the trimmed prompt when non-empty, model = item.model and profile = the routed name.",
+      "expected_result": "Nothing at all runs, for either branch of describeHeads, until the lead thread id is known. Given a lead thread id, only a call whose \"tool\" is exactly \"spawnAgent\" does anything. The routed profile is resolved by filtering HydraPrompts.nativeRoutableProfiles(of: hydra) to those whose model equals item.model AND whose effort equals item.reasoningEffort; EXACTLY ONE match is authoritative, while none or several leave the head unrouted (nil). For every string in item.receiverThreadIds EXCEPT one equal to the lead's own thread id, which is skipped outright: the id is added to headThreads if absent, and .agentStarted is emitted with that id, toolUseID = item.id, description = the trimmed prompt flattened to at most 80 characters or the literal \"Head\" when the prompt is empty, prompt = the trimmed prompt when non-empty, model = item.model and profile = the routed name.",
       "side_effects": [
-        "One provider event per receiver"
+        "One provider event per receiver other than the lead's own thread id"
       ],
       "persistence": "none",
       "failure_cases": [
-        "A spawn with no receiver ids registers nothing here; the head may still be adopted later from a subAgentActivity note."
+        "A spawn with no receiver ids registers nothing here; the head may still be adopted later from a subAgentActivity note.",
+        "A receiverThreadIds entry equal to the lead's own thread id: skipped, no headThreads entry and no agentStarted for that id."
       ],
       "cancellation": "not cancellable",
       "windows_path": "None.",
-      "verification_method": "unit test over one, none and several profile matches",
-      "status": "IMPLEMENTED",
+      "verification_method": "unit test over one, none and several profile matches, plus a receiverThreadIds list that includes the lead's own thread id",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED: B1 CodexSession.swift:737-756 -> B2 :755-774. The one changed line (B2 :770) uses .trimmed for the prompt, the same call. Behaviour unchanged. Note: a receiver registered here gets no headModels entry (PR-PROVCLI-440)."
+      "b2_change": "MOVED: B1 CodexSession.swift:737-756 -> B2 :755-774. The one changed line (B2 :770) uses .trimmed for the prompt, the same call. Behaviour unchanged. Note: a receiver registered here gets no headModels entry (PR-PROVCLI-440).",
+      "b3_note": "At 1.7.0 describeHeads starts with `guard let threadID else { return }` (CodexSession.swift:760), so neither branch does anything before the lead thread id is known, and the spawnAgent receiver loop adds `guard receiver != threadID else { continue }` (:777): a receiver equal to the lead is skipped, not inserted into headThreads and gets no .agentStarted. B2 :755-774 -> B3 :759-780; :737-756 -> :741-761."
     },
     {
       "id": "PR-PROVCLI-120",
-      "title": "Codex adopts an unknown head from a subAgentActivity note and ends it on completed or interrupted",
+      "title": "Codex adopts an unknown head from a subAgentActivity note and ends it on completed or interrupted, but ignores a note naming the lead's own thread",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CodexSession.swift:781-804 - describeHeads subAgentActivity branch, with the comment at :785-789 and the Logger notice at :792"
+        "DroppyCode/Services/Providers/CodexSession.swift:759-806 - describeHeads: guard let threadID else { return } (:760, shared top guard); subAgentActivity branch at :781-804: guard let agentThread = item[\"agentThreadId\"]?.string, agentThread != threadID else { return } (:782-783), with the comment at :785-789 and the Logger notice at :792"
       ],
       "preconditions": "A subAgentActivity item with a string agentThreadId.",
       "action": "describeHeads runs.",
-      "expected_result": "When that thread is not already a head it is registered, a notice is LOGGED naming the thread and the nickname and recording that no thread/started or spawn receiver id preceded it, and .agentStarted is emitted with a description derived from the LAST path component of item.agentPath with underscores replaced by spaces, or the literal \"Head\" when absent, and no prompt or model. Then item.kind \"completed\" clears the head's turn and emits .agentFinished(.completed, summary: nil); \"interrupted\" does the same with .interrupted; any other kind does nothing further.",
+      "expected_result": "Nothing runs, for either branch of describeHeads, until the lead thread id is known. Given a lead thread id: an item with no agentThreadId, or whose agentThreadId equals the lead's own thread id, does nothing at all - no adoption, no log line, no agentFinished, whatever item.kind is. Otherwise, when that thread is not already a head it is registered, a notice is LOGGED naming the thread and the nickname and recording that no thread/started or spawn receiver id preceded it, and .agentStarted is emitted with a description derived from the LAST path component of item.agentPath with underscores replaced by spaces, or the literal \"Head\" when absent, and no prompt or model. Then item.kind \"completed\" clears the head's turn and emits .agentFinished(.completed, summary: nil); \"interrupted\" does the same with .interrupted; any other kind does nothing further.",
       "side_effects": [
         "Provider events; a log line on adoption"
       ],
       "persistence": "none",
       "failure_cases": [
-        "No agentThreadId: nothing."
+        "No agentThreadId: nothing.",
+        "agentThreadId equal to the lead's own thread id: nothing at all, for any item.kind."
       ],
       "cancellation": "The \"interrupted\" kind is how a stopped head is reported here.",
       "windows_path": "None.",
-      "verification_method": "unit test over adoption, completion and interruption",
-      "status": "IMPLEMENTED",
+      "verification_method": "unit test over adoption, completion and interruption, plus a subAgentActivity note naming the lead's own thread id with kind \"completed\" asserting no event and no log line",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 the guard adds `agentThread != threadID` (CodexSession.swift:782-783), and describeHeads' new top guard (:760) means nothing runs before the lead thread id is known either. B2 :775-797 -> B3 :781-804."
     },
     {
       "id": "PR-PROVCLI-121",
@@ -5453,14 +5463,15 @@
       "id": "PR-PROVCLI-225",
       "title": "Command Code namespaces message, reasoning and plan ids with an eight-character launch id",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:41-42 - the comment plus launchID = String(UUID().uuidString.prefix(8))",
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:293-295,:301-302 - message ids \"cc-<launchID>-m<n>\"",
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:307-309,:313-315 - thinking ids \"cc-<launchID>-r<n>\"",
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:41-42 - `/// Namespaces ids per launch, so a resumed thread never streams into an old entry.` / `private let launchID: String`; the value itself is minted in init at :76-77 `let launchID = String(UUID().uuidString.prefix(8))` / `self.launchID = launchID`",
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:78-81 - `stream = StreamedTextTracker(` / `messageID: { \"cc-\\(launchID)-m\\($0)\" },` / `thinkingID: { \"cc-\\(launchID)-r\\($0)\" }` / `)`, the closures passed to the shared tracker",
+        "DroppyCode/Services/Providers/SessionSupport.swift:62-67 startMessage and :70-78 appendMessage - the counter increments and `messageID(messageCounter)` call that produce the \"cc-<launchID>-m<n>\" id, reached from CommandCodeSession.swift:293-294 (message_start) and :295-297 (text_delta)",
+        "DroppyCode/Services/Providers/SessionSupport.swift:80-84 startThinking and :86-99 appendThinking - the same pattern for \"cc-<launchID>-r<n>\", reached from CommandCodeSession.swift:298-299 (thinking_start) and :300-302 (thinking_delta)",
         "DroppyCode/Services/Providers/CommandCodeSession.swift:408 - plan id \"cc-<launchID>-plan<turnCounter>\""
       ],
       "preconditions": "A session.",
       "action": "Ids are minted for streamed content.",
-      "expected_result": "launchID is the FIRST EIGHT characters of a fresh uppercase UUID string, computed once per session object. Message ids are \"cc-<launchID>-m<messageCounter>\", reasoning ids \"cc-<launchID>-r<thinkingCounter>\" and the plan id \"cc-<launchID>-plan<turnCounter>\". The counters are per session, not per turn. The namespacing exists so a resumed thread never streams new content into an old entry.",
+      "expected_result": "launchID is the FIRST EIGHT characters of a fresh uppercase UUID string, computed once per session object (in init, before the shared StreamedTextTracker is built). Message ids are \"cc-<launchID>-m<messageCounter>\", reasoning ids \"cc-<launchID>-r<thinkingCounter>\" and the plan id \"cc-<launchID>-plan<turnCounter>\". The counters are per session, not per turn. The namespacing exists so a resumed thread never streams new content into an old entry.",
       "side_effects": [],
       "persistence": "The ids appear in the thread's stored transcript.",
       "failure_cases": [
@@ -5472,13 +5483,16 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Re-cited only, behaviour unchanged: at B3 the per-session counters and current-id fields move out of CommandCodeSession into the shared Services/Providers/SessionSupport.swift StreamedTextTracker (impact R3-26, recite_lines_only), constructed in CommandCodeSession's init with closures that produce the exact same \"cc-<launchID>-m<n>\" / \"cc-<launchID>-r<n>\" strings as before."
     },
     {
       "id": "PR-PROVCLI-226",
       "title": "Command Code opens a message id lazily when a delta arrives without a message_start",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:293-306 - message_start and text_delta, the latter minting an id when currentMessageID is nil"
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:293-297 - `case \"message_start\": stream.startMessage()` and `case \"text_delta\": guard let delta = event[\"delta\"]?.string, !delta.isEmpty else { return }; onEvent?(.messageDelta(id: stream.appendMessage(delta), text: delta))`",
+        "DroppyCode/Services/Providers/SessionSupport.swift:61-67 startMessage - `messageCounter += 1; currentMessageID = messageID(messageCounter); messageText = \"\"; streamedText = false`",
+        "DroppyCode/Services/Providers/SessionSupport.swift:69-78 appendMessage - `if currentMessageID == nil { messageCounter += 1; currentMessageID = messageID(messageCounter) }; streamedText = true; messageText += delta; return currentMessageID ?? \"\"`, the latter minting an id when currentMessageID is nil"
       ],
       "preconditions": "Text is streaming.",
       "action": "message_start or text_delta arrives.",
@@ -5496,13 +5510,15 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Re-cited only, behaviour unchanged: at B3 this logic moved from CommandCodeSession's own currentMessageID/messageCounter fields into the shared StreamedTextTracker.startMessage/appendMessage (SessionSupport.swift), called through `stream` (impact R3-26, recite_lines_only)."
     },
     {
       "id": "PR-PROVCLI-227",
       "title": "Command Code closes a thinking block only when its text is not blank, and clears both ids at message_end",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:307-337 - thinking_start, thinking_delta, thinking_end (if !text.trimmed.isEmpty { onEvent?(.reasoningCompleted(id: id, text: text)) }) and message_end (else if !text.trimmed.isEmpty { onEvent?(.messageCompleted(id: id, text: text)) })"
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:298-321 - thinking_start (`stream.startThinking()`), thinking_delta (`stream.appendThinking(delta, resetsText: false)`), thinking_end (`if !text.trimmed.isEmpty { onEvent?(.reasoningCompleted(id: id, text: text)) }`, then `stream.endThinking()`) and message_end (`else if !text.trimmed.isEmpty { onEvent?(.messageCompleted(id: id, text: text)) }`, then `stream.endMessage(); stream.endThinking()`)",
+        "DroppyCode/Services/Providers/SessionSupport.swift:80-84 startThinking and :86-99 appendThinking, :101-107 endThinking/endMessage - the counter, current-id and text-buffer logic behind the calls above"
       ],
       "preconditions": "Reasoning or a message is streaming.",
       "action": "The closing frames arrive.",
@@ -5521,7 +5537,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited at B2: CommandCodeSession.swift:307-337 keeps its lines; :322 and :331 use .trimmed, the same call. Behaviour unchanged."
+      "b2_change": "Re-cited at B2: CommandCodeSession.swift:307-337 keeps its lines; :322 and :331 use .trimmed, the same call. Behaviour unchanged.",
+      "b3_note": "Re-cited only, behaviour unchanged: at B3 the counters and current-id fields move into the shared StreamedTextTracker (SessionSupport.swift), and message_end additionally calls stream.endThinking() where B2 cleared currentThinkingID inline in the same case; the net effect (both ids cleared at message_end) is identical. B2 :307-337 -> B3 :298-321 (impact R3-26, recite_lines_only)."
     },
     {
       "id": "PR-PROVCLI-228",
@@ -5552,8 +5569,8 @@
       "id": "PR-PROVCLI-229",
       "title": "Command Code queues a tool row, diverts todo_write, snapshots a file before a write and rescans the gate",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:342-356 - tool_queued with the comment at :355",
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:640-646 - snapshot reads text files up to 1 MB and returns nil otherwise"
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:342-356 - tool_queued with the comment at :355; `editSnapshots.capture(id, path: path)` at :352 for a write_file call",
+        "DroppyCode/Services/Providers/SessionSupport.swift:9-11 EditSnapshots.capture - `contents[id] = Self.read(path) ?? \"\"`, and :36-40 read - reads text files up to 1 MB and returns nil otherwise"
       ],
       "preconditions": "A tool_queued event with a call id and a tool name.",
       "action": "handleEvent processes it.",
@@ -5571,14 +5588,16 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Re-cited only, behaviour unchanged: at B3 the private `snapshot(_:)` reader is gone and CommandCodeSession keeps an `editSnapshots: EditSnapshots` value (SessionSupport.swift, shared with AntigravitySession) instead; capture/read behave identically (1 MB UTF-8 cap, nil otherwise). B2 :640-646 -> B3 SessionSupport.swift:9-11,:36-40 (impact R3-26, recite_lines_only)."
     },
     {
       "id": "PR-PROVCLI-230",
       "title": "Command Code updates, completes, fails and declines tool rows, always skipping todo_write",
       "source_evidence": [
         "DroppyCode/Services/Providers/CommandCodeSession.swift:357-377 - tool_update, tool_completed, tool_errored and the shared tool_hook_blocked / tool_denied label",
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:629-638 - finishEdit"
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:600-605 finishEdit - `guard let path = toolInputs[id]?[\"file_path\"]?.string else { return nil }; return editSnapshots.finish(id, path: path, relativeTo: workingDirectory)`",
+        "DroppyCode/Services/Providers/SessionSupport.swift:27-33 EditSnapshots.finish - the before/after re-read and the path-only-when-unchanged rule"
       ],
       "preconditions": "A tool call previously queued.",
       "action": "A later tool frame arrives.",
@@ -5596,7 +5615,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Re-cited only, behaviour unchanged: at B3 finishEdit delegates to the shared EditSnapshots.finish (SessionSupport.swift) instead of holding its own snapshot dictionary; the before/after comparison and the path-only-when-unchanged result are identical. B2 :629-638 -> B3 CommandCodeSession.swift:600-605 plus SessionSupport.swift:27-33 (impact R3-26, recite_lines_only)."
     },
     {
       "id": "PR-PROVCLI-231",
@@ -5884,27 +5904,30 @@
     },
     {
       "id": "PR-PROVCLI-243",
-      "title": "Command Code todo parsing accepts three text keys and five status strings",
+      "title": "Command Code todo parsing uses the shared ACP todo parser: four text keys and seven status strings",
       "source_evidence": [
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:534-544 - todos(from:)"
+        "DroppyCode/Services/Providers/CommandCodeSession.swift:348 - `onEvent?(.todos(ACPSession.parseTodoItems(input[\"todos\"])))`, inside the \"tool_queued\" case's `if name == \"todo_write\"` branch",
+        "DroppyCode/Services/Providers/ACPSession.swift:688-699 - `static func parseTodoItems(_ value: JSONValue?) -> [TodoStep]`: `guard let text = item[\"content\"]?.string ?? item[\"text\"]?.string ?? item[\"step\"]?.string ?? item[\"title\"]?.string, !text.trimmed.isEmpty else { return nil }`; `let status: TodoStep.Status = switch item[\"status\"]?.string { case \"completed\", \"complete\", \"done\": .done; case \"in_progress\", \"inProgress\", \"in-progress\", \"active\": .active; default: .pending }`"
       ],
       "preconditions": "A todo_write call's input.",
-      "action": "todos(from:) runs.",
-      "expected_result": "Each entry of input.todos needs a string under \"content\", else \"text\", else \"title\"; entries with none are skipped. Status \"completed\" OR \"done\" -> .done; \"in_progress\" OR \"active\" -> .active; anything else, including a missing status, -> .pending. This is broader than Claude's parser, which reads only \"content\" and only two status strings.",
+      "action": "ACPSession.parseTodoItems(input[\"todos\"]) runs.",
+      "expected_result": "Each entry of the array needs a non-blank string (after trimming) under \"content\", else \"text\", else \"step\", else \"title\"; entries with none, or whose text is empty or all whitespace, are skipped. Status \"completed\", \"complete\" OR \"done\" -> .done; \"in_progress\", \"inProgress\", \"in-progress\" OR \"active\" -> .active; anything else, including a missing status, -> .pending. Command Code's own todo_write handling no longer has a separate parser: this is the same shared helper ACPSession itself and Claude's TodoWrite use (PR-PROVCLI-063), so all three now accept the same four text keys and seven status strings, wider than the previous per-provider parsers.",
       "side_effects": [
         "One provider event"
       ],
       "persistence": "none",
       "failure_cases": [
-        "A missing todos array yields an empty list, which is still emitted."
+        "A missing todos array yields an empty list, which is still emitted.",
+        "An entry whose only text field is empty or whitespace-only is skipped, not emitted as a blank step."
       ],
       "cancellation": "not cancellable",
       "windows_path": "None.",
-      "verification_method": "unit test over all three text keys and all five status strings",
-      "status": "IMPLEMENTED",
+      "verification_method": "unit test over all four text keys, all seven status strings, and a whitespace-only text field",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "At 1.7.0 CommandCodeSession's own todos(from:) (B2 :534-544) is deleted; todo_write now emits ACPSession.parseTodoItems(input[\"todos\"]) (CommandCodeSession.swift:348; ACPSession.swift:688-699), which is shared with Claude (PR-PROVCLI-063) and adds the \"step\" text key, the \"complete\" and \"inProgress\"/\"in-progress\" status spellings, and drops blank-text entries instead of emitting them."
     },
     {
       "id": "PR-PROVCLI-244",
@@ -6021,7 +6044,7 @@
       "title": "Command Code approvals always offer the same three options and carry a tool item id only for a known call",
       "source_evidence": [
         "DroppyCode/Services/Providers/CommandCodeSession.swift:678-698 - makeApproval",
-        "DroppyCode/Services/Providers/CommandCodeSession.swift:741-747 - grantKey"
+        "DroppyCode/Services/Providers/ProviderSession.swift:221-230 - `extension ApprovalRequest.Kind` / `var grantKey: String {` / `case .command: \"command\"` / `case .fileChange: \"fileChange\"` / `case .tool, .permissions, .plan: \"tool\"` (moved there from CommandCodeSession's own grantKey at B3, unchanged)"
       ],
       "preconditions": "A gate request being shown.",
       "action": "makeApproval runs.",
@@ -6036,7 +6059,8 @@
       "verification_method": "unit test over each row kind and a request with no matching tool row",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Re-cited only, behaviour unchanged: at B3 grantKey is no longer CommandCodeSession's own property but the shared `extension ApprovalRequest.Kind` in ProviderSession.swift (also used by ClaudeSession and PiSession), with the same three cases and mapping. B2 CommandCodeSession.swift:741-747 -> B3 ProviderSession.swift:221-230."
     },
     {
       "id": "PR-PROVCLI-249",
@@ -7805,7 +7829,8 @@
       "retired": {
         "reason": "At B2 Antigravity passes no MCP argv token at all. The B1 lines \"let connected = MCPProviderConfig.connectedIDs(); if !connected.isEmpty { arguments += [\\\"--allowed-mcp-server-names\\\"] + connected }\" were removed because agy has no such flag (it is Claude's) and exits 2 with usage text on an unknown flag, which killed every Antigravity session once one MCP server was connected. Scoping now comes only from GEMINI_CLI_SYSTEM_SETTINGS_PATH; the replacing behaviour is PR-PROVCLI-438.",
         "evidence": "DroppyCode/Services/Providers/AntigravitySession.swift:82-87 at 1fbf81e61e28a079508a074c01ee1830a9cc23dc (comment only: \"`agy` has no `--allowed-mcp-server-names` flag (that one is Claude's) and its flag parser exits 2 with usage text on an unknown flag\"); git diff dd2b86efef9e77168f304a86e8a8411877578bbe 1fbf81e61e28a079508a074c01ee1830a9cc23dc -- DroppyCode/Services/Providers/AntigravitySession.swift hunk @@ -79,9 +79,12 @@ removes \"-        let connected = MCPProviderConfig.connectedIDs()\" and \"-        if !connected.isEmpty { arguments += [\\\"--allowed-mcp-server-names\\\"] + connected }\""
-      }
+      },
+      "b3_note": "Still RETIRED at 1.7.0. Its cited MCPProviderConfig.swift:230-236 connectedIDs() is now deleted outright (absent from the B3 tree), so there is no code left that this record could even describe if it were reinstated; the replacing behaviour PR-PROVCLI-438 (GEMINI_CLI_SYSTEM_SETTINGS_PATH) still stands."
     },
     {
       "id": "PR-PROVCLI-320",
@@ -8112,9 +8137,9 @@
       "id": "PR-PROVCLI-332",
       "title": "Antigravity announces a tool step once, snapshotting a file when an edit goes active",
       "source_evidence": [
-        "DroppyCode/Services/Providers/AntigravitySession.swift:221-236 - the tool branch's start half",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:221-236 - the tool branch's start half; `editSnapshots.capture(id, path: path)` at :232",
         "DroppyCode/Services/Providers/AntigravitySession.swift:48-50 - the startedTools comment",
-        "DroppyCode/Services/Providers/AntigravitySession.swift:267-273 - snapshot"
+        "DroppyCode/Services/Providers/SessionSupport.swift:9-11 EditSnapshots.capture and :36-40 read - reads text files up to 1 MB and returns nil otherwise"
       ],
       "preconditions": "A tool step.",
       "action": "handleStep runs.",
@@ -8132,15 +8157,17 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Re-cited only, behaviour unchanged: at B3 the snapshot is `editSnapshots.capture` (the shared EditSnapshots value, SessionSupport.swift) rather than a private map and reader on AntigravitySession itself; the 1 MB UTF-8 read rule is identical. B2 :267-273 -> B3 SessionSupport.swift:9-11,:36-40 (impact R3-48 AntigravitySession, refactor with no observable change)."
     },
     {
       "id": "PR-PROVCLI-333",
       "title": "Antigravity closes a tool step as failed, declined or completed, attaching a before-and-after diff",
       "source_evidence": [
         "DroppyCode/Services/Providers/AntigravitySession.swift:237-248 - the error and done branches with the comment at :237-238",
-        "DroppyCode/Services/Providers/AntigravitySession.swift:256-265 - finishEdit",
-        "DroppyCode/Services/Providers/AntigravitySession.swift:264-270 - isDenied"
+        "DroppyCode/Services/Providers/AntigravitySession.swift:259-262 finishEdit - `guard let path = Self.path(in: parameters) else { return nil }; return editSnapshots.finish(id, path: path, relativeTo: workingDirectory)`",
+        "DroppyCode/Services/Providers/AntigravitySession.swift:266-270 isDenied",
+        "DroppyCode/Services/Providers/SessionSupport.swift:27-33 EditSnapshots.finish - the before/after re-read and the path-only-when-unchanged rule"
       ],
       "preconditions": "A tool step that is not in its opening ACTIVE state.",
       "action": "handleStep closes the row.",
@@ -8158,7 +8185,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Re-cited only, behaviour unchanged: at B3 finishEdit delegates to the shared EditSnapshots.finish; the before/after comparison and path-only-when-unchanged result are identical. B2 finishEdit :256-265 -> B3 :259-262 plus SessionSupport.swift:27-33; isDenied :264-270 -> :266-270 (impact R3-48 AntigravitySession, refactor with no observable change)."
     },
     {
       "id": "PR-PROVCLI-334",
@@ -10395,7 +10423,7 @@
         "DroppyCode/Services/Providers/CodexSession.swift:49-51 - \"/// The model each head runs on, as its thread reported it, so its spend can name it. A head that never reported one leaves its spend with no model.\" private var headModels: [String: String] = [:]",
         "DroppyCode/Services/Providers/CodexSession.swift:692 - headModels[id] = thread[\"model\"]?.string (adoption path, parent not this lead)",
         "DroppyCode/Services/Providers/CodexSession.swift:699 - headModels[id] = thread[\"model\"]?.string (parented path)",
-        "DroppyCode/Services/Providers/CodexSession.swift:678 - guard let id = thread[\"id\"]?.string, let threadID, !headThreads.contains(id) else { return }",
+        "DroppyCode/Services/Providers/CodexSession.swift:681-682 - guard let id = thread[\"id\"]?.string, let threadID, id != threadID, !headThreads.contains(id) else { return }",
         "DroppyCode/Services/Providers/CodexSession.swift:776-780 - a spawnAgent receiver is inserted into headThreads with no headModels entry",
         "DroppyCode/Services/Providers/CodexSession.swift:790-793 - a head adopted from a subAgentActivity note is inserted into headThreads with no headModels entry",
         "DroppyCode/Services/Providers/CodexSession.swift:619 - let headModel = headModels[head]"
@@ -10416,7 +10444,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Re-cited only for this record's own behaviour: the headStarted guard moved from one line to two and now also excludes the lead's own thread id (`id != threadID`, PR-PROVCLI-116), but that exclusion runs before either headModels-setting branch, so it does not change what this record describes - a head that reaches either branch still gets its model recorded exactly as before. B2 :678 -> B3 :681-682."
     },
     {
       "id": "PR-PROVCLI-441",

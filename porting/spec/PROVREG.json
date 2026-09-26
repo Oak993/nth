@@ -2980,7 +2980,7 @@
       "title": "Grok auth is read from the file .grok/auth.json in the home directory with no process launch",
       "source_evidence": [
         "DroppyCode/Services/Providers/ProviderRegistry.swift:931-942 auth case .grok - the URL is the home directory with \".grok/auth.json\" appended; the file is read and deserialized as a top-level object",
-        "E:/Droppy/port/porting/blocked_requirements.json BLK-0007 owner_ruling - OD-0008: \"REPRODUCE UPSTREAM: plan limits read each CLI's own credential file and query that provider's usage endpoint exactly as the source does. Parity, owner-approved.\" (decision_batch_20260922.md A7: \"Keep as upstream\"); BLK-0007 lists this read among its source evidence (B1 ProviderRegistry.swift:869-880 \"reads ~/.grok/auth.json\")"
+        "E:/Droppy/port/porting/blocked_requirements.json BLK-0007 owner_ruling - OD-0008: \"REPRODUCE UPSTREAM: plan limits read each CLI's own credential file and query that provider's usage endpoint exactly as the source does. Parity, owner-approved.\" (decision_batch_20260922.md A7: \"Keep as upstream\"); BLK-0007 lists this read among its source evidence (B1 ProviderRegistry.swift:790-801 \"reads ~/.grok/auth.json\")"
       ],
       "preconditions": "Grok is installed.",
       "action": "The auth probe runs.",
