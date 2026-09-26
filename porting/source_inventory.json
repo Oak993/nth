@@ -136,10 +136,19 @@
       "classification": "first_party_repo_root",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "repository root file",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          210
+        ],
+        [
+          211,
+          407
+        ]
+      ],
+      "reader": "R3-33-reader",
+      "findings_ref": "porting/read_ledger.jsonl#CHANGELOG.md",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -256,10 +265,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          93
+        ]
+      ],
+      "reader": "R3-34-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/AppDelegate.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -309,10 +323,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          480
+        ],
+        [
+          481,
+          948
+        ]
+      ],
+      "reader": "R3-01-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/AppModel+HydraMerge.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -354,10 +377,23 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          450
+        ],
+        [
+          451,
+          900
+        ],
+        [
+          901,
+          1374
+        ]
+      ],
+      "reader": "R3-02-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/AppModel.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -374,10 +410,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          480
+        ],
+        [
+          481,
+          951
+        ]
+      ],
+      "reader": "R3-03-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/AppSettings.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -444,10 +489,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          313
+        ]
+      ],
+      "reader": "R3-35-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Captures/TourCaptures.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -464,10 +514,23 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          450
+        ],
+        [
+          451,
+          900
+        ],
+        [
+          901,
+          1114
+        ]
+      ],
+      "reader": "R3-04-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Captures/WebsiteCaptures.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -609,10 +672,31 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          700
+        ],
+        [
+          701,
+          1400
+        ],
+        [
+          1401,
+          2100
+        ],
+        [
+          2101,
+          2800
+        ],
+        [
+          2801,
+          3804
+        ]
+      ],
+      "reader": "R3-05-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Runtime/ThreadRuntime.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -629,10 +713,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          327
+        ]
+      ],
+      "reader": "R3-36-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/UpdateChecker.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -674,10 +763,27 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          450
+        ],
+        [
+          451,
+          900
+        ],
+        [
+          901,
+          1350
+        ],
+        [
+          1351,
+          1730
+        ]
+      ],
+      "reader": "R3-37-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/ChatView.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -694,10 +800,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          400
+        ],
+        [
+          401,
+          711
+        ]
+      ],
+      "reader": "R3-37-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/HydraButton.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -714,10 +829,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          170
+        ]
+      ],
+      "reader": "R3-37-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/HydraHeadPopovers.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -784,10 +904,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          300
+        ],
+        [
+          301,
+          552
+        ]
+      ],
+      "reader": "R3-37-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/HydraPanel.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -829,10 +958,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          330
+        ],
+        [
+          331,
+          655
+        ]
+      ],
+      "reader": "R3-37-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/HydraReportsPopover.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -924,10 +1062,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          340
+        ],
+        [
+          341,
+          666
+        ]
+      ],
+      "reader": "R3-06-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/SubagentPanel.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -944,10 +1091,27 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          700
+        ],
+        [
+          701,
+          1400
+        ],
+        [
+          1401,
+          2100
+        ],
+        [
+          2101,
+          2326
+        ]
+      ],
+      "reader": "R3-38-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/ThreadTimeline.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -964,10 +1128,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          436
+        ]
+      ],
+      "reader": "R3-38-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Chat/TimelineMinimap.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1141,10 +1310,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          237
+        ]
+      ],
+      "reader": "R3-38-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Composer/DownloadsPopover.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1186,10 +1360,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          700
+        ],
+        [
+          701,
+          1347
+        ]
+      ],
+      "reader": "R3-38-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Composer/EffortSlider.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1231,10 +1414,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          533
+        ]
+      ],
+      "reader": "R3-38-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Composer/FollowUpQueueTab.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1376,10 +1564,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          692
+        ]
+      ],
+      "reader": "R3-39-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Diff/DiffInspector.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1421,10 +1614,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          450
+        ]
+      ],
+      "reader": "R3-39-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/RootView.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1470,10 +1668,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          71
+        ]
+      ],
+      "reader": "R3-07-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/FloatingGuidePanel.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1540,10 +1743,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          195
+        ]
+      ],
+      "reader": "R3-08-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/MCPKeyPanel.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1560,10 +1768,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          580
+        ],
+        [
+          581,
+          1141
+        ]
+      ],
+      "reader": "R3-39-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/MCPSettingsPage.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1580,10 +1797,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          212
+        ]
+      ],
+      "reader": "R3-09-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/MCPSetupPanel.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1600,10 +1822,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          250
+        ],
+        [
+          251,
+          448
+        ]
+      ],
+      "reader": "R3-10-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1645,10 +1876,23 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          420
+        ],
+        [
+          421,
+          840
+        ],
+        [
+          841,
+          1209
+        ]
+      ],
+      "reader": "R3-11-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Settings/SettingsView.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1790,10 +2034,27 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          700
+        ],
+        [
+          701,
+          1400
+        ],
+        [
+          1401,
+          2050
+        ],
+        [
+          2051,
+          2695
+        ]
+      ],
+      "reader": "R3-39-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Sidebar/SidebarView.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -1835,10 +2096,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          160
+        ],
+        [
+          161,
+          318
+        ]
+      ],
+      "reader": "R3-12-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/App/Views/Terminal/TerminalPanel.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2255,10 +2525,23 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          480
+        ],
+        [
+          481,
+          960
+        ],
+        [
+          961,
+          1438
+        ]
+      ],
+      "reader": "R3-40-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Models/Hydra.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2275,10 +2558,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          54
+        ]
+      ],
+      "reader": "R3-40-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Models/HydraCookbook.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2345,10 +2633,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          220
+        ]
+      ],
+      "reader": "R3-40-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Models/MCP.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2565,10 +2858,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          369
+        ]
+      ],
+      "reader": "R3-40-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Models/Timeline.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2785,10 +3083,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          63
+        ]
+      ],
+      "reader": "R3-13-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Support/PendingReplies.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2880,10 +3183,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          184
+        ]
+      ],
+      "reader": "R3-41-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Support/StdioProcess.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2900,10 +3208,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          23
+        ]
+      ],
+      "reader": "R3-14-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Support/StoragePaths.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -2945,10 +3258,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          225
+        ]
+      ],
+      "reader": "R3-15-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Core/Support/Text.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -3015,11 +3333,11 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-42-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Resources/AppIcon.icon/Assets/mascot (3).png",
+      "asset_inspection": "1528x1749 RGBA PNG, transparent background. It is the light-appearance 'mascot' droplet layer of the Icon Composer bundle DroppyCode/Resources/AppIcon.icon (referenced by icon.json as layer name 'mascot ', image-name 'mascot (3).png', glass-specialization true for default/light, opacity 0 for dark and tinted appearances, position scale 0.5 / translation (0,36)). Visually: a single teardrop-shaped droplet with two oval white 'eyes' punched out near its base, rendered with soft internal shading (a bright highlight on the upper-left lobe, a darker gradient toward the lower-right) so it reads as a glossy/glass droplet mascot, surrounded by a soft white outer glow/halo. Between B2 and B3 the file's byte size changed from 614192 to 592376 bytes (git diff confirms a binary content change, 0 text lines by construction) with no dimension change; the droplet's fill color shifted from a lighter cyan-blue tone toward a more violet/periwinkle 'ultramarine' blue, matching the CHANGELOG.md B3 entry 'The app icon, the Droppy logo in Settings and the website's icons wear Droppy's new ultramarine blue' and the companion edit to DroppyCode/Resources/AppIcon.icon/icon.json's default fill-specialization linear-gradient, which moved from display-p3:0.56863,0.76863,1.00000 / srgb:0.14510,0.50196,1.00000 to srgb:0.51765,0.52549,0.96471 / srgb:0.07059,0.09804,0.92941.",
       "exclusion_reason": null
     },
     {
@@ -3075,11 +3393,11 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-42-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Resources/AppIcon.icon/Assets/shadow def.png",
+      "asset_inspection": "743x339 RGBA PNG, transparent background. A soft, heavily blurred elliptical drop shadow in the same blue-violet family as the mascot layer, denser and more saturated toward the center and fading to full transparency at the edges. It is icon.json's 'shadow def' layer (image-name 'shadow def.png', glass-specializations false/false, opacity 1 for default/light, 0 for dark and tinted, position scale 1 / translation (0,342)), sitting beneath the mascot to ground it in the light-appearance composition. Byte size changed 279706 -> 319334 bytes between B2 and B3 with no dimension change; the color/opacity falloff shifted in step with the same ultramarine recolor as mascot (3).png and icon.json's gradient (same commit, same CHANGELOG.md entry).",
       "exclusion_reason": null
     },
     {
@@ -3095,10 +3413,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          187
+        ]
+      ],
+      "reader": "R3-45-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Resources/AppIcon.icon/icon.json",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -3350,11 +3673,11 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-42-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo.png",
+      "asset_inspection": "256x256 RGBA PNG. The fully composed, flattened Droppy Code app-icon artwork (rounded-square blue gradient tile with the white/blue-violet droplet mascot centered on it) at 1x scale, as listed in this imageset's Contents.json ({filename: droppy-logo.png, scale: 1x} alongside droppy-logo@2x.png at 2x). Between B2 and B3 the byte size shrank from 51677 to 42660 bytes with no dimension change; the visible recolor is the same ultramarine shift (the background gradient and droplet both move from the lighter cyan-blue B2 palette toward the more violet-blue B3 palette), consistent with the CHANGELOG.md B3 entry naming 'the Droppy logo in Settings' explicitly.",
       "exclusion_reason": null
     },
     {
@@ -3370,11 +3693,11 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-42-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo@2x.png",
+      "asset_inspection": "512x512 RGBA PNG, the 2x-scale companion of droppy-logo.png in the same imageset (Contents.json entry {filename: droppy-logo@2x.png, scale: 2x}), visually identical composition to the 1x file (blue-gradient rounded-square tile with the droplet mascot) at double the pixel dimensions. Byte size changed 168848 -> 127975 bytes between B2 and B3 with no dimension change, same ultramarine recolor as droppy-logo.png (same commit).",
       "exclusion_reason": null
     },
     {
@@ -7400,10 +7723,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          420
+        ],
+        [
+          421,
+          828
+        ]
+      ],
+      "reader": "R3-16-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Git/Git.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7524,10 +7856,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          252
+        ]
+      ],
+      "reader": "R3-46-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPBridgeSource.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7544,10 +7881,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          25
+        ]
+      ],
+      "reader": "R3-17-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPCatalogEntry+Resolve.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7589,10 +7931,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          200
+        ],
+        [
+          201,
+          376
+        ]
+      ],
+      "reader": "R3-18-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPHub.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7609,10 +7960,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          32
+        ]
+      ],
+      "reader": "R3-46-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPKeychain.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7629,10 +7985,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          470
+        ],
+        [
+          471,
+          933
+        ]
+      ],
+      "reader": "R3-46-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPOAuth.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7649,10 +8014,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          22
+        ]
+      ],
+      "reader": "R3-19-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPPaths.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7669,10 +8039,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          235
+        ]
+      ],
+      "reader": "R3-20-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPProbe.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7689,10 +8064,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          244
+        ]
+      ],
+      "reader": "R3-46-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPProviderConfig.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7709,10 +8089,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          477
+        ]
+      ],
+      "reader": "R3-46-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPProxy.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7754,10 +8139,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          350
+        ]
+      ],
+      "reader": "R3-47-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPStore.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7774,10 +8164,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          246
+        ]
+      ],
+      "reader": "R3-21-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/MCP/MCPWire.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7823,10 +8218,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          84
+        ]
+      ],
+      "reader": "R3-48-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/APIKeychain.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7843,10 +8243,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          360
+        ],
+        [
+          361,
+          719
+        ]
+      ],
+      "reader": "R3-48-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/AntigravitySession.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7863,10 +8272,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          420
+        ],
+        [
+          421,
+          829
+        ]
+      ],
+      "reader": "R3-48-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/ClaudeSession.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7883,10 +8301,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          530
+        ],
+        [
+          531,
+          1059
+        ]
+      ],
+      "reader": "R3-48-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/CodexSession.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7903,10 +8330,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          460
+        ]
+      ],
+      "reader": "R3-48-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/CommandCodeAPI.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7923,10 +8355,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          360
+        ],
+        [
+          361,
+          722
+        ]
+      ],
+      "reader": "R3-22-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/CommandCodeSession.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -7976,10 +8417,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          78
+        ]
+      ],
+      "reader": "R3-49-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/DeepSeekAPI.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8021,10 +8467,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          70
+        ]
+      ],
+      "reader": "R3-49-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/MetaAPI.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8091,10 +8542,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          35
+        ]
+      ],
+      "reader": "R3-23-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/OpenAICompatibleAPI.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8111,10 +8567,23 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          450
+        ],
+        [
+          451,
+          900
+        ],
+        [
+          901,
+          1334
+        ]
+      ],
+      "reader": "R3-49-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/OpenAICompatibleSession.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8181,10 +8650,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          320
+        ],
+        [
+          321,
+          610
+        ]
+      ],
+      "reader": "R3-24-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/PiSession.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8276,10 +8754,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          480
+        ],
+        [
+          481,
+          958
+        ]
+      ],
+      "reader": "R3-25-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/ProviderRegistry.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8296,10 +8783,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          230
+        ]
+      ],
+      "reader": "R3-49-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/ProviderSession.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8316,10 +8808,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          124
+        ]
+      ],
+      "reader": "R3-26-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/SessionSupport.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8386,10 +8883,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          207
+        ]
+      ],
+      "reader": "R3-49-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Providers/ZaiAPI.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8431,10 +8933,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          387
+        ]
+      ],
+      "reader": "R3-50-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Store/Storage.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8451,10 +8958,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          350
+        ],
+        [
+          351,
+          698
+        ]
+      ],
+      "reader": "R3-50-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/Services/Store/TokenLedger.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8471,10 +8987,23 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          400
+        ],
+        [
+          401,
+          800
+        ],
+        [
+          801,
+          1137
+        ]
+      ],
+      "reader": "R3-27-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Chrome/Chrome.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8541,10 +9070,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          304
+        ]
+      ],
+      "reader": "R3-28-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Chrome/DragHandle.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8711,10 +9245,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          200
+        ],
+        [
+          201,
+          401
+        ]
+      ],
+      "reader": "R3-29-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Chrome/WindowChrome.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8756,10 +9299,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          433
+        ]
+      ],
+      "reader": "R3-51-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Common/AttachmentPreview.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -8826,10 +9374,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          166
+        ]
+      ],
+      "reader": "R3-51-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Common/Components.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9021,10 +9574,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          51
+        ]
+      ],
+      "reader": "R3-30-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Markdown/LinkHover.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9041,10 +9599,19 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          275
+        ],
+        [
+          276,
+          550
+        ]
+      ],
+      "reader": "R3-52-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Markdown/LinkParagraphView.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9061,10 +9628,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          108
+        ]
+      ],
+      "reader": "R3-52-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Markdown/LinkPopover.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9131,10 +9703,23 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          500
+        ],
+        [
+          501,
+          1000
+        ],
+        [
+          1001,
+          1425
+        ]
+      ],
+      "reader": "R3-31-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Markdown/MarkdownView.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9151,10 +9736,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          33
+        ]
+      ],
+      "reader": "R3-32-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Markdown/MentionScanner.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9171,10 +9761,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          209
+        ]
+      ],
+      "reader": "R3-52-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Markdown/ProseRunView.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9370,10 +9965,15 @@
       "classification": "first_party_app",
       "build_inclusion": "in_app_target",
       "inclusion_evidence": "project.yml targets.DroppyCode.sources[0] path=DroppyCode type=syncedFolder",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          270
+        ]
+      ],
+      "reader": "R3-53-reader",
+      "findings_ref": "porting/read_ledger.jsonl#DroppyCode/UI/Theme/Wallpaper.swift",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -9540,11 +10140,11 @@
       "classification": "first_party_docs",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "repository documentation",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-42-reader",
+      "findings_ref": "porting/read_ledger.jsonl#docs/droppy-logo.png",
+      "asset_inspection": "256x256 RGBA PNG, visually identical composition to DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo.png (same blue-gradient rounded-square tile with the droplet mascot) and the same 256x256 dimensions and 42660-byte size, but a byte-for-byte different file (cmp shows the first differing byte at offset 59, inside the PNG header/metadata region, not user-visible pixel data) -- i.e. same rendered image, re-exported/re-saved independently for the docs/ tree with different embedded metadata (e.g. encoder text chunk or timestamp) than the asset-catalog copy. Byte size changed 51677 -> 42660 bytes between B2 and B3 (identical delta to droppy-logo.png), same ultramarine recolor.",
       "exclusion_reason": null
     },
     {
@@ -9560,11 +10160,11 @@
       "classification": "first_party_docs",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "repository documentation",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-43-reader",
+      "findings_ref": "porting/read_ledger.jsonl#docs/icon.png",
+      "asset_inspection": "512x512 8-bit RGBA PNG (134,947 bytes). It is the README.md header image (README.md:1, `<img src=\"docs/icon.png\" width=\"128\" alt=\"Droppy Code icon\">`) and the canonical full-resolution rendering of the app's Droppy mascot: a rounded-square tile with a background of vertical columns of binary digits (0/1) fading from a lighter blue at the top toward a deeper blue at the bottom, overlaid by a large glossy blue water-droplet character with two white oval eyes and a specular highlight. Compared against the B2 (1.6.2, commit 1fbf81e61e) blob, the composition, crop and layout are pixel-identical in structure; only the color grade changed, from the B2 sky-blue/cyan gradient to a noticeably deeper, more saturated indigo/ultramarine gradient, matching commit 280e05d8b's message 'Icon: Droppy's new ultramarine art-style blue'.",
       "exclusion_reason": null
     },
     {
@@ -9630,10 +10230,15 @@
       "classification": "first_party_build_config",
       "build_inclusion": "build_system",
       "inclusion_evidence": "XcodeGen manifest; authoritative source of target/version/settings",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          59
+        ]
+      ],
+      "reader": "R3-54-reader",
+      "findings_ref": "porting/read_ledger.jsonl#project.yml",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -10111,11 +10716,11 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-43-reader",
+      "findings_ref": "porting/read_ledger.jsonl#website/assets/brand/droppy-code-icon-180.png",
+      "asset_inspection": "180x180 8-bit RGBA PNG (30,174 bytes), the same rounded-square binary-digit-background Droppy droplet mascot as docs/icon.png, downscaled. Referenced twice in the marketing site as `<link rel=\"apple-touch-icon\" sizes=\"180x180\" href=\"/assets/brand/droppy-code-icon-180.png\">` (website/index.html:48 and website/changelog.html:45), i.e. the iOS/iPadOS home-screen bookmark icon for the marketing site, not the app itself. Same B2->B3 color-only change (sky-blue to ultramarine) as the other four files in this bundle, part of the same commit 280e05d8b.",
       "exclusion_reason": null
     },
     {
@@ -10131,11 +10736,11 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-43-reader",
+      "findings_ref": "porting/read_ledger.jsonl#website/assets/brand/droppy-code-icon-256.webp",
+      "asset_inspection": "256x256 RGBA WebP (10,462 bytes; RIFF/WebP with alpha, decoded and visually verified). Same Droppy mascot artwork as the PNG variants, encoded as WebP for smaller page-weight. Used twice in website/index.html as an inline, larger decorative mark: the 'wordscroll' hero section icon (`<span class=\"wordscroll__icon-wrap\"><img class=\"wordscroll__icon\" src=\"assets/brand/droppy-code-icon-256.webp\" ... width=\"96\" height=\"96\" ...>`, index.html:386) and the page outro icon (`<img class=\"outro__icon\" src=\"...\" width=\"96\" height=\"96\" ...>`, index.html:695). It is the only file of the five in this bundle that is a WebP rather than a PNG. Same color-only B2->B3 change as the rest of the bundle.",
       "exclusion_reason": null
     },
     {
@@ -10151,11 +10756,11 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-43-reader",
+      "findings_ref": "porting/read_ledger.jsonl#website/assets/brand/droppy-code-icon-96.png",
+      "asset_inspection": "96x96 8-bit RGBA PNG (11,969 bytes), same mascot artwork downscaled further. This is the most heavily reused of the five files: it is the site's `<link rel=\"icon\" type=\"image/png\" sizes=\"96x96\">` favicon (website/index.html:47, website/changelog.html:44) and is also inlined at various display sizes (24x24 nav mark at index.html:91 and changelog.html:71/92, 34x34 at index.html:542, 48x48 at index.html:724 and changelog.html:120). Same color-only B2->B3 change as the rest of the bundle.",
       "exclusion_reason": null
     },
     {
@@ -10171,11 +10776,11 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-43-reader",
+      "findings_ref": "porting/read_ledger.jsonl#website/assets/brand/droppy-icon-64.png",
+      "asset_inspection": "64x64 8-bit RGBA PNG (5,913 bytes), the smallest raster of the five, same mascot artwork. Used as a small inline kicker mark in the hero section (`<img class=\"hero__kicker-mark\" src=\"assets/brand/droppy-icon-64.png\" ... width=\"22\" height=\"22\">`, index.html:119) and a small rounded mark elsewhere (`width=\"18\" height=\"18\" style=\"border-radius:5px\"`, index.html:708). Note the filename drops the '-code' segment used by the other four files ('droppy-icon-64' vs 'droppy-code-icon-*'), an existing naming inconsistency in the source, unrelated to this change. Same color-only B2->B3 change as the rest of the bundle.",
       "exclusion_reason": null
     },
     {
@@ -10191,11 +10796,11 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-44-reader",
+      "findings_ref": "porting/read_ledger.jsonl#website/assets/brand/favicon.ico",
+      "asset_inspection": "MS Windows icon resource containing 3 embedded raster frames (16x16, 32x32, 48x48), each PNG-compressed, 8-bit/color RGBA, 32 bits per pixel (verified with `file` and Pillow: sizes {(16,16),(32,32),(48,48)}). Visually it is Droppy's rounded-square app mark: an ultramarine/cobalt-blue tile with a faint binary-digit (0/1) texture behind a pale-blue water-drop silhouette that has two small white oval 'eyes', giving the drop a simple face. Rendering the 48x48 frame to PNG for inspection (im.convert('RGBA')) confirms the same drop-with-eyes glyph as the app icon shown in og-home.png and in the Credits/About Droppy logo, just flattened for favicon use with no rounded-corner alpha mask cut at these small sizes (the icon fills the square). File size grew from 6,862 to 7,504 bytes between B2 and B3 (`git diff --stat` on the pinned commits: 'Bin 6862 -> 7504 bytes'), consistent with a re-exported icon at a new fill color rather than a resize.",
       "exclusion_reason": null
     },
     {
@@ -10466,11 +11071,11 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
-      "asset_inspection": null,
+      "read_status": "READ",
+      "ranges_read": null,
+      "reader": "R3-44-reader",
+      "findings_ref": "porting/read_ledger.jsonl#website/assets/og/og-home.png",
+      "asset_inspection": "1200x630 PNG, 8-bit/color RGBA, non-interlaced (per `file`) - the standard Open Graph/Twitter-card social preview size. Visually: a near-black background tiled with a faint repeating pattern of small binary digits (0s and 1s); centered near the top is the same ultramarine rounded-square app icon as the favicon (binary-digit texture behind a pale-blue water-drop face with two white eyes). Below it, bold white/blue headline text reads 'All your coding agents, one native  Mac app' (with 'coding agents' set in a lighter blue and an Apple glyph before 'Mac app'), then a gray subheading 'Streaming replies, inline approvals, a diff for every turn. Free and open source.' At the bottom, a small droplet-with-padlock badge icon sits beside the line 'The coding app by Droppy'. File size grew from 135,966 to 147,893 bytes between B2 and B3 (git diff --stat, same commit range as the favicon), consistent with the same icon-recolor re-export rather than a text or layout change (the visible copy text is unchanged from B2's marketing claims).",
       "exclusion_reason": null
     },
     {
@@ -10486,10 +11091,15 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          178
+        ]
+      ],
+      "reader": "R3-55-reader",
+      "findings_ref": "porting/read_ledger.jsonl#website/changelog.html",
       "asset_inspection": null,
       "exclusion_reason": null
     },
@@ -10535,10 +11145,19 @@
       "classification": "first_party_website",
       "build_inclusion": "not_in_app_target",
       "inclusion_evidence": "netlify.toml site; may supply runtime content (changelog/update feed) - must be checked",
-      "read_status": "UNREAD",
-      "ranges_read": [],
-      "reader": null,
-      "findings_ref": null,
+      "read_status": "READ",
+      "ranges_read": [
+        [
+          1,
+          400
+        ],
+        [
+          401,
+          782
+        ]
+      ],
+      "reader": "R3-56-reader",
+      "findings_ref": "porting/read_ledger.jsonl#website/index.html",
       "asset_inspection": null,
       "exclusion_reason": null
     },

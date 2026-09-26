@@ -1,0 +1,86 @@
+{
+  "bundle_id": "R3-06",
+  "reader": "R3-06-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Chat/SubagentPanel.swift",
+      "sha256": "41315f9666bc82b7a8006cfeb65122898ea16d32aad08e81dd3d6477dce6f7ac",
+      "ranges_read": [[1, 340], [341, 666]],
+      "asset_inspection": null,
+      "purpose": "Holds the whole floating-panel system of a chat: the FloatingPanelID/PanelDockCorner/PanelDockSide/PanelReserve/PanelDocks vocabulary, and SubagentPanelLayout, the pure geometry that sizes a panel (width 400, min 300x220, compact height 280, stack share of verticalRoom) and places it in one of four docked corners beside or above the composer, picks the nearest corner with a 56-point slack, the nearest stack slot, and clamps a dragged panel 8 points inside the pane. It also renders SubagentPanel, a helper thread's glass chat panel (ThreadTimeline or HydraHeadProgress, a ComposerArea inset at the bottom, a top strip with an invisible 'Drag to move' handle, a SubagentWorkingBox capsule and an xmark close button that asks 'Stop this helper?' via ClosePanelPopover while the helper runs), plus the drag/resize machinery shared by every floating panel: PanelDragState (live drag with flick carry 0.12 s and rest-before-drop 0.08 s), PlacedPanel/PanelPlacement (offset with Chrome.panelSlide settle, suppressed during drag, grip resize and live window resize), PanelResizeAxes/PanelResize/PanelResizeState/PanelResizeGrips (6-point edges, 16-point free corner, frame-resize cursors) and PanelDragHandle. In B3 PanelDragHandle became a thin SwiftUI View over the new shared DragHandle (UI/Chrome/DragHandle.swift) configured axis .free, slop 2, instead of owning its own NSViewRepresentable and NSView subclass.",
+      "key_symbols": [
+        "enum FloatingPanelID { subagent, hydra, popped, usage, auto(UUID) } (:5-7)",
+        "enum PanelDockSide { leading, trailing } (:10-12)",
+        "enum PanelDockCorner: String { topLeading, topTrailing, bottomLeading, bottomTrailing; side; isTop; make(side:isTop:); acrossTheColumn } (:15-45)",
+        "struct PanelReserve { leading, trailing } (:49-52)",
+        "struct PanelDocks { init(layout:reserve:); subscript(corner:); stacked(_:below:slots:layout:); static corner(forSlot:of:side:) } (:55-97)",
+        "struct SubagentPanelLayout { width 400, minWidth 300, minHeight 220, gap 12, sideMargin 20, bottomMargin 14, minComposerWidth 360, composerMaxWidth 820, cornerSlack 56, compactHeight 280; pane, composerAreaHeight, stackDepth, preferred, compact; panelWidth, sitsBesideComposer, fitsBothSides, composerReserve, verticalRoom, panelHeight, panelSize, fitted(_:), dockedOrigin(_:reserve:), dockCorner(nearest:keeping:docks:), slotIndex(at:slots:docks:), clamped(_:) } (:103-242)",
+        "struct SubagentPanel: View { thread, size, workingDirectory, projectName, onDrag, onDragEnd, close; cornerRadius 22; handleHeight = Chrome.chromeTopPadding + Chrome.capsuleHeight + 6 } (:247-357)",
+        "private struct SubagentWorkingBox: View { title, isRunning, isSending, name } (:365-413)",
+        "private struct ClosePanelPopover: View (:418-432)",
+        "@Observable @MainActor final class PanelDragState { position, grab, velocity, lastMove, flickCarry 0.12, restBeforeDrop 0.08; move(by:from:in:), reclamp(in:), release() } (:438-496)",
+        "struct PlacedPanel<Content: View>: View { drag, rest, size, content, resize, isResizing } (:504-525)",
+        "private struct PanelPlacement: ViewModifier (:530-547)",
+        "struct PanelResizeAxes: OptionSet { width, height, both } (:550-555)",
+        "struct PanelResize { corner, onResize, onResizeEnd, onReset } (:559-567)",
+        "@Observable @MainActor final class PanelResizeState { start, liveSize, liveUsageHeight, isActive, begin(at:), end() } (:570-589)",
+        "private struct PanelResizeGrips: View { edge 6, corner 16; grip(_:position:); cornerPosition(of:) } (:593-638)",
+        "struct PanelDragHandle: View { onDrag, onDragEnd, cursor = .openHand, dragCursor = .closedHand, onDoubleClick; body = DragHandle(axis: .free, cursor:, dragCursor:, slop: 2, onChange: onDrag, onEnd: onDragEnd, onDoubleClick:) } (:646-666) [B3: was NSViewRepresentable]"
+      ],
+      "calls_into": [
+        "DragHandle / DragHandleView (DroppyCode/UI/Chrome/DragHandle.swift, new in B3) from PanelDragHandle.body (:656-664)",
+        "AppModel.runtime(for:) and model.settings.hydraShowsHeadDetails (:269, :272)",
+        "HydraHeadProgress(head:runtime:) (:275)",
+        "ThreadTimeline(runtime:scrollChrome:scrollState:projectName:workingDirectory:supportsRewind:false:columnHeight:showsMinimap:false).equatable() (:277-289)",
+        "ComposerArea(runtime:workingDirectory:compactModelChip:true:takesFocusOnAppear:false:showsChanges:false) (:293)",
+        "JumpToLatestButton(scrollState:) (:295)",
+        "PaneTopVeil(model:) (:299)",
+        "ChromeCircleButton(symbol:\"xmark\",help:) (:316-321)",
+        "PopoverMenu, PopoverSectionHeader, PopoverNote, PopoverDivider, PopoverItem (:423-428)",
+        "MiniSpinner, .chromeGlassCapsule(), .transition(.softAppear) (:383-395)",
+        "TextCleanup.singleLine(_:limit:24).trimmed (:375)",
+        "Chrome.contentTopInset, Chrome.panelSlide, Chrome.glassTint, Chrome.secondaryText, Chrome capsule metrics",
+        ".glassEffect(.regular, in:) (:339)",
+        "CACurrentMediaTime() (:460, :493)",
+        "NSCursor.frameResize(position:directions:.all) (:621-622)",
+        "WindowLiveResize.isActive (:332, :401-402, :541)"
+      ],
+      "state_owned": [
+        "SubagentPanel: @State scrollChrome (ChromeScrollModel), scrollState (TimelineScrollState), isConfirmingClose",
+        "SubagentWorkingBox: @State isSending (true for 0.9 s after isRunning turns true)",
+        "PanelDragState: position (observed), grab/velocity/lastMove (@ObservationIgnored)",
+        "PanelResizeState: start, liveSize, liveUsageHeight"
+      ],
+      "side_effects": [
+        "Close button calls close() directly when idle, or presents ClosePanelPopover whose 'Close and stop' calls close() (which stops the helper's turn)",
+        "During a drag the underlying DragHandleView pushes the drag cursor after 2 points of travel and pops it on mouseUp or when removed from the window mid-drag (behaviour now lives in DragHandle.swift:127-133, 210-232)"
+      ],
+      "platform_assumptions": [
+        "AppKit cursor rect, acceptsFirstMouse and mouseDownCanMoveWindow = false for the drag strip (now inherited from DragHandleView in UI/Chrome/DragHandle.swift rather than a local NSView subclass)",
+        "AppKit y-up window coordinates inverted to a y-down travel for the panel offset (DragHandleView.Axis.free, DragHandle.swift:264)",
+        "NSCursor.openHand / .closedHand / .frameResize(position:directions:) cursors",
+        "Liquid Glass .glassEffect(.regular, in:) on the panel background (:339)",
+        "CACurrentMediaTime for flick velocity timing (:460)"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Invisible drag strip across the panel top, height Chrome.chromeTopPadding + Chrome.capsuleHeight + 6, tooltip and accessibility label \"Drag to move\" (:305-309)",
+        "SubagentWorkingBox capsule: MiniSpinner + \"Sending…\" or \"{name} working\" (name = first 24 chars of title, else \"Helper\"), accessibility label \"{name} working\" or \"Sending\" (:379-398)",
+        "ChromeCircleButton \"xmark\", help \"Close this chat and stop its turn\" while running else \"Close this chat\" (:316-323)",
+        "ClosePanelPopover, width 300: header \"Stop this helper?\", note \"“{title}” is still working. Closing the panel stops its turn. What it has done so far stays, and its chat moves to the sidebar under this one.\", items \"Close and stop\" (stop.circle, destructive) and \"Keep it working\" (arrow.uturn.backward) (:423-430)",
+        "Panel surface: RoundedRectangle radius 22 continuous, glass + Chrome.glassTint at 0.22 dark / 0.16 light, scrim black 0.3 / white 0.34, shadow black 1.0 dark / 0.65 light radius 28 y 10 (:333-355)",
+        "Resize grips: 6-point width and height strips on the free edges, 16x16 free-corner square, frame-resize cursors, tooltip \"Drag to resize · Double-click for the automatic size\", accessibility label \"Drag to resize\" (:593-638)"
+      ],
+      "feature_notes": [
+        "Only change B2->B3 (diff hunks at B2 :643-738 / B3 :643-666): PanelDragHandle changed from `struct PanelDragHandle: NSViewRepresentable` with makeNSView/updateNSView/update(_:) plus a file-local `final class PanelDragHandleView: NSView` (B2 :646-737) to `struct PanelDragHandle: View` whose body is `DragHandle(axis: .free, cursor: cursor, dragCursor: dragCursor, slop: 2, onChange: onDrag, onEnd: onDragEnd, onDoubleClick: onDoubleClick)` (B3 :646-666). File shrank from 738 to 666 lines; lines 1-642 are byte-identical in content and position, and the doc comment at :640-645 is unchanged.",
+        "The deleted PanelDragHandleView logic now lives in the new shared DroppyCode/UI/Chrome/DragHandle.swift (DragHandleView, Axis .free). Compared line by line for this configuration (grip nil, slop 2, isActive true, dragCursor non-nil): acceptsFirstMouse true (:183), mouseDownCanMoveWindow false (:186), cursor rect over bounds (:188-192), cursor identity check before invalidating cursor rects (:39-44), mouseDown records origin and fires onDoubleClick on clickCount 2 then leaves isDragging false because slop != 0 (:198-204), mouseDragged starts the drag at >= 2 points on either axis and pushes dragCursor (:210-220), mouseUp pops the cursor, reports final travel then onEnd (:222-228), viewDidMoveToWindow pops the cursor if removed mid-drag (:127-133), .free travel = (x - originX, originY - y) (:264). Same observable behaviour as B2; the only extras (wantsLayer with two sublayers at opacity 0, hover refresh, onBegin) are inert with no grip and no onBegin. Classification: refactor with no observable change.",
+        "PanelDragHandle's initializer surface (onDrag, onDragEnd, cursor = .openHand, dragCursor = .closedHand, onDoubleClick = nil) is unchanged, so every call site (SubagentPanel strip :305, PanelResizeGrips :618-624, and the HydraPanel / UsageFloatingPanel / FloatingSidebarPanel users) is unaffected.",
+        "Spec impact: PR-HYDRA-227 and UI-HYDRA-020 cite B2 :646-675 / :677-737 / :646-737, which no longer exist in this file; they need re-citation to B3 SubagentPanel.swift:646-666 plus DroppyCode/UI/Chrome/DragHandle.swift:6-267 (DragHandleView) and :270-304 (DragHandle). All other 24 citing records reference lines <= 638 (or :640-645) that are unchanged and unshifted."
+      ],
+      "unresolved_questions": [
+        "UNRESOLVED (pre-existing port observation, not a B3 change): the C# PanelDragHandleView.Travel (src/Marrow.App/Views/Chat/SubagentPanel.cs:908-913) computes height as pressOrigin.Y - point.Y from Avalonia's GetPosition, whose y already runs down; the Swift inversion exists only because AppKit's y runs up. Unless compensated elsewhere, vertical travel is reversed relative to SOURCE FACT DragHandle.swift:264 / B2 SubagentPanel.swift:735-736. Should be checked by the unit owner.",
+        "ENGINEERING DECISION pending: whether the C# PanelDragHandleView is folded into a port of the new shared UI.Chrome.DragHandle unit (no unit for DroppyCode/UI/Chrome/DragHandle.swift exists in porting/deps/units.json yet) or kept as a local control with its citations moved to DragHandle.swift."
+      ]
+    }
+  ]
+}

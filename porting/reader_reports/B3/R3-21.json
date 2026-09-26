@@ -1,0 +1,93 @@
+{
+ "bundle_id": "R3-21",
+ "reader": "R3-21-reader",
+ "files": [
+  {
+   "path": "DroppyCode/Services/MCP/MCPWire.swift",
+   "sha256": "1d2fdc26cf92968a339d0a05d56cef91eac19f8518d60de3ada3e8c7a85b0058",
+   "ranges_read": [
+    [
+     1,
+     246
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "New in B3 (commit d70cff8fe 'refactor: audit cleanups - five bug fixes, shared MCP and provider code, layer rules restored'): the MCP JSON-RPC wire layer that MCPHub (the in-app tool hub) and MCPProbe (the settings-page connection check) now share instead of each carrying its own copy. The caseless enum MCPWire holds the protocol constant \"2025-06-18\", the initialize params (clientInfo {\"name\": \"Droppy Code\", \"version\": \"1.0\"}), the request/notification envelopes, the error-object reader, the ten-page tools/list cursor walker and a streamable-HTTP POST that reads the response as a byte stream and returns at the first SSE 'data:' line whose id equals the request id, so a server that holds its event stream open no longer hangs the caller. MCPStdioConnection wraps the shared Core StdioProcess for a stdio MCP server: it launches the child in the home directory, numbers requests from 1, parks each request on a CheckedContinuation keyed by RPCID (buffering replies that arrive before anyone waits), races each request against a Task.sleep timeout, and fails every pending request with MCPWireError.exited(status) once the child's message stream ends; it replaces B2's two polling loops (MCPHub.waitStdio at 10 ms, MCPProbe.nextReply at 5 ms) and the private HubConversation / StdioConversation buffers.",
+   "key_symbols": [
+    "enum MCPWire :6-104",
+    "nonisolated static let protocolVersion = \"2025-06-18\" :7 (also interpolated into the JS bridge, MCPBridgeSource.swift:16)",
+    "nonisolated static func initializeParams() -> JSONValue :9-15 - {\"protocolVersion\", \"capabilities\": {}, \"clientInfo\": {\"name\": \"Droppy Code\", \"version\": \"1.0\"}}",
+    "nonisolated static func request(id: Int, method: String, params: JSONValue?) -> JSONValue :17-25 - jsonrpc \"2.0\", id, method, params only when non-nil",
+    "nonisolated static func notification(method: String) -> JSONValue :27-29 - jsonrpc \"2.0\" + method only",
+    "nonisolated static func errorMessage(in value: JSONValue) -> String? :31-34 - nil unless \"error\" is an object; message or \"unknown error\"",
+    "nonisolated static func listTools(_ page: (JSONValue) async throws -> JSONValue) async throws -> [JSONValue] :36-51 - at most 10 pages, params {} plus \"cursor\" when held, stops on absent/empty nextCursor",
+    "nonisolated static func post(to url: URL, headers: [String: String], sessionID: String?, payload: JSONValue, id: Int?, timeout: TimeInterval) async throws -> MCPHTTPReply :55-103",
+    "struct MCPHTTPReply: Sendable { let sessionID: String?; let body: JSONValue? } :106-109",
+    "struct MCPHTTPError: Error, Sendable { let status: Int?; let body: String } :111-114",
+    "enum MCPWireError: Error, Sendable { case exited(Int32?); case timedOut } :116-119",
+    "final class MCPStdioConnection: Sendable :122-246",
+    "let process: StdioProcess :123",
+    "private struct State { nextID = 1; pending: [RPCID: CheckedContinuation<JSONValue, Error>]; buffered: [RPCID: JSONValue]; exitStatus: Int32?; closed = false } :125-131",
+    "private let state = Mutex(State()) :133",
+    "static func launch(executable: URL, arguments: [String], environment: [String: String]) throws -> MCPStdioConnection :139-150",
+    "func stop() :152-154",
+    "var errorTail: String :156",
+    "func notify(_ method: String) :158-160",
+    "func request(_ method: String, _ params: JSONValue?, timeout: TimeInterval) async throws -> JSONValue :162-187",
+    "private func read() :189-196",
+    "private func awaitReply(_ id: RPCID) async throws -> JSONValue :198-217",
+    "private func handle(_ message: JSONValue) :219-228",
+    "private func abandon(_ id: RPCID) :230-233",
+    "private func close(status: Int32?) :235-245"
+   ],
+   "calls_into": [
+    "JSONValue (.object/.string/.int/.array accessors, subscript, JSONValue.parse(Data)/parse(String), data()) - DroppyCode/Core/Support/JSONValue.swift; note .int coerces finite doubles and numeric strings (JSONValue.swift:83-90)",
+    "RPCID(_:) and RPCID.int - DroppyCode/Core/Support/JSONRPC.swift:3-29 (int, double truncated to int, string kept as string)",
+    "StdioProcess(executable:arguments:directory:environment:), start(), send(_:), terminate(), errorTail, isRunning, waitForExit(), messages - DroppyCode/Core/Support/StdioProcess.swift",
+    "String.trimmed (trimmingCharacters(in: .whitespacesAndNewlines)) - DroppyCode/Core/Support/Text.swift:224",
+    "URLRequest(url:timeoutInterval:), setValue(_:forHTTPHeaderField:), URLSession.shared.bytes(for:), AsyncBytes.lines, HTTPURLResponse.value(forHTTPHeaderField:)",
+    "FileManager.default.homeDirectoryForCurrentUser",
+    "Synchronization.Mutex.withLock; withThrowingTaskGroup; Task.sleep(for: .seconds(_:)); withTaskCancellationHandler; withCheckedThrowingContinuation"
+   ],
+   "state_owned": [
+    "MCPStdioConnection.state (Mutex<State>): nextID starting at 1 and incremented per request; pending continuations keyed by RPCID; buffered replies keyed by RPCID (a reply that arrives with nobody waiting, including a late reply to an abandoned id, is kept and never evicted); exitStatus; closed flag set once by close(status:)",
+    "MCPStdioConnection.process: the StdioProcess it launched (exposed so MCPHub.track can register it for quit-time termination)",
+    "MCPWire keeps no state; post() is stateless (the caller supplies and adopts the session id)"
+   ],
+   "side_effects": [
+    "post(): one HTTP POST per call with the caller's headers, then Content-Type: application/json, Accept: application/json, text/event-stream, MCP-Protocol-Version: 2025-06-18, and Mcp-Session-Id when one is held; timeoutInterval is the caller's (Hub 60/30/per-call, Probe 30)",
+    "post(): on a non-2xx it reads at most 2000 bytes of the body then abandons the stream; on an SSE reply it stops reading at the first matching message; on an SSE reply to a notification (id nil) it returns without reading the stream",
+    "launch(): starts a child process (via StdioProcess.start) with the given executable, arguments and environment and the current user's home directory as working directory; spawns an unstructured Task that drains StdioProcess.messages",
+    "request()/notify(): write the JSON message plus one 0x0A byte to the child's stdin on StdioProcess's serial write queue (asynchronously, errors ignored)",
+    "stop(): StdioProcess.terminate - close stdin, SIGTERM if running, SIGKILL to the pid alone 3 seconds later if still running"
+   ],
+   "platform_assumptions": [
+    "Foundation URLSession.shared.bytes(for:) streaming with URLRequest.timeoutInterval as the idle timeout, and AsyncBytes.lines line splitting",
+    "Foundation Process + Pipe and POSIX SIGTERM/SIGKILL, reached through StdioProcess (its terminate() sends kill(pid, SIGKILL) to the pid only, no process group)",
+    "FileManager.default.homeDirectoryForCurrentUser as the child's working directory",
+    "Swift Synchronization.Mutex (macOS 15+) and structured concurrency (task groups, checked continuations, cancellation handlers)"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [],
+   "feature_notes": [
+    "Whole file new in B3 (not present at 1fbf81e6: git cat-file fails). It is a consolidation: MCPHub.swift loses initializeParams/request/notification (B2 :258-278), terminate (B2 :286-295), waitStdio (B2 :393-418), post (B2 :455-479), firstSSEMessage (B2 :481-493) and HubConversation (B2 :496-533); MCPProbe.swift loses the same builders (B2 :64-86), terminate (B2 :227-236), postJSON (B2 :303-334), firstSSEMessage (B2 :336-348) and StdioConversation (B2 :381-430). Callers in B3: MCPHub.swift:161,181,236,251-260,286-295,317,328,335,343-352; MCPProbe.swift:64,94,106,116,124,152-172,183,190,195-196; MCPBridgeSource.swift:16.",
+    "Unchanged on the wire: protocol version \"2025-06-18\" (now one constant, :7), initialize params and clientInfo \"Droppy Code\"/\"1.0\" (:9-15, port sends \"Marrow\" under OD-0012 F1), request/notification envelopes (:17-29), error-object rule (:31-34), the ten-page cursor walk (:36-51) and the four POST headers and their order (:63-70).",
+    "Changed - SSE reading (:85-102): B2 downloaded the whole body with URLSession.data(for:) and returned the first 'data:' object carrying ANY id; B3 streams bytes.lines and returns the first 'data:' line (trimmed of .whitespaces, 5-char prefix dropped, trimmed again) that parses as an object whose id, read through JSONValue.int, EQUALS the request id. A server that keeps its SSE stream open after answering no longer blocks until the idle timeout, and an unrelated message with a different id (e.g. a server-to-client request) is skipped instead of being returned as the reply. If the stream ends without a match the body is nil.",
+    "Changed - notifications over SSE (:92): with id nil and a text/event-stream reply, post returns MCPHTTPReply(sessionID, nil) immediately without reading the stream (B2 waited for the whole body).",
+    "Changed - non-2xx error body (:77-84): read byte by byte until 2000 BYTES, decoded as UTF-8 (repairing) and trimmed with .whitespacesAndNewlines, carried in MCPHTTPError(status:body:). B2 probe decoded the full body and kept the first 2000 CHARACTERS; B2 hub ignored the body (still does: it maps to \"The server answered <status>.\"). A non-HTTP response becomes MCPHTTPError(status: nil, body: \"\"), which Hub maps to \"The server sent something unexpected: invalid reply.\" and Probe to malformed(\"invalid reply\") as before.",
+    "Changed - stdio reply wait (:162-217): continuation-based instead of polling (Hub 10 ms, Probe 5 ms). Replies for ids nobody is waiting on are buffered (the probe used to DISCARD them), so a reply that beats its awaitReply registration is still delivered. Matching uses RPCID, so a server that echoes the id as a JSON string \"1\" no longer matches integer request 1 (B2 matched through JSONValue.int, which parses numeric strings); a double 1.0 still matches.",
+    "Changed - timeouts (:170-186): each request races awaitReply against Task.sleep(for: .seconds(timeout)); the loser is cancelled, and on timeout or any error the id's continuation is removed (abandon) and MCPWireError.timedOut (or the error) is thrown. Callers keep their texts: Hub \"The server didn't answer in time.\", Probe exitError(code: nil) -> timedOut or unauthorizedOAuth.",
+    "Changed - exit detection (:163, :189-196, :235-245): a request on a non-running process throws exited(await waitForExit()); otherwise pending requests fail with exited(status) only when StdioProcess.messages finishes (stdout EOF, or 1 s after the child exits when a grandchild holds stdout, StdioProcess.swift:177-182), after waitForExit. In B2 the hub reacted to the termination handler on its next 10 ms poll. Because waitForExit always yields a status, the hub now reports \"The server quit (exit N).\" where B2 could say \"The server quit.\"",
+    "Changed - stop (:152-154): StdioProcess.terminate (close stdin, SIGTERM, SIGKILL to the pid alone after 3 s) replaces the B2 terminate of both MCPHub and MCPProbe (SIGTERM, then after 1 s SIGKILL to the process group when the child leads one, else the pid).",
+    "Changed - stderr (:156): errorTail is the last 4000 bytes of the StdioProcess stderr buffer (itself capped at 64000, cut to the last 16000). The probe now feeds that tail, not its whole stderr buffer, into exitError's OAuth substring test and exited message; the hub's stderr, discarded in B2, is now buffered but unused.",
+    "Changed - output framing (via StdioProcess): lines are split on 0x0A, trailing CR and spaces are stripped, non-JSON lines are dropped, and an unterminated final line is delivered at EOF (B2 ignored an unterminated last line).",
+    "Changed - id numbering (:126, :164-168): per connection from 1. A hub client restarted after a crash sends initialize with id 1 again; B2 continued MCPClient.nextID across the restart. The stdio probe's sequence (1 initialize, 2.. tools/list) is unchanged. (The remote probe's fixed id 2 for every tools/list page is an MCPProbe.swift:196 change, not this file.)"
+   ],
+   "unresolved_questions": [
+    "UNRESOLVED: whether dropping an un-iterated URLSession.AsyncBytes (post's SSE-notification branch, :92, and the early returns at :81 and :100) cancels the underlying data task on macOS. The C# URLSession.AsyncBytes.Live (src/Marrow.Core/Port/Http.cs:926-932) starts receiving into an unbounded channel at once and only cancels on Release (enumerator dispose), so the port must decide explicitly whether to release it on those paths.",
+    "UNRESOLVED: MCPHub.track now registers MCPStdioConnection.process (a StdioProcess) and MCPLiveProcesses.terminateAll still sends kill(getpgid(pid) == pid ? -pid : pid, SIGKILL). The C# StdioProcess launches with UsesJobObject = false and is not an IProcessControl, so how the quit-time tree kill (ED-047 (a)) applies to a StdioProcess child on Windows needs a ruling (ED-126 only covers StdioProcess.terminate's pid-only kill).",
+    "UNRESOLVED (existing O-26): exact AsyncLineSequence line terminators for bytes.lines at :93; the C# AsyncBytes.Lines already carries this caveat."
+   ]
+  }
+ ]
+}

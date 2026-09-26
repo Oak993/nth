@@ -1,0 +1,371 @@
+{
+ "bundle_id": "R3-48",
+ "reader": "R3-48-reader",
+ "files": [
+  {
+   "path": "DroppyCode/Services/Providers/APIKeychain.swift",
+   "sha256": "b13659dc14feeefb3b972009befc05ead703615ad38bcf49542d5576f47e195b",
+   "ranges_read": [
+    [
+     1,
+     84
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "APIKeychain is the only Keychain gateway for the native API-key providers, and at B3 also the SecItem layer that MCPKeychain delegates to. It maps ProviderKind .deepseek, .meta, .zai and .commandcode to the fixed legacy accounts \"DeepSeek API Key\", \"Meta API Key\", \"Z.ai API Key\" and \"Command Code API Key\", and keeps one kSecClassGenericPassword item per account under the service AppInfo.name (overridable through a `service` parameter). Every value is trimmed and an empty one deletes the item. A write updates the existing item in place and adds a new one (kSecAttrAccessibleWhenUnlocked) only when none exists. A capture run reads nothing for a mapped provider.",
+   "key_symbols": [
+    "enum APIKeychain",
+    "static func key(for provider: ProviderKind, fallback: String) -> String",
+    "@discardableResult static func setKey(_ key: String, for provider: ProviderKind) -> Bool",
+    "private static func account(for provider: ProviderKind) -> String?",
+    "@discardableResult static func set(_ key: String, account: String, service: String = AppInfo.name) -> Bool",
+    "static func read(_ account: String, service: String = AppInfo.name) -> String?",
+    "static func delete(_ account: String, service: String = AppInfo.name)"
+   ],
+   "calls_into": [
+    "Security: SecItemUpdate, SecItemAdd, SecItemCopyMatching, SecItemDelete (kSecClassGenericPassword, kSecAttrService, kSecAttrAccount, kSecValueData, kSecReturnData, kSecMatchLimitOne, kSecAttrAccessibleWhenUnlocked)",
+    "CaptureRun.isEnabled",
+    "AppInfo.name",
+    "String.trimmed (Core/Support/Text.swift)",
+    "ProviderKind"
+   ],
+   "state_owned": [],
+   "side_effects": [
+    "Reads, updates, adds and deletes Keychain generic-password items in the login keychain under service AppInfo.name (or the caller's service)"
+   ],
+   "platform_assumptions": [
+    "macOS Keychain Services via the Security framework; OSStatus results errSecSuccess / errSecItemNotFound; kSecAttrAccessibleWhenUnlocked. The port stores these in Windows Credential Manager (OD-0008 B3)."
+   ],
+   "persisted_fields": [
+    "Keychain item service=AppInfo.name account=\"DeepSeek API Key\"",
+    "Keychain item service=AppInfo.name account=\"Meta API Key\"",
+    "Keychain item service=AppInfo.name account=\"Z.ai API Key\"",
+    "Keychain item service=AppInfo.name account=\"Command Code API Key\"",
+    "MCP secret items written through set/read/delete by MCPKeychain (accounts built by MCPKeychain.account(server:field:))"
+   ],
+   "ui_elements": [],
+   "feature_notes": [
+    "B2 -> B3: the four per-provider wrapper enums (DeepSeekKeychain, MetaKeychain, ZaiKeychain, CommandCodeKeychain) are deleted upstream. Their account strings move into APIKeychain.account(for:) (:25-34), which carries the doc comment 'The accounts older builds stored keys under; changing one loses that key.' Callers now pass a ProviderKind: AppSettings.swift:444 uses key(for: provider, fallback: \"\") and :485 uses setKey(value, for: provider).",
+    "key(for:fallback:) now returns the fallback for a provider with no account before the capture-run guard (:11-12). setKey(_:for:) returns false for such a provider without writing (:21).",
+    "The write rule changed from delete-then-add to update-then-add (:50-57), which is the rule MCPKeychain already used at B2. SecItemUpdate succeeds -> true. Any status other than errSecItemNotFound -> false, and the existing item stays. Only errSecItemNotFound -> SecItemAdd with kSecAttrAccessibleWhenUnlocked. So a refused write no longer destroys the previously stored key. This matters for PR-PROVAPI-003, PR-PROVREG-088 and PR-PROVREG-239: under OD-0008 A6 a refused key is still not saved, but after relaunch the earlier key is read back instead of nothing.",
+    "set/read/delete are now internal-visibility statics with a `service` parameter defaulting to AppInfo.name. MCPKeychain.swift:12-22 delegates to them, and its own SecItem code is deleted in B3.",
+    "The header doc comment dropped the history note about each wrapper once carrying its own SecItem copy."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/Services/Providers/AntigravitySession.swift",
+   "sha256": "1144a1dbee29b5c1f72767e591958b354729fe1ca0e285c743cab49677b69567",
+   "ranges_read": [
+    [
+     1,
+     360
+    ],
+    [
+     361,
+     719
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "AntigravitySession drives Google's Antigravity CLI (`agy`) in headless stream-json mode, with one persistent process per thread. It launches with --input-format/--output-format stream-json, --print-timeout 30m, --add-dir <thread folder>, the normalized --model/--effort, --mode plan|accept-edits, --dangerously-skip-permissions for Full access and --conversation for a resume. It writes one {event:user} object per turn and maps init/step_update/result events to provider events, with tool rows, before/after file diffs, per-step context usage and cumulative-to-per-turn token spend. It also owns the static catalog (`agy models` collapsed by effort suffix, plus `agy -p /model` for the current model), sign-in status and plan limits (`/usage` and `/credits` headless envelopes with tab-separated text fallbacks). At B3 the edit before/after snapshots go through the shared EditSnapshots helper in SessionSupport.swift.",
+   "key_symbols": [
+    "@MainActor final class AntigravitySession: ProviderSession",
+    "private var editSnapshots = EditSnapshots()",
+    "private var startedTools: Set<String>",
+    "static let efforts = [\"low\", \"medium\", \"high\"]",
+    "func start() async throws -> String",
+    "private func modeArguments(runtimeMode:interaction:) -> [String]",
+    "func send(_ input: TurnInput) async throws",
+    "func interrupt() async",
+    "func compact() async throws",
+    "private func handle(_ message: JSONValue)",
+    "private func handleStep(_ step: JSONValue)",
+    "private func finishEdit(_ id: String, parameters: JSONValue) -> [FileEdit]?",
+    "private static func isDenied(_ message: String) -> Bool",
+    "private static func contextUsage(_ usage: JSONValue?) -> ContextUsage?",
+    "private func handleResult(_ result: JSONValue)",
+    "private func didClose()",
+    "private func authHint(in text: String) -> String?",
+    "struct ParsedModelRow",
+    "static func parseModelRow(slug:name:) -> ParsedModelRow",
+    "static func normalize(model:effort:) -> (model: String?, effort: String?)",
+    "static func listModels(executable:environment:) async throws -> [ModelOption]",
+    "static func authStatus(executable:environment:) async -> ProviderStatus.Auth",
+    "static func readPlanLimits(executable:environment:) async throws -> PlanLimits?",
+    "private func makeToolCall(name:parameters:) -> ToolCall",
+    "private static func kind(of name: String) -> ToolCall.Kind"
+   ],
+   "calls_into": [
+    "StdioProcess (start, send, terminate, messages, errorTail)",
+    "Shell.run",
+    "EditSnapshots.capture / finish / removeAll (Services/Providers/SessionSupport.swift, new in B3)",
+    "TokenSpendTracker.spend / seedBaseline",
+    "TokenLedger.shared.record(spend:)",
+    "ToolTitles.relativePath / unwrapShell",
+    "TextCleanup.stripANSI / lastLines / singleLine",
+    "ISO8601.date(from:)",
+    "JSONValue.parse / compactString"
+   ],
+   "state_owned": [
+    "process, readTask, initContinuation, conversationID",
+    "runtimeMode, interactionMode, model, effort",
+    "turnActive, interruptRequested, isStopping, streamedText",
+    "spendTracker, spendBaselineKnown, launchID",
+    "editSnapshots (EditSnapshots), startedTools"
+   ],
+   "side_effects": [
+    "Spawns and terminates the agy process; writes stream-json user messages to its stdin",
+    "Reads a file of up to 1,000,000 bytes before and after an edit step, through EditSnapshots",
+    "Records per-turn token spend in TokenLedger and emits tokenSpend events",
+    "Runs `agy models`, `agy -p /model --output-format json`, `agy -p /usage` and `agy -p /credits` for the catalog, sign-in status and plan limits"
+   ],
+   "platform_assumptions": [
+    "The agy executable is found on the login PATH; `agy` sign-in state lives in the cached Google session or GEMINI_API_KEY",
+    "File size is read through URL.resourceValues(.fileSizeKey) (now inside EditSnapshots)"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Notice: \"Antigravity held back <names> without prompting. Use Full access or add an allow rule in the CLI's settings.\"",
+    "Turn failure: \"Antigravity held back <names> waiting for a permission it could not ask for. Use Full access for this chat.\"",
+    "Start failure: \"Antigravity did not answer. Is `agy` signed in? Run `agy` once in Terminal.\"",
+    "\"Antigravity is not signed in. Run `agy` once in Terminal to sign in.\"",
+    "\"Antigravity manages its own context.\"",
+    "\"Antigravity stopped before finishing.\" / \"Antigravity exited.\" / \"The tool failed.\"",
+    "Plan window titles \"<group> · <bucket>\" and \"AI credits · <n> remaining\""
+   ],
+   "feature_notes": [
+    "B2 -> B3 (churn 19) is a refactor with no observable change. The [String: String] editSnapshots map and the private static snapshot(_:) reader (B2 :259-273) are replaced by the shared EditSnapshots value (SessionSupport.swift:4-41). capture(_:path:) stores the file text or \"\", finish(_:path:relativeTo:) returns nil without a snapshot, a path-only FileEdit when unchanged, or old/new text, and read(_:) keeps the same 1,000,000-byte UTF-8 rule.",
+    "finishEdit now returns nil before consulting the snapshots when the parameters carry no path. Such a snapshot is then cleared at the turn's result (editSnapshots.removeAll() at :284) rather than immediately, which has no visible effect.",
+    "Everything from B2 :273 on moves up 11 lines (the -11 shift the recitations record)."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/Services/Providers/ClaudeSession.swift",
+   "sha256": "140af4e1f4dd4eb965cb85f77187165d8847da8c169f0ca3ade7c5d8bca1adfa",
+   "ranges_read": [
+    [
+     1,
+     420
+    ],
+    [
+     421,
+     829
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "ClaudeSession drives Claude Code in headless stream-json mode (-p, --input-format/--output-format stream-json, --verbose, --include-partial-messages, --permission-prompt-tool stdio). It numbers its control requests (initialize, set_permission_mode, set_model, interrupt, stop_task) and routes the CLI's can_use_tool requests to app approvals, questions and plan approvals. Under Hydra it defines heads through --agents and --forward-subagent-text, keeps one stream state per head keyed by parent_tool_use_id, and brackets heads with task_started, task_progress and task_notification. It also maps stream events, assistant blocks and tool results to rows, turns the result's usage into context and spend, and gives a handshake-only helper for models and slash commands. At B3 its control replies wait through the shared PendingReplies, TodoWrite todos use ACPSession.parseTodoItems, and tool-result text uses ToolText.blocks.",
+   "key_symbols": [
+    "@MainActor final class ClaudeSession: ProviderSession",
+    "private struct PendingTool",
+    "private struct StreamState",
+    "private var pendingControl = PendingReplies<JSONValue>()",
+    "private static func knownOptions(of:environment:) async -> Set<String>",
+    "func start() async throws -> String",
+    "static func handshake(executable:directory:environment:) async throws -> (models: [ModelOption], commands: [SlashCommand])",
+    "func send(_ input: TurnInput) async throws",
+    "func interrupt() async",
+    "func resolveApproval(_:optionID:)",
+    "func answerQuestion(_:answers:)",
+    "func stopAgent(_ id: String) async -> Bool",
+    "private func control(_ request: JSONValue) async throws -> JSONValue",
+    "private func handle(_ message: JSONValue)",
+    "private func handleSystem(_:)",
+    "private func handleTaskStarted(_:)",
+    "private func handleStreamEvent(_:stream:sink:)",
+    "private func handleAssistant(_:stream:sink:)",
+    "private func handleToolResults(_:sink:)",
+    "private func handleResult(_:)",
+    "private func handleControlRequest(_:)",
+    "private func didClose()",
+    "private static let hiddenResultTools",
+    "private func toolCall(name:input:withEdits:) -> ToolCall?",
+    "private static func turnSpend(_:) -> Int",
+    "private static func turnSpendEvent(_:model:) -> TokenSpend?",
+    "private static func contextUsage(_:) -> ContextUsage?",
+    "static func modeName(_:_:) -> String"
+   ],
+   "calls_into": [
+    "PendingReplies.register / resolve / fail / failAll (Core/Support/PendingReplies.swift, new in B3)",
+    "ACPSession.parseTodoItems (ACPSession.swift:688-699)",
+    "ToolText.blocks (ProviderSession.swift:211-219, new in B3)",
+    "StdioProcess, Shell.run",
+    "HydraPrompts.claudeAgents / policy / fallbackPolicy / profileName",
+    "AntiSlopPolicy.instructions, MCPProviderConfig.claudeConfigPath",
+    "Attachment.base64Images, SlashCommand.claudeCommands",
+    "TokenLedger.shared.record(spend:), UsageLimitSignal",
+    "ToolTitles.relativePath, TextCleanup"
+   ],
+   "state_owned": [
+    "process, readTask, sessionID, permissionMode, runtimeMode, model",
+    "controlCounter, pendingControl (PendingReplies<JSONValue>), pendingTools, toolNames",
+    "mainStream, agentStreams, agentsByTask, tasksByAgent",
+    "turnActive, interruptRequested, isStopping, isStarted, hasClosed, launchError",
+    "static knownOptions cache per executable path"
+   ],
+   "side_effects": [
+    "Spawns and terminates the claude process; writes control_request, control_response and user messages to stdin",
+    "Probes `claude --help` once per executable for --system-prompt-snapshot and --forward-subagent-text",
+    "Records turn spend in TokenLedger"
+   ],
+   "platform_assumptions": [
+    "The claude CLI is on the login PATH; CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS is set for a Hydra head cap"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Approval options \"Approve\", \"Approve for session\", \"Decline\"; plan approval \"Implement this plan\" with \"Implement plan\" / \"Keep planning\"",
+    "Notices \"Claude hit a usage limit.<when>\", \"Context compacted.\"",
+    "Errors \"Claude exited.\", \"Claude rejected the request.\", \"Claude stopped before finishing.\", \"Claude could not load its commands.\", \"Claude's command discovery did not finish. Try again.\""
+   ],
+   "feature_notes": [
+    "control() now registers its reply with PendingReplies (:306-308). The id numbering (\"droppy-code-<n>\", pre-increment) and the envelope are unchanged. New with PendingReplies: a caller that is already cancelled throws CancellationError before the request is sent, and the counter has already advanced. A caller cancelled while waiting has its entry removed and resumes with CancellationError. A late reply for that id is dropped. The control_response case uses fail/resolve (:337-341) and didClose uses failAll (:684), with the same outcomes as before.",
+    "TodoWrite now emits ACPSession.parseTodoItems(input[\"todos\"]) (:535) instead of the deleted content-only todos(from:). This adds the text/step/title fallbacks, drops blank items and accepts complete/done and inProgress/in-progress/active. PR-PROVCLI-063 is reclassified.",
+    "resultText is deleted and ToolText.blocks is used instead (:553), with identical output.",
+    "Line shifts: -1 from B2 :308, -2 from :339, -6 from :691, -24 from :783."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/Services/Providers/CodexSession.swift",
+   "sha256": "f87dcf4cfd07b883dd301c5473489c3af978dde1ee08aeb683b5b0478bd109af",
+   "ranges_read": [
+    [
+     1,
+     530
+    ],
+    [
+     531,
+     1059
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "CodexSession drives `codex app-server` over line-framed JSON-RPC. It starts, resumes, forks, rolls back and compacts threads. It sends each turn with the mode's approvalPolicy, sandboxPolicy and approvalsReviewer plus a collaborationMode block, and maps item, delta, plan, diff, token-usage and turn notifications to provider events. It answers command, file-change, permission and user-input requests. For Hydra it tracks heads as child threads (thread/started, spawnAgent receivers, subAgentActivity notes), with per-head turns, spend trackers and models. Static helpers list models, slash-command skills and rate-limit windows, and spend a banked reset credit. At B3 the lead's own thread is never taken for a head, and the turn's model becomes the model its spend is attributed to.",
+   "key_symbols": [
+    "@MainActor final class CodexSession: ProviderSession",
+    "private enum Target { case lead; case head(String) }",
+    "private enum PendingRequest",
+    "private struct PolicySettings",
+    "private var activeModel: String?",
+    "private var headThreads: Set<String>, headTurns, headSpend, headModels",
+    "func start() async throws -> String",
+    "func send(_ input: TurnInput) async throws",
+    "func rollback(from:) async throws -> String?",
+    "func stopAgent(_ id: String) async -> Bool",
+    "static func listCommands / listModels / readPlanLimits / consumeResetCredit",
+    "private func handleNotification(_:_:)",
+    "private func recordCodexSpend(_:rolloutID:model:agentID:)",
+    "private func headStarted(_ thread: JSONValue)",
+    "private func itemStarted / itemCompleted",
+    "private func describeHeads(from item: JSONValue)",
+    "private func toolCall(from:) -> ToolCall?",
+    "private func toolUpdate(from:) -> ToolUpdate",
+    "private func handleRequest(_:_:_:)",
+    "private func decisionOptions(_:command:)",
+    "private func policySettings(_:) -> PolicySettings"
+   ],
+   "calls_into": [
+    "JSONRPCConnection (request, notify, respond, close)",
+    "StdioProcess",
+    "HydraPrompts.codexConfig / policy / fallbackPolicy / nativeRoutableProfiles",
+    "AntiSlopPolicy.instructions, MCPProviderConfig.codexOverrides",
+    "TokenSpendTracker, TokenLedger.shared.record(codexSpend:rolloutID:)",
+    "PlanLimitsReader.windowTitle / codexPlanName, UsageLimitSignal",
+    "SlashCommand.codexSkills, ToolTitles, TextCleanup, Logger (subsystem iordv.droppycode, category codex)"
+   ],
+   "state_owned": [
+    "connection, threadID, turnID, activeModel, pendingRequests, isStopping",
+    "spendTracker, headThreads, headTurns, headSpend, headModels"
+   ],
+   "side_effects": [
+    "Spawns `codex app-server` processes (session and short-lived catalog/limits/reset connections)",
+    "Sends turn/interrupt, thread/rollback, thread/fork and thread/archive requests",
+    "Records live Codex spend in TokenLedger under the thread or head rollout id",
+    "Writes OSLog notices when adopting heads"
+   ],
+   "platform_assumptions": [
+    "The codex executable is on the login PATH; OSLog Logger for diagnostics"
+   ],
+   "persisted_fields": [],
+   "ui_elements": [
+    "Approval options \"Approve\", \"Approve for session\", \"Decline\", \"Stop turn\", \"Always allow\"; permissions \"Allow once\", \"Allow for session\", \"Decline\"",
+    "Tool row verbs \"Send out a head\", \"Brief a head\", \"Wait for heads\", \"Recall a head\", \"Resume a head\", \"List heads\"",
+    "Notices \"Codex refused the MCP server configuration, so this session runs without MCP servers. Check MCP in Settings.\", \"<message> Retrying.\", \"Context compacted.\""
+   ],
+   "feature_notes": [
+    "send() sets activeModel = model whenever input.model ?? activeModel is non-nil (:147-149; comment: 'A turn can switch the thread's model; the spend it reports is this turn's model's.'). Lead tokenSpend events and the ledger now name the latest turn's model rather than the model the thread started, resumed or forked with.",
+    "The lead's own thread is excluded from heads everywhere. stopAgent requires a lead threadID and id != threadID (:338-339). headStarted ignores id == threadID (:681-682). describeHeads returns until threadID is known (:760), skips spawnAgent receivers equal to the lead (:777) and ignores a subAgentActivity note naming the lead (:782-783).",
+    "Line shifts: +2 from B2 :148, +3 from :337, +4 from :679, +5 from :756, +6 from :772, +7 from :777."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/Services/Providers/CommandCodeAPI.swift",
+   "sha256": "6e3f4302a1c2de79f6c2403f58c88f84ac3340b5537cc617df6183a5a89c27ad",
+   "ranges_read": [
+    [
+     1,
+     460
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "CommandCodeAPI is the lightweight side of the Command Code CLI (`cmd`). It covers where the login lives (COMMAND_CODE_API_KEY, else ~/.commandcode/auth.json), `cmd status` sign-in parsing, and the account's rolling dollar windows and credits from api.commandcode.ai /alpha/billing/credits and /subscriptions, with plan-id naming. It parses the model catalog from `cmd --list-models`, honouring ~/.commandcode/config.json's chosen model and efforts, and holds the CLI's own reasoning-effort and context-window tables and the eleven-row seed catalog. It also embeds the TypeScript approval/MCP-bridge mod that headless runs load with --mod, installing it under Application Support/<AppInfo.name>/CommandCode. At B3 the tables and seed gain Claude Opus 5.5, and the seed also gains GPT-5.6 Luna.",
+   "key_symbols": [
+    "enum CommandCodeAPI",
+    "static let baseURL / billingURL",
+    "static func apiKey(environment:) -> String?",
+    "struct StoredLogin",
+    "static func storedLogin(environment:) -> StoredLogin?",
+    "static func userConfig(environment:) -> JSONValue?",
+    "static func authStatus(executable:environment:) async -> ProviderStatus.Auth",
+    "static func planLimits(environment:) async -> PlanLimits?",
+    "static func credits(environment:) / credits(apiKey:) async -> ProviderCredits?",
+    "private static let planNames",
+    "static func planName(_:) -> String?",
+    "static func listModels(executable:environment:) async throws -> [ModelOption]",
+    "static func parseModels(_:configuredModel:configuredEfforts:) -> [ModelOption]",
+    "static func matches(_:_:) -> Bool",
+    "static func displayName(for:) -> String",
+    "static func efforts(for:) -> [String]",
+    "static func contextWindow(for:) -> Int?",
+    "static let seed: [ModelOption]",
+    "static let approvalMod",
+    "static var supportDirectory: URL",
+    "static func installMod() throws -> URL"
+   ],
+   "calls_into": [
+    "Shell.run",
+    "URLSession.shared.data(for:)",
+    "JSONValue.parse",
+    "LoginEnvironment.homeDirectory",
+    "TextCleanup.stripANSI / lastLines",
+    "ProviderCredits.money",
+    "FileManager (createDirectory, urls)",
+    "AppInfo.name"
+   ],
+   "state_owned": [],
+   "side_effects": [
+    "HTTPS GETs to https://api.commandcode.ai/alpha/billing/credits and /alpha/billing/subscriptions with a Bearer key",
+    "Runs `cmd status --no-auto-update` and `cmd --list-models --no-auto-update`",
+    "Writes droppy-code-approvals.ts into Application Support/<AppInfo.name>/CommandCode when its bytes changed"
+   ],
+   "platform_assumptions": [
+    "HOME and ~/.commandcode/{auth,config}.json; Application Support directory with a ~/Library/Application Support fallback"
+   ],
+   "persisted_fields": [
+    "Application Support/<AppInfo.name>/CommandCode/droppy-code-approvals.ts (the approval mod)"
+   ],
+   "ui_elements": [
+    "Seed model rows (name / detail): Claude Sonnet 5, Claude Fable 5.1, Claude Opus 5.5, Claude Opus 5, GPT-6 Astra, GPT-5.6 Sol, GPT-5.6 Luna, Gemini 3.8 Flash, DeepSeek V4 Flash, Kimi K3, GLM 5.3",
+    "Plan window titles \"5-hour limit · <ProviderCredits.money(cap, currency: USD)>\" and \"Weekly · <same>\"; plan names Go, GOAT, Pro, Provider, Max 10×, Max 20×, Teams Pro",
+    "Mod block reasons 'The user declined this in Droppy Code.', 'The turn was stopped.', 'Droppy Code did not answer.'"
+   ],
+   "feature_notes": [
+    "efforts(for:) gains \"claude-opus-5-5\": full (:291). The table now has 46 ids; B2 had 45, although PR-PROVCLI-263 says forty-six.",
+    "contextWindow(for:) gains \"claude-opus-5-5\": 1_000_000 (:317), giving 70 entries.",
+    "The seed grows from nine to eleven rows. It adds claude-opus-5-5 \"Claude Opus 5.5\" / \"Anthropic · the newest Opus, for everyday complex work and coding\" after Fable 5.1 (:352), and gpt-5.6-luna \"GPT-5.6 Luna\" / \"OpenAI · fast and efficient model\" after GPT-5.6 Sol (:356). Because ProviderRegistry compares against the seed to tell whether a catalog is still seeded, the sentinel list changes too.",
+    "Everything after the seed shifts +2 (approval mod, supportDirectory, installMod); the mod text itself is unchanged."
+   ],
+   "unresolved_questions": []
+  }
+ ]
+}

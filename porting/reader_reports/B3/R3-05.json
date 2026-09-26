@@ -1,0 +1,133 @@
+{
+ "bundle_id": "R3-05",
+ "reader": "R3-05-reader",
+ "files": [
+  {
+   "path": "DroppyCode/App/Runtime/ThreadRuntime.swift",
+   "sha256": "42970a0252d4e2d59bee1069b746d70c454b2b190ff2602dfc3bc97956987a1d",
+   "ranges_read": [
+    [
+     1,
+     700
+    ],
+    [
+     701,
+     1400
+    ],
+    [
+     1401,
+     2100
+    ],
+    [
+     2101,
+     2800
+    ],
+    [
+     2801,
+     3804
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "ThreadRuntime.swift is the per-chat live engine: the @MainActor @Observable final class ThreadRuntime owns one thread's timeline entries and turn records, its provider session (warm-up, SessionSignature-driven relaunch, resume or start-over, epoch-guarded event handling through handle(_:)), the follow-up queue with drag bundling, revert and resend over git checkpoints with optional file restore, the diff caches and change stats, command-tree snapshots that recover shell edits, delta flush pacing (StreamLoad), persistence (scheduleSave, saveNow, snapshotForPersistence) and the whole Hydra lead/head machinery (streamed delegation-block parsing, HydraDelegationBudget, batches, the waiting queue, report turns, native heads, merge-state flags). The file also declares TimelineEntry, ReplyQuote (excerpt, peel), DraftCommand, ComposerDraft (outgoingText), PromptEdit, RuntimePhase, the private TimelineItem.Content.appendStreamed extension and the rehearsal extension used by website captures and native-head timelines. At B3 (1.7.0) it gains a recovery path for a CLI that is too old for the chosen model (finishTurnUpdatingCLI and resendAfterCLIUpdate run the CLI's own updater and send the failed message again, once per CLI version), two observable merge-queue flags, and a running-turn save interval that grows with the thread file's last written size. It also loses the uncalled hydraLiveInfo helper.",
+   "key_symbols": [
+    "@MainActor @Observable final class TimelineEntry: Identifiable { enum Kind; let id; let kind; let turnID; var item } (:5-41), Equatable by identity (:46-50)",
+    "struct ReplyQuote { excerpt (72 chars + U+2026) } (:54-64); nonisolated static func peel(_:) (:71-99)",
+    "struct DraftCommand (:104-108)",
+    "struct ComposerDraft { text, attachments, quotes, command; isEmpty; outgoingText } (:110-136)",
+    "@MainActor @Observable final class PromptEdit (:141-157)",
+    "enum RuntimePhase { idle, starting, running } (:159-163)",
+    "@MainActor @Observable final class ThreadRuntime (:166-3707)",
+    "var isHydraMerging (:312); B3 NEW var isHydraMergeQueued = false (:315); B3 NEW var hasHydraMergeRetryPending = false (:317); hydraMergeStage (:320), hydraMergeStep (:323), hydraMergeStartedAt (:325), hydraMergeNoteID (:330)",
+    "hydraActivity, hydraToolCalls, hydraTokens (:336-338), hydraLastEventAt (:344), hydraEditCount (:345), hydraIdleSeconds (:347)",
+    "private struct HydraBatch (:349-352)",
+    "B3 NEW @ObservationIgnored private var cliResendVersions: [ProviderKind: String] (:472-475)",
+    "private struct SessionSignature (:509-525); enum DeltaKind (:527-532); private struct PendingDelta (:534-537)",
+    "init(threadID:app:) (:539-554); install(_:) (:556-630); finishLoad (:632-637); ensureLoaded (:640-642); installContinuation (:645-654)",
+    "takeBackRunningTurn() (:697-721); send() (:743-755); sendHydraBrief (:757-764); queueDraftAsFollowUp (:780-788); interruptAndSend (:808-829)",
+    "bundleFollowUp/unbundleFollowUp/unbundleIfSeparated/tidyBundles/mergedBundle (:834-899); static bundleText(_:) (:906-929); takeBundle (:933-944); sendFollowUpNow (:953-989); enqueueFollowUp (:991-1008)",
+    "dispatchQueuedHead/dispatchSentHead/dispatchHead/dispatchQueuedFollowUps/flushFollowUpsIfIdle/startQueuedFollowUpTurn (:1012-1071); removeFollowUp/moveFollowUp/updateFollowUp (:1073-1111); drainFollowUps(after:) (:1116-1138)",
+    "implementPlan/dismissPlan/handleLocalCommand (:1140-1170)",
+    "private func startTurn(text:attachments:hydraHeads:hydraBrief:) async (:1175-1382), B3 catch at :1376-1381",
+    "keepsHydraPolicyInSystemPrompt (:1388-1390); serviceTier(for:) (:1393-1397); ensureModel (:1401-1410); warmSession (:1416-1428); ensureSession(directory:allowNewSession:) (:1430-1605); recordSessionID (:1610-1617); startsOver/lostConversation (:1622-1633); apiTranscript (:1640-1687)",
+    "interrupt() (:1691-1719); resolve (:1721-1731); answer (:1733-1736); compact() (:1738-1757)",
+    "revertPreview(for:) (:1765-1781); cachedRevertPreview (:1785-1789); previewRevert(to:) (:1804-1813); resend(_:text:attachments:restoreFiles:) (:1820-1831); revert(to:restoreFiles:) (:1837-1936)",
+    "refreshChangeStats (:1945-1953); repositoryRoot(for:) (:1964-1979); turnsWithChanges (:2004-2011); parsedDiff(selection:providerFiles:) (:2013-2050); isProjectFile (:2054-2056); resolveDiff/parseDiff (:2058-2066)",
+    "observe(_:) (:2070-2077); releaseSession(stop:) (:2082-2096); stopSession() (:2098-2115)",
+    "private func handle(_ event: ProviderEvent) (:2119-2253), B3 .turnCompleted arm :2206-2211 and .exited arm :2212-2229",
+    "B3 NEW private func finishTurnUpdatingCLI(_ error: String, status: TurnStatus, turnID: UUID?) -> Bool (:2255-2270)",
+    "B3 NEW private func resendAfterCLIUpdate(_ turnID: UUID, provider: ProviderKind, error: String) async (:2272-2293)",
+    "recordTokenSpend (:2295-2308); finishTurn(status:turnID:) (:2313-2504); drainPendingSend (:2510-2521)",
+    "isReadyForHydraMerge (:2527-2532); markHydraMerged (:2536-2546); hydraUnmergedTurns (:2549-2551); recordHydraMerge (:2554-2559); hydraUnmergedFileCount (:2562-2564)",
+    "hydraAgentStarted/hydraAgentEvent/hydraAgentFinished/hydraToolFinished/settleForegroundHeads/stopNativeHeads/stopNativeHead (:2578-2696); hydraHeadFinished (:2702-2736); settleBatches/flushHydraReports/flushableHydraReports/startHydraReportTurn (:2739-2783)",
+    "static maxDelegatedTasks = 32 (:2787); enum DelegationOutcome (:2790-2797); dropDelegationBlock (:2801-2826); spawnDelegatedHeads(for:) (:2837-2933); holdSentDelegationBlock (:2940-2957); refuseBlock (:2966-2973); scanStreamedDelegations (:2985-3015); endDelegationStream (:3020-3023); spawnWaitingHeads (:3027-3049)",
+    "appendHydraNote(_:id:) (:3056-3060); append/remove/endStreaming (:3062-3090); queueDelta (:3092-3139); pendingFlushLength (:3143-3164); flushDelay(for:scrolling:) (:3168-3178); flushWindow 45 ms (:3180)",
+    "@MainActor final class StreamLoad { headFlushBudget 70; stale 2 s; noteStreaming; forget; streamingCount; headFlushDelayMilliseconds; headFlushWindow } (:3188-3219)",
+    "flushDeltas(scheduleSave:) (:3221-3246); completeMessage/completeReasoning/completePlan (:3248-3297); upsertTool (:3299-3319); noteHydraHeadEvent (:3326-3331); noteToolMayWrite (:3336-3340); applyToolUpdate (:3342-3366)",
+    "watchCommand/treeBeforeCommand/attributedPaths/settleCommand/captureTree/recordCurrentTurnEdits/noteHydraEdits/watchHydraCommand/settleHydraCommand (:3383-3511); workingRoot (:3515-3518); repositoryGit (:3520-3524); editDiffLimit 200_000 (:3528); capped (:3533-3540); fileEdits(from:repositoryRoot:) (:3543-3563)",
+    "upsertTodos (:3565-3589); appendNotice (:3591-3594); updateTurn (:3596-3600); generateTitle (:3605-3619)",
+    "scheduleSave() (:3623-3648), B3 size-scaled running delay :3634-3647; saveNow() (:3650-3666); unsavedSnapshot (:3670-3673); holdsOnlyPersistedState (:3679-3686); cancelPersistence (:3688-3694); snapshotForPersistence (:3696-3706)",
+    "private extension TimelineItem.Content { mutating func appendStreamed(_:kind:) } (:3709-3738)",
+    "extension ThreadRuntime (Rehearsal): rehearseTurn, rehearseBrief, rehearse, noteDiffChanged, storeLegacyChanges (:3742-3804)",
+    "REMOVED at B3: func hydraLiveInfo(_ stored: HydraHeadInfo) -> HydraHeadInfo (B2 :344-352)"
+   ],
+   "calls_into": [
+    "AppModel: thread, project, projects, updateThread, reopenIfSettled, runtime(for:), existingRuntime(for:), children(of:), runningHydraHeads, runningDroppyHeads, hydraLaunch, hydraIsOn, hydraPair, hydraHeadsProvider, hydraHeadsFallbackNote, hydraTeam, hydraUnmergedFileCount, hydraChatContext, workingHydraHeadNames, spawnDroppyHead, spawnNativeHead, updateHydraHead, finishHydraHead, autoMergeHydraWork, turnFinished, threadNeedsAttention, textEngine(preferring:), autoContinue.noteLimit, settings (hydraQueueHeads, hydraAlwaysHeads, hydraAutoMerge, hydraReviewHeads, antiSlopEnabled, apiKey(for:))",
+    "ProviderRegistry (app.providers): loadCatalog, defaultModel, executable(for:), environment(for:), loadCommands, commands, commandKey, recordCommand, model(_:for:), updateCatalog, updateCommands, invalidateCredits, invalidatePlanLimits",
+    "B3 NEW ProviderRegistry: static updatesOwnCLI(_:) (ProviderRegistry.swift:477-479, claude or codex), static needsNewerCLI(_:) (:482-490), updateCLIIfDue(_:force:) (:497-522, runs '<cli> update' with a 300 s timeout), installedCLIVersion(_:) (:525-529, '<cli> --version')",
+    "Sessions: CodexSession, ClaudeSession, AntigravitySession, CopilotSession, CommandCodeSession, PiSession, ACPSession, DeepSeekSession, MetaSession, ZaiSession; ProviderSession start/send/interrupt/compact/stop/resolveApproval/answerQuestion/stopAgent; CodexSession.rollback(from:), CopilotSession.rollback(turns:)",
+    "Git: checkpointRef, isRepository, captureCheckpoint, previewRestore, restore, output, diff(from:to:), diff(from:to:paths:), changedPaths, captureTree",
+    "Storage.decodeDocument, Storage.threadURL, DocumentPrefetch.shared.take, DiskWriter.shared.encodeAndWrite; B3 NEW DiskWriter.shared.lastWrittenSize(of:) (Storage.swift:336-338)",
+    "HydraPrompts (fallback notes/preambles, delegationRequest, mergeStatus, teamStatus, reportMessage, queuedHeadPrompt, delegatedHeadPrompt, delegations, streamedDelegations, has/without/markingDelegationBlock*, heldBackMessage, unreadableBlockMessage, interruptedBlockMessage, delegationSentHold, delegationLeaveFade, maxDelegationRounds), HydraDelegationBudget, HydraDelegationStreamParser, HydraRoster.index(named:), HydraBudget (maxSeconds, reportSeconds, finalNote)",
+    "AntiSlopPolicy.instructions, TextCleanup (withoutEmDashes, singleLine), TextGeneration.threadTitle, TouchedPaths (relative, normalize, isBuildOutput), TurnDiff.merge, DiffParser.parse, FileChangeSummary, ShellCommandKind.mayWriteFiles, ToolPresentation.label, SlashCommand.name, LoginEnvironment.load, ScrollActivity.shared, Chrome.panelSlide, RecentCache"
+   ],
+   "state_owned": [
+    "Observed: entries, turns, usage, continuation, phase, isReverting, approvals, questions, turnStartedAt, diffRevision, isLoadingHistory, followUps, hydraMerges, followUpEdit, followUpsCollapsed, messageEdit, draft, draftIsEmpty, isTerminalVisible, isTerminalResizing, isDiffVisible, panel dock corners and stack order, hydraSelectedHeadID, hydraPoppedHeadID, hydraAutoPopHeld, hydraAutoPanelDocks, isHydraPanelHidden, hydraToolHeads, hydraWaitingCount, diffSelection, diffOpenRequest, diffFocusEdits, diffFocusRevision, changeStats",
+    "Observed merge state: isHydraMerging, B3 NEW isHydraMergeQueued, B3 NEW hasHydraMergeRetryPending, hydraMergeStage, hydraMergeStep, hydraMergeStartedAt, hydraMergeNoteID",
+    "Observed head progress: hydraActivity, hydraToolCalls, hydraTokens, hydraEditCount (hydraLastEventAt is @ObservationIgnored)",
+    "Ignored: session, warmup, unsentSessionID, sessionSignature, sessionEpoch, isStartingSession, antiSlopFallbackSent, continuationSent, finishingTurnID, closingTurnID, currentTurnID, entryIndex, pendingDeltas, flushTask, lastFlushAt, saveRevision, lastSavedRevision, saveTask, historyLoad, persistenceEnabled, currentProviderDiff, currentProviderAnchor, interruptWatchdog, B3 NEW cliResendVersions, commandTrees, commandSettles, treeCaptures, settledTree, latestTree, treeEpoch, todosEntryID, hydraTouched, hydraCurrentTurnTouchedPaths, hydraCommandTrees, pendingSend, followUpFlushScheduled, revertPreviews, changeStatsRevision, turnDiffs, revisionDiffs, repositoryRootLookup, hydra maps (pendingNativeSpend, hydraNativeHeads, hydraPendingReports, hydraFlushScheduled, hydraLanding, hydraBatches, hydraWaiting, hydraBudget, hydraStream, delegationParser, headBudget, headBudgetSpent, headReportsNext, hydraFallbackNoted), autoStartedTurnToken, terminalWantsFocus, diffAnchor, diffAnchorEdge"
+   ],
+   "side_effects": [
+    "Starts, resumes, interrupts, compacts, rolls back and stops provider CLI processes or API sessions through the session classes",
+    "Runs git: start and end checkpoints per turn, working-tree snapshots around shell commands, changed-path and diff queries, restore on revert",
+    "Writes the thread document (items, turns, usage, continuation, followUps, hydraMerges) through DiskWriter to Storage.threadURL(threadID); 800 ms debounce when idle, one save per interval while a turn runs",
+    "Updates library thread records via AppModel.updateThread (title, lastStatus, providerSessionID, providerResumeAt, interactionMode, model, effort, updatedAt)",
+    "Spawns and finishes Hydra heads through AppModel, and starts the auto-merge (AppModel.autoMergeHydraWork) when a job is done",
+    "B3 NEW: on a 'CLI too old' error from Claude or Codex, forces the CLI's own updater (ProviderRegistry.updateCLIIfDue(force: true) runs '<cli> update'), reads the installed version, releases the session so the next one launches the new binary, and resends the failed message through resend(_:restoreFiles: false), which reverts the failed turn (provider rewind included) before sending"
+   ],
+   "platform_assumptions": [
+    "AppKit NSView/NSRectEdge for the changes-popover anchor (WeakView, diffAnchorEdge) and SwiftUI withAnimation for the delegation card fade",
+    "Git CLI available in the checkout; provider CLIs found through LoginEnvironment (login shell PATH)",
+    "B3: the update-failure notice tells the user to run `claude update` or `codex update` 'in Terminal', which names the macOS Terminal app",
+    "B3: the save interval uses the byte size of the last write that DiskWriter recorded for this thread file in this process; nil (no write yet this run) counts as 0"
+   ],
+   "persisted_fields": [
+    "ThreadDocument via snapshotForPersistence (:3696-3706): threadID, items, turns, usage, continuation, followUps, hydraMerges. Unchanged at B3",
+    "Not persisted (B3 additions): isHydraMergeQueued, hasHydraMergeRetryPending, cliResendVersions. The CLI-update timestamps written to UserDefaults belong to ProviderRegistry.updateCLIIfDue, not this file"
+   ],
+   "ui_elements": [
+    "Error notices already present: 'The stopped message was kept: <description>' (:715), a start failure's localizedDescription (:1379), a provider turn error (:2210), '<name> stopped unexpectedly.' or the exit error (:2227), 'Conversation reverted, but files could not be restored: <description>' (:1911/:1931)",
+    "Info/warning notices: 'Nothing to compact yet.', 'Compacting context.' (:1741, :1744), '<name> no longer has this conversation. It starts a new one here, without the messages above.' (:1593)",
+    "Hydra notes and reply placeholders: 'Sent out heads.', 'Asked for heads.', 'Asking for heads.', 'Done, with no heads.', 'Asking for more heads.', 'Not every task went out ...', 'No heads went out: the lead did this itself.', 'Hydra: <note>', 'No heads went out\\n<dropped> The block was dropped from the reply.'",
+    "B3 NEW info notice (in the failed turn): 'This model needs a newer <provider.displayName>. Updating it, then sending your message again.' (:2263)",
+    "B3 NEW error notice (turn-less): '<error>\\n\\nDroppy Code could not bring <displayName> up to date. Run `claude update` in Terminal, then send the message again.' (`codex update` for Codex) (:2274, :2277)",
+    "B3 NEW error notice (turn-less): '<error>\\n\\n<displayName> is up to date now (<version>). Send the message again.' (:2285)",
+    "B3 NEW error notice (turn-less): '<displayName> is up to date now (<version>), but the message could not be sent again: <localizedDescription> Send it again.' (:2291)"
+   ],
+   "feature_notes": [
+    "B3 adds a way to recover from a CLI that is too old for the model (SOURCE FACT, :2255-2293). finishTurnUpdatingCLI is consulted first on three failure paths: the startTurn catch (:1378, status .failed), .turnCompleted with an error (:2209, the event's own status) and .exited with an error while a turn runs (:2226, status .failed). It takes the error only when a turnID exists, the thread's provider passes ProviderRegistry.updatesOwnCLI (Claude or Codex only), and ProviderRegistry.needsNewerCLI matches. The match is case-insensitive and fires on any of 'or newer is required', 'requires a newer version', 'claude update', 'codex update', 'upgrade codex' or 'update codex'. When it takes the error, the raw error is NOT posted. An .info notice 'This model needs a newer <name>. Updating it, then sending your message again.' is appended inside the turn, and a Task awaits finishTurn(status:turnID:) and then resendAfterCLIUpdate. The caller neither posts the error nor ends the turn itself: it returns or breaks.",
+    "resendAfterCLIUpdate (:2272-2293): awaits app.providers.updateCLIIfDue(provider, force: true). It then reads installedCLIVersion. When that is nil, or equals cliResendVersions[provider] (the version this runtime already resent at), it appends the error notice '<error>\\n\\nDroppy Code could not bring <name> up to date. Run `claude update`|`codex update` in Terminal, then send the message again.' and stops. Otherwise it records the version, releases the session with stop: true so the next send launches the new binary, and checks that the runtime is idle and that the turn still exists with a user item that is not from Hydra. If any check fails, it appends '<error>\\n\\n<name> is up to date now (<version>). Send the message again.'. If they pass, it calls resend(turnID, text:, attachments:, restoreFiles: false), which reverts the failed turn (the info notice goes with it) and sends the same text and attachments. A throw appends '<name> is up to date now (<version>), but the message could not be sent again: <localizedDescription> Send it again.'. These three notices land after finishTurn has cleared currentTurnID and closingTurnID, so they are filed with no turn.",
+    "Consequence read from the source (not executed): the first attempt resends even if the updater did not change the version, because cliResendVersions starts empty. A second 'too old' failure at the same version then gets the 'could not bring up to date' notice. The limit is one resend per CLI version per runtime, and it is not persisted. On Codex, revert(to:) throws 'The selected message has no Codex turn ID, so its history cannot be safely reverted.' when the failed turn has no providerTurnID and the thread already has a providerSessionID (:1866-1868). That surfaces through the third notice.",
+    "Handler ordering changed. In .turnCompleted (:2206-2211) the turn id is captured before the error notice, then the CLI check runs, then 'if let error { appendNotice(.error, error) }', then finishTurn. In .exited (:2212-2229) the error notice now comes after the turn-id capture and the CLI check. The session is still released without stopping, approvals and questions are still cleared, and native heads are still stopped before the check. The fallback '<name> stopped unexpectedly.' for a nil error is unchanged.",
+    "Two new observed runtime flags (:313-317): isHydraMergeQueued ('This chat's finished work is waiting for another chat's merge to finish, and goes right after it') and hasHydraMergeRetryPending ('A quiet retry of a merge that failed in a way that clears by itself is scheduled'). This file only declares them. AppModel+HydraMerge.swift sets and reads them: :81 and :89-90 for the in-process merge queue, :415-420 for the 60-second retry. No B3 view reads them (git grep HEAD). holdsOnlyPersistedState (:3679-3686) does not include them.",
+    "scheduleSave while a turn runs (:3634-3647) no longer waits a fixed 5 s. The delay is seconds = min(20, max(5, bytes / 250_000)), with bytes = DiskWriter.shared.lastWrittenSize(of: Storage.threadURL(threadID)) ?? 0. That gives 5 s up to 1,250,000 bytes, then a linear rise to the 20 s cap at 5,000,000 bytes. The comment says 'five seconds up to a megabyte', which is approximate: the arithmetic keeps 5 s to 1.25 MB. The idle 800 ms debounce is unchanged. saveNow's comment still speaks of 'the five-second bound on what a crash costs' (:3654), which B3 made stale for large threads.",
+    "hydraLiveInfo(_:) (B2 :344-352) was deleted. At B2 it had no caller: git grep at 1fbf81e finds only its declaration and a doc comment in HydraPanel.swift:476. Its removal changes nothing observable, but the records that cite it (PR-RUNTIME-106, PR-RUNTIME-253) must drop that evidence. PR-RUNTIME-253's 'live record shows max(stored tokens, hydraTokens)' clause was never reachable and is struck.",
+    "Line shifts from B2 to B3: +5 for B2 :313-343, -5 for :354-476, -1 for :477-1378, 0 for :1379-2208, +1 for :2210-2224 (the appendNotice at B2 :2208 is now :2210), +2 for :2226-2252 (B2 :2224 is now :2227), +42 for :2253-3594, +44 for :3596, and +46 from B2 :3597 to the end (3758 -> 3804 lines). Of the 361 spec records that cite this file (354 by the full path, 7 by 'ThreadRuntime.swift:' alone), 101 cite only unshifted, untouched lines and PR-PROVACP-037 cites it only in a historical B2 note. 247 need only a line recital, and 12 were decided by hand."
+   ],
+   "unresolved_questions": [
+    "UNRESOLVED: the Windows wording of the new failure notice 'Droppy Code could not bring <name> up to date. Run `claude update` in Terminal, then send the message again.'. OD-0012 F1 settles the product name ('Droppy Code' becomes 'Marrow'). OD-0012 G4 ('Terminal is Windows Terminal') is worded for the 'Open in' menu, and no ruling says whether 'in Terminal' in this notice follows it. The notice must be enumerated as a rename point (OD-0002) and the Terminal wording put to the owner.",
+    "UNRESOLVED: whether `claude update` and `codex update` behave the same way on Windows installs (npm, winget, native installer), and what installedCLIVersion's `--version` prints there. This is ProviderRegistry.swift's bundle, but this file's resend path depends on it.",
+    "UNRESOLVED: the ThreadRuntime.cs header still says it is ported from B2 :1-3758. Every source-line comment in the port must be re-cited to B3, or the owner must rule how B2 line comments are handled after the re-pin."
+   ]
+  }
+ ]
+}

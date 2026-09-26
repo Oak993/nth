@@ -1,0 +1,87 @@
+{
+  "bundle_id": "R3-10",
+  "reader": "R3-10-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Settings/ModelsSettingsPage.swift",
+      "sha256": "73c00cb210a3361dd39850028f35351ca7106681cf2e1d47ee4c4e250c1c0105",
+      "ranges_read": [[1, 250], [251, 448]],
+      "asset_inspection": null,
+      "purpose": "SwiftUI view for the Settings > Models page: a \"Your models\" section listing the pinned models (AppSettings.modelList, at most AppSettings.modelListLimit) with a drag grip for reordering, a click-to-open EffortSliderCard popover (330 wide, trailing arrow) for per-model reasoning effort and fast mode, and a minus button to unpin; then one collapsible section per available provider whose eager card walks the whole catalogue and reveals rows by search, expansion and pin state, each with an add/remove control that is disabled at 0.35 once the picker is full. It also owns the search matching rule (short name, name, detail, raw id, provider display name, localized case-insensitive) and, new at B3, declares the non-private CollapsibleProviderHeader disclosure header that both this page (subject \"model list\") and SettingsView.swift:647 (subject \"provider settings\") use.",
+      "key_symbols": [
+        "struct ModelsSettingsPage: View (:4-158)",
+        "var query = \"\" (:6)",
+        "@State private var drag = RowDrag<ModelPin>() (:9)",
+        "@State private var rowHeights: [ModelPin: CGFloat] (:11)",
+        "@State private var providerExpansion: [ProviderKind: Bool] (:14)",
+        "private static let slide = Animation.spring(response: 0.28, dampingFraction: 0.82) (:17)",
+        "var body (:19-100)",
+        "private func visiblePins(query:) -> [ModelPin] (:105-110)",
+        "private func dragChanged(_:translation:) (:117-134)",
+        "private func dragEnded() (:136-139)",
+        "private struct PinnedRowHeightReporter: ViewModifier (:141-150)",
+        "static func matches(_:id:provider:query:) -> Bool (:153-157)",
+        "private struct PinnedModelRow: View (:160-274)",
+        "@State private var isHoveringGrip (:171, doc changed at B3)",
+        "private func summary(option:preference:) -> String (:266-273)",
+        "private struct RowControl: View (:276-296)",
+        "private struct ProviderModelsSection: View (:298-413)",
+        "struct CollapsibleProviderHeader: View (:415-448, new at B3; provider, @Binding isExpanded, subject)"
+      ],
+      "calls_into": [
+        "AppModel.settings / AppModel.providers (@Environment(AppModel.self))",
+        "AppSettings.modelList, AppSettings.modelListLimit, moveModel(_:to:placeAfter:), preference(for:model:), setPreference(_:for:model:), removeFromModelList(_:), addToModelList(_:), isInModelList(_:)",
+        "ProviderRegistry.availableProviders, models(for:), model(_:for:), loadingCatalogs, loadCatalog(_:force:)",
+        "RowDrag<ModelPin>: init(id:), translation, visualOffset, settle(order:heights:fallbackHeight:move:)",
+        "NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now) (:132)",
+        "EffortSliderCard (Composer/EffortSlider.swift) with .presentedChrome()",
+        "ProviderIcon, ChromeSection, ChromeCard, ChromeRow, ChromeRowDivider, ChromeRevealLayout, ChromeQuietButtonStyle, Chrome.panelSlide, Chrome.overlay, Chrome.sectionSpacing, Chrome.sectionHeaderSpacing, Chrome.cardCornerRadius, Chrome.rowControlTrailingPadding",
+        "ModelOption.effortTitle(_:), ModelPreference()",
+        "String.trimmed"
+      ],
+      "state_owned": [
+        "ModelsSettingsPage.drag: RowDrag<ModelPin> (live grip reorder)",
+        "ModelsSettingsPage.rowHeights: [ModelPin: CGFloat] (measured row slot heights, pruned when pins shrink :93-99)",
+        "ModelsSettingsPage.providerExpansion: [ProviderKind: Bool] (absent = expanded; page-held so search rebuilds do not reset it; never persisted)",
+        "PinnedModelRow.isPresented (effort popover), isHovering (slider hint), isHoveringGrip (grip brightness only at B3)",
+        "ProviderModelsSection.isExpanded / CollapsibleProviderHeader.isExpanded (@Binding into providerExpansion)"
+      ],
+      "side_effects": [
+        "Reorders AppSettings.modelList via moveModel during a grip drag, with an alignment haptic on each effective swap (:126-133)",
+        "Adds/removes pins via addToModelList/removeFromModelList (animated with Chrome.panelSlide except while filtering)",
+        "Writes/clears per-model ModelPreference (effort, fastMode) via setPreference; reset writes ModelPreference()",
+        "Starts a non-forced catalog load per provider section on appear (.task :411) and a forced one from \"Load models\" (:335)",
+        "B3: sets the grip's pointer style declaratively (.pointerStyle(isDragged ? .grabActive : .grabIdle) :184); B2's NSCursor push/pop stack manipulation is gone"
+      ],
+      "platform_assumptions": [
+        "SwiftUI .pointerStyle with PointerStyle.grabIdle/.grabActive (macOS 15+ API; project deployment target macOS 26.0 per project.yml:4-5,20)",
+        "NSHapticFeedbackManager alignment haptic (macOS only)",
+        ".popover(isPresented:arrowEdge: .trailing), .buttonStyle(.glass), .contentTransition(.symbolEffect(.replace)), onGeometryChange, SF Symbols (line.3.horizontal, slider.horizontal.3, minus.circle, chevron.right, bolt, checkmark.circle.fill, plus.circle)",
+        "localizedCaseInsensitiveContains for search matching"
+      ],
+      "persisted_fields": [
+        "AppSettings.modelList (ordered [ModelPin], via settings methods; not written directly here)",
+        "AppSettings per-model ModelPreference (effort, fastMode) via setPreference(_:for:model:)"
+      ],
+      "ui_elements": [
+        "ChromeSection \"Your models\" with ChromeCard; empty row \"No models chosen yet\" / \"Until you add some below, the picker shows every model from your providers.\"",
+        "Count line \"<n> of <modelListLimit>. Click a model to set its reasoning effort and fast mode for every new chat.\" (11pt, only with empty query)",
+        "No-match line \"No models match “<query>”.\" (13pt)",
+        "PinnedModelRow: grip \"line.3.horizontal\" 11pt medium, 24x24, opacity 0.7/1 on hover, tooltip+label \"Drag to reorder\", pointer style grabIdle (grabActive while dragged); block Button with ProviderIcon 16 in 22 frame, name 13pt, summary 11pt (\"<provider> · <Effort> effort · Fast\"), hover-only \"slider.horizontal.3\" 12pt; RowControl \"minus.circle\" \"Remove from the picker\"; lifted state 1.02 scale, 12% fill, black 0.28 shadow radius 10 y 4",
+        "EffortSliderCard popover, width 330, arrowEdge .trailing",
+        "CollapsibleProviderHeader: 22-high ChromeQuietButtonStyle button, ProviderIcon 16, name 13pt semibold .secondary, chevron.right 11pt semibold rotated 90 when expanded; help \"Hide the <subject>\"/\"Show the <subject>\", a11y label = provider displayName, value \"Expanded\"/\"Collapsed\", hint \"Shows or hides the <subject>\", .isHeader trait; subject here is \"model list\"",
+        "Provider card: eager VStack with Chrome.overlay(0.03) fill and cardCornerRadius clip; empty-catalogue row \"Loading models…\"/\"No models loaded\" with glass \"Load models\" button; catalogue rows with optional \"bolt\" (\"Supports fast mode\") and 17pt add/remove symbol, tooltips \"Add to the picker\" / \"Remove from the picker\" / \"The picker holds up to <limit> models\", a11y \"Add <name> to the picker\" / \"Remove <name> from the picker\""
+      ],
+      "feature_notes": [
+        "SOURCE FACT: Grip cursor mechanism rewritten. B2 pushed NSCursor.closedHand in dragChanged on a new drag (B2 :120) and popped in dragEnded (B2 :139); the grip pushed NSCursor.openHand on hover (suppressed while dragged), popped on leave, on disappear while hovered, and on drag release away from the grip (B2 :185-199). B3 removes all NSCursor calls from this file: the grip's onHover now only sets isHoveringGrip (:183) and the cursor is the declarative `.pointerStyle(isDragged ? .grabActive : .grabIdle)` (:184). The doc on isHoveringGrip changed from \"for the grab cursor\" to \"which brightens its icon\" (:170). Consequence for the spec: PR-SETTINGS-186's cursor text (push/pop, three balancing guards, Windows path 'balance every push with a pop') describes behaviour that no longer exists; the cursor is now a per-view style keyed on isDragged, with no global cursor stack and so no stranded-cursor failure mode.",
+        "SOURCE FACT: The provider disclosure header (B2 :341-364, inline in ProviderModelsSection) was extracted into a new non-private `struct CollapsibleProviderHeader` (:415-448) taking `subject`; ProviderModelsSection now calls it with subject \"model list\" (:326) and SettingsView.swift:647 calls it with subject \"provider settings\". Help, a11y value, hint and header trait are the same strings as B2 for this page (\"Hide the model list\" / \"Show the model list\" / \"Shows or hides the model list\"), now built by interpolation `\"Hide the \\(subject)\"`. No observable change on the Models page; ChromeQuietButtonStyle now has a single use site (ModelsSettingsPage.swift:440) serving both pages.",
+        "SOURCE FACT: Everything else is unchanged except line positions: B2 1-119 = B3 1-119; B2 121-138 -> B3 120-137 (-1); B2 140-184 -> B3 138-182 (-2); B2 185-199 -> B3 183-184 (replaced); B2 200-340 -> B3 185-325 (-15); B2 341-364 -> B3 326 (call) + 415-448 (new struct); B2 365-451 -> B3 327-413 (-38). B3 is 448 lines, B2 was 451.",
+        "SOURCE FACT: The same grabIdle/grabActive pattern appears at B3 in FollowUpQueueTab.swift:384 and a grabActive-only variant in SidebarView.swift:124, so a Windows grab/grabbing cursor adaptation should be shared across those units."
+      ],
+      "unresolved_questions": [
+        "UNRESOLVED: Whether SwiftUI keeps the .grabActive pointer style while a DragGesture is active and the pointer has left the 24x24 grip frame (the row only follows vertically). B2's pushed closedHand persisted anywhere until dragEnded; the B3 source does not say, and it is framework behaviour not visible in the pinned tree.",
+        "UNRESOLVED: Windows has no stock open-hand/closed-hand cursor (Avalonia StandardCursorType.Hand is the pointing-hand link cursor). The port needs a platform-adaptation decision (custom cursor resources or an owner-approved substitute) for .grabIdle/.grabActive, shared with FollowUpQueueTab and SidebarView."
+      ]
+    }
+  ]
+}

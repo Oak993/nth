@@ -1,0 +1,75 @@
+{
+  "bundle_id": "R3-07",
+  "reader": "R3-07-reader",
+  "files": [
+    {
+      "path": "DroppyCode/App/Views/Settings/FloatingGuidePanel.swift",
+      "sha256": "14825a92b8c0b09c97ac5206de9580df7f30a4d15fd82c06aee6d62dfca31d90",
+      "ranges_read": [
+        [
+          1,
+          71
+        ]
+      ],
+      "asset_inspection": null,
+      "purpose": "New in B3 (commit d70cff8fe 'refactor: audit cleanups ... shared MCP and provider code'): a non-final @MainActor base class that owns the one floating NSPanel, the Escape key monitor and the present/close lifecycle that MCPKeyPanel (width 380) and MCPSetupPanel (width 400) previously each duplicated verbatim in B2. present(_:) measures the SwiftUI content at the fixed width, sizes the panel to max(height, 100), parks it 24 points in from the top-right of NSScreen.main's visibleFrame, installs the Escape monitor and orders it front without activating the app; close() removes the monitor and orders the panel out. It is lifted text-for-text from the B2 bodies with the literal 380/400 replaced by the stored width, so neither panel's observable behaviour changes.",
+      "key_symbols": [
+        "@MainActor class FloatingGuidePanel (non-final; subclassed by final class MCPKeyPanel and final class MCPSetupPanel)",
+        "private(set) var panel: NSPanel? (:8, readable by subclasses: MCPSetupPanel.isPresenting and fit(height:) use it)",
+        "private var escapeMonitor: Any? (:9)",
+        "private let width: CGFloat (:10)",
+        "init(width: CGFloat) (:12-14)",
+        "func present(_ content: some View) (:16-26)",
+        "func close() (:28-31, overridable; MCPSetupPanel overrides it to clear presentedEntryID then call super.close())",
+        "private func makePanel() -> NSPanel (:33-56)",
+        "private func startEscapeMonitor() (:58-65)",
+        "private func stopEscapeMonitor() (:67-70)"
+      ],
+      "calls_into": [
+        "NSHostingView(rootView: content.frame(width: width)).fittingSize.height.rounded(.up) (:17)",
+        "NSHostingController(rootView: content) assigned to panel.contentViewController (:19)",
+        "NSPanel.setContentSize(NSSize(width: width, height: max(height, 100))) (:20)",
+        "NSScreen.main?.visibleFrame and NSPanel.setFrameOrigin(NSPoint(x: visible.maxX - width - 24, y: visible.maxY - panel.frame.height - 24)) (:21-23)",
+        "NSPanel.orderFrontRegardless() (:25)",
+        "NSPanel.orderOut(nil) (:30)",
+        "NSPanel(contentRect: width x 200, styleMask: [.nonactivatingPanel, .fullSizeContentView, .titled, .closable], backing: .buffered, defer: false) (:34-39)",
+        "NSWindow.standardWindowButton(_:)?.isHidden = true for .closeButton, .miniaturizeButton, .zoomButton (:51-53)",
+        "NSEvent.addLocalMonitorForEvents(matching: .keyDown) (:60)",
+        "NSEvent.removeMonitor(_:) (:68)",
+        "self.close() from the monitor, dynamically dispatched so MCPSetupPanel's override runs (:62)"
+      ],
+      "state_owned": [
+        "panel: NSPanel? - created lazily once per instance by makePanel() and reused on every later present (:18, :54)",
+        "escapeMonitor: Any? - non-nil exactly while a monitor is installed; startEscapeMonitor guards on nil so it is installed at most once (:59)",
+        "width: CGFloat - fixed at init (380 for MCPKeyPanel.shared, 400 for MCPSetupPanel.shared)"
+      ],
+      "side_effects": [
+        "creates one floating NSPanel per subclass singleton on first present",
+        "installs an app-local key-down NSEvent monitor on present and removes it on close",
+        "Escape (keyCode 53) while the panel is visible is swallowed (monitor returns nil) and closes the panel; any other key, or any key while the panel is hidden, passes through"
+      ],
+      "platform_assumptions": [
+        "AppKit NSPanel with .nonactivatingPanel: shown with orderFrontRegardless and never activates the app (Windows: ED-063 WS_EX_NOACTIVATE plus a thread-local WH_CBT hook, see PR-MCP-215)",
+        "panel.level = .floating (always above normal windows), collectionBehavior [.canJoinAllSpaces, .fullScreenAuxiliary], hidesOnDeactivate = false",
+        "NSScreen.main visibleFrame in bottom-left-origin coordinates: origin y = visible.maxY - panel height - 24 puts the top edge 24 points below the visible top",
+        "SwiftUI NSHostingView.fittingSize for content-height measurement",
+        "Escape identified by hardware keyCode 53",
+        "window shadow via hasShadow = true on a non-opaque, clear-background window"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "The shared floating guide panel container: fixed width (380 key panel / 400 setup panel), height = content fitting height rounded up with a floor of 100, initial contentRect height 200, hidden title, transparent title bar, movable by background, floating level, all spaces, full-screen auxiliary, clear non-opaque background with shadow, all three traffic-light buttons hidden (comment :49-50: the panel closes from its own xmark and on Escape), placed 24 points in from the top-right of the main screen's visible frame"
+      ],
+      "feature_notes": [
+        "Status A: the file does not exist at B2. Its entire body (present sizing/placement/orderFront :17-25, close :28-31, makePanel :33-56, startEscapeMonitor :58-65, stopEscapeMonitor :67-70) is the code B2 duplicated in MCPKeyPanel.swift (B2 :22-30, :33-36, :38-61, :63-75) and MCPSetupPanel.swift (B2 :34-43, :45-49, :63-86, :88-100); the B3 diffs of those two files delete exactly that code and replace it with 'final class X: FloatingGuidePanel', 'private init() { super.init(width: 380|400) }' and 'present(content)'.",
+        "The only textual differences from the B2 bodies are the literal 380/400 becoming the stored width, 'private var panel' becoming 'private(set) var panel' on the base, and MCPSetupPanel's close becoming 'override func close() { presentedEntryID = nil; super.close() }'. The override reorders the B2 sequence (stopEscapeMonitor, presentedEntryID = nil, orderOut) to (presentedEntryID = nil, stopEscapeMonitor, orderOut); all three are synchronous main-actor steps, so nothing observable changes.",
+        "Escape in the setup panel still clears presentedEntryID: the monitor calls self.close(), which dispatches to MCPSetupPanel's override because FloatingGuidePanel is a non-final class.",
+        "Each subclass singleton still owns its own NSPanel and its own escape monitor, so the key panel and the setup panel remain two separate windows, exactly as in B2.",
+        "No spec record cites FloatingGuidePanel.swift yet. PR-MCP-214, PR-MCP-215, PR-MCP-216, PR-MCP-220, UI-MCP-070 and UI-MCP-078 cite the B2 MCPKeyPanel/MCPSetupPanel line ranges whose code now lives here; their behaviour text remains correct and only their source_evidence (plus the ':41' / ':66 .nonactivatingPanel' pointers in the PR-MCP-215 windows_path and the UI-MCP-070/078 notes, now FloatingGuidePanel.swift:36) needs re-citing."
+      ],
+      "unresolved_questions": [
+        "UNRESOLVED (port, not source): the C# ports of the two panels, which the B3 source now makes one shared implementation, do not match each other. src/Marrow.App/Views/Settings/MCPKeyPanel.cs sets ShowActivated=false, keeps Topmost=true, uses TransparencyLevelHint Transparent, installs the ED-063 WH_CBT activation hook and adds/removes the Escape handler per present/close. src/Marrow.App/Views/Settings/MCPSetupPanel.cs has no ShowActivated=false and no WH_CBT hook, sets Topmost=true then Topmost=false after Show (so it does not stay at the floating level), uses AcrylicBlur, attaches the Escape handler permanently in MakePanel without the isVisible check, and places with Math.Ceiling/RenderScaling where the key panel uses Math.Round/screen.Scaling. A grep of porting/platform_adaptations.md and porting/unknowns.md for MCPSetupPanel found no recorded deviation covering these. Whether any of them is an intended, recorded deviation needs checking before the shared C# base is extracted."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,122 @@
+{
+  "bundle_id": "R3-42",
+  "reader": "R3-42-reader",
+  "files": [
+    {
+      "path": "DroppyCode/Resources/AppIcon.icon/Assets/mascot (3).png",
+      "sha256": "bdfe8fa072a9cde1809d2852235e5ae7a4b5c08bc13dc3bce327a7addd03b312",
+      "ranges_read": null,
+      "asset_inspection": "1528x1749 RGBA PNG, transparent background. It is the light-appearance 'mascot' droplet layer of the Icon Composer bundle DroppyCode/Resources/AppIcon.icon (referenced by icon.json as layer name 'mascot ', image-name 'mascot (3).png', glass-specialization true for default/light, opacity 0 for dark and tinted appearances, position scale 0.5 / translation (0,36)). Visually: a single teardrop-shaped droplet with two oval white 'eyes' punched out near its base, rendered with soft internal shading (a bright highlight on the upper-left lobe, a darker gradient toward the lower-right) so it reads as a glossy/glass droplet mascot, surrounded by a soft white outer glow/halo. Between B2 and B3 the file's byte size changed from 614192 to 592376 bytes (git diff confirms a binary content change, 0 text lines by construction) with no dimension change; the droplet's fill color shifted from a lighter cyan-blue tone toward a more violet/periwinkle 'ultramarine' blue, matching the CHANGELOG.md B3 entry 'The app icon, the Droppy logo in Settings and the website's icons wear Droppy's new ultramarine blue' and the companion edit to DroppyCode/Resources/AppIcon.icon/icon.json's default fill-specialization linear-gradient, which moved from display-p3:0.56863,0.76863,1.00000 / srgb:0.14510,0.50196,1.00000 to srgb:0.51765,0.52549,0.96471 / srgb:0.07059,0.09804,0.92941.",
+      "purpose": "This is the primary glossy droplet artwork Xcode's Icon Composer composites (together with shadow def.png, mascot dark.png, shadow dark.png and SVG Image.svg, per icon.json) into the macOS app icon shown for the light appearance. It exists purely as a build-time input to Xcode's icon compiler; no Swift source references it by name, and it produces pixels the OS renders, not a runtime-loaded asset.",
+      "key_symbols": [],
+      "calls_into": [],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Consumed only by Xcode's Icon Composer / actool at build time to emit the compiled .icns/AppIcon; there is no Windows equivalent build step for a .icon bundle, and ico/png icon generation on Windows follows an entirely different toolchain."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "B2->B3 change is a pure recolor (new 'ultramarine' art-style blue per CHANGELOG.md and the paired icon.json gradient edit); geometry, layer role, opacity/glass specializations and every non-pixel property in icon.json for this layer are unchanged.",
+        "No requirement or UI record in porting/spec/*.json cites this file or 'AppIcon.icon' or 'mascot' at all (grep for the literal path, 'AppIcon.icon' and 'mascot' across every spec/*.json returned zero matches), so no record needs recite_lines_only / reclassify_behaviour_changed / retire_behaviour_removed treatment for this bundle.",
+        "Owner ruling OD-0002 makes the Windows app icon follow the separate 'Marrow' product identity, not Droppy's icon art, as an owner-approved parity deviation; the C# port (src/Marrow.App/Assets/icon.ico, icon.png, icon.svg, icon-mono.svg, icon-small.svg) already carries a bespoke Marrow icon unrelated to this file's pixels, and no unit in porting/deps/units.json maps a swift source to any target consuming 'mascot (3).png'. This B3 recolor therefore has no C# port impact under the current ruling; it is recorded here only because the file is in-scope for Gate A reading."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/AppIcon.icon/Assets/shadow def.png",
+      "sha256": "b2f2f537143b75ea28a722b82817eec42561ac0c00fa27bf426c9a7c50cd32d1",
+      "ranges_read": null,
+      "asset_inspection": "743x339 RGBA PNG, transparent background. A soft, heavily blurred elliptical drop shadow in the same blue-violet family as the mascot layer, denser and more saturated toward the center and fading to full transparency at the edges. It is icon.json's 'shadow def' layer (image-name 'shadow def.png', glass-specializations false/false, opacity 1 for default/light, 0 for dark and tinted, position scale 1 / translation (0,342)), sitting beneath the mascot to ground it in the light-appearance composition. Byte size changed 279706 -> 319334 bytes between B2 and B3 with no dimension change; the color/opacity falloff shifted in step with the same ultramarine recolor as mascot (3).png and icon.json's gradient (same commit, same CHANGELOG.md entry).",
+      "purpose": "Provides the soft ambient shadow beneath the droplet mascot in the light-appearance app icon composition; it is a pure visual-grounding layer with no interactive role, composited by Xcode's Icon Composer at build time from the same AppIcon.icon bundle as mascot (3).png.",
+      "key_symbols": [],
+      "calls_into": [],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Same as mascot (3).png: a macOS Icon Composer (.icon bundle) build input with no direct Windows icon-build analogue."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "B2->B3 change is a recolor tied to the same 'ultramarine' commit as mascot (3).png and icon.json; no geometry or layer-role change.",
+        "No spec/*.json record cites this file, 'shadow def' or 'AppIcon.icon'; zero records_affected for this bundle from this file.",
+        "Same OD-0002 app-icon-identity deviation applies: no unit in porting/deps/units.json consumes this file, and the C# Marrow icon assets are unrelated art, so this recolor has no C# port_impact."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo.png",
+      "sha256": "307aca65b532fe56c1faf38423e40812fcdd4969e105bd1e936224cb19e4de95",
+      "ranges_read": null,
+      "asset_inspection": "256x256 RGBA PNG. The fully composed, flattened Droppy Code app-icon artwork (rounded-square blue gradient tile with the white/blue-violet droplet mascot centered on it) at 1x scale, as listed in this imageset's Contents.json ({filename: droppy-logo.png, scale: 1x} alongside droppy-logo@2x.png at 2x). Between B2 and B3 the byte size shrank from 51677 to 42660 bytes with no dimension change; the visible recolor is the same ultramarine shift (the background gradient and droplet both move from the lighter cyan-blue B2 palette toward the more violet-blue B3 palette), consistent with the CHANGELOG.md B3 entry naming 'the Droppy logo in Settings' explicitly.",
+      "purpose": "This is the SwiftUI-loadable asset-catalog image named 'droppy-logo' (Image(\"droppy-logo\")), used at runtime by MadeByDroppyRow in DroppyCode/App/Views/Settings/SettingsView.swift to show a 40x40 logo next to the 'Made by Droppy' credit and getdroppy.app link on the About/Settings page; unlike the two AppIcon.icon layers above, this file is a genuine runtime UI asset, not just an Xcode build input.",
+      "key_symbols": [],
+      "calls_into": [],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "SwiftUI's Image(\"droppy-logo\") resolves this through the Assets.xcassets catalog and its 1x/2x Contents.json; the Windows port instead ships plain PNG files loaded by path/resource id (src/Marrow.UI/Assets/Images/droppy-logo.png, droppy-logo@2x.png), with no catalog-driven scale selection."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "MadeByDroppyRow's 40x40 logo image (SettingsView.swift:1083-1125), rendered at .high interpolation per UI-UPDATE-026's 'colors' field"
+      ],
+      "feature_notes": [
+        "B2->B3 is the same ultramarine recolor commit (280e05d8b, 'Icon: Droppy's new ultramarine art-style blue'); CHANGELOG.md explicitly names 'the Droppy logo in Settings' as one of the three things recolored (app icon, Settings logo, website icons).",
+        "grep -n \"droppy-logo\" across porting/spec/*.json finds three records that describe the image by its SwiftUI asset name rather than its file path: PR-SETTINGS-248 and PR-UPDATE-086 (both citing SettingsView.swift:1083-112[4/5] MadeByDroppyRow, 'a Link holding the \\\"droppy-logo\\\" image at 40 x 40') and UI-UPDATE-026 (colors field: 'the logo asset is \\\"droppy-logo\\\" at interpolation .high'). None of the three literally cite this file's path, and their cited line ranges are entirely inside SettingsView.swift, which is not part of this bundle and was not touched by this recolor, so their cited lines are untouched and unshifted -> recite_lines_only / no entry needed; none of the three hardcodes a specific color value that the recolor would falsify.",
+        "Concrete, verified port_impact: unit App.Views.Settings.SettingsView (porting/deps/units.json) maps DroppyCode/App/Views/Settings/SettingsView.swift -> src/Marrow.App/Views/Settings/SettingsView.cs and lists PR-SETTINGS-248/PR-UPDATE-086/UI-UPDATE-026 in its records_todo; that target file already exists (11339 bytes) but is still status TODO. The actual image bytes the port ships, src/Marrow.UI/Assets/Images/droppy-logo.png, are sha256 0f5d9663a0d23c458ab8e2783237596e5618d482f4ac23f00ead91eccef04388 and 51677 bytes -- byte-for-byte the B2 (1.6.2) source image, confirmed against E:\\Droppy\\reference\\droppy-code-v1.6.2\\...\\droppy-logo.png. It has not been updated to the B3 pixels (this file, 42660 bytes, sha256 307aca6...). The port's copy must be replaced with this B3 file's bytes to keep the Made-by-Droppy credit-row logo at parity with the pinned B3 source."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo@2x.png",
+      "sha256": "467897a05e5b29238ee4df44e38eb130fb7bdf93a9d0acec38f342afdf1c242c",
+      "ranges_read": null,
+      "asset_inspection": "512x512 RGBA PNG, the 2x-scale companion of droppy-logo.png in the same imageset (Contents.json entry {filename: droppy-logo@2x.png, scale: 2x}), visually identical composition to the 1x file (blue-gradient rounded-square tile with the droplet mascot) at double the pixel dimensions. Byte size changed 168848 -> 127975 bytes between B2 and B3 with no dimension change, same ultramarine recolor as droppy-logo.png (same commit).",
+      "purpose": "Provides the Retina/2x pixel data SwiftUI's asset-catalog image resolution selects for Image(\"droppy-logo\") on HiDPI displays; otherwise identical role to droppy-logo.png in MadeByDroppyRow.",
+      "key_symbols": [],
+      "calls_into": [],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Same Assets.xcassets 1x/2x scale-selection mechanism as droppy-logo.png; the Windows port has no built-in per-DPI catalog and must pick the right file itself (or rely on a single higher-resolution source scaled down)."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "MadeByDroppyRow's 40x40 logo image on Retina/HiDPI displays (same UI element as droppy-logo.png, 2x pixel source)"
+      ],
+      "feature_notes": [
+        "Same ultramarine recolor commit as droppy-logo.png; no dimension or layer-role change, pixel-for-pixel scaled counterpart.",
+        "Same three spec records apply as for droppy-logo.png (PR-SETTINGS-248, PR-UPDATE-086, UI-UPDATE-026): they reference the asset by SwiftUI name, not this literal path or the @2x file specifically; cited lines are in SettingsView.swift, untouched by this bundle -> recite_lines_only / no entry needed.",
+        "Concrete, verified port_impact: src/Marrow.UI/Assets/Images/droppy-logo@2x.png (the port's copy) is sha256 8007b4c58a34c96525245976b4d715930a24b4a8fac1614811c058720d98943d and 168848 bytes -- byte-for-byte the B2 (1.6.2) source, confirmed against E:\\Droppy\\reference\\droppy-code-v1.6.2\\...\\droppy-logo@2x.png, not the B3 pixels (this file, 127975 bytes, sha256 467897a...). Needs the same replacement as the 1x file to reach B3 parity."
+      ],
+      "unresolved_questions": []
+    },
+    {
+      "path": "docs/droppy-logo.png",
+      "sha256": "6fb64b5f2dc5fb5740e9f095380a3bdb9787aea5a54fcc15ef8b1be965b74bb2",
+      "ranges_read": null,
+      "asset_inspection": "256x256 RGBA PNG, visually identical composition to DroppyCode/Resources/Assets.xcassets/droppy-logo.imageset/droppy-logo.png (same blue-gradient rounded-square tile with the droplet mascot) and the same 256x256 dimensions and 42660-byte size, but a byte-for-byte different file (cmp shows the first differing byte at offset 59, inside the PNG header/metadata region, not user-visible pixel data) -- i.e. same rendered image, re-exported/re-saved independently for the docs/ tree with different embedded metadata (e.g. encoder text chunk or timestamp) than the asset-catalog copy. Byte size changed 51677 -> 42660 bytes between B2 and B3 (identical delta to droppy-logo.png), same ultramarine recolor.",
+      "purpose": "A documentation/repository-README copy of the app logo (outside the DroppyCode app target and outside Assets.xcassets), used to illustrate the project's identity in docs/ and, per THIRD_PARTY_NOTICES-adjacent repo conventions, likely embedded by a Markdown doc under docs/ or the repository root README. It is not loaded by any Swift runtime code; it exists purely as static documentation content.",
+      "key_symbols": [],
+      "calls_into": [],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Pure documentation asset; irrelevant to any Windows runtime behavior. Only matters if the port's own docs/ tree mirrors this file for the Marrow-branded documentation, which per OD-0002 would use the Marrow identity rather than Droppy's logo."
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Same ultramarine recolor commit as the other four files in this bundle; CHANGELOG.md's B3 entry covers 'the app icon, the Droppy logo in Settings and the website's icons' -- this docs/ copy is not separately named in the CHANGELOG but changed in the identical commit (280e05d8b) alongside docs/icon.png and the website/assets/brand/* icons.",
+        "No spec/*.json record cites 'docs/droppy-logo.png' or any docs/ path (mandatory-reading docs/ is tracked per CLAUDE.md/contract section 5 but the parity_matrix/spec records are scoped to app runtime behavior); zero records_affected for this file.",
+        "No unit in porting/deps/units.json targets a docs/ asset (units map Swift source to C# targets only); this file has no C# port_impact by construction -- it is source-tree documentation, not an app resource. Flagging only that IF the port maintains an equivalent docs/ tree with Droppy's own logo for attribution purposes, that copy is similarly still on B2 pixels and would need the same refresh; this is inference beyond the units.json mapping and is not asserted as fact."
+      ],
+      "unresolved_questions": [
+        "Whether the Windows port repository is expected to carry any docs/*.png at all (docs/ is in-scope for Gate A reading per CLAUDE.md section 5, but no C# unit or spec record currently references a ported docs tree) is not resolved by this bundle; left for the porting/architecture.md or a docs/ specific reading pass."
+      ]
+    }
+  ]
+}

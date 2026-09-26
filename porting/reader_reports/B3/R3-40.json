@@ -1,0 +1,247 @@
+{
+ "bundle_id": "R3-40",
+ "reader": "R3-40-reader",
+ "files": [
+  {
+   "path": "DroppyCode/Core/Models/Hydra.swift",
+   "sha256": "1e9bcd922db4b79305c446e83d96575d6665a5acd4851a4698190d46e726925d",
+   "ranges_read": [
+    [
+     1,
+     480
+    ],
+    [
+     481,
+     960
+    ],
+    [
+     961,
+     1438
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "Hydra.swift is the Core model and prompt layer of Hydra, the one-chat-many-heads mode: it defines the persisted pair and head-profile settings (HydraPair, HydraHeadProfile), the per-launch resolution (HydraLaunch with its 8-head uncapped concurrency), the Droppy-run head budget (HydraBudget 24/120/160 tools, 25/35 min, 3 min report), the 25-name dragon roster, the persisted head record (HydraHeadInfo, HydraLanding) and the delegation-round budget (HydraDelegationBudget, maxRefusals 3). Its HydraPrompts enum builds every word the lead and the heads are told: the native and fallback lead policies with their brief, verification, project, auto-merge, review and report-style rules, Claude --agents / Copilot customAgents / Codex config overrides, the merge-state note (mergeStatus), the fenced ```hydra delegation block parser and its sent/leaving markers, the head prompts, and the report message the lead receives. At B3 the auto-merge rule, the failed/held merge-state notes and the report duration format change; everything else is byte-identical and only shifted.",
+   "key_symbols": [
+    "struct HydraHeadProfile: Codable, Hashable, Identifiable, Sendable (17-51): id, name, provider, model, effort; briefLabel, agentSlug, matches(_:)",
+    "struct HydraPair: Codable, Hashable, Identifiable, Sendable (58-121): provider, orchestratorModel/Effort, workerProvider/Model/Effort, maxHeads, name, headProfiles; maxHeadsRange = 1...8, init(from:), headsProvider, sendsHeadsElsewhere, customName, clampedCap(_:), projectPair(_:hydraOn:in:)",
+    "struct HydraLaunch: Hashable, Sendable (125-180): headsProvider, runsNatively, headsLabel, workerModel, workerEffort, maxHeads, headProfiles, isolatesHeads, autoMerges, reviewsHeads, projects, antiSlopEnabled; uncappedConcurrency = 8, hasRoom(running:), profile(named:)",
+    "enum HydraBudget (186-201): pacingTools 24, wrapUpTools 120, maxTools 160, wrapUpSeconds 25*60, maxSeconds 35*60, reportSeconds 3*60, pacingNote, wrapUpNote, finalNote",
+    "struct HydraPersona (204-226) and enum HydraRoster (230-293): 25 personas Hank..Gus with assets hydra-head-01..25 and hex colours; persona(at:), index(named:), persona(named:)",
+    "struct HydraHeadInfo: Codable (297-434): Kind native/droppy, Origin delegated/queued/sent, Status running/completed/failed/stopped, and the timing, native-id, batch, profile, baseTree, landing and mergedAt fields with a field-by-field init(from:)",
+    "struct HydraMentionTarget (439-451): scheme \"droppycode-head\", url, threadID(in:)",
+    "struct HydraLanding: Codable (455-487): files [File path/additions/deletions], conflicts, droppedBuildOutputFiles, patchPath, error; isEmpty, landed",
+    "struct HydraDelegation (493-504), enum HydraMergeStage (509-530, seven stage words), struct HydraProjectRef (533-536), struct HydraReport (539-552)",
+    "struct HydraDelegationBudget (559-617): rounds, refusals, dropNotice; canDelegate, beginTurn(userAuthored:), chargeRound(), refuse(_:), noteDropped(_:), takeDropNotice(), maxRefusals = 3",
+    "enum HydraPrompts (620-1438): workerAgentName \"droppy-worker\", scoutAgentName \"droppy-scout\", workerAgentName(for:), profileName(forAgentName:), nativeRoutableProfiles(of:), Workplace, workplaceRules, howToWork, howToReport, briefRule, verificationRule, projectRule(_:)",
+    "HydraPrompts.autoMergeRule (708, text changed at B3), reviewRule (713), reportStyleRule (718)",
+    "HydraPrompts.policy(for:_:) (722-790), workerPrompt (793-797), scoutPrompt (800-804), claudeAgents(_:) (807-839), copilotAgents(_:) (842-888), codexConfig(_:) (894-904)",
+    "HydraPrompts.maxDelegationRounds = 3 (912), teamStatus(_:now:) (916-936), fallbackPolicy(maxHeads:isolated:autoMerges:reviewsHeads:heads:projects:profiles:) (941-969), fallbackPolicy(_:) (974-976)",
+    "HydraPrompts.mergeStatus(merges:unmergedFiles:now:) (979-1022; failed branch 1001-1005 and held branch 1006-1011 changed at B3)",
+    "HydraPrompts.delegationRequest(_:) (1027-1039), fallbackTurnNote (1042-1046), fallbackReportNote (1051-1056), fallbackPreamble (1060-1062), fallbackReportPreamble (1064-1066), heldBackMessage(count:) (1070-1075), interruptedBlockMessage(stopped:) (1079-1084), droppedBlockNotice(_:) (1090-1092)",
+    "HydraPrompts.delegationOpener (1096-1098), lineStartFences (1103-1113), delegationBlockRange (1121-1125), hasDelegationBlock (1128), hasDelegationOpener (1133-1135), delegations(in:) (1144-1153), delegations(fromBody:) (1160-1166), withoutDelegationBlock (1169-1173)",
+    "HydraPrompts.delegationSentHold .seconds(3.2) (1177), delegationLeaveFade .milliseconds(450) (1181), hasSentDelegationBlock (1185-1187), hasLeavingDelegationBlock (1190-1192), markingDelegationBlockLeaving (1197-1200), markingDelegationBlockSent (1204-1207), unreadableBlockMessage(reason:) (1211-1217)",
+    "HydraPrompts.verificationMarkers (1221-1230, 34 entries), withoutVerificationSteps(_:) (1234-1242), delegatedHeadPrompt (1245-1261), ChatContext (1266-1270), queuedHeadPrompt (1275-1309)",
+    "HydraPrompts.reportMessage(_:stillWorking:reviewsHeads:) (1314-1397), landingLine(for:) (1401-1418), duration(_:) (1420-1423, reimplemented at B3), list(_:) (1425-1431), quoted(_:limit:) (1433-1437)"
+   ],
+   "calls_into": [
+    "AntiSlopPolicy.instructions(enabled:) (claudeAgents, copilotAgents)",
+    "JSONValue (.object/.array/.string/.int, JSONValue.parse) for agent definitions, Codex overrides and delegation-block parsing",
+    "ProviderKind and ProviderKind.displayName (HydraHeadProfile.briefLabel)",
+    "KeyedDecodingContainer.value(_:default:) from the Core coding support (HydraPair, HydraHeadInfo, HydraLanding decoders)",
+    "String.trimmed (Text.swift)",
+    "HydraMergeRecord and its Outcome/retryable fields (Timeline.swift) in mergeStatus",
+    "Foundation Date.formatted(date: .omitted, time: .shortened) and, new at B3, Duration.formatted(.units(allowed:width:maximumUnitCount:fractionalPart:))",
+    "Swift Regex firstMatch/contains with .ignoresCase() for the ```hydra / hydra-sent / hydra-leaving fences",
+    "SwiftUI Color (HydraPersona.color)"
+   ],
+   "state_owned": [
+    "HydraDelegationBudget.rounds, refusals and dropNotice (a value owned by the lead thread's runtime; this file only defines the transitions)",
+    "No global mutable state; every prompt builder is a pure static function"
+   ],
+   "side_effects": [
+    "None: the file builds values and strings only; it performs no I/O, no process launches and no persistence itself"
+   ],
+   "platform_assumptions": [
+    "projectRule tells the lead a repository may be 'any git repository on this Mac' (OD-0012 F1/G1 govern the Windows wording)",
+    "mergeStatus when() uses the user locale's short time style",
+    "duration() now uses Foundation's Duration.UnitsFormatStyle, which is locale-dependent (narrow unit symbols and list joining come from the current locale)",
+    "HydraMentionTarget uses the custom URL scheme droppycode-head://<thread uuid>",
+    "workplaceRules assume git worktrees for Droppy-run heads' own copies",
+    "HydraPersona.color builds a SwiftUI Color from 0xRRGGBB"
+   ],
+   "persisted_fields": [
+    "HydraPair: id, provider, orchestratorModel, orchestratorEffort, workerProvider, workerModel, workerEffort, maxHeads (clamped to 1...8 on decode), name, headProfiles",
+    "HydraHeadProfile: id, name, provider, model, effort",
+    "HydraHeadInfo: index, task, kind, origin, status (undecodable -> stopped), summary, activity, toolCalls, tokens, startedAt, finishedAt, queuedAt, executionStartedAt, executionFinishedAt, landingStartedAt, landingFinishedAt, nativeID, nativeTaskID, toolUseID, batchID, profile, canStop (default kind == .droppy), isBackground, baseTree, landing, mergedAt",
+    "HydraLanding: files[path, additions, deletions], conflicts, droppedBuildOutputFiles, patchPath, error"
+   ],
+   "ui_elements": [
+    "HydraMergeStage.words: 'Gathering the team's files', 'Writing the commit', 'Writing the commit message', 'Pushing the branch', 'Opening the merge request', 'Merging', 'Bringing the checkout up to date' (shown on the merging pill and in the sidebar)",
+    "HydraRoster persona names, colours and dragon-head assets hydra-head-01..hydra-head-25 (shown in the team panel)"
+   ],
+   "feature_notes": [
+    "B3 autoMergeRule (708) adds two instructions to the lead: 'if it says Droppy Code retries by itself, say the work lands by itself and ask nothing;' (between the files-remain and merging-failed clauses) and 'A merge never waits on another chat or session: never say it does, and never ask the user to merge.' (before 'If nothing is pending'). The rest of the paragraph is byte-identical. Under OD-0012 F1 both 'Droppy Code' occurrences become 'Marrow' in the port.",
+    "B3 mergeStatus .failed (1001-1005) splits on HydraMergeRecord.retryable: when retryable == true it returns 'Merge state: the last try at {time} did not land yet ({detail or \"no reason recorded\"}). Droppy Code retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.' Otherwise the text changes from '... is retried once you finish this answer; if the reason needs the user (a sign-in, a conflict), say exactly that.' to '... goes out by itself once that is settled; if the reason needs the user (a sign-in, conflict markers, a real conflict with the remote), say exactly that.' Neither failed form appends the pending sentence (upstream defect 27 still reproduces).",
+    "B3 mergeStatus .held (1006-1011) is kept only for records written by earlier versions (comment at 1007): with no unmerged files it returns 'Merge state: nothing from this job is left to merge. Do not claim a new merge or promise another one.'; with files it returns 'Merge state: ' + pendingLine('N files from this job'), i.e. '... is/are not merged yet; it goes/they go out by itself/themselves once you finish this answer with every head back.' The B2 'the merge is waiting at ...' text and its run-on nil-detail fallback 'another chat holds this job's files' are gone.",
+    "B3 duration(_:) (1420-1423) replaces the hand-built 'Ns' / 'Mm Ss' with Duration.seconds(Int(seconds)).formatted(.units(allowed: [.seconds, .minutes], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down))). Integer truncation of the input is unchanged; the rendered text is now produced by Foundation's locale-aware units formatter, so the report header '(<duration>, N tools)' in reportMessage can differ from B2 (for example at exact minutes, where the formatter's default zero-unit handling applies) and in non-English locales. HydraPanel.swift:550 uses the same format style at B3.",
+    "Everything from line 1008 (B2) on shifts by +4 lines (B2 1008-1416 -> B3 1012-1420; B2 1419-1434 -> B3 1423-1438); lines 1-1001 keep their numbers."
+   ],
+   "unresolved_questions": [
+    "UNRESOLVED: the exact en-US (and other-locale) strings Duration.UnitsFormatStyle(.narrow, allowed [.seconds, .minutes], maximumUnitCount 2, fractionalPart .hide(rounded: .down)) produces, e.g. for 59 s, 60 s, 65 s, 120 s and 3,700 s (separator between units, whether a zero seconds unit is hidden). Needs a capture from the macOS reference runtime before the port fixes its fixture; do not assume B2's 'Mm Ss'."
+   ]
+  },
+  {
+   "path": "DroppyCode/Core/Models/HydraCookbook.swift",
+   "sha256": "b791e87571d87e1dc9d159b69c25fca8387268b70bc9609c6f0d9ed01250d5a4",
+   "ranges_read": [
+    [
+     1,
+     54
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "HydraCookbook.swift holds the curated table of ready-made Hydra lead-and-heads pairs offered in the Settings > Hydra cookbook panel. Each HydraPairRecipe names models rather than providers: each side lists the providers that serve its model best first and the catalogue name fragments to look for, with an optional effort and head cap, so the panel can resolve a recipe against whatever providers are set up. The enum also decides whether an asked-for effort is kept (only when the resolved model offers it) and whether a recipe is already added (same two providers and two models, efforts ignored). At B3 the table grows from ten to twelve recipes and the Opus titles say 'Opus 5.5'.",
+   "key_symbols": [
+    "struct HydraPairRecipe: Identifiable, Sendable (7-25) with nested struct Side { providers: [ProviderKind], models: [String], effort: String? } (8-17); id, title, tagline, lead, heads, maxHeads",
+    "enum HydraCookbook (27-54)",
+    "static let recipes: [HydraPairRecipe] (29-42), twelve entries in order: claude-fable-opus, claude-opus-gemini-flash (maxHeads 6), claude-opus-deepseek, claude-opus-glm, claude-fable-composer, astra-spark, astra-terra, astra-sol (new), sol-luna (new), astra-astra, claude-opus-opus, claude-fable-fable",
+    "static func effort(_ wanted: String?, for option: ModelOption?) -> String? (45-48)",
+    "static func isAdded(_ pair: HydraPair, in pairs: [HydraPair]) -> Bool (51-53)"
+   ],
+   "calls_into": [
+    "ProviderKind cases .claude, .commandcode, .antigravity, .deepseek, .zai, .cursor, .codex, .meta",
+    "ModelOption.efforts (effort(_:for:))",
+    "HydraPair.provider, headsProvider, orchestratorModel, workerModel (isAdded)"
+   ],
+   "state_owned": [
+    "None; the recipe table is compile-time constant data"
+   ],
+   "side_effects": [
+    "None"
+   ],
+   "platform_assumptions": [
+    "The HydraPairRecipe doc comment says 'the first one set up on this Mac'; the rule is about set-up providers, not the platform"
+   ],
+   "persisted_fields": [
+    "None in this file; a recipe's stable id is not stored, and adding a recipe persists a HydraPair elsewhere"
+   ],
+   "ui_elements": [
+    "Recipe titles (B3): 'Fable 5.1 leads Opus 5.5', 'Opus 5.5 leads Gemini 3.8 Flash', 'Opus 5.5 leads DeepSeek V4.1', 'Opus 5.5 leads GLM-5.3 Flash', 'Fable 5.1 leads Composer 2.5', 'Astra 6 leads Spark 1.3 Contributor', 'Astra 6 leads Terra 5.6', 'Astra 6 leads Sol 5.6', 'Sol 5.6 leads Luna 5.6', 'Astra 6 high, Astra 6 medium', 'Opus 5.5 max, Opus 5.5 medium', 'Fable 5.1 high, Fable 5.1 medium'",
+    "Recipe taglines (twelve, verbatim in the table; the two new ones are 'Astra plans and reviews; Sol heads take the complex building at medium.' and 'Sol keeps the plan; quick Luna heads get through the routine parts.')"
+   ],
+   "feature_notes": [
+    "B3 retitles five recipes from 'Opus 5' to 'Opus 5.5' (claude-fable-opus :30, claude-opus-gemini-flash :31, claude-opus-deepseek :32, claude-opus-glm :33, claude-opus-opus :40). Ids, taglines, sides, efforts and caps of those recipes are unchanged; the model-name fragment stays 'Opus'.",
+    "B3 inserts two recipes after astra-terra: astra-sol ('Astra 6 leads Sol 5.6', lead codex/commandcode 'Astra' at high, heads codex/commandcode 'Sol' at medium, no cap) at :37 and sol-luna ('Sol 5.6 leads Luna 5.6', lead codex/commandcode 'Sol' at high, heads codex/commandcode 'Luna' at medium, no cap) at :38. The table is now twelve long: astra-astra moves to position 10, claude-opus-opus to 11 and claude-fable-fable to 12.",
+    "effort(_:for:) and isAdded(_:in:) are byte-identical and shift by +2 lines (B2 43-46 -> B3 45-48; B2 49-51 -> B3 51-53). With the new recipes, isAdded still ignores effort, so astra-sol and astra-terra (different head models) are distinct, while the two one-model recipes behave as before."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/Core/Models/MCP.swift",
+   "sha256": "cab83ae3ccebdb89f6d884c2963c29f16d582db7fc15bd3969bb8abb276e2b75",
+   "ranges_read": [
+    [
+     1,
+     220
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "MCP.swift is the Core data model of the MCP (Model Context Protocol) server catalogue: how a server is reached (MCPTransport stdio/http/oauth), which fields the user must fill (MCPField secret/text/path), the seven catalogue categories and their titles, a catalogue entry with its brand tint and sample tools, the resolved launch form (MCPResolvedServer), placeholder filling (fill(_:values:) with the scheme/slash stripping for a host placeholder, oauthURL(values:)), the probe result, the persisted per-server MCPConnection state, the MCPSetupGuide and the MCPConnectionState shown by the page and composer. At B3 the file is purely Core: resolve(values:) and MCPPaths, which reached into MCPProxy and Storage, were moved verbatim to the Services layer.",
+   "key_symbols": [
+    "enum MCPTransport: Sendable, Hashable (5-15): stdio(command:args:), http(url:headers:), oauth(url:)",
+    "struct MCPField (18-37): Kind secret/text/path; key, label, placeholder, kind, help, defaultValue, isRequired",
+    "enum MCPCategory: String, CaseIterable (39-61): developer, browser, search, work, data, cloud, knowledge with titles 'Developer'..'Knowledge'",
+    "struct MCPCatalogEntry (65-101): id, name, vendor, summary, category, asset, colorValue, isMonochrome, transport, fields, env, docsURL, sampleTools, keysURL; color, needsInput, isOAuth",
+    "struct MCPResolvedServer (104-119): id, name, command, args, env, url, headers, oauthUpstream; isRemote",
+    "extension MCPCatalogEntry (121-148): oauthURL(values:) (124-127), fill(_:values:) (132-147)",
+    "struct MCPToolSummary: Codable (151-155), struct MCPProbeResult (158-162)",
+    "struct MCPConnection: Codable (166-177): catalogID, isEnabled, values, connectedAt, serverVersion, tools",
+    "struct MCPSetupGuide (181-193): title, reason, steps, pageLabel, pageURL, note",
+    "enum MCPConnectionState (196-210): notConnected, connecting, connected(toolCount:), failed(message:), needsSetup(MCPSetupGuide); isConnected, isConnecting",
+    "extension Color { init(rgb:) } (212-220)"
+   ],
+   "calls_into": [
+    "String.trimmed (fill)",
+    "SwiftUI Color (MCPCatalogEntry.color, Color(rgb:))",
+    "No longer at B3: MCPProxy.url(for:) and Storage.root (both moved out with resolve and MCPPaths)"
+   ],
+   "state_owned": [
+    "None; value types only"
+   ],
+   "side_effects": [
+    "None at B3. (At B2 the MCPPaths.directory initialiser created <Storage.root>/mcp/ on first access; that code now lives in DroppyCode/Services/MCP/MCPPaths.swift, unchanged.)"
+   ],
+   "platform_assumptions": [
+    "The catalogue asset is an Assets.xcassets image set mcp-<id> tinted as a template",
+    "Secrets are said to live in the Keychain (MCPKeychain) per the MCPConnection doc comment; mcp.json holds only non-secret values"
+   ],
+   "persisted_fields": [
+    "MCPConnection (in <data root>/mcp.json, written by MCPStore): catalogID, isEnabled, values, connectedAt, serverVersion, tools[name, summary]"
+   ],
+   "ui_elements": [
+    "MCPCategory.title strings: 'Developer', 'Browser', 'Search', 'Work', 'Data', 'Cloud', 'Knowledge'"
+   ],
+   "feature_notes": [
+    "B3 deletes MCPCatalogEntry.resolve(values:) (B2 152-169) from this file; it reappears byte-identical as DroppyCode/Services/MCP/MCPCatalogEntry+Resolve.swift:7-24 (stdio case 11-15, http 16-18, oauth 19-21), with the formerly orphaned doc comment (B2 122-124) now above it at :3-5 plus 'Kept out of Core because it needs the proxy.' No observable behaviour changes.",
+    "B3 deletes enum MCPPaths (B2 234-254) from this file; it reappears byte-identical as DroppyCode/Services/MCP/MCPPaths.swift:3-22 (directory 6-10 creating <Storage.root>/mcp/, connectionsURL mcp.json :13, customsURL custom-mcp.json :15, claudeConfigURL :17, codexConfigURL :19, copilotConfigURL :21). File names and locations are unchanged.",
+    "Everything else is byte-identical; lines after 121 shift by -3 (B2 125-150 -> B3 122-147) and after the first deletion by -22 (B2 170-233 -> B3 148-211), and Color(rgb:) moves from B2 255-263 to B3 212-220. The Windows port had already placed resolve (Marrow.Services.MCP.MCPResolver) and MCPPaths (src/Marrow.Services/Models/MCP.cs) in Services, so B3 upstream now matches the port's layering."
+   ],
+   "unresolved_questions": []
+  },
+  {
+   "path": "DroppyCode/Core/Models/Timeline.swift",
+   "sha256": "0dcf2b023a58dcabce56803957d5c5ac68bea41d9fc31f931e08918e667d735e",
+   "ranges_read": [
+    [
+     1,
+     369
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "Timeline.swift defines the persisted document of a chat thread: the TimelineItem stream (user, assistant, reasoning, tool, plan, todos, notice, turnEnd), user messages with Hydra origin markers, queued follow-up prompts with bundles, attachments, tool calls with their 60,000-byte output cap, proposed plans, todos, notices with the usage-limit marker, per-turn TurnRecord and TurnSummary, context usage and the ThreadDocument that wraps them and decodes every list leniently. It also prepares image attachments for providers (base64Images downscales anything above 2000 px on its longest side to a 0.8-quality JPEG through ImageIO, orientation applied) and keeps the HydraMergeRecord log that the lead's merge-state note is built from. At B3 HydraMergeRecord gains an optional retryable flag and its held outcome is documented as legacy-only.",
+   "key_symbols": [
+    "struct TimelineItem: Codable, Identifiable (4-33) with enum Content { user, assistant, reasoning, tool, plan, todos, notice, turnEnd } and isEmptyReasoning; extension cleanedOfEmDashes (35-56)",
+    "struct UserMessage (58-70): text, attachments, hydraHeads, hydraBrief; isFromHydra, isHydraBrief",
+    "struct FollowUpPrompt (75-87): id, text, attachments, createdAt, bundleID; isEmpty",
+    "struct Attachment (89-138): id, name, path, mimeType; url, isImage; @concurrent static func base64Images(_:) (102-111); maxPixelSize = 2000 (114); downscaledJPEG(_:) (120-137)",
+    "struct AssistantMessage (140-143), struct ReasoningBlock (145-148)",
+    "struct ToolCall (150-200): Kind command/read/edit/search/web/mcp/agent/other, Status running/completed/failed/declined, outputLimit = 60_000, appendOutput, setOutput, finish, trimOutput",
+    "struct FileEdit (202-207), struct ProposedPlan (209-219), struct TodoStep (221-230), struct Notice (232-244), struct LimitNotice (248-250), enum TurnStatus (252-257), struct TurnSummary (259-267)",
+    "struct HydraMergeRecord: Codable, Hashable, Sendable (270-284): enum Outcome { merged, failed, stray, held, settled } (273); at, outcome, project, label, url, files, detail, retryable: Bool? = nil (283, new)",
+    "struct TurnRecord (286-310) with field-by-field init(from:) (312-332): id, index, providerTurnID, startedAt, completedAt, status, baseCheckpoint, endCheckpoint, userItemID, providerDiff, providerAnchor, touchedPaths, tokenSpends, hydraMerged",
+    "struct ContextUsage (334-342): usedTokens, windowTokens, fraction",
+    "struct ThreadDocument (344-369): threadID, items, turns, usage, followUps, hydraMerges, continuation; init(from:) decoding items/turns/followUps/hydraMerges as [Lenient<T>]"
+   ],
+   "calls_into": [
+    "TextCleanup.withoutEmDashes (cleanedOfEmDashes)",
+    "ImageIO: CGImageSourceCreateWithData, CGImageSourceCopyPropertiesAtIndex, CGImageSourceCreateThumbnailAtIndex, CGImageDestinationCreateWithData, CGImageDestinationAddImage, CGImageDestinationFinalize",
+    "Lenient<T> and KeyedDecodingContainer.value(_:default:) (Core coding support)",
+    "String.trimmed",
+    "FileChangeSummary, TokenSpend, ThreadContinuation (other Core models)"
+   ],
+   "state_owned": [
+    "None beyond the value types; ThreadDocument instances are owned by the thread runtime and store"
+   ],
+   "side_effects": [
+    "Attachment.base64Images reads each image attachment's bytes from disk (Data(contentsOf:)) off the main actor and may re-encode it as JPEG in memory; nothing is written"
+   ],
+   "platform_assumptions": [
+    "ImageIO and the 'public.jpeg' UTI for downscaling; kCGImageSourceCreateThumbnailWithTransform applies EXIF orientation",
+    "Attachment.url is a file URL built from a POSIX path"
+   ],
+   "persisted_fields": [
+    "ThreadDocument: threadID, items, turns, usage, followUps, hydraMerges, continuation",
+    "HydraMergeRecord: at, outcome (raw 'merged'|'failed'|'stray'|'held'|'settled'), project, label, url, files, detail, retryable (new at B3, optional Bool, omitted when nil by synthesized Codable, decoded as nil when absent)",
+    "TurnRecord: id, index, providerTurnID, startedAt, completedAt, status, baseCheckpoint, endCheckpoint, userItemID, providerDiff, providerAnchor, touchedPaths, tokenSpends, hydraMerged",
+    "TimelineItem/UserMessage/FollowUpPrompt/Attachment/ToolCall/FileEdit/ProposedPlan/TodoStep/Notice/LimitNotice/TurnSummary/ContextUsage fields as declared"
+   ],
+   "ui_elements": [],
+   "feature_notes": [
+    "B3 adds 'var retryable: Bool? = nil' to HydraMergeRecord (281-283, doc: a failure that clears by itself and is retried quietly, the forge still checking or a remote that moved; nil on the ones that need the user). It is written true by AppModel+HydraMerge's fail(...retryable: true) and read by HydraPrompts.mergeStatus to pick the 'did not land yet ... retries it by itself within a minute' note. Old documents decode unchanged (absent key -> nil).",
+    "B3 rewrites the held doc comment (271-272): 'held is no longer written: a merge never waits on another chat's files now. It stays so records written by earlier versions still decode.' The Outcome enum keeps all five raw values, so B2-era thread documents with held records still load.",
+    "TurnRecord, ContextUsage and ThreadDocument are byte-identical and shift by +3 lines (B2 283-366 -> B3 286-369); everything up to line 270 keeps its number."
+   ],
+   "unresolved_questions": []
+  }
+ ]
+}

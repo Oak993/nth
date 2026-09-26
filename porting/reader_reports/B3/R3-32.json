@@ -1,0 +1,38 @@
+{
+  "bundle_id": "R3-32",
+  "reader": "R3-32-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Markdown/MentionScanner.swift",
+      "sha256": "df328504471048d28b70f6f184f739cfc01770b8ee556a95402efea416b08539",
+      "ranges_read": [[1, 33]],
+      "asset_inspection": null,
+      "purpose": "New in B3 (added by upstream commit d70cff8fe 'refactor: audit cleanups'): a caseless enum MentionScanner holding the single word-bounded Hydra head-mention scan that B2 duplicated three times, in LinkParagraphView.appendProse (B2 LinkParagraphView.swift ~:187-241), MarkdownBlockView.mentionRanges (B2 MarkdownView.swift :419-440) and MarkdownBlockView.mentionSegments (B2 MarkdownView.swift :447-466). Its one generic function matches(in:candidates:name:) walks the text Character by Character, tries the candidates longest name first (sorted by name(x).count descending, :8), accepts a hit only when the name is a prefix of the remaining text (:15) and the Character before it and the Character after it are each absent or neither isLetter nor isNumber (:17-20), records (range, value) and jumps past the match (:23-26), otherwise advances one Character (:28). The doc comments state the contract: 'The word-bounded mention scan shared by every prose path' (:3) and 'Longest name first, so 'Hank 2' beats 'Hank'; a name inside a longer word or beside a digit doesn't count' (:5-6).",
+      "key_symbols": [
+        "enum MentionScanner",
+        "nonisolated static func matches<Value>(in text: String, candidates: [Value], name: (Value) -> String) -> [(range: Range<String.Index>, value: Value)]"
+      ],
+      "calls_into": [
+        "Swift stdlib only: Array.sorted(by:), Substring.hasPrefix, String.index(_:offsetBy:limitedBy:), String.index(before:), String.index(after:), Character.isLetter, Character.isNumber"
+      ],
+      "state_owned": [],
+      "side_effects": [],
+      "platform_assumptions": [
+        "Swift String semantics: indices, count, offsetBy and hasPrefix work on extended grapheme clusters (Character) with canonical-equivalence comparison, and Character.isLetter/isNumber are Unicode-property tests on the whole Character; a Windows port must reproduce these on grapheme clusters, not UTF-16 code units",
+        "Declared nonisolated static so the nonisolated MarkdownBlockView.mentionRanges (B3 MarkdownView.swift:418-420) can call it outside the main actor"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [],
+      "feature_notes": [
+        "Status A (whole file new, 33 lines, git diff B2..B3 shows 33 insertions). It is a pure extraction: the B3 callers are LinkParagraphView.swift:197 (`for match in MentionScanner.matches(in: string, candidates: mentions, name: \\.name)`), MarkdownView.swift:419 (`MentionScanner.matches(in: text, candidates: names, name: { $0 }).map(\\.range)`) and MarkdownView.swift:425 (`MentionScanner.matches(in: chars, candidates: hydraMentionPersonas, name: \\.name)`), each replacing its own inline loop from B2.",
+        "Behaviour is unchanged versus all three B2 copies: same comparator (name count descending) on the same input order, same prefix test, same before/after `!c.isLetter && !c.isNumber` boundary rule, same advance-past-match. The one textual difference, the B2 LinkParagraphView copy computing `after` with `string.index(i, offsetBy: persona.name.count)` without limitedBy, is unobservable because hasPrefix already guarantees the name's characters exist. `for ... where hasPrefix` in B2 became `guard hasPrefix else { continue }` in B3, which is equivalent.",
+        "Consequence for the specification: the longest-first word-bounded matching that PR-THEME-143 and UI-THEME-046 attribute to LinkParagraphView.swift:179-244 now lives in MentionScanner.swift:5-32; the rule itself is identical, so only the citations move.",
+        "Latent edge case present in B2 and kept in B3: an empty candidate name would hit with a zero-length range when the boundary tests pass, `i = end` would not advance, and the while loop would never end. Real candidates are roster persona names (never empty), so this is not reachable in the source's own use."
+      ],
+      "unresolved_questions": [
+        "The existing C# port implements this scan twice, and the two copies disagree: MarkdownBlockView.MentionRanges (src/Marrow.UI/Markdown/MarkdownView.cs:687-714) orders by UTF-16 Length and tests char.IsLetter/char.IsDigit per UTF-16 code unit (the code notes this as an unverified ENGINEERING DECISION under OD-0001), while LinkParagraphView.AppendProse (src/Marrow.UI/Markdown/LinkParagraphView.cs:423-455) is grapheme-aware through SwiftString.Count/Characters and SwiftCharacter.IsLetter/IsNumber. B3's single shared scanner means both paths must behave identically, so the port should settle on one grapheme-correct implementation. Whether char.IsDigit versus Swift Character.isNumber (broader: Unicode Numeric_Type, for example superscripts and vulgar fractions) is observable depends on persona names and the adjacent text, and is not settled by the source.",
+        "Both C# copies skip empty names (`name.Length == 0 continue`), where the Swift source would loop forever on an empty candidate. Unreachable with roster names, but it is a difference from the source that the port should record rather than leave implicit."
+      ]
+    }
+  ]
+}

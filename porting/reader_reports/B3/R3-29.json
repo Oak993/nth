@@ -1,0 +1,66 @@
+{
+  "bundle_id": "R3-29",
+  "reader": "R3-29-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Chrome/WindowChrome.swift",
+      "sha256": "9c9748a0c155b23485ea3a595f4500af6973d78be00ec1f9117bf8dbffc4473b",
+      "ranges_read": [[1, 200], [201, 401]],
+      "asset_inspection": null,
+      "purpose": "Owns the main window's AppKit chrome: WindowChromeConfigurator/WindowChromeProbeView hook the hosting NSWindow, and the WindowChrome enum makes it full-size-content with a transparent hidden title bar and no separator, non-opaque and clear with a shadow, autorecalculatesKeyViewLoop on, stretches the title bar container down to titlebarHeight so the pinned traffic lights take clicks, and pins close/miniaturize/zoom with identified constraints that move between the sidebar corner and the collapsed chrome row (animated 0.32 s ease-out, 0.18 s with Reduce Motion, never during live resize or a sidebar drag). It also holds the @Observable SidebarLayout model (width 210...440 default 268, collapse below 110, startsOpen, holdsTrafficLights at trafficLightsFitWidth, slide bookkeeping of 420/220 ms, persisted to sidebarWidth and sidebarStartsOpen) and, at B3, SidebarResizeHandle, which is now a thin SwiftUI View that configures the new shared DragHandle (DragHandle.swift) instead of carrying its own AppKit NSView.",
+      "key_symbols": [
+        "struct WindowChromeConfigurator: NSViewRepresentable (sidebarVisible, sidebarDragging, makeNSView, updateNSView)",
+        "final class WindowChromeProbeView: NSView (sidebarDragging, sidebarVisible didSet, titlebarContainer, resizeWindow, titlebarFitPending, viewDidMoveToWindow, titlebarFrameDidChange(_:), windowDidEndLiveResize(_:), hitTest returns nil)",
+        "@MainActor enum WindowChrome (leadingIdentifier \"droppycode.trafficLight.leading\", topIdentifier \"droppycode.trafficLight.top\", configuredWindows, configure(_:), collapsedTrafficLightTop, titlebarHeight, titlebarContainer(of:), fitTitlebar(of:), placeTrafficLights(on:sidebarVisible:animated:))",
+        "@MainActor @Observable final class SidebarLayout (minimumWidth 210, maximumWidth 440, collapseThreshold 110, defaultWidth 268, Key.width \"sidebarWidth\", Key.startsOpen \"sidebarStartsOpen\", width, isVisible, startsOpen, holdsTrafficLights, isDragging, isSliding, slideDelta, slideTask, trafficLightsFitWidth, slideRun, anchorWidth, restingWidth, lastLaidOutWidth, renderedWidth, noteLaidOutWidth(_:), beginSlide(delta:), beginDrag(), drag(by:), endDrag(), toggle(), persist())",
+        "struct SidebarResizeHandle: View (static hitWidth 9, isActive, onBegin, onChange: (CGFloat) -> Void, onEnd, body = DragHandle(axis: .horizontal, grip: DragHandleView.Grip(restLength: 10, shownLength: 22, thickness: 2.5, glowInset: Chrome.trafficLightTop + Chrome.trafficLightDiameter, refreshesHoverOnLayout: true), cursor: .columnResize, ...))"
+      ],
+      "calls_into": [
+        "DroppyCode/UI/Chrome/DragHandle.swift: DragHandle (NSViewRepresentable) and DragHandleView.Grip, new in B3; SidebarResizeHandle.body at :385-399",
+        "DroppyCode/UI/Chrome/Chrome.swift: Chrome.sheetInset, chromeTopPadding, capsuleHeight, trafficLightDiameter, trafficLightLeading, trafficLightTop, trafficLightPitch, trafficLightsWidth, trafficLightClearance, chromeHorizontalPadding, panelSlide",
+        "CaptureRun.defaults ?? .standard (SidebarLayout init :288 and persist :367)",
+        "NSWorkspace.shared.accessibilityDisplayShouldReduceMotion (:223, :280)",
+        "NotificationCenter NSView.frameDidChangeNotification and NSWindow.didEndLiveResizeNotification (:43-65)",
+        "NSAnimationContext.runAnimationGroup with CAMediaTimingFunction(.easeOut) (:224-229)",
+        "SwiftUI withAnimation(Chrome.panelSlide) and withTransaction(disablesAnimations) (:332-362)"
+      ],
+      "state_owned": [
+        "WindowChrome.configuredWindows: NSHashTable<NSWindow>.weakObjects() (:105)",
+        "WindowChromeProbeView: weak titlebarContainer, weak resizeWindow, titlebarFitPending (:34-38), sidebarVisible and sidebarDragging (:22-30)",
+        "SidebarLayout: width, isVisible, startsOpen, holdsTrafficLights, isDragging, isSliding, slideDelta, slideTask, anchorWidth, restingWidth, lastLaidOutWidth (:250-285)",
+        "At B3 the resize strip's hover/drag/grip state is no longer owned here; it lives in DragHandleView (DragHandle.swift)"
+      ],
+      "side_effects": [
+        "Mutates the NSWindow once per window: styleMask .fullSizeContentView, titlebarAppearsTransparent, titleVisibility .hidden, titlebarSeparatorStyle .none, isOpaque false, backgroundColor .clear, hasShadow true, isMovableByWindowBackground false, invalidateShadow, autorecalculatesKeyViewLoop true (:107-132)",
+        "Sets postsFrameChangedNotifications on the title bar container and registers/removes notification observers (:40-71)",
+        "Resizes the title bar container frame (fitTitlebar :161-172) and activates/retunes traffic-light constraints (:177-230)",
+        "Writes UserDefaults keys sidebarWidth and sidebarStartsOpen on every toggle, drag end and startsOpen change (:366-370)"
+      ],
+      "platform_assumptions": [
+        "AppKit title bar internals: standardWindowButton(.closeButton)?.superview is the buttons' bar and its superview the container AppKit tiles (:152-155); theme frame flippedness (:165)",
+        "AppKit only delivers clicks to title bar buttons inside the title bar bounds, hence the stretched container (:140-150)",
+        "NSWindow.autorecalculatesKeyViewLoop avoids a macOS 26 SwiftUI FocusBridge freeze (comment :121-130)",
+        "Resize strip cursor, first-mouse and no-window-drag behaviour now come from DragHandleView's cursor rect, acceptsFirstMouse and mouseDownCanMoveWindow (DragHandle.swift:183-192)"
+      ],
+      "persisted_fields": [
+        "sidebarWidth (Double, restingWidth, in CaptureRun.defaults ?? .standard; read and clamped to 210...440 at init, default 268)",
+        "sidebarStartsOpen (Bool, default false; also the initial isVisible and holdsTrafficLights)"
+      ],
+      "ui_elements": [
+        "Native traffic-light buttons (close, miniaturize, zoom), 14 pt on trafficLightPitch, pinned at trafficLightLeading/trafficLightTop beside the sidebar or at sheetInset + chromeHorizontalPadding / collapsedTrafficLightTop when collapsed",
+        "Transparent title bar reaching titlebarHeight = sheetInset + chromeTopPadding + capsuleHeight",
+        "Sidebar resize strip: 9 pt hit width, column-resize cursor, vertical grip 2.5 x 10 at rest and 2.5 x 22 shown at 0.6 opacity, glow starting at trafficLightTop + trafficLightDiameter at 0.05 hover / 0.10 drag, all now rendered by DragHandleView"
+      ],
+      "feature_notes": [
+        "Lines 1-375 are byte-identical to B2 (the only hunk starts at B2/B3 line 373, first changed line 376): WindowChromeConfigurator, WindowChromeProbeView, WindowChrome and SidebarLayout are unchanged in content and line numbers.",
+        "B2 :376-571 (SidebarResizeHandle: NSViewRepresentable plus the private final class SidebarResizeHandleView: NSView with its own Grip enum, CALayer grip/glow, tracking area, cursor rect and mouse handlers) is deleted; B3 :376-401 makes SidebarResizeHandle a SwiftUI View whose body is DragHandle(axis: .horizontal, grip: DragHandleView.Grip(restLength: 10, shownLength: 22, thickness: 2.5, glowInset: Chrome.trafficLightTop + Chrome.trafficLightDiameter, refreshesHoverOnLayout: true), cursor: .columnResize, isActive:, onBegin:, onChange: { onChange($0.width) }, onEnd:). Commit d70cff8fe 'refactor: audit cleanups' introduced the shared DragHandle.swift used also by TerminalPanel and SubagentPanel.",
+        "Behaviour comparison against DragHandle.swift (read in full, 1-304): every sidebar-strip value is preserved: thickness 2.5, rest 10, shown 22, alpha default 0.6, hoverGlow 0.05, dragGlow 0.10, glow corner radius 4, grip corner radius thickness/2 = 1.25, 0.18 s ease-out animation vs setDisableActions, layout() re-reads hover because refreshesHoverOnLayout is true, same tracking-area options, labelColor via performAsCurrentDrawingAppearance re-applied on appearance change, glow added before grip, acceptsFirstMouse true, mouseDownCanMoveWindow false, hitTest nil and no cursor rect while inactive, press origin in window space, final onChange before onEnd on release. The public surface RootView uses (hitWidth 9, isActive, onBegin, onChange(CGFloat), onEnd) is unchanged.",
+        "Differences introduced by DragHandleView that the sidebar strip now inherits, none reachable in normal use: mouseUp is ignored unless isDragging (DragHandle.swift:223); viewDidMoveToWindow with window == nil mid-drag clears isDragging (:130-133), so a strip removed mid-drag never calls onEnd; isDragging is cleared before (not after) the final onChange on release (:225-227), which only affects internal grip state; a double-click press calls onDoubleClick (nil for the sidebar) and still starts the drag; slop is 0 and dragCursor nil for the sidebar, so the slop and cursor-push branches never run.",
+        "Spec impact: PR-WIN-049 through PR-WIN-057 and UI-WIN-004 cite B2 lines 407-570 that no longer exist in this file; their behaviour is unchanged and they need re-citation to WindowChrome.swift:375-401 plus DragHandle.swift. All other records citing this file (PR-WIN-022..048, PR-WIN-134, PR-SETTINGS-102, PR-SIDEBAR-001, UI-WIN-001/002/003/005) cite lines <= 370 that are untouched and unshifted."
+      ],
+      "unresolved_questions": [
+        "UNRESOLVED: whether AppKit would still deliver mouseUp to a strip removed from its window mid-drag in B2; B3's DragHandleView explicitly abandons the drag (isDragging = false, no onEnd) when detached. If B2 did deliver it, SidebarLayout.endDrag would have run in B2 and not in B3. Reaching this needs the sidebar strip to leave the window while its edge is held, which no source path is known to do."
+      ]
+    }
+  ]
+}

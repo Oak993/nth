@@ -1,0 +1,59 @@
+{
+  "bundle_id": "R3-30",
+  "reader": "R3-30-reader",
+  "files": [
+    {
+      "path": "DroppyCode/UI/Markdown/LinkHover.swift",
+      "sha256": "faeb47e8c06a80a71d90a04330074b473e763a32264967eb954cf9fb048a15c1",
+      "ranges_read": [[1, 51]],
+      "asset_inspection": null,
+      "purpose": "New at B3: a SwiftUI ViewModifier, LinkHoverModifier, that owns the pointer-hover behaviour of a rendered link paragraph. It shows the pointing-hand cursor only while the pointer is over a real link, and shows the shared HydraHeadHoverPopover card while the pointer rests on a head mention whose name, URL and persona all agree. It clears both when the hover ends or the view disappears. The code was lifted verbatim in behaviour from two identical inline copies that B2 kept in InlineText (MarkdownView.swift B2 :1158-1193) and ProseRunView (B2 :27-59). Both call sites now apply `.modifier(LinkHoverModifier(...))` (B3 MarkdownView.swift:1120, ProseRunView.swift:24). The header comment (:4-5) records why the cursor comes from here: LinkTextView keeps no tracking areas, because AppKit rebuilds them every scrolled frame.",
+      "key_symbols": [
+        "struct LinkHoverModifier: ViewModifier (:6)",
+        "let linkView: WeakView (:8) - weak box so a scrolled-away paragraph is not kept alive",
+        "@Binding var showsHand: Bool (:9)",
+        "@Binding var hoveredHeadID: UUID? (:10)",
+        "let personas: [HydraPersona] (:11)",
+        "let targets: [String: HydraMentionTarget] (:12)",
+        "func body(content: Content) -> some View (:14-44)",
+        "private func endHover() (:46-50)"
+      ],
+      "calls_into": [
+        "SwiftUI View.onContinuousHover(coordinateSpace: .local) (:17) with HoverPhase .active(let point) / .ended",
+        "SwiftUI View.onDisappear (:41)",
+        "LinkTextView.hasLink(at:) (:21) - defined in LinkParagraphView.swift",
+        "LinkTextView.headMentionRect(at:) -> (name, url, rect)? (:26) - defined in LinkParagraphView.swift",
+        "NSCursor.pointingHand.push() / NSCursor.pop() (:24, :47)",
+        "HydraHeadHoverPopover.shared.show(persona:target:relativeTo:of:) (:31)",
+        "HydraHeadHoverPopover.shared.hide() (:35, :49)",
+        "WeakView.value (:18) - DroppyCode/UI/Common/AttachmentPreviewPanel.swift:246-249, `weak var value: NSView?`",
+        "Dictionary(_:uniquingKeysWith:) keeping the first persona for a duplicated name (:15)"
+      ],
+      "state_owned": [
+        "Owns no state of its own. showsHand and hoveredHeadID are @Binding to @State in the caller (InlineText: MarkdownView.swift:1081, :1083; ProseRunView: ProseRunView.swift:12-13). linkView is the caller's @State WeakView box (MarkdownView.swift:1079, ProseRunView.swift:11). personasByName is recomputed on every body evaluation (:15)."
+      ],
+      "side_effects": [
+        "Pushes NSCursor.pointingHand when the pointer enters a link, and pops it when the pointer leaves the link, only when the state changes (:22-25)",
+        "Shows the shared head hover popover anchored to the mention's rect in the LinkTextView when the hovered head changes (:29-32)",
+        "Hides the shared popover when the pointer leaves a head mention (:33-35)",
+        "On hover end or disappear: pops the cursor if the hand was showing, clears hoveredHeadID and hides the popover (:37-43, :46-50)"
+      ],
+      "platform_assumptions": [
+        "AppKit cursor stack (NSCursor push/pop) rather than a per-element cursor property",
+        "SwiftUI onContinuousHover delivers local-coordinate points that LinkTextView's hit tests (hasLink(at:), headMentionRect(at:)) accept directly",
+        "The hosted NSView is reached through a weak box that the representable's onHost callback fills in, and is downcast to LinkTextView (:18); if the downcast fails, hover does nothing"
+      ],
+      "persisted_fields": [],
+      "ui_elements": [
+        "Pointing-hand cursor over real links in a link paragraph or prose run (a head mention keeps the arrow because hasLink(at:) is false for it)",
+        "Head hover card (HydraHeadHoverPopover) over a head mention in a link paragraph or prose run"
+      ],
+      "feature_notes": [
+        "Status A, but a pure extraction (refactor): the B2 hover handler existed twice, inline in InlineText.body (B2 MarkdownView.swift:1158-1193) and ProseRunView.body (B2 ProseRunView.swift:27-59). B3 deletes both copies and replaces them with `.modifier(LinkHoverModifier(linkView: linkBox, showsHand: $showsHand, hoveredHeadID: $hoveredHeadID, personas: hydraMentionPersonas, targets: targets))` at MarkdownView.swift:1120 and ProseRunView.swift:24 (git diff 1fbf81e6..HEAD). The sequence of conditions and effects is unchanged. The link check is `overLink != showsHand`, then push or pop. The head check requires `headMentionRect` to hit, `targets[name]` to exist, `target.url == url` and `personasByName[name]` to exist, and it shows the card only when `hoveredHeadID != target.threadID`. The else branch hides the card only when hoveredHeadID is not nil. `.ended` and onDisappear both pop the hand if it was showing, clear the head and hide the card.",
+        "Only the mechanics differ, and none of it is observable. B2's closures captured Binding values (`hand`, `hoveredHead`) and a `[weak linkBox]`. B3 uses @Binding properties and holds the WeakView box strongly. The box's own `value` stays weak, so the NSView is still not kept alive, as the :7 comment states. B2 computed personasByName once per InlineText body. B3 computes it once per modifier body. Both keep the first persona when names collide. `} else { if hoveredHead != nil` became `} else if hoveredHeadID != nil`, which is equivalent.",
+        "A related B3 change sits outside this file (owned by the MarkdownView.swift reader): InlineText now takes the LinkParagraphView path, and so gets this modifier, when `RichLink.containsLinks(in:streaming:)` is true, not when link hosts are non-empty. That means paragraphs whose only links are hostless local file paths now also get the pointing hand (MarkdownView.swift B3 :1095-1096, comment 'Local file links have no host, but still need the native link opener')."
+      ],
+      "unresolved_questions": []
+    }
+  ]
+}

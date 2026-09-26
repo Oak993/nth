@@ -1,0 +1,92 @@
+{
+ "bundle_id": "R3-53",
+ "reader": "R3-53-reader",
+ "files": [
+  {
+   "path": "DroppyCode/UI/Theme/Wallpaper.swift",
+   "sha256": "a3d0ae09f1a1a5abb0487c433cc38874717bb1149b345d88857847d742c21750",
+   "ranges_read": [
+    [
+     1,
+     270
+    ]
+   ],
+   "asset_inspection": null,
+   "purpose": "WallpaperStore is the app-wide @MainActor @Observable model owning the window's optional backdrop picture: it accepts a user-picked image file, copies it into the app's wallpaper library directory under a generated UUID name, decodes and downsamples it off the main thread, softens it by a persisted 0...1 softness value using a Gaussian blur, and republishes the rendered NSImage for RootView's WindowBackdrop and the Appearance settings card's WallpaperCard row to read. It also drives a separate fast 'live' render path from a half-size preview copy while the softness slider is actively dragged, so the slider stays responsive, and falls back to a full-size render once the drag ends.",
+   "key_symbols": [
+    "private struct DecodedPicture: @unchecked Sendable { let image: NSImage } (9-11)",
+    "@MainActor @Observable final class WallpaperStore { static let shared = WallpaperStore() } (15-17)",
+    "private enum Key { static let softness = \"wallpaperSoftness\"; static let file = \"wallpaperFile\" } (19-22)",
+    "nonisolated static let ciContext = CIContext(options: [.useSoftwareRenderer: false]) (26)",
+    "static let acceptedTypes: [UTType] = [.image] (28)",
+    "private(set) var image: NSImage? (32), private(set) var isInstalling = false (34), private(set) var lastError: String? (36)",
+    "var softness: Double { didSet { ... guarded clamp, defaults.set, scheduleRerender } } (41-55)",
+    "var hasWallpaper: Bool { image != nil || fileURL != nil } (57)",
+    "var isAdjustingSoftness = false { didSet { renderLive() / liveRequested = nil; render() } } (61-71)",
+    "@ObservationIgnored private var fileURL: URL? (74)",
+    "@ObservationIgnored private let defaults = CaptureRun.defaults ?? .standard (75)",
+    "@ObservationIgnored private var renderTask/liveTask/liveRequested/baseImage/previewBase (76-83)",
+    "private init() (85-95): reads clamped softness and, when a stored file name's file still exists, sets fileURL and calls render()",
+    "nonisolated static func accepts(_ url: URL) -> Bool (98-109)",
+    "func install(from source: URL) (113-144)",
+    "func remove() (147-156)",
+    "private func render() (160-178)",
+    "private func scheduleRerender() (180-187)",
+    "private func renderLive() (192-210)",
+    "private func takeLiveRequest() -> Double? (213-217)",
+    "private func finishInstall(file:picture:) (219-227)",
+    "private func failInstall() (229-232)",
+    "nonisolated static func thumbnail(_ url: URL, maxPixel: Int) -> CGImage? (236-245)",
+    "nonisolated static func blurred(_ base: CGImage, softness: Double, radiusScale: CGFloat = 1) -> CGImage? (249-260)",
+    "nonisolated static func decode(_ url: URL, softness: Double) -> NSImage? (264-269)"
+   ],
+   "calls_into": [
+    "DroppyCode/Core/Support/CaptureRun.swift: CaptureRun.defaults (line 75; B3 rename of WebsiteCaptures.defaults, the shared UserDefaults suite)",
+    "DroppyCode/Services/Store/Storage.swift: StoragePaths.wallpaperDirectory (lines 89, 128, 130; B3 rename of Storage.wallpaperDirectory)",
+    "AppKit: NSImage(cgImage:size:); SwiftUI: withAnimation(.easeOut...)/withAnimation(.spring...)",
+    "CoreImage: CIContext, CIFilter(name: \"CIGaussianBlur\"), CIImage(cgImage:).clampedToExtent()",
+    "ImageIO: CGImageSourceCreateWithURL, CGImageSourceCreateThumbnailAtIndex",
+    "Foundation: FileManager.default (fileExists, copyItem, removeItem, createDirectory), URL.startAccessingSecurityScopedResource/stopAccessingSecurityScopedResource",
+    "UniformTypeIdentifiers: UTType(filenameExtension:), url.resourceValues(forKeys: [.contentTypeKey])",
+    "Consumed by DroppyCode/App/Views/Settings/WallpaperCard.swift (install/remove/softness UI) and DroppyCode/App/Views/RootView.swift:64 (WindowBackdrop reads WallpaperStore.shared.image), per PR-THEME-053/PR-SETTINGS-103/PR-STORE-005 evidence"
+   ],
+   "state_owned": [
+    "image, isInstalling, lastError (published, read-only outside the type)",
+    "softness (published, persisted), isAdjustingSoftness (published, drives live-vs-full render mode)",
+    "fileURL, baseImage, previewBase, liveRequested, renderTask, liveTask (ObservationIgnored implementation state)"
+   ],
+   "side_effects": [
+    "Creates StoragePaths.wallpaperDirectory with intermediate directories and copies the picked file into it as \"wallpaper-<uuid>.<ext>\"",
+    "Deletes the previously installed file on a successful install (finishInstall) and on remove()",
+    "Deletes a partially copied destination file on a copy or decode failure",
+    "Writes UserDefaults keys \"wallpaperSoftness\" (Double) and \"wallpaperFile\" (String, name only); removes \"wallpaperFile\" on remove()",
+    "Runs Task.detached / Task work off the main actor for file copy, ImageIO thumbnailing and Core Image blurring",
+    "Animates the published image with .easeOut(duration: 0.25) on remove and .spring(duration: 0.45, bounce: 0.2) on install"
+   ],
+   "platform_assumptions": [
+    "macOS security-scoped resource access (source.startAccessingSecurityScopedResource/stop) around the picked file, needed because the source URL comes from a panel/drop that dies with the picker",
+    "AppKit NSImage / CGImage as the on-screen picture representation",
+    "Swift concurrency: @MainActor @Observable class, nonisolated static decode/thumbnail/blur helpers explicitly kept off the main actor, Task.detached(priority: .userInitiated)"
+   ],
+   "persisted_fields": [
+    "UserDefaults \"wallpaperSoftness\": Double, default 0, clamped to 0...1 on read and on write",
+    "UserDefaults \"wallpaperFile\": String, the installed file's lastPathComponent only (never a full path)",
+    "The wallpaper picture file itself, on disk under StoragePaths.wallpaperDirectory (renamed at B3 from Storage.wallpaperDirectory; same physical directory and naming scheme)"
+   ],
+   "ui_elements": [
+    "None declared directly in this file - it is a headless @Observable store, not a SwiftUI View. It feeds two UI surfaces declared elsewhere: the Appearance settings card's wallpaper row (isInstalling spinner, lastError text \"That is not a picture.\" / \"Could not use that picture.\") and RootView's WindowBackdrop (image).",
+    "Two named animation curves a consumer visibly experiences: .easeOut(duration: 0.25) when the wallpaper is removed, .spring(duration: 0.45, bounce: 0.2) when a new one finishes installing; no animation on an ordinary softness re-render (documented in-line as deliberate, to avoid a flash)."
+   ],
+   "feature_notes": [
+    "B2->B3 diff (git diff 1fbf81e61e28a079508a074c01ee1830a9cc23dc..HEAD -- DroppyCode/UI/Theme/Wallpaper.swift): exactly 4 hunks, 4 lines removed / 4 lines added (churn 8, matching the bundle's stated value); both B2 and B3 are 270 lines, so no line shifted.",
+    "Every changed line is a pure identifier rename with no behavior difference: line 75 `WebsiteCaptures.defaults` -> `CaptureRun.defaults`; line 89 `Storage.wallpaperDirectory` -> `StoragePaths.wallpaperDirectory`; line 128 same rename inside the generated destination path; line 130 same rename in the createDirectory(at:) call. This matches upstream commit d70cff8fe 'refactor: audit cleanups - five bug fixes, shared MCP and provider code, layer rules restored', which is a housekeeping rename pass, not a feature change.",
+    "The renamed types themselves (CaptureRun and StoragePaths) are declared in DroppyCode/Core/Support/CaptureRun.swift and DroppyCode/Services/Store/Storage.swift respectively - separate B3-tracked files outside this bundle's scope; this bundle only records that Wallpaper.swift's call sites now name the new identifiers with identical runtime meaning (same shared UserDefaults suite, same wallpaper directory).",
+    "porting/deps/units.json's unit id UI.Theme.Wallpaper lists \"target\": \"src/Marrow.UI/Theme/Wallpaper.cs\", but no such file exists in the integration worktree; the actual port lives at src/Marrow.App/Theme/Wallpaper.cs (confirmed via `git ls-files` in E:\\Droppy\\wt\\integration, which lists only src/Marrow.App/Theme/Wallpaper.cs, src/Marrow.App/Views/Settings/WallpaperCard.cs and src/Marrow.App/Port/WallpaperFileDialog.cs). This is a stale 'target' field in units.json, not a missing file; flagged for the ledger owner rather than resolved here."
+   ],
+   "unresolved_questions": [
+    "Whether the shared C# `Storage` static class (src/Marrow.Services/Store/Storage.cs, the port of DroppyCode/Services/Store/Storage.swift) will itself be renamed to `StoragePaths` for identifier parity with this B3 Swift rename is a decision that belongs to the separate Services.Store.Storage unit's own B3 delta, not to this bundle; if it is renamed, Wallpaper.cs's three `Storage.WallpaperDirectory` call sites (src/Marrow.App/Theme/Wallpaper.cs:150, 183, 187) will need a mechanical follow-on identifier edit with no behavior change.",
+    "units.json's stale target path for UI.Theme.Wallpaper (src/Marrow.UI/Theme/Wallpaper.cs vs the real src/Marrow.App/Theme/Wallpaper.cs) should be corrected in the ledger; not resolved by this reader report."
+   ]
+  }
+ ]
+}
