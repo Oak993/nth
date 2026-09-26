@@ -431,3 +431,23 @@ Both remain open options for the owner alone.
 ## UNK-0022 Quarantine question behind BLK-0012
 
 - **Status:** RESOLVED 2026-09-22 by OD-0008. Raised 2026-09-20 with the quarantine entry BLK-0012 in porting/blocked_requirements.json, which holds the evidence, the harm and the ruling; recorded here so every unknown a record names has an entry.
+
+## UNK-0023 Upstream has moved past the pinned baseline (B2, 1.6.2) to 1.7.0
+
+- **Status:** OPEN, raised 2026-09-26 by Claude. Owner decision needed; not blocking - implementation continues on the
+  frozen B2 pin per OD-0006/AM-0002 until the owner rules.
+- **Evidence (SOURCE FACT, checked against `https://gitlab.com/droppyformac1/droppy-code.git`, branch `main`, at
+  `52bc79260...`):** 16 commits, 101 files, +2188/-2577 lines past our pin `1fbf81e61e28a079508a074c01ee1830a9cc23dc`.
+  `project.yml` MARKETING_VERSION is now `1.7.0` (ours: 1.6.2). Notable commits: `249fc5a9e` "1.7.0: Opus 5.5 and
+  GPT-5.6/6 models, self-updating CLIs, Hydra merges that never wait" (a provider/model roster and Hydra-merge behavior
+  change - would touch our already-ported ProviderRegistry/Hydra units); `d70cff8fe` "refactor: audit cleanups - five bug
+  fixes, shared MCP and provider code, layer rules restored" (behavior fixes plus a restructuring of code we already
+  ported); `280e05d8b` a new app icon; `02da39027`, `ff5032673`, `b89a1da92`, `daef6725a`, `0666ecd47` - five more fixes
+  (layout freeze, markdown local-file links, Codex phantom root head, Codex spend labeling).
+- **Why this matters:** re-pinning mid-port means re-reading the delta's files (Gate A/B rework, like the 1.6.0->1.6.2
+  refresh CLAUDE.md records), and some fixes may be worth porting as corrections even without a full re-pin. Neither is
+  a call this session can make alone; OD-0006/AM-0002 froze the pin deliberately.
+- **Options for the owner:** (a) stay on B2/1.6.2 for this port and treat 1.7.0 as a future delta, same as 1.6.0->1.6.2;
+  (b) re-pin now to 52bc79260/1.7.0, which reopens Gate A/B for the 101-file delta before more units are built on the old
+  pin; (c) stay pinned but cherry-pick specific named fixes from the delta as engineering decisions, each with its own
+  Swift-diff evidence. No action taken until the owner rules; work below continues against the B2 pin.
