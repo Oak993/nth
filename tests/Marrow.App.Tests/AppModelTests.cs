@@ -8,9 +8,9 @@ using Marrow.Services.Store;
 
 namespace Marrow.App.Tests;
 
-// Source: DroppyCode/App/AppModel.swift (B2 1fbf81e), part 1 of 3: init (:119-146), bootstrap (:237-278),
-// currentProject (:296-304), openThreadOnLaunch (:572-602), delete (:938-993), createWorktree (:1116-1141),
-// saveBeforeQuit (:1307-1327), and the collaborators those lines call. Every expectation is transcribed from the
+// Source: DroppyCode/App/AppModel.swift (B3 52bc7926), part 1 of 3: init (:120-147), bootstrap (:238-287),
+// currentProject (:305-313), openThreadOnLaunch (:581-611), delete (:947-1002), createWorktree (:1125-1150),
+// saveBeforeQuit (:1325-1345), and the collaborators those lines call. Every expectation is transcribed from the
 // cited Swift and the PR records; none comes from running the port. Every model lives in an AppModelHarness
 // (throwaway store root, home, defaults and Credential Manager, R-TEST-9); bootstrap runs only through
 // AppModelHarness.Bootstrap, which makes sure no provider CLI starts and no API is reached (R-TEST-10).
@@ -145,7 +145,8 @@ public sealed class AppModelTests
     }
 
     [Theory]
-    [Trait("Req", "PR-LAUNCH-034")] // App/AppModel.swift:125-128, :1289-1317; Services/Store/Storage.swift:60-63 (DEVIATION OD-0008 A10, OD-0012 E4)
+    [Trait("Req", "PR-LAUNCH-034")] // App/AppModel.swift:126-129, :1304-1335; Services/Store/Storage.swift:60-63 (DEVIATION OD-0008 A10, OD-0012 E4)
+    [Trait("Req", "PR-STORE-015")] // App/AppModel.swift:1304-1323 (B3)
     [InlineData("{\"projects\":[{\"id\":")]
     [InlineData("not json at all")]
     [InlineData("[]")]
@@ -164,12 +165,12 @@ public sealed class AppModelTests
             Assert.Empty(model.Threads);
             Assert.Equal(LibraryLoadMessage, model.Alert?.Message);
         });
-        // The 400 ms debounced save (:1289-1297) leaves it alone...
+        // The throttled save (:1304-1314), which stamps lastLibrarySave at :1318 before this OD-0008 guard runs, still leaves the file alone...
         h.Main.OnMain(model.ScheduleSave);
         h.Main.Advance(TimeSpan.FromSeconds(1));
         DiskWriter.Shared.WaitForQueuedWrites();
         Assert.Equal(bytes, File.ReadAllBytes(Storage.LibraryURL));
-        // ...and so does the synchronous quit-time save (:1314-1317).
+        // ...and so does the synchronous quit-time save (:1332-1335).
         h.Main.OnMain(model.SaveBeforeQuit);
         Assert.Equal(bytes, File.ReadAllBytes(Storage.LibraryURL));
     }
@@ -426,11 +427,105 @@ public sealed class AppModelTests
         Assert.Empty(h.Defaults.Writes);
     }
 
+    // ===== PR-STORE-015 / PR-LAUNCH-076: scheduleSave is a throttle, not a debounce (B3) =====
+
+    [Fact]
+    [Trait("Req", "PR-STORE-015")] // App/AppModel.swift:1304-1314
+    [Trait("Req", "PR-LAUNCH-076")] // App/AppModel.swift:1304-1314
+    public void ScheduleSave_a_burst_of_changes_with_no_prior_save_writes_once_400_ms_after_the_first_change()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        h.WriteLibrary([project], []);
+        var model = h.MakeModel();
+
+        // Fresh model, no prior save: the first change's wait is the 400 ms floor (lastLibrarySave is nil, so
+        // sinceLast reads as the 60 s fallback and 4000 ms - 60000 ms loses to 400 ms in the max).
+        h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "A" }));
+        h.Main.AdvanceMilliseconds(200);
+        // A change while a save is already pending (saveTask != null) is a complete no-op (:1305): it neither
+        // cancels nor restarts the wait, unlike the old cancel-and-restart debounce.
+        h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "B" }));
+        h.Main.AdvanceMilliseconds(150);
+        h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "C" }));
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal("P", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name); // still nothing at t=350 ms
+
+        // If the wait had restarted at t=350 ms (the old debounce), this write would land at t=750 ms, not 400 ms.
+        h.Main.AdvanceMilliseconds(50); // t=400 ms since the first change of the burst
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal("C", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name); // carries every change made during the wait
+    }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-015")] // App/AppModel.swift:1304-1314, :1318
+    [Trait("Req", "PR-LAUNCH-076")] // App/AppModel.swift:1304-1314, :1318
+    public void ScheduleSave_soon_after_a_save_landed_waits_nearly_four_seconds_not_the_400_ms_floor()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        h.WriteLibrary([project], []);
+        var model = h.MakeModel();
+
+        // First change: nothing saved yet, so the 400 ms floor applies and the write lands at t=400 ms, stamping
+        // lastLibrarySave (:1318).
+        h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "First" }));
+        h.Main.AdvanceMilliseconds(400);
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal("First", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name);
+
+        // A change right after that save must wait close to 4 s (4000 ms - time since lastLibrarySave), not the
+        // 400 ms floor: max(400 ms, 4000 ms - ~0 ms) = ~4000 ms.
+        h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "Second" }));
+        h.Main.AdvanceMilliseconds(3800); // t=4200 ms: about 3.8 s after the change, short of the ~4 s wait
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal("First", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name); // not written yet
+
+        h.Main.AdvanceMilliseconds(200); // t=4400 ms: 4000 ms after the change scheduled at t=400 ms
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal("Second", Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-076")] // App/AppModel.swift:1304-1314
+    public void ScheduleSave_a_steady_stream_of_changes_is_never_starved()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        h.WriteLibrary([project], []);
+        var model = h.MakeModel();
+
+        // A change every 100 ms: the old cancel-and-restart debounce (guard persistenceEnabled else return;
+        // saveTask?.cancel(); saveTask = Task { sleep 400 ms; ... }) never goes quiet long enough to fire and
+        // would leave a stream this dense completely unsaved.
+        for (var i = 0; i < 5; i++)
+        {
+            h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "Change " + i }));
+            h.Main.AdvanceMilliseconds(100);
+        }
+        // t=500 ms: the first write already landed at t=400 ms, before this first burst even finished.
+        DiskWriter.Shared.WaitForQueuedWrites();
+        var firstSaved = Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name;
+        Assert.NotEqual("P", firstSaved);
+
+        // Keep changing every 100 ms; a second write must land about 4 s after the first one (t=400+4000=4400 ms),
+        // proving the throttle re-arms instead of leaving the stream starved forever.
+        for (var i = 5; i < 45; i++)
+        {
+            h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "Change " + i }));
+            h.Main.AdvanceMilliseconds(100);
+        }
+        // t=4500 ms.
+        DiskWriter.Shared.WaitForQueuedWrites();
+        var secondSaved = Assert.Single(AppModelHarness.LoadedLibrary().Projects).Name;
+        Assert.NotEqual(firstSaved, secondSaved); // a second save landed: the stream was not starved
+    }
+
     // ===== PR-LAUNCH-053 to PR-LAUNCH-056: saveBeforeQuit =====
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-054")] // App/AppModel.swift:1314-1317; Services/Store/Storage.swift:358-361
-    [Trait("Req", "PR-STORE-016")] // App/AppModel.swift:1308-1326
+    [Trait("Req", "PR-LAUNCH-054")] // App/AppModel.swift:1332-1335; Services/Store/Storage.swift:358-361
+    [Trait("Req", "PR-STORE-016")] // App/AppModel.swift:1326-1344
     public void Save_before_quit_writes_the_whole_library_before_returning_and_drops_a_queued_write_of_it()
     {
         using var h = new AppModelHarness();
@@ -452,15 +547,15 @@ public sealed class AppModelTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-053")] // App/AppModel.swift:1289-1313
-    [Trait("Req", "PR-STORE-016")] // App/AppModel.swift:1308-1317
+    [Trait("Req", "PR-LAUNCH-053")] // App/AppModel.swift:1304-1331
+    [Trait("Req", "PR-STORE-016")] // App/AppModel.swift:1326-1335
     public void Save_before_quit_latches_persistence_off_for_good_and_cancels_the_pending_save()
     {
         using var h = new AppModelHarness();
         var project = AppModelSamples.Project("P", h.NewFolder("p"));
         h.WriteLibrary([project], []);
         var model = h.MakeModel();
-        // A change schedules the 400 ms save; the quit comes 100 ms in.
+        // A change schedules the throttled save (first write, so the 400 ms floor applies); the quit comes 100 ms in.
         h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "Before quit" }));
         h.Main.AdvanceMilliseconds(100);
 
@@ -469,7 +564,7 @@ public sealed class AppModelTests
         var sentinel = Encoding.UTF8.GetBytes("sentinel");
         File.WriteAllBytes(Storage.LibraryURL, sentinel);
 
-        // The cancelled debounce never fires; later changes schedule nothing (:1290); a second quit does nothing (:1309).
+        // The cancelled save never fires; later changes schedule nothing (:1305); a second quit does nothing (:1328).
         h.Main.OnMain(() => model.UpdateProject(project.Id, p => p with { Name = "After quit" }));
         h.Main.Advance(TimeSpan.FromSeconds(2));
         h.Main.OnMain(model.ScheduleSave);
@@ -481,8 +576,8 @@ public sealed class AppModelTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-054")] // App/AppModel.swift:1317; Services/Store/Storage.swift:381-388
-    [Trait("Req", "PR-STORE-016")] // App/AppModel.swift:1308-1326
+    [Trait("Req", "PR-LAUNCH-054")] // App/AppModel.swift:1335; Services/Store/Storage.swift:381-388
+    [Trait("Req", "PR-STORE-016")] // App/AppModel.swift:1326-1344
     public void Save_before_quit_continues_when_the_library_cannot_be_written()
     {
         using var h = new AppModelHarness();
@@ -500,12 +595,12 @@ public sealed class AppModelTests
             h.Main.OnMain(model.SaveBeforeQuit); // no exception reaches the caller
 
         Assert.True(Directory.Exists(Storage.LibraryURL));
-        Assert.True(File.Exists(Storage.ThreadURL(queued))); // and the rest of the quit ran (:1325)
+        Assert.True(File.Exists(Storage.ThreadURL(queued))); // and the rest of the quit ran (:1343)
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-055")] // App/AppModel.swift:1318-1324
-    [Trait("Req", "PR-STORE-016")] // App/AppModel.swift:1318-1324
+    [Trait("Req", "PR-LAUNCH-055")] // App/AppModel.swift:1336-1342
+    [Trait("Req", "PR-STORE-016")] // App/AppModel.swift:1336-1342
     public void Save_before_quit_writes_no_document_for_a_runtime_whose_thread_is_already_on_disk()
     {
         using var h = new AppModelHarness();
@@ -525,8 +620,8 @@ public sealed class AppModelTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-056")] // App/AppModel.swift:1325; Services/Store/Storage.swift:376-379
-    [Trait("Req", "PR-STORE-016")] // App/AppModel.swift:1325-1326
+    [Trait("Req", "PR-LAUNCH-056")] // App/AppModel.swift:1343; Services/Store/Storage.swift:376-379
+    [Trait("Req", "PR-STORE-016")] // App/AppModel.swift:1343-1344
     public void Save_before_quit_returns_only_once_every_queued_write_has_landed()
     {
         using var h = new AppModelHarness();
@@ -764,8 +859,9 @@ public sealed class AppModelTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-045")] // App/AppModel.swift:274-277; Services/Store/Storage.swift:117-148
-    [Trait("Req", "PR-STORE-072")] // App/AppModel.swift:273-278
+    [Trait("Req", "PR-LAUNCH-045")] // App/AppModel.swift:283-286; Services/Store/Storage.swift:117-148
+    [Trait("Req", "PR-STORE-072")] // App/AppModel.swift:274-287
+    [Trait("Req", "PR-LAUNCH-085")] // App/AppModel.swift:275-282 (B3): the new ninth step does not delay this, the tenth
     public void Bootstrap_ends_by_removing_attachment_files_no_thread_names_that_are_older_than_a_day()
     {
         using var h = new AppModelHarness();
@@ -786,10 +882,40 @@ public sealed class AppModelTests
         var young = Attachment(TimeSpan.FromHours(23));
         var model = h.MakeModel();
 
-        h.Bootstrap(model); // the sweep is awaited as bootstrap's last step
+        h.Bootstrap(model); // the sweep is awaited as bootstrap's tenth and last step (B3, PR-LAUNCH-045 b3_note)
 
         Assert.False(File.Exists(old));
         Assert.True(File.Exists(young));
+    }
+
+    // ===== PR-LAUNCH-085: bootstrap's un-awaited CLI self-update step (B3, new) =====
+
+    // R-TEST-10 / AppModelHarness.PrepareBootstrap gives every CLI provider a missing binary path, so neither
+    // Claude nor Codex ever reads as installed in this harness: the ninth step's loop (AppModel.swift:279) skips
+    // both without ProviderRegistry.UpdateCLIIfDue (or a real "claude"/"codex" process) ever being reached. That
+    // leaves the installed/gated run of UpdateCLIIfDue itself to ProviderRegistryCLIUpdateTests.cs (A23), which
+    // proves its gates and its run under scripted stand-ins; what this test proves at the AppModel layer is the
+    // sequencing the record specifies: step nine starts and finishes (doing nothing, here) without the step ten
+    // sweep - awaited by Bootstrap() - ever being blocked by it, and that step nine never marks a provider as
+    // updating when neither is installed.
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-085")] // App/AppModel.swift:275-282 (B3, new)
+    public void Bootstrap_reaches_the_orphan_sweep_and_marks_no_provider_updating_when_no_cli_is_installed()
+    {
+        using var h = new AppModelHarness();
+        var model = h.MakeModel();
+
+        h.Bootstrap(model);
+
+        h.Main.OnMain(() =>
+        {
+            Assert.False(model.Providers.Status(ProviderKind.Claude).IsInstalled);
+            Assert.False(model.Providers.Status(ProviderKind.Codex).IsInstalled);
+            // The un-awaited task's loop (:279-281) never called UpdateCLIIfDue for either provider, so neither
+            // was ever added to UpdatingCLIs (:510) - and Bootstrap() above already returned, proving step ten
+            // (the sweep, asserted by the previous test) did not wait on step nine's task.
+            Assert.Empty(model.Providers.UpdatingCLIs);
+        });
     }
 
     // ===== PR-GIT-110: createWorktree =====
