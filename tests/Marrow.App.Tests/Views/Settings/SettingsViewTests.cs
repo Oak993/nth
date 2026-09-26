@@ -14,6 +14,10 @@ using Marrow.Services.Providers;
 using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
+using Marrow.UI.Markdown;
+using Marrow.Core.Support;
+using Marrow.Testing;
 
 namespace Marrow.App.Tests.Views.Settings;
 
@@ -38,12 +42,15 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     private static void Sync() => Avalonia.Threading.Dispatcher.UIThread.RunJobs();
     private static void Seed(AppModel model, ProviderKind provider, ProviderStatus status) => typeof(ProviderRegistry).GetProperty("Statuses")!.SetValue(model.Providers, model.Providers.Statuses.Mutating(map => map[provider] = status));
 
-    private void WithView(Func<Control> make, Action<Control, AppModel, AppModelHarness> check, Action<AppModel>? seed = null)
+    private void WithView(Func<Control> make, Action<Control, AppModel, AppModelHarness> check, Action<AppModel>? seed = null, Action<AppModelHarness>? beforeModel = null)
     {
         headless.OnUiThread(() =>
         {
             using var h = new AppModelHarness();
             using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            using var wallpaper = WallpaperStore.Shared.Override((WallpaperStore)Activator.CreateInstance(typeof(WallpaperStore), nonPublic: true)!);
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            beforeModel?.Invoke(h);
                 var model = new AppModel();
                 seed?.Invoke(model);
                 var host = new Border();
@@ -58,6 +65,179 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     private void WithSettings(Action<Control, AppModel, AppModelHarness> check) => WithView(() => new SettingsView(), check, _ => SettingsNavigation.Shared.RequestedPage = SettingsPage.Archive);
     private static ChromeRow Row(Control view, string title) => Nodes<ChromeRow>(view).Single(row => Text(row).FirstOrDefault() == title);
+
+    private static Control Opened(Avalonia.Controls.Primitives.Popup popup)
+    {
+        ((EventHandler?)typeof(Avalonia.Controls.Primitives.Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup))?.Invoke(popup, EventArgs.Empty);
+        return popup.Child!;
+    }
+
+    // STOP App.Views.Settings.SettingsView #4
+    // Kind: dependency / owner decision. Swift: SettingsView.swift:954-955,1002.
+    // Records: PR-SETTINGS-238, PR-SETTINGS-248 (terminal clauses only).
+    // Missing: TerminalHostView explicitly has no renderer or chosen terminal component.
+    // Needed: the shipped terminal's name, author, licence and project URL; do not credit SwiftTerm on Windows.
+    // STOP App.Views.Settings.SettingsView #5
+    // Kind: dependency. Swift: SettingsView.swift:1046-1056. Records: PR-SETTINGS-249 (shipping only).
+    // Missing: the App project bundles only Assets/icon.png, not the three legal documents.
+    // Needed: the packaging unit to ship LICENSE, THIRD_PARTY_NOTICES.md and TRADEMARK.md.
+    // The independent reader, caching, missing-file path and popover are covered below.
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-123")] // App/Views/Settings/SettingsView.swift:401-409
+    public void Settle_preview_only_plays_on_enable_and_archive_disables_the_whole_row_without_changing_value() => WithView(() => new GeneralSettingsPage(), (view, model, _) =>
+    {
+        var sound = new SettingsViewSoundRecorder(); using var output = SoundOutput.Current.Override(sound);
+        var row = Row(view, "Sound when settling"); Assert.True(row.IsEnabled); Assert.Equal(1, row.Opacity);
+        model.Settings.SettleSound = false; Sync(); Assert.Equal(0, sound.Starts);
+        model.Settings.SettleSound = true; Sync(); Assert.Equal(1, sound.Starts);
+        model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; Sync(); Assert.False(row.IsEnabled); Assert.Equal(0.5, row.Opacity); Assert.True(model.Settings.SettleSound);
+        model.Settings.ThreadFinishAction = ThreadFinishAction.Settle; Sync(); Assert.True(row.IsEnabled); Assert.Equal(1, row.Opacity); Assert.Equal(1, sound.Starts);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-124")] // App/Views/Settings/SettingsView.swift:424-426,1159-1210
+    [Trait("Req", "PR-SETTINGS-126")] // App/Views/Settings/SettingsView.swift:432-436
+    [Trait("Req", "PR-SETTINGS-127")] // App/Views/Settings/SettingsView.swift:438-442
+    public void Appearance_rows_follow_the_source_and_selected_details_are_live() => WithView(() => new AppearanceSettingsPage(), (view, model, _) =>
+    {
+        var section = Assert.Single(Nodes<ChromeSection>(view)); Assert.Equal("Appearance", Text(section).First());
+        Assert.Equal(new[] { "Theme", "Transparency", "Sidebar", "Activity list", "Open the sidebar at launch", "Wallpaper", "Zoom" }, Nodes<ChromeRow>(view).Select(x => Text(x).First()));
+        Assert.Contains("Follows Windows", Text(Row(view, "Theme"))); model.Settings.Theme = AppTheme.CatppuccinMocha; Sync(); Assert.Contains("Dark \u00b7 Mauve", Text(Row(view, "Theme")));
+        var sidebar = Row(view, "Sidebar"); Assert.Equal(new[] { "Column", "Floating", "Panel only" }, Nodes<Button>(sidebar).Select(x => Text(x).Last()));
+        Click(Button(sidebar, "Panel only")); Sync(); Assert.Equal(SidebarMode.PanelOnly, model.Settings.SidebarMode); Assert.Contains("No column and no toolbar button; the floating panel is the sidebar", Text(sidebar));
+        var open = Row(view, "Open the sidebar at launch"); Assert.False(open.IsEnabled); Assert.Equal(0.5, open.Opacity);
+        var activity = Row(view, "Activity list"); Assert.True(activity.IsEnabled); Click(Button(activity, "Project name")); Sync(); Assert.Equal(ActivityThreadStyle.ProjectName, model.Settings.ActivityThreadStyle);
+        Assert.Contains("The project's name, with a folder mark, on a line under the thread's title", Text(activity));
+        Click(Button(sidebar, "Column")); Sync(); Assert.True(open.IsEnabled); Assert.Equal(1, open.Opacity);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-124")] // App/Views/Settings/SettingsView.swift:1165-1208
+    public void Theme_menu_partitions_all_26_palettes_and_a_selection_writes_through() => WithView(() => new ThemePickerButton(new Binding<AppTheme>(() => ThemeManager.Current, value => ThemeManager.Current = value)), (view, _, _) =>
+    {
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
+        var button = Assert.Single(Nodes<Button>(view)); Assert.Contains("System", Text(button)); Assert.Single(Nodes<ThemeSwatch>(view));
+        Assert.Equal(14, Nodes<ThemeSwatch>(view).Single().Width); Click(button); Sync();
+        var menu = Opened(presenter.Calls.Last(x => x.Presented).Popup);
+        var expected = new[] { AppTheme.System }.Concat(SwiftEnum<AppTheme>.AllCases.Where(x => x.Scheme() == ThemeVariant.Dark)).Concat(SwiftEnum<AppTheme>.AllCases.Where(x => x.Scheme() == ThemeVariant.Light));
+        Assert.Equal(expected.Select(x => x.DisplayName()), Nodes<PopoverItem>(menu).Select(x => Text(x).First()));
+        Assert.Equal(new[] { "Dark", "Light" }, Nodes<PopoverSectionHeader>(menu).Select(x => Text(x).Single()));
+        var choice = Nodes<PopoverItem>(menu).Single(x => Text(x).Contains("Claude Light")); Click(Assert.Single(Nodes<Button>(choice))); Sync(); Assert.Equal(AppTheme.ClaudeLight, ThemeManager.Current);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-125")] // App/Views/Settings/SettingsView.swift:521-564
+    public void Transparency_writes_continuously_and_uses_the_exact_stock_threshold_and_overlay_geometry() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
+    {
+        var control = Assert.Single(Nodes<BackdropOpacitySlider>(view)); Assert.Equal("Window transparency", AutomationProperties.GetName(control));
+        var slider = Assert.Single(Nodes<Slider>(control)); Assert.Equal(0, slider.Minimum); Assert.Equal(1, slider.Maximum); Assert.Equal(140, slider.Width);
+        var reset = Assert.Single(Nodes<Button>(control)); Assert.Equal(22, reset.Width); Assert.Equal(22, reset.Height); Assert.Equal("Back to the stock look", ToolTip.GetTip(reset)); Assert.False(reset.IsVisible);
+        slider.Value = 0.504; Sync(); Assert.Equal(0.504, model.Settings.BackdropOpacity); Assert.False(reset.IsVisible); Assert.Equal(0.504, h.Defaults.Object("backdropOpacity"));
+        slider.Value = 0.51; Sync(); Assert.True(reset.IsVisible); Click(reset); Sync(); Assert.Equal(0.5, model.Settings.BackdropOpacity);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-224")] // App/Views/Settings/SettingsView.swift:585-614
+    [Trait("Req", "PR-SETTINGS-225")] // App/Views/Settings/SettingsView.swift:646-675
+    [Trait("Req", "PR-SETTINGS-226")] // App/Views/Settings/SettingsView.swift:629-634,676-687,772-779
+    [Trait("Req", "PR-SETTINGS-231")] // App/Views/Settings/SettingsView.swift:638-641,738-757
+    public void Provider_sections_are_all_eager_and_usage_is_absent_for_uninstalled_accounts() => WithView(() => new ProvidersSettingsPage(), (view, _, _) =>
+    {
+        Assert.Equal(14, Nodes<ProviderSettingsSection>(view).Length);
+        foreach (var section in Nodes<ProviderSettingsSection>(view)) Assert.Single(Nodes<ChromeCard>(section));
+        Assert.Empty(Nodes<Marrow.App.Views.Usage.PlanLimitsView>(view)); Assert.Empty(Nodes<Marrow.App.Views.Usage.CreditsView>(view));
+        Assert.Equal(20, Assert.IsType<StackPanel>(Assert.IsType<ProvidersSettingsPage>(view).Child).Spacing);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-227")] // App/Views/Settings/SettingsView.swift:691-717
+    [Trait("Req", "PR-SETTINGS-228")] // App/Views/Settings/SettingsView.swift:785-799
+    [Trait("Req", "PR-SETTINGS-229")] // App/Views/Settings/SettingsView.swift:719-727
+    public void API_key_eye_only_changes_mask_and_get_key_opens_the_declared_URL() => WithView(() => new ProviderSettingsSection(ProviderKind.Deepseek, Binding<bool>.Constant(true)), (view, _, _) =>
+    {
+        var field = Assert.Single(Nodes<TextBox>(view)); Assert.Equal(200, field.Width); Assert.Equal(12, field.FontSize); Assert.Equal('\u2022', field.PasswordChar);
+        var eye = Nodes<Button>(view).Single(x => Equals(ToolTip.GetTip(x), "Show the API key")); Click(eye); Sync(); Assert.Equal('\0', field.PasswordChar); Assert.Equal("Hide the API key", ToolTip.GetTip(eye)); Click(eye); Sync(); Assert.Equal('\u2022', field.PasswordChar);
+        SwiftURL? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(url => { opened = url; return true; });
+        Click(Button(view, "Get a DeepSeek key")); Assert.Equal(ProviderKind.Deepseek.InstallURL, opened);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-230")] // App/Views/Settings/SettingsView.swift:732-736,780-783
+    public void Binary_path_subtitle_follows_last_resolved_status_not_the_pending_override() => WithView(() => new ProviderSettingsSection(ProviderKind.Codex, Binding<bool>.Constant(true)), (view, model, _) =>
+    {
+        Seed(model, ProviderKind.Codex, model.Providers.Status(ProviderKind.Codex) with { Executable = SwiftURL.FileURLWithPath("/resolved/codex") }); Sync();
+        Assert.Contains("/resolved/codex", Text(Row(view, "Binary path")));
+        Assert.Single(Nodes<TextBox>(view)).Text = "  custom-codex  "; Sync(); Assert.Equal("custom-codex", model.Settings.BinaryPath(ProviderKind.Codex)); Assert.Contains("/resolved/codex", Text(Row(view, "Binary path")));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-232")] // App/Views/Settings/SettingsView.swift:808-816
+    [Trait("Req", "PR-SETTINGS-233")] // App/Views/Settings/SettingsView.swift:818-834
+    [Trait("Req", "PR-SETTINGS-234")] // App/Views/Settings/SettingsView.swift:836-847
+    public void Commit_editor_keeps_whitespace_and_text_generation_uses_the_source_asset_map() => WithView(() => new SourceControlSettingsPage(), (view, model, _) =>
+    {
+        var editor = Assert.Single(Nodes<TextBox>(view)); Assert.True(editor.AcceptsReturn); Assert.Equal(90, editor.MinHeight); editor.Text = " \nKeep this\n "; Sync(); Assert.Equal(" \nKeep this\n ", model.Settings.CommitInstructions);
+        model.Settings.TextGeneration = TextGenerationChoice.Claude; Sync(); Assert.Contains(Nodes<SwiftImage>(view), image => image.AssetName == "claude");
+        model.Settings.TextGeneration = TextGenerationChoice.Codex; Sync(); Assert.Contains(Nodes<SwiftImage>(view), image => image.AssetName == "codex");
+        Assert.Contains(Storage.WorktreesDirectory, Text(Row(view, "Worktrees"))); Assert.Equal("Reveal", Text(Button(Row(view, "Worktrees"), "Reveal")).Single());
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-235")] // App/Views/Settings/SettingsView.swift:854-885
+    public void Delete_all_uses_singular_confirmation_and_cancels_without_deleting() => WithView(() => new ArchiveDeleteAllButton(), (view, model, _) =>
+    {
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
+        Click(Button(view, "Delete all")); Sync(); var popup = presenter.Calls.Last(x => x.Presented).Popup; var content = Opened(popup);
+        Assert.Contains("Delete the archived thread?", Text(content)); Assert.Contains("Its history will be removed. Files in your project stay as they are.", Text(content)); Assert.Contains("Delete thread", Text(content)); Assert.Single(model.ArchivedThreads);
+        var state = Field<MainActorModel>(view, "state"); state.GetType().GetProperty("IsPresented")!.SetValue(state, false); Sync(); Assert.Single(model.ArchivedThreads);
+        Click(Button(view, "Delete all")); Sync(); content = Opened(presenter.Calls.Last(x => x.Presented).Popup); Click(Button(content, "Delete thread")); Sync(); Assert.Empty(model.ArchivedThreads);
+    }, beforeModel: h => { var project = new Project("One", h.NewFolder("one")); h.WriteLibrary([project], [new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised) with { IsArchived = true, Title = "Archived" }]); });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-236")] // App/Views/Settings/SettingsView.swift:888-935
+    public void Archived_rows_restore_immediately_and_delete_only_after_the_shared_dialog_confirms() => WithView(() => new ArchiveSettingsPage(), (view, model, _) =>
+    {
+        Assert.Equal(new[] { "Archived", "Another" }, Nodes<ChromeRow>(view).Select(x => Text(x).First())); Assert.Single(Nodes<ChromeRowDivider>(view)); Assert.Contains("One", Text(Row(view, "Archived")));
+        Click(Button(Row(view, "Archived"), "Delete")); Sync(); Assert.Equal(2, model.ArchivedThreads.Count);
+        var dialog = Field<Avalonia.Controls.Window>(view, "confirmation"); Assert.Equal("Delete \"Archived\"?", dialog.Title); Assert.Contains("Its history will be removed. Files in your project stay as they are.", Text((Control)dialog.Content!)); dialog.Close(); Sync(); Assert.Equal(2, model.ArchivedThreads.Count);
+        Click(Button(Row(view, "Archived"), "Delete")); Sync(); dialog = Field<Avalonia.Controls.Window>(view, "confirmation"); Click(Button((Control)dialog.Content!, "Delete thread")); Sync(); Assert.Single(model.ArchivedThreads);
+        Click(Button(Row(view, "Another"), "Restore")); Sync(); Assert.Empty(model.ArchivedThreads);
+    }, beforeModel: h => { var project = new Project("One", h.NewFolder("one")); h.WriteLibrary([project], new[] { "Archived", "Another" }.Select(title => new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised) with { IsArchived = true, Title = title })); });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-237")] // App/Views/Settings/SettingsView.swift:938-965
+    [Trait("Req", "PR-SETTINGS-238")] // App/Views/Settings/SettingsView.swift:968-1005
+    [Trait("Req", "PR-SETTINGS-239")] // App/Views/Settings/SettingsView.swift:985-987
+    [Trait("Req", "PR-SETTINGS-248")] // App/Views/Settings/SettingsView.swift:946-963,1060-1121
+    public void About_keeps_the_empty_update_slot_and_truthful_product_and_attribution_content() => WithView(() => new AboutSettingsPage(), (view, _, _) =>
+    {
+        var stack = Assert.IsType<StackPanel>(Assert.IsType<AboutSettingsPage>(view).Child); Assert.Equal(20, stack.Spacing); Assert.Equal(3, stack.Children.Count); Assert.IsType<AboutSoftwareUpdateSection>(stack.Children[0]);
+        Assert.Contains("Marrow", Text(view)); Assert.Contains("A native home for your coding agents, built in C# with Avalonia.", Text(view));
+        Assert.Contains("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Text(view));
+        Assert.Contains("The slideshow from the first launch: Hydra, the effort slider, panels and themes.", Text(view));
+        Assert.Equal(56, Assert.Single(Nodes<Image>(stack.Children[1])).Width);
+        var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var mark = Assert.Single(Nodes<SwiftImage>(droppy)); Assert.Equal("droppy-logo", mark.AssetName); Assert.Equal(40, mark.Width);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-249")] // App/Views/Settings/SettingsView.swift:1009-1057
+    public void Licences_are_read_once_and_the_three_markdown_blocks_use_fixed_popover_geometry() => WithView(() => new LicensesRow(), (view, _, _) =>
+    {
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(view, "Show")); Sync(); var content = Opened(presenter.Calls.Last(x => x.Presented).Popup);
+        var scroll = Assert.Single(Nodes<ScrollViewer>(content)); Assert.Equal(480, scroll.Width); Assert.Equal(440, scroll.Height);
+        var blocks = Assert.Single(Nodes<StackPanel>(content), x => x.Spacing == 18); Assert.Equal(new Thickness(18), blocks.Margin); Assert.Equal(3, blocks.Children.Count);
+        Assert.Equal(new[] { "Marrow", "Third-party notices", "Trademarks" }, blocks.Children.Select(x => Text(x).First()));
+        foreach (var markdown in Nodes<MarkdownView>(content)) Assert.Equal(12, MarkdownView.GetMarkdownPointSize(markdown)); Assert.Equal(3, Nodes<MarkdownView>(content).Length);
+        var reader = typeof(LicensesRow).GetMethod("Text", BindingFlags.Static | BindingFlags.NonPublic)!; Assert.Equal("The THIRD_PARTY_NOTICES file is missing from this copy of the app.", reader.Invoke(null, ["THIRD_PARTY_NOTICES"]));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-250")] // App/Views/Settings/SettingsView.swift:109-134
+    public void General_settings_persist_before_closing_without_commit_or_cancel_buttons() => WithView(() => new GeneralSettingsPage(), (view, model, h) =>
+    {
+        model.Settings.ShowReasoning = true; Sync(); Assert.True(h.Defaults.Bool("showReasoning")); Assert.DoesNotContain(Text(view), label => label is "Apply" or "OK" or "Cancel" or "Done");
+    });
 
     // STOP App.Views.Settings.SettingsView #3
     // Kind: dependency. Swift: SettingsView.swift:280,251-253. Records: PR-SETTINGS-027; PR-SETTINGS-028 (MCP branch).
