@@ -6254,7 +6254,8 @@
       ],
       "notes": "The five icons are SF Symbols \"terminal\", \"doc.badge.plus\", \"wrench.and.screwdriver\", \"lock.shield\" and \"checklist\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one). Glass: OD-0005 applies (Acrylic where the window shows the desktop; where the app draws its own backdrop, a shader reproducing the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing); an owner-approved deviation, not parity.",
       "b2_change": "The flagged range RequestCards.swift:3-65 changed only at :28, :37 and :43 (.secondary -> Chrome.secondaryText on the plan body, the detail and the reason; the plan body is UI-RUNTIME-007). The headline, icon, geometry and glass tint this record states are unchanged. The typography note no longer contrasts the headline with a chat-zoomed font, because B2 removed chat zoom (UI/Common/ChatFont.swift:4-10). Owner rulings applied in this refresh: the glass note states OD-0005 in the ruling's words and as an owner-approved deviation, the icons follow OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter).",
-      "spec_fix": "The first source_evidence was Requests.swift, so plan_units.py and gen_tasks.mjs assigned this view record to Core.Models.Requests, whose Marrow.Core tests cannot reach the card. RequestCards.swift is now first, which moves the record to App.Views.Composer.RequestCards beside UI-RUNTIME-006..008. The headline strings and symbol names stay proven at the model by PR-RUNTIME-017 and PR-RUNTIME-018."
+      "spec_fix": "The first source_evidence was Requests.swift, so plan_units.py and gen_tasks.mjs assigned this view record to Core.Models.Requests, whose Marrow.Core tests cannot reach the card. RequestCards.swift is now first, which moves the record to App.Views.Composer.RequestCards beside UI-RUNTIME-006..008. The headline strings and symbol names stay proven at the model by PR-RUNTIME-017 and PR-RUNTIME-018.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-006",
@@ -6277,7 +6278,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1721-1731 resolve"
       ],
       "notes": "Only the .approve role gets the prominent style and the chord; .approveAlways does not, even though it also approves, and it also dismisses rather than accepts a plan row (PR-RUNTIME-138). Command+Return becomes Ctrl+Enter on Windows; port_impacts.md entry 110 requires the whole shortcut table be re-expressed in Windows virtual-key codes and the persisted macOS blob abandoned. Glass: OD-0005 applies to the .glassProminent and .glass button materials (Acrylic where the window shows the desktop; where the app draws its own backdrop, a shader reproducing the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing); an owner-approved deviation, not parity.",
-      "b2_change": "No source change: RequestCards.swift:45-59 is the same at B1 and B2 (the B1..B2 diff of that file touches only :28, :37 and :43). The notes gained the OD-0005 glass sentence, an owner ruling applied in this refresh, stated as an owner-approved deviation, not parity."
+      "b2_change": "No source change: RequestCards.swift:45-59 is the same at B1 and B2 (the B1..B2 diff of that file touches only :28, :37 and :43). The notes gained the OD-0005 glass sentence, an owner ruling applied in this refresh, stated as an owner-approved deviation, not parity.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-007",
@@ -6299,7 +6301,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:79 static let secondaryText = primaryText.opacity(0.7)"
       ],
       "notes": "This is the one body string the app itself writes; every other approval body is the provider's request.title.",
-      "b2_change": "B1 RequestCards.swift:28 `.foregroundStyle(.secondary)`; B2 :28 `.foregroundStyle(Chrome.secondaryText)`."
+      "b2_change": "B1 RequestCards.swift:28 `.foregroundStyle(.secondary)`; B2 :28 `.foregroundStyle(Chrome.secondaryText)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-008",
@@ -6319,7 +6322,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/RequestCards.swift:17-24"
       ],
-      "notes": "Only .command gets the monospaced box; .fileChange, .tool and .permissions show request.title as plain selectable callout text with no background (RequestCards.swift:29-33)."
+      "notes": "Only .command gets the monospaced box; .fileChange, .tool and .permissions show request.title as plain selectable callout text with no background (RequestCards.swift:29-33).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-009",
