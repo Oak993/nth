@@ -5,6 +5,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
@@ -22,6 +23,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 
 // Source: DroppyCode/App/Views/Sidebar/SidebarView.swift (B3 52bc792), :1-2695.
@@ -35,10 +37,19 @@ using Marrow.UI.Port;
 // reorderableRow and the reorder (:753-868: the list's drag gesture, dragChanged, dragEnded, peers, slotHeights,
 // DragPeers), SidebarItem.id(for:) and the two extensions (:1053-1076), ThreadRowMetrics.headCardHeight
 // (:1305-1311), SidebarThreadRow.mergeStage (:1980-1984), ActivityViewToggle (:2316-2343), RowHeights and RowFrames
-// (:2442-2472), PlacementCache, ThreadPlacement and SidebarItemCache (:2480-2658). Still MARROW_STUB and named where
-// they stand: the row views, the helper, head-card and stub arms of itemView and threadRow (parts 3 to 8), the
-// empty-needle case of the search match (STOP #1 in SidebarViewTests.cs) and the list's pointer style while a row is
-// grabbed (:124, STOP #5).
+// (:2442-2472), PlacementCache, ThreadPlacement and SidebarItemCache (:2480-2658), and the list's pointer style while
+// a row is grabbed (:124, PA-0019, ED-205; was STOP #5, now resolved).
+// Part 3 of 8 adds: RidesWithDraggedParent.Body (:1622-1632); SidebarThreadRow.Fill, BackgroundFill,
+// TrailingClearance, ShowsCheck, SelectThread, NoteHover, ApplyDraggedLift, BuildSettleCheckOverlay and
+// BuildTrailingOverlay (:1736-1849, :1874-1898, :1895-1898) as directly testable static pieces of the body, cited
+// at each; ThreadRowFace's body and TitleOpacity (:2019-2078); SettleCheck (:2114-2141); ThreadBadge (:2143-2175);
+// ActivityStatus (:2408-2428); MinuteClock and RelativeTimeLabel (:2662-2695). SidebarThreadRow's own constructor
+// stays MARROW_STUB: its full body needs settle()/reopen(), archiveWithGenie(), makeActions(), RowGlideAnimator and
+// ThreadActions.makeContextMenu (parts 4+); the pieces above are written so that constructor can call them once
+// those exist, and each is proven directly by its own SidebarViewTests.cs test in the meantime.
+// Still MARROW_STUB and named where they stand: the row views' remaining assembly, the helper, head-card and stub
+// arms of itemView and threadRow, ProjectRow, the popovers, ThreadActions, ActivityHeader, SettledHeader and
+// ThreadGhostBadge (parts 4 to 8), and the empty-needle case of the search match (STOP #1 in SidebarViewTests.cs).
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
 // with `Control Body(Control content)`; a Shape is a sealed record with `Geometry Path(Rect in)`; a caseless enum is a
 // static class; an enum with associated values is an abstract record (R-ENUM-2), an unlabelled payload named Value; a
@@ -1427,9 +1438,16 @@ internal sealed class HelperStubRow : Decorator
 /// <param name="Drag">:1624 <c>let drag: RowDrag&lt;UUID&gt;</c>.</param>
 internal sealed record RidesWithDraggedParent(Guid? ParentID, RowDrag<Guid> Drag)
 {
-    // :1626-1631 func body(content: Content) -> some View
-    public Control Body(Control content) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1626");
+    // :1626-1631 func body(content: Content) -> some View. PR-SIDEBAR-056: every helper row, the head card and the
+    // folded stub under a dragged parent take the same offset and zIndex, so the thread and everything under it
+    // move together.
+    public Control Body(Control content)
+    {
+        var rides = ParentID is not null && Drag.Id == ParentID; // :1627
+        content.RenderTransform = new TranslateTransform(0, rides ? Drag.VisualOffset : 0); // :1629 .offset(y:)
+        content.ZIndex = rides ? 1 : 0; // :1630 .zIndex()
+        return content;
+    }
 }
 
 /// <summary>:1636-1660 <c>private struct HelperConnector: View</c>: the dotted connector beside a helper's row.</summary>
@@ -1467,7 +1485,12 @@ internal sealed class SidebarThreadRow : Decorator
     /// <param name="isDragged">:1702 <c>var isDragged = false</c>.</param>
     /// <param name="listFrame">:1704 <c>var listFrame: FrameHolder?</c>.</param>
     /// <param name="onToggleFold">:1706 <c>var onToggleFold: (() -> Void)?</c>.</param>
-    // :1716-1872 body
+    // :1716-1872 body. The full body needs settle()/reopen(), archiveWithGenie(), makeActions(), RowGlideAnimator and
+    // ThreadActions.makeContextMenu, none of which exist yet (parts 4+ of this unit; the test file's own header
+    // already defers an attached, populated row to "parts 2 to 5"). Part 3 proves every record of this part that has
+    // no missing collaborator, each as its own static piece below (Fill, BackgroundFill, TrailingClearance,
+    // ShowsCheck, SelectThread, NoteHover, ApplyDraggedLift, BuildSettleCheckOverlay, BuildTrailingOverlay); the
+    // constructor itself stays MARROW_STUB until a later part assembles them with the pieces still missing.
     public SidebarThreadRow(
         ChatThread snapshot,
         string? projectName,
@@ -1480,13 +1503,165 @@ internal sealed class SidebarThreadRow : Decorator
         Action? onToggleFold = null) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1716");
 
-    // :1874-1877 private static func fill(isSelected: Bool, isHovering: Bool) -> Double
-    private static double Fill(bool isSelected, bool isHovering) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1874");
+    // :1874-1877 private static func fill(isSelected: Bool, isHovering: Bool) -> Double. PR-SIDEBAR-063.
+    private static double Fill(bool isSelected, bool isHovering)
+    {
+        if (isSelected) return 0.12; // :1875
+        return isHovering ? 0.06 : 0; // :1876
+    }
 
-    // :1895-1898 private static func trailingClearance(isSettled:isDetailed:showsActions:showsFold:) -> CGFloat
-    private static double TrailingClearance(bool isSettled, bool isDetailed, bool showsActions, bool showsFold = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1895");
+    // :1750-1758 the row's own background: the pinned tint replaces the selection/hover fill while unselected, and a
+    // selected pinned row gains a danger overlay on top of its selection fill. PR-SIDEBAR-064.
+    private static (SwiftColor Background, SwiftColor? PinnedOverlay) BackgroundFill(bool isPinned, bool isSelected, bool isHovering)
+    {
+        var background = isPinned && !isSelected // :1751-1752
+            ? Chrome.Danger.Opacity(0.10)
+            : Chrome.Overlay(Fill(isSelected, isHovering));
+        var overlay = isPinned && isSelected ? Chrome.Danger.Opacity(0.06) : null; // :1756-1758
+        return (background, overlay);
+    }
+
+    // :1895-1898 private static func trailingClearance(isSettled:isDetailed:showsActions:showsFold:) -> CGFloat.
+    // PR-SIDEBAR-076.
+    private static double TrailingClearance(bool isSettled, bool isDetailed, bool showsActions, bool showsFold = false)
+    {
+        if (showsActions) return (isSettled ? 30 : 52) + (showsFold ? 20 : 0); // :1896
+        return isDetailed || isSettled ? 18 : 52; // :1897
+    }
+
+    // :1729 let showsCheck = isSettled || (settles && (showsActions || isSettling)). PR-SIDEBAR-077.
+    private static bool ShowsCheck(bool isSettled, bool settles, bool showsActions, bool isSettling) =>
+        isSettled || (settles && (showsActions || isSettling));
+
+    // :1763-1771 the check's overlay: alignment, and the leading or trailing inset, only while ShowsCheck. Null when
+    // it does not show. PR-SIDEBAR-077.
+    private static Control? BuildSettleCheckOverlay(bool isSettled, bool settles, bool showsActions, bool isSettling, bool isPopping, Action action)
+    {
+        if (!ShowsCheck(isSettled, settles, showsActions, isSettling)) return null; // :1764
+        var check = new SettleCheck(isSettled, isPopping, action); // :1765
+        check.HorizontalAlignment = isSettled ? HorizontalAlignment.Left : HorizontalAlignment.Right; // :1763 overlay(alignment:)
+        check.Margin = isSettled
+            ? new Thickness(ThreadRowMetrics.SettledCheckInset, 0, 0, 0) // :1768
+            : new Thickness(0, 0, ThreadRowMetrics.OpenCheckInset, 0); // :1769
+        return check;
+    }
+
+    // :1736-1738 Button { model.selectedThreadID = thread.id } label: { ... }. PR-SIDEBAR-061.
+    private static void SelectThread(AppModel model, ChatThread thread) => model.SelectedThreadID = thread.Id; // :1737
+
+    // :1816-1820 .onHover { hovering in withAnimation(Chrome.hover) { isHovering = hovering }; if hovering { ... } }.
+    // The hover-state animation itself is the caller's ViewState, driven the same way SidebarRow drives IsHovering
+    // (Chrome.cs); this is the hover closure's second effect, the one PR-SIDEBAR-062 names. PR-SIDEBAR-062.
+    private static void NoteHover(AppModel model, ChatThread thread, bool hovering)
+    {
+        if (hovering) model.WarmDocuments([thread.Id]); // :1819
+    }
+
+    // :1838-1849 the lifted row's visual: an opaque fill and shadow appear behind it and it scales to 1.02, springing
+    // in and out on response 0.25 damping 0.8 as isDragged changes. A directly testable seam; the row's own body
+    // (part 4+, once settle/reopen/RowGlideAnimator/ThreadActions exist) wraps its content with this. PR-SIDEBAR-054.
+    private static Control ApplyDraggedLift(Control content, Func<bool> isDragged)
+    {
+        var scale = new ScaleTransform(1, 1);
+        content.RenderTransform = scale;
+        var lift = new Border // :1841-1843
+        {
+            Background = Chrome.Overlay(0.12).Brush(content), // :1842
+            BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), Blur = 10, OffsetY = 4 }), // :1843
+            Opacity = 0,
+            IsHitTestVisible = false,
+        };
+        var host = new Panel { Children = { lift, content } };
+        var spring = Animation.Spring(response: 0.25, dampingFraction: 0.8); // :1847, a fixed animation (R-VIEW-4):
+        // .animation(_, value:) ignores whatever ambient transaction changed isDragged.
+        var current = 0d;
+        var target = 0d;
+        IFrameSource? frames = null;
+        Action<TimeSpan>? pending = null;
+        void Apply(double progress)
+        {
+            current = progress;
+            var factor = 1 + 0.02 * progress; // :1846 .scaleEffect(isDragged ? 1.02 : 1)
+            scale.ScaleX = factor;
+            scale.ScaleY = factor;
+            lift.Opacity = progress; // the fill/shadow fade with the same spring as the scale
+        }
+        host.Track(isDragged, dragged =>
+        {
+            var to = dragged ? 1d : 0d;
+            if (to == target) return;
+            target = to;
+            if (pending is { } running) frames?.CancelFrame(running);
+            pending = null;
+            var from = current;
+            var start = SwiftClock.Now;
+            var source = FrameClock.Source.Current;
+            Action<TimeSpan>? tick = null;
+            tick = _ =>
+            {
+                var seconds = (SwiftClock.Now - start).TotalSeconds;
+                var complete = seconds >= spring.Duration;
+                Apply(complete ? to : from + (to - from) * spring.Progress(seconds));
+                if (complete) pending = null;
+                else source.RequestFrame(tick!);
+            };
+            frames = source;
+            pending = tick;
+            source.RequestFrame(tick);
+        });
+        return host;
+    }
+
+    // :1772-1801 the trailing overlay: hover buttons, activity status, status+time, or time alone, in that
+    // precedence, with 6 pt of trailing padding on the whole group. archiveAction, actions and isMenuPresented are
+    // the row's own collaborators (archiveWithGenie(), makeActions(), the ellipsis binding); the caller supplies them
+    // once they exist (part 4+), so this dispatch and the three branches with no missing collaborator are provable
+    // now. PR-SIDEBAR-072.
+    private static Control BuildTrailingOverlay(
+        ChatThread thread,
+        bool showsActions,
+        bool isDetailed,
+        bool isSettled,
+        bool hasProjectIcon,
+        bool settles,
+        Action archiveAction,
+        IReadOnlyList<RowAction> actions,
+        Binding<bool> isMenuPresented)
+    {
+        Control content;
+        if (showsActions) // :1774
+        {
+            var cluster = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 }; // :1775
+            if (!settles && !isSettled) // :1776
+            {
+                var archive = PlainControls.Button(new RowAccessoryIcon("archivebox"), archiveAction); // :1777-1782
+                ToolTip.SetTip(archive, "Archive thread"); // :1783
+                cluster.Children.Add(archive);
+            }
+            cluster.Children.Add(new RowActionsButton(actions, isMenuPresented)); // :1785
+            content = cluster;
+        }
+        else if (isDetailed || isSettled) // :1787
+        {
+            content = new ActivityStatus(thread); // :1788
+        }
+        else if (hasProjectIcon) // :1789
+        {
+            content = new StackPanel // :1792-1795
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6,
+                Children = { new ActivityStatus(thread), new RelativeTimeLabel(thread.UpdatedAt) },
+            };
+        }
+        else
+        {
+            content = new RelativeTimeLabel(thread.UpdatedAt); // :1797
+        }
+        content.Margin = new Thickness(0, 0, 6, 0); // :1800 .padding(.trailing, 6)
+        content.HorizontalAlignment = HorizontalAlignment.Right;
+        return content;
+    }
 
     // :1981-1984 static func mergeStage(of runtime: ThreadRuntime?) -> String?
     public static string? MergeStage(ThreadRuntime? of)
@@ -1507,7 +1682,7 @@ internal sealed class ThreadRowFace : Decorator
     /// <param name="badge">:2017 <c>@ViewBuilder let badge: Badge</c> (moved, ED-095).</param>
     /// <param name="projectIcon">:2010 <c>var projectIcon: ProjectIcon? = nil</c>.</param>
     /// <param name="mergeStage">:2015 <c>var mergeStage: String? = nil</c>.</param>
-    // :2019-2072 body
+    // :2019-2072 body. PR-SIDEBAR-065, PR-SIDEBAR-066, PR-SIDEBAR-067, PR-SIDEBAR-070.
     public ThreadRowFace(
         ChatThread thread,
         string? projectName,
@@ -1515,12 +1690,87 @@ internal sealed class ThreadRowFace : Decorator
         double trailingClearance,
         Func<Control> badge,
         ProjectIcon? projectIcon = null,
-        string? mergeStage = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2019");
+        string? mergeStage = null)
+    {
+        var isSettled = thread.IsSettled; // :2020
+        var isDetailed = projectName is not null && !isSettled; // :2021
 
-    // :2075-2078 private static func titleOpacity(isSettled: Bool, isSelected: Bool) -> Double
-    private static double TitleOpacity(bool isSettled, bool isSelected) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2075");
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :2022 HStack(spacing: 8)
+
+        if (!isDetailed && !isSettled) // :2023 PR-SIDEBAR-066
+        {
+            var leading = projectIcon is { } compactIcon ? new ProjectIconMark(compactIcon, 12) : badge(); // :2025-2029
+            leading.Width = Chrome.IconSize; // :2031 .frame(width: Chrome.iconSize)
+            leading.HorizontalAlignment = HorizontalAlignment.Center;
+            leading.VerticalAlignment = VerticalAlignment.Center;
+            leading.Margin = new Thickness(0, 0, 8, 0); // HStack(spacing: 8)'s gap before the text column
+            Grid.SetColumn(leading, 0);
+            row.Children.Add(leading);
+        }
+
+        var texts = new StackPanel { Orientation = Orientation.Vertical, Spacing = 3, VerticalAlignment = VerticalAlignment.Center }; // :2034
+        if (isDetailed && projectIcon is { } detailedIcon) // :2037 PR-SIDEBAR-067
+        {
+            var mark = new ProjectIconMark(detailedIcon, 14) { VerticalAlignment = VerticalAlignment.Center }; // :2039
+            var titled = new StackPanel // :2038 HStack(spacing: 6)
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 6,
+                Children = { mark, MakeTitle(thread, isSettled, isSelected) },
+            };
+            foreach (var part in titled.Children) part.VerticalAlignment = VerticalAlignment.Center;
+            texts.Children.Add(titled);
+        }
+        else
+        {
+            texts.Children.Add(MakeTitle(thread, isSettled, isSelected)); // :2047-2051
+        }
+
+        if (projectName is { } name && !isSettled && projectIcon is null) // :2053 PR-SIDEBAR-070
+        {
+            var glyph = SwiftImage.SystemName(thread.WorktreePath is null ? "folder" : "arrow.triangle.branch") // :2055
+                .Font(SwiftFont.Footnote); // :2056
+            glyph.ForegroundStyle(Chrome.SecondaryText); // :2061
+            var label = new TextBlock { Text = mergeStage ?? name, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2057-2059
+            SwiftFont.Callout.Apply(label); // :2058
+            label.Foreground = Chrome.SecondaryText.Brush(label); // :2061
+            var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { glyph, label } }; // :2054
+            foreach (var part in line.Children) part.VerticalAlignment = VerticalAlignment.Center;
+            texts.Children.Add(line);
+        }
+
+        texts.Margin = new Thickness(0, 0, 4, 0); // :2065 Spacer(minLength: 4)
+        Grid.SetColumn(texts, 1);
+        row.Children.Add(texts);
+
+        Child = new Border
+        {
+            Child = row,
+            Padding = new Thickness(
+                Chrome.RowHorizontalPadding + (isSettled ? ThreadRowMetrics.SettledTitleInset : 0), // :2067
+                isDetailed ? ThreadRowMetrics.DetailedVerticalPadding : 0, // :2069
+                Chrome.RowHorizontalPadding + trailingClearance, // :2068
+                isDetailed ? ThreadRowMetrics.DetailedVerticalPadding : 0),
+            MinHeight = isSettled ? ThreadRowMetrics.SettledHeight : Chrome.RowHeight, // :2070
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :2071 .frame(maxWidth: .infinity, alignment: .leading)
+        };
+    }
+
+    // :2040-2051 the title text, shared by the detailed-with-mark layout and the plain one.
+    private static TextBlock MakeTitle(ChatThread thread, bool isSettled, bool isSelected)
+    {
+        var title = new TextBlock { Text = thread.Title, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :2040/:2047, :2043-2044/:2050-2051
+        SwiftFont.System(isSettled ? 12 : 13, !isSettled && (isSelected || thread.HasUnread) ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(title); // :2041/:2048
+        title.Foreground = Chrome.PrimaryText.Opacity(TitleOpacity(isSettled, isSelected)).Brush(title); // :2042/:2049
+        return title;
+    }
+
+    // :2075-2078 private static func titleOpacity(isSettled: Bool, isSelected: Bool) -> Double. PR-SIDEBAR-065.
+    private static double TitleOpacity(bool isSettled, bool isSelected)
+    {
+        if (isSettled) return isSelected ? 0.75 : 0.55; // :2076
+        return isSelected ? 1 : 0.92; // :2077
+    }
 }
 
 /// <summary>:2083-2109 <c>private struct ThreadGhostBadge: View</c>: the badge as a ghost carries it.</summary>
@@ -1541,18 +1791,118 @@ internal sealed class SettleCheck : Decorator
     /// <param name="isSettled">:2115 <c>let isSettled: Bool</c>.</param>
     /// <param name="isPopping">:2117 <c>let isPopping: Bool</c>.</param>
     /// <param name="action">:2118 <c>let action: () -> Void</c>.</param>
-    // :2122-2140 body
-    public SettleCheck(bool isSettled, bool isPopping, Action action) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2122");
+    // :2122-2140 body. PR-SIDEBAR-078.
+    public SettleCheck(bool isSettled, bool isPopping, Action action)
+    {
+        var state = new ViewState();
+        var glyphHost = new Panel { Width = 20, Height = 20, Background = Brushes.Transparent }; // :2130 frame, :2131 contentShape(.rect)
+        Control? currentGlyph = null;
+        var button = PlainControls.Button(glyphHost, action); // :2125, :2134 .buttonStyle(.plain)
+        button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :2135-2137
+        button.Track(() => state.IsHovering, hovering =>
+        {
+            var filled = isPopping || (isSettled && !hovering); // :2124
+            var isDone = isSettled || isPopping; // :2123
+            var color = isDone || hovering
+                ? Chrome.Success.Opacity(isSettled && !hovering ? 0.8 : 1) // :2128
+                : Chrome.SecondaryText;
+            if (currentGlyph is { } previous) glyphHost.Children.Remove(previous);
+            // :2129 MARROW_DEFERRED ED-182 (SwiftImage.cs's own deferral list names this site): the symbol-replace
+            // content transition is a static swap here, not a crossfade.
+            var glyph = SwiftImage.SystemName(filled ? "checkmark.circle.fill" : "checkmark.circle") // :2126
+                .Font(Chrome.InlineIconFont); // :2127
+            glyph.ForegroundStyle(color); // :2128
+            glyph.HorizontalAlignment = HorizontalAlignment.Center;
+            glyph.VerticalAlignment = VerticalAlignment.Center;
+            glyph.RenderTransform = new ScaleTransform(isPopping ? 1.35 : 1, isPopping ? 1.35 : 1); // :2132
+            glyph.IsHitTestVisible = false;
+            currentGlyph = glyph;
+            glyphHost.Children.Add(glyph);
+        });
+        var tip = isSettled ? "Reopen thread" : "Settle thread"; // :2138-2139
+        ToolTip.SetTip(button, tip);
+        AutomationProperties.SetName(button, tip); // :2139 .accessibilityLabel
+        Child = button;
+    }
+
+    // :2120 @State private var isHovering = false
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isHovering;
+
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+    }
 }
 
 /// <summary>:2143-2175 <c>private struct ThreadBadge: View</c>.</summary>
 internal sealed class ThreadBadge : Decorator
 {
     /// <param name="thread">:2145 <c>let thread: ChatThread</c>.</param>
-    // :2147-2174 body
-    public ThreadBadge(ChatThread thread) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2147");
+    // :2144 @Environment(AppModel.self) private var model
+    private AppModel Model => AppEnvironment.GetAppModel(this);
+
+    // :2147-2174 body. PR-SIDEBAR-068, PR-SIDEBAR-069.
+    public ThreadBadge(ChatThread thread)
+    {
+        this.Track(() => Model.ExistingRuntime(thread.Id), runtime => // :2148
+        {
+            var needsInput = runtime is { Approvals.Count: > 0 } || runtime is { Questions.Count: > 0 }; // :2149
+            var mergeStage = SidebarThreadRow.MergeStage(runtime); // :2150
+            var isRunning = runtime?.IsRunning == true || mergeStage is not null || runtime?.HasWorkingHelpers == true; // :2151
+
+            SwiftColor? tint = null;
+            Control glyph;
+            if (needsInput) // :2153
+            {
+                glyph = new SidebarSymbol("hand.raised.fill"); // :2154
+                tint = Chrome.Orange; // :2155
+            }
+            else if (isRunning) // :2156
+            {
+                var spinner = new MiniSpinner(cellSize: 2.4); // :2157
+                ToolTip.SetTip(spinner, mergeStage ?? ""); // :2158
+                glyph = spinner;
+            }
+            else if (thread.IsPinned) // :2159
+            {
+                glyph = new SidebarSymbol("pin.fill", scale: 0.9); // :2160
+                tint = Chrome.Danger.Opacity(0.85); // :2161
+            }
+            else
+            {
+                glyph = new ProviderIcon { Provider = thread.Provider, Size = 14 }; // :2163
+            }
+
+            var badge = new SidebarIconBadge(() => glyph); // :2152, :2165
+            if (tint is { } color) Recolor(badge, color); // reasserts over SidebarIconBadge's own default (below)
+
+            var overlay = new Panel { Children = { badge } }; // :2166 .overlay(alignment: .topTrailing)
+            if (thread.HasUnread && !needsInput && !isRunning) // :2167
+            {
+                var dot = new Avalonia.Controls.Shapes.Ellipse
+                {
+                    Width = 7, // :2170
+                    Height = 7,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Top,
+                    Margin = new Thickness(0, -2.5, -2.5, 0), // :2171 .offset(x: 2.5, y: -2.5)
+                };
+                dot.Fill = (thread.LastStatus == TurnStatus.Failed ? Chrome.Danger : Chrome.Accent).Brush(dot); // :2169
+                overlay.Children.Add(dot);
+            }
+            Child = overlay;
+        });
+    }
+
+    // SidebarIconBadge (UI/Chrome/Chrome.cs :670-679) sets its glyph's TextElement.ForegroundProperty to the label
+    // colour at 0.85 unconditionally, after the glyph factory returns; SwiftUI's own foregroundStyle lets the
+    // nearer (the glyph's own) modifier win over the wrapper's, so a coloured branch here (:2155, :2161) must
+    // reassert its colour once more, after the badge, to match what the source actually draws.
+    private static void Recolor(SidebarIconBadge badge, SwiftColor color)
+    {
+        if (badge.Child is Panel { Children.Count: > 0 } panel && panel.Children[0] is Control glyph)
+            glyph.SetValue(TextElement.ForegroundProperty, color.Brush(glyph));
+    }
 }
 
 /// <summary>:2184-2188 <c>@Observable private final class SidebarMenuRequests</c>: context-menu intents carried
@@ -1659,9 +2009,45 @@ internal sealed class SettledHeader : Decorator
 internal sealed class ActivityStatus : Decorator
 {
     /// <param name="thread">:2410 <c>let thread: ChatThread</c>.</param>
-    // :2412-2427 body
-    public ActivityStatus(ChatThread thread) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2412");
+    // :2409 @Environment(AppModel.self) private var model
+    private AppModel Model => AppEnvironment.GetAppModel(this);
+
+    // :2412-2427 body. PR-SIDEBAR-073.
+    public ActivityStatus(ChatThread thread)
+    {
+        this.Track(() => Model.ExistingRuntime(thread.Id), runtime => // :2413
+        {
+            Control? content;
+            if (runtime is { Approvals.Count: > 0 } || runtime is { Questions.Count: > 0 }) // :2414
+            {
+                var hand = SwiftImage.SystemName("hand.raised.fill").Font(SwiftFont.Subheadline); // :2415-2416
+                hand.ForegroundStyle(Chrome.Warning); // :2417
+                content = hand;
+            }
+            else if (runtime?.IsRunning == true || runtime?.IsHydraMerging == true || runtime?.HasWorkingHelpers == true) // :2418
+            {
+                var spinner = new MiniSpinner(cellSize: 2.4); // :2419
+                ToolTip.SetTip(spinner, SidebarThreadRow.MergeStage(runtime) ?? ""); // :2420
+                content = spinner;
+            }
+            else if (thread.HasUnread) // :2421
+            {
+                var dot = new Avalonia.Controls.Shapes.Ellipse
+                {
+                    Width = 7, // :2424
+                    Height = 7,
+                    Margin = new Thickness(0, 0, 4, 0), // :2425 .padding(.trailing, 4)
+                };
+                dot.Fill = (thread.LastStatus == TurnStatus.Failed ? Chrome.Danger : Chrome.Accent).Brush(dot); // :2423
+                content = dot;
+            }
+            else
+            {
+                content = null; // :2426 nothing drawn
+            }
+            Child = content;
+        });
+    }
 }
 
 /// <summary>:2433-2440 <c>private final class FrameHolder</c>: a row's latest frame, kept out of observation.</summary>
@@ -1920,24 +2306,54 @@ internal sealed class SidebarItemCache
 /// sidebar's relative times.</summary>
 public sealed class MinuteClock : MainActorModel
 {
-    // :2667 static let shared = MinuteClock()
-    public static MinuteClock Shared =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2667");
+    // :2667 static let shared = MinuteClock(). R-LIFE-2's side-effecting-static-with-a-test-seam form
+    // (Ambient<T>) is not used here: the skeleton (c100 group 5) already committed this member's public shape as
+    // `MinuteClock Shared`, not `Ambient<MinuteClock>`, and nothing in the tree yet depends on it being swappable;
+    // a test that needs its own clock constructs one directly (the constructor is reached by reflection, as the
+    // rest of this file's private types already are).
+    private static readonly Lazy<MinuteClock> shared = new(() => new MinuteClock(), LazyThreadSafetyMode.ExecutionAndPublication);
+    public static MinuteClock Shared => shared.Value;
+
+    private DateTimeOffset now = SwiftDate.Now; // :2669 private(set) var now = Date.now
 
     // :2669 private(set) var now = Date.now
-    public DateTimeOffset Now =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2669");
+    public DateTimeOffset Now { get => Read(now); private set => Set(ref now, value); }
 
-    // :2673-2681 private init()
-    private MinuteClock() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2673");
+    // :2671 @ObservationIgnored private var tick: Task<Void, Never>?
+    private readonly TaskHandle? tick;
+
+    // :2673-2681 private init(). PR-SIDEBAR-075.
+    private MinuteClock()
+    {
+        // ENGINEERING DECISION: the source captures [weak self] only so the loop stops if the singleton is ever
+        // released, "which in practice it is not" (the record's own text); Shared holds this instance for the
+        // process's life, so a weak wrapper here would never observe a difference (R-LIFE-1's deinit/weak-loop
+        // guidance does not apply: nothing ever drops the last reference).
+        tick = MainActor.Spawn(async () => // :2674 Task { [weak self] in ... }
+        {
+            while (!SwiftTask.IsCancelled) // :2675
+            {
+                if (!await SwiftTask.TrySleep(SwiftTask.Seconds(60))) return; // :2676 try? await Task.sleep(for: .seconds(60))
+                Now = SwiftDate.Now; // :2678 self.now = .now
+            }
+        });
+    }
 }
 
 /// <summary>:2686-2695 <c>private struct RelativeTimeLabel: View</c>.</summary>
 internal sealed class RelativeTimeLabel : Decorator
 {
     /// <param name="date">:2687 <c>let date: Date</c>.</param>
-    // :2689-2694 body
-    public RelativeTimeLabel(DateTimeOffset date) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2689");
+    // :2689-2694 body. PR-SIDEBAR-075.
+    public RelativeTimeLabel(DateTimeOffset date)
+    {
+        this.Track(() => MinuteClock.Shared.Now, now => // :2690, the minute's tick re-renders this label alone
+        {
+            var text = new TextBlock { Text = RelativeTime.Short(date, now) }; // :2690
+            SwiftFont.Subheadline.MonospacedDigit().Apply(text); // :2691
+            text.Foreground = Chrome.SecondaryText.Opacity(0.8).Brush(text); // :2692
+            text.Margin = new Thickness(0, 0, 4, 0); // :2693 .padding(.trailing, 4)
+            Child = text;
+        });
+    }
 }
