@@ -74,20 +74,19 @@ public static class MCPWire
 
     // MARK: - Streamable HTTP (:53-103)
 
-    // :55-103. DEVIATION OD-0022/ED-152: F.HTTP (Marrow.Core.Port.Http.cs) currently drops only the
-    // Authorization header across an origin-changing redirect (ED-152, Http.cs:707-784); it has no per-request
-    // mechanism to drop an arbitrary named header, such as this call's caller-supplied `headers` (a server's
-    // custom headers, e.g. X-Api-Key), the same way. Extending it is out of this unit's scope (Marrow.Services
-    // only; see MCPProbe.cs:246-266, which carries the identical note for its own call into this same Post).
-    // The headers below are therefore forwarded to a same-server redirect target exactly as OD-0022 requires,
-    // but are NOT yet withheld from a cross-server redirect target. Tracked, not silently dropped: see this
-    // unit's report (review finding L2f-1, ED needed to extend F.HTTP with a per-header origin-bound marker).
+    // :55-103. DEVIATION OD-0022/ED-152, now enforced by ED-209: F.HTTP (Marrow.Core.Port.Http.cs) drops the
+    // Authorization header across an origin-changing redirect (ED-152, Http.cs:Redirected); ED-209 extends it
+    // with a per-request marking (URLRequest.MarkOriginBound) for an arbitrary named header. Each of this call's
+    // caller-supplied `headers` (a server's own custom headers, e.g. X-Api-Key) is marked below, so a redirect
+    // that changes scheme, host or port drops it the same way Authorization is dropped, and a same-server
+    // redirect keeps it, exactly as OD-0022 requires. MCPProbe.cs:246-266 carries its own, still-unresolved copy
+    // of this note for its own inline Post (a separate unit, out of this lane's scope).
     public static async Task<MCPHTTPReply> Post(
         Uri to, IReadOnlyDictionary<string, string> headers, string? sessionID, JSONValue payload, int? id, double timeout)
     {
         // :63-70
         var request = new URLRequest(to, timeout) with { HttpMethod = "POST", HttpBody = payload.Data() };
-        foreach (var (field, value) in headers) request = request.SetValue(value, field);
+        foreach (var (field, value) in headers) request = request.SetValue(value, field).MarkOriginBound(field);
         request = request.SetValue("application/json", "Content-Type");
         request = request.SetValue("application/json, text/event-stream", "Accept");
         request = request.SetValue(ProtocolVersion, "MCP-Protocol-Version");

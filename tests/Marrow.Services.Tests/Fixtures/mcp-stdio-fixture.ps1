@@ -6,6 +6,15 @@
 #   test/error    - answered with a JSON-RPC error object (drives checkReply's "unknown error" fallback too
 #                   when the caller sends test/error/blank)
 #   test/exit     - the process exits with code 7 (drives "The server quit (exit 7).")
+# Two tools/call names support B3-only lane A15 coverage (MCPWire/MCPStdioConnection, PR-MCP-186/PR-MCP-237):
+#   which-id              - replies with the JSON-RPC request's own id echoed into the text content, so a test
+#                           can prove a relaunched connection's ids restart at 1 (PR-MCP-237) without any other
+#                           observable channel (the id MCPHub assigns is otherwise invisible to the caller).
+#   string-id-then-real   - first sends a reply for this request whose "id" is a JSON STRING holding the same
+#                           digits, which RPCID.Create/Handle must NOT match to the waiting int-keyed request
+#                           (PR-MCP-186 b3_note, "a string id no longer matches"); then, after a short delay,
+#                           sends the real numeric-id reply. A test asserts it receives the real reply's text,
+#                           never the string-id one, proving the mismatch was never delivered.
 # Every reply is one compact JSON object per line, flushed immediately.
 $ErrorActionPreference = 'Stop'
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
@@ -60,6 +69,12 @@ while ($true) {
                 Send @{ jsonrpc = '2.0'; id = $id; result = @{ content = @(@{ type = 'text'; text = 'failed' }); isError = $true } }
             } elseif ($toolName -eq 'exit-server') {
                 exit 7
+            } elseif ($toolName -eq 'which-id') {
+                Send @{ jsonrpc = '2.0'; id = $id; result = @{ content = @(@{ type = 'text'; text = ("id:" + $id) }) } }
+            } elseif ($toolName -eq 'string-id-then-real') {
+                Send @{ jsonrpc = '2.0'; id = [string]$id; result = @{ content = @(@{ type = 'text'; text = 'WRONG-STRING-ID' }) } }
+                Start-Sleep -Milliseconds 150
+                Send @{ jsonrpc = '2.0'; id = $id; result = @{ content = @(@{ type = 'text'; text = ("echo:" + ($callArgs | ConvertTo-Json -Compress)) }) } }
             } elseif ($toolName -eq 'mixed-content') {
                 Send @{
                     jsonrpc = '2.0'; id = $id
