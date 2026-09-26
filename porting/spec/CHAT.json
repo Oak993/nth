@@ -43,7 +43,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation moved and respelled, behaviour unchanged: B1 Timeline.swift:27-31 `return block.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 Timeline.swift:28-32 `return block.text.trimmed.isEmpty` (B2 Text.swift:224). The one-line shift is the new `import ImageIO` at B2 Timeline.swift:2."
+      "b2_change": "Citation moved and respelled, behaviour unchanged: B1 Timeline.swift:27-31 `return block.text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty` -> B2 Timeline.swift:28-32 `return block.text.trimmed.isEmpty` (B2 Text.swift:132). The one-line shift is the new `import ImageIO` at B2 Timeline.swift:2."
     },
     {
       "id": "PR-CHAT-003",
@@ -212,7 +212,7 @@
         "DroppyCode/Core/Models/Timeline.swift:232-244 struct Notice - Level: info, warning, error; fields level, message, limit: LimitNotice? = nil",
         "DroppyCode/Core/Models/Timeline.swift:246-250 struct LimitNotice - threadID: UUID",
         "DroppyCode/App/Runtime/AutoContinue.swift:144-148 `private func notice(_ threadID: UUID, _ level: Notice.Level, _ message: String, limitMark: Bool = false) { var notice = Notice(level: level, message: message); if limitMark { notice.limit = LimitNotice(threadID: threadID) }; app?.existingRuntime(for: threadID)?.rehearse(.notice(notice)) }`",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:3785-3787 `func rehearse(_ event: ProviderEvent) { handle(event) }`; :2187-2188 `case .notice(let notice): appendNotice(notice.level, notice.message)`; :3549-3551 appendNotice builds `Notice(level: level, message: message)`"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3785-3787 `func rehearse(_ event: ProviderEvent) { handle(event) }`; :2187-2188 `case .notice(let notice): appendNotice(notice.level, notice.message)`; :3591-3593 appendNotice builds `Notice(level: level, message: message)`"
       ],
       "preconditions": "The runtime raises a notice.",
       "action": "The notice is appended to the timeline.",
@@ -221,19 +221,19 @@
       "persistence": "level and message always; limit never, because it is always nil and the synthesized Codable encoding of struct Notice omits a nil optional.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Keep an optional limit on the notice model so the document shape matches, but nothing sets it: the marker is dead in the shipped flow (porting/dead_code.md entry 24, ED-061), and the only view that would read it is dead too (entry 21, PR-CHAT-011).",
+      "windows_path": "Keep an optional limit on the notice model so the document shape matches, but nothing sets it: the marker is dead in the shipped flow (porting/dead_code.md entry 24, ED-061), and the only view that would have read it, LimitResumeBadge (entry 21, PR-CHAT-011), is deleted at B3.",
       "verification_method": "contract fixture",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "spec_fix": "expected_result said limit is null except on the usage-limit notice, where it carries the thread id, and persistence said limit is stored when set -> the marker set at DroppyCode/App/Runtime/AutoContinue.swift:146 is dropped: rehearse (ThreadRuntime.swift:3785-3787) routes .notice to appendNotice (:2187-2188), which appends a new Notice(level:message:) (:3549-3551), so limit is always nil (porting/dead_code.md entry 24)."
+      "spec_fix": "expected_result said limit is null except on the usage-limit notice, where it carries the thread id, and persistence said limit is stored when set -> the marker set at DroppyCode/App/Runtime/AutoContinue.swift:146 is dropped: rehearse (ThreadRuntime.swift:3785-3787) routes .notice to appendNotice (:2187-2188), which appends a new Notice(level:message:) (:3591-3593), so limit is always nil (porting/dead_code.md entry 24)."
     },
     {
       "id": "PR-CHAT-011",
       "title": "The usage-limit resume badge is dead code in the pinned build and must not be implemented",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/LimitResumeBadge.swift:1-60 the whole file - struct LimitResumeBadge with Cancel and New thread buttons and three outcome strings",
+        "DroppyCode/App/Views/Chat/LimitResumeBadge.swift:1-60 (B2 1fbf81e6 line range; the file is deleted at B3) the whole file - struct LimitResumeBadge with Cancel and New thread buttons and three outcome strings",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2385-2431 NoticeRow - the only renderer of a .notice item, reading only notice.level and notice.message",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2058 case .notice: NoticeRow(entry: entry) - the only selection of a notice row"
       ],
@@ -246,12 +246,17 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not port LimitResumeBadge. Proven dead by dead_code.md entry 21 (a repository-wide grep for the identifier returns only its own declaration) and entries 22 and 23 for the AutoContinue.cancel/handOff/outcomes it would have driven.",
       "verification_method": "capture comparison of a limit notice against NoticeRow, plus a static check that no Cancel/New thread affordance exists on a notice row",
-      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+      "status": "RETIRED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citations moved, behaviour unchanged: B1 LimitResumeBadge.swift:1-61 -> B2 :1-60 (the `@Environment(\\.chatZoom) private var zoom` line was removed, its fonts dropped zoom and the info glyph went `.foregroundStyle(.secondary)` -> `.foregroundStyle(Chrome.secondaryText)` at B2 :17); `git grep LimitResumeBadge` at B2 still finds only its own declaration (LimitResumeBadge.swift:5). B1 TimelineRows.swift:2400-2447 NoticeRow -> B2 :2385-2431; ThreadTimeline.swift:2058 still selects NoticeRow for every notice.",
-      "not_applicable": "ED-061: porting/dead_code.md entry 21. LimitResumeBadge is never instantiated: at B2 `git grep LimitResumeBadge` finds only its own declaration (DroppyCode/App/Views/Chat/LimitResumeBadge.swift:5), and every .notice item renders through NoticeRow (TimelineRows.swift:2385-2431, selected at ThreadTimeline.swift:2058). Entries 22 and 23 cover the AutoContinue cancel, handOff and outcomes it would drive, and entry 24 the limit marker it would read, which is always nil (PR-CHAT-010). Nothing is implemented for the badge; a limit notice renders as an ordinary notice row (PR-CHAT-115)."
+      "b2_change": "Citations moved, behaviour unchanged: B1 LimitResumeBadge.swift:1-61 -> B2 :1-60 (the `@Environment(\\.chatZoom) private var zoom` line was removed, its fonts dropped zoom and the info glyph went `.foregroundStyle(.secondary)` -> `.foregroundStyle(Chrome.secondaryText)` at B2 :17); `git grep LimitResumeBadge` at B2 still finds only its own declaration (LimitResumeBadge.swift:5). B1 TimelineRows.swift:2400-2447 NoticeRow -> B2 :2385-2431; ThreadTimeline.swift:2046 still selects NoticeRow for every notice.",
+      "not_applicable": "ED-061: porting/dead_code.md entry 21. LimitResumeBadge is never instantiated: at B2 `git grep LimitResumeBadge` finds only its own declaration (DroppyCode/App/Views/Chat/LimitResumeBadge.swift:5), and every .notice item renders through NoticeRow (TimelineRows.swift:2385-2431, selected at ThreadTimeline.swift:2046). Entries 22 and 23 cover the AutoContinue cancel, handOff and outcomes it would drive, and entry 24 the limit marker it would read, which is always nil (PR-CHAT-010). Nothing is implemented for the badge; a limit notice renders as an ordinary notice row (PR-CHAT-115).",
+      "retired": {
+        "reason": "LimitResumeBadge.swift is deleted at B3, so the dead badge this record kept out of the port no longer exists in the source. A usage-limit notice still renders as an ordinary notice row (PR-CHAT-115); no Cancel control, New thread control or auto-continue outcome wording exists anywhere.",
+        "evidence": "git -C E:/Droppy/reference/droppy-code-v1.7.0 diff --name-status 1fbf81e6 52bc7926 -- DroppyCode/App/Views/Chat/LimitResumeBadge.swift: `D` (all 60 lines removed); `git -C E:/Droppy/reference/droppy-code-v1.7.0 grep -n LimitResumeBadge 52bc7926 -- DroppyCode` finds nothing; NoticeRow is still the only renderer of a notice (DroppyCode/App/Views/Chat/TimelineRows.swift:2385-2431, selected at DroppyCode/App/Views/Chat/ThreadTimeline.swift:2058)."
+      },
+      "b3_note": "Retired at 1.7.0: LimitResumeBadge.swift is deleted (it was dead code at B2, porting/dead_code.md entry 21)."
     },
     {
       "id": "PR-CHAT-012",
@@ -385,24 +390,25 @@
     },
     {
       "id": "PR-CHAT-018",
-      "title": "A Hydra merge record keeps one auto-merge outcome per thread entry, with five outcomes",
+      "title": "A Hydra merge record keeps one auto-merge outcome per thread entry, with five outcomes and a retryable flag",
       "source_evidence": [
-        "DroppyCode/Core/Models/Timeline.swift:269-284 struct HydraMergeRecord - `enum Outcome: String, Codable, Sendable { case merged, failed, stray, held, settled }` (:273); fields at, outcome, project, label, url, files, detail; the doc comment at :271-272: `held`: some job files are claimed by another chat's unfinished work, so this merge took nothing and nothing was spent; it goes out once that claim clears"
+        "DroppyCode/Core/Models/Timeline.swift:269-284 struct HydraMergeRecord - `enum Outcome: String, Codable, Sendable { case merged, failed, stray, held, settled }` (:273); fields at, outcome, project, label, url, files, detail and `var retryable: Bool? = nil` (:283); the doc comment at :271-272: `held` is no longer written: a merge never waits on another chat's files now. It stays so records written by earlier versions still decode; the doc comment at :281-282: A failure that clears by itself and is retried quietly (the forge still checking, a remote that moved); nil on the ones that need the user."
       ],
       "preconditions": "The team's work was auto-merged for this thread.",
-      "action": "The merge finishes, is held or settles, with one of five outcomes.",
-      "expected_result": "A record is appended with the timestamp, the outcome raw string merged, failed, stray, held or settled, an optional project, label, url and detail, and the integer file count, so the lead can be told the true merge state at the front of its next message. held means some job files are claimed by another chat's unfinished work, so the merge took nothing and nothing was spent; settled means no recorded files are left to merge (PR-CHAT-189).",
+      "action": "The merge finishes, fails or settles, with one of the outcomes this build writes.",
+      "expected_result": "A record is appended with the timestamp, the outcome raw string merged, failed, stray or settled, an optional project, label, url and detail, the integer file count, and retryable, which is true on a failure that clears by itself and is retried quietly and nil otherwise, so the lead can be told the true merge state at the front of its next message. settled means no recorded files are left to merge (PR-CHAT-189). held is no longer written: it stays a valid raw value so records written by earlier versions still decode.",
       "side_effects": [],
-      "persistence": "ThreadDocument.hydraMerges.",
+      "persistence": "ThreadDocument.hydraMerges; retryable is left out when nil, and a record without it decodes as nil.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Same five raw outcome strings, spelled exactly merged, failed, stray, held and settled.",
-      "verification_method": "contract fixture with one record per outcome",
-      "status": "IMPLEMENTED",
+      "windows_path": "Same five raw outcome strings, spelled exactly merged, failed, stray, held and settled, all accepted on decode; never write held. The retryable key is spelled exactly retryable.",
+      "verification_method": "contract fixture with one record per outcome, a retryable failure, and a record without the retryable key",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 Timeline.swift:238 `enum Outcome: String, Codable, Sendable { case merged, failed, stray }` -> B2 Timeline.swift:273 `enum Outcome: String, Codable, Sendable { case merged, failed, stray, held, settled }`, with the held doc comment at B2 :271-272; the struct moved from B1 :237-247 to B2 :269-281."
+      "b2_change": "B1 Timeline.swift:238 `enum Outcome: String, Codable, Sendable { case merged, failed, stray }` -> B2 Timeline.swift:273 `enum Outcome: String, Codable, Sendable { case merged, failed, stray, held, settled }`, with the held doc comment at B2 :271-272; the struct moved from B1 :237-247 to B2 :269-281.",
+      "b3_note": "1.7.0 adds retryable (Bool?, B3 Timeline.swift:281-283) and stops writing held, which stays only so earlier records decode (Timeline.swift:271-272)."
     },
     {
       "id": "PR-CHAT-019",
@@ -895,8 +901,8 @@
       "id": "PR-CHAT-042",
       "title": "The tail-build self-check is debug-only and gets no shipped behavior",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1716-1718 and :1755-1767 - #if DEBUG counters and the every-twentieth full-build comparison that prints ThreadTimeline: the tail build differed from a full build after N entries and falls back",
-        "porting/dead_code.md entry 60 - the only #if DEBUG in the Swift tree is ThreadTimeline.swift:1716 and :1755"
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1716-1718 and :1764-1776 - #if DEBUG counters and the every-twentieth full-build comparison that prints ThreadTimeline: the tail build differed from a full build after N entries and falls back",
+        "porting/dead_code.md entry 60 - the only #if DEBUG in the Swift tree is ThreadTimeline.swift (B2 :1707 and :1755; at B3 DroppyCode/App/Views/Chat/ThreadTimeline.swift:1716 and :1764, still the only two)"
       ],
       "preconditions": "A release build is running.",
       "action": "Blocks are built many times.",
@@ -911,7 +917,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: porting/dead_code.md entry 60 records that the only #if DEBUG code in the Swift tree is ThreadTimeline.swift's tail-build self-check (B2 DroppyCode/App/Views/Chat/ThreadTimeline.swift:1716 and :1755). A shipped build compiles none of it, so upstream never runs the comparison, keeps no counter and prints nothing; nothing is implemented for it."
+      "not_applicable": "ED-061: porting/dead_code.md entry 60 records that the only #if DEBUG code in the Swift tree is ThreadTimeline.swift's tail-build self-check (B3 DroppyCode/App/Views/Chat/ThreadTimeline.swift:1716 and :1764). A shipped build compiles none of it, so upstream never runs the comparison, keeps no counter and prints nothing; nothing is implemented for it.",
+      "b3_note": "Citation only: the two #if DEBUG blocks are at B3 ThreadTimeline.swift:1716 and :1764 (B2 :1707 and :1755) and are still the only ones in the tree."
     },
     {
       "id": "PR-CHAT-043",
@@ -956,16 +963,18 @@
     },
     {
       "id": "PR-CHAT-045",
-      "title": "The lazy window opens at three blocks, anchors on the twenty-four newest a beat later, and moves back twenty-four per page",
+      "title": "The lazy window opens at three blocks, anchors on the twenty-four newest a beat later, moves back twenty-four per page, and drops back to twenty-four past ninety-six while the end is followed",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1804-1811 enum TimelineWindow - firstPaint = 3, initial = 24, page = 24",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1804-1811 enum TimelineWindow - firstPaint = 3, initial = 24, page = 24, and `/// The most blocks the eager stack holds while the reader follows the end; past it the /// window drops back to `initial`. static let eagerLimit = 96`",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:81 `@State private var windowStartID: String?` - the id of the window's oldest block; nil until the thread anchors, when the newest `firstPaint` blocks are the window (comment :77-80)",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:595-608 the thread task - sleeps 250 ms, `guard !Task.isCancelled else { return }`, `tracking.holdEnd(for: 1.0)`, `loadEarlier(in: blocks, to: TimelineWindow.initial)`, `tracking.armBlankWatch()`, `await warmMarkdown()`",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:257-268 loadEarlier(in:to:) - `let target = count.map { max(0, blocks.count - $0) } ?? max(0, start - TimelineWindow.page)`; `guard target < start else { return }`; `windowStartID = blocks[target].id`"
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:257-268 loadEarlier(in:to:) - `let target = count.map { max(0, blocks.count - $0) } ?? max(0, start - TimelineWindow.page)`; `guard target < start else { return }`; `windowStartID = blocks[target].id`",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:384-391 - // Eager, not lazy: rows of varying height at the visible edge sent a lazy // stack pinned to the bottom into a placement loop that never returned to // the run loop (release hangs of 16 s to 20 min, all in the lazy item // phases). The window keeps the eager stack bounded instead. VStack(alignment: .leading, spacing: TimelineMetrics.rowSpacing) { ForEach(visible) { block in row(block, rewindable: rewindable) }",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:703-707 - // A reader following a long run lets the oldest rows go, above the viewport, so // the eager stack stays bounded; they come back as history on the way up. if visible.count > TimelineWindow.eagerLimit { windowStartID = blocks[blocks.count - TimelineWindow.initial].id }"
       ],
       "preconditions": "A thread with more than three blocks is opened.",
       "action": "The thread task runs.",
-      "expected_result": "The first frame materializes only the newest three blocks, so the thread opens at once. After 250 milliseconds the end is held for a further second and the window's start moves to the block twenty-four from the end of the block list the task captured when it started (or that list's first block), so the window holds the newest twenty-four blocks, which land above the viewport while the reader is already looking at the end; a blank watch is armed and every finished reply's markdown is parsed off the main thread. Each later page moves the start twenty-four blocks further back, floored at the first block. Blocks appended at the end after that add to the window rather than pushing older rows out (PR-CHAT-191).",
+      "expected_result": "The first frame materializes only the newest three blocks, so the thread opens at once. After 250 milliseconds the end is held for a further second and the window's start moves to the block twenty-four from the end of the block list the task captured when it started (or that list's first block), so the window holds the newest twenty-four blocks, which land above the viewport while the reader is already looking at the end; a blank watch is armed and every finished reply's markdown is parsed off the main thread. Each later page moves the start twenty-four blocks further back, floored at the first block. Blocks appended at the end after that add to the window rather than pushing older rows out (PR-CHAT-191). Every block in the window is built: the rows sit in a plain, non-virtualizing stack, and the window is what bounds that work. When a new row lands at the end and the reader is followed down to it (PR-CHAT-132) while the window holds more than ninety-six blocks, the window's start moves to the block twenty-four from the end, so it drops back to the newest twenty-four blocks; the dropped rows were above the viewport and come back as history when the reader scrolls up.",
       "side_effects": [
         "Markdown parsing work is scheduled off the main thread"
       ],
@@ -974,13 +983,14 @@
         "A cancelled task (the thread was closed within 250 ms) does nothing further."
       ],
       "cancellation": "The task is keyed on the thread id and is cancelled on a thread switch; the cancellation check runs immediately after the sleep.",
-      "windows_path": "Same three constants and the same 250 ms handoff. The window is anchored on its oldest block's id, not on a count. The window must grow above the viewport with the bottom held, never below it.",
-      "verification_method": "interaction test on a long fixture thread measuring first-paint block count",
+      "windows_path": "Same three constants, the 96-block limit and the same 250 ms handoff. The window is anchored on its oldest block's id, not on a count. The window must grow above the viewport with the bottom held, never below it. Lay the rows out in a non-virtualizing panel, bounded by the window.",
+      "verification_method": "interaction test on a long fixture thread measuring first-paint block count, and a followed run growing past 96 blocks asserting the window drops back to the newest 24",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadTimeline.swift:80 `@State private var visibleCount = TimelineWindow.firstPaint` with `Array(blocks.suffix(visibleCount))` (B1 :160), and B1 :254-261 `let target = count ?? visibleCount + TimelineWindow.page` / `guard target > visibleCount else { return }` / `visibleCount = target` -> B2 :81 `@State private var windowStartID: String?`, :161-163 `Array(blocks[startIndex...])`, :257-268 `count.map { max(0, blocks.count - $0) } ?? max(0, start - TimelineWindow.page)` / `guard target < start else { return }` / `windowStartID = blocks[target].id`. The 250 ms task (B1 :574-587 -> B2 :591-604) now calls `loadEarlier(in: blocks, to: TimelineWindow.initial)`. firstPaint 3, initial 24 and page 24 are unchanged."
+      "b2_change": "B1 ThreadTimeline.swift:80 `@State private var visibleCount = TimelineWindow.firstPaint` with `Array(blocks.suffix(visibleCount))` (B1 :160), and B1 :254-261 `let target = count ?? visibleCount + TimelineWindow.page` / `guard target > visibleCount else { return }` / `visibleCount = target` -> B2 :81 `@State private var windowStartID: String?`, :161-163 `Array(blocks[startIndex...])`, :257-268 `count.map { max(0, blocks.count - $0) } ?? max(0, start - TimelineWindow.page)` / `guard target < start else { return }` / `windowStartID = blocks[target].id`. The 250 ms task (B1 :574-587 -> B2 :591-604) now calls `loadEarlier(in: blocks, to: TimelineWindow.initial)`. firstPaint 3, initial 24 and page 24 are unchanged.",
+      "b3_note": "1.7.0 replaces the timeline's LazyVStack with an eager VStack and adds TimelineWindow.eagerLimit = 96 with the drop back to the newest 24 blocks while the end is followed (B3 ThreadTimeline.swift:384-391, :703-707, :1808-1810). This folds new-record proposal R3-38 ThreadTimeline #1 (B3_PLAN.md 6.3)."
     },
     {
       "id": "PR-CHAT-046",
@@ -1122,7 +1132,7 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:561 let pinned = tracking.isPinnedToBottom || new.distanceFromBottom < 48",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:575-577 let pinned = new.distanceFromBottom < 48",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:578 (tracking.isPinnedToBottom || old.distanceFromBottom < 48)",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:684 and :698 guard tracking.isPinnedToBottom || tracking.distanceFromBottom < 48"
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:684 and :702 guard tracking.isPinnedToBottom || tracking.distanceFromBottom < 48"
       ],
       "preconditions": "Scroll geometry is measured.",
       "action": "The timeline decides whether to follow new content.",
@@ -1314,7 +1324,7 @@
       "title": "Rows are handed plain values, never the app model or the runtime's turn list",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1869-1875 struct RowContext - workingDirectory, canRewind, chronological; the comment records that rows never read the app model or the runtime's turn list themselves",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:325-341 row(_:rewindable:) - the context is built per block as `RowContext(workingDirectory: workingDirectory, canRewind: canRewind, chronological: false)` and handed to DisplayBlockView, which is `.equatable()`; the ForEach at :385-387 calls it",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:325-341 row(_:rewindable:) - the context is built per block as `RowContext(workingDirectory: workingDirectory, canRewind: canRewind, chronological: false)` and handed to DisplayBlockView, which is `.equatable()`; the ForEach at :389-391 calls it",
         "DroppyCode/App/Views/Chat/ChatView.swift:80-83 and :97-110 the thread, project, working directory and rewind support are read once in ChatView and passed down as values"
       ],
       "preconditions": "The timeline is rendering rows.",
@@ -1360,7 +1370,7 @@
       "title": "Each block reports when it enters or leaves the viewport, and reports gone when the list discards it",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:335-338 in row(_:rewindable:) - `.onScrollVisibilityChange(threshold: 0.001) { isVisible in tracking.setVisible(block.id, isVisible) }` and `.onDisappear { tracking.setVisible(block.id, false) }`",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:978-981 `var showsNothing: Bool { !outlineIDs.isEmpty && visibleIDs.isDisjoint(with: outlineSet) }`, and :1000-1004 a removal from visibleIDs that leaves nothing on screen calls `armBlankWatch()`"
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:978-981 `var showsNothing: Bool { !outlineIDs.isEmpty && visibleIDs.isDisjoint(with: outlineSet) }`, and :1009-1013 a removal from visibleIDs that leaves nothing on screen calls `armBlankWatch()`"
       ],
       "preconditions": "Blocks are laid out in the lazy list.",
       "action": "A block crosses a viewport edge, or is thrown away by the list.",
@@ -1552,7 +1562,7 @@
       "id": "PR-CHAT-072",
       "title": "Hovering the rail previews a tick, pressing and dragging scrubs, releasing glides",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineMinimap.swift:212-222 onContinuousHover - pushes a pointing-hand cursor on first entry, sets hoveredID from the pointer's y, and on end pops the cursor and clears the hover",
+        "DroppyCode/App/Views/Chat/TimelineMinimap.swift:209-221 the rail's hit area - Color.clear with the RailHitArea content shape, `.pointerStyle(.link)` (:211), and onContinuousHover: on .active it sets hoveredID from the pointer's y when it changed; on .ended it clears the hover",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:348-365 scrubGesture - DragGesture(minimumDistance: 0, coordinateSpace: .local); onChanged sets isPressing and, on a new tick, navigates with animated false; onEnded clears isPressing and navigates with animated true",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:405-410 entryID(at:) - raw = (y - topInset - 1 + pitch/2) / pitch, floored, clamped into range",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:176-177 the contract - a live scrub reports animated false and the release reports true"
@@ -1561,17 +1571,18 @@
       "action": "The reader hovers, presses, drags and releases over the rail.",
       "expected_result": "Hovering alone previews the tick under the pointer and jumps nowhere. A press with zero minimum distance is already a scrub: the timeline tracks the pointer one to one, unanimated. Releasing performs one animated glide to the landing block. The y-to-tick mapping rounds to the nearest tick and clamps to the first and last.",
       "side_effects": [
-        "A pointing-hand cursor is pushed while the pointer is over the rail and popped exactly once on exit or disappearance"
+        "The pointer takes the link (pointing-hand) style over the rail's hit area, declared on the area itself with no cursor push or pop"
       ],
       "persistence": "None.",
       "failure_cases": [],
-      "cancellation": "A disappear while hovering pops the pushed cursor exactly once, guarded by an ownership flag.",
-      "windows_path": "Windows has no NSCursor push/pop stack: model it as an explicit LIFO cursor-owner stack and mirror each push and pop site one for one (port_impacts.md 310).",
-      "verification_method": "interaction test for hover, scrub and release; unit for entryID",
-      "status": "IMPLEMENTED",
+      "cancellation": "not cancellable",
+      "windows_path": "Declare the hand pointer on the rail's hit area itself, so it follows the pointer in and out with no push/pop bookkeeping to leak.",
+      "verification_method": "interaction test for hover, scrub, release and the pointer shape over the hit area; unit for entryID",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "1.7.0 replaces the NSCursor push/pop and its ownership flag with `.pointerStyle(.link)` on the hit area (B3 TimelineMinimap.swift:211)."
     },
     {
       "id": "PR-CHAT-073",
@@ -1598,7 +1609,7 @@
       "id": "PR-CHAT-074",
       "title": "The rail's hover card is 300 points wide, mounts only while hovering, and is clamped inside the rail",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/TimelineMinimap.swift:292-330 previewCard - width 300 via Self.cardWidth (:356); 12 horizontal and 10 vertical padding; glassEffect(.regular) in a rounded rect of Chrome.cardCornerRadius, continuous; 34 points of leading padding; offset to the tick's centre y clamped between half the card height plus 2 and the rail height minus half minus 2",
+        "DroppyCode/App/Views/Chat/TimelineMinimap.swift:292-330 previewCard - width 300 via Self.cardWidth (:342); 12 horizontal and 10 vertical padding; glassEffect(.regular) in a rounded rect of Chrome.cardCornerRadius, continuous; 34 points of leading padding; offset to the tick's centre y clamped between half the card height plus 2 and the rail height minus half minus 2",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:304-319 the contents - title `.font(.system(.body, weight: .semibold))` in Chrome.primaryText, one line, tail truncation, opacity content transition; snippet `.font(.system(.callout))` in Chrome.secondaryText, up to three lines, tail truncation, leading alignment (body and callout are 13 and 12 points per ED-059, B1:DroppyCode/UI/Common/ChatZoom.swift:51 and B1:DroppyCode/UI/Common/ChatZoom.swift:52)",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:227-231 mounted only when a tick is hovered, with an opacity transition combined with a 6-point leading offset, zero under reduced motion; never hit-testable",
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:333-340 estimatedCardHeight - title 17, padding 20, no snippet returns 37; else glyphsPerLine = max(1, (300 - 24) / 7) and lines = min(3, ceil(snippet.count / glyphsPerLine)), total = 17 + 3 + lines*15 + 20"
@@ -1616,7 +1627,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Fonts respelled as text styles of the same macOS size: B1 TimelineMinimap.swift:306 `.font(.system(size: 13, weight: .semibold))` -> B2 :320 `.font(.system(.body, weight: .semibold))`; B1 :327 `.font(.system(size: 12))` -> B2 :327 `.font(.system(.callout))`. Line numbers are unchanged."
+      "b2_change": "Fonts respelled as text styles of the same macOS size: B1 TimelineMinimap.swift:320 `.font(.system(size: 13, weight: .semibold))` -> B2 :320 `.font(.system(.body, weight: .semibold))`; B1 :327 `.font(.system(size: 12))` -> B2 :327 `.font(.system(.callout))`. Line numbers are unchanged."
     },
     {
       "id": "PR-CHAT-075",
@@ -2291,7 +2302,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Line numbers unchanged; B1 AttachmentPreview.swift:61 `let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 :61 `let trimmed = candidate.trimmed` (Text.swift:224), identical behaviour."
+      "b2_change": "Line numbers unchanged; B1 AttachmentPreview.swift:61 `let trimmed = candidate.trimmingCharacters(in: .whitespacesAndNewlines)` -> B2 :61 `let trimmed = candidate.trimmed` (Text.swift:132), identical behaviour."
     },
     {
       "id": "PR-CHAT-104",
@@ -2578,22 +2589,24 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2448-2455 TurnEndRow.label - completed and running both give Worked for D, interrupted gives Stopped after D, failed gives Failed after D",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2439-2445 the row renders only when the turn produced no reply, at caption size (`.font(.chat(.caption))`) in `Chrome.secondaryText`, full width and lead-aligned",
-        "DroppyCode/UI/Common/Components.swift:36-41 RelativeTime.duration - the interval rounded to whole seconds and clamped at zero; below 60 it is Ns; below 3600 it is Mm Ss; otherwise Hh Mm"
+        "DroppyCode/UI/Common/Components.swift:37-40 RelativeTime.duration - `Duration.seconds(max(0, Int(interval.rounded()))).formatted(.units(allowed: [.seconds, .minutes, .hours], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)))`: the interval rounded to whole seconds and clamped at zero, formatted by Foundation's unit formatter"
       ],
       "preconditions": "A turn has ended.",
       "action": "Its duration line is rendered, either as a standalone row or on a reply's hover line or as the folded turn's header.",
-      "expected_result": "Exactly one of the three phrasings, followed by a space and the duration formatted as above, for example Worked for 1m 4s or Failed after 2h 15m. A turn still marked running deliberately reads Worked for, the same as completed. The standalone row is suppressed when the turn produced a reply, because the duration lives on that reply's hover line instead.",
+      "expected_result": "Exactly one of the three phrasings, followed by a space and the duration: RelativeTime.duration of the turn's time, that is the interval rounded to whole seconds, clamped at zero and formatted by Foundation's Duration.UnitsFormatStyle with seconds, minutes and hours allowed, narrow width, at most two units and the fraction hidden and rounded down. The exact rendered duration strings are those Foundation produces on the reference runtime and are UNRESOLVED until captured there (B3_PLAN.md 6.1 E1). A turn still marked running deliberately reads Worked for, the same as completed. The standalone row is suppressed when the turn produced a reply, because the duration lives on that reply's hover line instead.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce the duration format exactly, including the space between the two components and the lowercase unit letters, and the rounding to whole seconds. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
-      "verification_method": "unit over the formatter plus capture comparison of the three phrasings",
+      "windows_path": "Reproduce the formatter's output exactly from reference-runtime fixtures, including the rounding to whole seconds; do not substitute a hand-written template. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
+      "verification_method": "unit over the formatter against reference-runtime fixtures (0, 45, 64, 90, 3599 and 3725 seconds and a negative interval) plus capture comparison of the three phrasings",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 TimelineRows.swift:2459-2460 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.tertiary)` -> B2 :2442-2443 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`; the row moved from B1 :2456-2462 to B2 :2439-2445. The wording is unchanged."
+      "b2_change": "B1 TimelineRows.swift:2459-2460 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.tertiary)` -> B2 :2442-2443 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`; the row moved from B1 :2456-2462 to B2 :2439-2445. The wording is unchanged.",
+      "open_question": "The exact strings RelativeTime.duration's Duration.UnitsFormatStyle(allowed: [.seconds, .minutes, .hours], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)) produces on the reference runtime and locale (B3_PLAN.md 6.1 E1).",
+      "b3_note": "1.7.0 replaces the hand-built 'Ns' / 'Mm Ss' / 'Hh Mm' duration with Duration.UnitsFormatStyle (B3 Components.swift:37-40)."
     },
     {
       "id": "PR-CHAT-117",
@@ -2789,8 +2802,8 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:325-331 row(_:rewindable:) builds every row's context with `chronological: false`; `git grep \"RowContext(\"` at B2 finds no other construction",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2185-2188 the indicator - `.onChange(of: chronological, initial: true) { _, chronological in isExpanded = chronological; showsAllSteps = chronological }`",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2499-2509 TurnFinishedBlock - isExpanded is initialized to the chronological flag",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1912-1920 and :1978-1985 the flag reaches TurnFinishedBlock and WorkingBlockView only as `context.chronological`",
-        "DroppyCode/App/AppSettings.swift:128, :237-239 and :715 the setting, new at B2, is stored under the key chronologicalTimeline and loaded as `defaults.object(forKey: Key.chronologicalTimeline) as? Bool ?? false`; no view reads it",
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1912-1920 and :1990-1997 the flag reaches TurnFinishedBlock and WorkingBlockView only as `context.chronological`",
+        "DroppyCode/App/AppSettings.swift:128, :237-239 and :719 the setting, new at B2, is stored under the key chronologicalTimeline and loaded as `defaults.object(forKey: Key.chronologicalTimeline) as? Bool ?? false`; no view reads it",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1959-1976 TurnRunningBlock - chronological mode changes how the card opens, never where prose belongs: the prompt, a steer, a notice or a plan stay rows of their own and only work runs and assistant prose go into the live card"
       ],
       "preconditions": "Any stored value of the chronologicalTimeline setting.",
@@ -2806,7 +2819,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadTimeline.swift:353 `chronological: model.settings.chronologicalTimeline` -> B2 :330 `chronological: false` inside row(_:rewindable:) (:325-341). The consumers are unchanged (B2 ThreadTimeline.swift:2185-2188, TimelineRows.swift:2507-2508), so the chronological open state cannot be reached at B2. The setting itself is new at B2: the key (AppSettings.swift:128), the property with its didSet save (:237-239) and the load (:715) are added lines in the B1..B2 diff; at B1 `git grep chronologicalTimeline` finds it only in ThreadTimeline.swift (:353 and the doc comment at :1844) and TimelineRows.swift:2510."
+      "b2_change": "B1 ThreadTimeline.swift:353 `chronological: model.settings.chronologicalTimeline` -> B2 :330 `chronological: false` inside row(_:rewindable:) (:325-341). The consumers are unchanged (B2 ThreadTimeline.swift:2173-2176, TimelineRows.swift:2507-2508), so the chronological open state cannot be reached at B2. The setting itself is new at B2: the key (AppSettings.swift:128), the property with its didSet save (:237-239) and the load (:715) are added lines in the B1..B2 diff; at B1 `git grep chronologicalTimeline` finds it only in ThreadTimeline.swift (:353 and the doc comment at :1844) and TimelineRows.swift:2510."
     },
     {
       "id": "PR-CHAT-126",
@@ -2944,21 +2957,22 @@
       "id": "PR-CHAT-132",
       "title": "A new row at the end brings a reader who was at the end down to it, unless history is loading or a drag is in progress",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:689-712 onChange(of: lastEntryID) - returns when a history load is pending or the reader is actively scrolling; otherwise requires pinned, or within 48 points of the end, or a question badge; then pins, anchors to the bottom, hides the jump button and snaps unanimated to the end"
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:689-712 onChange(of: lastEntryID) - returns when a history load is pending or the reader is actively scrolling; otherwise requires pinned, or within 48 points of the end, or a question badge; then, when the window holds more than TimelineWindow.eagerLimit (96) blocks, moves the window's start to the block TimelineWindow.initial (24) from the end (:703-707); then pins, anchors to the bottom, hides the jump button and snaps unanimated to the end"
       ],
       "preconditions": "A message, tool row, turn or question badge lands at the end of the conversation.",
       "action": "The last rendered id changes.",
-      "expected_result": "A reader at the end follows the new row; a reader who scrolled up to read is left there and the jump button tells them something arrived. History loading itself above the viewport never yanks the reader down, and an active drag is never fought: the next entry, or the geometry branch, catches up once it lets go. Growth inside an existing row is handled by the pinned machinery, not here; this fires for new rows only.",
+      "expected_result": "A reader at the end follows the new row; a reader who scrolled up to read is left there and the jump button tells them something arrived. History loading itself above the viewport never yanks the reader down, and an active drag is never fought: the next entry, or the geometry branch, catches up once it lets go. Growth inside an existing row is handled by the pinned machinery, not here; this fires for new rows only. When the reader is followed down and the window has grown past ninety-six blocks, the window also drops back to the newest twenty-four blocks at that moment, above the viewport (PR-CHAT-045).",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
       "windows_path": "The last-id watch must include the question badges, which are outside the block list.",
-      "verification_method": "interaction test for each of the guards",
+      "verification_method": "interaction test for each of the guards, and for the drop back to 24 blocks past 96",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "1.7.0 inserts the drop back to the newest 24 blocks past TimelineWindow.eagerLimit (96) into this handler (B3 ThreadTimeline.swift:703-707)."
     },
     {
       "id": "PR-CHAT-133",
@@ -3024,7 +3038,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadTimeline.swift:694 `visibleCount = TimelineWindow.firstPaint` -> B2 :707 `windowStartID = nil`; an unanchored window is the newest firstPaint blocks (B2 :273-278), the same fresh window as before. Moved from B1 :687-694 to B2 :704-711."
+      "b2_change": "B1 ThreadTimeline.swift:690 `visibleCount = TimelineWindow.firstPaint` -> B2 :707 `windowStartID = nil`; an unanchored window is the newest firstPaint blocks (B2 :273-278), the same fresh window as before. Moved from B1 :687-694 to B2 :704-711."
     },
     {
       "id": "PR-CHAT-136",
@@ -3096,10 +3110,11 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "retired": {
-        "reason": "The per-conversation chat zoom does not exist at B2: the chatZoom environment on the timeline, ChatZoom.swift with its seven steps and base-size table, and the zoom parameter of Font.chat were all removed, and conversation fonts are always the plain system text styles (PR-CHAT-193). Scaling moved to an app-wide window zoom (DroppyCode/UI/Common/AppZoom.swift:5-27, levels 75, 90, 100, 110, 125, 150, 175 and 200, stored under appZoom at AppSettings.swift:131, :253-254 and :718), which scales the whole window content and is a different behaviour outside the chat area.",
+        "reason": "The per-conversation chat zoom does not exist at B2: the chatZoom environment on the timeline, ChatZoom.swift with its seven steps and base-size table, and the zoom parameter of Font.chat were all removed, and conversation fonts are always the plain system text styles (PR-CHAT-193). Scaling moved to an app-wide window zoom (DroppyCode/UI/Common/AppZoom.swift:5-27, levels 75, 90, 100, 110, 125, 150, 175 and 200, stored under appZoom at AppSettings.swift:131, :253-254 and :722), which scales the whole window content and is a different behaviour outside the chat area.",
         "evidence": "git diff dd2b86ef..1fbf81e6: the ChatView.swift hunk @@ -117,10 +117,6 @@ deletes B1 :120-123 (`.environment(\\.chatZoom, ChatZoom.scale(at: model.settings.chatZoom))` and its comment), so B2 ChatView.swift:119 `.id(runtime.threadID)` is followed directly by :123 `.modifier(ReserveSlide(...))`; DroppyCode/UI/Common/ChatZoom.swift is `deleted file mode 100644`; B2 DroppyCode/UI/Common/ChatFont.swift:6 `static func chat(_ style: Font.TextStyle, weight: Font.Weight? = nil, design: Font.Design = .default) -> Font` has no zoom parameter."
       },
-      "b2_change": "B1 ChatView.swift:123 applied `.environment(\\.chatZoom, ChatZoom.scale(at: model.settings.chatZoom))` and B1 ChatZoom.swift:6-27, :43-70 defined the steps and the zoom-aware Font.chat -> removed at B2; see retired."
+      "b2_change": "B1 ChatView.swift:123 applied `.environment(\\.chatZoom, ChatZoom.scale(at: model.settings.chatZoom))` and B1 ChatZoom.swift:6-27, :43-70 defined the steps and the zoom-aware Font.chat -> removed at B2; see retired.",
+      "b3_note": "Citation only: the appZoom load moved from B2 AppSettings.swift:718 to B3 :722; still absent, still retired (PR-CHAT-193)."
     },
     {
       "id": "PR-CHAT-139",
@@ -3490,7 +3505,7 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1564-1577 HydraHeadsList - a leading stack of spacing 8, one ToolRow per entry, no header, no chevron, never folded",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2682-2686 the folded turn shows the heads list below the response with rowSpacing of bottom padding when a file card follows",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2652-2654 and :2580-2584 the heads group is excluded from the expanded steps",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1955-1958 and :1973-1977 a running turn renders the heads group after its other rows and before the working line"
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:1955-1958 and :1985-1989 a running turn renders the heads group after its other rows and before the working line"
       ],
       "preconditions": "A turn sent out one or more heads.",
       "action": "The turn runs and then folds.",
@@ -3929,7 +3944,7 @@
       "title": "The Threads popover holds the sidebar list at the sidebar's width by a fixed height of 560",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/ChatView.swift:1255-1259 `.popover(isPresented: $isPresented, arrowEdge: .bottom) { SidebarView(inPopover: true, dismiss: { isPresented = false }).frame(width: model.sidebar.width, height: 560).presentedChrome() }`",
-        "DroppyCode/App/Views/Chat/ChatView.swift:1260-1263 `.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in if WebsiteCaptures.isEnabled { WebsiteCaptures.threadsButtonFrame = frame } }` with the comment 'The capture run hangs the list's still from the button, where the app shows it.'"
+        "DroppyCode/App/Views/Chat/ChatView.swift:1260-1263 `.onGeometryChange(for: CGRect.self) { $0.frame(in: .global) } action: { frame in if CaptureRun.isEnabled { WebsiteCaptures.threadsButtonFrame = frame } }` with the comment 'The capture run hangs the list's still from the button, where the app shows it.'"
       ],
       "preconditions": "The sidebar does not hold the window buttons and it does not float as the only sidebar.",
       "action": "The user presses the Threads button while the sidebar does not float.",
@@ -3943,7 +3958,8 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: 1.7.0 gates the frame publication on CaptureRun.isEnabled instead of WebsiteCaptures.isEnabled (B3 ChatView.swift:1262); it is not ported either way (ED-001)."
     },
     {
       "id": "PR-CHAT-175",
@@ -4118,7 +4134,7 @@
         "upstream": "DroppyCode/UI/Common/Components.swift:107-115 `static let editors` holds seven entries in the order Visual Studio Code, Cursor, Zed, Xcode, Terminal (com.apple.Terminal), Ghostty, iTerm, each identified by its bundle identifier.",
         "port": "Five entries in the order Visual Studio Code, Cursor, Zed, Terminal (Windows Terminal), Ghostty; Xcode and iTerm are left out."
       },
-      "open_question": "The Windows detection key and launch method for each of the five entries. The source identifies an editor by its macOS bundle identifier (DroppyCode/UI/Common/Components.swift:101-104), resolves it through Launch Services (:139-141) and opens the directory with the resolved application (:144-147). No owner ruling or engineering decision names the Windows key (an executable path, an App Paths registry entry, a packaged-app family name or an installed-app record) or how the directory is passed to each application, so the identity and the resolution rule cannot be stated without inventing them."
+      "open_question": "The Windows detection key and launch method for each of the five entries. The source identifies an editor by its macOS bundle identifier (DroppyCode/UI/Common/Components.swift:101-104), resolves it through Launch Services (:137-139) and opens the directory with the resolved application (:142-145). No owner ruling or engineering decision names the Windows key (an executable path, an App Paths registry entry, a packaged-app family name or an installed-app record) or how the directory is passed to each application, so the identity and the resolution rule cannot be stated without inventing them."
     },
     {
       "id": "PR-CHAT-182",
@@ -4290,38 +4306,36 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 ThreadTimeline.swift:2115 `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` -> B2 :2119 `.font(.chat(.caption2, weight: .semibold))`, since the chat zoom no longer exists at B2 (Font.chat has no zoom parameter, DroppyCode/UI/Common/ChatFont.swift:6); still `.foregroundStyle(.tertiary)` (B2 :2120) and still built only when canExpand. The comment and chevron moved from B1 :2098-2107 to B2 :2114-2123. Tooltip and hint are unchanged."
+      "b2_change": "B1 ThreadTimeline.swift:2103 `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` -> B2 :2119 `.font(.chat(.caption2, weight: .semibold))`, since the chat zoom no longer exists at B2 (Font.chat has no zoom parameter, DroppyCode/UI/Common/ChatFont.swift:6); still `.foregroundStyle(.tertiary)` (B2 :2120) and still built only when canExpand. The comment and chevron moved from B1 :2098-2107 to B2 :2114-2123. Tooltip and hint are unchanged."
     },
     {
       "id": "PR-CHAT-189",
-      "title": "A held merge record is written once per distinct holding detail, and a settled record closes a hold once nothing is left to merge",
+      "title": "A settled merge record closes a job once nothing is left to merge; held records are no longer written",
       "source_evidence": [
-        "DroppyCode/App/AppModel+HydraMerge.swift:835-841 recordHydraHold - `let detail = Self.heldDetail(held)`; `let last = runtime.hydraMerges.last`; `guard last?.outcome != .held || last?.detail != detail else { return }`; `runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .held, project: nil, label: nil, url: nil, files: held.count, detail: detail))`; `note(leadID, \"Hydra is waiting for another chat's files.\", detail + \" The work stays in the checkout. Hydra retries after the other chat finishes or its queued merge completes.\")`",
-        "DroppyCode/App/AppModel+HydraMerge.swift:846-851 heldDetail - `let files = held.keys.sorted()`; `let shown = files.prefix(6).map { \"`\\($0)`\" }.joined(separator: \", \") + (files.count > 6 ? \" and \\(files.count - 6) more\" : \"\")`; `let names = Set(held.values).sorted().joined(separator: \", \")`; `return \"\\(files.count == 1 ? \"1 file the team changed is\" : \"\\(files.count) files the team changed are\") also claimed by \\(names): \\(shown).\"`",
         "DroppyCode/App/AppModel+HydraMerge.swift:902-906 recordHydraSettlement - `guard hydraUnmergedFileCount(of: leadID) == 0 else { return }`; `runtime.recordHydraMerge(HydraMergeRecord(at: .now, outcome: .settled, project: nil, label: nil, url: nil, files: 0, detail: nil))`; `note(leadID, \"Hydra has no files left to merge.\", \"The checkout has no remaining changes from this job to send. No new merge request was needed.\")`",
-        "DroppyCode/App/AppModel+HydraMerge.swift:135-146 once the team's work is collected per project, a hold in any project records held for the whole job and the merge returns; :256-258 a hold found after the tree capture records held and fails that project's merge",
-        "DroppyCode/App/AppModel+HydraMerge.swift:148-160 with nothing to send and nothing outside a project, the turns are marked merged and, `if runtime.hydraMerges.last?.outcome == .held`, the settlement is recorded; :180-181 `else if outcomes.allSatisfy({ $0 == .alreadyOnMain }) { recordHydraSettlement(leadID: leadID, runtime: runtime) }`",
-        "DroppyCode/Core/Models/Timeline.swift:271-273 the held doc comment and `case merged, failed, stray, held, settled`",
+        "DroppyCode/App/AppModel+HydraMerge.swift:148-160 `groups.removeAll { $0.work.paths.isEmpty }`; with nothing to send and nothing outside a project, the turns are marked merged and, `if runtime.hydraMerges.last?.outcome == .held` (:157), the settlement is recorded; :181-186 `if !stray.isEmpty { ... } else if outcomes.allSatisfy({ $0 == .alreadyOnMain }) { recordHydraSettlement(leadID: leadID, runtime: runtime) }`",
+        "DroppyCode/Core/Models/Timeline.swift:271-273 the held doc comment `held` is no longer written: a merge never waits on another chat's files now. It stays so records written by earlier versions still decode, and `case merged, failed, stray, held, settled`",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2554-2559 recordHydraMerge appends the record, keeps the newest 20 and saves now"
       ],
       "preconditions": "A Hydra lead thread with auto-merge runs a merge of its team's work.",
-      "action": "The merge finds job files claimed by another chat's unfinished work, or finds nothing left to merge.",
-      "expected_result": "held: when files the job would merge are claimed by another chat's unfinished work, a record is written with outcome held, project, label and url nil, files equal to the number of held paths, and detail equal to the heldDetail sentence: 1 file the team changed is, or N files the team changed are, then also claimed by, the holding chats' names, a colon and the first six sorted held paths, each the absolute path formed by joining the project's checkout with the file's path (AppModel+HydraMerge.swift:140), each in backticks, then and N more past six, ending with a full stop. No record and no note are written when the thread's last record is already held with exactly the same detail, so a waiting merge that retries does not repeat itself. Each written held record is accompanied by a Hydra note titled Hydra is waiting for another chat's files. settled: only when the lead has no unmerged files left, a record is written with outcome settled, files 0 and project, label, url and detail nil, accompanied by a Hydra note titled Hydra has no files left to merge.; it is attempted only when no file of the job lies outside every project (no stray files), in two cases: when, after the hold check, no project has anything left to send and the thread's last record is held (:147-159), or when every project's merge outcome was already on the default branch (:177-181).",
+      "action": "The merge finds nothing left to merge.",
+      "expected_result": "settled: only when the lead has no unmerged files left, a record is written with outcome settled, files 0 and project, label, url and detail nil, accompanied by a Hydra note titled Hydra has no files left to merge.; it is attempted only when no file of the job lies outside every project (no stray files), in two cases: when no project has anything left to send and the thread's last record is held (:148-160), which can only be a held record an earlier version saved, or when every project's merge outcome was already on the default branch (:181-186). held: no record with outcome held is written and no note titled Hydra is waiting for another chat's files. is posted; a held record saved by an earlier version still decodes and still counts as the last record for the settlement check above.",
       "side_effects": [
         "The record is appended through recordHydraMerge, which keeps the newest 20 records and saves the thread document at once",
-        "A Hydra note is appended to the lead thread (UI-CHAT-083 for held, UI-CHAT-084 for settled); unless the app is active with that thread on screen, the thread is marked unread, the Dock badge is updated, and when notifyWhenFinished is on a notification is posted with the lead thread's title as its title and the note's title as its body (AppModel+HydraMerge.swift:923-929)"
+        "A Hydra note is appended to the lead thread (UI-CHAT-084); unless the app is active with that thread on screen, the thread is marked unread, the Dock badge is updated, and when notifyWhenFinished is on a notification is posted with the lead thread's title as its title and the note's title as its body (AppModel+HydraMerge.swift:923-929)"
       ],
-      "persistence": "ThreadDocument.hydraMerges, as raw outcome strings held and settled.",
+      "persistence": "ThreadDocument.hydraMerges, as the raw outcome string settled; held appears only in records an earlier version saved.",
       "failure_cases": [
         "A settlement is skipped entirely, with no record and no note, while the lead still has unmerged files."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Reproduce the dedupe rule exactly: it compares the outcome and the full detail string of the last record only. heldDetail sorts the paths and the holding chats' names with Swift's `sorted()` String order (Unicode scalar order under canonical equivalence), not a locale-aware collation, wraps each shown path in backticks and ends with a full stop.",
-      "verification_method": "unit over the merge coordinator with a fake git layer: a held job twice with the same claim (one record, one note), then with a different claim (a second record), then released with nothing left (one settled record with files 0)",
-      "status": "IMPLEMENTED",
+      "windows_path": "Write no held record. Read a held record saved by an earlier version as the last record for the settlement check. recordHydraSettlement compares nothing but the unmerged-file count.",
+      "verification_method": "unit over the merge coordinator with a fake git layer: a job with nothing left to send after a legacy held record (one settled record with files 0 and one note), a run where every project was already on the default branch (settled), and the same with unmerged files left (nothing)",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "1.7.0 deletes recordHydraHold and heldDetail, so the held half of this record is gone; the settled half is unchanged (B3 AppModel+HydraMerge.swift:902-906; Timeline.swift:271-272)."
     },
     {
       "id": "PR-CHAT-190",
@@ -4360,7 +4374,7 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:77-81 `@State private var windowStartID: String?` with the comment: where the lazy window begins, the id of its oldest block; the window runs from that block to the end, so a block appended at the end never evicts an older row from the stack; only loading history or a jump moves the start; nil until the thread anchors, when the newest `firstPaint` blocks are the window",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:158-163 `let startIndex = windowStartIndex(in: blocks)`; `let hidden = startIndex`; `let visible = startIndex == 0 ? blocks : Array(blocks[startIndex...])`",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:273-278 windowStartIndex - `if let windowStartID, let index = blocks.firstIndex(where: { $0.id == windowStartID }) { return index }`",
-        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:229, :267 and :707 the only writes to windowStartID: a jump above the window, a history load and nil on a thread switch"
+        "DroppyCode/App/Views/Chat/ThreadTimeline.swift:229, :267 and :716 the only writes to windowStartID: a jump above the window, a history load and nil on a thread switch"
       ],
       "preconditions": "A thread is open and its window start has been set by the initial load, a page load or a minimap jump.",
       "action": "New blocks are appended at the end of the conversation (a reply streams in, a tool runs, a turn ends).",
@@ -4496,7 +4510,7 @@
         "expanded (hover or press): base tick opacity rises from 0.25 to 0.4"
       ],
       "interactions": [
-        "hover: previews the tick under the pointer and pushes a pointing-hand cursor",
+        "hover: previews the tick under the pointer; the pointer takes the link (pointing-hand) style over the hit area",
         "press and drag: scrubs the timeline one to one, unanimated",
         "release: one 0.35-second smooth glide to the landing block"
       ],
@@ -4506,7 +4520,8 @@
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:412-424",
         "DroppyCode/App/Views/Chat/ChatView.swift:108-109"
       ],
-      "notes": "Accessibility label is exactly Conversation outline. The cursor push must be popped exactly once, including on a disappear while hovering."
+      "notes": "Accessibility label is exactly Conversation outline. The pointer style is declared on the hit area (.pointerStyle(.link)); there is no cursor push or pop to balance.",
+      "b3_note": "1.7.0 replaces the NSCursor push/pop and its ownership flag with `.pointerStyle(.link)` on the hit area (B3 TimelineMinimap.swift:211)."
     },
     {
       "id": "UI-CHAT-004",
@@ -4553,7 +4568,7 @@
         "DroppyCode/App/Views/Chat/TimelineMinimap.swift:289-342"
       ],
       "notes": "Title is one line with tail truncation; snippet up to three lines with tail truncation. The height is estimated at 17 + 3 + lines*15 + 20, or 37 with no snippet, using 7 points per glyph; measuring instead would re-lay-out on every hover change.",
-      "b2_change": "Fonts respelled as text styles of the same macOS size: B1 TimelineMinimap.swift:306 `.font(.system(size: 13, weight: .semibold))` -> B2 :320 `.font(.system(.body, weight: .semibold))`; B1 :327 `.font(.system(size: 12))` -> B2 :327 `.font(.system(.callout))`. Line numbers are unchanged.",
+      "b2_change": "Fonts respelled as text styles of the same macOS size: B1 TimelineMinimap.swift:320 `.font(.system(size: 13, weight: .semibold))` -> B2 :320 `.font(.system(.body, weight: .semibold))`; B1 :327 `.font(.system(size: 12))` -> B2 :327 `.font(.system(.callout))`. Line numbers are unchanged.",
       "status": "IMPLEMENTED"
     },
     {
@@ -5229,7 +5244,7 @@
       "screen": "Chat, conversation timeline",
       "element": "Turn duration line",
       "role": "label",
-      "exact_text": "Worked for 1m 4s",
+      "exact_text": "Worked for <duration>",
       "geometry": "Full width lead-aligned",
       "typography": "Font.chat(.caption) (ED-059: caption 10 pt, B1:DroppyCode/UI/Common/ChatZoom.swift:54; in Inter per OD-0009)",
       "colors": "Chrome.secondaryText; Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79)",
@@ -5244,10 +5259,11 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2433-2456",
-        "DroppyCode/UI/Common/Components.swift:36-41"
+        "DroppyCode/UI/Common/Components.swift:37-40"
       ],
-      "notes": "The duration is Ns below a minute, Mm Ss below an hour and Hh Mm above, with whole-second rounding and a single space between components.",
-      "b2_change": "B1 TimelineRows.swift:2459-2460 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.tertiary)` -> B2 :2442-2443 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :2449-2473 to B2 :2433-2456."
+      "notes": "The duration is RelativeTime.duration: the interval rounded to whole seconds and clamped at zero, formatted by Foundation's Duration.UnitsFormatStyle with seconds, minutes and hours allowed, narrow width, at most two units and the fraction hidden and rounded down (PR-CHAT-116). Its exact strings are UNRESOLVED until captured on the reference runtime (B3_PLAN.md 6.1 E1).",
+      "b2_change": "B1 TimelineRows.swift:2459-2460 `.font(.chat(.caption, zoom: zoom))` `.foregroundStyle(.tertiary)` -> B2 :2442-2443 `.font(.chat(.caption))` `.foregroundStyle(Chrome.secondaryText)`. Moved from B1 :2449-2473 to B2 :2433-2456.",
+      "b3_note": "1.7.0 formats the duration with Duration.UnitsFormatStyle instead of the hand-built 'Ns' / 'Mm Ss' / 'Hh Mm' (B3 Components.swift:37-40)."
     },
     {
       "id": "UI-CHAT-036",
@@ -5434,7 +5450,7 @@
         "DroppyCode/App/Views/Chat/HydraProgressBar.swift:558"
       ],
       "notes": "Tooltip is Show these steps or Hide these steps, and the empty string when nothing can open; the accessibility hint is Shows what the agent is doing, and the empty string otherwise. The rotating word comes from a fixed list of twenty-two, changing every seven seconds, seeded per thread.",
-      "b2_change": "The chevron B1 ThreadTimeline.swift:2115 `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` -> B2 :2119 `.font(.chat(.caption2, weight: .semibold))`, still `.tertiary`; the card font B1 :2156 -> B2 :2172 `.font(.chat(.callout))`; the title and time fonts were respelled as text styles of the same macOS size (HydraProgressBar.swift:504 `.system(size: 13, weight: .medium)` -> `.system(.body, weight: .medium)`, :558 `.system(size: 11)` -> `.system(.subheadline)`). Moved from B1 :2046-2169 to B2 :2063-2185."
+      "b2_change": "The chevron B1 ThreadTimeline.swift:2103 `.font(.chat(.caption2, weight: .semibold, zoom: zoom))` -> B2 :2119 `.font(.chat(.caption2, weight: .semibold))`, still `.tertiary`; the card font B1 :2156 -> B2 :2172 `.font(.chat(.callout))`; the title and time fonts were respelled as text styles of the same macOS size (HydraProgressBar.swift:504 `.system(size: 13, weight: .medium)` -> `.system(.body, weight: .medium)`, :558 `.system(size: 11)` -> `.system(.subheadline)`). Moved from B1 :2046-2169 to B2 :2063-2185."
     },
     {
       "id": "UI-CHAT-044",
@@ -6029,7 +6045,7 @@
         "DroppyCode/App/Views/Chat/HydraProgressBar.swift:504"
       ],
       "notes": "Do not hard-code it as the label for the earlier-segment mode; it is what falls out when there are no tools and the segment is not running.",
-      "b2_change": "The label moved from B1 ThreadTimeline.swift:2088 to B2 :2092 and is drawn by HydraWorkingTitle (B2 :2111), whose font was respelled as a text style of the same macOS size: B1 HydraProgressBar.swift:504 `.font(.system(size: 13, weight: .medium))` -> B2 :504 `.font(.system(.body, weight: .medium))`."
+      "b2_change": "The label moved from B1 ThreadTimeline.swift:2076 to B2 :2092 and is drawn by HydraWorkingTitle (B2 :2111), whose font was respelled as a text style of the same macOS size: B1 HydraProgressBar.swift:504 `.font(.system(size: 13, weight: .medium))` -> B2 :504 `.font(.system(.body, weight: .medium))`."
     },
     {
       "id": "UI-CHAT-070",
@@ -6354,7 +6370,12 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:248-254"
       ],
       "notes": "The stored title ends with a full stop (\"Hydra is waiting for another chat's files.\"); the pill shows the first line without that one trailing full stop (withoutTrailingStop). The settle note is UI-CHAT-084. The held body starts with the heldDetail sentence, with the holding chats' names and up to six paths in backticks (PR-CHAT-189). The apostrophe is U+0027.",
-      "status": "IMPLEMENTED"
+      "status": "RETIRED",
+      "retired": {
+        "reason": "The hold note is never posted at B3: recordHydraHold and heldDetail are deleted, so no merge records held or says \"Hydra is waiting for another chat's files.\" A hold note an earlier version left in a thread still renders as any Hydra note does (UI-CHAT-048, UI-CHAT-053); nothing hold-specific remains.",
+        "evidence": "git -C E:/Droppy/reference/droppy-code-v1.7.0 diff 1fbf81e6 52bc7926 -- DroppyCode/App/AppModel+HydraMerge.swift, hunk @@ -832,24 +905,6 @@: B2 :835-841 recordHydraHold (its note at B2 :840) and B2 :843-851 heldDetail removed; `git -C E:/Droppy/reference/droppy-code-v1.7.0 grep -n -F \"Hydra is waiting for another chat\" 52bc7926 -- DroppyCode` finds nothing."
+      },
+      "b3_note": "Retired at 1.7.0: the hold note is deleted (B2 AppModel+HydraMerge.swift:838-840)."
     },
     {
       "id": "UI-CHAT-084",
