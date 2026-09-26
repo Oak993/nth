@@ -83,6 +83,11 @@ public sealed partial class ProviderRegistry : MainActorModel
     private bool isRefreshing;
     private ProviderKind? signingIn;
 
+    // :53-54. Providers whose CLI is being updated right now (see UpdateCLIIfDue). B3.
+    private ValueSet<ProviderKind> updatingCLIs = ValueSet<ProviderKind>.Empty;
+    // :55. @ObservationIgnored. B3.
+    private readonly string cliUpdatesKey = "providerCLIUpdateDates";
+
     // :47. @ObservationIgnored.
     private readonly ProviderSettings settings;
     // :48
@@ -143,6 +148,7 @@ public sealed partial class ProviderRegistry : MainActorModel
     public ValueSet<ProviderKind> LoadingCredits { get => Read(loadingCredits); private set => Set(ref loadingCredits, value); } // :67
     public bool IsRefreshing { get => Read(isRefreshing); private set => Set(ref isRefreshing, value); } // :281
     public ProviderKind? SigningIn { get => Read(signingIn); private set => Set(ref signingIn, value); } // :284
+    public ValueSet<ProviderKind> UpdatingCLIs { get => Read(updatingCLIs); private set => Set(ref updatingCLIs, value); } // :53-54. B3.
 
     // :127. Built from the same DeepSeekAPI.option(for:) table used by the live fetch.
     public static ValueList<ModelOption> DeepseekSeed => new(new[] { "deepseek-v4-pro", "deepseek-flash" }
@@ -302,9 +308,20 @@ public sealed partial class ProviderRegistry : MainActorModel
     public ProviderStatus Status(ProviderKind provider) =>
         statuses.TryGetValue(provider, out var status) ? status : new ProviderStatus(); // :216
 
-    // :219-226. Swift: executable(for:).
-    public SwiftURL? Executable(ProviderKind provider) =>
-        ResolveExecutable(provider) is { } path ? FileUrl(path) : null;
+    // :219-226. Swift: executable(for:). The testCLIUpdaterExecutable seam (below, B3) is consulted first so
+    // that a test proving UpdateCLIIfDue's success path (which itself calls Refresh and LoadCatalog, each
+    // reaching Executable(for:) again) never lets a Claude or Codex resolution fall through to
+    // LoginEnvironment.Which's real PATH search (R-TEST-10). CAUTION: when a seam IS active (AsyncLocal.Value
+    // is a delegate, even one that answers null for this provider), its answer is FINAL and never falls
+    // through to ResolveExecutable: `resolver(provider) ?? ResolveExecutable(...)` would be wrong here, since
+    // a delegate correctly answering "no executable" for this test's provider is indistinguishable from "no
+    // seam is active" once both are null, and would silently re-enable the real PATH search this seam
+    // exists to block. Only the absence of any delegate (no test has called Observe) falls through.
+    public SwiftURL? Executable(ProviderKind provider)
+    {
+        if (testCLIUpdaterExecutable.Value is { } resolver) return resolver(provider);
+        return ResolveExecutable(provider) is { } path ? FileUrl(path) : null;
+    }
 
     // The plain-path resolution :219-226 works in, returning a raw path so Environment(for:) needs no
     // URL round trip to find the executable's directory.
@@ -827,6 +844,151 @@ public sealed partial class ProviderRegistry : MainActorModel
         return list.FirstOrDefault(option => option.IsDefault) ?? list.FirstOrDefault(); // :456-457
     }
 
+    // MARK: - Keeping the CLIs current (B3, new). PR-PROVREG-251 to 258.
+
+    // :474. 12 hours.
+    private static readonly TimeSpan CliUpdateInterval = TimeSpan.FromHours(12);
+
+    // :476-479. Swift: updatesOwnCLI(_:). The providers whose CLI carries its own updater (`claude update`,
+    // `codex update`). Review fix (finding #4, MEDIUM): public per R-NAME-6, not internal - the Swift caller
+    // (ThreadRuntime.swift:2260) is App/Runtime/ThreadRuntime.cs, a different assembly (Marrow.App), which
+    // Marrow.Services grants no InternalsVisibleTo to (only Marrow.Services.Tests).
+    public static bool UpdatesOwnCLI(ProviderKind provider) => provider == ProviderKind.Claude || provider == ProviderKind.Codex;
+
+    // :482-490. Swift: needsNewerCLI(_:). nonisolated: no MainActor state is touched. Review fix (finding #4,
+    // MEDIUM): public per R-NAME-6, matching UpdatesOwnCLI above - ThreadRuntime.swift:2261 calls this too.
+    public static bool NeedsNewerCLI(string message)
+    {
+        var text = SwiftString.Lowercased(message);
+        return text.Contains("or newer is required", StringComparison.Ordinal)
+            || text.Contains("requires a newer version", StringComparison.Ordinal)
+            || text.Contains("claude update", StringComparison.Ordinal)
+            || text.Contains("codex update", StringComparison.Ordinal)
+            || text.Contains("upgrade codex", StringComparison.Ordinal)
+            || text.Contains("update codex", StringComparison.Ordinal);
+    }
+
+    // PORT-ONLY test seam, no Swift twin (R-TEST-10): overrides what Executable(for:) resolves to for a
+    // provider (see Executable(ProviderKind) above). ExecutableName for Claude and Codex (the only two
+    // UpdatesOwnCLI providers) is the real CLI name ("claude"/"codex"), so without this seam a test of
+    // UpdateCLIIfDue's success path (which itself calls Refresh and LoadCatalog) would let
+    // LoginEnvironment.Which search this machine's real PATH and could reach, and run "update" against, a
+    // real installed CLI. AsyncLocal (matching ShellObserver's convention, ED-207), not a plain static:
+    // xUnit runs test classes in parallel, and this way a test's override reaches only its own async flow
+    // and the flows it starts, never a concurrently running test's. Unset (null) in production and in every
+    // test that does not call Observe, which changes nothing.
+    private static readonly AsyncLocal<Func<ProviderKind, SwiftURL?>?> testCLIUpdaterExecutable = new();
+
+    internal static IDisposable SetCLIUpdaterExecutableForTesting(Func<ProviderKind, SwiftURL?> resolver)
+    {
+        var previous = testCLIUpdaterExecutable.Value;
+        testCLIUpdaterExecutable.Value = resolver;
+        return new TestSeamRestorer(() => testCLIUpdaterExecutable.Value = previous);
+    }
+
+    private sealed class TestSeamRestorer(Action restore) : IDisposable
+    {
+        private Action? pending = restore;
+        public void Dispose() => Interlocked.Exchange(ref pending, null)?.Invoke();
+    }
+
+    // :492-521. Swift: updateCLIIfDue(_:force:). PR-PROVREG-253 to 256: runs the CLI's own updater when one is
+    // due (every 12 hours) or forced, and when a newer version went in, reads the provider and its catalog
+    // again so the models that version brings show at once. ED-001: the CaptureRun guard (:498) is dropped,
+    // matching this file's existing convention (see the constructor's comment at :193-195).
+    public async Task<bool> UpdateCLIIfDue(ProviderKind provider, bool force = false)
+    {
+        if (!UpdatesOwnCLI(provider) || settings.BinaryPath(provider).Length != 0) return false; // :498
+        // An update already under way is not run twice; a forced one waits for it and then runs, which is
+        // quick when that one already brought the newest version.
+        if (updatingCLIs.Contains(provider)) // :500
+        {
+            if (!force) return false; // :501
+            while (updatingCLIs.Contains(provider)) await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(500)); // :503
+        }
+        var dates = ReadCliUpdateDates(); // :505
+        if (!force && dates.TryGetValue(SwiftEnum<ProviderKind>.RawValue(provider), out var last)
+            && SwiftDate.Seconds1970(SwiftDate.Now) - last < CliUpdateInterval.TotalSeconds) return false; // :506-507
+        await LoginEnvironment.Load(); // :508
+        if (Executable(provider) is not { } executable) return false; // :509
+        // Review fix (finding #3, MEDIUM): PR-PROVREG-257's side effect is "Observation change notifications
+        // on insert and remove". The field is still written directly, not through the UpdatingCLIs property
+        // (Set), because this whole file's async members (statuses, catalogs, loadingCatalogs, isRefreshing,
+        // signingIn - every mutation this class's async Task methods make) already bypass Set the same way,
+        // and Set's CheckIsolation would trap every test in this file that calls an async member directly
+        // without pumping it through a ManualMainLoop (none of them do; see e.g. ProviderRegistryRefreshTests
+        // calling Refresh directly). Making only this one field go through Set would require rebuilding the
+        // main-loop plumbing for every test that reaches this method - a file-wide architecture change, not
+        // a one-field fix - so instead Notify is called directly (it is protected, reachable from this
+        // subclass, and does not itself check isolation), which satisfies the specified side effect without
+        // that blast radius. The file-wide gap (no property, no Notify, for every other observed field this
+        // class's async methods touch) is the pre-existing separate defect the review flagged.
+        updatingCLIs = updatingCLIs.Mutating(s => s.Add(provider)); // :510
+        Notify(nameof(UpdatingCLIs));
+        try
+        {
+            var environment = Environment(provider); // :512
+            var before = await CliVersion(executable.Path, environment); // :513
+            _ = await SwiftTry.OptionalAsync<ShellResult>(async () =>
+                await Shell.Run(executable.Path, ["update"], @in: Path.GetTempPath(), environment: environment, timeout: 300)); // :514
+            dates[SwiftEnum<ProviderKind>.RawValue(provider)] = SwiftDate.Seconds1970(SwiftDate.Now); // :515
+            WriteCliUpdateDates(dates); // :516
+            var after = await CliVersion(executable.Path, environment); // :517
+            if (after is null || after == before) return false; // :518
+            await Refresh(provider); // :519
+            await LoadCatalog(provider, force: true); // :520
+            return true; // :521
+        }
+        finally
+        {
+            updatingCLIs = updatingCLIs.Mutating(s => s.Remove(provider)); // :511 defer
+            Notify(nameof(UpdatingCLIs));
+        }
+    }
+
+    // :505/:516. UserDefaults.standard.dictionary(forKey: cliUpdatesKey) as? [String: Double] ?? [:]. Swift's
+    // conditional cast fails for the WHOLE dictionary when any one value cannot bridge to Double, not just
+    // that entry, so a stored value of another type is treated as no dates at all.
+    private Dictionary<string, double> ReadCliUpdateDates()
+    {
+        var empty = new Dictionary<string, double>(StringComparer.Ordinal);
+        if (UserDefaults.Standard.Current.Dictionary(cliUpdatesKey) is not { } raw) return empty;
+        var result = new Dictionary<string, double>(StringComparer.Ordinal);
+        foreach (var (key, value) in raw)
+        {
+            if (Plist.AsDouble(value) is not { } number) return empty;
+            result[key] = number;
+        }
+        return result;
+    }
+
+    private void WriteCliUpdateDates(Dictionary<string, double> dates)
+    {
+        var boxed = new Dictionary<string, object>(StringComparer.Ordinal);
+        foreach (var (key, value) in dates) boxed[key] = value;
+        UserDefaults.Standard.Current.Set(cliUpdatesKey, boxed);
+    }
+
+    // :524-529. Swift: installedCLIVersion(_:). The version the installed CLI reports, or nil when it cannot
+    // be run.
+    public async Task<string?> InstalledCLIVersion(ProviderKind provider)
+    {
+        await LoginEnvironment.Load(); // :526
+        if (Executable(provider) is not { } executable) return null; // :527
+        return await CliVersion(executable.Path, Environment(provider)); // :528
+    }
+
+    // :531-536. Swift: cliVersion(_:environment:). Kept internal so this part's tests can call it directly,
+    // the same convention this file already uses for Version/Auth.
+    internal static async Task<string?> CliVersion(string executable, IReadOnlyDictionary<string, string> environment)
+    {
+        var result = await SwiftTry.OptionalAsync<ShellResult>(async () =>
+            await Shell.Run(executable, ["--version"], environment: environment, timeout: 30)); // :531-532
+        if (result is not { Succeeded: true }) return null;
+        var version = result.TrimmedOutput; // :533
+        return version.Length == 0 ? null : version; // :534
+    }
+
     // :459-517. PR-PROVREG-149 to PR-PROVREG-153: single-flight per provider, the once-per-launch attempt
     // gate, the seeded/stale test, the nine-arm dispatch table, and the OpenCode sibling delivery.
     public async Task LoadCatalog(ProviderKind provider, bool force = false)
@@ -984,31 +1146,36 @@ public sealed partial class ProviderRegistry : MainActorModel
         UserDefaults.Standard.Current.Set(catalogDatesKey, stream.ToArray()); // :601
     }
 
-    // :83-101 mergedClaudeCatalog. Private in Swift; kept private, only UpdateCatalog calls it.
+    // :90-106 mergedClaudeCatalog (B3). Private in Swift; kept private, only UpdateCatalog calls it.
     // PR-PROVREG-138: the seed with a live Claude list laid over it; a live row for a seed id lends its
-    // effort levels, description and fast tier where non-empty/non-nil; a row the seed lacks is appended;
-    // no seed row is ever dropped and a live row's name never replaces the seed's name.
+    // name (except the Default row, an empty name or a name equal to the id, :95-98), effort levels,
+    // description and fast tier where non-empty/non-nil; a row the seed lacks is appended; no seed row is
+    // ever dropped.
     internal static ValueList<ModelOption> MergedClaudeCatalog(IReadOnlyList<ModelOption> live)
     {
-        var merged = new List<ModelOption>(ClaudeSeed); // :87
-        foreach (var option in live) // :88
+        var merged = new List<ModelOption>(ClaudeSeed); // :91
+        foreach (var option in live) // :92
         {
-            var index = merged.FindIndex(kept => kept.Id == option.Id); // :89
+            var index = merged.FindIndex(kept => kept.Id == option.Id); // :93
             if (index >= 0)
             {
                 var kept = merged[index];
-                if (option.Efforts.Count != 0) kept = kept with { Efforts = option.Efforts }; // :91
-                if (option.Detail is { Length: > 0 } detail) kept = kept with { Detail = detail }; // :92
-                if (option.FastTier is not null) kept = kept with { FastTier = option.FastTier }; // :93
-                if (option.DefaultEffort is not null) kept = kept with { DefaultEffort = option.DefaultEffort }; // :94
-                merged[index] = kept; // :95
+                // :95-98. The CLI's own name carries the version ("Opus 5.5"), and recipes pick the newest
+                // family member by it: a seed row named just "Opus" lost to the older "Opus 5" row. The
+                // Default row keeps its short name.
+                if (option.Id != "default" && option.Name.Length != 0 && option.Name != option.Id) kept = kept with { Name = option.Name };
+                if (option.Efforts.Count != 0) kept = kept with { Efforts = option.Efforts }; // :99
+                if (option.Detail is { Length: > 0 } detail) kept = kept with { Detail = detail }; // :100
+                if (option.FastTier is not null) kept = kept with { FastTier = option.FastTier }; // :101
+                if (option.DefaultEffort is not null) kept = kept with { DefaultEffort = option.DefaultEffort }; // :102
+                merged[index] = kept; // :103
             }
             else
             {
-                merged.Add(option); // :97
+                merged.Add(option); // :105
             }
         }
-        return new ValueList<ModelOption>(merged); // :100
+        return new ValueList<ModelOption>(merged); // :108
     }
 
     // :604-605. Reads the provider's plan limits, at most once a minute after a successful read unless
