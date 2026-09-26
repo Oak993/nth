@@ -265,14 +265,21 @@ public sealed class HydraPanel : Decorator
     }
 
     /// <summary>
-    /// :169-175, :639-737. The strip's invisible handle. In the source the middle of the strip is
-    /// <c>PanelDragHandle</c>, an NSViewRepresentable over SubagentPanel.swift's <c>PanelDragHandleView</c>
-    /// (:676-737): a press is tracked, the pointer's travel is reported through <c>onDrag</c> once it has
-    /// passed the source's 2-point slop (:684), and the release is reported through <c>onDragEnd</c>. That
-    /// pair is already ported at <c>Marrow.App.Views.Chat.SubagentPanel.PanelDragHandle</c>/
-    /// <c>PanelDragHandleView</c> (SubagentPanel.cs:793-914), but not yet shared through a common base (the
-    /// plan's N8, <c>Marrow.UI.Chrome.DragHandle</c>, not created yet), so the strip wires the same pointer
-    /// behaviour here directly instead of reusing that type.
+    /// :169-175. The strip's invisible handle. In the source the middle of the strip is
+    /// <c>PanelDragHandle</c> (SubagentPanel.swift:646-666), a thin <c>View</c> wrapping the shared
+    /// <c>DragHandle</c>/<c>DragHandleView</c> in UI/Chrome/DragHandle.swift (<c>DragHandleView: NSView</c>
+    /// :6-268, <c>DragHandle: NSViewRepresentable</c> :270-304): a press is tracked, the pointer's travel is
+    /// reported through <c>onChange</c> once it has passed the handle's 2-point slop, and the release is
+    /// reported through <c>onEnd</c>. B3 has no <c>PanelDragHandleView</c> symbol anywhere in the tree; that
+    /// name, and the press/move/release logic wired below, are what B2's SubagentPanel.swift used before the
+    /// shared DragHandle existed (B2 had no UI/Chrome/DragHandle.swift at all). The C# port at
+    /// <c>Marrow.App.Views.Chat.SubagentPanel</c> is still pinned to B2 (its own header: "SubagentPanel.swift
+    /// (B2 1fbf81e)") and has not yet been re-verified against B3, so it still carries that old
+    /// <c>PanelDragHandle</c>/<c>PanelDragHandleView</c> pair rather than a shared
+    /// <c>Marrow.UI.Chrome.DragHandle</c>; <c>WireDragHandle</c> here duplicates that same pre-refactor
+    /// pointer-tracking directly instead of reusing a shared type, because no shared
+    /// <c>Marrow.UI.Chrome.DragHandle</c> (the plan's N8) exists yet. Re-pointing both call sites onto N8
+    /// once it lands, after SubagentPanel.cs itself is re-verified against B3, is out of this unit's scope.
     /// </summary>
     private static void WireDragHandle(Border handle, Action<Size> onDrag, Action onDragEnd)
     {
@@ -294,7 +301,8 @@ public sealed class HydraPanel : Decorator
             var step = new Size(point.X - previous.X, point.Y - previous.Y);
             if (!moved)
             {
-                // :685 private let slop: CGFloat = 2
+                // B2 SubagentPanel.swift:685 private let slop: CGFloat = 2 (pre-refactor; see WireDragHandle's
+                // doc comment above for why this file still mirrors the B2 logic rather than B3's DragHandle).
                 if (Math.Abs(step.Width) + Math.Abs(step.Height) < 2) return;
                 moved = true;
             }
@@ -720,10 +728,10 @@ internal sealed class HydraHeadFooter : Decorator
     }
 }
 
-/// <summary>:475-489 <c>@MainActor enum HydraLiveInfo</c>, a caseless enum used as a namespace.</summary>
+/// <summary>:475-487 <c>@MainActor enum HydraLiveInfo</c>, a caseless enum used as a namespace.</summary>
 public static class HydraLiveInfo
 {
-    // :482-488
+    // :480-486
     public static HydraHeadInfo Shown(HydraHeadInfo stored, ThreadRuntime? runtime)
     {
         if (stored.HydraHeadInfoStatus != HydraHeadInfo.Status.Running || runtime is null) return stored;
@@ -734,10 +742,10 @@ public static class HydraLiveInfo
     }
 }
 
-/// <summary>:491-553 <c>enum HydraStatusText</c>, a caseless enum used as a namespace: the words for a head's state.</summary>
+/// <summary>:489-552 <c>enum HydraStatusText</c>, a caseless enum used as a namespace: the words for a head's state.</summary>
 public static class HydraStatusText
 {
-    // :493-500
+    // :491-498
     public static string Short(HydraHeadInfo info) => info.HydraHeadInfoStatus switch
     {
         HydraHeadInfo.Status.Running => "working",
@@ -747,7 +755,7 @@ public static class HydraStatusText
         _ => throw new System.Diagnostics.UnreachableException()
     };
 
-    // :502-513
+    // :500-511
     public static string Long(HydraHeadInfo info) => info.HydraHeadInfoStatus switch
     {
         HydraHeadInfo.Status.Running => info.Activity is { } activity
@@ -760,7 +768,7 @@ public static class HydraStatusText
         _ => throw new System.Diagnostics.UnreachableException()
     };
 
-    // :515-526
+    // :513-524
     public static string Footer(HydraHeadInfo info) => info.HydraHeadInfoStatus switch
     {
         HydraHeadInfo.Status.Running => info.Activity is { } activity
@@ -775,7 +783,7 @@ public static class HydraStatusText
         _ => throw new System.Diagnostics.UnreachableException()
     };
 
-    // :528-540 Where a Droppy-run head's work went, in a few words; nil for a head with no copy of its own.
+    // :528-538 Where a Droppy-run head's work went, in a few words; nil for a head with no copy of its own.
     public static string? Landed(HydraHeadInfo info)
     {
         if (info.Landing is not { } landing) return null;
@@ -790,7 +798,7 @@ public static class HydraStatusText
         return "landed " + files;
     }
 
-    // :542-545
+    // :540-543
     private static string Steps(HydraHeadInfo info)
     {
         if (info.ToolCalls <= 0) return "";
