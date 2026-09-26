@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text;
+using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -1026,10 +1027,13 @@ public void Reported_paths_drop_empty_and_build_output_and_keep_inside_paths_rel
     }
 
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-127")] // AppModel+HydraMerge.swift:336-339 (B3): ownBranch moves refs/heads/<branch>
+    [Trait("Req", "PR-HYDRAMERGE-042")] // AppModel+HydraMerge.swift:336-339 (B3): ownBranch moves refs/heads/<branch>
     // with the two-argument UpdateRef (Git.cs:644), not the compare-and-swap overload with an empty "must not
     // exist" old value.
-    [Trait("Req", "PR-HYDRAMERGE-128")] // AppModel+HydraMerge.swift:348 (B3): pushBranch(branch, force: ownBranch).
+    // (Retagged from PR-HYDRAMERGE-127/-128, which this test's own comments never actually exercised -- neither
+    // a HEAD moving during preparation nor a rebuild onto an advanced remote -- A34 S5. Those two records get
+    // their own tests below.)
+    [Trait("Req", "PR-HYDRAMERGE-044")] // AppModel+HydraMerge.swift:348 (B3): pushBranch(branch, force: ownBranch).
     public void Second_own_branch_merge_reuses_and_force_pushes_the_existing_hydra_branch()
     {
         using var h = new AppModelHarness();
@@ -1099,6 +1103,363 @@ public void Reported_paths_drop_empty_and_build_output_and_keep_inside_paths_rel
             Assert.StartsWith("Hydra pushed hydra/", record.Detail, StringComparison.Ordinal);
             Assert.True(record.Retryable);
         });
+    }
+
+    /// <summary>
+    /// Watches <paramref name="runtime"/>'s merge stage from a background thread (safe: ThreadRuntime.Read never
+    /// asserts main-actor isolation, only Set does, AppModel+HydraMerge.cs:234-235/Runtime/ThreadRuntime.cs:625-628)
+    /// and, the instant it sees the stage edge from anything else into <see cref="HydraMergeStage.Committing"/>
+    /// for the 1-based attempt numbers keyed in <paramref name="onEdge"/>, runs that attempt's callback before
+    /// resuming the poll. Used to land a real git commit, or (through the main loop's own thread-safe Enqueue,
+    /// ManualMainLoop.cs:31-36) a model mutation, exactly inside the prepare loop's window for that attempt --
+    /// no fixed delay: the loop's own real git subprocesses (fetch, capture, diff, commit-tree, a second
+    /// rev-parse) hold that window open for tens of milliseconds, far past this poll's sub-millisecond
+    /// granularity (CLAUDE.md: a timing test here is rerun alone twice before being treated as a real failure).
+    /// </summary>
+    private static Task WatchMergeAttempts(ThreadRuntime runtime, IReadOnlyDictionary<int, Action> onEdge, CancellationToken stop) =>
+        Task.Run(() =>
+        {
+            var remaining = new HashSet<int>(onEdge.Keys);
+            var attempt = 0;
+            var wasCommitting = false;
+            while (remaining.Count > 0)
+            {
+                var isCommitting = runtime.HydraMergeStep == HydraMergeStage.Committing;
+                if (isCommitting && !wasCommitting)
+                {
+                    attempt++;
+                    if (onEdge.TryGetValue(attempt, out var action))
+                    {
+                        action();
+                        remaining.Remove(attempt);
+                    }
+                }
+                wasCommitting = isCommitting;
+                if (remaining.Count == 0) break;
+                if (stop.IsCancellationRequested)
+                    throw new TimeoutException(
+                        "The merge finished without ever reaching the Committing stage for attempt(s) " +
+                        string.Join(", ", remaining) + ".");
+            }
+        });
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-127")] // AppModel+HydraMerge.swift:271-277, :322-331 (B3): a commit landing in
+    // the checkout while the team's work is prepared does not fail the pass -- HEAD is re-read after the commit
+    // object is written and, when it moved, the loop tries again from the new HEAD, up to three times in all.
+    [Trait("Req", "PR-HYDRAMERGE-129")] // AppModel+HydraMerge.swift:274-276, :314-321 (B3): a later try whose
+    // patch is byte-identical to an earlier try's reuses that try's commit message instead of asking
+    // commitMessage() again. Proven by mutating a live head's task text after attempt 1's own CommitMessage()
+    // call has already returned and cached its message, but before attempt 2 would call it again if the cache
+    // were not honoured: a recompute would pick up the new text; the reused message (read off the branch
+    // actually pushed) still carries the ORIGINAL text.
+    public async Task An_own_branch_merge_retries_once_when_head_moves_during_preparation_and_reuses_the_commit_message()
+    {
+        using var h = new AppModelHarness();
+        var repository = AppModelGitRepo.WithCommit(h.NewFolder("moved-head-project"));
+        var bare = h.NewFolder("moved-head-remote.git");
+        repository.Git("init", "--bare", "-b", "main", bare);
+        repository.Git("remote", "add", "origin", bare);
+        repository.Git("push", "-u", "origin", "main");
+        // Same offline stand-in as the own-branch test above: every attempt fails to open a merge request, which
+        // is what both the racing attempts below must end at -- never the generic catch-all's wording, which
+        // would mean a bug (a locked ref, a rejected push) derailed the retry this test is about.
+        Marrow.Services.Tests.Fixtures.ForgeStandIns.Ensure();
+
+        var project = AppModelSamples.Project("Project", repository.Root);
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        var head = new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised)
+        {
+            ParentThreadID = lead.Id,
+            IsInPanel = false,
+            Hydra = new HydraHeadInfo(0, "original task", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated)
+                with { HydraHeadInfoStatus = HydraHeadInfo.Status.Completed },
+        };
+        var turn = new TurnRecord
+        {
+            Id = Guid.NewGuid(),
+            Index = 1,
+            Status = TurnStatus.Completed,
+            CompletedAt = SwiftDate.Now,
+            TouchedPaths = new ValueList<string>(["a.txt"]),
+        };
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("the team's edit\n"));
+        h.WriteLibrary([project], [lead, head]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(lead.Id) { Turns = new ValueList<TurnRecord>([turn]) },
+            Storage.ThreadURL(lead.Id));
+
+        var model = h.MakeModel();
+        // R-TEST-10: without this, Providers.Executable(Codex/Claude) does a REAL PATH search
+        // (ProviderRegistry.cs:328-340) and, on a machine with a real, signed-in CLI, CommitMessage (:801-815)
+        // would call out to it for real. PrepareBootstrap points every non-API-key provider at a binary that
+        // does not exist (AppModelFixtures.cs:153-184), so TextEngine(...) always answers null here and the
+        // deterministic fallback message runs instead.
+        h.PrepareBootstrap(model);
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+        });
+        // Created here, on the main loop, before the racing watcher starts reading it from another thread:
+        // ResumeHydraMerges would create it too (:60), but that insert must never race this test's own read of
+        // the SAME dictionary from a background thread.
+        var runtime = h.Main.OnMain(() => model.Runtime(lead.Id));
+
+        using var cts = new CancellationTokenSource();
+        var watcher = WatchMergeAttempts(runtime, new Dictionary<int, Action>
+        {
+            // Attempt 1 has just started (HEAD just read, stage just advanced to Committing): land a real,
+            // file-disjoint commit in the checkout right now, so attempt 1's own re-check of HEAD (:325) finds
+            // it moved and tries again, rather than racing a fixed delay against real git subprocesses.
+            [1] = () => repository.Git("commit", "--allow-empty", "-q", "-m", "concurrent"),
+            // Attempt 2 has just started: mutate the live head's task now.
+            [2] = () => h.Main.Loop.Enqueue(() =>
+                model.UpdateThread(head.Id, t => t with { Hydra = t.Hydra! with { Task = "mutated task" } })),
+        }, cts.Token);
+
+        h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
+        cts.Cancel();
+        await watcher;
+
+        var branches = repository.Git("branch", "--list", "hydra/*")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var branch = Assert.Single(branches);
+        // The kept try's commit is parented on the concurrent commit (attempt 2's HEAD), proving the loop
+        // actually re-ran rather than the first attempt simply succeeding outright.
+        var concurrentCommit = repository.Git("log", "--format=%H", "--grep=^concurrent$", "--all").Trim();
+        Assert.NotEmpty(concurrentCommit);
+        Assert.Equal(concurrentCommit, repository.Git("rev-parse", branch + "^").Trim());
+        var message = repository.Git("log", "-1", "--format=%B", branch);
+        Assert.Contains("original task", message, StringComparison.Ordinal);
+        Assert.DoesNotContain("mutated task", message, StringComparison.Ordinal);
+
+        var records = h.Main.OnMain(() => model.ExistingRuntime(lead.Id)!.HydraMerges.ToArray());
+        // The moved-HEAD retry itself leaves no record and no note (PR-HYDRAMERGE-127): the one record here is
+        // the eventual forge failure once the branch is pushed -- retryable, and never "the checkout kept
+        // moving" (that text means all three tries saw HEAD move, not this single retry).
+        var record = Assert.Single(records);
+        Assert.Equal(HydraMergeRecord.Outcome.Failed, record.HydraMergeRecordOutcome);
+        Assert.StartsWith("Hydra pushed hydra/", record.Detail, StringComparison.Ordinal);
+        Assert.True(record.Retryable);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-127")] // AppModel+HydraMerge.swift:329-331 (B3): when all three tries of the
+    // prepare loop see HEAD move under them, the pass gives up with a retryable "the checkout kept moving"
+    // failure instead of trying a fourth time.
+    public async Task Three_moved_heads_fail_retryably_with_the_checkout_kept_moving()
+    {
+        using var h = new AppModelHarness();
+        var repository = AppModelGitRepo.WithCommit(h.NewFolder("kept-moving-project"));
+        var bare = h.NewFolder("kept-moving-remote.git");
+        repository.Git("init", "--bare", "-b", "main", bare);
+        repository.Git("remote", "add", "origin", bare);
+        repository.Git("push", "-u", "origin", "main");
+
+        var project = AppModelSamples.Project("Project", repository.Root);
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        var turn = new TurnRecord
+        {
+            Id = Guid.NewGuid(),
+            Index = 1,
+            Status = TurnStatus.Completed,
+            CompletedAt = SwiftDate.Now,
+            TouchedPaths = new ValueList<string>(["a.txt"]),
+        };
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("the team's edit\n"));
+        h.WriteLibrary([project], [lead]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(lead.Id) { Turns = new ValueList<TurnRecord>([turn]) },
+            Storage.ThreadURL(lead.Id));
+
+        var model = h.MakeModel();
+        // R-TEST-10: without this, Providers.Executable(Codex/Claude) does a REAL PATH search
+        // (ProviderRegistry.cs:328-340) and, on a machine with a real, signed-in CLI, CommitMessage (:801-815)
+        // would call out to it for real. PrepareBootstrap points every non-API-key provider at a binary that
+        // does not exist (AppModelFixtures.cs:153-184), so TextEngine(...) always answers null here and the
+        // deterministic fallback message runs instead.
+        h.PrepareBootstrap(model);
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+        });
+        var runtime = h.Main.OnMain(() => model.Runtime(lead.Id));
+
+        using var cts = new CancellationTokenSource();
+        var watcher = WatchMergeAttempts(runtime, new Dictionary<int, Action>
+        {
+            [1] = () => repository.Git("commit", "--allow-empty", "-q", "-m", "concurrent 1"),
+            [2] = () => repository.Git("commit", "--allow-empty", "-q", "-m", "concurrent 2"),
+            [3] = () => repository.Git("commit", "--allow-empty", "-q", "-m", "concurrent 3"),
+        }, cts.Token);
+
+        h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
+        cts.Cancel();
+        await watcher;
+
+        Assert.Empty(repository.Git("branch", "--list", "hydra/*").Trim());
+
+        var records = h.Main.OnMain(() => model.ExistingRuntime(lead.Id)!.HydraMerges.ToArray());
+        var record = Assert.Single(records);
+        Assert.Equal(HydraMergeRecord.Outcome.Failed, record.HydraMergeRecordOutcome);
+        Assert.True(record.Retryable);
+        Assert.Equal(
+            "Hydra did not merge: the checkout kept moving.: Commits kept landing on `main` while the team's work was prepared. The work is in the checkout and goes out on the next try.",
+            record.Detail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-128")] // AppModel+HydraMerge.swift:280-295 (B3): on the chat's own branch, when
+    // the checkout's HEAD is an ancestor of origin/<target>, the try is built on the remote's commit instead --
+    // parent becomes the remote commit and the tree carries both the remote's own advance and the team's edit.
+    public void An_own_branch_merge_rebuilds_on_a_remote_that_moved_ahead_without_overlap()
+    {
+        using var h = new AppModelHarness();
+        var repository = AppModelGitRepo.Empty(h.NewFolder("remote-rebuild-project"));
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("one\ntwo\nthree\n"));
+        repository.Git("add", "-A");
+        repository.Git("commit", "-q", "-m", "first");
+        var bare = h.NewFolder("remote-rebuild-remote.git");
+        repository.Git("init", "--bare", "-b", "main", bare);
+        repository.Git("remote", "add", "origin", bare);
+        repository.Git("push", "-u", "origin", "main");
+
+        // A sibling clone advances origin/main on its own, on a line and a file the team never touches, while
+        // this checkout's local HEAD stays behind (never fetched yet).
+        var clone = h.NewFolder("remote-rebuild-clone");
+        repository.Git("clone", bare, clone);
+        var remoteClone = AppModelGitRepo.At(clone);
+        remoteClone.Git("config", "user.name", "Port Test");
+        remoteClone.Git("config", "user.email", "port-test@localhost");
+        remoteClone.Git("config", "commit.gpgsign", "false");
+        File.WriteAllBytes(Path.Combine(clone, "c.txt"), Encoding.UTF8.GetBytes("remote add\n"));
+        remoteClone.Git("add", "-A");
+        remoteClone.Git("commit", "-q", "-m", "remote advance");
+        remoteClone.Git("push", "origin", "main");
+        var remoteCommit = remoteClone.Git("rev-parse", "HEAD").Trim();
+
+        // The team's own edit, in the checkout, uncommitted, isolated to a line the remote never touched.
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("one\nTEAM-TWO\nthree\n"));
+        Marrow.Services.Tests.Fixtures.ForgeStandIns.Ensure();
+
+        var project = AppModelSamples.Project("Project", repository.Root);
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        var turn = new TurnRecord
+        {
+            Id = Guid.NewGuid(),
+            Index = 1,
+            Status = TurnStatus.Completed,
+            CompletedAt = SwiftDate.Now,
+            TouchedPaths = new ValueList<string>(["a.txt"]),
+        };
+        h.WriteLibrary([project], [lead]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(lead.Id) { Turns = new ValueList<TurnRecord>([turn]) },
+            Storage.ThreadURL(lead.Id));
+        var model = h.MakeModel();
+        // R-TEST-10: without this, Providers.Executable(Codex/Claude) does a REAL PATH search
+        // (ProviderRegistry.cs:328-340) and, on a machine with a real, signed-in CLI, CommitMessage (:801-815)
+        // would call out to it for real. PrepareBootstrap points every non-API-key provider at a binary that
+        // does not exist (AppModelFixtures.cs:153-184), so TextEngine(...) always answers null here and the
+        // deterministic fallback message runs instead.
+        h.PrepareBootstrap(model);
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+        });
+
+        h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
+
+        var branches = repository.Git("branch", "--list", "hydra/*")
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        var branch = Assert.Single(branches);
+        // The rebuild's parent is the remote's own commit, not the checkout's original (now stale) HEAD.
+        Assert.Equal(remoteCommit, repository.Git("rev-parse", branch + "^").Trim());
+        // The tree carries both the remote's own advance and the team's edit.
+        Assert.Equal("one\nTEAM-TWO\nthree\n", repository.Git("show", branch + ":a.txt"));
+        Assert.Equal("remote add\n", repository.Git("show", branch + ":c.txt"));
+
+        var records = h.Main.OnMain(() => model.ExistingRuntime(lead.Id)!.HydraMerges.ToArray());
+        var record = Assert.Single(records);
+        Assert.Equal(HydraMergeRecord.Outcome.Failed, record.HydraMergeRecordOutcome);
+        Assert.StartsWith("Hydra pushed hydra/", record.Detail, StringComparison.Ordinal);
+        Assert.True(record.Retryable);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-128")] // AppModel+HydraMerge.swift:286-290 (B3): when the rebuild onto the
+    // remote conflicts -- the remote changed a line the team changed too -- the pass fails with the "changed
+    // the same lines" text and schedules no retry; nothing is committed or pushed.
+    public void An_own_branch_merge_fails_when_the_remote_changed_the_same_lines()
+    {
+        using var h = new AppModelHarness();
+        var repository = AppModelGitRepo.Empty(h.NewFolder("remote-overlap-project"));
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("one\ntwo\nthree\n"));
+        repository.Git("add", "-A");
+        repository.Git("commit", "-q", "-m", "first");
+        var bare = h.NewFolder("remote-overlap-remote.git");
+        repository.Git("init", "--bare", "-b", "main", bare);
+        repository.Git("remote", "add", "origin", bare);
+        repository.Git("push", "-u", "origin", "main");
+
+        var clone = h.NewFolder("remote-overlap-clone");
+        repository.Git("clone", bare, clone);
+        var remoteClone = AppModelGitRepo.At(clone);
+        remoteClone.Git("config", "user.name", "Port Test");
+        remoteClone.Git("config", "user.email", "port-test@localhost");
+        remoteClone.Git("config", "commit.gpgsign", "false");
+        File.WriteAllBytes(Path.Combine(clone, "a.txt"), Encoding.UTF8.GetBytes("one\nREMOTE-TWO\nthree\n"));
+        remoteClone.Git("add", "-A");
+        remoteClone.Git("commit", "-q", "-m", "remote overlap");
+        remoteClone.Git("push", "origin", "main");
+
+        // The team's own edit changes the SAME line the remote just changed, differently.
+        File.WriteAllBytes(Path.Combine(repository.Root, "a.txt"), Encoding.UTF8.GetBytes("one\nTEAM-TWO\nthree\n"));
+
+        var project = AppModelSamples.Project("Project", repository.Root);
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true, UpdatedAt = SwiftDate.Now };
+        var turn = new TurnRecord
+        {
+            Id = Guid.NewGuid(),
+            Index = 1,
+            Status = TurnStatus.Completed,
+            CompletedAt = SwiftDate.Now,
+            TouchedPaths = new ValueList<string>(["a.txt"]),
+        };
+        h.WriteLibrary([project], [lead]);
+        DiskWriter.Shared.WriteSynchronously(
+            new ThreadDocument(lead.Id) { Turns = new ValueList<TurnRecord>([turn]) },
+            Storage.ThreadURL(lead.Id));
+        var model = h.MakeModel();
+        // R-TEST-10: without this, Providers.Executable(Codex/Claude) does a REAL PATH search
+        // (ProviderRegistry.cs:328-340) and, on a machine with a real, signed-in CLI, CommitMessage (:801-815)
+        // would call out to it for real. PrepareBootstrap points every non-API-key provider at a binary that
+        // does not exist (AppModelFixtures.cs:153-184), so TextEngine(...) always answers null here and the
+        // deterministic fallback message runs instead.
+        h.PrepareBootstrap(model);
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraEnabled = true;
+            model.Settings.HydraAutoMerge = true;
+        });
+
+        h.Main.Loop.Run(() => InvokeResumeHydraMerges(model), AppModelHarness.Bound);
+
+        var records = h.Main.OnMain(() => model.ExistingRuntime(lead.Id)!.HydraMerges.ToArray());
+        var record = Assert.Single(records);
+        Assert.Equal(HydraMergeRecord.Outcome.Failed, record.HydraMergeRecordOutcome);
+        Assert.Null(record.Retryable);
+        Assert.Equal("Project", record.Project);
+        Assert.Equal(0, record.Files);
+        Assert.Equal(
+            "Hydra did not merge: `main` changed the same lines.: The remote changed a file the team changed too, " +
+            "in the same places. The work is in the checkout: bring `main` in (`git pull`), settle the overlap, " +
+            "and the merge goes out by itself.",
+            record.Detail);
+        Assert.Empty(repository.Git("branch", "--list", "hydra/*").Trim());
     }
 
     [Fact]
