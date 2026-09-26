@@ -2,7 +2,7 @@ using Marrow.App.Views.Settings;
 
 namespace Marrow.App.Tests.Views.Settings;
 
-// Source: DroppyCode/App/Views/Settings/AboutUpdateViews.swift (B2 1fbf81e), :44-50, :67-185, :305-337.
+// Source: DroppyCode/App/Views/Settings/AboutUpdateViews.swift (B3 52bc7926), :44-50, :67-185, :305-337.
 public sealed class AboutUpdateViewsTests
 {
     [Fact]
@@ -194,5 +194,57 @@ public sealed class AboutUpdateViewsTests
         var floorChase = new FractionChase(0);
         Assert.Equal(0, floorChase.Advance(0, target: 0, response: 10, minimumSpeed: 0.12));
         Assert.Equal(0.012, floorChase.Advance(0.1, target: 1, response: 10, minimumSpeed: 0.12), 12);
+    }
+
+    private static AvailableUpdate Update(long? size = null, System.DateTimeOffset? releasedAt = null) => new()
+    {
+        Version = "1.7.0",
+        Tag = "v1.7.0",
+        DownloadURL = Marrow.Core.Port.SwiftURL.Create("https://example.com/download")!,
+        Size = size,
+        Notes = "",
+        ReleasedAt = releasedAt,
+        PageURL = Marrow.Core.Port.SwiftURL.Create("https://example.com/release")!,
+    };
+
+    private static string ReleaseDetail(AvailableUpdate update)
+    {
+        using var locale = Marrow.Core.Port.SwiftFormatters.CurrentLocale.Override("en_US");
+        var method = typeof(AboutSoftwareUpdateSection)
+            .GetMethod("ReleaseDetail", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        return (string)method.Invoke(null, [update])!;
+    }
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-077")] // App/Views/Settings/AboutUpdateViews.swift:781-791
+    [Trait("Decision", "ED-198")]
+    public void Release_detail_uses_the_file_style_byte_count_not_the_KB_ByteCountFormatter_one()
+    {
+        // 1024 bytes -> "1 kB" under ByteCountFormatStyle(style: .file) (SwiftFormattersThirdTests' own oracle
+        // fixture); the pre-B3 FileByteCount ByteCountFormatter rule gave "1 KB" (capital K) instead.
+        Assert.Equal(
+            "1 kB \U000000B7 Update & restart installs it in place and relaunches.", // U+00B7 MIDDLE DOT
+            ReleaseDetail(Update(size: 1024L)));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-077")] // App/Views/Settings/AboutUpdateViews.swift:781-791
+    public void Release_detail_omits_the_size_clause_when_the_update_has_no_size()
+    {
+        Assert.Equal(
+            "Update & restart installs it in place and relaunches.",
+            ReleaseDetail(Update()));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-077")] // App/Views/Settings/AboutUpdateViews.swift:781-791
+    public void Release_detail_joins_date_size_and_the_closing_sentence_with_a_middle_dot()
+    {
+        var releasedAt = new System.DateTimeOffset(2026, 3, 1, 0, 0, 0, System.TimeSpan.Zero);
+        var detail = ReleaseDetail(Update(size: 1024L, releasedAt: releasedAt));
+
+        Assert.StartsWith("Released ", detail, System.StringComparison.Ordinal);
+        Assert.Contains(" \U000000B7 1 kB \U000000B7 ", detail, System.StringComparison.Ordinal); // U+00B7 MIDDLE DOT
+        Assert.EndsWith("Update & restart installs it in place and relaunches.", detail, System.StringComparison.Ordinal);
     }
 }

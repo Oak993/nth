@@ -22,6 +22,8 @@ using Marrow.UI.Common;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
 
+// Source: DroppyCode/App/Views/Settings/AboutUpdateViews.swift (B3 52bc7926), :1-845.
+
 namespace Marrow.App.Views.Settings;
 
 /// <summary>The three sections a release's notes are written in.</summary>
@@ -1214,6 +1216,8 @@ public sealed class AboutSoftwareUpdateSection : Decorator
         return button;
     }
 
+    // :781-791 releaseDetail(_:); unchanged between B2 and B3 (ED-198: the Swift call was already
+    // ByteCountFormatStyle(style: .file) at B2, only this port's own FileByteCount call site was wrong).
     private static string ReleaseDetail(AvailableUpdate update)
     {
         var parts = new List<string>();
@@ -1225,7 +1229,7 @@ public sealed class AboutSoftwareUpdateSection : Decorator
             parts.Add($"Released {date}");
         }
         if (update.Size is { } size)
-            parts.Add(SwiftFormatters.FileByteCount(size, SwiftFormatters.CurrentLocale.Current));
+            parts.Add(SwiftFormatters.ByteCountStyleFile(size, SwiftFormatters.CurrentLocale.Current)); // ED-198: ByteCountFormatStyle(style: .file), not the ByteCountFormatter-based FileByteCount
         parts.Add("Update & restart installs it in place and relaunches.");
         return string.Join(" · ", parts);
     }
