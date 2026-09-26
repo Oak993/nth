@@ -5,6 +5,7 @@ using Marrow.App.Views.Tour;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 
 // Source: DroppyCode/App/AppCommands.swift (B3 52bc792), :1-115.
@@ -12,12 +13,14 @@ using Marrow.UI.Port;
 // as a table in the source's order, each with its action, its enablement rule and its chord; Port/MenuKeyEquivalents.cs
 // dispatches the chords with no menu present. The groups, the "Thread" menu and the dividers (:24, :32, :52, :84, :99)
 // are drawn by nothing, so they have no entries. Chords are named in Windows notation (OD-0008 B7, ED-050, ED-099).
-// Part 1 of 3 (App.AppCommands): :1-51, :65-98 and :111-113. Not written here:
+// Parts 1 and 2 of 3 (App.AppCommands): :1-115 except the two sites below. Not written here:
 // - :12-15 (the Settings item) and :21-25 (the app-name item that shows the main window) call WindowManager.shared,
 //   still MARROW_STUB (App/Window/WindowManager.cs): STOP App.AppCommands #1 in tests/Marrow.App.Tests/AppCommandsTests.cs.
 // - :17-19 replaces the save placement with nothing, so it has no entry; Ctrl+W stays free for the archive command and
 //   a secondary window closes itself (ThreadWindow.cs SecondaryWindow).
-// - :52-62 (the zoom items) and :99-108 (the finish, archive and settle items) are App.AppCommands part 2.
+// The zoom items (:53-62) carry literal key equivalents, "+", "-", "0" and "=". Port/MenuKeyEquivalents.cs reads a key
+// event as a US key position (ED-099), which gives "=", "-" and "0" but never "+": how a key press reaches the "+" key
+// equivalent, and whether these four match by character rather than position, is STOP App.AppCommands #2.
 
 namespace Marrow.App;
 
@@ -85,6 +88,25 @@ public sealed class AppCommands
                     false,
                     () => Transaction.WithAnimation(Chrome.PanelSlide, // :49
                         () => Model.Settings.SidebarActivityView = !Model.Settings.SidebarActivityView)),
+                // :52 Divider() is drawn by no menu. :53-62 the zoom items: literal key equivalents with .command, not
+                // taken from the shortcut store, and no .disabled, so at either end the step leaves the value as it is.
+                new("Zoom In", // :53
+                    new KeyboardShortcut(new KeyEquivalent("+"), ChordModifiers.Control), // :54
+                    false,
+                    () => Model.Settings.AppZoom = AppZoom.Next(ZoomPercent(Model.Settings.AppZoom), increasing: true)), // :53
+                new("Zoom Out", // :55
+                    new KeyboardShortcut(new KeyEquivalent("-"), ChordModifiers.Control), // :56
+                    false,
+                    () => Model.Settings.AppZoom = AppZoom.Next(ZoomPercent(Model.Settings.AppZoom), increasing: false)), // :55
+                new("Actual Size", // :57
+                    new KeyboardShortcut(new KeyEquivalent("0"), ChordModifiers.Control), // :58
+                    false,
+                    () => Model.Settings.AppZoom = 100), // :57
+                // :59 US keyboards produce '=' for Command-plus without Shift. :62 .hidden(): no menu draws it either way.
+                new("Zoom In", // :60
+                    new KeyboardShortcut(new KeyEquivalent("="), ChordModifiers.Control), // :61
+                    false,
+                    () => Model.Settings.AppZoom = AppZoom.Next(ZoomPercent(Model.Settings.AppZoom), increasing: true)), // :60
 
                 // :65-98 CommandMenu("Thread"), the items before the second divider
                 new("Stop", // :66
@@ -138,6 +160,20 @@ public sealed class AppCommands
                     () => Model.SelectThreadNumber(selected))); // :96
             }
 
+            // :99 Divider() is drawn by no menu.
+            body.Add(new MenuCommand(Model.FinishActionTitle, // :100
+                shortcuts.KeyboardShortcut(AppShortcut.FinishThread), // :101
+                Model.SelectedThreadID is null, // :102
+                Model.FinishSelectedThread)); // :100
+            body.Add(new MenuCommand("Archive thread\U00002026", // :103, U+2026 HORIZONTAL ELLIPSIS
+                shortcuts.KeyboardShortcut(AppShortcut.ArchiveThread), // :104
+                Model.SelectedThreadID is null, // :105
+                Model.AskToArchiveSelectedThread)); // :103
+            body.Add(new MenuCommand(Model.SelectedThread?.IsSettled == true ? "Reopen thread" : "Settle thread", // :106
+                shortcuts.KeyboardShortcut(AppShortcut.SettleThread), // :107
+                Model.SelectedThread?.IsHelper ?? true, // :108, nothing selected reads as disabled
+                Model.SettleSelectedThread)); // :106
+
             // :111-113 CommandGroup(replacing: .help): one item, no chord, never disabled.
             body.Add(new MenuCommand("Welcome tour", null, false, () => Tour.Present(Model))); // :112
 
@@ -150,4 +186,10 @@ public sealed class AppCommands
     /// chord was taken (MenuKeyEquivalents.Perform). Port-only: upstream the menu bar does this (OD-0008 C3).
     /// </summary>
     public bool PerformKeyEquivalent(KeyboardShortcut shortcut) => MenuKeyEquivalents.Perform(Body, shortcut);
+
+    // :53, :55, :60 pass model.settings.appZoom, a Swift Int (long here), to AppZoom.next(_:increasing:), whose port
+    // takes an int (UI/Common/AppZoom.cs). next reads the value only through normalized(_:) (AppZoom.swift:8-10, :13),
+    // which gives 100 for anything that is not a level; a value outside int's range is no level, so it goes in as 0,
+    // which is none either, and the step comes out as Swift's.
+    private static int ZoomPercent(long percent) => percent is >= int.MinValue and <= int.MaxValue ? (int)percent : 0;
 }
