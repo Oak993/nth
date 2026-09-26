@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
@@ -19,7 +20,10 @@ using Marrow.App.Views.Sidebar;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
+using Marrow.Services.Store;
+using Marrow.Testing;
 using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
@@ -225,6 +229,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-100")] // App/Views/Sidebar/SidebarView.swift:1980-1984
+    [Trait("Req", "PR-SIDEBAR-071")] // App/Views/Sidebar/SidebarView.swift:1980-1984
     public void Merge_stage_is_nil_without_a_runtime_and_while_no_merge_runs()
     {
         headless.OnUiThread(() =>
@@ -246,6 +251,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-100")] // App/Views/Sidebar/SidebarView.swift:1980-1984
+    [Trait("Req", "PR-SIDEBAR-071")] // App/Views/Sidebar/SidebarView.swift:1980-1984, :2057-2058 (the row reads it)
     public void Merge_stage_is_the_stage_words_followed_by_one_horizontal_ellipsis()
     {
         headless.OnUiThread(() =>
@@ -266,6 +272,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-100")] // App/Views/Sidebar/SidebarView.swift:1983
+    [Trait("Req", "PR-SIDEBAR-071")] // App/Views/Sidebar/SidebarView.swift:1983
     public void Merge_stage_falls_back_to_Merging_with_the_single_ellipsis_character()
     {
         headless.OnUiThread(() =>
@@ -2480,5 +2487,718 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 window.Close();
             });
         });
+    }
+
+    // ======== Part 3 of 8 ========
+    // Records: PR-SIDEBAR-052 to -058, -061 to -073, -075 to -078. SidebarThreadRow's own constructor stays
+    // MARROW_STUB: its full body needs settle()/reopen(), archiveWithGenie(), makeActions(), RowGlideAnimator and
+    // ThreadActions.makeContextMenu, none of which exist yet (this file's own part-1 header already defers an
+    // attached, populated row to "parts 2 to 5"). Every record below is proven as its own piece: a Swift-named
+    // static helper (Fill, TrailingClearance), a standalone view (ThreadRowFace, ThreadBadge, SettleCheck,
+    // ActivityStatus, RelativeTimeLabel, MinuteClock, RidesWithDraggedParent), or a small extracted seam with no
+    // missing collaborator (BackgroundFill, ShowsCheck, SelectThread, NoteHover, ApplyDraggedLift,
+    // BuildSettleCheckOverlay, BuildTrailingOverlay) that the row's own body will call once part 4 lands the rest.
+
+    private static object? CallStatic(Type type, string method, params object?[] args) =>
+        type.GetMethod(method, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic)!.Invoke(null, args);
+
+    // Every type below builds its whole Child reactively through Track (R-VIEW-1), whose apply runs only once
+    // attached to a real visual tree (ViewLifetime.Track: AttachedToVisualTree), never for a merely logical,
+    // unshown one (the file's own part-1 header: a DETACHED view's "tracked parts stay inert"). A shown window is
+    // therefore required, not a bare host, to observe anything these views draw.
+    private static Border Hosted(AppModel model, Control child)
+    {
+        var host = new Border();
+        AppEnvironment.SetAppModel(host, model);
+        host.Child = child;
+        var window = new AvaloniaWindow { Content = host, Width = 200, Height = 100 };
+        window.Show();
+        return host;
+    }
+
+    private static T Shown<T>(T control) where T : Control
+    {
+        var window = new AvaloniaWindow { Content = control, Width = 200, Height = 100 };
+        window.Show();
+        return control;
+    }
+
+    private static Control MakeFace(ChatThread thread, string? projectName, bool isSelected, double trailingClearance,
+        ProjectIcon? projectIcon = null, string? mergeStage = null) =>
+        (Control)Activator.CreateInstance(Private("ThreadRowFace"), thread, projectName, isSelected, trailingClearance,
+            (Func<Control>)(() => new Border { Tag = "badge" }), projectIcon, mergeStage)!;
+
+    private static ChatThread HeadHelper(Project project, Guid parentID, long index, int minute) =>
+        NewThread(project, "Head" + index, minute) with
+        {
+            ParentThreadID = parentID,
+            IsInPanel = false,
+            Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) with { Index = index },
+        };
+
+    // ---- PR-SIDEBAR-056: a helper, head card or folded stub rides its dragged parent ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-056")] // App/Views/Sidebar/SidebarView.swift:1622-1632
+    public void A_helper_under_a_dragged_parent_takes_the_parents_offset_and_zIndex_1()
+    {
+        var type = Private("RidesWithDraggedParent");
+        var parent = Guid.NewGuid();
+
+        var riding = (Control)CallOn(
+            Activator.CreateInstance(type, parent, new RowDrag<Guid> { Id = parent, Translation = 40d, Settled = 10d })!,
+            "Body", new Border())!;
+        Assert.Equal(30d, ((TranslateTransform)riding.RenderTransform!).Y); // :1627, :1629 visualOffset = 40 - 10
+        Assert.Equal(1, riding.ZIndex); // :1630
+
+        var elsewhere = (Control)CallOn(
+            Activator.CreateInstance(type, Guid.NewGuid(), new RowDrag<Guid> { Id = parent, Translation = 40d, Settled = 10d })!,
+            "Body", new Border())!;
+        Assert.Equal(0d, ((TranslateTransform)elsewhere.RenderTransform!).Y); // a different parent id: does not ride
+        Assert.Equal(0, elsewhere.ZIndex);
+
+        var noParent = (Control)CallOn(Activator.CreateInstance(type, null, new RowDrag<Guid>())!, "Body", new Border())!;
+        Assert.Equal(0d, ((TranslateTransform)noParent.RenderTransform!).Y); // a nil parent id: never rides
+        Assert.Equal(0, noParent.ZIndex);
+    }
+
+    // ---- PR-SIDEBAR-052, -053: the swap's spring and its peer re-snapshot ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-052")] // App/Views/Sidebar/SidebarView.swift:767, :784-793
+    [Trait("Req", "PR-SIDEBAR-053")] // App/Views/Sidebar/SidebarView.swift:794-801
+    public void An_accepted_swap_runs_inside_the_slide_spring_and_re_takes_the_peer_snapshot()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var older = NewThread(alpha, "Older", 1);
+            var newer = NewThread(alpha, "Newer", 2);
+            var model = Model(harness, [alpha], [older, newer]);
+            SidebarView view = null!;
+            object? peersBefore = null;
+            harness.Main.OnMain(() =>
+            {
+                view = Detached(model);
+                Call(view, "DragChanged", older.Id, 1d); // grabs; takes the first snapshot (order [newer, older])
+                peersBefore = Field(view, "dragPeers");
+            });
+            Animation? during = null;
+            using var probe = new OnChange<ValueList<ChatThread>>(() => model.Threads, (_, _) => during = Transaction.Current);
+            harness.Main.OnMain(() => Call(view, "DragChanged", older.Id, -35d)); // crosses newer's centre (threshold 29)
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(Animation.Spring(response: 0.28, dampingFraction: 0.82), during); // :767, :784-793
+                var peersAfter = Field(view, "dragPeers")!;
+                Assert.NotSame(peersBefore, peersAfter); // :796-798 re-taken once the swap is accepted
+                Assert.Equal([older.Id, newer.Id], (IEnumerable<Guid>)Get(peersAfter, "Order")!); // the list as it now stands
+            });
+        });
+    }
+
+    // ---- PR-SIDEBAR-057, -058: a peer's reorder slot ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-057")] // App/Views/Sidebar/SidebarView.swift:829-856, :1277, :1308-1311
+    public void A_peers_slot_is_its_row_plus_its_folded_stub_or_its_helpers_and_head_card_each_plus_1_pt()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var folded = NewThread(alpha, "Folded", 1) with { ExpandsHelpers = false };
+            var foldedHelper = NewThread(alpha, "FoldedHelper", 2) with { ParentThreadID = folded.Id };
+            var open = NewThread(alpha, "Open", 3) with { ExpandsHelpers = true };
+            var plainA = NewThread(alpha, "PlainA", 4) with { ParentThreadID = open.Id };
+            var plainB = NewThread(alpha, "PlainB", 5) with { ParentThreadID = open.Id };
+            var head1 = HeadHelper(alpha, open.Id, 0, 6);
+            var head2 = HeadHelper(alpha, open.Id, 1, 7);
+            var model = Model(harness, [alpha], [folded, foldedHelper, open, plainA, plainB, head1, head2]);
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.HydraAutoHidesIdleHeads = false;
+                var view = Detached(model);
+                var rowHeights = Field(view, "rowHeights")!;
+                CallOn(rowHeights, "Note", "helpers-" + SwiftUUID.UuidString(folded.Id), 40d); // a measured stub height
+                var heights = (IReadOnlyDictionary<Guid, double>)Call(view, "SlotHeights", new ValueList<Guid>([folded.Id, open.Id]))!;
+                Assert.Equal(29d + (40d + 1d), heights[folded.Id]); // :833 row, :837 measured stub + 1
+                // :839-840 two unmeasured plain helpers (24 fallback each, +1 each) and :845-847 one head card
+                // (2 heads -> (2+5)/6 = 1 row).
+                var headCardHeight = (double)CallStatic(Private("ThreadRowMetrics"), "HeadCardHeight", 1L)!;
+                Assert.Equal(29d + (24d + 1d) * 2 + (headCardHeight + 1d), heights[open.Id]);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:845-847 (upstream defect 59, reproduced)
+    public void The_slot_head_card_fallback_assumes_six_glyphs_per_row_crossing_at_7_and_13()
+    {
+        double HeightFor(int headCount)
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var parent = NewThread(alpha, "Parent", 1) with { ExpandsHelpers = true };
+            var heads = Enumerable.Range(0, headCount).Select(i => HeadHelper(alpha, parent.Id, i, 2 + i)).ToList();
+            var model = Model(harness, [alpha], new[] { parent }.Concat(heads));
+            var result = 0d;
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.HydraAutoHidesIdleHeads = false;
+                var view = Detached(model);
+                var heights = (IReadOnlyDictionary<Guid, double>)Call(view, "SlotHeights", new ValueList<Guid>([parent.Id]))!;
+                result = heights[parent.Id];
+            });
+            return result;
+        }
+        double CardHeight(long rows) => (double)CallStatic(Private("ThreadRowMetrics"), "HeadCardHeight", rows)!;
+        var row = Chrome.RowHeight + 1;
+        headless.OnUiThread(() =>
+        {
+            // :846 rows = (headCount + 5) / 6: 6 heads round down to 1 row, 7 round up to 2. The real card lays out
+            // 7 per row until measured (upstream defect 59), so it would not cross until 8; the fallback disagrees
+            // and is reproduced verbatim, not corrected (PR-SIDEBAR-058).
+            Assert.Equal(row + CardHeight(1) + 1d, HeightFor(6));
+            Assert.Equal(row + CardHeight(2) + 1d, HeightFor(7));
+            Assert.Equal(row + CardHeight(2) + 1d, HeightFor(12));
+            Assert.Equal(row + CardHeight(3) + 1d, HeightFor(13));
+        });
+    }
+
+    // ---- PR-SIDEBAR-054: the lifted row's scale, fill and shadow ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-054")] // App/Views/Sidebar/SidebarView.swift:1838-1849
+    public void The_lifted_rows_scale_fill_and_shadow_spring_in_and_out_on_response_0_25_damping_0_8()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var grabbed = Guid.NewGuid();
+            SidebarView view = null!;
+            Border content = null!;
+            Control host = null!;
+            AvaloniaWindow window = null!;
+            var manual = new ManualFrameSource();
+            using var frames = FrameClock.Source.Override(manual);
+            harness.Main.OnMain(() =>
+            {
+                view = Detached(model);
+                content = new Border { Height = 20 };
+                host = (Control)CallStatic(Private("SidebarThreadRow"), "ApplyDraggedLift", content, (Func<bool>)(() => Drag(view).Id == grabbed))!;
+                window = new AvaloniaWindow { Content = host, Width = 100, Height = 100 };
+                window.Show();
+            });
+            static double ScaleOf(Control control) => control.RenderTransform is ScaleTransform scale ? scale.ScaleX : 1;
+            static double LiftOpacity(Control host) => ((Panel)host).Children[0].Opacity;
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(1d, ScaleOf(content));
+                Assert.Equal(0d, LiftOpacity(host));
+                Call(view, "DragChanged", grabbed, 5d);
+            });
+            for (var i = 0; i < 100; i++) // 1.6 s of 16 ms frames: well past a 0.25 s response spring's settle
+            {
+                harness.Main.Advance(TimeSpan.FromMilliseconds(16));
+                manual.Advance(TimeSpan.FromMilliseconds(16));
+            }
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(1.02d, ScaleOf(content), 3); // :1846
+                Assert.Equal(1d, LiftOpacity(host)); // :1842-1843 fully faded in
+                Call(view, "DragEnded");
+            });
+            for (var i = 0; i < 100; i++)
+            {
+                harness.Main.Advance(TimeSpan.FromMilliseconds(16));
+                manual.Advance(TimeSpan.FromMilliseconds(16));
+            }
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(1d, ScaleOf(content), 3); // springs back out
+                Assert.Equal(0d, LiftOpacity(host));
+                window.Close();
+            });
+        });
+    }
+
+    // ---- PR-SIDEBAR-061, -062: click selects, hover pre-decodes ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-061")] // App/Views/Sidebar/SidebarView.swift:1736-1738
+    public void A_thread_rows_click_sets_selectedThreadID()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var thread = NewThread(alpha, "Thread", 1);
+            var model = Model(harness, [alpha], [thread]);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(model.SelectedThreadID);
+                CallStatic(Private("SidebarThreadRow"), "SelectThread", model, thread);
+                Assert.Equal(thread.Id, model.SelectedThreadID);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-062")] // App/Views/Sidebar/SidebarView.swift:1816-1820
+    public void Hovering_a_thread_row_warms_its_document_and_leaving_schedules_nothing_more()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var thread = NewThread(alpha, "Thread", 1);
+            AppModelHarness.WriteDocument(thread.Id);
+            var model = Model(harness, [alpha], [thread]);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(DocumentPrefetch.Shared.Take(thread.Id));
+                CallStatic(Private("SidebarThreadRow"), "NoteHover", model, thread, true);
+            });
+            AppModelHarness.WaitForPrefetch();
+            harness.Main.OnMain(() =>
+            {
+                Assert.NotNull(DocumentPrefetch.Shared.Take(thread.Id)); // :1819 warmDocuments([thread.id])
+                CallStatic(Private("SidebarThreadRow"), "NoteHover", model, thread, false);
+            });
+            AppModelHarness.WaitForPrefetch();
+            harness.Main.OnMain(() => Assert.Null(DocumentPrefetch.Shared.Take(thread.Id))); // leaving schedules nothing
+        });
+    }
+
+    // ---- PR-SIDEBAR-063, -064: the row's own fill ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-063")] // App/Views/Sidebar/SidebarView.swift:1874-1877
+    public void An_unpinned_rows_fill_is_0_12_selected_0_06_hovered_otherwise_clear()
+    {
+        var type = Private("SidebarThreadRow");
+        Assert.Equal(0.12, (double)CallStatic(type, "Fill", true, false)!); // :1875 selected
+        Assert.Equal(0.12, (double)CallStatic(type, "Fill", true, true)!); // selected wins over hovering
+        Assert.Equal(0.06, (double)CallStatic(type, "Fill", false, true)!); // :1876 hovered
+        Assert.Equal(0d, (double)CallStatic(type, "Fill", false, false)!); // neither
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-064")] // App/Views/Sidebar/SidebarView.swift:1745-1758
+    public void A_pinned_row_is_tinted_danger_0_10_unselected_or_danger_0_06_over_the_selection_fill()
+    {
+        var type = Private("SidebarThreadRow");
+        static Color Resolved(SwiftColor color) => color.Resolve(ThemeVariant.Light);
+
+        var (unselected, overlay1) = ((SwiftColor, SwiftColor?))CallStatic(type, "BackgroundFill", true, false, false)!;
+        Assert.Equal(Resolved(Chrome.Danger.Opacity(0.10)), Resolved(unselected)); // :1751-1752
+        Assert.Null(overlay1);
+
+        var (selected, overlay2) = ((SwiftColor, SwiftColor?))CallStatic(type, "BackgroundFill", true, true, false)!;
+        Assert.Equal(Resolved(Chrome.Overlay(0.12)), Resolved(selected)); // the selection fill, not the pinned one
+        Assert.Equal(Resolved(Chrome.Danger.Opacity(0.06)), Resolved(overlay2!)); // :1756-1758
+
+        var (plain, overlay3) = ((SwiftColor, SwiftColor?))CallStatic(type, "BackgroundFill", false, false, true)!;
+        Assert.Equal(Resolved(Chrome.Overlay(0.06)), Resolved(plain));
+        Assert.Null(overlay3);
+    }
+
+    // ---- PR-SIDEBAR-065, -066, -067, -070: the face's title, leading slot and second line ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-065")] // App/Views/Sidebar/SidebarView.swift:2040-2051, :2075-2078
+    public void An_open_titles_13pt_is_medium_when_selected_or_unread_and_a_settled_titles_12pt_is_always_regular()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var unread = NewThread(alpha, "Unread", 1) with { HasUnread = true };
+            var quiet = NewThread(alpha, "Quiet", 2);
+            harness.Main.OnMain(() =>
+            {
+                var open = MakeFace(unread, null, isSelected: false, trailingClearance: 52);
+                var title = LogicalQuery.SelfAndDescendants<TextBlock>(open).First();
+                Assert.Equal(13d, title.FontSize); // :2041 open: 13 pt
+                Assert.Equal(FontWeight.Medium, title.FontWeight); // hasUnread, not selected: medium
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.92).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color);
+
+                var plain = MakeFace(quiet, null, isSelected: false, trailingClearance: 52);
+                var plainTitle = LogicalQuery.SelfAndDescendants<TextBlock>(plain).First();
+                Assert.Equal(FontWeight.Normal, plainTitle.FontWeight); // no unread, not selected: regular
+
+                var settled = quiet with { IsSettled = true };
+                var settledFace = MakeFace(settled, null, isSelected: true, trailingClearance: 18);
+                var settledTitle = LogicalQuery.SelfAndDescendants<TextBlock>(settledFace).First();
+                Assert.Equal(12d, settledTitle.FontSize); // :2048 settled: 12 pt
+                Assert.Equal(FontWeight.Normal, settledTitle.FontWeight); // :2048 !isSettled gate: always regular once settled
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.75).Resolve(settledTitle.ActualThemeVariant), ((ISolidColorBrush)settledTitle.Foreground!).Color);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-066")] // App/Views/Sidebar/SidebarView.swift:2021-2033
+    public void The_leading_slot_is_20pt_holding_the_project_mark_or_the_badge_and_is_absent_when_detailed_or_settled()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var thread = NewThread(alpha, "Thread", 1);
+            harness.Main.OnMain(() =>
+            {
+                // Icon-style (no projectName): the badge shows in a 20 pt slot.
+                var iconStyle = MakeFace(thread, null, isSelected: false, trailingClearance: 52);
+                var badge = LogicalQuery.SelfAndDescendants<Control>(iconStyle).FirstOrDefault(c => (string?)c.Tag == "badge");
+                Assert.NotNull(badge);
+                Assert.Equal(Chrome.IconSize, badge!.Width); // :2031
+
+                // Project-name style, detailed (projectName set, not settled): the slot is omitted.
+                var detailed = MakeFace(thread, "Alpha", isSelected: false, trailingClearance: 18);
+                Assert.Null(LogicalQuery.SelfAndDescendants<Control>(detailed).FirstOrDefault(c => (string?)c.Tag == "badge"));
+
+                // Settled: the slot is omitted even without a project name.
+                var settled = thread with { IsSettled = true };
+                var settledFace = MakeFace(settled, null, isSelected: false, trailingClearance: 18);
+                Assert.Null(LogicalQuery.SelfAndDescendants<Control>(settledFace).FirstOrDefault(c => (string?)c.Tag == "badge"));
+
+                // A project mark, passed in, replaces the badge in the icon-style slot.
+                var withMark = MakeFace(thread, null, isSelected: false, trailingClearance: 52, projectIcon: new ProjectIcon.Symbol("folder"));
+                Assert.NotNull(LogicalQuery.SelfAndDescendants<ProjectIconMark>(withMark).FirstOrDefault());
+                Assert.Null(LogicalQuery.SelfAndDescendants<Control>(withMark).FirstOrDefault(c => (string?)c.Tag == "badge"));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-067")] // App/Views/Sidebar/SidebarView.swift:2034-2052
+    public void A_detailed_row_with_a_picked_mark_leads_the_title_at_14pt_and_drops_the_project_line()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var thread = NewThread(alpha, "Thread", 1);
+            harness.Main.OnMain(() =>
+            {
+                var face = MakeFace(thread, "Alpha", isSelected: false, trailingClearance: 18, projectIcon: new ProjectIcon.Symbol("folder"));
+                var mark = LogicalQuery.SelfAndDescendants<ProjectIconMark>(face).Single();
+                var title = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(face)); // no second project line
+                Assert.Equal("Thread", title.Text);
+
+                var withoutIcon = MakeFace(thread, "Alpha", isSelected: false, trailingClearance: 18);
+                Assert.Equal(2, LogicalQuery.SelfAndDescendants<TextBlock>(withoutIcon).Count()); // title + project line
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-070")] // App/Views/Sidebar/SidebarView.swift:2053-2063
+    public void A_detailed_second_line_shows_a_folder_or_branch_mark_then_the_project_name_or_merge_stage()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var plain = NewThread(alpha, "Plain", 1);
+            var worktree = NewThread(alpha, "Worktree", 2) with { WorktreePath = "C:\\wt" };
+            harness.Main.OnMain(() =>
+            {
+                var plainFace = MakeFace(plain, "Alpha", isSelected: false, trailingClearance: 18);
+                var texts = LogicalQuery.SelfAndDescendants<TextBlock>(plainFace).ToList();
+                Assert.Equal("Alpha", texts[1].Text); // :2057 projectName
+                var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(plainFace).Single();
+                Assert.Equal("folder", glyph.SymbolName); // :2055 no worktree path
+
+                var worktreeFace = MakeFace(worktree, "Alpha", isSelected: false, trailingClearance: 18);
+                var worktreeGlyph = LogicalQuery.SelfAndDescendants<SwiftImage>(worktreeFace).Single();
+                Assert.Equal("arrow.triangle.branch", worktreeGlyph.SymbolName); // :2055 a worktree path
+
+                var merging = MakeFace(plain, "Alpha", isSelected: false, trailingClearance: 18, mergeStage: "Merging\U00002026");
+                var mergingTexts = LogicalQuery.SelfAndDescendants<TextBlock>(merging).ToList();
+                Assert.Equal("Merging\U00002026", mergingTexts[1].Text); // :2057 mergeStage replaces projectName
+
+                // Settled: the second line does not draw at all.
+                var settledFace = MakeFace(plain with { IsSettled = true }, "Alpha", isSelected: false, trailingClearance: 18);
+                Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(settledFace)); // title only
+            });
+        });
+    }
+
+    // ---- PR-SIDEBAR-068, -069: the thread badge ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-068")] // App/Views/Sidebar/SidebarView.swift:2147-2165
+    public void The_badge_shows_the_hand_then_the_spinner_then_the_pin_then_the_provider_icon()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the running spinner animates
+            var alpha = NewProject(harness, "Alpha");
+            var pinned = NewThread(alpha, "Pinned", 1) with { IsPinned = true };
+            var plain = NewThread(alpha, "Plain", 2);
+            var model = Model(harness, [alpha], [pinned, plain]);
+            harness.Main.OnMain(() =>
+            {
+                // Plain: no runtime at all -> the provider icon.
+                var plainBadge = Hosted(model, (Control)Activator.CreateInstance(Private("ThreadBadge"), plain)!);
+                Assert.NotNull(LogicalQuery.SelfAndDescendants<ProviderIcon>(plainBadge).FirstOrDefault());
+
+                // Pinned, no runtime: the pin, danger at 0.85.
+                var pinnedBadge = Hosted(model, (Control)Activator.CreateInstance(Private("ThreadBadge"), pinned)!);
+                var pin = LogicalQuery.SelfAndDescendants<SwiftImage>(pinnedBadge).Single();
+                Assert.Equal("pin.fill", pin.SymbolName);
+                Assert.Equal(Chrome.Danger.Opacity(0.85).Resolve(pin.ActualThemeVariant), ((ISolidColorBrush)pin.Foreground!).Color);
+
+                // Running (merging): the spinner, its tooltip the merge stage, wins over the pin.
+                var runtime = model.Runtime(pinned.Id);
+                runtime.IsHydraMerging = true;
+                runtime.HydraMergeStage = "Reviewing";
+                var runningBadge = Hosted(model, (Control)Activator.CreateInstance(Private("ThreadBadge"), pinned)!);
+                var spinner = LogicalQuery.SelfAndDescendants<MiniSpinner>(runningBadge).Single();
+                Assert.Equal("Reviewing\U00002026", ToolTip.GetTip(spinner));
+
+                // Needs input: the raised hand, orange, wins over everything else.
+                typeof(ThreadRuntime).GetProperty("Approvals")!.SetValue(runtime,
+                    new ValueList<ApprovalRequest>([new ApprovalRequest("a1", ApprovalRequest.Kind.Tool, "Allow?", ValueList<ApprovalRequest.Option>.Empty)]));
+                var needsInputBadge = Hosted(model, (Control)Activator.CreateInstance(Private("ThreadBadge"), pinned)!);
+                var hand = LogicalQuery.SelfAndDescendants<SwiftImage>(needsInputBadge).Single();
+                Assert.Equal("hand.raised.fill", hand.SymbolName);
+                Assert.Equal(Chrome.Orange.Resolve(hand.ActualThemeVariant), ((ISolidColorBrush)hand.Foreground!).Color);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-069")] // App/Views/Sidebar/SidebarView.swift:2166-2173
+    public void An_unread_threads_badge_carries_a_7pt_dot_danger_or_accent_unless_the_hand_or_spinner_shows()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var failed = NewThread(alpha, "Failed", 1) with { HasUnread = true, LastStatus = TurnStatus.Failed };
+            var ok = NewThread(alpha, "Ok", 2) with { HasUnread = true, LastStatus = TurnStatus.Completed };
+            var model = Model(harness, [alpha], [failed, ok]);
+            harness.Main.OnMain(() =>
+            {
+                var failedBadge = Hosted(model, (Control)Activator.CreateInstance(Private("ThreadBadge"), failed)!);
+                var failedDot = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(failedBadge).Single();
+                Assert.Equal(7d, failedDot.Width);
+                Assert.Equal(Chrome.Danger.Resolve(failedDot.ActualThemeVariant), ((ISolidColorBrush)failedDot.Fill!).Color);
+
+                var okBadge = Hosted(model, (Control)Activator.CreateInstance(Private("ThreadBadge"), ok)!);
+                var okDot = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(okBadge).Single();
+                Assert.Equal(Chrome.Accent.Resolve(okDot.ActualThemeVariant), ((ISolidColorBrush)okDot.Fill!).Color);
+
+                // Needs input suppresses the dot even though hasUnread is true.
+                var runtime = model.Runtime(failed.Id);
+                typeof(ThreadRuntime).GetProperty("Questions")!.SetValue(runtime,
+                    new ValueList<QuestionRequest>([new QuestionRequest("q1", ValueList<QuestionRequest.Question>.Empty)]));
+                var suppressed = Hosted(model, (Control)Activator.CreateInstance(Private("ThreadBadge"), failed)!);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(suppressed));
+            });
+        });
+    }
+
+    // ---- PR-SIDEBAR-073: the trailing activity status ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-073")] // App/Views/Sidebar/SidebarView.swift:2412-2427
+    public void The_trailing_status_is_the_hand_then_the_spinner_then_the_unread_dot_then_nothing()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the running spinner animates
+            var alpha = NewProject(harness, "Alpha");
+            var thread = NewThread(alpha, "Thread", 1) with { HasUnread = true, LastStatus = TurnStatus.Completed };
+            var quiet = NewThread(alpha, "Quiet", 2);
+            var model = Model(harness, [alpha], [thread, quiet]);
+            harness.Main.OnMain(() =>
+            {
+                var nothing = Hosted(model, (Control)Activator.CreateInstance(Private("ActivityStatus"), quiet)!);
+                Assert.Null(((Decorator)nothing.Child!).Child); // :2426 nothing drawn
+
+                var dotted = Hosted(model, (Control)Activator.CreateInstance(Private("ActivityStatus"), thread)!);
+                var dot = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(dotted).Single();
+                Assert.Equal(7d, dot.Width);
+                Assert.Equal(Chrome.Accent.Resolve(dot.ActualThemeVariant), ((ISolidColorBrush)dot.Fill!).Color);
+
+                var runtime = model.Runtime(thread.Id);
+                runtime.IsHydraMerging = true;
+                runtime.HydraMergeStage = "Stage";
+                var spinning = Hosted(model, (Control)Activator.CreateInstance(Private("ActivityStatus"), thread)!);
+                var spinner = LogicalQuery.SelfAndDescendants<MiniSpinner>(spinning).Single();
+                Assert.Equal("Stage\U00002026", ToolTip.GetTip(spinner));
+
+                typeof(ThreadRuntime).GetProperty("Approvals")!.SetValue(runtime,
+                    new ValueList<ApprovalRequest>([new ApprovalRequest("a1", ApprovalRequest.Kind.Tool, "Allow?", ValueList<ApprovalRequest.Option>.Empty)]));
+                var handing = Hosted(model, (Control)Activator.CreateInstance(Private("ActivityStatus"), thread)!);
+                var hand = LogicalQuery.SelfAndDescendants<SwiftImage>(handing).Single();
+                Assert.Equal("hand.raised.fill", hand.SymbolName);
+                Assert.Equal(Chrome.Warning.Resolve(hand.ActualThemeVariant), ((ISolidColorBrush)hand.Foreground!).Color); // :2417 warning, not orange
+            });
+        });
+    }
+
+    // ---- PR-SIDEBAR-072: the trailing overlay's precedence ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-072")] // App/Views/Sidebar/SidebarView.swift:1772-1801
+    public void The_trailing_overlay_shows_hover_buttons_then_status_then_status_plus_time_then_time_alone()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var thread = NewThread(alpha, "Thread", 1);
+            var model = Model(harness, [alpha], [thread]);
+            var type = Private("SidebarThreadRow");
+            var actions = new List<RowAction> { new() { Title = "Rename", Action = () => { } } };
+            harness.Main.OnMain(() =>
+            {
+                var isMenuPresented = new Binding<bool>(() => false, _ => { });
+
+                // showsActions: the archive button (finish action not settle, not settled) then the ellipsis, no gap.
+                var withArchive = (Control)CallStatic(type, "BuildTrailingOverlay",
+                    thread, true, false, false, false, false, (Action)(() => { }), actions, isMenuPresented)!;
+                var cluster = Assert.IsType<StackPanel>(withArchive);
+                Assert.Equal(0d, cluster.Spacing); // :1775 HStack(spacing: 0)
+                Assert.Equal(2, cluster.Children.Count); // archive + ellipsis
+                Assert.Equal(new Thickness(0, 0, 6, 0), withArchive.Margin); // :1800 .padding(.trailing, 6)
+
+                // showsActions with settles true: the archive button is gone, only the ellipsis remains.
+                var withoutArchive = (Control)CallStatic(type, "BuildTrailingOverlay",
+                    thread, true, false, false, false, true, (Action)(() => { }), actions, isMenuPresented)!;
+                Assert.Single(((StackPanel)withoutArchive).Children);
+
+                // Detailed or settled, not hovering: the activity status alone.
+                var detailed = Hosted(model, (Control)CallStatic(type, "BuildTrailingOverlay",
+                    thread, false, true, false, false, false, (Action)(() => { }), actions, isMenuPresented)!);
+                Assert.True(Private("ActivityStatus").IsInstanceOfType(((Border)detailed).Child));
+
+                // Icon style with a project icon: status and time, 6 pt apart.
+                var withTime = Hosted(model, (Control)CallStatic(type, "BuildTrailingOverlay",
+                    thread, false, false, false, true, false, (Action)(() => { }), actions, isMenuPresented)!);
+                var pair = Assert.IsType<StackPanel>(((Border)withTime).Child);
+                Assert.Equal(6d, pair.Spacing); // :1792-1795
+                Assert.Equal(2, pair.Children.Count);
+
+                // Plain project layout: the relative time alone.
+                var timeAlone = Hosted(model, (Control)CallStatic(type, "BuildTrailingOverlay",
+                    thread, false, false, false, false, false, (Action)(() => { }), actions, isMenuPresented)!);
+                Assert.True(Private("RelativeTimeLabel").IsInstanceOfType(((Border)timeAlone).Child));
+            });
+        });
+    }
+
+    // ---- PR-SIDEBAR-077, -078: the settle check's visibility and its own view ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-077")] // App/Views/Sidebar/SidebarView.swift:1727-1729, :1763-1771
+    public void The_check_shows_at_the_trailing_end_hovered_or_settling_only_with_the_settle_action_and_leads_a_settled_row()
+    {
+        var type = Private("SidebarThreadRow");
+        Assert.False((bool)CallStatic(type, "ShowsCheck", false, true, false, false)!); // not hovering, not settling
+        Assert.True((bool)CallStatic(type, "ShowsCheck", false, true, true, false)!); // showsActions (hovered)
+        Assert.True((bool)CallStatic(type, "ShowsCheck", false, true, false, true)!); // isSettling
+        Assert.False((bool)CallStatic(type, "ShowsCheck", false, false, true, false)!); // finish action is archive
+        Assert.True((bool)CallStatic(type, "ShowsCheck", true, false, false, false)!); // settled: always shows
+
+        var overlay = (Control?)CallStatic(type, "BuildSettleCheckOverlay", false, true, true, false, false, (Action)(() => { }));
+        Assert.Equal(HorizontalAlignment.Right, overlay!.HorizontalAlignment); // :1763 open: trailing
+        Assert.Equal(new Thickness(0, 0, 26d, 0), overlay.Margin); // :1769 openCheckInset
+
+        var settledOverlay = (Control?)CallStatic(type, "BuildSettleCheckOverlay", true, true, false, false, false, (Action)(() => { }));
+        Assert.Equal(HorizontalAlignment.Left, settledOverlay!.HorizontalAlignment); // :1763 settled: leading
+        Assert.Equal(new Thickness(6d, 0, 0, 0), settledOverlay.Margin); // :1768 settledCheckInset
+
+        Assert.Null((Control?)CallStatic(type, "BuildSettleCheckOverlay", false, true, false, false, false, (Action)(() => { })));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-078")] // App/Views/Sidebar/SidebarView.swift:2122-2140
+    public void The_settle_check_is_filled_while_settled_or_popping_and_outlined_otherwise_with_the_right_tips()
+    {
+        headless.OnUiThread(() =>
+        {
+            static Button ButtonOf(Control c) => LogicalQuery.SelfAndDescendants<Button>(c).Single();
+            static SwiftImage GlyphOf(Control c) => LogicalQuery.SelfAndDescendants<SwiftImage>(c).Single();
+
+            var tapped = false;
+            var open = Shown((Control)Activator.CreateInstance(Private("SettleCheck"), false, false, (Action)(() => tapped = true))!);
+            Assert.Equal("checkmark.circle", GlyphOf(open).SymbolName); // :2124-2126 open, not hovering: outline
+            Assert.Equal(Chrome.SecondaryText.Resolve(GlyphOf(open).ActualThemeVariant), ((ISolidColorBrush)GlyphOf(open).Foreground!).Color);
+            var openButton = ButtonOf(open);
+            Assert.Equal("Settle thread", ToolTip.GetTip(openButton)); // :2138
+            Assert.Equal("Settle thread", AutomationProperties.GetName(openButton));
+            Click(openButton);
+            Assert.True(tapped);
+
+            var settled = Shown((Control)Activator.CreateInstance(Private("SettleCheck"), true, false, (Action)(() => { }))!);
+            Assert.Equal("checkmark.circle.fill", GlyphOf(settled).SymbolName); // :2124 settled, not hovering: filled
+            Assert.Equal(Chrome.Success.Opacity(0.8).Resolve(GlyphOf(settled).ActualThemeVariant), ((ISolidColorBrush)GlyphOf(settled).Foreground!).Color);
+            Assert.Equal("Reopen thread", ToolTip.GetTip(ButtonOf(settled)));
+
+            var popping = Shown((Control)Activator.CreateInstance(Private("SettleCheck"), false, true, (Action)(() => { }))!);
+            Assert.Equal("checkmark.circle.fill", GlyphOf(popping).SymbolName); // :2124 popping: filled regardless of settled
+            Assert.Equal(1.35d, ((ScaleTransform)GlyphOf(popping).RenderTransform!).ScaleX); // :2132
+            Assert.Equal(Chrome.Success.Resolve(GlyphOf(popping).ActualThemeVariant), ((ISolidColorBrush)GlyphOf(popping).Foreground!).Color);
+        });
+    }
+
+    // ---- PR-SIDEBAR-075: the minute clock and the relative time label ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-075")] // App/Views/Sidebar/SidebarView.swift:2667-2680
+    public void The_minute_clock_ticks_once_every_60_seconds()
+    {
+        using var runtime = new TestRuntime();
+        var clock = runtime.OnMain(() => (MinuteClock)Activator.CreateInstance(typeof(MinuteClock), nonPublic: true)!);
+        var first = runtime.OnMain(() => clock.Now);
+        runtime.Advance(TimeSpan.FromSeconds(59));
+        Assert.Equal(first, runtime.OnMain(() => clock.Now)); // :2676 not yet 60 s
+        runtime.Advance(TimeSpan.FromSeconds(1));
+        var second = runtime.OnMain(() => clock.Now);
+        Assert.NotEqual(first, second); // :2678 ticked
+        runtime.Advance(TimeSpan.FromSeconds(60));
+        Assert.NotEqual(second, runtime.OnMain(() => clock.Now)); // keeps ticking once a minute
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-075")] // App/Views/Sidebar/SidebarView.swift:2686-2694
+    public void The_relative_time_label_reads_the_shared_clocks_now_at_subheadline_size_secondaryText_0_8()
+    {
+        headless.OnUiThread(() =>
+        {
+            var date = MinuteClock.Shared.Now.AddMinutes(-3);
+            var label = Shown((Control)Activator.CreateInstance(Private("RelativeTimeLabel"), date)!);
+            var text = LogicalQuery.SelfAndDescendants<TextBlock>(label).Single();
+            Assert.Equal(RelativeTime.Short(date, MinuteClock.Shared.Now), text.Text); // :2690
+            Assert.Equal(11d, text.FontSize); // .subheadline, ED-059
+            Assert.Equal(Chrome.SecondaryText.Opacity(0.8).Resolve(text.ActualThemeVariant), ((ISolidColorBrush)text.Foreground!).Color); // :2692
+            Assert.Equal(new Thickness(0, 0, 4, 0), text.Margin); // :2693
+        });
+    }
+
+    // ---- PR-SIDEBAR-076: the title's trailing clearance ----
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-076")] // App/Views/Sidebar/SidebarView.swift:1894-1898, :2065-2066
+    public void The_trailing_clearance_is_52_30_18_or_those_plus_20_by_formula()
+    {
+        var type = Private("SidebarThreadRow");
+        Assert.Equal(52d, (double)CallStatic(type, "TrailingClearance", false, false, false, false)!); // plain
+        Assert.Equal(18d, (double)CallStatic(type, "TrailingClearance", false, true, false, false)!); // detailed
+        Assert.Equal(18d, (double)CallStatic(type, "TrailingClearance", true, false, false, false)!); // settled
+        Assert.Equal(52d, (double)CallStatic(type, "TrailingClearance", false, false, true, false)!); // showsActions, open
+        Assert.Equal(30d, (double)CallStatic(type, "TrailingClearance", true, false, true, false)!); // showsActions, settled
+        Assert.Equal(72d, (double)CallStatic(type, "TrailingClearance", false, false, true, true)!); // + 20 pt fold
+        Assert.Equal(50d, (double)CallStatic(type, "TrailingClearance", true, false, true, true)!); // 30 + 20
     }
 }
