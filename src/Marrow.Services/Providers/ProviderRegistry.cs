@@ -331,13 +331,37 @@ public sealed partial class ProviderRegistry : MainActorModel
         var custom = settings.BinaryPath(provider); // :221
         if (custom.Length == 0 && provider.ExecutableName.Length == 0) return null; // :222
         var primary = custom.Length == 0 ? provider.ExecutableName : custom;
-        if (LoginEnvironment.Which(primary) is { } found && !RejectsAsCommandInterpreter(provider, found)) return found; // :223
+        if (LoginEnvironment.Which(primary) is { } found && !RejectsAsCommandInterpreter(provider, found) && AllowedForTesting(found)) return found; // :223
         if (custom.Length != 0) return null; // :224
         foreach (var candidate in FallbackExecutables(provider)) // :225
         {
-            if (LoginEnvironment.Which(candidate) is { } resolved && !RejectsAsCommandInterpreter(provider, resolved)) return resolved;
+            if (LoginEnvironment.Which(candidate) is { } resolved && !RejectsAsCommandInterpreter(provider, resolved) && AllowedForTesting(resolved)) return resolved;
         }
         return null;
+    }
+
+    // PORT-ONLY test guard, no Swift twin (R-TEST-10; ED-211). Null in production, so it changes nothing there. Each
+    // test assembly that can reach this registry sets it once from a module initializer, before any test runs, to the
+    // folders a test may legitimately launch a provider CLI from: the repository (tests/fixtures stand-ins) and the
+    // temp / MARROW_PORT_DATA_DIR scratch folders. A provider executable resolved anywhere else, i.e. a real installed
+    // claude/codex/copilot/... under the user's profile, is then treated as not installed: it FAILS CLOSED, so no test
+    // can reach a real CLI through a harness that forgot its own override (2026-09-27: AppModelHydraMergeTests generated
+    // commit messages through the owner's real signed-in CLI this way). Process-wide on purpose, unlike the AsyncLocal
+    // seams: it must cover every test flow, including ones that install no seam at all.
+    public static IReadOnlyList<string>? ExecutableRootsForTesting { get; set; }
+
+    private static bool AllowedForTesting(string path)
+    {
+        if (ExecutableRootsForTesting is not { } roots) return true;
+        string full;
+        try { full = Path.GetFullPath(path); }
+        catch (Exception) { return false; }
+        foreach (var root in roots)
+        {
+            var prefix = Path.GetFullPath(root).TrimEnd('\\', '/') + Path.DirectorySeparatorChar;
+            if (full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)) return true;
+        }
+        return false;
     }
 
     // PA-0016, ED-020, ED-127: Command Code's bare executableName is "cmd" (Provider.swift:54), which on
