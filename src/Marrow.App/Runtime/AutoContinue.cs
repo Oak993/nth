@@ -1,6 +1,5 @@
-using Avalonia;
-using Avalonia.Controls.ApplicationLifetimes;
 using Marrow.App;
+using Marrow.App.Port;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
@@ -232,11 +231,9 @@ public sealed class AutoContinue : MainActorModel
     private bool IsCurrentWait(Guid threadID, Guid token) =>
         waitTokens.TryGetValue(threadID, out var currentToken) && currentToken == token;
 
-    private static bool IsApplicationActive()
-    {
-        return Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop
-            && desktop.MainWindow?.IsActive == true;
-    }
+    // :152 NSApp.isActive: the port's one reading of it, shared with every other site that reads it
+    // (Port/ApplicationLifecycle.cs NSApplication.IsActive).
+    private static bool IsApplicationActive() => NSApplication.IsActive.Current();
 
     private void UpdateResumesAt() =>
         ResumesAt = new ValueMap<Guid, DateTimeOffset>(new Dictionary<Guid, DateTimeOffset>(resumeValues));
