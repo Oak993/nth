@@ -9,13 +9,14 @@ using Xunit;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/ProviderSession.swift (B2 1fbf81e), :1-209.
+// Source: DroppyCode/Services/Providers/ProviderSession.swift (B3 52bc792), :1-230.
 //
 // The Swift file declares the shapes every provider adapter builds and consumes (TurnInput,
 // SessionConfiguration, TranscriptMessage, AgentSpawn, ProviderEvent, ToolUpdate), the ProviderSession
 // protocol itself, ProviderError's three cases, and the ToolTitles helpers (unwrapShell, relativePath,
 // diffStats). Nothing here is persisted directly; these are the wire shapes adapters and the runtime pass
-// between each other.
+// between each other. B3 adds ToolText.blocks (:211-219) and ApprovalRequest.Kind.grantKey (:221-230),
+// both relocated here from the Claude, Pi and Command Code sessions (lane A7).
 public sealed class ProviderSessionTests
 {
     // ---- PR-RUNTIME-001: ProviderEvent, 31 cases in declaration order, tokenSpend after usage ----
@@ -482,5 +483,63 @@ public sealed class ProviderSessionTests
         var (additions, deletions) = ToolTitles.DiffStats("+one\n\n-two\n");
         Assert.Equal(1, additions);
         Assert.Equal(1, deletions);
+    }
+
+    // ---- PR-PROVCLI-053 (re-cited): ToolText.Blocks, moved here from the Claude session (B3, lane A7) ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-053")] // ProviderSession.swift:211-219 (B3)
+    public void ToolText_Blocks_returns_empty_string_for_null_or_a_JSON_null()
+    {
+        Assert.Equal("", ToolText.Blocks(null));
+        Assert.Equal("", ToolText.Blocks(new JSONValue.Null()));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-053")] // ProviderSession.swift:214: a bare string is returned as-is
+    public void ToolText_Blocks_returns_a_bare_string_unchanged()
+    {
+        Assert.Equal("hello", ToolText.Blocks(new JSONValue.String("hello")));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-053")] // ProviderSession.swift:216-217: an array's text blocks joined by one newline
+    public void ToolText_Blocks_joins_the_text_fields_of_a_block_array_with_a_single_newline()
+    {
+        var value = JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "first")),
+            JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "second")));
+        Assert.Equal("first\nsecond", ToolText.Blocks(value));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-053")] // ProviderSession.swift:217: a block with no "text" field is skipped, not blanked
+    public void ToolText_Blocks_skips_a_block_with_no_text_field_when_joining()
+    {
+        var value = JSONValue.FromArrayLiteral(
+            JSONValue.FromDictionaryLiteral(("type", "image")),
+            JSONValue.FromDictionaryLiteral(("type", "text"), ("text", "second")));
+        Assert.Equal("second", ToolText.Blocks(value));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-053")] // ProviderSession.swift:216: neither a string nor an array reads as empty
+    public void ToolText_Blocks_returns_empty_string_for_a_value_that_is_neither_a_string_nor_an_array()
+    {
+        Assert.Equal("", ToolText.Blocks(new JSONValue.Bool(true)));
+    }
+
+    // ---- PR-PROVCLI-248, PR-PROVCLI-285 (re-cited): ApprovalRequest.Kind.GrantKey, shared here (B3, lane A7) ----
+
+    [Theory]
+    [Trait("Req", "PR-PROVCLI-248")] // ProviderSession.swift:221-230 (B3)
+    [InlineData(ApprovalRequest.Kind.Command, "command")]
+    [InlineData(ApprovalRequest.Kind.FileChange, "fileChange")]
+    [InlineData(ApprovalRequest.Kind.Tool, "tool")]
+    [InlineData(ApprovalRequest.Kind.Permissions, "tool")]
+    [InlineData(ApprovalRequest.Kind.Plan, "tool")]
+    public void GrantKey_maps_each_kind_to_its_grant_string(ApprovalRequest.Kind kind, string expected)
+    {
+        Assert.Equal(expected, kind.GrantKey());
     }
 }
