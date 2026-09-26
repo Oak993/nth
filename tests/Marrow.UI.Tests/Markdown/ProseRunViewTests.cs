@@ -410,6 +410,7 @@ public sealed class ProseRunViewTests(HeadlessSession headless)
     // settled requirement and stay `Req`, in Paragraphs_are_separated_by_the_space_after_the_first_plus_the_space_
     // before_the_next above, which starts every measurement mid-run and never touches either edge.
     [Fact]
+    [Trait("Decision", "ED-210")] // the ProseRunView representation decision this vertical-spacing rule belongs to
     [Trait("Oracle", "O-71")] // DroppyCode/UI/Markdown/ProseRunView.swift:158-159 (B3), LinkParagraphView.swift:498-507
     public void The_height_holds_the_heading_spacing_and_is_rounded_up() => headless.OnUiThread(() =>
     {

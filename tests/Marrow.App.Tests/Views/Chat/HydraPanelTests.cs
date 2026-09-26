@@ -204,6 +204,7 @@ public sealed class HydraPanelTests
     // source-scan technique ProgramStartupBindingTests.cs uses, so the comment cannot silently regress to the
     // stale claim again.
     [Fact]
+    [Trait("Req", "PR-HYDRA-227")] // App/Views/Chat/SubagentPanel.swift:640-666 (the PanelDragHandle retarget this doc comment describes)
     public void WireDragHandle_doc_no_longer_claims_SubagentPanel_is_still_unrefactored()
     {
         var source = File.ReadAllText(HydraPanelCsPath());
