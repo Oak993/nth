@@ -772,7 +772,10 @@ as rulings_live/App.AppUpdater.part1.md.
 ED-189 [THEME] UI.Theme.Wallpaper's target moves to src/Marrow.App/Theme/Wallpaper.cs (tests in tests/Marrow.App.Tests),
 applying IMPLEMENTING.md 2.1 / HANDOFF 9 ("WallpaperStore to App": it builds on Storage, a Services type, which UI may not
 use). The c100 skeleton (cloud worker S0) placed it there; units.json still named the UI project. build_run7.js and
-luna_build.mjs carry the retarget (RETARGET) until plan_units.py learns it; the unit merged on impl/b2 at fc16861.
+luna_build.mjs carry the retarget (RETARGET) until plan_units.py learns it; the unit merged on impl/b2 at fc16861. B3
+amendment (2026-09-26): superseded by ED-195. B3 fixes the layering upstream (Core/Support/StoragePaths.swift:14-15;
+Wallpaper.swift:89, :128, :130 use StoragePaths.wallpaperDirectory), so Wallpaper.cs's only Services dependency
+(Storage.WallpaperDirectory) goes away and IMPLEMENTING.md 2.1's reason for this target no longer applies at B3.
 
 ED-190 [TEST] PlanLimitsTests runs in its own non-parallel xUnit collection (tests/Marrow.Services.Tests/Fixtures/
 PlanLimitsProcessCollection.cs), harness only, no expectation changed. Its readClaude dispatch test waits on the Claude
@@ -796,7 +799,10 @@ as rulings_live/App.AppUpdater.part1.md.
 ED-189 [THEME] UI.Theme.Wallpaper's target moves to src/Marrow.App/Theme/Wallpaper.cs (tests in tests/Marrow.App.Tests),
 applying IMPLEMENTING.md 2.1 / HANDOFF 9 ("WallpaperStore to App": it builds on Storage, a Services type, which UI may not
 use). The c100 skeleton (cloud worker S0) placed it there; units.json still named the UI project. build_run7.js and
-luna_build.mjs carry the retarget (RETARGET) until plan_units.py learns it; the unit merged on impl/b2 at fc16861.
+luna_build.mjs carry the retarget (RETARGET) until plan_units.py learns it; the unit merged on impl/b2 at fc16861. B3
+amendment (2026-09-26): superseded by ED-195. B3 fixes the layering upstream (Core/Support/StoragePaths.swift:14-15;
+Wallpaper.swift:89, :128, :130 use StoragePaths.wallpaperDirectory), so Wallpaper.cs's only Services dependency
+(Storage.WallpaperDirectory) goes away and IMPLEMENTING.md 2.1's reason for this target no longer applies at B3.
 
 ED-190 [TEST] PlanLimitsTests runs in its own non-parallel xUnit collection (tests/Marrow.Services.Tests/Fixtures/
 PlanLimitsProcessCollection.cs), harness only, no expectation changed. Its readClaude dispatch test waits on the Claude
@@ -830,3 +836,235 @@ file; $Dest itself is never passed to Start-Process. A new regression test place
 console utility (system32\sort.exe, renamed) at the staged path and confirms, by process discovery, that this
 exact file is what gets launched. ENGINEERING DECISION; a platform-adaptation correction, not a deviation from
 observable Swift behavior (the fixed behavior matches what `open` does on macOS: launch the app, not reveal it).
+
+# Engineering decisions for the B3 baseline move (52bc792, 2026-09-26), batch 0.3 documentation ledger
+
+ED-193 [RUNTIME][UPDATE] The B3 resend-failure notice text (App.Runtime.ThreadRuntime, unit A33), decided from
+existing rulings; no owner question needed. SOURCE FACT: ThreadRuntime.swift:2277 builds
+"\(error)\n\nDroppy Code could not bring \(provider.displayName) up to date. Run `\(command)` in Terminal, then
+send the message again.", where command is "claude update" or "codex update" (:2273) and displayName is "Claude"
+or "Codex" (Core/Models/Provider.swift:23-24); the other three B3 notices (:2262, :2285, :2291) carry no product
+name. DECISION: under OD-0012 F1 ("Droppy Code" -> "Marrow") and OD-0008 B6 (keep "Run `<cmd>` in Terminal"
+verbatim - Windows 11's own app is also called Terminal - and both `claude update` and `codex update` exist on
+this workstation, PA-0018), the port's text is "{error}\n\nMarrow could not bring Claude up to date. Run `claude
+update` in Terminal, then send the message again." and the same with "Codex"/"codex update". This stands under
+every option of owner decision O1 (PA-0018, unknowns.md UNK-0026): even a "never update" deviation still shows
+this exact notice once, since ThreadRuntime posts it before consulting the update policy. The same F1 rule already
+covers the reworded Hydra retry text at A4 ("Marrow retries it by itself"). ENGINEERING DECISION; not itself a
+deviation, since the substitution is already ruled by OD-0012 F1.
+
+ED-194 [MCP][TERM] How B3's MCP hub and probe children are killed at stop and at quit (units A2, A15, A16), and
+the recorded B3 amendment of ED-047 (b) and ED-126. SOURCE FACT: B3 moves both MCPHub and MCPProbe onto
+MCPStdioConnection, i.e. onto StdioProcess (R3-18, R3-20). Stop is StdioProcess.terminate
+(Core/Support/StdioProcess.swift:120-128 at B3, +1 from B2's :119-128 because the new `processIdentifier` member
+at :48 shifts everything after it): close stdin, SIGTERM, then after 3 s SIGKILL of the pid alone - unchanged in
+substance from ED-047 (b)/ED-126. Quit is MCPLiveProcesses.terminateAll (Services/MCP/MCPHub.swift:357-376):
+terminate each, then at once `kill(getpgid(pid) == pid ? -pid : pid, SIGKILL)` - the whole process group when the
+child leads one (oracle O-70: swift-corelibs-foundation Process.swift:953 sets POSIX_SPAWN_SETPGROUP, and its
+commit message states this "matches Darwin's behaviour"). DECISION (option (a) of decisions_draft.md O3): a Job
+Object at spawn for every StdioProcess child, with no limits and no KILL_ON_JOB_CLOSE. Stop stays exactly the
+ED-126 ladder (KillProcess, pid alone, +3 s) - the job is not used there. Quit uses KillTree (TerminateJobObject),
+reproducing MCPLiveProcesses.terminateAll's -pgid SIGKILL through the port's existing ED-047 (a) group-kill
+mapping. A2 (Core.Support.StdioProcess) exposes the new Swift member as `public int ProcessIdentifier =>
+process.ProcessIdentifier;` plus a port-only IProcessControl handle, so MCPLiveProcesses can track and kill each
+child at quit. Records: reclassify PR-MCP-111 to this ladder (stop: ED-126, 3 s, pid only; quit: the job's tree
+kill) and rewrite its verification method, because B3's probe cancel is pid-only after 3 s, not the 1 s tree kill
+PR-MCP-111's windows_path used to describe. B3 AMENDMENT of ED-047 (b) and ED-126 (2026-09-26; neither's own text
+is rewritten): both still correctly describe StdioProcess.terminate's 3-second, pid-only ladder for STOP; for
+QUIT, MCP hub/probe children additionally sit inside a Job Object created at spawn (this ED), so quit-time
+cleanup goes through TerminateJobObject instead of relying on the stop ladder. Oracle O-70 (IMPLEMENTING.md
+Appendix B) tracks the unverified Darwin process-group premise. ENGINEERING DECISION; internal process-lifetime
+management, not a deviation from observable behaviour.
+
+ED-195 [THEME] Wallpaper.cs moves back to src/Marrow.UI/Theme/Wallpaper.cs (namespace Marrow.UI.Theme,
+R-FILE-1), superseding ED-189. SOURCE FACT: B3 fixes the layering upstream that motivated ED-189 -
+Core/Support/StoragePaths.swift:14-15 gives `wallpaperDirectory`, and Wallpaper.swift:89, :128, :130 (renames
+only, R3-53) now read `StoragePaths.wallpaperDirectory` instead of `Storage.wallpaperDirectory` (R3-14 cites
+upstream commit d70cff8fe, "layer rules restored"). Wallpaper.cs's only remaining Services dependency was
+`Storage.WallpaperDirectory` (Wallpaper.cs:9, :150, :183, :187, at B2); with that gone, nothing in Wallpaper.cs
+needs a type outside Marrow.Core/Marrow.UI, so IMPLEMENTING.md 2.1's "WallpaperStore to App" reasoning (UI may
+not depend on Services) no longer applies. DECISION (unit A10, lane 2e): move the file to
+src/Marrow.UI/Theme/Wallpaper.cs and its tests to tests/Marrow.UI.Tests/Theme/WallpaperTests.cs, matching what
+units.json already names as the target. Update the `using` lines in RootView.cs, WallpaperCard.cs and
+WallpaperCardFixtures.cs. `Storage.cs`'s DiskWriter, Root and SubDirectory members delegate to StoragePaths in
+the same lane (re-cite 86 Storage records, 12 StoragePaths records, 5 Wallpaper records; new: 1, DiskWriter's
+last-written size). Nothing observable changes; this is a pure move. ENGINEERING DECISION; not a deviation.
+
+ED-196 [COMPOSER] UI-COMPOSER-052's cursor-leak state (upstream defect 53) is retired at B3; the hover and drag
+states reclassify to grab-idle/grab-active. SOURCE FACT: `App/Views/Composer/FollowUpQueueTab.swift:380-384`
+deletes every `NSCursor.closedHand`/`.openHand` push and pop and replaces the grip's cursor handling outright with
+`.pointerStyle(isDragged ? .grabActive : .grabIdle)`; a repo-wide grep for `NSCursor` in the file at B3 returns no
+hits (upstream_defects.md entry 53, retired above; platform_adaptations.md PA-0019). The state the defect
+described - "a row removed mid-drag with the pointer off the grip leaks one cursor push" - requires an unbalanced
+NSCursor push/pop pair to exist, and none does at B3: there is no stack to leak into. DECISION (decisions_draft.md
+O6): retire the leak state from the parity matrix; reclassify PR-COMPOSER-159, PR-COMPOSER-163 and
+UI-COMPOSER-052 to the `.pointerStyle` expression (unit A38). This rests on the contract's rule that a reproduced
+defect binds to the pinned source: OD-0024/AM-0003 already moved the pin to B3, where the defect's precondition
+is gone, so no separate owner confirmation is required (the rule to reproduce upstream defects never required one
+either). Optional, not decided here: whether a SwiftUI `.pointerStyle` persists while a drag carries the pointer
+off its view is not stated in the source; Avalonia keeps the captured element's cursor
+(PointerOverPreProcessor.cs:162, :246, ED-202), which A38 may record as a further oracle row if it proves
+observable. ENGINEERING DECISION; not a deviation.
+
+ED-197 [CHAT][HYDRA] `Duration.UnitsFormatStyle` narrow output (oracle O-65), a new `SwiftFormatters` helper for
+lane 1b. SOURCE FACT: three B3 sites share one style - `Duration.seconds(...).formatted(.units(allowed:, width:
+.narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)))` - at Core/Models/Hydra.swift:1420-1423
+(seconds, minutes), App/Views/Chat/HydraPanel.swift:545-551 (the same, behind a `seconds > 0` guard and an " in "
+prefix; read by HydraHeadPopovers.swift:124-126 through `RelativeTime.duration`), and
+UI/Common/Components.swift:37-40 (seconds, minutes, hours). None sets a locale, so `.autoupdatingCurrent` applies
+(swift-foundation `Duration+UnitsFormatStyle.swift:242`, `:266`, byte-identical across swift-6.2 through 6.4).
+DECISION: port `unitsToUse`, `_getSkeletons` and `format` from swift-foundation 6.2's
+`Duration+UnitsFormatStyle.swift` into `SwiftFormatters`, formatting each field through the already-bound
+`unumf_openForSkeletonAndLocale` (SwiftFormatters.cs:1023-1042) with a skeleton ported from
+`ICUNumberFormatter.swift`, and joining fields with the CLDR `listPattern/unit-narrow/2` pattern (through
+`ulistfmt_openForType`, or `ures_*` if the local `icu.dll` exports it; this workstation's `icu.dll` is 72.1.0.4).
+Locale is `SwiftFormatters.CurrentLocale.Current` (O-37); the ICU-version difference across swift-foundation
+6.2/6.3/6.4 is nil here (the source file is unchanged across those tags) and is covered generally by ED-073. This
+is UNVERIFIED under ED-086 (read from source, not a macOS run); oracle row O-65 (IMPLEMENTING.md Appendix B)
+tracks it. Records: reclassify PR-HYDRA-076, PR-HYDRA-180, PR-CHAT-116 (fixing its mislabeled
+PR-SIDEBAR-074 trait), UI-CHAT-035 and PR-HYDRA-214 to these strings; create the R3-40 "duration format" record.
+Rewrite ComponentsTests.cs:103-141, HydraTests' duration cases and HydraPanel's elapsed tests from the table in
+decisions_draft.md E1, not loosened. ENGINEERING DECISION.
+
+ED-198 [COMPOSER][SETTINGS] `ByteCountFormatStyle(.file)` output (oracle O-66) is not the same as the port's
+existing `ByteCountFormatter`-based `FileByteCount`. SOURCE FACT: at B3, `UI/Common/AttachmentPreview.swift:95-98`
+and `App/Views/Composer/DownloadsPopover.swift:68` switch from a B2 `ByteCountFormatter` to
+`.formatted(.byteCount(style: .file))`; `App/Views/Settings/AboutUpdateViews.swift:787` was already
+`ByteCountFormatStyle` at B2. A whole-tree grep for `ByteCountFormatter` at B3 returns zero hits. Reading
+swift-foundation 6.2's `ByteCountFormatStyle.swift` (byte-identical at 6.2/6.3; 6.4 adds doc comments only): zero
+spells out as "Zero kB" (`spellsOutZero` default true, lowercase-b "kB" unit); the unit-choice threshold is
+`absValue < size` against `[999, 999499, ...]`, so 999 bytes already becomes "1 kB"; precision is 0 fraction
+digits for bytes/kB, up to 1 for MB, up to 2 for GB+, with ICU's default half-even rounding (no rounding token in
+the skeleton). This differs from `SwiftFormatters.FileByteCount`'s corelibs `ByteCountFormatter` rule ("Zero KB",
+"999 bytes", "KB", ED-133). DECISION: add `SwiftFormatters.ByteCountFormatStyle(bytes, style, locale)`, ported
+from swift-foundation 6.2 (ICU skeletons plus the RBNF spell-out of zero with beginning-of-sentence
+capitalization), and switch `AttachmentPreview.cs:184-195`, `DownloadsPopover.cs:104` and
+`AboutUpdateViews.cs:1228` to it; `AboutUpdateViews.cs:1228` was already wrong at B2 (a `ByteCountFormatStyle`
+site formatted with the `ByteCountFormatter` rule since B2 - recorded as a pre-existing port defect, fixed here,
+not reproduced, because it was never the pinned source's behaviour at either baseline). `FileByteCount` has no
+Swift twin caller left at B3; mark ED-133 superseded for these three sites (its corelibs reading may still apply
+elsewhere; not audited here). UNVERIFIED under ED-086 past "Zero kB" and "1 kB", which swift-foundation's own test
+suite confirms; oracle row O-66 tracks the rest. Records: reclassify PR-COMPOSER-076; promote PR-COMPOSER-078 from
+re-cite to reclassify (its text changes from "KB" to "kB"); fix PR-UPDATE-077's port-path citation. ENGINEERING
+DECISION.
+
+ED-199 [STORE] `SimpleDiff.unified`'s tie-breaking follows stdlib `CollectionDifference.difference(from:)`
+(oracle O-67); port swift-6.4.0-RELEASE's linear-space Myers. SOURCE FACT: `Core/Support/Text.swift:105-112`
+feeds `newLines.difference(from: oldLines)` into sets of removed/inserted offsets (String `==` is canonical
+equivalence); `difference(from:by:)` in swiftlang/swift `stdlib/public/core/Diffing.swift` is `@available` but not
+`@inlinable`, so the app calls whatever copy ships in the OS's `libswiftCore` - the deployment target is macOS
+26.0 (project.yml:5, :22), so no copy ships in the app itself, and behaviour follows the Mac's OS version, not the
+toolchain that built 1.7.0. swift-6.2-RELEASE runs the greedy Myers (`_myers`, :230-366); swift-6.3-RELEASE and
+swift-6.4.0-RELEASE run `_linearSpaceMyers` (:590-630), switched by commit 80f052e251c6 (PR #83212, 2025-09-19),
+whose message states the new version "returns a set of changes that is the same size as the previous version, the
+specific changes are not guaranteed to be the same." `availability-macros.def` at swift-6.4.0-RELEASE maps
+SwiftStdlib 6.2 to `anyAppleOS 26.0`, 6.3 to `anyAppleOS 26.4`, 6.4 to `anyAppleOS 27.0`: macOS 26.0-26.3 run one
+algorithm, 26.4 and later (and 27) run the other; both give identical add/remove counts (fixed by LCS length) but
+can choose different offsets in tie cases (a `diffsim.js` transliteration over all 14,641 pairs of length-0-to-4
+sequences over {a,b,c} found different offsets in 5,070 of them). DECISION: `Marrow.Core/Port/SwiftDifference.cs`
+ports `_linearSpaceMyers` from swift-6.4.0-RELEASE, with `cmp = SwiftString.Equal`, because it is what current
+macOS versions run (26.4 and later, and 27) and is swift `main`; record the 6.2 greedy behaviour as the
+older-OS variant, not implemented. UNVERIFIED under ED-086 (a transliteration, not a stdlib run); oracle row O-67
+tracks it, and the Windows swift.org toolchain (which compiles the same `Diffing.swift`) can settle the algorithm
+question, though not which one a given macOS build binds to. Tests whose expected text depends on a tie carry
+`[Trait("Oracle","O-67")]`; version-independent fixtures (including the plan's own "a\na"->"a") carry none.
+ENGINEERING DECISION; blocks unit A1.
+
+ED-200 [WIN] `WindowDragGesture()` with `.allowsWindowActivationEvents(true)` (oracle O-68): park on the ED-063
+caption-hit-test region. SOURCE FACT: `UI/Chrome/Chrome.swift:1091-1099` replaces B2's NSView-based
+WindowDragArea/WindowDragView (mouseDown calling `window.performDrag(with:)`, empty mouseUp) with `Color.clear
+.contentShape(.rect).gesture(WindowDragGesture()).allowsWindowActivationEvents(true)`; callers are
+SidebarView.swift:181, SettingsView.swift:193, MCPKeyPanel.swift:53 and MCPSetupPanel.swift:127, all `.background`
+uses with nothing behind the area to receive a click. Apple's WindowDragGesture documentation (macOS 15.0+)
+recommends `allowsWindowActivationEvents` "so that dragging the containing window works even when it's inactive"
+but is silent on whether the move starts on press or after a threshold, on a bare click, and on double-click
+zoom; OD-0001 rules out a Mac run to settle it. DECISION: collapse WindowDragArea and WindowDragView into one
+transparent, full-rect control that keeps the ED-063 caption hit test, with a `BeginMoveDrag` fallback for windows
+where the caption result does not apply. On Windows the system move loop then gives press-and-move dragging, an
+activating click on an inactive window still drags (matching Apple's stated intent), release goes to the system,
+double-click maximizes/restores and right-click shows the system menu - all already measured and accepted under
+ED-063. If oracle O-68 is ever settled and shows macOS does not zoom on double-click, the fix is to swallow
+WM_NCLBUTTONDBLCLK for these regions in the ED-063 hook. FloatingGuidePanel (N11) must check the caption drag
+still works under the WH_CBT activation refusal. Records: reclassify PR-WIN-193 and UI-WIN-005 to
+Chrome.swift:1091-1099; their press-start and double-click lines carry `[Trait("Oracle","O-68")]`. ENGINEERING
+DECISION (parked, not resolved).
+
+ED-201 [MCP] Hex case of `addingPercentEncoding(withAllowedCharacters:)` on Darwin (oracle O-69): uppercase.
+SOURCE FACT: `Services/MCP/MCPOAuth.swift:776` builds the OAuth token-refresh body as
+`formEncode(name)=formEncode(value)` pairs joined by "&"; `:790-793` is
+`value.addingPercentEncoding(withAllowedCharacters: CharacterSet(charactersIn: "A-Za-z0-9-._~"))`, falling back to
+the raw value on nil. `StringProtocol.addingPercentEncoding(withAllowedCharacters:)` is not in swift-foundation
+6.2; on Darwin it reaches the closed-source Foundation overlay and then CF. The open-source twin
+(swift-corelibs-foundation swift-6.2-RELEASE `CFURLComponents_URIParser.c:260-269`,
+`_CFStringCreateByAddingPercentEncodingWithAllowedCharacters`) encodes UTF-8 bytes with `hexchars[] =
+"0123456789ABCDEF"`, and swift-foundation's own URL encoder (`URLParser.swift:963-1001`, `hexToAscii`, the path
+B2's `URLComponents.percentEncodedQuery` took, O-57) is also uppercase; RFC 3986 section 2.1 recommends uppercase.
+DECISION: the port's A12 raw-body fixture uses uppercase escapes (for example "a b+c" -> `a%20b%2Bc`,
+"http://127.0.0.1:53682/callback" -> `http%3A%2F%2F127.0.0.1%3A53682%2Fcallback`, "é" -> `%C3%A9`, "~._-" kept as
+written). UNVERIFIED under ED-086 at very low risk (Darwin CF is closed at this version); oracle row O-69 tracks
+it and may be folded into O-57. The nil fallback is unreachable from a Swift String, which is always valid
+Unicode. ENGINEERING DECISION.
+
+ED-202 [WIN][TERM] Avalonia raises PointerExited on a captured element's chain whenever the hit element is not
+the captured one (oracle-adjacent, not itself an oracle item since it is read from the port's own pinned
+dependency, not from Apple's platform): a DragHandle hover rule (units N8, TerminalPanel, SubagentPanel,
+WindowChrome). SEMANTICS, the port's pinned Avalonia 12.1.2 (byte-identical at 12.1.3),
+`src/Avalonia.Base/Input/PointerOverPreProcessor.cs`: every non-touch pointer move except CancelCapture computes
+the over-element via `GetEffectivePointerOverElement(hit, pointer.Captured)` (:79-89), which returns null when a
+captured element exists and the hit element is not that element (:114-117; the hit element is the deepest enabled
+one, so a hit-testable child of the captured element also counts as "not it"). A null over-element raises
+PointerExited on the old over-element and every ancestor up to the root and sets `CursorElement =
+pointer.Captured` (:130-165, `ClearPointerOver`); returning over the captured element raises PointerEntered back
+down that chain (:190-257, `SetPointerOverToElement`). Every press captures implicitly
+(`MouseDevice.cs:135-146`), so this holds during every press-drag in the app, not only explicit captures. SOURCE
+FACT for comparison: `UI/Chrome/DragHandle.swift:239-245`'s tracking area is
+`[.mouseEnteredAndExited, .activeAlways, .inVisibleRect]` without `.enabledDuringMouseDrag`, so "no exit arrives
+while the button is held; the release decides from the cursor" (:229) - `mouseUp` calls `refreshHover()` (:230),
+which re-reads the real pointer location. Avalonia therefore behaves differently from AppKit here: it reports
+exit and re-entry during a captured drag, where AppKit's tracking area freezes. DECISION: in N8's DragHandleView,
+while `isDragging`, OnPointerEntered/OnPointerExited leave `isHovering` alone; on release and on attach, set hover
+from `Bounds.Contains(pointer position)`, mirroring `refreshHover`. Grip and glow children are
+`IsHitTestVisible = false`. Fix the existing `WindowChrome.cs:679-691`, which toggles `isHovering` on every
+enter/exit, in N8's retarget. Port-wide FYI, not blocking: because of implicit capture, every hover-driven view
+loses and regains hover during any press-drag that crosses it; this belongs on the UI verification list. Tests: a
+headless test pins PointerExited firing under capture when the pointer leaves; a second test checks `isHovering`
+does not change mid-drag and is re-read on release. ENGINEERING DECISION; a DragHandle rule, not a deviation (the
+observable macOS behaviour - hover state settled on release - is preserved; only the intermediate Avalonia events
+during the drag itself are absorbed).
+
+ED-203 [WIN] The generic Windows openers must refuse a relative or scheme-less-host URL before calling
+ShellExecuteW, as parity with what NSWorkspace refuses on the source's own platform (owner decision O4's
+engineering part, unknowns.md UNK-0027; platform_adaptations.md PA-0020). SOURCE FACT:
+`Services/Port/Workspace.cs:19-20` (`ShellOpen`, the web-address seam for `MCPOAuth.swift:434`) and
+`UI/Port/ShellWorkspace.cs:13` (`OpenWithDefaultApp`, the local-file seam for `AttachmentPreview.swift`'s footer
+NSWorkspace calls) both pass any string straight to `ShellExecuteW(IntPtr.Zero, "open", <string>, ...)`.
+`ShellExecuteW("calc")` starts a program found on PATH by name; `ShellExecuteW("//host/share")` opens an SMB
+connection that sends the user's Windows credentials to a host that model output could have named. Neither is
+reachable through `NSWorkspace.shared.open(url)` on macOS, which refuses a relative URL and a scheme-less host
+outright - so unconditionally accepting them on Windows is not parity, it is a platform gap the literal port
+introduces. DECISION: both openers reject, before calling ShellExecuteW, any input that (a) has no URL scheme, or
+(b) has a host component but no scheme (the two-slash-prefixed relative-host form). This changes nothing on the
+Mac's own inputs (an absolute `https://...` or `file://...` URL is unaffected) and applies regardless of how
+owner decision O4's local-file-opening policy itself is answered (unknowns.md UNK-0027), because
+`MarkdownLinkOpener`'s eventual local-file branch supplies its own explicit, reviewed path to these seams rather
+than a raw, unchecked string. Tests: WorkspaceTests/ShellWorkspaceTests assert a bare relative string ("calc") and
+a scheme-less two-slash host string ("//host/share") are both refused before reaching ShellExecuteW. ENGINEERING
+DECISION; parity, not a deviation.
+
+ED-204 [WIN] Which chat-link targets are revealed instead of opened, and how (OD-0026; PA-0020, UNK-0027). SOURCE
+FACT: B3 `UI/Markdown/LinkParagraphView.swift:226-245` opens a local-file link with `NSWorkspace.shared.open(URL(fileURLWithPath:))`
+(:243), which on the Mac launches an app bundle or a `.command` file. OWNER RULING OD-0026: on Windows a local target
+of a type Windows runs directly is shown selected in File Explorer instead. DECISION: the local-file branch reveals
+rather than opens when EITHER (a) shlwapi `AssocIsDangerous(<extension>)` returns TRUE (Windows' own "potentially
+dangerous file type" test, the one its attachment handling uses, so the list follows the user's machine) OR (b) the
+extension, compared case-insensitively, is in the fixed floor list .exe .com .bat .cmd .ps1 .psm1 .vbs .vbe .js .jse
+.wsf .wsh .hta .msi .msp .mst .scr .lnk .url .cpl .pif .reg .msc .scf .inf .appref-ms (the floor holds whatever
+(a) returns on a stock Windows 11, even if a machine's registry says otherwise; .ps1 is included because a user may
+have associated it with PowerShell). A directory is not a program: it opens, as Finder opens a folder. The reveal
+uses the port's existing seam for `NSWorkspace.shared.activateFileViewerSelecting` (`src/Marrow.UI/Port/ShellWorkspace.cs:15-17`,
+`explorer.exe /select,"<path>"`). UNC targets (`\host\...`, `file://host/...`, and a drive-letter path that maps to
+a network share is NOT inspected: only the literal UNC forms are refused) are never opened or revealed from a chat
+link. Tests (lane A29): AssocIsDangerous(".exe") is TRUE and (".txt") FALSE on the test machine (pins the API
+binding); each floor extension reveals; ".txt"/".cs"/".md" open; "C:/x/a.cs:12" opens "C:/x/a.cs" when only it
+exists; a UNC link does nothing. ENGINEERING DECISION implementing OD-0026's named safety deviation.
+
