@@ -13,6 +13,7 @@ using Marrow.App.Port;
 using Marrow.Services.Providers;
 using Marrow.Services.Store;
 using Marrow.UI.Common;
+using Marrow.UI.Sound;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Theme;
@@ -301,8 +302,52 @@ internal sealed class SmallSwitch : Control
 internal sealed class GeneralSettingsPage : Decorator
 {
     // :310-412 body
-    public GeneralSettingsPage() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:310");
+    public GeneralSettingsPage()
+    {
+        var root = new StackPanel { Spacing = Chrome.SectionSpacing }; Child = root;
+        this.Track(() => AppEnvironment.GetAppModel(this), model =>
+        {
+            var s = model.Settings;
+            Control Switch(Func<bool> read, Action<bool> write) => new SettingsSwitch(new Binding<bool>(read, write));
+            ChromeRow Toggle(string title, string? detail, Func<bool> read, Action<bool> write) => new(title, () => Switch(read, write), detail);
+            StackPanel Rows(params Control[] rows)
+            {
+                var stack = new StackPanel(); for (var i = 0; i < rows.Length; i++) { if (i > 0) stack.Children.Add(new ChromeRowDivider()); stack.Children.Add(rows[i]); } return stack;
+            }
+            root.Children.Add(new TokenActivitySection()); // :314
+            var permission = new Border();
+            permission.Track(() => s.DefaultRuntimeMode, mode => permission.Child = new ChromeRow("Permissions", () => new GlassPickerButton<RuntimeMode>(SwiftEnum<RuntimeMode>.AllCases.Select(x => (x, x.Title)).ToArray(), new Binding<RuntimeMode>(() => s.DefaultRuntimeMode, value => s.DefaultRuntimeMode = value), symbol: x => x.Symbol), mode.Summary)); // :323-325
+            root.Children.Add(new ChromeSection("New threads", () => new ChromeCard(() => Rows(
+                new ChromeRow("Provider and model", () => new Border(), "A new thread follows the one you are in: its provider, model, effort and Hydra pair. With no thread open it starts on the provider you last chose."), // :319-321
+                permission,
+                new ChromeRow("Workspace", () => new ChromeVisualPicker<WorkspaceMode, Control>( // :327-330; Provider.swift:208-213 titles
+                    [(WorkspaceMode.Local, "Local"), (WorkspaceMode.Worktree, "New worktree")],
+                    new Binding<WorkspaceMode>(() => s.DefaultWorkspaceMode, value => s.DefaultWorkspaceMode = value), mode => SwiftImage.SystemName(mode == WorkspaceMode.Local ? "folder" : "arrow.triangle.branch")), "Where a new thread makes its changes")))));
+            var chime = Toggle("Chime when a turn finishes", "A soft chime, whether or not the thread is in view", () => s.ChimeWhenFinished, value => s.ChimeWhenFinished = value); // :358-360
+            var lastChime = s.ChimeWhenFinished;
+            chime.Track(() => s.ChimeWhenFinished, value => { if (value && !lastChime) FinishChime.Play(); lastChime = value; }); // :361-364
+            root.Children.Add(new ChromeSection("Conversation", () => new ChromeCard(() => Rows(
+                Toggle("Show thinking", "The working line opens to the agent's thinking", () => s.ShowReasoning, value => s.ShowReasoning = value), // :336-338
+                Toggle("Concise AI replies", "Built-in guidance for shorter replies, useful code comments, and focused work, including Hydra heads. Changes apply on the next message.", () => s.AntiSlopEnabled, value => s.AntiSlopEnabled = value), // :340-342
+                new ChromeRow("Working line", () => new ChromeVisualPicker<bool, Control>([(true, "Card"), (false, "Line")], new Binding<bool>(() => s.ShowsWorkingCard, value => s.ShowsWorkingCard = value), card => SwiftImage.SystemName(card ? "rectangle.fill" : "minus")), "A card with the turn's progress bar, or a plain line"), // :344-348
+                Toggle("Recent downloads", "The attach button offers recent downloads first", () => s.RecentDownloadsPicker, value => s.RecentDownloadsPicker = value), // :350-352
+                Toggle("Notify when a turn finishes", null, () => s.NotifyWhenFinished, value => s.NotifyWhenFinished = value), // :354-356
+                chime,
+                Toggle("Confirm before deleting threads", null, () => s.ConfirmBeforeDeleting, value => s.ConfirmBeforeDeleting = value), // :366-368
+                Toggle("Continue after a usage limit", "When the provider's limit is spent, the chat waits for the reset and then tells the agent to carry on", () => s.AutoContinueAfterLimit, value => s.AutoContinueAfterLimit = value), // :370-372
+                Toggle("Show a usage panel", "The plan's limits and credits in a floating panel beside every chat, for the model in use or a pair's two; the usage popover's pop-out button switches it on as well, and it keeps the corner it was last dragged to", () => s.ShowsUsagePanel, value => s.ShowsUsagePanel = value))))); // :374-379
+            root.Children.Add(new ChromeSection("Projects", () => new ChromeCard(() => Rows(
+                Toggle("Projects", "Activates every project at once unless explicitly overridden", () => s.ProjectsEnabled, value => s.ProjectsEnabled = value), // :384-386
+                new ChromeRow("Marks", () => new ProjectMarksRow(), "An emoji or symbol for each project, drawn before the thread's name in the activity list and on the project's own row"))))); // :388-390
+            var finish = new Border();
+            finish.Track(() => s.ThreadFinishAction, action => finish.Child = new ChromeRow("Done with a thread", () => new ChromeVisualPicker<ThreadFinishAction, Control>(SwiftEnum<ThreadFinishAction>.AllCases.Select(x => (x, x.Title)).ToArray(), new Binding<ThreadFinishAction>(() => s.ThreadFinishAction, value => s.ThreadFinishAction = value), value => SwiftImage.SystemName(value == ThreadFinishAction.Settle ? "checkmark" : "archivebox")), action.Detail)); // :395-399
+            var settle = Toggle("Sound when settling", "A small note as the thread settles", () => s.SettleSound, value => s.SettleSound = value); // :401-403
+            var lastSettle = s.SettleSound;
+            settle.Track(() => s.SettleSound, value => { if (value && !lastSettle) SettleChime.Play(); lastSettle = value; }); // :404-406
+            settle.Track(() => s.ThreadFinishAction, value => { settle.IsEnabled = value == ThreadFinishAction.Settle; settle.Opacity = value == ThreadFinishAction.Settle ? 1 : 0.5; }); // :408-409
+            root.Children.Add(new ChromeSection("Finished threads", () => new ChromeCard(() => Rows(finish, settle)))); // :393-411
+        });
+    }
 }
 
 /// <summary>:417-458 <c>private struct AppearanceSettingsPage: View</c>.</summary>
@@ -333,8 +378,11 @@ internal sealed class BackdropOpacitySlider : Decorator
 internal sealed class ProvidersRefreshButton : Decorator
 {
     // :569-579 body
-    public ProvidersRefreshButton() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:569");
+    public ProvidersRefreshButton()
+    {
+        var holder = new Border(); Child = new ChromeCapsule(() => holder); // :569-570
+        this.Track(() => AppEnvironment.GetAppModel(this).Providers.IsRefreshing, refreshing => holder.Child = new ChromeIconButton("arrow.clockwise", refreshing ? "Checking providers\u2026" : "Check providers again", () => MainActor.Spawn(async () => await AppEnvironment.GetAppModel(this).Providers.RefreshEverything()), isEnabled: !refreshing)); // :571-579
+    }
 }
 
 /// <summary>:585-615 <c>private struct ProvidersSettingsPage: View</c>.</summary>
@@ -553,8 +601,33 @@ internal sealed class CreditLink : Decorator
 internal sealed class ProjectMarksRow : Decorator
 {
     // :1153-1170 body
-    public ProjectMarksRow() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Settings/SettingsView.swift:1153");
+    public ProjectMarksRow()
+    {
+        var presented = new MarksState();
+        var button = PlainControls.Button(new TextBlock { Text = "Edit" }, () => presented.IsPresented = true); // :1131-1133
+        ToolTip.SetTip(button, "Choose a mark for each project"); // :1135
+        this.Track(() => AppEnvironment.GetAppModel(this).Projects.Count, count => button.IsEnabled = count > 0); // :1134
+        var popup = PlainControls.Popover(button, new Binding<bool>(() => presented.IsPresented, value => presented.IsPresented = value), () =>
+        {
+            var model = AppEnvironment.GetAppModel(this);
+            var list = new StackPanel { Width = 400 }; // :1137,1145
+            for (var i = 0; i < model.Projects.Count; i++)
+            {
+                var project = model.Projects[i];
+                if (i > 0) list.Children.Add(new ChromeRowDivider()); // :1139
+                list.Children.Add(new ChromeRow(project.Name, () => new ProjectIconButton(new Binding<ProjectIcon?>(() => model.Project(project.Id)?.Icon, value => model.UpdateProject(project.Id, old => old with { Icon = value }))), project.Path)); // :1140-1142,1149-1153
+            }
+            return list;
+        });
+        Child = new Panel { Children = { button, popup } }; // :1136
+    }
+
+    // :1128
+    private sealed class MarksState : MainActorModel
+    {
+        private bool isPresented;
+        public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+    }
 }
 
 /// <summary>:1182-1232 <c>private struct ThemePickerButton: View</c>: the theme menu.</summary>

@@ -148,8 +148,10 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
         var edit = Button(view, "Edit"); Assert.False(edit.IsEnabled); Assert.Equal("Choose a mark for each project", ToolTip.GetTip(edit));
-        model.AddProject(SwiftURL.FileURLWithPath(h.NewFolder("One"))); model.AddProject(SwiftURL.FileURLWithPath(h.NewFolder("Two"))); Sync(); Assert.True(edit.IsEnabled); Click(edit); Sync();
-        var popup = presenter.Calls.Last(x => x.Presented).Popup; var list = Assert.IsType<StackPanel>(popup.Child); Assert.Equal(400, list.Width);
+        model.AddProject(SwiftURL.FileURLWithPath("/" + h.NewFolder("One").Replace('\\', '/'))); model.AddProject(SwiftURL.FileURLWithPath("/" + h.NewFolder("Two").Replace('\\', '/'))); Sync(); Assert.True(edit.IsEnabled); Click(edit); Sync();
+        var popup = presenter.Calls.Last(x => x.Presented).Popup;
+        ((EventHandler?)typeof(Avalonia.Controls.Primitives.Popup).GetField("Opened", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup))?.Invoke(popup, EventArgs.Empty);
+        var list = Assert.IsType<StackPanel>(popup.Child); Assert.Equal(400, list.Width);
         Assert.Equal(model.Projects.Select(x => x.Name), Nodes<ChromeRow>(list).Select(x => Text(x).First())); Assert.Single(Nodes<ChromeRowDivider>(list)); Assert.Equal(2, Nodes<ProjectIconButton>(list).Length);
     });
 
