@@ -1216,7 +1216,7 @@ public sealed class AboutSoftwareUpdateSection : Decorator
         return button;
     }
 
-    // :780-790 releaseDetail(_:); unchanged between B2 and B3 (ED-198: the Swift call was already
+    // :781-791 releaseDetail(_:); unchanged between B2 and B3 (ED-198: the Swift call was already
     // ByteCountFormatStyle(style: .file) at B2, only this port's own FileByteCount call site was wrong).
     private static string ReleaseDetail(AvailableUpdate update)
     {
