@@ -4304,6 +4304,39 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     // ==== Part 5 of 8: PR-SIDEBAR-111, -113 to -120, -123, -125, -154, -155, -159 ====
+    //
+    // Records: PR-SIDEBAR-111, -113, -114, -115, -116, -117, -118, -119, -120, -123, -125, -154, -155, -159 (14 of
+    // this part's 24). PR-SIDEBAR-121, -122, -126, -127, -128, -129, -130, -133, -134, -135 are the STOP below.
+    //
+    // STOP App.Views.Sidebar.SidebarView #7
+    // Kind: missing dependency
+    // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:1436-1548 HeadCardsRow's own constructor;
+    // :1081-1270 ProjectRow's own constructor (and ProjectPairMenuItems' caller); :1820-1833, :1933-1978
+    // SidebarThreadRow.windowFrame/glide (B3 52bc792)
+    // Requirements: PR-SIDEBAR-121, PR-SIDEBAR-122 (HeadCardsRow's glyph buttons, hover, selection and the card's own
+    // animation/fold); PR-SIDEBAR-126, PR-SIDEBAR-127, PR-SIDEBAR-128, PR-SIDEBAR-129, PR-SIDEBAR-130,
+    // PR-SIDEBAR-133 (ProjectRow's click-to-expand, icon, hover accessory, opacity, context menu and Hydra-pair
+    // submenu); PR-SIDEBAR-134, PR-SIDEBAR-135 (the row's frame report and the reopen/settle glide it launches)
+    // What is unclear or missing: all three views' own constructors stay MARROW_STUB (the file's own header:
+    // "ProjectRow, ActivityHeader and SettledHeader (parts 5 to 8)"; ActivityHeader and SettledHeader are now built
+    // this part, ProjectRow and HeadCardsRow are not). HeadCardsRow needs a geometry-observed width (PR-SIDEBAR-117's
+    // and PR-SIDEBAR-118's PerRow/RowGap are proven as static pieces below, but the live SizeChanged wiring, the
+    // per-glyph hover scale and selection ring, and the card's own opacity/animation are still unassembled).
+    // ProjectRow's "Remove project" item (PR-SIDEBAR-130) needs a confirmation popover while confirmBeforeDeleting is
+    // on (OD-0008 A9, OD-0012 E2 wording); SidebarMenuRequests carries the identical Rename/Delete precedent (part
+    // 4) but no ProjectRemoval request field yet, and building the popover's own UI is a SidebarView-level concern
+    // (like the DeleteThreadPopover this file's part 4 built), not ProjectRow's own. SidebarThreadRow.windowFrame and
+    // .glide are part of that row's own still-MARROW_STUB constructor (STOP #7's own note in SidebarView.cs); PR-
+    // SIDEBAR-135's two offscreen renders go through RowGlideAnimator (a separate file/unit, RowGlide.cs), reachable
+    // only once the row itself calls it.
+    // Readings or options: none attempted; a partial assembly of any of the three constructors risked an untested or
+    // wrong behaviour standing in for a hard feature, which the contract forbids more than an honest gap does.
+    // Needed to proceed: HeadCardsRow's and ProjectRow's own constructor assembly (this unit, a later part); for
+    // PR-SIDEBAR-130, a request field on SidebarMenuRequests plus the confirmation popover's own SidebarView-level
+    // wiring, named by an owner or engineering decision if the shape is not already settled elsewhere.
+    // Done so far: HeadCardsRow.Usable, PerRow, RowGap, Chunk, Capped, Visible, CardRows and ChevronTooltip are
+    // proven directly (PR-SIDEBAR-117, -118, -119, -120 below); nothing is claimed for PR-SIDEBAR-121, -122, -126,
+    // -127, -128, -129, -130, -133, -134 or -135, and no test names them.
 
     private static IReadOnlyList<object> Enumerate(object valueList) => ((IEnumerable)valueList).Cast<object>().ToList();
 

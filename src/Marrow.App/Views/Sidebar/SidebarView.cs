@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
@@ -63,10 +64,32 @@ using Marrow.UI.Sound;
 // of that row's body. renamePopover (:239-252) stays MARROW_STUB: STOP #6 (SidebarViewTests.cs), RenameThreadPopover's
 // `.textFieldStyle(.roundedBorder)` and `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` have no Windows
 // chrome or governing decision yet.
-// Still MARROW_STUB and named where they stand: RenameThreadPopover and renamePopover (STOP #6 above); the row
-// views' remaining assembly (SidebarThreadRow's and SidebarHelperRow's own constructors, ThreadRow, HelperItemView),
-// the head-card and stub arms of itemView, ProjectRow, ActivityHeader and SettledHeader (parts 5 to 8), and the
-// empty-needle case of the search match (STOP #1 in SidebarViewTests.cs).
+// Part 5 of 8 adds: HelperStubRow in full (:1552-1618), reusing HelperConnector.Dash (now internal) and
+// HelperConnectorShape as :1583 reuses HelperConnector.style directly; HeadCardsRow.Usable, PerRow, RowGap, Chunk,
+// Capped, Visible, CardRows and ChevronTooltip (:1450-1461, :1442-1443, :1526, :1545-1547) as directly testable
+// static pieces (the constructor itself, its glyph buttons and its context menus stay MARROW_STUB: STOP #7 below);
+// SidebarThreadRow.BuildFoldOverlay (:1804-1814) and .RowEquals (:1882-1891), and SidebarHelperRow.RowEquals
+// (:1413-1420), each a directly testable static piece the row's own constructor (still MARROW_STUB) will call;
+// ActivityHeader (:2345-2358) and SettledHeader (:2363-2406) in full.
+// STOP App.Views.Sidebar.SidebarView #7 (this unit; full note in SidebarViewTests.cs's own header)
+// Kind: missing dependency
+// Requirements: PR-SIDEBAR-121, PR-SIDEBAR-122 (HeadCardsRow's own constructor); PR-SIDEBAR-126 to PR-SIDEBAR-130,
+// PR-SIDEBAR-133 (ProjectRow's own constructor); PR-SIDEBAR-134, PR-SIDEBAR-135 (SidebarThreadRow's windowFrame/glide)
+// What is unclear or missing: these six records' behaviour lives inside a constructor this and earlier parts leave
+// MARROW_STUB (HeadCardsRow, ProjectRow, SidebarThreadRow itself), each needing collaborators beyond this part's
+// scope (HeadCardsRow: the geometry-observed width and the per-glyph hover/selection wiring; ProjectRow: a project
+// removal confirmation popover this tree has no precedent for, and the Hydra-pair context submenu; SidebarThreadRow:
+// RowGlideAnimator's offscreen bitmap rendering plumbed through the row's own body). Attempting a partial assembly
+// risked a wrong or untested behaviour rather than an honest gap.
+// Needed to proceed: the row assembly itself (a later part of this unit, per the file's own "parts 5 to 8" plan
+// below) and, for ProjectRow's "Remove project" confirmation, an owner or engineering decision naming the request
+// mechanism (SidebarMenuRequests already has the Rename/Delete precedent to extend).
+// Done so far: nothing claimed for these six records; no test names them.
+// Still MARROW_STUB and named where they stand: RenameThreadPopover and renamePopover (STOP #6 above); HeadCardsRow's
+// and ProjectRow's own constructors and SidebarThreadRow's windowFrame/glide (STOP #7 above); the row views'
+// remaining assembly (SidebarThreadRow's and SidebarHelperRow's own constructors, ThreadRow, HelperItemView), the
+// head-card and stub arms of itemView (parts 6 to 8), and the empty-needle case of the search match (STOP #1 in
+// SidebarViewTests.cs).
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
 // with `Control Body(Control content)`; a Shape is a sealed record with `Geometry Path(Rect in)`; a caseless enum is a
 // static class; an enum with associated values is an abstract record (R-ENUM-2), an unlabelled payload named Value; a
@@ -1765,6 +1788,15 @@ internal sealed class SidebarHelperRow : Decorator
         content.HorizontalAlignment = HorizontalAlignment.Right;
         return content;
     }
+
+    // :1413-1420 static func == (lhs:rhs:) -> Bool. Part 5. PR-SIDEBAR-155.
+    internal static bool RowEquals(ChatThread leftSnapshot, bool leftIsLast, ChatThread rightSnapshot, bool rightIsLast) =>
+        leftSnapshot.Id == rightSnapshot.Id // :1414
+        && SwiftString.Equal(leftSnapshot.Title, rightSnapshot.Title) // :1415
+        && leftSnapshot.UpdatedAt == rightSnapshot.UpdatedAt // :1416
+        && leftSnapshot.IsPinned == rightSnapshot.IsPinned // :1417
+        && leftSnapshot.IsSettled == rightSnapshot.IsSettled // :1418
+        && leftIsLast == rightIsLast; // :1419
 }
 
 /// <summary>:1427-1548 <c>private struct HeadCardsRow: View</c>: the parent's Hydra heads as glyph cards.</summary>
@@ -1778,9 +1810,51 @@ internal sealed class HeadCardsRow : Decorator
     public HeadCardsRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> headSnapshots, SidebarMenuRequests menuRequests, Action onFold) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1440");
 
-    // :1545-1547 private static func chunk(_ heads: [ChatThread], by size: Int) -> [[ChatThread]]
-    private static ValueList<ValueList<ChatThread>> Chunk(IReadOnlyList<ChatThread> heads, long by) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1545");
+    // :1545-1547 private static func chunk(_ heads: [ChatThread], by size: Int) -> [[ChatThread]]. Part 5. PR-SIDEBAR-119.
+    private static ValueList<ValueList<ChatThread>> Chunk(IReadOnlyList<ChatThread> heads, long by)
+    {
+        var size = checked((int)by);
+        var rows = new List<ValueList<ChatThread>>();
+        for (var start = 0; start < heads.Count; start += size) // :1546 stride(from: 0, to: heads.count, by: size)
+            rows.Add(new ValueList<ChatThread>(heads.Skip(start).Take(size).ToList())); // :1546 Array(heads[$0 ..< min($0+size, heads.count)])
+        return new ValueList<ValueList<ChatThread>>(rows);
+    }
+
+    // :1450 let cardInner = ...; let usable = cardInner - headBadgeOverhang. Part 5. PR-SIDEBAR-117, PR-SIDEBAR-118.
+    private static double Usable(double width) =>
+        width - ThreadRowMetrics.ConnectorWidth - 2 * ThreadRowMetrics.HeadCardPadding - ThreadRowMetrics.HeadBadgeOverhang;
+
+    // :1451 let perRow = width == 0 ? 7 : max(1, Int((usable + headGlyphPitch - headGlyphSize) / headGlyphPitch)).
+    // Part 5. PR-SIDEBAR-117: seven glyphs before the row is measured, otherwise the floor of the fit, clamped to at
+    // least one. `(long)` on a non-negative double truncates toward zero exactly as Swift's `Int(...)` does.
+    internal static long PerRow(double width)
+    {
+        if (width == 0) return 7; // :1451
+        return Math.Max(1, (long)((Usable(width) + ThreadRowMetrics.HeadGlyphPitch - ThreadRowMetrics.HeadGlyphSize) / ThreadRowMetrics.HeadGlyphPitch));
+    }
+
+    // :1456-1458 let tightGap = ...; let rowGap = perRow > 1 && width > 0 ? max(tightGap, ...) : tightGap. Part 5.
+    // PR-SIDEBAR-118.
+    internal static double RowGap(double width, long perRow)
+    {
+        var tightGap = ThreadRowMetrics.HeadGlyphPitch - ThreadRowMetrics.HeadGlyphSize; // :1456, 22 - 14 = 8
+        if (!(perRow > 1 && width > 0)) return tightGap; // :1458
+        return Math.Max(tightGap, (Usable(width) - perRow * ThreadRowMetrics.HeadGlyphSize) / (perRow - 1)); // :1457
+    }
+
+    // :1442-1443 let capped = heads.count > 12; let visible = showsAllHeads ? heads : Array(heads.prefix(12)). Part 5.
+    // PR-SIDEBAR-119.
+    internal static bool Capped(long headCount) => headCount > 12; // :1442
+
+    internal static ValueList<ChatThread> Visible(IReadOnlyList<ChatThread> heads, bool showsAllHeads) => // :1443
+        showsAllHeads ? new ValueList<ChatThread>(heads) : new ValueList<ChatThread>(heads.Take(12).ToList());
+
+    // :1461 let cardRows = rows.count + (capped ? 1 : 0). Part 5. PR-SIDEBAR-119.
+    internal static long CardRows(long rowCount, bool capped) => rowCount + (capped ? 1 : 0);
+
+    // :1526 .help(showsAllHeads ? "Show fewer heads" : "Show all \(heads.count) heads"). Part 5. PR-SIDEBAR-119.
+    internal static string ChevronTooltip(bool showsAllHeads, long headCount) =>
+        showsAllHeads ? "Show fewer heads" : $"Show all {headCount} heads";
 }
 
 /// <summary>:1552-1618 <c>private struct HelperStubRow: View</c>: a parent's folded helpers as one line.</summary>
@@ -1789,9 +1863,105 @@ internal sealed class HelperStubRow : Decorator
     /// <param name="parentSnapshot">:1555 <c>let parentSnapshot: ChatThread</c>.</param>
     /// <param name="helperSnapshots">:1558 <c>let helperSnapshots: [ChatThread]</c>.</param>
     /// <param name="action">:1559 <c>let action: () -> Void</c>.</param>
-    // :1568-1617 body
-    public HelperStubRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> helperSnapshots, Action action) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1568");
+    // :1568-1617 body. Part 5. PR-SIDEBAR-113, PR-SIDEBAR-114, PR-SIDEBAR-115.
+    private AppModel Model => AppEnvironment.GetAppModel(this); // :1553 @Environment(AppModel.self) private var model
+
+    public HelperStubRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> helperSnapshots, Action action)
+    {
+        var state = new ViewState();
+
+        var connector = new Avalonia.Controls.Shapes.Path // :1583-1584 HelperConnectorShape(endsHere: true).stroke(...)
+        {
+            StrokeThickness = 1, // :1642 (HelperConnector.style) lineWidth: 1
+            StrokeLineCap = PenLineCap.Round, // :1642 lineCap: .round
+            StrokeDashArray = new Avalonia.Collections.AvaloniaList<double>(HelperConnector.Dash), // :1642 dash: [0.1, 3.6]
+            Width = ThreadRowMetrics.ConnectorWidth, // :1584 .frame(width: connectorWidth, height: helperHeight)
+            Height = ThreadRowMetrics.HelperHeight,
+        };
+        connector.SizeChanged += (_, e) => connector.Data = new HelperConnectorShape(true).Path(new Rect(e.NewSize)); // :1583 endsHere: true
+
+        var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(8, weight: SwiftFont.Weight.Bold)); // :1586-1587
+        var label = new TextBlock { TextWrapping = TextWrapping.NoWrap }; // :1588-1589
+        SwiftFont.Subheadline.Apply(label); // :1590
+
+        var spinner = new MiniSpinner(cellSize: 2.4) { Margin = new Thickness(0, 0, 4, 0) }; // :1592-1594
+        var leading = new StackPanel // :1585 HStack(spacing: 5) { chevron; label; Spacer(minLength: 4); [spinner] }
+        {
+            Orientation = Orientation.Horizontal,
+            Spacing = 5,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            Children = { chevron, label },
+        };
+        var contentRow = new DockPanel { LastChildFill = true, Children = { leading } }; // spinner docks Right when working
+
+        var shape = new Border // :1580, :1605-1606 shape.fill(...); .contentShape(shape)
+        {
+            Padding = new Thickness(6, 0, Chrome.RowHorizontalPadding, 0), // :1600-1601 padding(.leading, 6) / (.trailing, rowHorizontalPadding)
+            Height = ThreadRowMetrics.HelperHeight, // :1602
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :1603 frame(maxWidth: .infinity, alignment: .leading)
+            Background = Brushes.Transparent,
+            Child = contentRow,
+        }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous); // :1580 RoundedRectangle(cornerRadius:, style: .continuous)
+        var fill = new AnimatedColor(shape);
+        shape.Background = fill.Brush;
+
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0, Children = { connector, shape } }; // :1581 HStack(spacing: 0)
+        shape.VerticalAlignment = VerticalAlignment.Stretch;
+
+        var button = PlainControls.Button(row, action); // :1582 Button(action: action)
+        button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :1611-1613 .onHover
+
+        button.Track(() =>
+        {
+            var helpers = helperSnapshots.Select(helper => Model.Thread(helper.Id) ?? helper).ToList(); // :1569 model.thread($0.id) ?? $0
+            var count = helpers.Count; // :1570
+            var working = helpers.Any(helper => // :1571-1574
+            {
+                var runtime = Model.ExistingRuntime(helper.Id);
+                return runtime?.IsRunning == true || runtime?.IsHydraMerging == true;
+            });
+            // :1577-1578 allSatisfy on an empty array is true (LINQ .All() agrees), so a helper-less set (which
+            // cannot reach this row in practice) would read "head"; reproduced as found (PR-SIDEBAR-113).
+            var noun = helpers.All(helper => helper.IsHydraHead) ? "head" : "helper";
+            var isHidden = RowGlideAnimator.Shared.Current.IsHiding(parentSnapshot.Id); // :1580, :1617
+            return (Count: count, Working: working, Noun: noun, IsHidden: isHidden, state.IsHovering);
+        }, value =>
+        {
+            var (count, working, noun, isHidden, hovering) = value;
+            label.Text = count == 1 ? $"1 {noun}" : $"{count} {noun}s"; // :1591
+            connector.Stroke = HelperConnector.Color(hovering).Brush(connector); // :1583 HelperConnector.color(hovering:)
+            var foreground = Chrome.SecondaryText.Opacity(hovering ? 1 : 0.85); // :1596
+            chevron.ForegroundStyle(foreground);
+            label.Foreground = foreground.Brush(label);
+            fill.Set(hovering ? Chrome.Overlay(0.06) : SwiftColor.Clear, Transaction.Current); // :1607
+            if (working) // :1592-1594
+            {
+                if (!contentRow.Children.Contains(spinner))
+                {
+                    DockPanel.SetDock(spinner, Dock.Right);
+                    contentRow.Children.Add(spinner);
+                }
+            }
+            else
+            {
+                contentRow.Children.Remove(spinner);
+            }
+            var tip = count == 1 ? $"Show the {noun}" : $"Show {count} {noun}s"; // :1615
+            ToolTip.SetTip(button, tip);
+            var a11y = count == 1 ? $"1 folded {noun}" : $"{count} folded {noun}s"; // :1616
+            AutomationProperties.SetName(button, a11y);
+            button.Opacity = isHidden ? 0 : 1; // :1617
+        });
+        Child = button;
+    }
+
+    // :1561 @State private var isHovering = false
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isHovering;
+
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+    }
 }
 
 /// <summary>:1622-1632 <c>private struct RidesWithDraggedParent: ViewModifier</c>.</summary>
@@ -1815,8 +1985,10 @@ internal sealed record RidesWithDraggedParent(Guid? ParentID, RowDrag<Guid> Drag
 /// Part 4. PR-SIDEBAR-110.</summary>
 internal sealed class HelperConnector : Decorator
 {
-    // :1642 static let style = StrokeStyle(lineWidth: 1, lineCap: .round, dash: [0.1, 3.6])
-    private static readonly double[] Dash = [0.1, 3.6];
+    // :1642 static let style = StrokeStyle(lineWidth: 1, lineCap: .round, dash: [0.1, 3.6]). Internal: HelperStubRow
+    // (part 5) draws the identical dashed stroke on its own ending connector and reuses this constant, as :1583 in
+    // the Swift reuses `HelperConnector.style` directly.
+    internal static readonly double[] Dash = [0.1, 3.6];
 
     /// <param name="endsHere">:1637 <c>let endsHere: Bool</c>.</param>
     /// <param name="action">:1638 <c>let action: () -> Void</c>.</param>
@@ -2078,6 +2250,47 @@ internal sealed class SidebarThreadRow : Decorator
     {
         if (of is not { } runtime || !runtime.IsHydraMerging) return null; // :1982
         return (runtime.HydraMergeStage ?? "Merging") + "\U00002026"; // :1983 U+2026 HORIZONTAL ELLIPSIS
+    }
+
+    // :1804-1814 the fold overlay, 46 pt from the trailing edge: a chevron button that toggles the fold, drawn only
+    // while showsFold and onToggleFold is set. `fold(_:)` (SidebarView.swift:487-490, the caller's own concern,
+    // outside this row) is what wraps the toggle in Chrome.panelSlide; onToggleFold arrives here already prepared,
+    // as archiveAction and the other collaborators of BuildTrailingOverlay above do. Part 5. PR-SIDEBAR-116.
+    private static Control? BuildFoldOverlay(bool showsFold, Action? onToggleFold, bool folded)
+    {
+        if (!showsFold || onToggleFold is not { } toggle) return null; // :1805
+        var icon = new RowAccessoryIcon(folded ? "chevron.right" : "chevron.down"); // :1808, OD-0010 Lucide chevron-right/chevron-down
+        var button = PlainControls.Button(icon, toggle); // :1807, :1810 .buttonStyle(.plain)
+        button.HorizontalAlignment = HorizontalAlignment.Right; // :1804 .overlay(alignment: .trailing)
+        button.Margin = new Thickness(0, 0, ThreadRowMetrics.FoldInset, 0); // :1811, 46
+        var tip = folded ? "Show helpers" : "Hide helpers"; // :1812
+        ToolTip.SetTip(button, tip);
+        AutomationProperties.SetName(button, tip); // :1813
+        return button;
+    }
+
+    // :1882-1891 static func == (lhs:rhs:) -> Bool: value inputs only (closures and the frame holder are excluded),
+    // so the parent's re-evaluation skips a row whose thread did not change; live state still reaches the row
+    // through the model's per-thread cells. Titles compare by Swift String equality (R-STR rules), not ordinally.
+    // Part 5. PR-SIDEBAR-155.
+    internal static bool RowEquals(
+        ChatThread leftSnapshot, string? leftProjectName, bool leftIsDragged, bool leftHasOnToggleFold,
+        ChatThread rightSnapshot, string? rightProjectName, bool rightIsDragged, bool rightHasOnToggleFold) =>
+        leftSnapshot.Id == rightSnapshot.Id // :1883
+        && SwiftString.Equal(leftSnapshot.Title, rightSnapshot.Title) // :1884
+        && leftSnapshot.UpdatedAt == rightSnapshot.UpdatedAt // :1885
+        && leftSnapshot.IsPinned == rightSnapshot.IsPinned // :1886
+        && leftSnapshot.IsSettled == rightSnapshot.IsSettled // :1887
+        && NullableStringEqual(leftProjectName, rightProjectName) // :1888
+        && leftIsDragged == rightIsDragged // :1889
+        && leftHasOnToggleFold == rightHasOnToggleFold; // :1890, (lhs.onToggleFold != nil) == (rhs.onToggleFold != nil)
+
+    // :1888's `String?` comparison: Swift's Optional `==` is nil-safe Equatable, reproduced explicitly since
+    // SwiftString.Equal itself takes non-nullable strings. Part 5. PR-SIDEBAR-155.
+    private static bool NullableStringEqual(string? left, string? right)
+    {
+        if (left is null || right is null) return left is null && right is null;
+        return SwiftString.Equal(left, right);
     }
 
     // MARK: Settling (part 4)
@@ -2687,9 +2900,16 @@ internal sealed class ActivityHeader : Decorator
 {
     /// <param name="title">:2346 <c>let title: String</c>.</param>
     /// <param name="isFirst">:2347 <c>let isFirst: Bool</c>.</param>
-    // :2349-2357 body
-    public ActivityHeader(string title, bool isFirst) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2349");
+    // :2349-2357 body. Part 5. PR-SIDEBAR-125.
+    public ActivityHeader(string title, bool isFirst)
+    {
+        var text = new TextBlock { Text = title, TextWrapping = TextWrapping.NoWrap }; // :2350
+        SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(text); // :2351
+        text.Foreground = Chrome.SecondaryText.Brush(text); // :2352
+        text.Margin = new Thickness(Chrome.RowHorizontalPadding, isFirst ? 2 : 14, Chrome.RowHorizontalPadding, 4); // :2353-2355
+        text.HorizontalAlignment = HorizontalAlignment.Stretch; // :2356 .frame(maxWidth: .infinity, alignment: .leading)
+        Child = text;
+    }
 }
 
 /// <summary>:2363-2406 <c>private struct SettledHeader: View</c>.</summary>
@@ -2697,9 +2917,49 @@ internal sealed class SettledHeader : Decorator
 {
     /// <param name="count">:2365 <c>let count: Int</c>.</param>
     /// <param name="isFirst">:2366 <c>let isFirst: Bool</c>.</param>
-    // :2368-2405 body
-    public SettledHeader(long count, bool isFirst) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2368");
+    // :2368-2405 body. Part 5. PR-SIDEBAR-123.
+    private AppModel Model => AppEnvironment.GetAppModel(this); // :2364 @Environment(AppModel.self) private var model
+
+    public SettledHeader(long count, bool isFirst)
+    {
+        var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Semibold)); // :2376-2377, OD-0010 Lucide chevron-right
+        chevron.RenderTransformOrigin = RelativePoint.Center;
+        chevron.ForegroundStyle(Chrome.SecondaryText); // :2392 cascades to every child of the HStack
+
+        var title = new TextBlock { Text = "Settled" }; // :2380
+        SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(title); // :2381
+        title.Foreground = Chrome.SecondaryText.Brush(title); // :2392
+
+        var countText = new TextBlock { Text = count.ToString(CultureInfo.InvariantCulture) }; // :2384, a bare decimal, no grouping
+        SwiftFont.Callout.MonospacedDigit().Apply(countText); // :2385-2386
+        countText.Opacity = 0.8; // :2387
+        countText.Foreground = Chrome.SecondaryText.Brush(countText); // :2392
+
+        // :2375 HStack(alignment: .firstTextBaseline, spacing: 5). Bottom alignment approximates the mixed-size
+        // baseline (chevron 10 pt, title/count 12 pt); no record measures the sub-pixel baseline offset.
+        var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Children = { chevron, title, countText } };
+        foreach (var part in header.Children) if (part is Layoutable layoutable) layoutable.VerticalAlignment = VerticalAlignment.Bottom;
+
+        var content = new Border // :2393-2397
+        {
+            Padding = new Thickness(Chrome.RowHorizontalPadding, isFirst ? 2 : 14, Chrome.RowHorizontalPadding, 4), // :2393-2395
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :2396 .frame(maxWidth: .infinity, alignment: .leading)
+            Background = Brushes.Transparent, // :2397 .contentShape(.rect)
+            Child = header,
+        };
+
+        var button = PlainControls.Button(content, () => // :2370-2373
+            Transaction.WithAnimation(Chrome.PanelSlide, () => Model.Settings.SettledCollapsed = !Model.Settings.SettledCollapsed));
+        button.HorizontalAlignment = HorizontalAlignment.Stretch;
+        button.Track(() => Model.Settings.SettledCollapsed, collapsed => // :2369
+        {
+            chevron.RenderTransform = new RotateTransform(collapsed ? 0 : 90); // :2378-2379
+            ToolTip.SetTip(button, collapsed ? "Show settled threads" : "Hide settled threads"); // :2401
+            AutomationProperties.SetName(button, $"Settled, {count} threads"); // :2402, always the plural "threads"
+            AutomationProperties.SetItemStatus(button, collapsed ? "Collapsed" : "Expanded"); // :2403, as ActivityViewToggle maps .accessibilityValue
+        });
+        Child = button;
+    }
 }
 
 /// <summary>:2408-2428 <c>private struct ActivityStatus: View</c>.</summary>
