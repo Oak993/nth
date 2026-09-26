@@ -455,3 +455,48 @@ public sealed class EffortSliderTests(HeadlessSession headless)
 // Done so far: ModelCatalog, EffortPalette.Title, EffortBrand/EffortBrandExtensions, EffortPairBrand, TrackLook's
 // computed properties, and TrackEffect.Traits/TraitCache/Random/EdgeFade implemented and tested above (16/16
 // focused tests, including HydraFusedPairIconTests.cs's own 0-stub, complete unit tested separately).
+
+// STOP App.Views.Composer.EffortSlider #2 (Claude Sonnet 5, 2026-09-26)
+// Kind: scope handed off, not a blocker - the packet's remaining surface is genuinely one of the larger UI units
+// (3 parts, ~40 more records: PR-COMPOSER-106-114, 116-118, 121-128, 132-133, 135-138 of part1.md alone, plus
+// every record in part2.md/part3.md) and was not attempted whole in this pass; this STOP records what this pass
+// added so the next one does not re-derive it, and names exactly what is still open.
+// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift (whole file, :1-1347)
+// Requirements done this pass: PR-COMPOSER-115 (EffortPairLook's init and caption, :492-503), PR-COMPOSER-119
+// (FastModeButton, :659-683) and PR-COMPOSER-120 (RoundIconButton, :685-708). Each is a real Avalonia Decorator
+// (not a data-only helper): FastModeButton and RoundIconButton are built on the same Button/Ellipse/AnimatedColor/
+// SwiftImage/Track idioms already established elsewhere in this codebase (Chrome.cs's ChromeIconButton/
+// ChromeCircleButton, DownloadsPopover.cs's hover-plate pattern, HydraSettingsPage.cs's tracked icon swap), driven
+// through real Avalonia headless input (window.MouseMove/MouseDown/MouseUp) rather than calling private members
+// directly. 11 new tests (4 EffortPairLook, 3 RoundIconButton, 4 FastModeButton), tested-first: confirmed red
+// against the MARROW_STUB skeleton (11 failed with NotImplementedException, the pre-existing 13 unaffected), then
+// implemented to green twice. Also fixed a latent one-class-per-test-file violation this pass would otherwise have
+// introduced (a MainActorModel-backed bool box needed so a bound Binding<bool> actually notifies
+// ObservationTracking on write in a test - a plain closure over a local variable never does) by giving it its own
+// fixture file, tests/Marrow.App.Tests/Fixtures/ObservableBoolBox.cs, instead of nesting it in this test class.
+// What is unclear or missing: nothing about the remaining scope; PR-COMPOSER-121 (reset) and PR-COMPOSER-124
+// (remember) are pure AppModel/AppSettings logic with no rendering (AppSettings.SetPreference/Remember,
+// ProviderRegistry.Model already exist and are exercised elsewhere), so they are a natural, low-risk next slice
+// of ModelEffortPanel even before its full popover body - but ModelEffortPanel's constructor still throws
+// MARROW_STUB, so they were left alone this pass rather than half-adding private-turned-internal methods to a
+// class whose own body does not exist yet.
+// Readings or options: while running the full Marrow.App.Tests suite as a regression check (twice, once against
+// the stub and once against this pass's implementation), two unrelated pre-existing failures were observed and
+// are NOT this unit's to fix: Marrow.App.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_
+// decision_and_every_id_is_well_formed (complains about HydraPanelTests.WireDragHandle_doc_no_longer_claim, a
+// file this unit never touched), and UpdateCheckerSecondTests.A_background_check_that_finds_a_newer_version_
+// shows_exactly_one_toast_with_the_fixed_strings, which is a timing flake (failed once in the full 1654-test run,
+// passed cleanly when rerun alone).
+// Needed to proceed on the rest of EffortSlider: implementation of ModelEffortButton (the composer chip,
+// PR-COMPOSER-106-108), ModelEffortPanel (the popover cross-fade and its choose/reset/remember bodies,
+// PR-COMPOSER-109, 121, 124), EffortSliderCard (the title/colour/layout body, PR-COMPOSER-110-114, 116-118),
+// EffortSlider itself (the drag/snap/accessibility body and its TrackLook-driven fill, PR-COMPOSER-122-123,
+// 125-128), TrackEffect's own render body and its five draw methods (particles, streaks, bolts, sheen, fusion;
+// PR-COMPOSER-132-133, 135-138), and every record in part2.md (the model list, its rows, the Hydra pairs section)
+// and part3.md not yet covered. Recommend taking EffortSliderCard's pure logic (title/isMaxEffort/isFast/
+// titleStyle, PR-COMPOSER-110/112/113) and ModelEffortPanel's reset/remember (121/124) next, since they need no
+// new rendering idiom beyond what this pass and FastModeButton/RoundIconButton already established, before
+// tackling TrackEffect's drawn effects or the model list's own rows.
+// Done so far (this pass, in addition to STOP #1's list above): EffortPairLook, FastModeButton and RoundIconButton
+// implemented and tested above (24/24 tests in this file green twice; 0 warnings, 0 errors across the whole
+// solution build).
