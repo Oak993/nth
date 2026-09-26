@@ -1,3 +1,4 @@
+using System.Reflection;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Testing;
@@ -24,6 +25,20 @@ public sealed class PendingRepliesTests
     {
         Assert.True(task.IsCompletedSuccessfully, "the task did not resolve");
         return task.Result;
+    }
+
+    // Review finding (lane L1k, CONFIRMED): an unconstrained `TValue? timeoutValue = default` only has true
+    // Optional semantics (able to tell "no value given" from "the type's own zero value") when TValue is a
+    // reference type, so `timeoutValue is { } value` at :24 would be unconditionally true for a value-type
+    // TValue and silently resolve instead of throwing CancellationError, contradicting :24-28 and
+    // PR-PROVACP-164. TValue is constrained to `class` (matching every real and planned caller, all
+    // PendingReplies<JSONValue>) so that trap cannot compile; this test locks that constraint in.
+    [Fact]
+    [Trait("Req", "PR-PROVACP-164")] // Core/Support/PendingReplies.swift:24-28
+    public void TValue_is_constrained_to_reference_types_so_a_missing_timeoutValue_cannot_be_confused_with_a_zero_value()
+    {
+        var parameter = typeof(PendingReplies<>).GetGenericArguments()[0];
+        Assert.True(parameter.GenericParameterAttributes.HasFlag(GenericParameterAttributes.ReferenceTypeConstraint));
     }
 
     [Fact]

@@ -11,7 +11,20 @@ namespace Marrow.Core.Support;
 /// before anyone is waiting for it. MainActor-isolated (R-ISO-1): every member assumes the caller is already
 /// on main and does not re-check per call, as the Swift @MainActor class does not.
 /// </summary>
-public sealed class PendingReplies<TValue>
+/// <remarks>
+/// ENGINEERING DECISION (review, lane L1k): the Swift class is generic over any <c>Value: Sendable</c>, but a
+/// bare C# <c>TValue?</c> only carries true Optional semantics (able to tell "no value" from "the default
+/// value") when TValue is a reference type; for an unconstrained generic, <c>TValue?</c> erases to plain
+/// <c>TValue</c> for a value-type instantiation, so <c>default</c> and an explicitly-supplied zero value become
+/// indistinguishable and <c>timeoutValue is { } value</c> is unconditionally true. :24's Swift contract
+/// ("without a timeoutValue, a timeout throws CancellationError") only holds under that trap-free condition, so
+/// TValue is constrained to <c>class</c> here, matching every real and planned caller
+/// (<c>PendingReplies&lt;JSONValue&gt;</c>, a reference type: B3_PLAN.md N1/A18) and the same guard the port's
+/// own <see cref="Marrow.Core.Port.SwiftErrors"/> uses (<c>Optional&lt;T&gt; where T : class</c> vs
+/// <c>OptionalValue&lt;T&gt; where T : struct</c>) and <c>Ambient&lt;T&gt; where T : class</c> uses elsewhere in
+/// this codebase.
+/// </remarks>
+public sealed class PendingReplies<TValue> where TValue : class
 {
     // :7
     private readonly Dictionary<string, CheckedContinuation<TValue>> continuations = [];
