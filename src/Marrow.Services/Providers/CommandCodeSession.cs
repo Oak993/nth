@@ -1027,7 +1027,7 @@ public sealed class CommandCodeSession : ProviderSession
     /// <summary>CommandCodeAPI.SupportDirectoryPath's own literal (:443, DEVIATION OD-0008 C7), duplicated
     /// here as a plain string because that helper is private. PORT-ONLY test seam.</summary>
     internal static string ApprovalDirectoryRoot() =>
-        SwiftPath.AppendingPathComponent(System.Environment.GetFolderPath(System.Environment.SpecialFolder.LocalApplicationData), "Marrow Code/CommandCode");
+        SwiftPath.AppendingPathComponent(DevDataRoot.LocalApplicationData(), "Marrow Code/CommandCode"); // ED-211
 
     /// <summary>A SwiftURL that round trips a real Windows path through .Path unchanged (ProviderRegistry's
     /// own FileUrl, same reasoning): a "file://" URL's .Path takes swift-foundation's POSIX branch, which

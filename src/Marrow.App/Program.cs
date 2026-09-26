@@ -42,7 +42,9 @@ public static class Program
 
         // UserDefaults.standard (ED-079, ED-156: %LOCALAPPDATA%\Marrow Code\UserDefaults.json, OD-0008 C7), synchronized
         // on a normal exit (AppShell's afterWillTerminate) and from the unhandled-exception handler.
-        var localAppData = Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+        // ED-211: a Debug launch honours MARROW_DEV_DATA_ROOT when it names an existing directory; Release and an
+        // unset/absent variable resolve exactly the special folder above.
+        var localAppData = DevDataRoot.LocalApplicationData();
         var settings = new SettingsStore(SettingsStore.ProductionPath(localAppData));
         UserDefaults.Standard.SetProcessDefault(settings);
         AppDomain.CurrentDomain.UnhandledException += (_, _) => settings.Synchronize();

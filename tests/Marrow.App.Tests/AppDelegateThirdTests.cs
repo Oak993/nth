@@ -318,7 +318,11 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 // Readings or options: (a) a port-only, Debug-only redirect of every root above to MARROW_PORT_DATA_DIR -> needs an
 // ED (it is a config key the source does not have); (b) launch as is -> writes the port's own "Marrow Code" data.
 // Needed to proceed: a decision on (a) if a manual launch must leave %LOCALAPPDATA%\Marrow Code untouched.
-// Done so far: nothing; the report names the paths.
+// Done so far (2026-09-27, ED-211): (a), with its own variable (MARROW_DEV_DATA_ROOT, not MARROW_PORT_DATA_DIR,
+// which stays a test-only convention). Marrow.Core.Support.DevDataRoot redirects every root this note names, plus
+// the two per-user identities (the .marrow-dev state directory and Credential Manager's service names) that were
+// still unredirected after a first pass. Debug-only (#if DEBUG), inert in Release. See
+// porting/engineering_decisions.md ED-211 and E:/Droppy/work/b3/DEV_LAUNCH.md for the launch and cleanup steps.
 
 // STOP Boot #5 (build agent, 2026-09-26)
 // Kind: ambiguity

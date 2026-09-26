@@ -41,7 +41,7 @@ public static class HangWatchdog
     /// <summary>:42-60 <c>start()</c>. Idempotent; there is no stop (PR-LAUNCH-021).</summary>
     public static void Start() => shared.Value.Start();
 
-    private static string LocalApplicationData() => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    private static string LocalApplicationData() => DevDataRoot.LocalApplicationData(); // ED-211
 
     // :92 Bundle.main.infoDictionary?[key] as? String. Assembly metadata replaces the bundle's Info dictionary, as
     // AppInfo.FromAssembly reads it (Text.cs:37-43); a missing key is nil, which the header prints as "?".

@@ -108,6 +108,61 @@ public sealed class DroppyCodeAppTests
         Assert.Equal("21", metadata["CFBundleVersion"]);
     }
 
+    // ---- ED-211: the reopen signal name is tagged per dev root so two dev launches on different roots never
+    // signal each other's reopen. Swift: none (port-only). ----
+
+    private static void WithDevRoot(string? root, Action body)
+    {
+        var previous = Environment.GetEnvironmentVariable(Marrow.Core.Support.DevDataRoot.VariableName);
+        try
+        {
+            Environment.SetEnvironmentVariable(Marrow.Core.Support.DevDataRoot.VariableName, root);
+            body();
+        }
+        finally
+        {
+            Environment.SetEnvironmentVariable(Marrow.Core.Support.DevDataRoot.VariableName, previous);
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-211")]
+    public void ReopenSignalName_is_unchanged_with_no_dev_root_active()
+    {
+        WithDevRoot(null, () =>
+        {
+#if DEBUG
+            Assert.Equal("Local\\Marrow.Reopen.Dev", DroppyCodeApp.ReopenSignalName);
+#else
+            Assert.Equal("Local\\Marrow.Reopen.Release", DroppyCodeApp.ReopenSignalName);
+#endif
+        });
+    }
+
+#if DEBUG
+    [Fact]
+    [Trait("Decision", "ED-211")]
+    public void ReopenSignalName_is_tagged_per_dev_root_and_two_roots_never_collide()
+    {
+        var rootA = Directory.CreateTempSubdirectory("marrow-dev-data-root-a-").FullName;
+        var rootB = Directory.CreateTempSubdirectory("marrow-dev-data-root-b-").FullName;
+        try
+        {
+            string nameA = "", nameB = "";
+            WithDevRoot(rootA, () => nameA = DroppyCodeApp.ReopenSignalName);
+            WithDevRoot(rootB, () => nameB = DroppyCodeApp.ReopenSignalName);
+
+            Assert.StartsWith("Local\\Marrow.Reopen.Dev.", nameA, StringComparison.Ordinal);
+            Assert.NotEqual(nameA, nameB);
+        }
+        finally
+        {
+            Directory.Delete(rootA, recursive: true);
+            Directory.Delete(rootB, recursive: true);
+        }
+    }
+#endif
+
     // No dedicated test for RunPrologue() itself: it is exactly `HangWatchdog.Start()`, and Start() spawns a real,
     // never-ending background thread that pings MainActor every 0.5s with no stop() (PR-LAUNCH-014's own text says
     // so) - calling it for real inside a test starts a thread that outlives the test and can crash a LATER,
