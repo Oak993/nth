@@ -547,7 +547,9 @@ public sealed class MCPWireTests
             Add-Type -TypeDefinition @'
             using System;
             using System.Runtime.InteropServices;
-            public static class MarrowIgnoreBreakFixture
+            public static
+            class
+            MarrowIgnoreBreakFixture
             {
                 public delegate bool Handler(uint type);
                 [DllImport("kernel32.dll")] private static extern bool SetConsoleCtrlHandler(Handler handler, bool add);
