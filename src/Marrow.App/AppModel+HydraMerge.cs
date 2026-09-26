@@ -734,8 +734,8 @@ public sealed partial class AppModel
         while (slug.Contains("--", StringComparison.Ordinal)) slug = slug.Replace("--", "-", StringComparison.Ordinal); // :804
         slug = slug.Trim('-'); // :805
         if (SwiftString.Count(slug) > 40) slug = SwiftString.Prefix(slug, 40).TrimEnd('-'); // :806
-        var suffix = Guid.NewGuid().ToString("N")[..6]; // :807
-        return $"hydra/{(slug.Length == 0 ? "team" : slug)}-{suffix}"; // :808
+        var suffix = lead.Id.ToString("D").ToLowerInvariant()[..6]; // :880: stable per chat, from lead.id, not a fresh id
+        return $"hydra/{(slug.Length == 0 ? "team" : slug)}-{suffix}"; // :881
     }
 
     // :814-826
