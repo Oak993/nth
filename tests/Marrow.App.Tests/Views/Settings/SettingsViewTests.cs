@@ -295,6 +295,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         var zoom = Row(view, "Zoom"); var buttons = Nodes<Button>(zoom); Assert.Equal(3, buttons.Length); foreach (var button in buttons) { Assert.Equal(22, button.Width); Assert.Equal(22, button.Height); }
         var decrease = buttons.Single(x => Equals(ToolTip.GetTip(x), "Zoom out")); var increase = buttons.Single(x => Equals(ToolTip.GetTip(x), "Zoom in")); var reset = buttons.Single(x => Equals(ToolTip.GetTip(x), "Back to the stock size"));
+        Assert.Equal(Avalonia.Media.FontWeight.Normal, SwiftImage.GetFont(Assert.Single(Nodes<SwiftImage>(decrease)))!.Resolve().FontWeight); // :474-476
+        Assert.Equal(Avalonia.Media.FontWeight.Normal, SwiftImage.GetFont(Assert.Single(Nodes<SwiftImage>(increase)))!.Resolve().FontWeight); // :490-492
+        Assert.Equal(Avalonia.Media.FontWeight.Medium, SwiftImage.GetFont(Assert.Single(Nodes<SwiftImage>(reset)))!.Resolve().FontWeight); // :502-504
         Assert.False(reset.IsEnabled); Assert.Equal(0, reset.Opacity); Assert.True(reset.IsVisible); Click(decrease); Sync(); Assert.Equal(90, model.Settings.AppZoom); Click(decrease); Sync(); Assert.Equal(75, model.Settings.AppZoom); Assert.False(decrease.IsEnabled);
         foreach (var level in new[] { 90, 100, 110, 125, 150, 175, 200 }) { Click(increase); Sync(); Assert.Equal(level, model.Settings.AppZoom); Assert.Equal((long)level, h.Defaults.Object("appZoom")); }
         AdvanceFrames(h, 201); Assert.False(increase.IsEnabled); Assert.True(reset.IsEnabled); Assert.Equal(1, reset.Opacity); Assert.Contains("200% of the stock size", Text(zoom));
@@ -384,10 +387,11 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     });
 
     // STOP App.Views.Settings.SettingsView #4
-    // Kind: dependency / owner decision. Swift: SettingsView.swift:954-955,1002.
+    // Kind: dependency / owner decision. Swift: SettingsView.swift:954-955,1002 (terminal fragments only).
     // Records: PR-SETTINGS-238, PR-SETTINGS-248, PR-UPDATE-082, PR-UPDATE-084, PR-UPDATE-085 (terminal clauses only).
     // Missing: TerminalHostView explicitly has no renderer or chosen terminal component.
     // Needed: the shipped terminal's name, author, licence and project URL; do not credit SwiftTerm on Windows.
+    // Keep the Terminal title/divider and the AGPL sentence prefix; only its CreditLink, component detail and trailing licence fragment are blocked.
     // STOP App.Views.Settings.SettingsView #5
     // Kind: dependency. Swift: SettingsView.swift:1046-1056. Records: PR-SETTINGS-249 (shipping only).
     // Missing: the App project bundles only Assets/icon.png, not the three legal documents.
@@ -525,6 +529,11 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         var stack = Assert.IsType<StackPanel>(Assert.IsType<AboutSettingsPage>(view).Child); Assert.Equal(20, stack.Spacing); Assert.Equal(3, stack.Children.Count); Assert.IsType<AboutSoftwareUpdateSection>(stack.Children[0]);
         Assert.Contains("Marrow", Text(view)); Assert.Contains("A native home for your coding agents, built in C# with Avalonia.", Text(view));
+        var licence = Assert.Single(Nodes<TextBlock>(stack.Children[1]), text => text.Text == "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; "); // :996-1002, OD-0012 F1
+        Assert.Equal(12, licence.FontSize); Assert.Equal(new Thickness(16, 11, 10, 11), licence.Margin);
+        var appRows = Assert.IsType<StackPanel>(Assert.IsType<ChromeCard>(stack.Children[1]).Child); Assert.IsType<ChromeRowDivider>(appRows.Children[appRows.Children.IndexOf(licence) - 1]);
+        var terminal = Row(stack.Children[2], "Terminal"); Assert.Empty(Nodes<CreditLink>(terminal)); // :953-956; unknown Windows component is not fabricated.
+        var creditRows = Assert.Single(Nodes<StackPanel>(stack.Children[2]), panel => panel.Children.Contains(terminal)); Assert.IsType<ChromeRowDivider>(creditRows.Children[creditRows.Children.IndexOf(terminal) + 1]);
         Assert.Contains("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Text(view));
         Assert.Contains("The slideshow from the first launch: Hydra, the effort slider, panels and themes.", Text(view));
         Assert.Equal(56, Assert.Single(Nodes<Image>(stack.Children[1])).Width);
