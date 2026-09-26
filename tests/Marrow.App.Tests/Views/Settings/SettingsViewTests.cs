@@ -72,9 +72,119 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         return popup.Child!;
     }
 
+    private static void AdvanceFrames(AppModelHarness h, double milliseconds)
+    {
+        h.Main.AdvanceMilliseconds(milliseconds); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromMilliseconds(milliseconds)); Sync();
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-267")] // App/Views/Settings/SettingsView.swift:417-457,246-272,278
+    public void Appearance_uses_three_cards_10_apart_and_title_only_chrome_with_22_top_padding() => WithSettings((view, _, _) =>
+    {
+        SettingsNavigation.Shared.RequestedPage = SettingsPage.Appearance; Sync(); var appearance = Assert.Single(Nodes<AppearanceSettingsPage>(view));
+        Assert.Equal(3, Nodes<ChromeCard>(appearance).Length); var group = Assert.Single(Nodes<StackPanel>(appearance), stack => stack.Children.Count == 3 && stack.Children[1] is WallpaperCard);
+        Assert.Equal(10, group.Spacing); Assert.Equal(22, Field<Control>(view, "pageStack").Margin.Top);
+        var heading = Nodes<TextBlock>(appearance).First(); Assert.Equal("Appearance", heading.Text); Assert.Equal(13, heading.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, heading.FontWeight);
+        Assert.Empty(Nodes<ChromeSearchField>(Field<Control>(view, "detail"))); Assert.Empty(Nodes<AboutUpdateChromeAccessory>(view)); Assert.Empty(Nodes<ProvidersRefreshButton>(view));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-268")] // App/Views/Settings/SettingsView.swift:462-517
+    public void Zoom_buttons_step_all_eight_levels_and_reset_keeps_its_slot_with_primary_tabular_digits() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
+    {
+        var zoom = Row(view, "Zoom"); var buttons = Nodes<Button>(zoom); Assert.Equal(3, buttons.Length); foreach (var button in buttons) { Assert.Equal(22, button.Width); Assert.Equal(22, button.Height); }
+        var decrease = buttons.Single(x => Equals(ToolTip.GetTip(x), "Zoom out")); var increase = buttons.Single(x => Equals(ToolTip.GetTip(x), "Zoom in")); var reset = buttons.Single(x => Equals(ToolTip.GetTip(x), "Back to the stock size"));
+        Assert.False(reset.IsEnabled); Assert.Equal(0, reset.Opacity); Assert.True(reset.IsVisible); Click(decrease); Sync(); Assert.Equal(90, model.Settings.AppZoom); Click(decrease); Sync(); Assert.Equal(75, model.Settings.AppZoom); Assert.False(decrease.IsEnabled);
+        foreach (var level in new[] { 90, 100, 110, 125, 150, 175, 200 }) { Click(increase); Sync(); Assert.Equal(level, model.Settings.AppZoom); Assert.Equal((long)level, h.Defaults.Object("appZoom")); }
+        Assert.False(increase.IsEnabled); Assert.True(reset.IsEnabled); Assert.Equal(1, reset.Opacity); Assert.Contains("200% of the stock size", Text(zoom));
+        var value = Nodes<TextBlock>(zoom).Single(x => x.MinWidth == 46); Assert.Equal(11, value.FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, value.FontWeight); Assert.Contains(value.FontFeatures!, f => f.Tag == "tnum" && f.Value == 1);
+        Assert.Equal(SwiftFont.System(11, SwiftFont.Weight.Medium).Resolve().FontFamily, value.FontFamily); Assert.Equal(Chrome.PrimaryText.Resolve(value.ActualThemeVariant), Assert.IsType<Avalonia.Media.SolidColorBrush>(value.Foreground).Color);
+        Click(reset); Sync(); Assert.Equal(100, model.Settings.AppZoom); Assert.Contains("The stock size", Text(zoom)); Assert.False(reset.IsEnabled); Assert.Equal(0, reset.Opacity);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-046")] // App/Views/Settings/SettingsView.swift:1165-1166,1194-1201
+    [Trait("Req", "PR-THEME-047")] // App/Views/Settings/SettingsView.swift:1204-1208
+    [Trait("Req", "PR-THEME-048")] // App/Views/Settings/SettingsView.swift:1168-1192
+    [Trait("Req", "PR-THEME-049")] // App/Views/Settings/SettingsView.swift:424-426
+    public void Theme_capsule_has_source_metrics_and_menu_checks_the_selected_theme_and_updates_Nord_detail() => WithView(() => new AppearanceSettingsPage(), (view, model, _) =>
+    {
+        var picker = Assert.Single(Nodes<ThemePickerButton>(view)); var label = Assert.Single(Nodes<StackPanel>(picker), stack => stack.Height == 28); Assert.Equal(6, label.Spacing); Assert.Equal(new Thickness(12, 0), label.Margin);
+        Assert.Equal(12.5, Nodes<TextBlock>(picker).Single().FontSize); Assert.Equal(SwiftFont.System(8, SwiftFont.Weight.Bold), SwiftImage.GetFont(Nodes<SwiftImage>(picker).Single()));
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Assert.Single(Nodes<Button>(picker))); Sync(); var menu = Opened(presenter.Calls.Last(x => x.Presented).Popup);
+        Assert.Equal(26, Nodes<PopoverItem>(menu).Length); Assert.Equal(19, SwiftEnum<AppTheme>.AllCases.Count(theme => theme.Scheme() == ThemeVariant.Dark)); Assert.Equal(6, SwiftEnum<AppTheme>.AllCases.Count(theme => theme.Scheme() == ThemeVariant.Light));
+        var system = Nodes<PopoverItem>(menu).Single(item => Text(item).Contains("System")); Assert.Equal(1, Nodes<SwiftImage>(system).Single(image => image.SymbolName == "checkmark").Opacity);
+        Click(Button(menu, "Nord")); Sync(); Assert.Equal(AppTheme.Nord, model.Settings.Theme); Assert.Contains("Dark \u00b7 Frost", Text(Row(view, "Theme")));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-050")] // App/Views/Settings/SettingsView.swift:428-430,526-539
+    [Trait("Req", "PR-THEME-051")] // App/Views/Settings/SettingsView.swift:524,540-562
+    [Trait("Req", "PR-THEME-052")] // App/Views/Settings/SettingsView.swift:563
+    public void Transparency_reset_fades_and_offsets_over_200ms_without_consuming_layout_width() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
+    {
+        var control = Assert.Single(Nodes<BackdropOpacitySlider>(view)); var reset = Assert.Single(Nodes<Button>(control)); var slider = Assert.Single(Nodes<Slider>(control));
+        var row = Assert.Single(Nodes<StackPanel>(control)); Assert.Equal(8, row.Spacing); Assert.Equal("Window transparency", AutomationProperties.GetName(control)); Assert.Equal(0.5, slider.Value);
+        Assert.Equal("Clear", ToolTip.GetTip(Nodes<SwiftImage>(control).Single(image => image.SymbolName == "circle.dotted"))); Assert.Equal("Solid", ToolTip.GetTip(Nodes<SwiftImage>(control).Single(image => image.SymbolName == "circle.fill")));
+        var width = control.Bounds.Width; model.Settings.BackdropOpacity = 0.7; Sync(); Assert.True(reset.IsVisible); Assert.Equal(0, reset.Opacity);
+        AdvanceFrames(h, 100); Assert.InRange(reset.Opacity, 0.001, 0.999); Assert.InRange(Assert.IsType<Avalonia.Media.TranslateTransform>(reset.RenderTransform).X, -28, -22);
+        AdvanceFrames(h, 101); Assert.Equal(1, reset.Opacity); Assert.Equal(-28, Assert.IsType<Avalonia.Media.TranslateTransform>(reset.RenderTransform).X); Assert.Equal(width, control.Bounds.Width);
+        Click(reset); Sync(); Assert.Equal(0.5, model.Settings.BackdropOpacity); AdvanceFrames(h, 201); Assert.False(reset.IsVisible);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-251")] // App/Views/Settings/SettingsView.swift:408-409,449-450
+    [Trait("Req", "PR-THEME-084")] // App/Views/Settings/SettingsView.swift:361-364
+    [Trait("Req", "PR-THEME-086")] // App/Views/Settings/SettingsView.swift:404-407
+    [Trait("Req", "PR-THEME-087")] // App/Views/Settings/SettingsView.swift:408-409
+    [Trait("Req", "PR-USAGE-076")] // App/Views/Settings/SettingsView.swift:374-379
+    public void General_preview_transitions_are_not_replayed_on_equal_writes_and_usage_switch_is_last() => WithView(() => new GeneralSettingsPage(), (view, model, _) =>
+    {
+        var sound = new SettingsViewSoundRecorder(); using var output = SoundOutput.Current.Override(sound); model.Settings.ChimeWhenFinished = false; model.Settings.SettleSound = false; Sync(); Assert.Equal(0, sound.Starts);
+        model.Settings.ChimeWhenFinished = true; Sync(); model.Settings.ChimeWhenFinished = true; Sync(); Assert.Equal(1, sound.Starts); model.Settings.SettleSound = true; Sync(); model.Settings.SettleSound = true; Sync(); Assert.Equal(2, sound.Starts);
+        model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; Sync(); var settle = Row(view, "Sound when settling"); Assert.False(settle.IsEnabled); Assert.Equal(0.5, settle.Opacity); Assert.True(settle.IsVisible); Assert.True(model.Settings.SettleSound);
+        var conversation = Nodes<ChromeSection>(view).Single(x => Text(x).First() == "Conversation"); Assert.Equal("Show a usage panel", Text(Nodes<ChromeRow>(conversation).Last()).First());
+        var binding = Field<Binding<bool>>(Assert.Single(Nodes<SmallSwitch>(Row(view, "Show a usage panel"))), "isOn"); binding.Value = true; Sync(); Assert.True(model.Settings.ShowsUsagePanel);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-070")] // App/Views/Settings/SettingsView.swift:942-945
+    [Trait("Req", "PR-UPDATE-071")] // App/Views/Settings/SettingsView.swift:260-262
+    [Trait("Req", "PR-UPDATE-081")] // App/Views/Settings/SettingsView.swift:968-983
+    [Trait("Req", "PR-UPDATE-082")] // App/Views/Settings/SettingsView.swift:968-1004
+    [Trait("Req", "PR-UPDATE-084")] // App/Views/Settings/SettingsView.swift:991-1002
+    public void About_accessory_is_conditional_and_app_header_uses_source_fonts_version_and_insets() => WithSettings((view, _, _) =>
+    {
+        SettingsNavigation.Shared.RequestedPage = SettingsPage.About; Sync(); Assert.Single(Nodes<AboutUpdateChromeAccessory>(view)); var about = Assert.Single(Nodes<AboutSettingsPage>(view));
+        var root = Assert.IsType<StackPanel>(about.Child); Assert.Equal(20, root.Spacing); Assert.Equal(0, root.Children[0].DesiredSize.Height);
+        var name = Nodes<TextBlock>(root.Children[1]).Single(x => x.Text == "Marrow"); Assert.Equal(15, name.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, name.FontWeight);
+        Assert.Contains($"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Text(root.Children[1])); var description = Nodes<TextBlock>(about).Single(x => x.Text == "A native home for your coding agents, built in C# with Avalonia."); Assert.Equal(13, description.FontSize); Assert.Equal(new Thickness(16, 11, 10, 11), description.Margin);
+        SettingsNavigation.Shared.RequestedPage = SettingsPage.General; Sync(); Assert.Empty(Nodes<AboutUpdateChromeAccessory>(view));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-083")] // App/Views/Settings/SettingsView.swift:985-987
+    public void About_Show_replays_all_eight_tour_pages_even_when_the_tour_was_already_seen() => WithView(() => new AboutSettingsPage(), (view, model, _) =>
+    {
+        model.Settings.HasSeenTour = true; Sync(); try { Click(Button(Row(((StackPanel)((AboutSettingsPage)view).Child!).Children[1], "Welcome tour"), "Show")); Sync(); var window = Field<Avalonia.Controls.Window>(Marrow.App.Views.Tour.TourWindowController.Shared, "window"); Assert.True(window.IsVisible); Assert.Equal(8, Marrow.App.Views.Tour.Tour.Pages.Count); }
+        finally { Marrow.App.Views.Tour.TourWindowController.Shared.Close(); Sync(); } Assert.True(model.Settings.HasSeenTour);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-085")] // App/Views/Settings/SettingsView.swift:946-964
+    [Trait("Req", "PR-UPDATE-086")] // App/Views/Settings/SettingsView.swift:1060-1101
+    [Trait("Req", "PR-UPDATE-087")] // App/Views/Settings/SettingsView.swift:1012-1056
+    public void Droppy_attribution_link_and_legal_document_titles_are_exact() => WithView(() => new AboutSettingsPage(), (view, _, _) =>
+    {
+        var droppy = Assert.Single(Nodes<MadeByDroppyRow>(view)); var button = Assert.Single(Nodes<Button>(droppy)); Assert.Equal("Open getdroppy.app", ToolTip.GetTip(button)); Assert.Equal("Made by Droppy. Open getdroppy.app", AutomationProperties.GetName(button));
+        SwiftURL? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(url => { opened = url; return true; }); Click(button); Assert.Equal("https://getdroppy.app", opened!.AbsoluteString);
+        Assert.Contains("Ported from Zeron by Wing, MIT License.", Text(view)); Assert.Contains("Ported from TourKit by Ram Patra, MIT License.", Text(view));
+        var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); Click(Button(Assert.Single(Nodes<LicensesRow>(view)), "Show")); Sync(); var content = Opened(presenter.Calls.Last(x => x.Presented).Popup); Assert.Equal(3, Nodes<MarkdownView>(content).Length); Assert.Contains("Marrow", Text(content)); Assert.Contains("Third-party notices", Text(content)); Assert.Contains("Trademarks", Text(content));
+    });
+
     // STOP App.Views.Settings.SettingsView #4
     // Kind: dependency / owner decision. Swift: SettingsView.swift:954-955,1002.
-    // Records: PR-SETTINGS-238, PR-SETTINGS-248 (terminal clauses only).
+    // Records: PR-SETTINGS-238, PR-SETTINGS-248, PR-UPDATE-082, PR-UPDATE-084, PR-UPDATE-085 (terminal clauses only).
     // Missing: TerminalHostView explicitly has no renderer or chosen terminal component.
     // Needed: the shipped terminal's name, author, licence and project URL; do not credit SwiftTerm on Windows.
     // STOP App.Views.Settings.SettingsView #5
@@ -242,6 +352,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     // STOP App.Views.Settings.SettingsView #3
     // Kind: dependency. Swift: SettingsView.swift:280,251-253. Records: PR-SETTINGS-027; PR-SETTINGS-028 (MCP branch).
     // Missing: MCPSettingsPage(query) is MARROW_STUB in the assigned base. Needed: MCP unit implementation.
+    // Part 4 also assigns PR-SETTINGS-252: the shell remains the owner only of the query/routing, not server deletion.
     // The constructor call and query binding are retained; a live MCP page cannot be tested until it is ported.
 
     [Fact]
