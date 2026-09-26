@@ -11,7 +11,7 @@ using Marrow.UI.Port;
 
 // Source: DroppyCode/UI/Markdown/ProseRunView.swift (B3 52bc792), :1-209.
 // Forms (ED-095): the SwiftUI View and the NSViewRepresentable are Decorators; URL is SwiftURL. The one
-// NSAttributedString the run builds is a ParagraphText drawn by LinkTextView.Render (ED-XXX). SwiftUI's
+// NSAttributedString the run builds is a ParagraphText drawn by LinkTextView.Render (ED-210). SwiftUI's
 // makeNSView/updateNSView/dismantleNSView keep their names and run where SwiftUI would call them: make and a
 // first update on construction, an update whenever the view's inputs or the environment values they read change,
 // dismantle when the representable leaves the visual tree (a return makes a new text view, as SwiftUI would).

@@ -25,7 +25,7 @@ namespace Marrow.UI.Tests.Markdown;
 
 // Source under test: DroppyCode/UI/Markdown/ProseRunView.swift (B3 52bc792), :1-209. A run of prose blocks is ONE
 // NSAttributedString in ONE NSTextView (LinkTextView, LinkParagraphView.swift:275-550); the port's representation
-// is the ED-XXX decision (ProseRunView unit): ParagraphText (the NSMutableAttributedString subset) laid out by
+// is the ED-210 decision (ProseRunView unit): ParagraphText (the NSMutableAttributedString subset) laid out by
 // ParagraphTextPresenter inside LinkTextView. Expected values are the Swift's numbers and characters.
 // Non-ASCII expectations are written as eight-digit escapes (R-STR-9).
 [Collection("Headless")]

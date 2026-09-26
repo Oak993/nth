@@ -1,4 +1,4 @@
-// PORT-ONLY: the NSTextView / NSLayoutManager half of ProseRunView's one attributed string (ED-XXX, the ProseRunView
+// PORT-ONLY: the NSTextView / NSLayoutManager half of ProseRunView's one attributed string (ED-210, the ProseRunView
 // representation decision): one ParagraphText laid out with its per-paragraph styles, drawn as one text object with
 // one selection and one character index space. Avalonia's TextLayout takes one TextParagraphProperties for all of
 // its text, so it cannot hang a paragraph, space paragraphs apart or place a tab at a stop; this control formats

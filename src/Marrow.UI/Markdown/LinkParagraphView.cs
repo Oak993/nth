@@ -110,7 +110,7 @@ public sealed class LinkParagraphView : Decorator
     /// <summary>
     /// :110-156 <c>static func attributed(source:pointSize:dimmed:streaming:mentions:targets:) -> NSAttributedString</c>:
     /// the same pretty string the Text path renders (short titles, bold links), on explicit fonts, adaptive colours
-    /// and favicon attachments (:103-105). ProseRunView.swift:130, :146, :178 build a run from it (ED-XXX); this unit's own
+    /// and favicon attachments (:103-105). ProseRunView.swift:130, :146, :178 build a run from it (ED-210); this unit's own
     /// paragraph path still draws through <see cref="LinkTextView.RenderText"/>.
     /// </summary>
     public static ParagraphText Attributed(
@@ -429,7 +429,7 @@ public sealed class LinkTextView : Decorator
     private readonly List<LinkHitRange> linkHits = [];
     private readonly List<HeadRange> heads = [];
     private SelectableTextBlock? textBlock;
-    // ED-XXX: set by Render(ParagraphText) (the ProseRunView path) in place of textBlock; the text it draws is the
+    // ED-210: set by Render(ParagraphText) (the ProseRunView path) in place of textBlock; the text it draws is the
     // view's text storage.
     private ParagraphTextPresenter? presenter;
     private ParagraphText? storage;
@@ -461,7 +461,7 @@ public sealed class LinkTextView : Decorator
     // How many times render(_:) ran, drawn or not (PR-THEME-150 tests).
     internal int RenderCountForTests => renderCount;
 
-    // The text storage render(_:) last set (ED-XXX).
+    // The text storage render(_:) last set (ED-210).
     internal ParagraphText? TextStorageForTests => storage;
 
     // :299-332 init()
@@ -533,7 +533,7 @@ public sealed class LinkTextView : Decorator
     /// <summary>:498-507 func height(forWidth width: CGFloat).</summary>
     public double HeightForWidth(double width)
     {
-        if (presenter is { } laidOut) // ED-XXX: the ProseRunView path
+        if (presenter is { } laidOut) // ED-210: the ProseRunView path
         {
             if (width <= 0) return 0;
             if (width == measuredWidth) return measuredHeight;
@@ -553,13 +553,13 @@ public sealed class LinkTextView : Decorator
     // NSLayoutManager.boundingRect(forGlyphRange:in:) over the range's glyphs, one box per line; null with no text.
     private Rect[]? RangeRects(int location, int length)
     {
-        if (presenter is { } laidOut) return [.. laidOut.RangeRects(location, length)]; // ED-XXX
+        if (presenter is { } laidOut) return [.. laidOut.RangeRects(location, length)]; // ED-210
         if (textBlock is not { TextLayout: { } layout }) return null;
         return layout.HitTestTextRange(location, length).ToArray();
     }
 
     /// <summary>
-    /// :481-496 <c>func render(_ text: NSAttributedString)</c>, the path ProseRunView.swift:71 draws through (ED-XXX):
+    /// :481-496 <c>func render(_ text: NSAttributedString)</c>, the path ProseRunView.swift:71 draws through (ED-210):
     /// links wear the theme's accent with no underline (:485-489, set on every render so a theme change recolours
     /// links already on screen); the storage is replaced, and the cached measurement dropped, only when the new
     /// text differs (:490-494); the size is invalidated either way (:495). The text is drawn by one
@@ -665,7 +665,7 @@ public sealed class LinkTextView : Decorator
 
     private int? CharacterIndexAt(Point point)
     {
-        if (presenter is { } laidOut) return textLength == 0 ? null : laidOut.GlyphIndexAt(point); // ED-XXX
+        if (presenter is { } laidOut) return textLength == 0 ? null : laidOut.GlyphIndexAt(point); // ED-210
         var block = textBlock;
         if (block is null || textLength == 0 || block.TextLayout is not { } layout) return null;
         var hit = layout.HitTestPoint(point);
@@ -673,7 +673,7 @@ public sealed class LinkTextView : Decorator
         return hit.TextPosition;
     }
 
-    // The control the text is drawn by: the paragraph's SelectableTextBlock, or the run's presenter (ED-XXX).
+    // The control the text is drawn by: the paragraph's SelectableTextBlock, or the run's presenter (ED-210).
     private Control? TextHost => (Control?)presenter ?? textBlock;
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)

@@ -1175,3 +1175,128 @@ call - each redirecting in turn, since `MCPHub.swift:317,328,335` all post to th
 remembered redirect target). ENGINEERING DECISION extending ED-152's mechanism; the resulting behaviour (headers
 dropped across an origin-changing redirect) is OD-0022's owner-ruled deviation, not a new one.
 
+ED-210 [UI] How ProseRunView's single NSAttributedString in a single NSTextView is represented on Avalonia (unit
+UI.Markdown.ProseRunView; PR-THEME-149, PR-THEME-150; the verifier's "mixed paragraph styles" block).
+
+SOURCE FACT: B3 (52bc792) `UI/Markdown/ProseRunView.swift:114-208` builds a whole run of headings, paragraphs, list
+items and quotes as ONE NSMutableAttributedString. Blocks are joined by a "\n" in the base font and colour (:201-208).
+Each block's line carries its own NSMutableParagraphStyle: firstLineHeadIndent, headIndent, paragraphSpacing and
+paragraphSpacingBefore, plus, on a list item, one left NSTextTab at indent + 18 and defaultTabInterval 18 (:131-134,
+:155-159, :180-185). The lines are made from LinkParagraphView.attributed(source:...) pieces (:130, :146, :178;
+LinkParagraphView.swift:110-223): its fonts, favicon and dragon-glyph NSTextAttachments, and .link and .hydraHead
+runs. :71 hands the string to LinkTextView.render (LinkParagraphView.swift:481-496), which is one NSTextView. The run
+therefore has one selection, one character index space for the link, head-mention and popover lookups (:355-428,
+:463-471), and one height (height(forWidth:), :498-507). ProseRunView.swift is the only B3 file that sets a paragraph
+style (NSMutableParagraphStyle occurs at :131, :155 and :180 only). The merged port draws a LinkParagraphView
+paragraph through one Avalonia SelectableTextBlock. Its TextLayout takes a single TextParagraphProperties for all of
+its text, so it has no per-paragraph indent, hanging indent, paragraph spacing or tab stop, and its tab is a
+fixed-width advance rather than a stop.
+
+Rejected: (a) one SelectableTextBlock with line breaks: it loses every per-paragraph indent, the hanging list indent,
+the paragraph spacing and the tab stop. (b) A StackPanel of one text block per paragraph: a drag cannot cross blocks
+and a copy cannot join them, so the run's single selection and single index space are lost, and the run is no longer
+"one text object" (PR-THEME-149 expected_result). (c) Spacer InlineUIContainers or padding characters in one text
+block: they add characters that copy and indices count, and they still cannot hang continuation lines.
+
+DECISION:
+
+(1) Value. A port-only `ParagraphText` (src/Marrow.UI/Port/ParagraphText.cs) is the NSMutableAttributedString subset
+these two files use. It is a UTF-16 string held as ordered runs. Each run has an optional font (SwiftFont), foreground
+colour (SwiftColor), .link (SwiftURL), .hydraHead (SwiftURL), attachment and paragraph style. An attachment holds an
+image and its bounds, and its run is the single character U+FFFC, as NSAttributedString(attachment:) stores it.
+`ParagraphStyle` holds exactly firstLineHeadIndent, headIndent, paragraphSpacing, paragraphSpacingBefore, tabStops
+(left stops in container coordinates) and defaultTabInterval. Its default is NSParagraphStyle.default: 0, 0, 0, 0,
+twelve stops 28 apart, and 0 (platform knowledge, UNVERIFIED under OD-0001). The operations are the ones the Swift
+calls:
+- append a string with attributes, an attachment, or an attributed string;
+- addAttribute over a range, for a paragraph style or a font;
+- enumerateAttribute(.font);
+- the attributes at an index;
+- isEqual.
+
+`LinkParagraphView.Attributed(source:pointSize:dimmed:streaming:mentions:targets:)` is ported to return a
+ParagraphText (LinkParagraphView.swift:110-223). It keeps the fonts cache and places favicon and dragon attachments at
+y = base.descender + 1. NSFont.descender is read from the Inter glyph metrics. `ProseRunRepresentable.Attributed`,
+`Append` and `Separate` are line-for-line ports of :114-208. SwiftFont gains HasBoldTrait (bold or heavier) and
+HasMonoSpaceTrait (monospaced design) for the symbolicTraits test at :150-151. Semibold never reaches that test,
+because the heading line holds only regular, bold, italic and monospaced faces, so whether AppKit treats semibold as
+bold is not modelled. The dimmed and undimmed label colours are a single SwiftColor value each
+(LinkParagraphView.LabelTextColor and DimmedLabelTextColor), so two builds of the same text compare equal.
+
+(2) Layout. A port-only control, `ParagraphTextPresenter` (src/Marrow.UI/Port/ParagraphTextPresenter.cs), is the
+NSTextView and NSLayoutManager half.
+- Paragraphs: it splits the string at NSString's paragraph separators (U+000A, U+000D, CRLF, U+0085, U+2029). A
+paragraph takes the style of its first character (the "\n" that separate() inserts carries none and ends the paragraph
+before it); with no style it uses NSParagraphStyle.default.
+- Lines: it formats one line at a time with Avalonia's TextFormatter.FormatLine. The first line sits at x =
+firstLineHeadIndent with width W - firstLineHeadIndent; every later line sits at x = headIndent with width W -
+headIndent. This matches zero container inset and zero line fragment padding (LinkParagraphView.swift:319).
+- Vertical spacing: paragraphSpacingBefore goes above a paragraph's first line and paragraphSpacing below its last.
+This applies to every paragraph, the first and last included, which is the Swift's literal style and the record's
+wording. Whether TextKit 1 drops the space before the first paragraph, or leaves the last paragraph's space out of
+usedRect, is UNVERIFIED under OD-0001.
+- Line heights are Avalonia's for the fonts on the line, as on the LinkParagraphView path.
+- Tabs: a tab is a drawable run whose width moves the pen to the first tab stop to its right, or failing that to the
+next multiple of defaultTabInterval. Both are in container coordinates, as NSTextTab locations are, which is why :183
+writes indent + 18. The width is measured before the line is formatted. With neither a stop nor an interval, the pen
+does not move (UNVERIFIED).
+- Attachments: an attachment is a drawable run of its bounds, with its bottom bounds.y above the baseline, and the
+presenter draws the image there.
+- Links: a .link run is drawn in linkTextAttributes' colour, Chrome.AccentNSColor, with no underline (:485-489).
+- Height: height(forWidth:) is the laid-out height rounded up and cached per width. The cache is dropped when the
+storage changes (:490-495, :498-507).
+
+(3) The view. `LinkTextView.Render(ParagraphText)` is render(_:) (:481-496):
+- the first call replaces the view's SelectableTextBlock with one presenter;
+- every call sets the link colour;
+- the storage is replaced and the measurement dropped only when the new text is not isEqual to the storage (:490-494);
+- the size is invalidated either way.
+
+The link, head-mention and popover lookups (:355-428, :463-471) run over the storage. A point maps to the character
+whose own glyph box contains it (:367-369, :418-420). A link is the longest effective range of one .link value. A head
+mention is the longest effective range of one .hydraHead value. Its name is that range's text with U+FFFC removed and
+trimmed, or else the text of the next .hydraHead range (:381-412). LinkParagraphView's own paragraph path (RenderText
+and its SelectableTextBlock) is unchanged.
+
+(4) Selection. There is one selection over the whole string:
+- a press places the caret, and a drag or shift-press extends it;
+- two presses select a word and three select a paragraph;
+- Ctrl+C copies the selected substring, separators and U+FFFC included, and Ctrl+A selects all.
+
+The highlight uses SelectableTextBlock's SelectionBrush property, with the same default, painted under the glyphs.
+passesProseThrough is false on this path (:50), so a press on prose selects. Before the presenter's own selection
+handling sees a press (a tunnel handler), a head press opens the head and a link press goes to the delegate first, as
+mouseDown (:444-451) and clickedOnLink do. The word, paragraph and key behaviour follow NSTextView's standard
+behaviour, not B3 source (UNVERIFIED under OD-0001). Like the LinkParagraphView path, this path offers no system text
+menu on a right-click over prose.
+
+(5) Representable lifecycle. ProseRunRepresentable keeps SwiftUI's names:
+- The constructor runs makeCoordinator, then makeNSView (delegate = coordinator, passesProseThrough = false, onHost,
+merge target; :43-54), then a first updateNSView.
+- `Update(...)` stands for SwiftUI handing it new inputs and running updateNSView (:56-77). The string is rebuilt only
+when the joined source, point size, dimming, revision, mention names or head URLs change. The head handler and the
+merge target are set on every call.
+- A change of the inherited merge-request target also runs updateNSView.
+- Leaving the visual tree runs dismantleNSView, which clears the delegate, handler and merge target and does not
+detach the veil (upstream defect 55, :84-88). Coming back makes a new text view and coordinator, as SwiftUI would.
+- sizeThatFits (:79-82) answers only a finite proposed width.
+
+LinkTextView gains Delegate (NSTextView.delegate). A link click asks the delegate first, and opens through
+MarkdownLinkOpener when there is no delegate or it declines. The LinkParagraphView path sets no delegate, so it opens
+links as before. ProseRunView re-reads the environment (:6-9) and faviconRevision (:14) whenever they change, and
+hands the representable the point size rounded to the nearest half point (:17).
+
+Tests: tests/Marrow.UI.Tests/Markdown/ProseRunViewTests.cs, 31 tests, traits PR-THEME-149 and PR-THEME-150. They
+cover:
+- the joined sources;
+- the string and every paragraph style, font and colour the Swift sets;
+- the laid-out x of quoted text (14), and of list text and its continuation lines (18, or 36 nested);
+- the vertical gaps (12, 18, 14, 6, 12), and a level-1 heading's 6 before and 12 after inside the height;
+- one drag selecting across two paragraphs;
+- a link in a later paragraph found under the pointer;
+- the rebuild check and the handlers;
+- make and dismantle.
+
+ENGINEERING DECISION: the representation is a port mechanism, not a deviation. The UNVERIFIED items above wait on a
+macOS capture (OD-0001): the default tab stops, the edges of paragraph spacing, a tab with no stop, and NSTextView's
+word, paragraph and key selection.

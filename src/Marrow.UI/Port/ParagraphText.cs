@@ -1,6 +1,6 @@
 // PORT-ONLY: the NSMutableAttributedString / NSMutableParagraphStyle / NSTextAttachment subset that
 // UI/Markdown/LinkParagraphView.swift's attributed(source:...) and UI/Markdown/ProseRunView.swift's
-// attributed(blocks:...) build (ED-XXX, the ProseRunView representation decision). Nothing else in B3 sets a paragraph
+// attributed(blocks:...) build (ED-210, the ProseRunView representation decision). Nothing else in B3 sets a paragraph
 // style (grep NSMutableParagraphStyle: ProseRunView.swift:131, :155, :180 only).
 using System.Text;
 using Avalonia.Media;
