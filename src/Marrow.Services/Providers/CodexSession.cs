@@ -1322,7 +1322,7 @@ public sealed class CodexSession : ProviderSession
                     ? path.Split('/').LastOrDefault()
                     : null;
                 var nickname = lastComponent is { Length: > 0 } ? lastComponent : "Head"; // :791
-                Log.Error($"head {agentThread} adopted from a subAgentActivity note ({nickname}); no thread/started or spawn receiver id preceded it"); // :792
+                Log.Error($"head {agentThread} registered from a subAgentActivity note ({nickname}); no thread/started or spawn receiver id preceded it"); // :792
                 OnEvent?.Invoke(new ProviderEvent.AgentStarted(new AgentSpawn // :793
                 {
                     Id = agentThread,

@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json;
 using System.Threading;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -1255,6 +1256,25 @@ public sealed class CodexSessionTests
         Assert.Equal(before, script.MessageCount(0)); // nothing sent: the lead's own thread is never a stoppable head
     }
 
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-095")] // CodexSession.swift:338 (B3)
+    public void StopAgent_returns_false_and_sends_nothing_once_the_lead_thread_id_is_gone()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("stop-agent-no-thread-id");
+        var session = StartedSession(runtime, script);
+        PrivateField<HashSet<string>>(session, "headThreads").Add("head-1");
+        PrivateField<Dictionary<string, string>>(session, "headTurns")["head-1"] = "turn-1";
+        // As after ForkHistory's no-previousID archive path (:269-273): the connection stays open, the head
+        // and its turn are still recorded, but there is no lead thread id any more.
+        typeof(CodexSession).GetField("threadID", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(session, null);
+        var before = script.MessageCount(0);
+
+        Assert.False(Resolved(session.StopAgent("head-1")));
+        Assert.Equal(before, script.MessageCount(0)); // guard let threadID fails (:338), so turn/interrupt is never sent
+    }
+
     // ---- PR-PROVCLI-096 ----
 
     [Fact]
@@ -1718,8 +1738,10 @@ public sealed class CodexSessionTests
     {
         using var storage = new StorageScratchFolder();
         using var runtime = new TestRuntime();
+        var ledger = runtime.OnMain(() => (TokenLedger)Activator.CreateInstance(typeof(TokenLedger), nonPublic: true)!);
+        using var ledgerScope = TokenLedger.Shared.Override(ledger);
         var script = Script("token-usage-lead");
-        var session = StartedSession(runtime, script); // threadID "t1"
+        var session = StartedSession(runtime, script); // threadID "t1", activeModel "gpt-5.1-codex"
         var events = new List<ProviderEvent>();
         session.OnEvent = events.Add;
 
@@ -1736,7 +1758,14 @@ public sealed class CodexSessionTests
         var spend = Assert.Single(events.OfType<ProviderEvent.TokenSpend>());
         Assert.Equal(ProviderKind.Codex, spend.Value.Provider);
         Assert.Equal(100, spend.Value.TotalTokens);
+        Assert.Equal("gpt-5.1-codex", spend.Value.Model); // the thread/start model, on the fresh-thread path
         Assert.Null(spend.Value.AgentID);
+
+        // Swift :673-674: recordCodexSpend writes the ledger under the (lowercased) thread id.
+        runtime.OnMain(() => ledger.FlushLiveSpend());
+        var livePath = Path.Combine(storage.Root, "token-activity-live-v2.json");
+        using var document = JsonDocument.Parse(File.ReadAllBytes(livePath));
+        Assert.Equal(100, document.RootElement.GetProperty("liveCodex").GetProperty("t1").GetInt64());
 
         // A second update with the total grown by 40 spends exactly the delta, not the whole total.
         runtime.OnMain(() => InvokePrivate(session, "HandleNotification", "thread/tokenUsage/updated", JSONValue.FromDictionaryLiteral(
@@ -1744,6 +1773,33 @@ public sealed class CodexSessionTests
                 ("last", JSONValue.FromDictionaryLiteral(("totalTokens", 40L))),
                 ("total", JSONValue.FromDictionaryLiteral(("totalTokens", 540L))))))));
         Assert.Equal(40, events.OfType<ProviderEvent.TokenSpend>().Last().Value.TotalTokens);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-110")] // CodexSession.swift:672-674 (B3)
+    public void HandleNotification_tokenUsage_on_the_lead_with_no_thread_id_emits_the_event_but_writes_nothing_to_the_ledger()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var ledger = runtime.OnMain(() => (TokenLedger)Activator.CreateInstance(typeof(TokenLedger), nonPublic: true)!);
+        using var ledgerScope = TokenLedger.Shared.Override(ledger);
+        var script = Script("token-usage-no-thread-id");
+        var session = StartedSession(runtime, script);
+        typeof(CodexSession).GetField("threadID", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(session, null);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var before = ledger.DailyTotals.Values.Sum();
+
+        runtime.OnMain(() => InvokePrivate(session, "HandleNotification", "thread/tokenUsage/updated", JSONValue.FromDictionaryLiteral(
+            ("tokenUsage", JSONValue.FromDictionaryLiteral(
+                ("last", JSONValue.FromDictionaryLiteral(("totalTokens", 15L))),
+                ("total", JSONValue.FromDictionaryLiteral(("totalTokens", 15L))))))));
+
+        var spend = Assert.Single(events.OfType<ProviderEvent.TokenSpend>());
+        Assert.Equal(15, spend.Value.TotalTokens);
+        Assert.Null(spend.Value.AgentID);
+        // Swift :673: `if let rolloutID, !rolloutID.isEmpty` is false with no thread id, so the ledger is never touched.
+        Assert.Equal(before, ledger.DailyTotals.Values.Sum());
     }
 
     [Fact]
@@ -2287,6 +2343,92 @@ public sealed class CodexSessionTests
         Assert.Contains("head-d", PrivateField<HashSet<string>>(session, "headThreads"));
     }
 
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-119")] // CodexSession.swift:771-774 (B3)
+    public void HandleNotification_collabAgentToolCall_spawnAgent_routes_the_head_to_the_one_profile_whose_model_and_effort_match()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var hydra = new HydraLaunch
+        {
+            HeadsProvider = ProviderKind.Codex,
+            RunsNatively = true,
+            HeadProfiles = new ValueList<HydraHeadProfile>([
+                new HydraHeadProfile("reviewer") { Model = "gpt-5.1-codex", Effort = "high" },
+                new HydraHeadProfile("scout") { Model = "gpt-5.1-codex", Effort = "low" },
+            ]),
+        };
+        var script = Script("spawn-agent-routed-one-match");
+        var session = StartedSession(runtime, script, hydra);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+            ("id", "spawn-r1"), ("type", "collabAgentToolCall"), ("tool", "spawnAgent"), ("prompt", "go review it"),
+            ("model", "gpt-5.1-codex"), ("reasoningEffort", "high"),
+            ("receiverThreadIds", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("head-r1")])))))));
+
+        var start = Assert.Single(events.OfType<ProviderEvent.AgentStarted>());
+        Assert.Equal("reviewer", start.Value.Profile); // exactly one match: model+effort both match "reviewer" only
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-119")] // CodexSession.swift:771-774 (B3)
+    public void HandleNotification_collabAgentToolCall_spawnAgent_leaves_the_head_unrouted_when_no_profile_matches()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var hydra = new HydraLaunch
+        {
+            HeadsProvider = ProviderKind.Codex,
+            RunsNatively = true,
+            HeadProfiles = new ValueList<HydraHeadProfile>([
+                new HydraHeadProfile("reviewer") { Model = "gpt-5.1-codex", Effort = "high" },
+            ]),
+        };
+        var script = Script("spawn-agent-routed-no-match");
+        var session = StartedSession(runtime, script, hydra);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        // The item names no model/effort at all, so it matches neither the profile's model nor its effort.
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+            ("id", "spawn-r2"), ("type", "collabAgentToolCall"), ("tool", "spawnAgent"), ("prompt", "go build it"),
+            ("receiverThreadIds", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("head-r2")])))))));
+
+        var start = Assert.Single(events.OfType<ProviderEvent.AgentStarted>());
+        Assert.Null(start.Value.Profile); // zero matches: unrouted
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-119")] // CodexSession.swift:771-774 (B3)
+    public void HandleNotification_collabAgentToolCall_spawnAgent_leaves_the_head_unrouted_when_several_profiles_match()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var hydra = new HydraLaunch
+        {
+            HeadsProvider = ProviderKind.Codex,
+            RunsNatively = true,
+            HeadProfiles = new ValueList<HydraHeadProfile>([
+                new HydraHeadProfile("reviewer-a") { Model = "gpt-5.1-codex", Effort = "high" },
+                new HydraHeadProfile("reviewer-b") { Model = "gpt-5.1-codex", Effort = "high" },
+            ]),
+        };
+        var script = Script("spawn-agent-routed-several-matches");
+        var session = StartedSession(runtime, script, hydra);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+            ("id", "spawn-r3"), ("type", "collabAgentToolCall"), ("tool", "spawnAgent"), ("prompt", "go review it"),
+            ("model", "gpt-5.1-codex"), ("reasoningEffort", "high"),
+            ("receiverThreadIds", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("head-r3")])))))));
+
+        var start = Assert.Single(events.OfType<ProviderEvent.AgentStarted>());
+        Assert.Null(start.Value.Profile); // two matches: unrouted, neither is authoritative
+    }
+
     // ---- PR-PROVCLI-120 ----
 
     [Fact]
@@ -2310,7 +2452,7 @@ public sealed class CodexSessionTests
         Assert.Equal("head-x", started.Value.Id);
         Assert.Equal("worker one", started.Value.Description);
         Assert.Null(started.Value.Prompt);
-        Assert.Contains(logged, m => m.Contains("head-x", StringComparison.Ordinal));
+        Assert.Contains("head head-x registered from a subAgentActivity note (worker_one); no thread/started or spawn receiver id preceded it", logged);
         var finished = Assert.Single(events.OfType<ProviderEvent.AgentFinished>());
         Assert.Equal("head-x", finished.AgentID);
         Assert.Equal(TurnStatus.Completed, finished.Status);
@@ -2358,6 +2500,32 @@ public sealed class CodexSessionTests
         Assert.Empty(events);
         Assert.Empty(logged);
         Assert.DoesNotContain("t1", PrivateField<HashSet<string>>(session, "headThreads"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-119")] // CodexSession.swift:760 (B3)
+    public void HandleNotification_collabAgentToolCall_and_subAgentActivity_register_no_head_once_the_lead_thread_id_is_gone()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var script = Script("describe-heads-no-thread-id");
+        var session = StartedSession(runtime, script); // threadID "t1"
+        // The connection stays open (as after ForkHistory's no-previousID archive path, :269-273) but the lead
+        // thread id is gone: describeHeads's guard (:760) must stop both branches cold.
+        typeof(CodexSession).GetField("threadID", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(session, null);
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        InvokePrivate(session, "HandleNotification", "item/started", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+            ("id", "spawn-null"), ("type", "collabAgentToolCall"), ("tool", "spawnAgent"), ("prompt", "go build it"),
+            ("receiverThreadIds", new JSONValue.Array(new ValueList<JSONValue>([new JSONValue.String("head-z")])))))));
+        InvokePrivate(session, "HandleNotification", "item/completed", JSONValue.FromDictionaryLiteral(("item", JSONValue.FromDictionaryLiteral(
+            ("id", "note-null"), ("type", "subAgentActivity"), ("agentThreadId", "head-w"), ("agentPath", "root/worker_two"), ("kind", "completed")))));
+
+        Assert.Empty(events.OfType<ProviderEvent.AgentStarted>());
+        Assert.Empty(events.OfType<ProviderEvent.AgentFinished>());
+        Assert.DoesNotContain("head-z", PrivateField<HashSet<string>>(session, "headThreads"));
+        Assert.DoesNotContain("head-w", PrivateField<HashSet<string>>(session, "headThreads"));
     }
 
     // ---- PR-PROVCLI-121 ----
