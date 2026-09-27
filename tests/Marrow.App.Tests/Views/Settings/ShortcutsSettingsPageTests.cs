@@ -176,7 +176,6 @@ public sealed class ShortcutsSettingsPageTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-048")] // App/Views/Settings/ShortcutsSettingsPage.swift:68-75
-    [Trait("Req", "PR-SETTINGS-222")] // App/Views/Settings/ShortcutsSettingsPage.swift:68-75
     public void Fixed_row_chords_read_verbatim_in_windows_notation_with_the_en_dash_kept()
     {
         using var defaults = UserDefaults.Standard.Override(new InMemorySettingsStore());

@@ -19,7 +19,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Settings;
 
-// Source: DroppyCode/App/Views/Settings/HydraSettingsPage.swift (B3 52bc792), :1-589.
+// Source: DroppyCode/App/Views/Settings/HydraSettingsPage.swift (B2 1fbf81e), :1-589.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`;
 // `@Environment(AppModel.self)` is read from the environment, not passed in; a @ViewBuilder parameter is a
 // Func<Control>. Swift `private` top-level types are `internal`.
@@ -33,15 +33,7 @@ public sealed class HydraSettingsPage : Decorator
     public HydraSettingsPage()
     {
         Child = root;
-        this.Track(() =>
-        {
-            var model = AppEnvironment.GetAppModel(this);
-            var s = model.Settings;
-            return (s.HydraEnabled, s.HydraIsolateHeads, s.HydraMaxHeads, s.HydraAutoClearFinished,
-                s.HydraAutoHidesIdleHeads, s.HydraShowsHeadDetails, s.HydraAutoPopsHeads, s.HydraTempersHeadEffort,
-                s.HydraQueueHeads, s.HydraAlwaysHeads, s.HydraReviewHeads, s.HydraAutoMerge, s.HydraPairs,
-                s.DisabledProviders, model.Providers.Statuses, model.Providers.Catalogs);
-        }, _ => Rebuild());
+        this.Track(() => AppEnvironment.GetAppModel(this), _ => Rebuild());
     }
 
     private void Rebuild()
@@ -330,9 +322,10 @@ internal sealed class HydraAddPairButton : Decorator
             var registry = model.Providers;
             var installed = SwiftEnum<ProviderKind>.AllCases.Where(provider => registry.Status(provider).IsInstalled && model.Settings.IsEnabled(provider)).ToArray();
             var taken = new HashSet<ProviderKind>(model.Settings.HydraPairs.Select(pair => pair.Provider));
-            var provider = installed.Where(candidate => !taken.Contains(candidate)).Select(candidate => (ProviderKind?)candidate).FirstOrDefault()
-                ?? installed.Select(candidate => (ProviderKind?)candidate).FirstOrDefault() ?? model.Settings.DefaultProvider;
-            Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.AddHydraPair(new HydraPair(provider)));
+            var provider = installed.FirstOrDefault(candidate => !taken.Contains(candidate));
+            if (installed.Length > 0 && SwiftEnum<ProviderKind>.AllCases.Contains(provider) is false) provider = installed[0];
+            if (installed.Length == 0) provider = model.Settings.DefaultProvider;
+            model.Settings.AddHydraPair(new HydraPair(provider));
         };
         Child = button;
     }
@@ -353,27 +346,7 @@ internal sealed class HydraPairRow : Decorator
     public HydraPairRow(HydraPair pair)
     {
         var state = new ViewState();
-        this.Track(() =>
-        {
-            var model = AppEnvironment.GetAppModel(this);
-            return (Model: model, Pair: model.Settings.HydraPairs.FirstOrDefault(current => current.Id == pair.Id), model.Settings.DisabledProviders,
-                model.Providers.Statuses, model.Providers.Catalogs);
-        }, value =>
-        {
-            if (value.Pair is { } current) Build(value.Model, current, state);
-            else Child = null;
-        });
-        this.Task(() =>
-        {
-            var current = AppEnvironment.GetAppModel(this).Settings.HydraPairs.FirstOrDefault(current => current.Id == pair.Id) ?? pair;
-            return current.HeadsProvider;
-        }, async headsProvider =>
-        {
-            var model = AppEnvironment.GetAppModel(this);
-            var current = model.Settings.HydraPair(pair.Id) ?? pair;
-            await model.Providers.LoadCatalog(current.Provider);
-            await model.Providers.LoadCatalog(headsProvider);
-        });
+        this.Track(() => AppEnvironment.GetAppModel(this), model => Build(model, pair, state));
     }
 
     private void Build(AppModel model, HydraPair pair, ViewState state)
@@ -431,8 +404,10 @@ internal sealed class HydraPairRow : Decorator
         };
         ToolTip.SetTip(removeButton, "Remove this pair");
         AutomationProperties.SetName(removeButton, "Remove this pair");
-        // :278 includes the model's chat/project pair-reference cleanup.
-        removeButton.Click += (_, _) => Transaction.WithAnimation(Chrome.PanelSlide, () => model.RemoveHydraPair(pair.Id));
+        // :278 model.removeHydraPair(pair.id): AppModel+HydraPairs.swift is not ported (see the STOP note at the
+        // end of this unit's test file); the plain settings-level removal below drops that file's chat/project
+        // pair-reference cleanup.
+        removeButton.Click += (_, _) => model.Settings.RemoveHydraPair(pair.Id);
 
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         row.Children.Add(openButton);
@@ -441,6 +416,12 @@ internal sealed class HydraPairRow : Decorator
 
         Child = row;
 
+        // :293-296 .task(id: pair.headsProvider) { await registry.loadCatalog(...) }
+        this.Task(() => pair.HeadsProvider, async _ =>
+        {
+            await registry.LoadCatalog(pair.Provider);
+            await registry.LoadCatalog(pair.HeadsProvider);
+        });
     }
 
     /// <summary>:299-317 the row's second line.</summary>
@@ -480,21 +461,7 @@ internal sealed class HydraPairEditor : Decorator
     {
         this.pairID = pairID;
         Child = root;
-        this.Track(() =>
-        {
-            var model = AppEnvironment.GetAppModel(this);
-            return (model.Settings.HydraPairs, model.Settings.DisabledProviders, model.Providers.Statuses,
-                model.Providers.Catalogs, model.Providers.LoadingCatalogs);
-        }, _ => Rebuild());
-        this.Task(() =>
-        {
-            var pair = AppEnvironment.GetAppModel(this).Settings.HydraPair(pairID);
-            return pair is null ? ValueList<ProviderKind>.Empty : CatalogProviders(pair);
-        }, async providers =>
-        {
-            var registry = AppEnvironment.GetAppModel(this).Providers;
-            foreach (var provider in providers) await registry.LoadCatalog(provider);
-        });
+        this.Track(() => AppEnvironment.GetAppModel(this), _ => Rebuild());
     }
 
     private void Rebuild()
@@ -607,11 +574,19 @@ internal sealed class HydraPairEditor : Decorator
 
         root.Margin = new Thickness(0, 0, 0, 14);
 
+        // :514-518 .task(id: catalogProviders(pair))
+        this.Task(() => string.Join(",", CatalogProviders(pair)), async _ =>
+        {
+            foreach (var provider in CatalogProviders(pair))
+                await registry.LoadCatalog(provider);
+        });
     }
 
-    // :389 includes the model's propagation to chats already leading with this pair.
+    // :389 model.updateHydraPair(pairID) { ... }: AppModel+HydraPairs.swift is not ported (see the STOP note at
+    // the end of this unit's test file); the plain settings-level update below drops that file's chat-thread
+    // model/effort propagation for chats already leading with this pair.
     private void Update(AppModel model, Func<HydraPair, HydraPair> change) =>
-        model.UpdateHydraPair(pairID, change);
+        model.Settings.UpdateHydraPair(pairID, change);
 
     private static Control EditorRow(string title, string? detail, Func<Control> control)
     {

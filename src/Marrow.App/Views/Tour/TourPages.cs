@@ -4,7 +4,7 @@ using Marrow.UI.Theme;
 
 namespace Marrow.App.Views.Tour;
 
-// Source: DroppyCode/App/Views/Tour/TourPages.swift (B3 52bc792), :1-29.
+// Source: DroppyCode/App/Views/Tour/TourPages.swift (B2 1fbf81e), :1-29.
 // The Windows welcome title and descriptions follow OD-0012.
 public static class Tour
 {
@@ -22,6 +22,9 @@ public static class Tour
         // DEVIATION OD-0012: the Windows themes description avoids unsupported platform claims.
         new TourPage("tour-themes", "Make it yours", ThemeCount + " themes, from Catppuccin to Kanagawa, in real glass. Built in C#, so it scrolls smoothly and starts in a blink."),
     });
+
+    // TourPages.swift:26-28
+    private static Avalonia.Controls.Window? observedWindow;
 
     // TourPages.swift:4-13
     public static ValueList<TourPage> Pages => pages;
@@ -48,10 +51,20 @@ public static class Tour
             model.Settings.HasSeenTour = true;
         }
 
-        TourWindowController.Shared.Present(
+        var window = TourWindowController.Shared.Present(
             pages: Pages,
             onFinish: MarkSeen,
             onClose: MarkSeen);
 
+        // Treat a window close as the close callback when the window is closed outside its checkmark control.
+        if (!ReferenceEquals(observedWindow, window))
+        {
+            observedWindow = window;
+            window.Closed += (_, _) =>
+            {
+                MarkSeen();
+                if (ReferenceEquals(observedWindow, window)) observedWindow = null;
+            };
+        }
     }
 }

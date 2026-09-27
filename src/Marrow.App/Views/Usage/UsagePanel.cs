@@ -4,7 +4,6 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Marrow.App;
-using Marrow.App.Port;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -15,7 +14,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Usage;
 
-// Source: DroppyCode/App/Views/Usage/UsagePanel.swift (B3 52bc792), :1-120.
+// Source: DroppyCode/App/Views/Usage/UsagePanel.swift (B2 1fbf81e), :1-120.
 
 /// <summary>:8-120 <c>struct UsagePanel: View</c>: the context window, the plan's limits or the credits left.</summary>
 public sealed class UsagePanel : Decorator
@@ -112,7 +111,7 @@ public sealed class UsagePanel : Decorator
 
         AttachedToVisualTree += (_, _) =>
         {
-            var model = AppEnvironment.GetAppModel(this); // :9,27 inherited @Environment, not DataContext.
+            if (DataContext is not AppModel model) return;
 
             var registry = model.Providers;
             registry.RefreshPlanLimits(provider);

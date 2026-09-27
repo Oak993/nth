@@ -17,7 +17,7 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Usage/UsageViews.swift (B3 52bc792), :1-396.
+// Source: DroppyCode/App/Views/Usage/UsageViews.swift (B2 1fbf81e), :1-396.
 
 namespace Marrow.App.Views.Usage;
 
@@ -28,9 +28,6 @@ public sealed class PlanLimitsView : Decorator
     // :11-79 body
     public PlanLimitsView(ProviderKind provider)
     {
-        var content = new StackPanel { Spacing = 0 };
-        Child = content;
-        BankedResetsView? resets = null; // :32-39 stable SwiftUI identity while this branch exists.
         var hasPreviousLimits = false;
         PlanLimits? previousLimits = null;
         this.Track(
@@ -58,16 +55,7 @@ public sealed class PlanLimitsView : Decorator
 
         void Update(PlanLimits? limits, bool isLoading)
         {
-            // Keep the stateful reset control attached: moving it through a fresh parent would cancel its task.
-            foreach (var child in content.Children.ToArray())
-                if (!ReferenceEquals(child, resets)) content.Children.Remove(child);
-            if (limits?.PlanLimitsResetCredits is null && resets is not null)
-            {
-                content.Children.Remove(resets);
-                resets = null;
-            }
-            var insertionIndex = 0;
-            void Add(Control child) => content.Children.Insert(insertionIndex++, child);
+            var content = new StackPanel { Spacing = 0 };
             var title = limits?.PlanName is { } planName
                 ? "Plan usage limits \U000000B7 " + planName // U+00B7 MIDDLE DOT
                 : "Plan usage limits";
@@ -83,7 +71,7 @@ public sealed class PlanLimitsView : Decorator
                 Grid.SetColumn(spinner, 1);
                 header.Children.Add(spinner);
             }
-            Add(header);
+            content.Children.Add(header);
 
             if (limits is { } available)
             {
@@ -91,24 +79,22 @@ public sealed class PlanLimitsView : Decorator
                 {
                     var row = new LimitRow(window);
                     row.Margin = new Thickness(0, 14, 0, 0);
-                    Add(row);
+                    content.Children.Add(row);
                 }
 
                 if (available.PlanLimitsResetCredits is { } credits)
                 {
                     if (available.Windows.Count > 0)
                     {
-                        Add(new Separator
+                        content.Children.Add(new Separator
                         {
                             Margin = new Thickness(0, 14, 0, 0),
                         });
                     }
 
-                    if (resets is null) resets = new BankedResetsView(provider, credits);
-                    else resets.Update(credits); // :217-218 preserve phase and settle as input changes.
+                    var resets = new BankedResetsView(provider, credits);
                     resets.Margin = new Thickness(0, 14, 0, 0);
-                    if (!content.Children.Contains(resets)) Add(resets);
-                    else insertionIndex++;
+                    content.Children.Add(resets);
                 }
 
                 if (available.Problem is { } problem)
@@ -120,7 +106,6 @@ public sealed class PlanLimitsView : Decorator
                         warning.Foreground = Chrome.Warning.Brush(warning);
                         var note = Label(problem, SwiftFont.Subheadline, Chrome.SecondaryText);
                         note.MaxLines = 2;
-                        note.TextTrimming = TextTrimming.CharacterEllipsis; // :53 .lineLimit(2)
                         note.TextWrapping = TextWrapping.Wrap;
                         note.Margin = new Thickness(6, 0, 0, 0);
                         var warningRow = new Grid
@@ -136,7 +121,7 @@ public sealed class PlanLimitsView : Decorator
                         var spacer = new Border();
                         Grid.SetColumn(spacer, 2);
                         warningRow.Children.Add(spacer);
-                        Add(warningRow);
+                        content.Children.Add(warningRow);
                     }
                     else
                     {
@@ -153,7 +138,7 @@ public sealed class PlanLimitsView : Decorator
                         problemRow.Children.Add(label);
                         Grid.SetColumn(login, 1);
                         problemRow.Children.Add(login.ChromeGlassCapsule());
-                        Add(problemRow);
+                        content.Children.Add(problemRow);
                     }
                 }
             }
@@ -161,7 +146,7 @@ public sealed class PlanLimitsView : Decorator
             {
                 var empty = Label(provider.DisplayName + " did not report plan limits.", SwiftFont.Callout, Chrome.SecondaryText);
                 empty.Margin = new Thickness(0, 8, 0, 0);
-                Add(empty);
+                content.Children.Add(empty);
             }
 
             Child = content;
@@ -253,7 +238,6 @@ public sealed class CreditsView : Decorator
                 amount.Foreground = (balance.IsDepleted ? Chrome.Danger : Chrome.PrimaryText).Brush(amount);
                 amount.TextWrapping = TextWrapping.NoWrap;
                 amount.MaxLines = 1;
-                amount.TextTrimming = TextTrimming.CharacterEllipsis; // :116
                 right.Children.Add(amount);
             }
 
@@ -304,7 +288,6 @@ internal sealed class LimitRow : Decorator
         {
             ColumnDefinitions = new ColumnDefinitions("*,8,Auto,Auto"),
         };
-        heading.ColumnDefinitions[2].MinWidth = 12; // :146-162 retain the spacer's second 12 gap even without a reset date.
 
         var title = new TextBlock
         {
@@ -312,7 +295,6 @@ internal sealed class LimitRow : Decorator
             Foreground = Chrome.PrimaryText.Brush(this),
             TextWrapping = TextWrapping.NoWrap,
             MaxLines = 1,
-            TextTrimming = TextTrimming.CharacterEllipsis, // :150
             Margin = new Thickness(0, 0, 12, 0),
         };
         SwiftFont.Body.Apply(title);
@@ -326,7 +308,6 @@ internal sealed class LimitRow : Decorator
                 Foreground = Chrome.SecondaryText.Brush(this),
                 TextWrapping = TextWrapping.NoWrap,
                 MaxLines = 1,
-                TextTrimming = TextTrimming.CharacterEllipsis, // :156
                 Margin = new Thickness(0, 0, 12, 0),
             };
             SwiftFont.Callout.Apply(reset);
@@ -353,7 +334,6 @@ internal sealed class LimitRow : Decorator
                 Foreground = Chrome.SecondaryText.Brush(this),
                 TextWrapping = TextWrapping.NoWrap,
                 MaxLines = 1,
-                TextTrimming = TextTrimming.CharacterEllipsis, // :167
             };
             SwiftFont.Subheadline.Apply(detailLabel);
             row.Children.Add(detailLabel);
@@ -430,7 +410,7 @@ internal sealed class BankedResetsView : Decorator
     }
 
     private readonly ProviderKind provider;
-    private PlanLimits.ResetCredits credits;
+    private readonly PlanLimits.ResetCredits credits;
     private Phase phase = new Phase.Idle();
     private TaskHandle? settle;
 
@@ -443,14 +423,6 @@ internal sealed class BankedResetsView : Decorator
         this.credits = credits;
         Build();
         DetachedFromVisualTree += (_, _) => settle?.Cancel();
-    }
-
-    // :207,217-218,256: new input at the same view identity preserves both @State values.
-    internal void Update(PlanLimits.ResetCredits value)
-    {
-        if (credits == value) return;
-        credits = value;
-        Build();
     }
 
     private void SetPhase(Phase next)
@@ -588,7 +560,6 @@ internal sealed class BankedResetRow : Decorator
             Foreground = Chrome.PrimaryText.Brush(this),
             TextWrapping = TextWrapping.NoWrap,
             MaxLines = 1,
-            TextTrimming = TextTrimming.CharacterEllipsis, // :328
         };
         SwiftFont.Body.Apply(title);
 
@@ -601,7 +572,6 @@ internal sealed class BankedResetRow : Decorator
             Foreground = Chrome.SecondaryText.Brush(this),
             TextWrapping = TextWrapping.NoWrap,
             MaxLines = 1,
-            TextTrimming = TextTrimming.CharacterEllipsis, // :332
         };
         SwiftFont.Subheadline.Apply(detail);
         var labels = new StackPanel { Spacing = 2, Children = { title, detail } };

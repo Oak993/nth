@@ -14,7 +14,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/HydraIntroPopover.swift (B3 52bc792), :1-158.
+// Source: DroppyCode/App/Views/Chat/HydraIntroPopover.swift (B2 1fbf81e), :1-158.
 
 /// <summary>:3-76 <c>struct HydraIntroPopover: View</c>: the first chat's Hydra intro, opened by the mark itself
 /// until it has been read.</summary>
@@ -87,7 +87,7 @@ public sealed class HydraIntroPopover : Decorator
             Spacing = 8,
             HorizontalAlignment = HorizontalAlignment.Right,
         };
-        var settingsButton = GlassButton("Set up in Settings", prominent: false); // :67 .glass
+        var settingsButton = new Button { Content = "Set up in Settings" };
         settingsButton.Click += (_, _) =>
         {
             dismiss();
@@ -95,8 +95,11 @@ public sealed class HydraIntroPopover : Decorator
         };
         buttons.Children.Add(settingsButton);
 
-        var gotItButton = GlassButton("Got it", prominent: true); // :69 .glassProminent
-        gotItButton.IsDefault = true; // :70 .keyboardShortcut(.defaultAction)
+        var gotItButton = new Button
+        {
+            Content = "Got it",
+            IsDefault = true, // :70 .keyboardShortcut(.defaultAction)
+        };
         gotItButton.Click += (_, _) => dismiss();
         buttons.Children.Add(gotItButton);
 
@@ -109,20 +112,6 @@ public sealed class HydraIntroPopover : Decorator
             Padding = new Thickness(20),
             Child = content,
         };
-    }
-
-    // :67,69. Same regular-size capsule mapping as FollowUpEditor.GlassButton and WelcomeView.GlassProminentButton.
-    // MARROW_DEFERRED ED-180: .glass/.glassProminent compositor and press response are foundation follow-up work.
-    private static Button GlassButton(string title, bool prominent)
-    {
-        var label = new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center };
-        SwiftFont.Body.Apply(label);
-        var surface = new Border { Child = label, Height = Chrome.CapsuleContentHeight, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0) };
-        surface.Capsule(RoundedCornerStyle.Continuous);
-        var effect = GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive();
-        if (prominent) { effect = effect.Tint(Chrome.Accent, .3); surface.Background = Chrome.Accent.Opacity(.3).Brush(surface); }
-        SwiftGlass.SetEffect(surface, effect);
-        return PlainControls.Button(surface, () => {});
     }
 
     // :78-89 private func hydraIntroStep(glyph:title:line:) -> some View
@@ -394,10 +383,21 @@ public sealed class HydraInfoPopover : Decorator
         return glyphs;
     }
 
-    // :133-134 includes the shared glyph's persona accessibility name (HydraGlyph.swift:40).
+    // :133-136. The step's 30-by-30 frame holds one head at 24 points, drawn as its own template artwork in its
+    // persona colour (HydraGlyph's own drawing: HydraGlyph.swift:27-32, :218-224); the Heads header above already
+    // carries the five roster HydraGlyphs, so this step's mark is the artwork alone, at roster index 0.
     private static Control BuildInfoHeadGlyph()
     {
-        return new HydraGlyph(HydraRoster.Persona(0), 24);
+        var persona = HydraRoster.Persona(0);
+        var (red, green, blue, alpha) = persona.Color;
+        var image = SwiftImage.Named(persona.Asset)
+            .Resizable()
+            .RenderingMode(ImageRenderingMode.Template)
+            .AspectRatio(ContentMode.Fit)
+            .ForegroundStyle(new SwiftColor(red, green, blue, alpha));
+        image.Width = 24;
+        image.Height = 24;
+        return image;
     }
 
     // :114 HydraMarkImage().foregroundStyle(Chrome.primaryText).frame(width: 18, height: 18)

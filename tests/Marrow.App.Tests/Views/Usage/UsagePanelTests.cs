@@ -29,18 +29,10 @@ public sealed class UsagePanelTests(HeadlessSession headless)
     private static UsagePanel Show(AppModelHarness harness, UsagePanel panel)
     {
         var host = new Border();
-        var model = harness.MakeModel();
-        harness.Main.OnMain(() => {
-            foreach (var kind in Marrow.Core.Port.SwiftEnum<ProviderKind>.AllCases)
-                if (!kind.IsAPIKeyBased) model.Settings.SetBinaryPath(System.IO.Path.Combine(harness.Scratch, "no-cli.exe"), kind);
-        });
-        AppEnvironment.SetAppModel(host, model);
+        AppEnvironment.SetAppModel(host, harness.MakeModel());
         host.Child = panel;
         var window = new AvaloniaWindow { Content = host };
-        harness.Main.OnMain(() => {
-            window.Show();
-            window.Close(); // Keep refresh callbacks inside this test's isolated model lifetime.
-        });
+        window.Show();
         return panel;
     }
 

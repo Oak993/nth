@@ -1,6 +1,5 @@
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
-using Marrow.App.Window;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Testing;
@@ -163,7 +162,7 @@ public sealed class AppUpdaterInstallTests
         var path = call["Stage(".Length..call.IndexOf(',', StringComparison.Ordinal)];
         var name = Path.GetFileName(path);
         Assert.Matches(
-            "^MarrowUpdate-[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$", name);
+            "^MarrowUpdate-[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$", name);
     }
 
     // ---- PR-UPDATE-044: the download request shape -----------------------------------------------------
@@ -523,59 +522,10 @@ public sealed class AppUpdaterInstallTests
     // ---- PR-UPDATE-055: the 25 s give-up ---------------------------------------------------------------------
 
     [Fact]
-    [Trait("Req", "PR-UPDATE-054")] // App/AppUpdater.swift:396-409
-    public void Handoff_requests_the_bound_shell_termination_once_after_exactly_350_milliseconds()
-    {
-        using var harness = new AppModelHarness();
-        var runtime = harness.Main;
-        using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
-        // AppShell.FinishLaunching binds this same existing action to MainActor.Post(Terminate).
-        // Recording it isolates the test host; no real application or installer is launched.
-        var manager = runtime.OnMain(() => new WindowManager());
-        using var windows = WindowManager.OverrideShared(manager);
-        var requests = 0;
-        manager.MainWindowClose = () =>
-        {
-            Assert.Equal(UpdateInstallProgress.Phase.Handoff, UpdateInstallProgress.Shared.UpdateInstallProgressPhase);
-            Assert.Equal(UpdateProgressMilestones.HandoffEnd, UpdateInstallProgress.Shared.Fraction);
-            Assert.Equal("1.3.0", runtime.Defaults.String("appUpdater_pendingRelaunchVersion"));
-            requests++;
-        };
-        var staging = Directory.CreateTempSubdirectory().FullName;
-        var staged = Path.Combine(staging, "App");
-        Directory.CreateDirectory(staged);
-        var destination = Path.Combine(staging, "destination");
-        Directory.CreateDirectory(destination);
-        try
-        {
-            runtime.OnMain(() =>
-            {
-                UpdateInstallProgress.Shared.Begin();
-                new AppUpdater(new FakeUpdateInstallBoundary()).HandOff(staged, "1.3.0", destination);
-            });
-            Assert.Equal(0, requests);
-            runtime.AdvanceMilliseconds(349);
-            Assert.Equal(0, requests);
-            runtime.AdvanceMilliseconds(1);
-            Assert.Equal(1, requests);
-            runtime.AdvanceMilliseconds(25_000);
-            Assert.Equal(1, requests);
-        }
-        finally
-        {
-            Directory.Delete(staging, recursive: true);
-        }
-    }
-
-    [Fact]
     [Trait("Req", "PR-UPDATE-055")] // App/AppUpdater.swift:244, :398-404
     public async Task If_the_phase_is_still_handoff_after_25s_the_marker_is_cleared_and_fail_runs()
     {
-        using var harness = new AppModelHarness();
-        var runtime = harness.Main;
-        var manager = runtime.OnMain(() => new WindowManager());
-        using var windows = WindowManager.OverrideShared(manager);
-        manager.MainWindowClose = () => { }; // Simulate the shell refusing quit; never terminate the test host.
+        using var runtime = new TestRuntime();
         using var development = AppInfo.Running.Override(
             AppInfo.FromAssembly(typeof(AppUpdaterInstallTests).Assembly, isDevelopment: false));
         using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());

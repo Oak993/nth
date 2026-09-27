@@ -6,7 +6,7 @@ using Marrow.Services.Providers;
 
 namespace Marrow.App.Runtime;
 
-// Source: DroppyCode/App/Runtime/AutoContinue.swift (B3 52bc792), :1-159.
+// Source: DroppyCode/App/Runtime/AutoContinue.swift (B2 1fbf81e), :1-159.
 
 // :8-159. @MainActor @Observable -> MainActorModel (R-OBS-6).
 public sealed class AutoContinue : MainActorModel
@@ -42,11 +42,6 @@ public sealed class AutoContinue : MainActorModel
     private readonly Dictionary<Guid, Guid> waitTokens = [];
     private readonly Dictionary<Guid, DateTimeOffset> resumeValues = [];
     private readonly Dictionary<Guid, LimitOutcome> outcomeValues = [];
-
-    // PORT-ONLY test boundaries: defaults retain the source's reader and notification calls.
-    internal Func<ProviderKind, Task<PlanLimits?>>? ReadLimitsForTesting { get; set; }
-    internal Action<Guid, string, string>? NotifyForTesting { get; set; }
-    internal Action<Notice>? NoticeForTesting { get; set; }
 
     // :38-40
     public AutoContinue(AppModel app) =>
@@ -178,8 +173,7 @@ public sealed class AutoContinue : MainActorModel
     {
         if (!TryGetApp(out var appModel) || !PlanLimitsReader.ExposesLimits(provider)) return null;
         PlanLimits? limits;
-        if (ReadLimitsForTesting is { } read) limits = await read(provider);
-        else if (provider.IsAPIKeyBased)
+        if (provider.IsAPIKeyBased)
         {
             var apiKey = appModel.Settings.ApiKey(provider);
             if (apiKey.Length == 0) return null;
@@ -211,7 +205,6 @@ public sealed class AutoContinue : MainActorModel
             Message = message,
             Limit = limitMark ? new LimitNotice { ThreadID = threadID } : null,
         };
-        NoticeForTesting?.Invoke(notice);
         runtime.Rehearse(new ProviderEvent.Notice(notice));
     }
 
@@ -227,8 +220,7 @@ public sealed class AutoContinue : MainActorModel
 
         var onScreen = IsApplicationActive() && appModel.SelectedThreadID == threadID;
         if (onScreen) return;
-        if (NotifyForTesting is { } notify) notify(threadID, thread.Title, body);
-        else appModel.Notify(threadID, thread.Title, body);
+        appModel.Notify(threadID, thread.Title, body);
     }
 
     // :158
