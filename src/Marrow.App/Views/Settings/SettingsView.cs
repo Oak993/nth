@@ -252,7 +252,7 @@ public sealed class SettingsView : Decorator
     // :228-241 ScrollView: the unthemed app owns its real vertical content presenter.
     private static readonly FuncControlTemplate<ScrollViewer> SettingsScrollTemplate = new((viewer, scope) =>
     {
-        var presenter = new ScrollContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty] };
+        var presenter = new ScrollContentPresenter { Background = Brushes.Transparent, Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty] };
         presenter.GestureRecognizers.Add(new Avalonia.Input.GestureRecognizers.ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
         return presenter.RegisterInNameScope(scope);
     });
@@ -643,7 +643,8 @@ internal sealed class ProviderSettingsSection : Decorator
             }.RegisterInNameScope(scope);
             void ShowPrompt() => prompt.IsVisible = string.IsNullOrEmpty(owner.Text);
             owner.PropertyChanged += (_, change) => { if (change.Property == TextBox.TextProperty) ShowPrompt(); }; ShowPrompt();
-            return new Panel { Children = { prompt, presenter } };
+            // :698-707: an empty SecureField still receives pointer focus and text input.
+            return new Panel { Background = Brushes.Transparent, Children = { prompt, presenter } };
         });
     }
 
