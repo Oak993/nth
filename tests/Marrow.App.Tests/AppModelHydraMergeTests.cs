@@ -337,7 +337,7 @@ public sealed class AppModelHydraMergeTests
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-189")] // AppModel+HydraMerge.swift:148-160 (B3): a held record an earlier version
+    [Trait("Req", "PR-CHAT-189")] // AppModel+HydraMerge.swift:148-160 (B3): a legacy held entry
     // saved is still read as the last record for the settlement check -- when nothing is left to send and no
     // file lies outside every project, that legacy `held` last record turns the "nothing to send" branch into
     // a settled one.
@@ -1856,7 +1856,7 @@ public void Reported_paths_drop_empty_and_build_output_and_keep_inside_paths_rel
     }
 
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-129")] // AppModel+HydraMerge.swift:230 (B3): `last.detail == detail` is Swift
+    [Trait("Req", "PR-HYDRAMERGE-125")] // AppModel+HydraMerge.swift:230 (B3): `last.detail == detail` is Swift
     // ==, canonical equivalence, not a byte comparison -- a retryable failure whose detail differs from the
     // last record's only by Unicode normalization (the exact same text, spelled NFC vs NFD) is still "the same
     // failure again": no second record, and (a retryable failure is never said before it has failed twice in a

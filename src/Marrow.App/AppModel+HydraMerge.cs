@@ -393,7 +393,7 @@ public sealed partial class AppModel
             {
                 return Fail($"Hydra pushed {branch} but could not open a merge request.", SwiftErrors.LocalizedDescription(error)); // :356-357
             }
-            catch (Exception error)
+            catch (Exception error) when (SwiftTry.IsThrownError(error))
             {
                 return Fail($"Hydra pushed {branch} but could not open a merge request.",
                     $"{SwiftErrors.LocalizedDescription(error)}\n\nThe work is in the checkout and on `{branch}`; the next try opens the request.",
@@ -410,7 +410,7 @@ public sealed partial class AppModel
             {
                 await git.MergePullRequest(link); // :369
             }
-            catch (Exception error)
+            catch (Exception error) when (SwiftTry.IsThrownError(error))
             {
                 return Fail($"Hydra opened {link.Label} but could not merge it.",
                     $"{requestURL.AbsoluteString}\n\n{SwiftErrors.LocalizedDescription(error)}\n\nThe next try brings the request up to date with `{target}` and merges it.",
@@ -458,7 +458,7 @@ public sealed partial class AppModel
             ExistingRuntime(leadID)?.NoteDiffChanged(); // :404
             return HydraProjectMerge.Merged; // :405
         }
-        catch (Exception error)
+        catch (Exception error) when (SwiftTry.IsThrownError(error))
         {
             return Fail("Hydra could not merge the team's work.",
                 $"{SwiftErrors.LocalizedDescription(error)}\n\nThe work is in the checkout; the next try sends it again.", retryable: true); // :407
@@ -534,7 +534,7 @@ public sealed partial class AppModel
     {
         ShellResult status;
         try { status = await Shell.RunTool("glab", ["auth", "status"], @in: directory, timeout: 30); }
-        catch { return null; } // :490
+        catch (Exception error) when (SwiftTry.IsThrownError(error)) { return null; } // :490
         if (status.Succeeded) return null; // :491
         var message = status.FailureMessage; // :492
         return message.Length == 0 ? "glab is not signed in to this GitLab host." : message; // :493
@@ -671,7 +671,7 @@ public sealed partial class AppModel
         paths.RemoveWhere(TouchedPaths.IsBuildOutput); // :655
         paths.ExceptWith(await git.IgnoredPaths(paths.Order(StringComparer.Ordinal).ToArray())); // :656
         var tracked = await git.TrackedPaths(paths.Order(StringComparer.Ordinal).ToArray()); // :657
-        var missing = paths.Where(path => !File.Exists(SwiftPath.AppendingPathComponent(checkout, path)) && !tracked.Contains(path))
+        var missing = paths.Where(path => !File.Exists(SwiftPath.AppendingPathComponent(checkout, path)) && !Directory.Exists(SwiftPath.AppendingPathComponent(checkout, path)) && !tracked.Contains(path))
             .ToHashSet(SwiftStringComparer.Instance); // :660-662
         paths.ExceptWith(missing); // :663
         var heads = new ValueList<HydraMergeHead>(headPaths.Select(head => new HydraMergeHead(head.Name, head.Index, head.Task,
@@ -794,7 +794,7 @@ public sealed partial class AppModel
             }
             return true; // :814
         }
-        catch { return false; } // :815-817
+        catch (Exception error) when (SwiftTry.IsThrownError(error)) { return false; } // :815-817
     }
 
     // :822-841
@@ -883,7 +883,7 @@ public sealed partial class AppModel
                 bytes.CopyTo(body, 1);
                 if (Contains(body, opening) && Contains(body, closing)) found.Add(path); // :897
             }
-            catch { }
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) { }
         }
         return new ValueList<string>(found); // :892-898
     });
