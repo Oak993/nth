@@ -43,7 +43,11 @@ public static class MCPSettingsPageFixture
         var window = new Avalonia.Controls.Window { Content = control, Width = 800, Height = 800 };
         window.Show(); Dispatcher.UIThread.RunJobs(); return new MCPSettingsWindowScope(window);
     }
-    public static T Read<T>(object target, string name) => (T)target.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.GetValue(target)!;
+    public static T Read<T>(object target, string name)
+    {
+        const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public;
+        return (T)(target.GetType().GetProperty(name, flags)?.GetValue(target) ?? target.GetType().GetField(name, flags)!.GetValue(target))!;
+    }
     public static T Invoke<T>(object target, string name) => (T)target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.Invoke(target, null)!;
     public static void Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.Invoke(target, args);
 }
@@ -61,7 +65,16 @@ public sealed class MCPSettingsRefusingCredentialBackend : Marrow.Services.Port.
 {
     private readonly AppModelCredentialBackend memory = new();
     public bool Refuse { get; set; } = true;
+    public bool RefuseDeletes { get; set; }
     public int Write(Marrow.Services.Port.GenericCredential credential) => Refuse ? 5 : memory.Write(credential);
     public int Read(string name, out Marrow.Services.Port.GenericCredential? credential) => memory.Read(name, out credential);
-    public int Delete(string name) => memory.Delete(name);
+    public int Delete(string name) => RefuseDeletes ? 5 : memory.Delete(name);
+}
+
+// Test sound seam: records playback requests and never opens an audio device.
+public sealed class MCPSettingsSilentSound : ISoundOutput
+{
+    public int Plays { get; private set; }
+    public ISoundPlayback Start(SwiftSound sound, float volume, Action finished) { Plays++; return new Playback(); }
+    private sealed class Playback : ISoundPlayback { public void Stop() { } }
 }

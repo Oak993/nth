@@ -17,23 +17,10 @@ using static Marrow.App.Tests.Fixtures.MCPSettingsPageFixture;
 namespace Marrow.App.Tests.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/MCPSettingsPage.swift (B3 52bc792), :1-1141.
-// STOP App.Views.Settings.MCPSettingsPage #1
-// Kind: missing dependency
-// Swift: App/Views/Settings/MCPSettingsPage.swift:64-74,284-290; records PR-MCP-203, PR-THEME-088, PR-MCP-205.
-// Missing: MCPStore mutates statesField/connectionsField/customsField in place without Set/Notify; State(id)
-// does not Read either. Track/OnChange cannot observe a connect, refresh, enabled change, save or deletion.
-// Needed: MCPStore owner must publish mutations through observation. The automatic effects are left unwritten.
-// Static snapshots, action dispatch and local view state can be tested independently below.
-// STOP App.Views.Settings.MCPSettingsPage #2
-// Kind: missing dependency
-// Swift: MCPStore.swift:118,186-193; records PR-MCP-073 (credential deletion failure only).
-// Missing: Disconnect ignores MCPKeychain.DeleteAll's deletion failures; no error is returned for this view to show.
-// Needed: service owner must implement OD-0008 A12 / PR-MCP-228. Confirmation and successful deletion are tested.
-
-// STOP App.Views.Settings.MCPSettingsPage #3
-// Kind: conflict; Swift: MCPSettingsPage.swift:77-85; record PR-MCP-202.
-// Packet requires accent-insensitive search, while R-STR-6 / ED-009 requires accent-sensitive secondary-strength search.
-// Needed: orchestrator must reconcile PR-MCP-202 with ED-009; the accent expectation stays red, unchanged.
+// Follow-up closes STOP #1: observable MCPStore writes plus live celebration/setup effects are exercised
+// in MCPStoreObservationTests and MCPSettingsPageFollowupTests (Swift :64-74,284-290).
+// Follow-up closes STOP #2: refused deletions, including both OAuth items, are reported under PR-MCP-228 / OD-0012 E6.
+// Follow-up closes STOP #3: PR-MCP-202 corrected in fa697dd35; ED-009 / R-STR-6 accent-sensitive search stands.
 [Collection("Headless")]
 public sealed class MCPSettingsPageTests(HeadlessSession headless)
 {
@@ -52,7 +39,10 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     public void Search_trims_and_matches_each_of_the_five_fields_ignoring_case_and_accents()
     {
         var entry = Entry() with { Name = "Caf\U000000E9", Vendor = "Vendor", Summary = "Summary", SampleTools = new[] { "query_tool" } }; // U+00E9 LATIN SMALL LETTER E WITH ACUTE
-        foreach (var query in new[] { " \n ", " CAFE\n", "VENDOR", "SUMMARY", "OFFLINE", "QUERY_TOOL" }) Assert.True(MCPSettingsPage.Matches(entry, query));
+        foreach (var query in new[] { " \n ", "VENDOR", "SUMMARY", "OFFLINE", "QUERY_TOOL" }) Assert.True(MCPSettingsPage.Matches(entry, query));
+        // MCPSettingsPage.swift:80, R-STR-6; PR-MCP-202 corrected in fa697dd35 (authorized spec correction).
+        Assert.False(MCPSettingsPage.Matches(entry, " CAFE\n"));
+        Assert.False(MCPSettingsPage.Matches(entry with { Name = "Cafe" }, "CAF\U000000C9")); // U+00C9 LATIN CAPITAL LETTER E WITH ACUTE
         Assert.False(MCPSettingsPage.Matches(entry, "absent"));
     }
 
