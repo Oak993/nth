@@ -160,10 +160,10 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:59-103 (provider artwork remains STOP)
+    [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:59-103
     [Trait("Req", "PR-COMPOSER-107")] // App/Views/Composer/EffortSlider.swift:82-103,142-149
     [Trait("Req", "PR-COMPOSER-108")] // App/Views/Composer/EffortSlider.swift:108-117
-    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 (chip style remains STOP)
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123
     [InlineData(false)]
     [InlineData(true)]
     public void Chip_keeps_full_help_in_compact_mode_and_locks_only_the_full_chip(bool compact)
@@ -187,7 +187,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var labels = chip.GetVisualDescendants().OfType<TextBlock>().ToArray();
             if (compact) Assert.Empty(labels);
             else Assert.Contains(labels, text => text.Text == "custom-model-id");
-            var frame = Assert.IsType<Grid>(button.Content);
+            var frame = Assert.IsType<Grid>(Assert.IsType<Border>(button.Content).Child); // :114 the real chip style wraps the same label.
             var natural = frame.Bounds.Width;
             button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Dispatcher.UIThread.RunJobs();
@@ -591,7 +591,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-COMPOSER-143")] // App/Views/Composer/EffortSlider.swift:433-476
     [Trait("Req", "PR-COMPOSER-144")] // App/Views/Composer/EffortSlider.swift:328-336
-    [Trait("Req", "UI-COMPOSER-043")] // App/Views/Composer/EffortSlider.swift:433-476 (provider artwork remains STOP)
+    [Trait("Req", "UI-COMPOSER-043")] // App/Views/Composer/EffortSlider.swift:433-476
     public void Locked_model_row_keeps_detail_and_selection_column_but_cannot_choose()
     {
         headless.OnUiThread(() =>
