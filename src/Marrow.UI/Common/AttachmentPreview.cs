@@ -15,7 +15,7 @@ namespace Marrow.UI.Common;
 
 using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not this file's own namespace
 
-// Source: DroppyCode/UI/Common/AttachmentPreview.swift (B2 1fbf81e), :1-440.
+// Source: DroppyCode/UI/Common/AttachmentPreview.swift (B3 52bc792), :1-433.
 // Shared helpers for showing large image previews of attachments and files the agent read.
 
 /// <summary>PreviewImages: finding an image a tool call named, the per-path Attachment identity cache, and file size
@@ -181,17 +181,17 @@ public static class PreviewImages
         _ => null,
     };
 
-    // :95-106 One ByteCountFormatter, `.file` style; SwiftFormatters.FileByteCount carries the single-instance ICU
-    // formatter behind R-FMT-2, so no separate field is kept here.
+    // :95-98 Int64.formatted(.byteCount(style: .file)): Foundation's ByteCountFormatStyle, delegated to the
+    // shared ICU formatter (R-FMT-2), with the current locale and all other style defaults unchanged.
     public static string? FileSize(string path)
     {
-        MainActor.AssumeIsolated(); // :102 @MainActor
-        if (!File.Exists(path)) return null; // :104 `try? FileManager...attributesOfItem`
+        MainActor.AssumeIsolated(); // :95 @MainActor
+        if (!File.Exists(path)) return null; // :97 `try? FileManager...attributesOfItem`
         long size;
         try { size = new FileInfo(path).Length; }
         catch (IOException) { return null; }
         catch (UnauthorizedAccessException) { return null; }
-        return SwiftFormatters.FileByteCount(size, SwiftFormatters.CurrentLocale.Current); // :105
+        return SwiftFormatters.ByteCountStyleFile(size, SwiftFormatters.CurrentLocale.Current); // :98
     }
 }
 
@@ -466,7 +466,7 @@ public sealed class AttachmentLargePreview : Border
         }
     }
 
-    // :348-370 the footer.
+    // :341-363 the footer.
     private Control BuildFooter()
     {
         var grid = new Grid();
