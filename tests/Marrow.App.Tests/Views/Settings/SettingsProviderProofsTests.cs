@@ -50,17 +50,20 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     private static Button Header(Control root) => Assert.Single(Nodes<Button>(Assert.Single(Nodes<CollapsibleProviderHeader>(root))));
     private static void Sync() => Avalonia.Threading.Dispatcher.UIThread.RunJobs();
     private static void Layout(Control root) { for (var i = 0; i < 5; i++) { Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(root)).UpdateLayout(); Sync(); } }
-    private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+    private static void Click(Button button) => PointerClick(button);
     private static void Key(Control target, Avalonia.Input.Key key)
     {
         Assert.True(target.Focus()); var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(target));
         window.KeyPress(key, RawInputModifiers.None, PhysicalKey.Space, null); window.KeyRelease(key, RawInputModifiers.None, PhysicalKey.Space, null);
     }
-    private static void PointerClick(Button target)
+    private static void PointerClick(Control target)
     {
-        var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(target)); Layout(target);
+        var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(target)); Layout(target); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Sync(); using var rendered = window.CaptureRenderedFrame();
         var point = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)!.Value;
-        window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
+        Assert.InRange(point.X, 0, window.ClientSize.Width); Assert.InRange(point.Y, 0, window.ClientSize.Height);
+        var hit = Assert.IsAssignableFrom<Control>(window.InputHitTest(point));
+        Assert.True(ReferenceEquals(hit, target) || hit.GetVisualAncestors().Contains(target), $"Pointer hit {hit.GetType().Name} {hit.Bounds}, expected {target.GetType().Name} {target.Bounds} at {point}; content={(target as Button)?.Content}.");
+        window.MouseMove(point); window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
     }
     private static void Frames(AppModelHarness h, double ms) { h.Main.AdvanceMilliseconds(ms); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromMilliseconds(ms)); Sync(); }
     private static void Wait(Func<bool> done)
@@ -83,7 +86,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             foreach (var provider in SwiftEnum<ProviderKind>.AllCases.Where(x => !x.IsAPIKeyBased)) model.Settings.SetBinaryPath(Path.Combine(h.Scratch, "missing-cli.exe"), provider);
             seed?.Invoke(model);
             var host = new Border(); AppEnvironment.SetAppModel(host, model); var view = make(); host.Child = view;
-            var window = new Avalonia.Controls.Window { Content = host, Width = 780, Height = 580 };
+            var window = new Avalonia.Controls.Window { Content = new Avalonia.Controls.Primitives.VisualLayerManager { EnableOverlayLayer = true, Child = host }, Width = 780, Height = view is SettingsView ? 580 : 6000 };
             try { window.Show(); Layout(view); check(view, model, h); }
             finally { window.Close(); Sync(); SettingsNavigation.Shared.RequestedPage = null; }
         });
@@ -106,6 +109,16 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Assert.Equal(new GridLength(22), grid.ColumnDefinitions[0].Width); Assert.Equal(GridUnitType.Star, grid.ColumnDefinitions[1].Width.GridUnitType);
         Assert.Equal(GridLength.Auto, grid.ColumnDefinitions[2].Width); Assert.Equal(2, Labels(section).Spacing);
         Assert.IsType<SettingsSwitch>(grid.Children[2]); Assert.Equal(2, Grid.GetColumn(grid.Children[2]));
+        Layout(section); Assert.Equal(1, Grid.GetColumn(Labels(section)));
+        foreach (var text in Labels(section).Children.Cast<TextBlock>()) { Inter(text); Leading(text, Labels(section)); }
+        if (Labels(section).Children.Count == 2) Assert.Equal(2, Labels(section).Children[1].Bounds.Y - Labels(section).Children[0].Bounds.Bottom, 6);
+    }
+    private static void Inter(TextBlock text) => Assert.Equal("fonts:Inter#Inter", text.FontFamily.ToString()); // OD-0009
+    private static void Leading(Control child, Control parent)
+    {
+        Layout(parent); Assert.Equal(0, child.TranslatePoint(default, parent)!.Value.X, 6);
+        // Avalonia Start is leading in this left-to-right window; Left is the explicit equivalent.
+        if (child is TextBlock text) Assert.True(text.TextAlignment is TextAlignment.Start or TextAlignment.Left);
     }
     private static void Collapsed(Control section, bool collapsed)
     {
@@ -124,8 +137,11 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         var border = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, 11, 10, 11), border.Padding);
         var grid = Assert.IsType<Grid>(border.Child); Assert.Equal(16, grid.ColumnSpacing); Assert.Equal(VerticalAlignment.Center, grid.VerticalAlignment);
         var labels = Assert.IsType<StackPanel>(grid.Children[0]); Assert.Equal(2, labels.Spacing);
-        var texts = labels.Children.Cast<TextBlock>().ToArray(); Assert.Equal(title, texts[0].Text); Assert.Equal(13, texts[0].FontSize); Assert.Equal(FontWeight.Normal, texts[0].FontWeight); ColorIs(texts[0], texts[0].Foreground, Chrome.PrimaryText);
-        if (detail is not null) { Assert.Equal(detail, texts[1].Text); Assert.Equal(11, texts[1].FontSize); Assert.Equal(FontWeight.Normal, texts[1].FontWeight); Assert.Equal(TextWrapping.Wrap, texts[1].TextWrapping); Assert.Equal(TextTrimming.None, texts[1].TextTrimming); ColorIs(texts[1], texts[1].Foreground, Chrome.SecondaryText); }
+        Layout(row); Leading(labels, grid);
+        var texts = labels.Children.Cast<TextBlock>().ToArray(); foreach (var text in texts) { Inter(text); Leading(text, labels); }
+        if (detail is not null) { Assert.Equal(2, texts[1].Bounds.Y - texts[0].Bounds.Bottom, 6); Assert.Equal(0, texts[1].MaxLines); Assert.Equal(double.PositiveInfinity, texts[1].MaxHeight); }
+        Assert.Equal(title, texts[0].Text); Assert.Equal(13, texts[0].FontSize); Assert.Equal(FontWeight.Normal, texts[0].FontWeight); ColorIs(texts[0], texts[0].Foreground, SwiftColor.LabelColor);
+        if (detail is not null) { Assert.Equal(detail, texts[1].Text); Assert.Equal(11, texts[1].FontSize); Assert.Equal(FontWeight.Normal, texts[1].FontWeight); Assert.Equal(TextWrapping.Wrap, texts[1].TextWrapping); Assert.Equal(TextTrimming.None, texts[1].TextTrimming); ColorIs(texts[1], texts[1].Foreground, SwiftColor.LabelColor.Opacity(0.7)); }
         Assert.Equal(3, grid.ColumnDefinitions.Count); Assert.Equal(new GridLength(12), grid.ColumnDefinitions[1].Width); var control = grid.Children[1]; Assert.Equal(2, Grid.GetColumn(control)); Assert.Equal(new Thickness(0), control.Margin); Assert.Equal(HorizontalAlignment.Right, control.HorizontalAlignment); Assert.Equal(VerticalAlignment.Center, control.VerticalAlignment);
     }
     private static void Divider(ChromeRowDivider divider)
@@ -197,11 +213,15 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Assert.Single(Nodes<Border>(refresh), x => x.Padding == new Thickness(3, 2));
         Assert.Single(Nodes<Control>(refresh), x => SwiftGlass.GetEffect(x) is not null); var button = Assert.Single(Nodes<Button>(refresh)); Assert.Equal("Check providers again", ToolTip.GetTip(button)); Assert.True(button.IsEnabled);
         // Hold RefreshAll's task-group hops so the real click and single-flight guard can be observed.
-        using var manual = MainActor.Executor.Override(h.Main.Loop);
-        h.Main.Loop.Enqueue(() => Click(button)); h.Main.RunUntilIdle(); Assert.True(model.Providers.IsRefreshing);
+        Task? duplicate = null;
+        using (MainActor.Executor.Override(h.Main.Loop))
+        {
+            h.Main.Loop.Enqueue(() => Click(button)); h.Main.RunUntilIdle();
+            h.Main.Loop.Enqueue(() => duplicate = model.Providers.RefreshEverything()); h.Main.RunUntilIdle();
+        }
+        Assert.True(model.Providers.IsRefreshing); Assert.True(duplicate!.IsCompletedSuccessfully);
         Sync(); button = Assert.Single(Nodes<Button>(refresh)); Assert.False(button.IsEnabled); Assert.Equal("Checking providers…", ToolTip.GetTip(button));
-        var disabledIcon = Assert.Single(Nodes<SwiftImage>(refresh)); ColorIs(disabledIcon, disabledIcon.Foreground, Chrome.PrimaryText.Opacity(0.32)); // Chrome.swift:355
-        Task? duplicate = null; h.Main.Loop.Enqueue(() => duplicate = model.Providers.RefreshEverything()); h.Main.RunUntilIdle(); Assert.True(duplicate!.IsCompletedSuccessfully);
+        var disabledIcon = Assert.Single(Nodes<SwiftImage>(refresh)); ColorIs(disabledIcon, disabledIcon.Foreground, SwiftColor.LabelColor.Opacity(0.32)); // Chrome.swift:355
         Wait(() => { h.Main.RunUntilIdle(); return !model.Providers.IsRefreshing; }); Assert.Equal(14, model.Providers.Statuses.Count); Assert.True(Assert.Single(Nodes<Button>(refresh)).IsEnabled);
     });
 
@@ -219,14 +239,14 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         {
             var group = Assert.IsType<StackPanel>(section.Child); Assert.Equal(10, group.Spacing); Assert.Equal(22, Header(section).Height); Collapsed(section, true); Assert.Equal(32, section.Bounds.Height);
             var title = Nodes<TextBlock>(Nodes<CollapsibleProviderHeader>(section).Single()).Single(); Assert.Equal(13, title.FontSize); Assert.Equal(FontWeight.SemiBold, title.FontWeight); ColorIs(title, title.Foreground, SwiftColor.Secondary);
-            var card = Assert.Single(Nodes<ChromeCard>(section)); Assert.False(card.Lazy); var shape = Assert.IsType<Border>(card.Child); Assert.Equal(new CornerRadius(16), shape.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape)); ColorIs(shape, shape.Background, Chrome.PrimaryText.Opacity(0.03)); Assert.Equal(0, Assert.IsType<StackPanel>(shape.Child).Spacing);
+            var card = Assert.Single(Nodes<ChromeCard>(section)); Assert.False(card.Lazy); var shape = Assert.IsType<Border>(card.Child); Assert.Equal(new CornerRadius(16), shape.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape)); ColorIs(shape, shape.Background, SwiftColor.LabelColor.Opacity(0.03)); Assert.Equal(0, Assert.IsType<StackPanel>(shape.Child).Spacing);
         }
         var meta = Section(view, ProviderKind.Meta); var cardBefore = Assert.Single(Nodes<ChromeCard>(meta));
         Seed(model, ProviderKind.Meta, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Layout(view);
         Assert.Same(meta, Nodes<ProviderSettingsSection>(view)[0]); Assert.Equal(1, Nodes<ChromeRevealLayout>(meta).Single().Fraction); Collapsed(meta, false);
         Seed(model, ProviderKind.Meta, new ProviderStatus()); Sync(); Layout(view); Assert.Same(meta, Section(view, ProviderKind.Meta)); Collapsed(meta, true); Assert.Contains("Get a key", Text(meta));
         var reveal = Nodes<ChromeRevealLayout>(meta).Single(); Click(Header(meta)); Sync(); Assert.Equal(0, reveal.Fraction);
-        Frames(h, 90); Assert.Equal((reduce ? Animation.EaseOut(0.18) : Animation.Spring(response: 0.32, dampingFraction: 0.9)).Progress(0.09), reveal.Fraction, 7); // :100-104 exact curve
+        Frames(h, 90); Layout(view); Assert.Equal(0, cardBefore.Bounds.X); Assert.Equal(0, cardBefore.Bounds.Y); Assert.Equal(Math.Ceiling(cardBefore.Bounds.Height * reveal.Fraction), reveal.Bounds.Height, 6); Assert.Equal((reduce ? Animation.EaseOut(0.18) : Animation.Spring(response: 0.32, dampingFraction: 0.9)).Progress(0.09), reveal.Fraction, 7); // :100-104 exact curve
         Frames(h, 1000); Layout(view); Assert.Equal(1, reveal.Fraction); Assert.Equal(cardBefore.Bounds.Height, reveal.Bounds.Height); Assert.Same(cardBefore, Nodes<ChromeCard>(meta).Single());
         Seed(model, ProviderKind.Meta, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync(); Assert.Equal(1, reveal.Fraction); Assert.DoesNotContain("Get a key", Text(meta)); Close(meta, h);
         Assert.DoesNotContain(model.Providers.Statuses.Values, status => status.IsChecking);
@@ -241,9 +261,13 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         for (var i = 0; i < sections.Length; i++)
         {
             var section = sections[i]; HeaderMetrics(section); var icon = Assert.IsType<ProviderIcon>(StatusRow(section).Children[0]); Assert.Equal(18, icon.Size);
-            var image = Assert.IsType<SwiftImage>(icon.Child); Assert.Equal(18, image.Width); Assert.Equal(18, image.Height); Assert.Equal(ContentMode.Fit, image.AspectContentMode); Assert.Equal(assets[i], image.AssetName); ColorIs(image, image.Foreground, Chrome.PrimaryText); seen.Add(image.AssetName!);
+            var image = Assert.IsType<SwiftImage>(icon.Child); Assert.Equal(18, image.Width); Assert.Equal(18, image.Height); Assert.Equal(ContentMode.Fit, image.AspectContentMode); Assert.Equal(assets[i], image.AssetName); ColorIs(image, image.Foreground, SwiftColor.LabelColor); seen.Add(image.AssetName!);
             Assert.Empty(Nodes<Button>(icon)); Open(section, h); var before = Draw(image);
-            image.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, image, new Avalonia.Input.Pointer(790, PointerType.Mouse, true), image, default, 0, default, default)); Sync(); Assert.Equal(before, Draw(image));
+            var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(image));
+            var point = image.TranslatePoint(new Point(9, 9), window)!.Value; Assert.NotNull(window.InputHitTest(point));
+            window.MouseMove(point); Sync(); Assert.Equal(before, Draw(image));
+            window.MouseDown(point, MouseButton.Left); Sync(); Assert.Equal(before, Draw(image)); window.MouseUp(point, MouseButton.Left);
+            image.IsEnabled = false; Sync(); Assert.Equal(before, Draw(image)); image.IsEnabled = true;
             Close(section, h); Assert.Same(image, Nodes<SwiftImage>(icon).Single()); Assert.Equal(before, Draw(image));
         }
         Assert.Equal(13, seen.Distinct().Count());
@@ -263,10 +287,10 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             (new() { Executable = executable, Version = "1.2.3-beta+1" }, "Installed · 1.2.3-beta+1"),
             (new() { Executable = executable }, "Installed") })
         {
-            Seed(model, ProviderKind.Codex, status); Sync(); HeaderMetrics(section); var summary = Assert.IsType<TextBlock>(Labels(section).Children[0]); Assert.Equal(expected, summary.Text); Assert.Equal(13, summary.FontSize); Assert.Equal(FontWeight.Normal, summary.FontWeight); ColorIs(summary, summary.Foreground, Chrome.PrimaryText);
+            Seed(model, ProviderKind.Codex, status); Sync(); HeaderMetrics(section); var summary = Assert.IsType<TextBlock>(Labels(section).Children[0]); Assert.Equal(expected, summary.Text); Assert.Equal(13, summary.FontSize); Assert.Equal(FontWeight.Normal, summary.FontWeight); ColorIs(summary, summary.Foreground, SwiftColor.LabelColor);
             Seed(model, ProviderKind.Codex, status with { IsChecking = true }); Sync(); Assert.Equal("Checking…", Assert.IsType<TextBlock>(Labels(section).Children[0]).Text);
         }
-        Seed(model, ProviderKind.Codex, new ProviderStatus { Version = " 1.2.3+raw " }); Sync(); var version = Assert.IsType<TextBlock>(Labels(section).Children[1]); Assert.Equal("Version  1.2.3+raw ", version.Text); Assert.Equal(11, version.FontSize); Assert.Equal(FontWeight.Normal, version.FontWeight); ColorIs(version, version.Foreground, Chrome.SecondaryText);
+        Seed(model, ProviderKind.Codex, new ProviderStatus { Version = " 1.2.3+raw " }); Sync(); var version = Assert.IsType<TextBlock>(Labels(section).Children[1]); Assert.Equal("Version  1.2.3+raw ", version.Text); Assert.Equal(11, version.FontSize); Assert.Equal(FontWeight.Normal, version.FontWeight); ColorIs(version, version.Foreground, SwiftColor.LabelColor.Opacity(0.7));
         Close(section, h); Seed(model, ProviderKind.Codex, new ProviderStatus()); Sync(); Assert.Single(Labels(section).Children);
         foreach (var kind in new[] { ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai }) { Seed(model, kind, new ProviderStatus { Version = "API" }); Sync(); Assert.Single(Labels(Section(view, kind)).Children); }
     });
@@ -290,8 +314,9 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         var get = Row(section, "Get a key"); RowMetrics(get, "Get a key", provider.DisplayName + " needs an API key. Nothing to install."); PrecededByDivider(get); var link = GlassLink(get, "Get a " + provider.DisplayName + " key");
         string? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(value => { opened = value.AbsoluteString; return true; }); Click(link); Assert.Equal(url, opened);
         Seed(model, provider, new ProviderStatus { ApiKeyConfigured = true, IsChecking = true, Version = "API", ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync();
-        Assert.DoesNotContain("Get a key", Text(section)); Assert.DoesNotContain("Version API", Text(section)); Assert.Equal(2, Labels(section).Children.Count); Assert.Equal("Checking…", ((TextBlock)Labels(section).Children[0]).Text);
-        var native = Assert.IsType<TextBlock>(Labels(section).Children[1]); Assert.Equal($"Native API · {host}", native.Text); Assert.Equal(11, native.FontSize); Assert.Equal(FontWeight.Normal, native.FontWeight); ColorIs(native, native.Foreground, Chrome.SecondaryText);
+        Assert.DoesNotContain("Get a key", Text(section)); Assert.DoesNotContain("Version API", Text(section));
+        Assert.DoesNotContain("Binary path", Text(section)); Assert.DoesNotContain("Install", Text(section)); Assert.DoesNotContain("Sign in", Text(section)); HeaderMetrics(section); Assert.Equal(2, Labels(section).Children.Count); Assert.Equal("Checking…", ((TextBlock)Labels(section).Children[0]).Text);
+        var native = Assert.IsType<TextBlock>(Labels(section).Children[1]); Assert.Equal($"Native API · {host}", native.Text); Assert.Equal(11, native.FontSize); Assert.Equal(FontWeight.Normal, native.FontWeight); ColorIs(native, native.Foreground, SwiftColor.LabelColor.Opacity(0.7));
         Close(section, h); Assert.Same(native, Labels(section).Children[1]); Seed(model, provider, new ProviderStatus()); Sync(); Assert.Single(Labels(section).Children);
         // Command Code is optional-key CLI: nil apiHost never occupies Native API's slot.
         Seed(model, ProviderKind.Commandcode, new ProviderStatus { ApiKeyConfigured = true, Version = "CLI raw" }); Sync(); var command = Section(view, ProviderKind.Commandcode); Assert.Equal(new[] { "Installed · CLI raw", "Version CLI raw" }, Text(Labels(command))); Assert.DoesNotContain(Text(command), text => text.StartsWith("Native API", StringComparison.Ordinal));
@@ -315,9 +340,9 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             var row = Row(section, title); RowMetrics(row, title, detail); PrecededByDivider(row);
             var field = Nodes<TextBox>(row).Single(); Assert.Equal(200, field.Width); Assert.Equal(12, field.FontSize); Assert.Equal("sk-…", field.PlaceholderText); Assert.Equal(SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Resolve().FontFamily, field.FontFamily);
             var pair = Nodes<StackPanel>(row).Single(x => x.Orientation == Orientation.Horizontal); Assert.Equal(8, pair.Spacing); Assert.Same(field, pair.Children[0]); var eye = Assert.IsType<Button>(pair.Children[1]); Assert.Equal(new Thickness(0), eye.BorderThickness); Assert.Equal(new Thickness(0), eye.Padding); Assert.DoesNotContain(Nodes<Control>(eye), x => SwiftGlass.GetEffect(x) is not null);
-            var image = Assert.Single(Nodes<SwiftImage>(eye)); Assert.Equal("eye", image.SymbolName); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(image)); ColorIs(image, image.Foreground, Chrome.SecondaryText); Assert.Equal("Show the API key", ToolTip.GetTip(eye));
+            var image = Assert.Single(Nodes<SwiftImage>(eye)); Assert.Equal("eye", image.SymbolName); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(image)); ColorIs(image, image.Foreground, SwiftColor.LabelColor.Opacity(0.7)); Assert.Equal("Show the API key", ToolTip.GetTip(eye));
             field.Text = "fixture-key-never-sent"; Sync(); Assert.Equal("fixture-key-never-sent", model.Settings.ApiKeyInput(provider)); var presenter = Assert.Single(field.GetVisualDescendants().OfType<TextPresenter>()); Assert.Equal('•', presenter.PasswordChar);
-            Click(eye); Sync(); Assert.Equal('\0', presenter.PasswordChar); Assert.Equal("Hide the API key", ToolTip.GetTip(eye)); Assert.Equal("eye.slash", Nodes<SwiftImage>(eye).Single().SymbolName); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(Nodes<SwiftImage>(eye).Single())); ColorIs(Nodes<SwiftImage>(eye).Single(), Nodes<SwiftImage>(eye).Single().Foreground, Chrome.SecondaryText);
+            Click(eye); Sync(); Assert.Equal('\0', presenter.PasswordChar); Assert.Equal("Hide the API key", ToolTip.GetTip(eye)); Assert.Equal("eye.slash", Nodes<SwiftImage>(eye).Single().SymbolName); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(Nodes<SwiftImage>(eye).Single())); ColorIs(Nodes<SwiftImage>(eye).Single(), Nodes<SwiftImage>(eye).Single().Foreground, SwiftColor.LabelColor.Opacity(0.7));
             field.Text = ""; Sync(); Close(section, h); shown.Add(eye); // Empty key replaces debounce, no credential leaves fixture.
         }
         Assert.Equal(4, shown.Count); Assert.All(shown, eye => Assert.Equal("Hide the API key", ToolTip.GetTip(eye)));
@@ -336,7 +361,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             var peer = Assert.IsAssignableFrom<IToggleProvider>(ControlAutomationPeer.CreatePeerForElement(toggle)); Assert.Equal(ToggleState.On, peer.ToggleState);
             var raw = SwiftEnum<ProviderKind>.RawValue(provider); Assert.DoesNotContain(raw, model.Settings.DisabledProviders); Assert.Contains(provider, model.Providers.AvailableProviders);
             var before = Draw(toggle); using var png = SKBitmap.Decode(before); var expected = Chrome.AccentNSColor.Resolve(toggle.ActualThemeVariant); var pixel = png.GetPixel(5, 8); Assert.Equal(expected.R, pixel.Red); Assert.Equal(expected.G, pixel.Green); Assert.Equal(expected.B, pixel.Blue);
-            Key(toggle, Avalonia.Input.Key.Space); Sync(); Assert.Equal(ToggleState.Off, peer.ToggleState); Assert.Contains(raw, model.Settings.DisabledProviders); Assert.Contains("disabledProviders", h.Defaults.Writes); Assert.DoesNotContain(provider, model.Providers.AvailableProviders);
+            PointerClick(toggle); Sync(); Assert.Equal(ToggleState.Off, peer.ToggleState); Assert.Contains(raw, model.Settings.DisabledProviders); Assert.Contains("disabledProviders", h.Defaults.Writes); Assert.DoesNotContain(provider, model.Providers.AvailableProviders);
             Key(toggle, Avalonia.Input.Key.Space); Sync(); Assert.Equal(ToggleState.On, peer.ToggleState); Assert.DoesNotContain(raw, model.Settings.DisabledProviders);
             Seed(model, provider, new ProviderStatus { IsChecking = true }); Sync(); Assert.True(toggle.IsEffectivelyEnabled); Close(section, h); peer.Toggle(); Assert.Equal(ToggleState.On, peer.ToggleState);
         }
@@ -390,7 +415,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-PROVREG-010")] // App/Views/Settings/SettingsView.swift:629-634,676-688,772-779; ProviderRegistry.swift:606-641,682-700
-    public void Usage_gates_cover_every_provider_and_reads_on_initial_appearance_and_sign_in_are_throttled() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
+    public void Usage_gates_cover_every_provider_and_both_kinds_in_source_order() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
         // PlanLimits.swift:76-90 / ProviderCredits.swift:58 exact capability lists, not inferred from output.
         var limitsKinds = new[] { ProviderKind.Claude, ProviderKind.Codex, ProviderKind.Antigravity, ProviderKind.Copilot, ProviderKind.Commandcode, ProviderKind.Pi, ProviderKind.Zai };
@@ -402,7 +427,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             {
                 Seed(model, kind, status); Sync(); var shown = status.IsInstalled && status.ProviderStatusAuth is not ProviderStatus.Auth.SignedOut;
                 Assert.Equal(shown && limitsKinds.Contains(kind) ? 1 : 0, Nodes<PlanLimitsView>(section).Length); Assert.Equal(shown && creditKinds.Contains(kind) ? 1 : 0, Nodes<CreditsView>(section).Length);
-                if (Nodes<PlanLimitsView>(section).Length + Nodes<CreditsView>(section).Length > 0) { var usage = Nodes<StackPanel>(section).Single(x => x.Spacing == 14); Assert.Equal(new Thickness(16, 12), usage.Margin); Assert.Equal(limitsKinds.Contains(kind) ? typeof(PlanLimitsView) : typeof(CreditsView), usage.Children[0].GetType()); }
+                if (Nodes<PlanLimitsView>(section).Length + Nodes<CreditsView>(section).Length > 0) { UsageMetrics(section); var usage = Nodes<StackPanel>(section).Single(x => x.Spacing == 14); Assert.Equal(limitsKinds.Contains(kind) ? typeof(PlanLimitsView) : typeof(CreditsView), usage.Children[0].GetType()); if (usage.Children.Count == 2) Assert.IsType<CreditsView>(usage.Children[1]); }
             }
         }
     });
@@ -414,6 +439,8 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     {
         var usage = Nodes<StackPanel>(section).Single(x => x.Spacing == 14); Assert.Equal(new Thickness(16, 12), usage.Margin);
         var slot = Assert.IsType<StackPanel>(usage.Parent); Divider(Assert.IsType<ChromeRowDivider>(slot.Children[0]));
+        foreach (var child in usage.Children) Leading(child, usage);
+        if (usage.Children.Count == 2) Assert.Equal(14, usage.Children[1].Bounds.Y - usage.Children[0].Bounds.Bottom, 6);
     }
     [Fact]
     [Trait("Req", "UI-PROVAPI-029")] // App/Views/Settings/SettingsView.swift:676-688; Services/Providers/ZaiAPI.swift:55-181
@@ -469,11 +496,121 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Seed(model, ProviderKind.Deepseek, model.Providers.Status(ProviderKind.Deepseek) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync(); Assert.Empty(Nodes<CreditsView>(section));
         Seed(model, ProviderKind.Deepseek, model.Providers.Status(ProviderKind.Deepseek) with { ProviderStatusAuth = new ProviderStatus.Auth.Unknown() }); Sync(); Assert.Equal(count, server.Requests.Count);
         // Real validation entry point triggers an immediate forced balance read even within the minute gate.
-        var valid = model.Providers.Refresh(ProviderKind.Deepseek); Wait(() => valid.IsCompleted && !model.Providers.LoadingCredits.Contains(ProviderKind.Deepseek)); valid.GetAwaiter().GetResult(); Assert.True(server.Requests.Count(x => x.Target == "/user/balance") >= 2); Assert.Contains("$12.34", Text(section));
+        var valid = model.Providers.Refresh(ProviderKind.Deepseek); Wait(() => valid.IsCompleted && !model.Providers.LoadingCredits.Contains(ProviderKind.Deepseek)); valid.GetAwaiter().GetResult(); Assert.Equal(2, server.Requests.Count(x => x.Target == "/user/balance")); Assert.Contains("$12.34", Text(section));
         reject = true; var invalid = model.Providers.Refresh(ProviderKind.Deepseek); Wait(() => invalid.IsCompleted); invalid.GetAwaiter().GetResult(); Assert.False(model.Providers.Credits.ContainsKey(ProviderKind.Deepseek)); Assert.Empty(Nodes<CreditsView>(section)); Assert.DoesNotContain("$12.34", Text(section));
         reject = false; unreachable = true; Seed(model, ProviderKind.Deepseek, model.Providers.Status(ProviderKind.Deepseek) with { ProviderStatusAuth = new ProviderStatus.Auth.Unknown() }); Sync(); model.Providers.RefreshCredits(ProviderKind.Deepseek, force: true); Wait(() => !model.Providers.LoadingCredits.Contains(ProviderKind.Deepseek)); Assert.DoesNotContain("$12.34", Text(section));
         model.Settings.SetAPIKeyInput("", ProviderKind.Deepseek); model.Providers.RefreshCredits(ProviderKind.Deepseek, force: true); Sync(); Assert.False(model.Providers.Credits.ContainsKey(ProviderKind.Deepseek)); Assert.DoesNotContain("$12.34", Text(section));
         Close(section, h);
+    });
+
+    [Fact]
+[Trait("Req", "UI-PROVAPI-001")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-002")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-003")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-004")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-006")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-007")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-008")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-009")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-010")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-029")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-030")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-003")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-004")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-005")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-006")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-007")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-008")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-010")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-037")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-039")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-040")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-042")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-043")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-044")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+    public void Default_expansion_and_every_collapsed_gate_follow_auth_until_the_real_header_is_clicked() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
+    {
+        var host = Assert.IsType<Border>(view.Parent);
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases) Seed(model, kind, new ProviderStatus { ApiKeyConfigured = true, Executable = SwiftURL.Create(new Uri(Path.Combine(h.Scratch, "not-launched.exe")).AbsoluteUri)!, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) });
+        host.Child = new ProvidersSettingsPage(); Sync(); Layout(host);
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+        {
+            var section = Section(host, kind); Collapsed(section, false); Assert.Equal(1, Nodes<ChromeRevealLayout>(section).Single().Fraction);
+            Close(section, h);
+            var reveal = Nodes<ChromeRevealLayout>(section).Single(); var card = Assert.Single(Nodes<ChromeCard>(reveal));
+            Assert.Equal(0, card.Bounds.X); Assert.Equal(0, card.Bounds.Y); Assert.True(card.Bounds.Height > 0);
+            // :763-766 actual collapsed hit testing must not reach any of the mounted card.
+            var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(section));
+            var point = card.TranslatePoint(new Point(20, 10), window)!.Value;
+            var hit = window.InputHitTest(point) as Control;
+            Assert.False(hit is not null && (ReferenceEquals(hit, reveal) || hit.GetVisualAncestors().Contains(reveal)));
+            Seed(model, kind, model.Providers.Status(kind) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync();
+            Seed(model, kind, model.Providers.Status(kind) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Collapsed(section, true);
+        }
+        Assert.DoesNotContain("providerExpansion", h.Defaults.Writes);
+        host.Child = new ProvidersSettingsPage(); Sync(); Layout(host);
+        Assert.All(Nodes<ProviderSettingsSection>(host), section => Collapsed(section, false));
+    });
+
+    [Fact]
+[Trait("Req", "UI-PROVAPI-002")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-003")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-004")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-007")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-008")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVAPI-009")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-037")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-040")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-042")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+[Trait("Req", "UI-PROVREG-043")] // App/Views/Settings/SettingsView.swift:594-610,648,763-779
+    public void Row_fonts_remain_Inter_and_style_sized_while_the_real_app_zoom_scales_the_rendered_window() => WithView(() => new ProvidersSettingsPage(), (view, _, h) =>
+    {
+        // Chrome.swift:1055-1079; WindowManager.swift:175; AppZoom.swift:6,22-25; ED-059 and OD-0009.
+        foreach (var section in Nodes<ProviderSettingsSection>(view)) Open(section, h);
+        var host = Assert.IsType<Border>(view.Parent); var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(view));
+        var layers = Assert.IsType<Avalonia.Controls.Primitives.VisualLayerManager>(window.Content); layers.Child = null; layers.Child = new AppZoomModifier(100).Body(host); Layout(view);
+        foreach (var percent in new[] { 75, 90, 100, 110, 125, 150, 175, 200 })
+        {
+            new AppZoomModifier(percent).Body(host); Layout(view);
+            var transform = Assert.IsType<ScaleTransform>(host.RenderTransform); Assert.Equal(percent / 100d, transform.ScaleX); Assert.Equal(percent / 100d, transform.ScaleY);
+            Assert.Equal(new RelativePoint(0, 0, RelativeUnit.Relative), host.RenderTransformOrigin);
+            var from = host.TranslatePoint(default, window)!.Value; var to = host.TranslatePoint(new Point(100, 100), window)!.Value;
+            Assert.Equal((double)percent, to.X - from.X, 6); Assert.Equal((double)percent, to.Y - from.Y, 6);
+            foreach (var row in Nodes<ChromeRow>(view))
+            {
+                var labels = Assert.IsType<StackPanel>(Assert.IsType<Grid>(Assert.IsType<Border>(row.Child).Child).Children[0]);
+                var text = labels.Children.OfType<TextBlock>().ToArray(); Assert.Equal(13, text[0].FontSize); Inter(text[0]);
+                if (text.Length == 2) { Assert.Equal(11, text[1].FontSize); Inter(text[1]); Assert.Equal(TextWrapping.Wrap, text[1].TextWrapping); }
+            }
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-PROVREG-010")] // App/Views/Settings/SettingsView.swift:629-634,676-688,772-779; ProviderRegistry.swift:606-641,682-700
+    public void Command_Code_initial_appearance_and_later_sign_in_read_exactly_one_limits_and_one_credits_result() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
+    {
+        const string credits = """{"windowLimits":{"fiveHour":{"cap":100,"used":25}},"credits":{"monthlyCredits":4,"purchasedCredits":3,"freeCredits":2}}""";
+        using var server = new LoopbackFeedServer(request => CannedResponse.Json(request.Target.Contains("subscriptions", StringComparison.Ordinal) ? """{"data":{"planId":"individual-pro"}}""" : credits));
+        var endpoint = typeof(CommandCodeAPI).GetProperty("FetchBaseURL", BindingFlags.Static | BindingFlags.NonPublic); Assert.NotNull(endpoint);
+        using var routes = Assert.IsType<Ambient<Uri>>(endpoint.GetValue(null)).Override(new Uri(server.Url("/")));
+        // Existing ED-211 resolver seam: plan-limit reader does not execute Command Code; no real CLI can resolve here.
+        using var executable = ProviderRegistry.SetCLIUpdaterExecutableForTesting(kind => kind == ProviderKind.Commandcode ? SwiftURL.Create(new Uri(Path.Combine(h.Scratch, "never-launched-commandcode.exe")).AbsoluteUri)! : null);
+        model.Settings.SetAPIKeyInput("fixture-command-key", ProviderKind.Commandcode);
+        Seed(model, ProviderKind.Commandcode, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync();
+        Wait(() => model.Providers.PlanLimits.ContainsKey(ProviderKind.Commandcode) && model.Providers.Credits.ContainsKey(ProviderKind.Commandcode) && !model.Providers.LoadingLimits.Contains(ProviderKind.Commandcode) && !model.Providers.LoadingCredits.Contains(ProviderKind.Commandcode));
+        Assert.Equal(2, server.Requests.Count(x => x.Target == "/alpha/billing/credits")); Assert.Single(server.Requests, x => x.Target == "/alpha/billing/subscriptions");
+        var host = Assert.IsType<Border>(view.Parent); host.Child = new ProvidersSettingsPage(); Sync(); Layout(host);
+        var section = Section(host, ProviderKind.Commandcode); Collapsed(section, false); UsageMetrics(section);
+        var usage = Nodes<StackPanel>(section).Single(x => x.Spacing == 14); Assert.IsType<PlanLimitsView>(usage.Children[0]); Assert.IsType<CreditsView>(usage.Children[1]); Assert.Equal(3, server.Requests.Count);
+        Close(section, h); Open(section, h); Assert.Equal(3, server.Requests.Count);
+        Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync();
+        Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Assert.Equal(3, server.Requests.Count);
+        Frames(h, 60_000);
+        Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync();
+        Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync();
+        Wait(() => server.Requests.Count == 6 && !model.Providers.LoadingLimits.Contains(ProviderKind.Commandcode) && !model.Providers.LoadingCredits.Contains(ProviderKind.Commandcode));
+        Assert.Equal(4, server.Requests.Count(x => x.Target == "/alpha/billing/credits")); Assert.Equal(2, server.Requests.Count(x => x.Target == "/alpha/billing/subscriptions"));
+        Assert.All(server.Requests, x => Assert.Equal(new[] { "Bearer fixture-command-key" }, x.HeaderValues("Authorization")));
     });
 
 }

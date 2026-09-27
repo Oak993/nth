@@ -16,7 +16,7 @@ public sealed class TestApp : Application
 {
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApp>()
         .UseSkia()
-        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false, ShouldRenderOnUIThread = true })
         .WithSwiftFonts(); // ED-107 (5): the one font registration point, shared with the app shell's AppBuilder;
         // matches tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs, missing here until App.Views.Settings.TokenActivitySection's
         // tests needed a real Inter Medium glyph typeface (Avalonia's headless session otherwise has none registered).
