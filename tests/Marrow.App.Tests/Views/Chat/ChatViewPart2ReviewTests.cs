@@ -38,14 +38,8 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
         });
     }
 
-    // STOP App.Views.Chat.ChatView #4
-    // Kind: conflict
-    // Swift: DroppyCode/App/Views/Chat/ChatView.swift:1726-1729 (1.7.0).
-    // Records: PR-TERM-078, UI-TERM-026.
-    // Packet prose says tabs survive .whitespaces; the pinned source calls that Foundation set,
-    // whose already verified FoundationText.Trim includes tabs but excludes line feeds.
-    // Keep the inherited tab-incomplete assertions and exact Swift operation; do not re-expect them.
-    // Needed: orchestrator correction to packet prose. No invented trim rule is implemented.
+    // Orchestrator ruling (docs/b3 bf7bab67f): the packet prose now agrees with R-STR-7 and Swift :1726-1729.
+    // Foundation .whitespaces includes tabs; the inherited tab-incomplete assertions are unchanged.
 
     [Fact]
     [Trait("Req", "PR-TERM-076")] // App/Views/Chat/ChatView.swift:1672-1693

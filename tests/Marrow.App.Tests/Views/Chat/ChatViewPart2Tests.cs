@@ -313,6 +313,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-TERM-078")] // App/Views/Chat/ChatView.swift:1684-1691,1711-1718,1726-1729
     [Trait("Req", "UI-TERM-026")] // App/Views/Chat/ChatView.swift:1684-1691,1711-1718,1726-1729
+    [Trait("Rule", "R-STR-7")] // App/Views/Chat/ChatView.swift:1726-1729, Foundation .whitespaces includes the tab.
     [Trait("Req", "UI-TERM-030")] // App/Views/Chat/ChatView.swift:1684-1691,1711-1718,1726-1729
     public void A_blank_command_is_outlined_in_danger_and_blocks_saving_while_a_real_command_is_not()
     {
