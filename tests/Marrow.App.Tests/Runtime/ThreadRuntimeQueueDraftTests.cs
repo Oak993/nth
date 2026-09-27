@@ -17,7 +17,7 @@ namespace Marrow.App.Tests.Runtime;
 // clears the box (:786-787). enqueueFollowUp then ends with flushFollowUpsIfIdle (:1003-1007): "the queue only ever
 // waits behind a running turn, never behind an idle lead", so on an idle lead a Task (:1056-1061) drains the queue as
 // after a completed turn (:1066-1071, :1116-1137), unless the user stopped the last turn (:1058) or a flush is already
-// on its way (:792-795, :1058-1059). Every expectation is transcribed from those lines; none comes from running the
+// on its way (:793-796, :1057, :1059). Every expectation is transcribed from those lines; none comes from running the
 // port.
 // Heads are Droppy-run head threads of the lead, in its panel; a loaded library stops a running head
 // (AppModel.swift:132-136), so a test puts a head to work after the model is made.
@@ -158,7 +158,7 @@ public sealed class ThreadRuntimeQueueDraftTests
     }
 
     [Fact]
-    [Trait("Req", "PR-RUNTIME-197")] // App/Runtime/ThreadRuntime.swift:792-795, :1056-1071, :1116-1137, :933-943
+    [Trait("Req", "PR-RUNTIME-197")] // App/Runtime/ThreadRuntime.swift:793-796, :1056-1071, :1116-1137, :933-943
     public void Two_prompts_queued_on_an_idle_lead_in_one_pass_start_one_turn_and_the_second_waits_for_its_end()
     {
         using var h = new AppModelHarness();
@@ -172,7 +172,7 @@ public sealed class ThreadRuntimeQueueDraftTests
             Assert.False(runtime.HasWorkingHeads);
 
             // :1003-1007 the first schedules the flush (:1059-1060); the second finds it on its way (:1057) and waits
-            // its turn rather than starting one of its own, "so two never double-send" (:792-795).
+            // its turn rather than starting one of its own, "so two never double-send" (:793-796).
             runtime.EnqueueFollowUp("first step", []);
             runtime.EnqueueFollowUp("second step", []);
 
