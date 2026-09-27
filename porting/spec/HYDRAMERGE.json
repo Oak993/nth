@@ -2199,7 +2199,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same synthetic block and the same literal fallback id.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2228,7 +2228,7 @@
       "cancellation": "n/a",
       "windows_path": "Same predicate, including the consequence for prefixed titles and the unprefixed stray and settlement titles.",
       "verification_method": "unit test over each title form, single and multi-project, including the unprefixed settlement and stray titles in a multi-project run and a legacy hold note",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

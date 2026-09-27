@@ -5585,7 +5585,7 @@
     },
     {
       "id": "PR-MCP-202",
-      "title": "The server search matches name, vendor, summary, id or any sample tool, case- and diacritic-insensitively",
+      "title": "The server search matches name, vendor, summary, id or any sample tool, case-insensitively and accent-sensitively",
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:77-85 matches(_:query:) - :78 let trimmed = query.trimmed | :79 guard !trimmed.isEmpty else { return true } | :80 return entry.name.localizedCaseInsensitiveContains(trimmed) | :84 || entry.sampleTools.contains { $0.localizedCaseInsensitiveContains(trimmed) }",
         "DroppyCode/App/Views/Settings/SettingsView.swift:252 the search field with prompt \"Search servers\"",
@@ -5602,7 +5602,7 @@
         "none"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same five fields and the same localized case-insensitive containment, which also ignores diacritics on macOS; match that behavior or record the difference.",
+      "windows_path": "Same five fields and the same localized case-insensitive containment: SwiftString.LocalizedCaseInsensitiveContains (R-STR-6, ED-009), current culture, case-insensitive, accent-sensitive, an empty needle never contained. localizedCaseInsensitiveContains (MCPSettingsPage.swift:80-84) is a case-insensitive search only; the diacritic-insensitive Foundation call is localizedStandardContains, which this page does not use. Corrected 2026-09-27: the earlier text claimed diacritics are ignored here, contradicting the source call and ED-009.",
       "verification_method": "unit over each of the five fields plus an interaction test on the field",
       "status": "SPECIFIED",
       "upstream_defect": null,
