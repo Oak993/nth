@@ -43,7 +43,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     [Theory]
     [InlineData("Revert and keep file changes", false)]
     [InlineData("Revert files too", true)]
-    [Trait("Req", "PR-CHAT-082")] // App/Views/Chat/TimelineRows.swift:184-206
+    // Partial proof PR-CHAT-082 (STOP #11); App/Views/Chat/TimelineRows.swift:184-206
     [Trait("Req", "PR-GIT-123")] // App/Views/Chat/TimelineRows.swift:191-206; App/Runtime/ThreadRuntime.swift:1852-1854
     [Trait("Req", "UI-CHAT-014")] // App/Views/Chat/TimelineRows.swift:191-196; ED-216
     [Trait("Req", "UI-GIT-051")] // App/Views/Chat/TimelineRows.swift:191-196; ED-216
@@ -92,7 +92,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-082")] // App/Views/Chat/TimelineRows.swift:184-196; ED-216
+    // Partial proof PR-CHAT-082 (STOP #11); App/Views/Chat/TimelineRows.swift:184-196; ED-216
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Cancel_closes_the_shared_revert_dialog_and_allows_the_same_row_to_ask_again() => headless.OnUiThread(() =>
     {
         using var h = RuntimeHarness();
@@ -117,8 +118,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-078")] // App/Views/Chat/TimelineRows.swift:97-114
-    [Trait("Req", "UI-CHAT-008")] // App/Views/Chat/TimelineRows.swift:97-114
+    // Partial proof PR-CHAT-078 (STOP #11); App/Views/Chat/TimelineRows.swift:97-114
+    // Partial proof UI-CHAT-008 (STOP #10); App/Views/Chat/TimelineRows.swift:97-114
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Leading_quotes_render_with_the_real_ChipChrome_excerpt_and_help() => headless.OnUiThread(() =>
     {
         using var h = RuntimeHarness();
@@ -137,8 +139,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-104")] // App/Views/Chat/TimelineRows.swift:2580-2585
-    [Trait("Req", "PR-CHAT-155")] // App/Views/Chat/TimelineRows.swift:2580-2585
+    // Partial proof PR-CHAT-104 (STOP #11); App/Views/Chat/TimelineRows.swift:2580-2585
+    // Partial proof PR-CHAT-155 (STOP #11); App/Views/Chat/TimelineRows.swift:2580-2585
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Expanded_turns_use_real_groups_and_exclude_the_separate_head_list() => headless.OnUiThread(() =>
     {
         using var h = RuntimeHarness();
@@ -160,8 +163,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-152")] // App/Views/Chat/TimelineRows.swift:401-418; App/AppModel.swift:396-400
-    [Trait("Req", "UI-CHAT-052")] // App/Views/Chat/TimelineRows.swift:401-418
+    // Partial proof PR-CHAT-152 (STOP #11); App/Views/Chat/TimelineRows.swift:401-418; App/AppModel.swift:396-400
+    // Partial proof UI-CHAT-052 (STOP #10); App/Views/Chat/TimelineRows.swift:401-418
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Finished_heads_mount_from_the_live_AppModel_helper_cells_without_manual_injection() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -181,8 +185,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-154")] // App/Views/Chat/TimelineRows.swift:1969-1973; ED-217
-    [Trait("Req", "UI-CHAT-055")] // App/Views/Chat/TimelineRows.swift:1969-1973; ED-217
+    // Partial proof PR-CHAT-154 (STOP #11); App/Views/Chat/TimelineRows.swift:1969-1973; ED-217
+    // Partial proof UI-CHAT-055 (STOP #10); App/Views/Chat/TimelineRows.swift:1969-1973; ED-217
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Head_step_tool_labels_use_the_two_line_middle_truncation_control() => headless.OnUiThread(() =>
     {
         using var actor = new TestRuntime();
@@ -196,7 +201,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-CHAT-033")] // App/Views/Chat/TimelineRows.swift:2356-2369
+    // Partial proof UI-CHAT-033 (STOP #10); App/Views/Chat/TimelineRows.swift:2356-2369
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Checklist_symbols_share_the_first_text_baseline_with_their_steps()
     {
         headless.OnUiThread(() => { using var actor = new TestRuntime(); actor.OnMain(() => {
@@ -211,7 +217,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         }); });
     }
     [Fact]
-    [Trait("Req", "PR-CHAT-154")] // App/Views/Chat/TimelineRows.swift:1958-1973
+    // Partial proof PR-CHAT-154 (STOP #11); App/Views/Chat/TimelineRows.swift:1958-1973
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Head_tool_steps_have_two_wrapping_lines_with_a_constrained_text_column()
     {
         headless.OnUiThread(() => { using var actor = new TestRuntime(); actor.OnMain(() => {
@@ -228,23 +235,28 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-GIT-047")] // App/Views/Chat/TimelineRows.swift:2777-2798
+    // Partial proof UI-GIT-047 (STOP #5); App/Views/Chat/TimelineRows.swift:2777-2798
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Git_confirmation_UI_is_close_first_with_default_Revert_pending_only_small_size_STOP_5() => The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts();
     [Fact]
-    [Trait("Req", "UI-GIT-048")] // App/Views/Chat/TimelineRows.swift:2800-2816
+    // Partial proof UI-GIT-048 (STOP #10); App/Views/Chat/TimelineRows.swift:2800-2816
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Git_review_UI_captures_the_clicked_button_only_after_hover() => The_review_control_hands_its_own_anchor_to_the_review_once_the_pointer_has_been_there_and_does_nothing_before();
     [Fact]
-    [Trait("Req", "UI-GIT-049")] // App/Views/Chat/TimelineRows.swift:130-156
+    // Partial proof UI-GIT-049 (STOP #10); App/Views/Chat/TimelineRows.swift:130-156
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Git_pencil_UI_prefetches_and_toggles_without_moving_the_message() { Settling_the_pointer_on_the_pencil_starts_the_revert_preview(); The_pencil_opens_the_edit_on_the_runtime_and_a_second_tap_closes_it(); }
     [Fact]
-    [Trait("Req", "UI-GIT-050")] // App/Views/Chat/TimelineRows.swift:216-228, :172-190
+    // Partial proof UI-GIT-050 (STOP #10); App/Views/Chat/TimelineRows.swift:216-228, :172-190
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Git_edit_item_UI_is_third_in_a_new_group_and_posts_only_an_intent() => Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it();
     [Fact]
     [Trait("Req", "UI-GIT-051")] // App/Views/Chat/TimelineRows.swift:191-196
     public void Git_dialog_UI_intent_preserves_the_two_way_revert_site_at_STOP_2() => Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it();
 
     [Fact]
-    [Trait("Req", "UI-HYDRAMERGE-002")] // App/Views/Chat/TimelineRows.swift:1044-1079
+    // Partial proof UI-HYDRAMERGE-002 (STOP #10); App/Views/Chat/TimelineRows.swift:1044-1079
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_new_merge_stage_keeps_the_sizing_slot_and_replaces_only_the_shimmer_identity()
     {
         headless.OnUiThread(() =>
@@ -264,7 +276,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-HYDRAMERGE-004")] // App/Views/Chat/TimelineRows.swift:821-841, :844-915, :966-971
+    // Partial proof UI-HYDRAMERGE-004 (STOP #10); App/Views/Chat/TimelineRows.swift:821-841, :844-915, :966-971
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_track_inherits_Reduce_Motion_and_is_hidden_from_accessibility()
     {
         headless.OnUiThread(() => { using var actor = new TestRuntime(); actor.OnMain(() => {
@@ -282,17 +295,20 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         }); });
     }
     [Fact]
-    [Trait("Req", "UI-HYDRAMERGE-005")] // App/Views/Chat/TimelineRows.swift:1099-1120, :1142-1155
+    // Partial proof UI-HYDRAMERGE-005 (STOP #10); App/Views/Chat/TimelineRows.swift:1099-1120, :1142-1155
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Outcome_title_UI_is_verbatim_one_line_with_a_conditional_secondary_chevron() => An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled();
     [Fact]
-    [Trait("Req", "UI-HYDRAMERGE-006")] // App/Views/Chat/TimelineRows.swift:1121-1126, :1157-1161
+    // Partial proof UI-HYDRAMERGE-006 (STOP #10); App/Views/Chat/TimelineRows.swift:1121-1126, :1157-1161
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Merge_Open_UI_is_a_separate_caption_semibold_browser_control() => A_note_that_leads_with_an_address_gets_an_Open_link_beside_the_pill_that_opens_it_in_the_browser();
 
     [Theory]
     [InlineData("https://gitlab.com/g/p/-/merge_requests/7\nNo files line.", false)]
     [InlineData("https://gitlab.com/g/p/-/merge_requests/7\n1 file (+2 \u22121) landed on `main` from `head`.", true)]
     [InlineData("1 file (+2 \u22121) landed on `main` from `head`.", false)]
-    [Trait("Req", "UI-HYDRAMERGE-007")] // App/Views/Chat/TimelineRows.swift:1111-1120, :607-640
+    // Partial proof UI-HYDRAMERGE-007 (STOP #10); App/Views/Chat/TimelineRows.swift:1111-1120, :607-640
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Outcome_popover_requires_a_leading_request_URL_and_a_parseable_files_line(string body, bool merge)
     {
         headless.OnUiThread(() =>
@@ -322,7 +338,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     [InlineData(Notice.Level.Info)]
     [InlineData(Notice.Level.Warning)]
     [InlineData(Notice.Level.Error)]
-    [Trait("Req", "UI-RUNTIME-001")] // App/Views/Chat/TimelineRows.swift:2388-2404
+    // Partial proof UI-RUNTIME-001 (STOP #10); App/Views/Chat/TimelineRows.swift:2388-2404
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Long_notice_text_wraps_inside_the_row_and_its_symbol_uses_the_first_text_baseline(Notice.Level level)
     {
         headless.OnUiThread(() => { using var actor = new TestRuntime(); actor.OnMain(() => {
@@ -342,44 +359,57 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         }); });
     }
     [Fact]
-    [Trait("Req", "UI-RUNTIME-002")] // App/Views/Chat/TimelineRows.swift:2385-2431
+    // Partial proof UI-RUNTIME-002 (STOP #10); App/Views/Chat/TimelineRows.swift:2385-2431
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Runtime_warning_UI_is_a_selectable_theme_warning_pill() => A_warning_or_error_notice_sits_in_a_full_width_pill_tinted_at_ten_percent_of_its_theme_status_colour();
     [Fact]
-    [Trait("Req", "UI-RUNTIME-003")] // App/Views/Chat/TimelineRows.swift:2385-2431
+    // Partial proof UI-RUNTIME-003 (STOP #10); App/Views/Chat/TimelineRows.swift:2385-2431
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Runtime_error_UI_has_the_same_geometry_but_theme_danger() => A_warning_or_error_notice_sits_in_a_full_width_pill_tinted_at_ten_percent_of_its_theme_status_colour();
     [Fact]
-    [Trait("Req", "UI-RUNTIME-004")] // App/Views/Chat/TimelineRows.swift:2433-2456
+    // Partial proof UI-RUNTIME-004 (STOP #10); App/Views/Chat/TimelineRows.swift:2433-2456
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Runtime_end_UI_is_caption_secondary_only_without_a_reply() => The_standalone_turn_end_line_shows_only_when_the_turn_produced_no_reply();
 
     [Fact]
-    [Trait("Req", "UI-CHAT-039")] // App/Views/Chat/TimelineRows.swift:2777-2798
+    // Partial proof UI-CHAT-039 (STOP #5); App/Views/Chat/TimelineRows.swift:2777-2798
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Revert_panel_UI_keeps_300_point_width_16_insets_and_default_Revert() => The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts();
     [Fact]
-    [Trait("Req", "UI-CHAT-040")] // App/Views/Chat/TimelineRows.swift:2800-2816
+    // Partial proof UI-CHAT-040 (STOP #10); App/Views/Chat/TimelineRows.swift:2800-2816
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Review_disc_UI_uses_its_own_lazy_anchor_and_ignores_anchorless_clicks() => The_review_control_hands_its_own_anchor_to_the_review_once_the_pointer_has_been_there_and_does_nothing_before();
     [Fact]
-    [Trait("Req", "UI-CHAT-041")] // App/Views/Chat/TimelineRows.swift:2829-2858
+    // Partial proof UI-CHAT-041 (STOP #10); App/Views/Chat/TimelineRows.swift:2829-2858
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void File_row_UI_uses_middle_truncation_and_Binary_instead_of_stats() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
     [Fact]
-    [Trait("Req", "UI-CHAT-042")] // App/Views/Chat/TimelineRows.swift:2850-2856
+    // Partial proof UI-CHAT-042 (STOP #10); App/Views/Chat/TimelineRows.swift:2850-2856
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void File_overflow_UI_keeps_the_exact_singular_and_plural_lines() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
     [Fact]
-    [Trait("Req", "UI-CHAT-048")] // App/Views/Chat/TimelineRows.swift:241-329, :340-387
+    // Partial proof UI-CHAT-048 (STOP #10); App/Views/Chat/TimelineRows.swift:241-329, :340-387
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Report_pill_UI_has_overlapping_18_point_glyphs_and_failed_head_names() { A_heads_report_pill_names_who_is_done_and_names_a_failed_or_stopped_head_with_its_outcome(); A_heads_report_pill_overlaps_the_heads_glyphs_and_sits_in_the_tinted_pill_with_96_points_clear_on_the_trailing_side(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-049")] // App/Views/Chat/TimelineRows.swift:304-311
+    // Partial proof UI-CHAT-049 (STOP #10); App/Views/Chat/TimelineRows.swift:304-311
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Report_Open_UI_is_a_sibling_with_the_exact_tooltip() => A_note_that_leads_with_an_address_gets_an_Open_link_beside_the_pill_that_opens_it_in_the_browser();
     [Fact]
-    [Trait("Req", "UI-CHAT-050")] // App/Views/Chat/TimelineRows.swift:607-639
+    // Partial proof UI-CHAT-050 (STOP #10); App/Views/Chat/TimelineRows.swift:607-639
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Report_panel_UI_is_fixed_460_with_16_14_padding_and_ten_point_spacing() => The_report_popover_is_460_wide_with_a_460_point_scroller_at_the_callout_style_with_12_point_markdown();
     [Fact]
-    [Trait("Req", "UI-CHAT-051")] // App/Views/Chat/TimelineRows.swift:537-595
+    // Partial proof UI-CHAT-051 (STOP #10); App/Views/Chat/TimelineRows.swift:537-595
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Brief_UI_uses_the_straight_apostrophe_and_cooking_shimmer() => A_brief_reads_as_cooking_until_its_turn_has_output_and_then_as_the_brief();
     [Fact]
-    [Trait("Req", "UI-CHAT-052")] // App/Views/Chat/TimelineRows.swift:438-476, :398-418
+    // Partial proof UI-CHAT-052 (STOP #10); App/Views/Chat/TimelineRows.swift:438-476, :398-418
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Finished_head_UI_keeps_the_status_suffix_and_leading_stack() { A_finished_heads_pill_names_its_outcome_beside_its_glyph_with_the_report_one_tap_away(); The_finished_heads_row_draws_one_leading_aligned_pill_per_named_head_found_among_this_threads_helpers(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-053")] // App/Views/Chat/TimelineRows.swift:937-1162
+    // Partial proof UI-CHAT-053 (STOP #10); App/Views/Chat/TimelineRows.swift:937-1162
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Merge_outcome_UI_updates_its_title_even_when_both_phases_are_outcomes()
     {
         headless.OnUiThread(() =>
@@ -392,19 +422,24 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         });
     }
     [Fact]
-    [Trait("Req", "UI-CHAT-054")] // App/Views/Chat/TimelineRows.swift:652-783
+    // Partial proof UI-CHAT-054 (STOP #10); App/Views/Chat/TimelineRows.swift:652-783
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Delegation_UI_draws_tasks_projects_and_a_single_sent_wave() { The_delegation_card_says_Summoning_heads_while_streaming_then_names_the_count_or_the_one_head(); The_delegation_card_lists_each_head_with_its_glyph_task_and_other_project_and_once_sent_checks_and_sweeps(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-055")] // App/Views/Chat/TimelineRows.swift:1877-2064
+    // Partial proof UI-CHAT-055 (STOP #10); App/Views/Chat/TimelineRows.swift:1877-2064
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Head_panel_UI_has_the_source_section_labels_and_runtime_updates() => Head_steps_mount_at_440_with_a_520_cap_and_update_from_the_heads_own_runtime();
     [Fact]
-    [Trait("Req", "UI-CHAT-056")] // App/Views/Chat/TimelineRows.swift:1766-1793, :1723-1755
+    // Partial proof UI-CHAT-056 (STOP #10); App/Views/Chat/TimelineRows.swift:1766-1793, :1723-1755
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Departure_UI_is_a_head_badge_never_Delegating_Subagent() { A_call_sending_out_a_head_draws_as_a_head_badge_that_reads_Sending_out_Sent_out_or_Could_not_send_out(); A_call_whose_head_is_linked_reads_Sending_out_or_Sent_out_the_heads_name_and_the_title(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-057")] // App/Views/Chat/TimelineRows.swift:2242-2254, :1772-1793
+    // Partial proof UI-CHAT-057 (STOP #10); App/Views/Chat/TimelineRows.swift:2242-2254, :1772-1793
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void MCP_UI_uses_the_exact_middle_dot_separator_and_catalog_badge() { An_mcp_call_to_a_catalog_server_draws_as_a_pill_badge_with_the_servers_glyph_and_label(); An_mcp_title_without_the_exact_separator_an_empty_side_an_unknown_server_or_another_kind_is_no_badge(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-059")] // App/Views/Chat/TimelineRows.swift:2631-2663
+    // Partial proof UI-CHAT-059 (STOP #10); App/Views/Chat/TimelineRows.swift:2631-2663
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Owned_turn_steps_card_has_fourteen_point_insets_and_twenty_point_bottom_gap()
     {
         headless.OnUiThread(() => { using var h = RuntimeHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource()); h.Main.OnMain(() => {
@@ -418,31 +453,40 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         }); });
     }
     [Fact]
-    [Trait("Req", "UI-CHAT-061")] // App/Views/Chat/TimelineRows.swift:1546-1553
+    // Partial proof UI-CHAT-061 (STOP #10); App/Views/Chat/TimelineRows.swift:1546-1553
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Narration_UI_is_twelve_point_dimmed_markdown_indented_twenty_four_points() => With_every_step_showing_there_is_no_earlier_line_and_narration_is_dimmed_12_point_markdown_after_the_icon_column();
     [Fact]
-    [Trait("Req", "UI-CHAT-063")] // App/Views/Chat/TimelineRows.swift:1837-1840
+    // Partial proof UI-CHAT-063 (STOP #10); App/Views/Chat/TimelineRows.swift:1837-1840
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Declined_UI_is_caption_in_the_theme_warning_colour() => A_failed_call_shows_its_exit_code_in_danger_and_a_declined_one_Declined_in_warning();
     [Fact]
-    [Trait("Req", "UI-CHAT-064")] // App/Views/Chat/TimelineRows.swift:1833-1836
+    // Partial proof UI-CHAT-064 (STOP #10); App/Views/Chat/TimelineRows.swift:1833-1836
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Exit_UI_is_lowercase_exit_and_monospaced_digits_in_danger() => A_failed_call_shows_its_exit_code_in_danger_and_a_declined_one_Declined_in_warning();
     [Fact]
-    [Trait("Req", "UI-CHAT-070")] // App/Views/Chat/TimelineRows.swift:1906-1909
+    // Partial proof UI-CHAT-070 (STOP #10); App/Views/Chat/TimelineRows.swift:1906-1909
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void No_steps_UI_has_its_full_stop_and_disappears_after_a_tool() => Head_steps_mount_at_440_with_a_520_cap_and_update_from_the_heads_own_runtime();
     [Fact]
-    [Trait("Req", "UI-CHAT-071")] // App/Views/Chat/TimelineRows.swift:680-687
+    // Partial proof UI-CHAT-071 (STOP #10); App/Views/Chat/TimelineRows.swift:680-687
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Next_brief_UI_has_the_horizontal_ellipsis_only_while_streaming() => The_delegation_card_says_Summoning_heads_while_streaming_then_names_the_count_or_the_one_head();
     [Fact]
-    [Trait("Req", "UI-CHAT-072")] // App/Views/Chat/TimelineRows.swift:2839-2842
+    // Partial proof UI-CHAT-072 (STOP #10); App/Views/Chat/TimelineRows.swift:2839-2842
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Binary_UI_replaces_the_diff_stat_in_the_trailing_column() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
     [Fact]
-    [Trait("Req", "UI-GIT-044")] // App/Views/Chat/TimelineRows.swift:2718-2827
+    // Partial proof UI-GIT-044 (STOP #10); App/Views/Chat/TimelineRows.swift:2718-2827
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Git_card_UI_has_the_asset_singular_title_and_fixed_control_gap() { The_file_card_reads_Edited_1_file_or_Edited_N_files_beside_the_badge_and_the_totals_with_a_chevron(); The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill(); }
     [Fact]
-    [Trait("Req", "UI-GIT-045")] // App/Views/Chat/TimelineRows.swift:2829-2858
+    // Partial proof UI-GIT-045 (STOP #10); App/Views/Chat/TimelineRows.swift:2829-2858
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Git_file_popover_UI_has_the_twelve_row_cut_and_padding() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
     [Fact]
-    [Trait("Req", "UI-GIT-046")] // App/Views/Chat/TimelineRows.swift:2770-2776
+    // Partial proof UI-GIT-046 (STOP #10); App/Views/Chat/TimelineRows.swift:2770-2776
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Git_revert_UI_is_only_present_when_rewindable_and_never_focusable() => The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill();
 
     [Fact]
@@ -458,40 +502,52 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-014")] // App/Views/Chat/TimelineRows.swift:191-196
     public void Edit_dialog_intent_stays_on_the_row_pending_STOP_2() => Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it();
     [Fact]
-    [Trait("Req", "UI-CHAT-019")] // App/Views/Chat/TimelineRows.swift:1353-1390
+    // Partial proof UI-CHAT-019 (STOP #10); App/Views/Chat/TimelineRows.swift:1353-1390
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Reply_hover_UI_keeps_its_reserved_22_point_line_and_caption() { A_reply_renders_its_markdown_and_keeps_a_hidden_22_point_line_with_the_turn_label_in_caption_secondary_text(); Hovering_a_settled_reply_fades_the_line_in_and_a_streaming_reply_never_shows_it(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-020")] // App/Views/Chat/TimelineRows.swift:1401-1405, :38-54
+    // Partial proof UI-CHAT-020 (STOP #10); App/Views/Chat/TimelineRows.swift:1401-1405, :38-54
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Code_copy_UI_requires_a_closed_fence_and_confirms_Copied() { The_last_code_block_is_the_last_closed_fence_and_an_unclosed_fence_yields_none(); A_replys_menu_is_the_two_copies_then_the_last_code_block_when_there_is_one_then_Add_to_reply_in_its_own_group(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-021")] // App/Views/Chat/TimelineRows.swift:1406-1410
+    // Partial proof UI-CHAT-021 (STOP #10); App/Views/Chat/TimelineRows.swift:1406-1410
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Add_quote_UI_has_its_own_group_and_does_not_add_twice() { A_replys_menu_is_the_two_copies_then_the_last_code_block_when_there_is_one_then_Add_to_reply_in_its_own_group(); Add_to_reply_quotes_the_reply_into_the_draft_once(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-022")] // App/Views/Chat/TimelineRows.swift:1463-1509
+    // Partial proof UI-CHAT-022 (STOP #10); App/Views/Chat/TimelineRows.swift:1463-1509
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Work_group_UI_opens_once_with_the_source_spacing_and_chevron() => A_group_the_agent_moved_on_from_starts_as_one_summary_line_and_opening_it_reveals_the_end_while_closing_does_not();
     [Fact]
-    [Trait("Req", "UI-CHAT-023")] // App/Views/Chat/TimelineRows.swift:1522-1544
+    // Partial proof UI-CHAT-023 (STOP #10); App/Views/Chat/TimelineRows.swift:1522-1544
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Earlier_steps_UI_hides_all_but_the_last_two_until_opened() => Only_the_two_latest_steps_show_under_an_earlier_steps_line_that_reveals_them_all();
     [Fact]
-    [Trait("Req", "UI-CHAT-024")] // App/Views/Chat/TimelineRows.swift:1657-1853
+    // Partial proof UI-CHAT-024 (STOP #10); App/Views/Chat/TimelineRows.swift:1657-1853
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Tool_UI_preserves_statuses_action_help_and_chevrons() { The_status_icon_is_a_spinner_a_red_cross_a_raised_hand_or_the_kinds_glyph_in_a_16_point_column(); A_failed_call_shows_its_exit_code_in_danger_and_a_declined_one_Declined_in_warning(); A_popover_row_has_a_static_down_chevron_and_an_output_row_a_right_chevron_turning_down_when_open(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-025")] // App/Views/Chat/TimelineRows.swift:2141-2164
+    // Partial proof UI-CHAT-025 (STOP #10); App/Views/Chat/TimelineRows.swift:2141-2164
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Output_UI_is_inline_selectable_and_capped_at_thirty_lines() => Output_over_thirty_lines_shows_its_first_thirty_and_a_link_that_shows_all_of_it_then_Show_less();
     [Fact]
-    [Trait("Req", "UI-CHAT-026")] // App/Views/Chat/TimelineRows.swift:2156-2162
+    // Partial proof UI-CHAT-026 (STOP #10); App/Views/Chat/TimelineRows.swift:2156-2162
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Full_output_UI_link_switches_to_Show_less() => Output_over_thirty_lines_shows_its_first_thirty_and_a_link_that_shows_all_of_it_then_Show_less();
     [Fact]
-    [Trait("Req", "UI-CHAT-027")] // App/Views/Chat/TimelineRows.swift:2120-2126
+    // Partial proof UI-CHAT-027 (STOP #10); App/Views/Chat/TimelineRows.swift:2120-2126
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Detail_UI_is_secondary_monospace_with_twelve_display_lines() => Thirty_lines_show_whole_with_no_link_and_the_detail_is_capped_at_twelve_lines_in_secondary_monospace();
     [Fact]
-    [Trait("Req", "UI-CHAT-028")] // App/Views/Chat/TimelineRows.swift:2127-2140
+    // Partial proof UI-CHAT-028 (STOP #10); App/Views/Chat/TimelineRows.swift:2127-2140
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Diff_UI_has_the_path_insets_continuous_ten_point_plate_and_no_line_numbers() => Each_edit_with_a_diff_shows_its_path_above_its_lines_on_a_rounded_plate();
     [Fact]
-    [Trait("Req", "UI-CHAT-029")] // App/Views/Chat/TimelineRows.swift:2263-2337
+    // Partial proof UI-CHAT-029 (STOP #10); App/Views/Chat/TimelineRows.swift:2263-2337
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Plan_badge_UI_keeps_all_four_states_and_the_inner_14_point_spinner() { A_plans_badge_title_caption_and_attention_follow_its_state(); A_plan_with_empty_markdown_has_no_chevron_and_cannot_be_opened(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-030")] // App/Views/Chat/TimelineRows.swift:2279-2313
+    // Partial proof UI-CHAT-030 (STOP #10); App/Views/Chat/TimelineRows.swift:2279-2313
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Plan_heading_is_chat_headline_semibold_not_regular()
     {
         headless.OnUiThread(() => { using var h = RuntimeHarness(); h.Main.OnMain(() => {
@@ -503,32 +559,41 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         The_plan_popover_is_520_wide_with_the_markdown_in_a_420_point_scroller_and_the_two_buttons_only_while_proposed();
     }
     [Fact]
-    [Trait("Req", "UI-CHAT-031")] // App/Views/Chat/TimelineRows.swift:2296-2300
+    // Partial proof UI-CHAT-031 (STOP #10); App/Views/Chat/TimelineRows.swift:2296-2300
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Implement_plan_UI_closes_first_and_remains_greyed_while_busy() { Dismiss_closes_the_popover_and_dismisses_the_plan_and_Implement_plan_closes_it_and_implements(); The_plan_buttons_stay_greyed_while_the_thread_is_busy_with_the_reason_and_carry_no_tip_when_free(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-032")] // App/Views/Chat/TimelineRows.swift:2301-2305
+    // Partial proof UI-CHAT-032 (STOP #10); App/Views/Chat/TimelineRows.swift:2301-2305
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Dismiss_UI_uses_the_nondestructive_glass_action() => Dismiss_closes_the_popover_and_dismisses_the_plan_and_Implement_plan_closes_it_and_implements();
     [Fact]
-    [Trait("Req", "UI-CHAT-033")] // App/Views/Chat/TimelineRows.swift:2343-2382
+    // Partial proof UI-CHAT-033 (STOP #10); App/Views/Chat/TimelineRows.swift:2343-2382
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Checklist_UI_keeps_status_glyphs_strikes_and_identity() { A_checklist_is_a_card_headed_N_of_M_done_with_a_glyph_and_line_per_step(); A_checklist_with_no_steps_draws_nothing_and_an_update_rewrites_the_same_rows_in_place(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-034")] // App/Views/Chat/TimelineRows.swift:2385-2431
+    // Partial proof UI-CHAT-034 (STOP #10); App/Views/Chat/TimelineRows.swift:2385-2431
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Notice_UI_uses_theme_status_colours_not_system_red_and_orange() { An_info_notice_is_a_bare_line_of_secondary_selectable_text(); A_warning_or_error_notice_sits_in_a_full_width_pill_tinted_at_ten_percent_of_its_theme_status_colour(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-035")] // App/Views/Chat/TimelineRows.swift:2433-2456
+    // Partial proof UI-CHAT-035 (STOP #10); App/Views/Chat/TimelineRows.swift:2433-2456
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Standalone_duration_UI_is_absent_after_a_reply() => The_standalone_turn_end_line_shows_only_when_the_turn_produced_no_reply();
     [Fact]
-    [Trait("Req", "UI-CHAT-036")] // App/Views/Chat/TimelineRows.swift:2598-2701
+    // Partial proof UI-CHAT-036 (STOP #10); App/Views/Chat/TimelineRows.swift:2598-2701
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Folded_header_UI_has_the_rule_and_both_body_branches_have_identity_transition() { A_finished_turn_opens_folded_to_its_prompt_a_summary_line_a_rule_and_its_answer(); Both_finished_turn_body_branches_remain_opaque_and_leave_immediately_under_the_fold_animation(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-037")] // App/Views/Chat/TimelineRows.swift:2735-2827
+    // Partial proof UI-CHAT-037 (STOP #10); App/Views/Chat/TimelineRows.swift:2735-2827
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void File_card_UI_hugs_its_content_with_a_twenty_point_control_gap() => The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill();
     [Fact]
-    [Trait("Req", "UI-CHAT-038")] // App/Views/Chat/TimelineRows.swift:2770-2799, :2463-2478
+    // Partial proof UI-CHAT-038 (STOP #10); App/Views/Chat/TimelineRows.swift:2770-2799, :2463-2478
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Revert_disc_UI_is_a_flat_28_point_overlay_control() => A_muted_round_glyph_is_a_28_point_overlay_disc_whose_glyph_and_fill_come_up_under_the_pointer();
 
     [Fact]
-    [Trait("Req", "PR-CHAT-154")] // App/Views/Chat/TimelineRows.swift:2008-2064
+    // Partial proof PR-CHAT-154 (STOP #11); App/Views/Chat/TimelineRows.swift:2008-2064
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Head_steps_keep_every_tool_notice_and_nonblank_reply_and_only_briefs_after_the_first()
     {
         using var actor = new TestRuntime();
@@ -550,7 +615,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-154")] // App/Views/Chat/TimelineRows.swift:1884-2006
+    // Partial proof PR-CHAT-154 (STOP #11); App/Views/Chat/TimelineRows.swift:1884-2006
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Head_steps_mount_at_440_with_a_520_cap_and_update_from_the_heads_own_runtime()
     {
         headless.OnUiThread(() =>
@@ -600,7 +666,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-155")] // App/Views/Chat/TimelineRows.swift:1564-1577, :2682-2686
+    // Partial proof PR-CHAT-155 (STOP #11); App/Views/Chat/TimelineRows.swift:1564-1577, :2682-2686
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Heads_list_is_an_unfolded_leading_stack_with_eight_point_spacing_and_no_header()
     {
         headless.OnUiThread(() =>
@@ -625,7 +692,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-161")] // App/Views/Chat/TimelineRows.swift:1406-1407, :56-62
+    // Partial proof PR-CHAT-161 (STOP #11); App/Views/Chat/TimelineRows.swift:1406-1407, :56-62
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_menu_can_outlive_its_message_row_without_retaining_the_row_or_entry()
     {
         headless.OnUiThread(() =>
@@ -651,7 +719,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-166")] // App/Views/Chat/TimelineRows.swift:633, :2394, :2152
+    // Partial proof PR-CHAT-166 (STOP #6); App/Views/Chat/TimelineRows.swift:633, :2394, :2152
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Selection_is_owned_by_each_notice_report_and_output_block()
     {
         An_info_notice_is_a_bare_line_of_secondary_selectable_text();
@@ -664,7 +733,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     public void Chat_MCP_contact_is_a_catalog_read_not_a_deletion_path() => An_mcp_title_of_catalog_server_middle_dot_tool_resolves_to_the_entry_and_its_label();
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-211")] // App/Views/Chat/TimelineRows.swift:2117-2119
+    // Partial proof PR-COMPOSER-211 (STOP #11); App/Views/Chat/TimelineRows.swift:2117-2119
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Every_tool_kind_can_mount_the_resolved_image_above_its_detail()
     {
         headless.OnUiThread(() =>
@@ -685,19 +755,23 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-GIT-122")] // App/Views/Chat/TimelineRows.swift:2695, :2770-2799
+    // Partial proof PR-GIT-122 (STOP #11); App/Views/Chat/TimelineRows.swift:2695, :2770-2799
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void File_revert_has_one_confirmation_with_only_Cancel_and_Revert() => The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts();
     [Fact]
     [Trait("Req", "PR-GIT-123")] // App/Views/Chat/TimelineRows.swift:184-206
     public void Message_revert_posts_the_intent_before_the_STOP_2_dialog() => Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it();
     [Fact]
-    [Trait("Req", "PR-GIT-151")] // App/Views/Chat/TimelineRows.swift:2707-2714, :2739-2740
+    // Partial proof PR-GIT-151 (STOP #11); App/Views/Chat/TimelineRows.swift:2707-2714, :2739-2740
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Legacy_changes_and_singular_file_titles_follow_the_source() { An_older_turn_with_files_but_no_per_file_summary_works_its_changes_out_and_stores_them_while_one_with_none_never_does(); The_file_card_reads_Edited_1_file_or_Edited_N_files_beside_the_badge_and_the_totals_with_a_chevron(); }
     [Fact]
-    [Trait("Req", "PR-GIT-152")] // App/Views/Chat/TimelineRows.swift:2829-2857
+    // Partial proof PR-GIT-152 (STOP #11); App/Views/Chat/TimelineRows.swift:2829-2857
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void File_list_is_twelve_then_the_literal_overflow_line() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-088")] // App/Views/Chat/TimelineRows.swift:802-808
+    // Partial proof PR-HYDRAMERGE-088 (STOP #11); App/Views/Chat/TimelineRows.swift:802-808
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Merge_outcome_splits_once_drops_one_stop_and_keeps_the_leading_URL_separate()
     {
         var value = new HydraMergeOutcome(new UserMessage { Text = "Hydra merged..\n HTTPS://example.org/a \n details " });
@@ -706,31 +780,40 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         Assert.Equal("Hydra", new HydraMergeOutcome(new UserMessage { Text = "" }).Title);
     }
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-089")] // App/Views/Chat/TimelineRows.swift:937-952
+    // Partial proof PR-HYDRAMERGE-089 (STOP #8); App/Views/Chat/TimelineRows.swift:937-952
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Silent_merge_completion_removes_the_pill() => The_merge_pill_shows_the_stage_under_way_with_an_ellipsis_and_goes_once_the_merge_is_over_without_a_note();
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-090")] // App/Views/Chat/TimelineRows.swift:1111-1120
+    // Partial proof PR-HYDRAMERGE-090 (STOP #11); App/Views/Chat/TimelineRows.swift:1111-1120
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Generic_merge_report_uses_the_460_point_fallback() => The_report_popover_is_460_wide_with_a_460_point_scroller_at_the_callout_style_with_12_point_markdown();
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-101")] // App/Views/Chat/TimelineRows.swift:954-958, :1056-1079
+    // Partial proof PR-HYDRAMERGE-101 (STOP #11); App/Views/Chat/TimelineRows.swift:954-958, :1056-1079
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Stage_words_have_one_ellipsis_and_no_clock() => The_merge_pill_shows_the_stage_under_way_with_an_ellipsis_and_goes_once_the_merge_is_over_without_a_note();
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-102")] // App/Views/Chat/TimelineRows.swift:963-965, :821-841
+    // Partial proof PR-HYDRAMERGE-102 (STOP #11); App/Views/Chat/TimelineRows.swift:963-965, :821-841
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Stage_track_has_seven_source_stages() { Assert.Equal(7, HydraMergeStageExtensions.AllCases.Count); The_track_is_drawn_from_its_three_values_dots_lit_as_the_head_reaches_them_and_the_head_arcing_between_dots(); }
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-103")] // App/Views/Chat/TimelineRows.swift:844-915
+    // Partial proof PR-HYDRAMERGE-103 (STOP #11); App/Views/Chat/TimelineRows.swift:844-915
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Track_geometry_is_one_three_value_drawing() => The_track_is_drawn_from_its_three_values_dots_lit_as_the_head_reaches_them_and_the_head_arcing_between_dots();
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-104")] // App/Views/Chat/TimelineRows.swift:1020-1027
+    // Partial proof PR-HYDRAMERGE-104 (STOP #11); App/Views/Chat/TimelineRows.swift:1020-1027
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Failure_outcome_has_no_success_flourish() => An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled();
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-105")] // App/Views/Chat/TimelineRows.swift:1095-1128
+    // Partial proof PR-HYDRAMERGE-105 (STOP #9); App/Views/Chat/TimelineRows.swift:1095-1128
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Outcome_title_without_details_is_disabled_and_has_no_chevron() => An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled();
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-106")] // App/Views/Chat/TimelineRows.swift:1012-1019
+    // Partial proof PR-HYDRAMERGE-106 (STOP #11); App/Views/Chat/TimelineRows.swift:1012-1019
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Merge_pill_uses_the_shared_insets_and_accessibility_title() => The_merge_pill_shows_the_stage_under_way_with_an_ellipsis_and_goes_once_the_merge_is_over_without_a_note();
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-107")] // App/Views/Chat/TimelineRows.swift:972-1010
+    // Partial proof PR-HYDRAMERGE-107 (STOP #11); App/Views/Chat/TimelineRows.swift:972-1010
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Morph_slot_is_clipped_with_negative_returned_padding()
     {
         headless.OnUiThread(() => { using var h = RuntimeHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource()); h.Main.OnMain(() => {
@@ -741,11 +824,13 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         }); });
     }
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-108")] // App/Views/Chat/TimelineRows.swift:1028-1033
+    // Partial proof PR-HYDRAMERGE-108 (STOP #11); App/Views/Chat/TimelineRows.swift:1028-1033
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Merge_report_is_a_task_keyed_to_its_body_not_the_stage() => A_reports_markdown_is_warmed_as_the_pill_appears_per_head_for_a_batch();
 
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-108")] // App/Views/Chat/TimelineRows.swift:1028-1033
+    // Partial proof PR-HYDRAMERGE-108 (STOP #11); App/Views/Chat/TimelineRows.swift:1028-1033
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_merge_row_warms_its_report_body_and_the_next_body_without_opening_a_popover()
     {
         headless.OnUiThread(() =>
@@ -774,13 +859,16 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         });
     }
     [Fact]
-    [Trait("Req", "UI-CHAT-007")] // App/Views/Chat/TimelineRows.swift:88-129, :1167-1207
+    // Partial proof UI-CHAT-007 (STOP #10); App/Views/Chat/TimelineRows.swift:88-129, :1167-1207
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Sent_bubble_uses_the_exact_path_and_insets() { The_bubble_path_rounds_three_corners_and_draws_the_tail_through_the_exact_control_points(); A_sent_message_is_a_trailing_bubble_with_14_18_and_9_point_insets_96_points_clear_on_the_leading_side_tinted_at_14_percent(); }
     [Fact]
-    [Trait("Req", "UI-CHAT-008")] // App/Views/Chat/TimelineRows.swift:92-117
+    // Partial proof UI-CHAT-008 (STOP #10); App/Views/Chat/TimelineRows.swift:92-117
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Quote_chip_input_is_leading_only_while_the_ChipChrome_site_is_STOP_1() => The_inherited_quote_reader_consumes_only_leading_blocks_and_rejoins_the_lifted_command();
     [Fact]
-    [Trait("Req", "UI-CHAT-010")] // App/Views/Chat/TimelineRows.swift:130-161
+    // Partial proof UI-CHAT-010 (STOP #10); App/Views/Chat/TimelineRows.swift:130-161
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Pencil_is_22_square_on_a_reserved_line() => A_revertable_message_keeps_a_22_point_hover_line_with_a_22_point_pencil_that_shows_only_on_hover();
 
     private static Attachment Photo(string path) => new() { Name = "photo.png", Path = path, MimeType = "image/png" };
@@ -989,7 +1077,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-020 TimelineMetrics
 
     [Fact]
-    [Trait("Req", "PR-CHAT-020")] // App/Views/Chat/TimelineRows.swift:8-28
+    // Partial proof PR-CHAT-020 (STOP #11); App/Views/Chat/TimelineRows.swift:8-28
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_timeline_geometry_is_the_eight_named_constants()
     {
         Assert.Equal(20, TimelineMetrics.RowSpacing);
@@ -1071,7 +1160,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-077 UserBubble
 
     [Fact]
-    [Trait("Req", "PR-CHAT-077")] // App/Views/Chat/TimelineRows.swift:1167-1206
+    // Partial proof PR-CHAT-077 (STOP #11); App/Views/Chat/TimelineRows.swift:1167-1206
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_bubble_path_rounds_three_corners_and_draws_the_tail_through_the_exact_control_points()
     {
         var geometry = Assert.IsType<PathGeometry>(new UserBubble().Path(new Rect(0, 0, 200, 50)));
@@ -1108,7 +1198,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-077")] // App/Views/Chat/TimelineRows.swift:118-129, :163-164
+    // Partial proof PR-CHAT-077 (STOP #11); App/Views/Chat/TimelineRows.swift:118-129, :163-164
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_sent_message_is_a_trailing_bubble_with_14_18_and_9_point_insets_96_points_clear_on_the_leading_side_tinted_at_14_percent()
     {
         headless.OnUiThread(() =>
@@ -1137,7 +1228,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-078 quotes
 
     [Fact]
-    [Trait("Req", "PR-CHAT-078")] // App/Views/Chat/TimelineRows.swift:92-93, :118-122; App/Runtime/ThreadRuntime.swift:71-99
+    // Partial proof PR-CHAT-078 (STOP #11); App/Views/Chat/TimelineRows.swift:92-93, :118-122; App/Runtime/ThreadRuntime.swift:71-99
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_message_whose_quote_lines_are_not_at_the_start_shows_no_chips_and_keeps_them_in_the_bubble()
     {
         headless.OnUiThread(() =>
@@ -1158,7 +1250,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-079 attachments over the bubble
 
     [Fact]
-    [Trait("Req", "PR-CHAT-079")] // App/Views/Chat/TimelineRows.swift:88-91
+    // Partial proof PR-CHAT-079 (STOP #11); App/Views/Chat/TimelineRows.swift:88-91
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_message_with_attachments_shows_the_strip_above_the_bubble_and_one_without_shows_none()
     {
         headless.OnUiThread(() =>
@@ -1192,7 +1285,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         LogicalQuery.SelfAndDescendants<Control>(row).Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")] // App/Views/Chat/TimelineRows.swift:130-142, :158-161
+    // Partial proof PR-CHAT-080 (STOP #11); App/Views/Chat/TimelineRows.swift:130-142, :158-161
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_revertable_message_keeps_a_22_point_hover_line_with_a_22_point_pencil_that_shows_only_on_hover()
     {
         headless.OnUiThread(() =>
@@ -1214,7 +1308,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")] // App/Views/Chat/TimelineRows.swift:131, :158-161
+    // Partial proof PR-CHAT-080 (STOP #11); App/Views/Chat/TimelineRows.swift:131, :158-161
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Hovering_the_row_shows_the_line_and_a_message_that_cannot_revert_has_no_pencil()
     {
         headless.OnUiThread(() =>
@@ -1247,7 +1342,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")] // App/Views/Chat/TimelineRows.swift:87, :132-134, :141
+    // Partial proof PR-CHAT-080 (STOP #11); App/Views/Chat/TimelineRows.swift:87, :132-134, :141
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_pencil_opens_the_edit_on_the_runtime_and_a_second_tap_closes_it()
     {
         headless.OnUiThread(() =>
@@ -1296,7 +1392,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")] // App/Views/Chat/TimelineRows.swift:143-147
+    // Partial proof PR-CHAT-080 (STOP #11); App/Views/Chat/TimelineRows.swift:143-147
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Settling_the_pointer_on_the_pencil_starts_the_revert_preview()
     {
         headless.OnUiThread(() =>
@@ -1435,7 +1532,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         new(ReplyEntry(text, streaming), summary, runtime);
 
     [Fact]
-    [Trait("Req", "PR-CHAT-088")] // App/Views/Chat/TimelineRows.swift:1363-1379, :1388
+    // Partial proof PR-CHAT-088 (STOP #11); App/Views/Chat/TimelineRows.swift:1363-1379, :1388
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_reply_renders_its_markdown_and_keeps_a_hidden_22_point_line_with_the_turn_label_in_caption_secondary_text()
     {
         headless.OnUiThread(() =>
@@ -1463,7 +1561,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-088")] // App/Views/Chat/TimelineRows.swift:1378, :1380-1382
+    // Partial proof PR-CHAT-088 (STOP #11); App/Views/Chat/TimelineRows.swift:1378, :1380-1382
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Hovering_a_settled_reply_fades_the_line_in_and_a_streaming_reply_never_shows_it()
     {
         headless.OnUiThread(() =>
@@ -1504,7 +1603,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-089 the reply's menu
 
     [Fact]
-    [Trait("Req", "PR-CHAT-089")] // App/Views/Chat/TimelineRows.swift:38-54
+    // Partial proof PR-CHAT-089 (STOP #11); App/Views/Chat/TimelineRows.swift:38-54
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_last_code_block_is_the_last_closed_fence_and_an_unclosed_fence_yields_none()
     {
         Assert.Null(TimelineRows.LastCodeBlock("no code here"));
@@ -1517,7 +1617,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-089")] // App/Views/Chat/TimelineRows.swift:1394-1412
+    // Partial proof PR-CHAT-089 (STOP #11); App/Views/Chat/TimelineRows.swift:1394-1412
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_replys_menu_is_the_two_copies_then_the_last_code_block_when_there_is_one_then_Add_to_reply_in_its_own_group()
     {
         headless.OnUiThread(() =>
@@ -1541,7 +1642,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-089")] // App/Views/Chat/TimelineRows.swift:1406-1410
+    // Partial proof PR-CHAT-089 (STOP #11); App/Views/Chat/TimelineRows.swift:1406-1410
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Add_to_reply_quotes_the_reply_into_the_draft_once()
     {
         headless.OnUiThread(() =>
@@ -1561,7 +1663,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-089")] // App/Views/Chat/TimelineRows.swift:1383, :1415-1429
+    // Partial proof PR-CHAT-089 (STOP #11); App/Views/Chat/TimelineRows.swift:1383, :1415-1429
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Right_clicking_a_reply_offers_its_menu_with_the_last_code_block()
     {
         headless.OnUiThread(() =>
@@ -1679,7 +1782,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-094")] // App/Views/Chat/TimelineRows.swift:2222-2233
+    // Partial proof PR-CHAT-094 (STOP #11); App/Views/Chat/TimelineRows.swift:2222-2233
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Each_tool_kind_has_its_fixed_glyph()
     {
         Assert.Equal("terminal", ToolPresentation.Symbol(ToolCall.Kind.Command));
@@ -1738,7 +1842,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-102 DiffDetailCache
 
     [Fact]
-    [Trait("Req", "PR-CHAT-102")] // App/Views/Chat/TimelineRows.swift:2171-2182
+    // Partial proof PR-CHAT-102 (STOP #11); App/Views/Chat/TimelineRows.swift:2171-2182
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_diff_is_parsed_once_per_path_and_text()
     {
         using var runtime = new TestRuntime();
@@ -1769,6 +1874,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     [InlineData(ToolCall.Kind.Mcp, false)]
     // Partial geometry regression for UI-CHAT-024, not a complete visual-capture proof (STOP #10).
     // App/Views/Chat/TimelineRows.swift:1774-1810, :1832-1844; ToolRow is one line, unlike :1969-1973 head steps.
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Mounted_tool_labels_get_finite_remaining_width_and_keep_their_suffix_and_adjacent_controls(ToolCall.Kind kind, bool longTitle)
     {
         headless.OnUiThread(() =>
@@ -1954,7 +2060,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-098")] // App/Views/Chat/TimelineRows.swift:1799-1810
+    // Partial proof PR-CHAT-098 (STOP #11); App/Views/Chat/TimelineRows.swift:1799-1810
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_popover_row_has_a_static_down_chevron_and_an_output_row_a_right_chevron_turning_down_when_open()
     {
         headless.OnUiThread(() =>
@@ -1980,8 +2087,12 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 Assert.Equal(0, Assert.IsType<RotateTransform>(right.RenderTransform).Angle);
                 Assert.DoesNotContain("chevron.down", Symbols(output));
                 // The chevron follows the row's text in the same run, not the trailing edge.
-                var run = Assert.IsType<StackPanel>(right.Parent);
+                // Swift requires adjacency in an HStack, not the port's former infinite-width StackPanel type.
+                var run = Assert.IsAssignableFrom<Panel>(right.Parent);
                 Assert.Contains(run.Children, child => child is TextBlock text && text.Text == "Ran ls");
+                var label = Assert.Single(run.Children.OfType<MiddleTruncatingTextBlock>());
+                Assert.Equal(TimelineMetrics.IconSpacing, right.Bounds.Left - label.Bounds.Right, precision: 3); // :1775, :1799-1810
+                Assert.InRange(right.Bounds.Right, 0, run.Bounds.Width);
                 Click(LogicalQuery.SelfAndDescendants<Button>(output).Single());
             });
             // The snappy 0.24 s turn runs on the frame clock; two seconds see it settled.
@@ -1998,7 +2109,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-099")] // App/Views/Chat/TimelineRows.swift:2067-2091, :1784
+    // Partial proof PR-CHAT-099 (STOP #11); App/Views/Chat/TimelineRows.swift:2067-2091, :1784
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_status_icon_is_a_spinner_a_red_cross_a_raised_hand_or_the_kinds_glyph_in_a_16_point_column()
     {
         headless.OnUiThread(() =>
@@ -2034,7 +2146,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-100")] // App/Views/Chat/TimelineRows.swift:1832-1841
+    // Partial proof PR-CHAT-100 (STOP #11); App/Views/Chat/TimelineRows.swift:1832-1841
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_failed_call_shows_its_exit_code_in_danger_and_a_declined_one_Declined_in_warning()
     {
         headless.OnUiThread(() =>
@@ -2097,7 +2210,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     private static string Lines(int count) => string.Join("\n", Enumerable.Range(1, count).Select(i => "line " + i));
 
     [Fact]
-    [Trait("Req", "PR-CHAT-101")] // App/Views/Chat/TimelineRows.swift:2103-2113, :2141-2162
+    // Partial proof PR-CHAT-101 (STOP #11); App/Views/Chat/TimelineRows.swift:2103-2113, :2141-2162
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Output_over_thirty_lines_shows_its_first_thirty_and_a_link_that_shows_all_of_it_then_Show_less()
     {
         headless.OnUiThread(() =>
@@ -2125,7 +2239,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-101")] // App/Views/Chat/TimelineRows.swift:2120-2126, :2145-2147, :2156
+    // Partial proof PR-CHAT-101 (STOP #11); App/Views/Chat/TimelineRows.swift:2120-2126, :2145-2147, :2156
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Thirty_lines_show_whole_with_no_link_and_the_detail_is_capped_at_twelve_lines_in_secondary_monospace()
     {
         headless.OnUiThread(() =>
@@ -2147,7 +2262,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-101")] // App/Views/Chat/TimelineRows.swift:2127-2139
+    // Partial proof PR-CHAT-101 (STOP #11); App/Views/Chat/TimelineRows.swift:2127-2139
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Each_edit_with_a_diff_shows_its_path_above_its_lines_on_a_rounded_plate()
     {
         headless.OnUiThread(() =>
@@ -2311,7 +2427,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-092")] // App/Views/Chat/TimelineRows.swift:1522-1545
+    // Partial proof PR-CHAT-092 (STOP #11); App/Views/Chat/TimelineRows.swift:1522-1545
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Only_the_two_latest_steps_show_under_an_earlier_steps_line_that_reveals_them_all()
     {
         headless.OnUiThread(() =>
@@ -2348,7 +2465,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-092")] // App/Views/Chat/TimelineRows.swift:1523, :1545-1553
+    // Partial proof PR-CHAT-092 (STOP #11); App/Views/Chat/TimelineRows.swift:1523, :1545-1553
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void With_every_step_showing_there_is_no_earlier_line_and_narration_is_dimmed_12_point_markdown_after_the_icon_column()
     {
         headless.OnUiThread(() =>
@@ -2377,7 +2495,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         LogicalQuery.SelfAndDescendants<Border>(block).Where(border => border.Height == 1 && border.Opacity == 0.6).ToArray();
 
     [Fact]
-    [Trait("Req", "PR-CHAT-104")] // App/Views/Chat/TimelineRows.swift:2589-2630, :2664-2680, :2507-2508
+    // Partial proof PR-CHAT-104 (STOP #11); App/Views/Chat/TimelineRows.swift:2589-2630, :2664-2680, :2507-2508
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_finished_turn_opens_folded_to_its_prompt_a_summary_line_a_rule_and_its_answer()
     {
         headless.OnUiThread(() =>
@@ -2417,7 +2536,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-104")] // App/Views/Chat/TimelineRows.swift:2597, :2624
+    // Partial proof PR-CHAT-104 (STOP #11); App/Views/Chat/TimelineRows.swift:2597, :2624
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_finished_turn_with_nothing_to_show_has_no_rule()
     {
         headless.OnUiThread(() =>
@@ -2451,7 +2571,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
             ?? throw new Xunit.Sdk.XunitException("no private static method " + name)).Invoke(null, arguments);
 
     [Fact]
-    [Trait("Req", "PR-CHAT-082")] // App/Views/Chat/TimelineRows.swift:184-190, :214-228
+    // Partial proof PR-CHAT-082 (STOP #11); App/Views/Chat/TimelineRows.swift:184-190, :214-228
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it()
     {
         OnMain(headless, () =>
@@ -2472,7 +2593,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-104")] // App/Views/Chat/TimelineRows.swift:2631-2680; PR-CHAT-104.windows_path (identity swap)
+    // Partial proof PR-CHAT-104 (STOP #11); App/Views/Chat/TimelineRows.swift:2631-2680; PR-CHAT-104.windows_path (identity swap)
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Both_finished_turn_body_branches_remain_opaque_and_leave_immediately_under_the_fold_animation()
     {
         headless.OnUiThread(() =>
@@ -2502,7 +2624,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-078")] // App/Runtime/ThreadRuntime.swift:71-99; App/Views/Chat/TimelineRows.swift:92
+    // Partial proof PR-CHAT-078 (STOP #11); App/Runtime/ThreadRuntime.swift:71-99; App/Views/Chat/TimelineRows.swift:92
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_inherited_quote_reader_consumes_only_leading_blocks_and_rejoins_the_lifted_command()
     {
         var (quotes, body) = ReplyQuote.Peel("/ask\n\n> first\n> second\n\n> third\n\n\nanswer\n> still body");
@@ -2566,7 +2689,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-105 Derived
 
     [Fact]
-    [Trait("Req", "PR-CHAT-105")] // App/Views/Chat/TimelineRows.swift:2547-2579, :2664-2680
+    // Partial proof PR-CHAT-105 (STOP #11); App/Views/Chat/TimelineRows.swift:2547-2579, :2664-2680
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_folded_turns_answer_is_the_replies_after_its_last_tool_with_plans_and_warnings_below_and_info_folded_away()
     {
         headless.OnUiThread(() =>
@@ -2610,7 +2734,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-105")] // App/Views/Chat/TimelineRows.swift:2551-2559, :2578-2579, :2597
+    // Partial proof PR-CHAT-105 (STOP #11); App/Views/Chat/TimelineRows.swift:2551-2559, :2578-2579, :2597
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_turn_that_ended_on_a_tool_shows_its_last_reply_a_blank_reply_is_none_and_a_plan_alone_is_a_response()
     {
         headless.OnUiThread(() =>
@@ -2649,7 +2774,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-106 memo
 
     [Fact]
-    [Trait("Req", "PR-CHAT-106")] // App/Views/Chat/TimelineRows.swift:2511-2521, :2590-2591, :2703-2706
+    // Partial proof PR-CHAT-106 (STOP #11); App/Views/Chat/TimelineRows.swift:2511-2521, :2590-2591, :2703-2706
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_turns_derivation_is_read_back_while_its_entries_and_fold_are_the_same_and_stored_once_the_body_has_run()
     {
         headless.OnUiThread(() =>
@@ -2676,7 +2802,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-107 legacy changes
 
     [Fact]
-    [Trait("Req", "PR-CHAT-107")] // App/Views/Chat/TimelineRows.swift:2707-2714; App/Runtime/ThreadRuntime.swift:3751-3757
+    // Partial proof PR-CHAT-107 (STOP #7); App/Views/Chat/TimelineRows.swift:2707-2714; App/Runtime/ThreadRuntime.swift:3751-3757
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void An_older_turn_with_files_but_no_per_file_summary_works_its_changes_out_and_stores_them_while_one_with_none_never_does()
     {
         headless.OnUiThread(() =>
@@ -2739,7 +2866,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-108 to 110 TurnFileCard
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")] // App/Views/Chat/TimelineRows.swift:2735-2765
+    // Partial proof PR-CHAT-108 (STOP #11); App/Views/Chat/TimelineRows.swift:2735-2765
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_file_card_reads_Edited_1_file_or_Edited_N_files_beside_the_badge_and_the_totals_with_a_chevron()
     {
         headless.OnUiThread(() =>
@@ -2777,7 +2905,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")] // App/Views/Chat/TimelineRows.swift:2753-2760
+    // Partial proof PR-CHAT-108 (STOP #11); App/Views/Chat/TimelineRows.swift:2753-2760
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_card_with_no_files_has_a_disabled_title_and_no_chevron()
     {
         headless.OnUiThread(() =>
@@ -2798,7 +2927,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")] // App/Views/Chat/TimelineRows.swift:2766-2827
+    // Partial proof PR-CHAT-108 (STOP #11); App/Views/Chat/TimelineRows.swift:2766-2827
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill()
     {
         headless.OnUiThread(() =>
@@ -2839,7 +2969,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")] // App/Views/Chat/TimelineRows.swift:2463-2478
+    // Partial proof PR-CHAT-108 (STOP #11); App/Views/Chat/TimelineRows.swift:2463-2478
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_muted_round_glyph_is_a_28_point_overlay_disc_whose_glyph_and_fill_come_up_under_the_pointer()
     {
         headless.OnUiThread(() =>
@@ -2880,7 +3011,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-108")] // App/Views/Chat/TimelineRows.swift:2796-2812
+    // Partial proof PR-CHAT-108 (STOP #11); App/Views/Chat/TimelineRows.swift:2796-2812
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_review_control_hands_its_own_anchor_to_the_review_once_the_pointer_has_been_there_and_does_nothing_before()
     {
         headless.OnUiThread(() =>
@@ -2914,7 +3046,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-109")] // App/Views/Chat/TimelineRows.swift:2829-2858
+    // Partial proof PR-CHAT-109 (STOP #11); App/Views/Chat/TimelineRows.swift:2829-2858
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files()
     {
         headless.OnUiThread(() =>
@@ -2957,7 +3090,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-110")] // App/Views/Chat/TimelineRows.swift:2770-2798, :2695
+    // Partial proof PR-CHAT-110 (STOP #11); App/Views/Chat/TimelineRows.swift:2770-2798, :2695
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts()
     {
         headless.OnUiThread(() =>
@@ -3007,7 +3141,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-111 to 113 PlanCard
 
     [Fact]
-    [Trait("Req", "PR-CHAT-111")] // App/Views/Chat/TimelineRows.swift:2263-2278, :2318-2337
+    // Partial proof PR-CHAT-111 (STOP #11); App/Views/Chat/TimelineRows.swift:2263-2278, :2318-2337
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_plans_badge_title_caption_and_attention_follow_its_state()
     {
         headless.OnUiThread(() =>
@@ -3042,7 +3177,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-111")] // App/Views/Chat/TimelineRows.swift:2268-2270
+    // Partial proof PR-CHAT-111 (STOP #11); App/Views/Chat/TimelineRows.swift:2268-2270
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_plan_with_empty_markdown_has_no_chevron_and_cannot_be_opened()
     {
         headless.OnUiThread(() =>
@@ -3061,7 +3197,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-111")] // App/Views/Chat/TimelineRows.swift:2263-2264
+    // Partial proof PR-CHAT-111 (STOP #11); App/Views/Chat/TimelineRows.swift:2263-2264
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_plan_card_follows_its_entry_as_the_plan_moves_from_drafting_to_proposed()
     {
         headless.OnUiThread(() =>
@@ -3089,7 +3226,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-112")] // App/Views/Chat/TimelineRows.swift:2279-2313
+    // Partial proof PR-CHAT-112 (STOP #11); App/Views/Chat/TimelineRows.swift:2279-2313
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_plan_popover_is_520_wide_with_the_markdown_in_a_420_point_scroller_and_the_two_buttons_only_while_proposed()
     {
         headless.OnUiThread(() =>
@@ -3127,7 +3265,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-112")] // App/Views/Chat/TimelineRows.swift:2290-2308
+    // Partial proof PR-CHAT-112 (STOP #11); App/Views/Chat/TimelineRows.swift:2290-2308
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_plan_buttons_stay_greyed_while_the_thread_is_busy_with_the_reason_and_carry_no_tip_when_free()
     {
         headless.OnUiThread(() =>
@@ -3161,7 +3300,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-112")] // App/Views/Chat/TimelineRows.swift:2296-2305
+    // Partial proof PR-CHAT-112 (STOP #11); App/Views/Chat/TimelineRows.swift:2296-2305
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Dismiss_closes_the_popover_and_dismisses_the_plan_and_Implement_plan_closes_it_and_implements()
     {
         headless.OnUiThread(() =>
@@ -3201,7 +3341,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-113")] // App/Views/Chat/TimelineRows.swift:2287
+    // Partial proof PR-CHAT-113 (STOP #11); App/Views/Chat/TimelineRows.swift:2287
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_drafting_plan_renders_with_the_streaming_markdown_and_a_proposed_one_with_the_finished_prose()
     {
         headless.OnUiThread(() =>
@@ -3226,7 +3367,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-114 TodoListRow
 
     [Fact]
-    [Trait("Req", "PR-CHAT-114")] // App/Views/Chat/TimelineRows.swift:2343-2382
+    // Partial proof PR-CHAT-114 (STOP #11); App/Views/Chat/TimelineRows.swift:2343-2382
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_checklist_is_a_card_headed_N_of_M_done_with_a_glyph_and_line_per_step()
     {
         headless.OnUiThread(() =>
@@ -3268,7 +3410,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-114")] // App/Views/Chat/TimelineRows.swift:2344, :2369-2371
+    // Partial proof PR-CHAT-114 (STOP #11); App/Views/Chat/TimelineRows.swift:2344, :2369-2371
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_checklist_with_no_steps_draws_nothing_and_an_update_rewrites_the_same_rows_in_place()
     {
         headless.OnUiThread(() =>
@@ -3306,7 +3449,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-115 NoticeRow
 
     [Fact]
-    [Trait("Req", "PR-CHAT-115")] // App/Views/Chat/TimelineRows.swift:2388-2430
+    // Partial proof PR-CHAT-115 (STOP #11); App/Views/Chat/TimelineRows.swift:2388-2430
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void An_info_notice_is_a_bare_line_of_secondary_selectable_text()
     {
         headless.OnUiThread(() =>
@@ -3333,7 +3477,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-115")] // App/Views/Chat/TimelineRows.swift:2388-2430
+    // Partial proof PR-CHAT-115 (STOP #11); App/Views/Chat/TimelineRows.swift:2388-2430
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_warning_or_error_notice_sits_in_a_full_width_pill_tinted_at_ten_percent_of_its_theme_status_colour()
     {
         headless.OnUiThread(() =>
@@ -3387,7 +3532,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-116")] // App/Views/Chat/TimelineRows.swift:2448-2455; UI/Common/Components.swift:36-41
+    // Partial proof PR-CHAT-116 (STOP #11); App/Views/Chat/TimelineRows.swift:2448-2455; UI/Common/Components.swift:36-41
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_turn_end_line_reads_Worked_for_Stopped_after_or_Failed_after_and_the_formatted_duration()
     {
         var turn = System.Guid.NewGuid();
@@ -3398,7 +3544,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-116")] // App/Views/Chat/TimelineRows.swift:2439-2445
+    // Partial proof PR-CHAT-116 (STOP #11); App/Views/Chat/TimelineRows.swift:2439-2445
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_standalone_turn_end_line_shows_only_when_the_turn_produced_no_reply()
     {
         headless.OnUiThread(() =>
@@ -3426,7 +3573,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-123 reveal call sites
 
     [Fact]
-    [Trait("Req", "PR-CHAT-123")] // App/Views/Chat/TimelineRows.swift:1473, :1527-1528, :1697-1698
+    // Partial proof PR-CHAT-123 (STOP #11); App/Views/Chat/TimelineRows.swift:1473, :1527-1528, :1697-1698
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_reveal_fires_only_on_open_outside_the_work_groups_animation_and_inside_the_steps_and_the_tool_rows()
     {
         headless.OnUiThread(() =>
@@ -3482,7 +3630,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-143 to 146 HydraReportRow
 
     [Fact]
-    [Trait("Req", "PR-CHAT-143")] // App/Views/Chat/TimelineRows.swift:340-373
+    // Partial proof PR-CHAT-143 (STOP #11); App/Views/Chat/TimelineRows.swift:340-373
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_heads_report_pill_names_who_is_done_and_names_a_failed_or_stopped_head_with_its_outcome()
     {
         headless.OnUiThread(() =>
@@ -3517,7 +3666,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-143")] // App/Views/Chat/TimelineRows.swift:258-329
+    // Partial proof PR-CHAT-143 (STOP #11); App/Views/Chat/TimelineRows.swift:258-329
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_heads_report_pill_overlaps_the_heads_glyphs_and_sits_in_the_tinted_pill_with_96_points_clear_on_the_trailing_side()
     {
         headless.OnUiThread(() =>
@@ -3554,7 +3704,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-143")] // App/Views/Chat/TimelineRows.swift:248-250, :264-268, :288-292, :332-334
+    // Partial proof PR-CHAT-143 (STOP #11); App/Views/Chat/TimelineRows.swift:248-250, :264-268, :288-292, :332-334
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_note_from_Hydra_shows_its_first_line_less_one_stop_beside_the_mark_and_with_nothing_behind_it_is_disabled_with_no_tip()
     {
         headless.OnUiThread(() =>
@@ -3598,7 +3749,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-143")] // App/Views/Chat/TimelineRows.swift:257-261, :293-303, :607-639
+    // Partial proof PR-CHAT-143 (STOP #11); App/Views/Chat/TimelineRows.swift:257-261, :293-303, :607-639
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Tapping_a_notes_pill_opens_the_note_in_the_report_popover()
     {
         headless.OnUiThread(() =>
@@ -3627,7 +3779,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-144")] // App/Views/Chat/TimelineRows.swift:375-387
+    // Partial proof PR-CHAT-144 (STOP #11); App/Views/Chat/TimelineRows.swift:375-387
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_leading_address_is_a_first_line_of_http_or_https_and_nothing_else_and_the_rest_is_the_body_past_it()
     {
         Assert.Equal("https://gitlab.com/g/p/-/merge_requests/7", HydraReportRow.LeadingURL("https://gitlab.com/g/p/-/merge_requests/7\nMerged.")!.AbsoluteString);
@@ -3643,7 +3796,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-144")] // App/Views/Chat/TimelineRows.swift:252-257, :304-311
+    // Partial proof PR-CHAT-144 (STOP #11); App/Views/Chat/TimelineRows.swift:252-257, :304-311
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_note_that_leads_with_an_address_gets_an_Open_link_beside_the_pill_that_opens_it_in_the_browser()
     {
         headless.OnUiThread(() =>
@@ -3682,7 +3836,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-145")] // App/Views/Chat/TimelineRows.swift:317-324
+    // Partial proof PR-CHAT-145 (STOP #11); App/Views/Chat/TimelineRows.swift:317-324
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_reports_markdown_is_warmed_as_the_pill_appears_per_head_for_a_batch()
     {
         headless.OnUiThread(() =>
@@ -3716,7 +3871,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-146")] // App/Views/Chat/TimelineRows.swift:607-639
+    // Partial proof PR-CHAT-146 (STOP #11); App/Views/Chat/TimelineRows.swift:607-639
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_report_popover_is_460_wide_with_a_460_point_scroller_at_the_callout_style_with_12_point_markdown()
     {
         headless.OnUiThread(() =>
@@ -3747,7 +3903,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-147 HydraBriefRow
 
     [Fact]
-    [Trait("Req", "PR-CHAT-147")] // App/Views/Chat/TimelineRows.swift:537-595
+    // Partial proof PR-CHAT-147 (STOP #11); App/Views/Chat/TimelineRows.swift:537-595
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_brief_reads_as_cooking_until_its_turn_has_output_and_then_as_the_brief()
     {
         headless.OnUiThread(() =>
@@ -3790,7 +3947,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-148 HydraShimmer
 
     [Fact]
-    [Trait("Req", "PR-CHAT-148")] // App/Views/Chat/TimelineRows.swift:480-520
+    // Partial proof PR-CHAT-148 (STOP #11); App/Views/Chat/TimelineRows.swift:480-520
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_shimmer_is_a_band_a_third_as_wide_as_the_text_masked_to_it_and_nothing_under_reduced_motion()
     {
         headless.OnUiThread(() =>
@@ -3869,7 +4027,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-149 HydraDelegationBlock
 
     [Fact]
-    [Trait("Req", "PR-CHAT-149")] // App/Views/Chat/TimelineRows.swift:652-707, :745-753
+    // Partial proof PR-CHAT-149 (STOP #11); App/Views/Chat/TimelineRows.swift:652-707, :745-753
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_delegation_card_says_Summoning_heads_while_streaming_then_names_the_count_or_the_one_head()
     {
         headless.OnUiThread(() =>
@@ -3907,7 +4066,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-149")] // App/Views/Chat/TimelineRows.swift:652-741, :762-766
+    // Partial proof PR-CHAT-149 (STOP #11); App/Views/Chat/TimelineRows.swift:652-741, :762-766
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_delegation_card_lists_each_head_with_its_glyph_task_and_other_project_and_once_sent_checks_and_sweeps()
     {
         headless.OnUiThread(() =>
@@ -3957,7 +4117,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-150, 151 merge pill and track
 
     [Fact]
-    [Trait("Req", "PR-CHAT-150")] // App/Views/Chat/TimelineRows.swift:937-1019, :1044-1094; Core/Models/Hydra.swift:509-529
+    // Partial proof PR-CHAT-150 (STOP #11); App/Views/Chat/TimelineRows.swift:937-1019, :1044-1094; Core/Models/Hydra.swift:509-529
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_merge_pill_shows_the_stage_under_way_with_an_ellipsis_and_goes_once_the_merge_is_over_without_a_note()
     {
         headless.OnUiThread(() =>
@@ -4006,7 +4167,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-150")] // App/Views/Chat/TimelineRows.swift:937-952, :1020-1027, :1036-1042, :1099-1161
+    // Partial proof PR-CHAT-150 (STOP #11); App/Views/Chat/TimelineRows.swift:937-952, :1020-1027, :1036-1042, :1099-1161
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void When_the_note_lands_the_pill_morphs_to_its_title_and_link_and_a_successful_merge_flourishes_for_1100_milliseconds()
     {
         headless.OnUiThread(() =>
@@ -4066,7 +4228,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-150")] // App/Views/Chat/TimelineRows.swift:1020-1027
+    // Partial proof PR-CHAT-150 (STOP #11); App/Views/Chat/TimelineRows.swift:1020-1027
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled()
     {
         headless.OnUiThread(() =>
@@ -4102,7 +4265,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-151")] // App/Views/Chat/TimelineRows.swift:844-916
+    // Partial proof PR-CHAT-151 (STOP #11); App/Views/Chat/TimelineRows.swift:844-916
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_track_is_drawn_from_its_three_values_dots_lit_as_the_head_reaches_them_and_the_head_arcing_between_dots()
     {
         headless.OnUiThread(() =>
@@ -4160,7 +4324,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-151")] // App/Views/Chat/TimelineRows.swift:821-840
+    // Partial proof PR-CHAT-151 (STOP #11); App/Views/Chat/TimelineRows.swift:821-840
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_track_glides_to_a_new_step_from_where_the_head_is_and_eases_into_the_outcome()
     {
         headless.OnUiThread(() =>
@@ -4206,7 +4371,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-152 finished heads
 
     [Fact]
-    [Trait("Req", "PR-CHAT-152")] // App/Views/Chat/TimelineRows.swift:438-476
+    // Partial proof PR-CHAT-152 (STOP #11); App/Views/Chat/TimelineRows.swift:438-476
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_finished_heads_pill_names_its_outcome_beside_its_glyph_with_the_report_one_tap_away()
     {
         headless.OnUiThread(() =>
@@ -4246,7 +4412,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-152")] // App/Views/Chat/TimelineRows.swift:398-418; App/AppModel.swift:396-400
+    // Partial proof PR-CHAT-152 (STOP #11); App/Views/Chat/TimelineRows.swift:398-418; App/AppModel.swift:396-400
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_finished_heads_row_draws_one_leading_aligned_pill_per_named_head_found_among_this_threads_helpers()
     {
         headless.OnUiThread(() =>
@@ -4279,7 +4446,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-153 agent rows
 
     [Fact]
-    [Trait("Req", "PR-CHAT-153")] // App/Views/Chat/TimelineRows.swift:1723-1755, :1766-1793, :1812-1820
+    // Partial proof PR-CHAT-153 (STOP #11); App/Views/Chat/TimelineRows.swift:1723-1755, :1766-1793, :1812-1820
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_call_sending_out_a_head_draws_as_a_head_badge_that_reads_Sending_out_Sent_out_or_Could_not_send_out()
     {
         headless.OnUiThread(() =>
@@ -4320,7 +4488,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-153")] // App/Views/Chat/TimelineRows.swift:1766-1788
+    // Partial proof PR-CHAT-153 (STOP #11); App/Views/Chat/TimelineRows.swift:1766-1788
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_call_whose_head_is_linked_reads_Sending_out_or_Sent_out_the_heads_name_and_the_title()
     {
         headless.OnUiThread(() =>
@@ -4353,7 +4522,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 }
 
 // STOP App.Views.Chat.TimelineRows #5 (part 5, 2026-09-27)
-// deferred by ED-180 (the glass material is built after the app runs)
+// ED-180 defers glass material but does not supply the missing small-control metrics.
 // Kind: platform gap
 // Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:2796 `.controlSize(.small)` on the confirmation buttons.
 // Records: UI-CHAT-039; UI-GIT-047.
@@ -4363,3 +4532,86 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // actions are implemented and tested. Generic .green is allowed by ED-092 (1), with the existing AppTheme
 // FrameworkGreen mapping precedent; its visual appearance remains UNVERIFIED under OD-0001.
 //
+// STOP App.Views.Chat.TimelineRows #6 (review fixes, 2026-09-27)
+// Kind: verification gap
+// Swift: App/Views/Chat/TimelineRows.swift:633, :2152, :2394.
+// Records: PR-CHAT-166.
+// Missing: actual pointer drag selection across a reply and a code block, with per-block selection assertions.
+// Needed: mounted pointer-selection interactions on both surfaces. Structural selection-enabled tests stay,
+// but their Req trait is withdrawn by the explicit review-fix instruction; no assertion or test was removed.
+//
+// STOP App.Views.Chat.TimelineRows #7 (review fixes, 2026-09-27)
+// Kind: verification gap
+// Swift: App/Views/Chat/TimelineRows.swift:2707-2714; App/Runtime/ThreadRuntime.swift:3751-3757.
+// Records: PR-CHAT-107.
+// Missing: persisted legacy-summary reuse after restart. Current tests only observe the in-memory summary.
+// Needed: flush, dispose, reload the model/runtime from the same temporary store, then assert summary reuse.
+// The existing fixture and summary assertions remain, without a full-proof Req claim.
+//
+// STOP App.Views.Chat.TimelineRows #8 (review fixes, 2026-09-27)
+// Kind: verification gap
+// Swift: App/Views/Chat/TimelineRows.swift:937-952; App/Models/AppModel+HydraMerge.swift:229-249, :302-304.
+// Records: PR-HYDRAMERGE-089.
+// Missing: coordinator-driven mid-rebase, repeated-identical-failure and first-retryable-failure scenarios.
+// Needed: temporary repository fixtures driving those outcomes and mounted-pill disappearance assertions.
+// Manually lowering IsHydraMerging still tests the view transition, not those coordinator scenarios.
+//
+// STOP App.Views.Chat.TimelineRows #9 (review fixes, 2026-09-27)
+// Kind: verification gap
+// Swift: App/Views/Chat/TimelineRows.swift:966-971, :1095-1128.
+// Records: PR-HYDRAMERGE-105.
+// Missing: clicking title, track and the separate Open link, rather than delegating to structural wrappers.
+// Needed: mounted clicks asserting popover toggle, separate link routing and exact tooltips for all three.
+// Current disabled/no-details/failure assertions remain; the incomplete Req claim is withdrawn.
+//
+// STOP App.Views.Chat.TimelineRows #10 (review fixes, 2026-09-27)
+// Kind: visual/interaction verification gap
+// Swift: App/Views/Chat/TimelineRows.swift:1-2859; individual exact sites remain beside each partial-proof test.
+// Decisions: OD-0001, ED-059, ED-117, ED-216, ED-217 do not turn structural evidence into capture comparisons.
+// Records: UI-CHAT-007; UI-CHAT-008; UI-CHAT-010; UI-CHAT-019; UI-CHAT-020.
+// Records: UI-CHAT-021; UI-CHAT-022; UI-CHAT-023; UI-CHAT-024; UI-CHAT-025.
+// Records: UI-CHAT-026; UI-CHAT-027; UI-CHAT-028; UI-CHAT-029; UI-CHAT-030.
+// Records: UI-CHAT-031; UI-CHAT-032; UI-CHAT-033; UI-CHAT-034; UI-CHAT-035.
+// Records: UI-CHAT-036; UI-CHAT-037; UI-CHAT-038; UI-CHAT-040; UI-CHAT-041.
+// Records: UI-CHAT-042; UI-CHAT-048; UI-CHAT-049; UI-CHAT-050; UI-CHAT-051.
+// Records: UI-CHAT-052; UI-CHAT-053; UI-CHAT-054; UI-CHAT-055; UI-CHAT-056.
+// Records: UI-CHAT-057; UI-CHAT-059; UI-CHAT-061; UI-CHAT-063; UI-CHAT-064.
+// Records: UI-CHAT-070; UI-CHAT-071; UI-CHAT-072; UI-GIT-044; UI-GIT-045.
+// Records: UI-GIT-046; UI-GIT-048; UI-GIT-049; UI-GIT-050; UI-HYDRAMERGE-002.
+// Records: UI-HYDRAMERGE-004; UI-HYDRAMERGE-005; UI-HYDRAMERGE-006; UI-HYDRAMERGE-007; UI-RUNTIME-001.
+// Records: UI-RUNTIME-002; UI-RUNTIME-003; UI-RUNTIME-004.
+// Missing: the required source/Windows captures and remaining record-specific mounted interaction scenarios.
+// Needed: compare approved reference captures and exercise each verification_method before restoring Req.
+// UI-CHAT-024's finite-width defect is fixed and mounted long/short labels are now regression tested for
+// ordinary tools, head badges and MCP badges. That geometry proof is not a complete visual-capture claim.
+// All existing appearance/state assertions remain. UI-CHAT-039/UI-GIT-047 remain separately in STOP #5.
+//
+// STOP App.Views.Chat.TimelineRows #11 (review fixes, 2026-09-27)
+// Kind: partial scenario/capture/performance verification
+// Swift: App/Views/Chat/TimelineRows.swift:1-2859; exact member ranges remain beside each partial-proof test.
+// Records: PR-CHAT-020; PR-CHAT-077; PR-CHAT-078; PR-CHAT-079; PR-CHAT-080.
+// Records: PR-CHAT-082; PR-CHAT-088; PR-CHAT-089; PR-CHAT-092; PR-CHAT-094.
+// Records: PR-CHAT-098; PR-CHAT-099; PR-CHAT-100; PR-CHAT-101; PR-CHAT-102.
+// Records: PR-CHAT-104; PR-CHAT-105; PR-CHAT-106; PR-CHAT-108; PR-CHAT-109.
+// Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114.
+// Records: PR-CHAT-115; PR-CHAT-116; PR-CHAT-123; PR-CHAT-143; PR-CHAT-144.
+// Records: PR-CHAT-145; PR-CHAT-146; PR-CHAT-147; PR-CHAT-148; PR-CHAT-149.
+// Records: PR-CHAT-150; PR-CHAT-151; PR-CHAT-152; PR-CHAT-153; PR-CHAT-154.
+// Records: PR-CHAT-155; PR-CHAT-161; PR-COMPOSER-211; PR-GIT-122; PR-GIT-151.
+// Records: PR-GIT-152; PR-HYDRAMERGE-088; PR-HYDRAMERGE-090; PR-HYDRAMERGE-101; PR-HYDRAMERGE-102.
+// Records: PR-HYDRAMERGE-103; PR-HYDRAMERGE-104; PR-HYDRAMERGE-106; PR-HYDRAMERGE-107; PR-HYDRAMERGE-108.
+// Missing: full verification_methods, including capture comparison where specified. Existing tests prove
+// useful subsets, not complete records. Needed before restoring each Req: its missing checks listed below.
+// PR-CHAT-080: scroll editor away/back; -089: click the quote menu item; -113: one mounted draft/proposed
+// transition; -123: all five reveal triggers; -144: pill-popover interaction; -149: one streaming fixture;
+// -155: fold the actual sent-head turn; -161: open menu and scroll the mounted row away.
+// PR-CHAT-102/-106: count parses/derivations, not identity only; -105: turn ending on a failed tool;
+// -116: ED-197/O-65 reference-runtime formatter cases, not just the oracle-labelled port expectations.
+// PR-CHAT-145/PR-HYDRAMERGE-108: measure first-tap frame time/first-open latency; ED-117 is not a waiver.
+// PR-GIT-122: runtime restoration, trimming and swallowed refusal; -151: complete legacy/card scenarios;
+// -152: click mounted title to open FilesPopover at the required 12/13/20-file cases.
+// PR-HYDRAMERGE-088: failed note fixture; -090: both merged/failed outcome interactions; -104: merged
+// outcome interaction. Other listed records retain their structural/state evidence while capture and
+// complete scenario proof stays unverified. No production defect is inferred from a missing proof.
+// The review-fix instruction explicitly permits withdrawing partial Req traits. No tests, assertions,
+// source-derived expectations, Rule/Decision/Oracle traits, or passing fully proven Req traits were removed.
