@@ -916,7 +916,7 @@ public sealed class AppModelTests
     // record it named. AppModelHarness.PrepareBootstrap gives every CLI provider a missing custom binary path,
     // so IsInstalled reads false for both claude and codex here regardless of whether step nine's un-awaited
     // task ever ran, and this test's own assertions (old attachment gone, young one kept) never touch step
-    // nine at all. Trait removed; see the STOP note below for why PR-LAUNCH-085 stays unproven.
+    // nine at all. Trait removed; AppModelBootstrapSweepTests now proves the installed updater sequence.
     [Fact]
     [Trait("Req", "PR-LAUNCH-045")] // App/AppModel.swift:283-286; Services/Store/Storage.swift:117-148
     [Trait("Req", "PR-STORE-072")] // App/AppModel.swift:274-287
@@ -957,18 +957,10 @@ public sealed class AppModelTests
     // awaited by Bootstrap() - ever being blocked by it, and that step nine never marks a provider as updating
     // when neither is installed. It cannot fail on a wrong or missing step nine, so no PR-LAUNCH-085 trait.
     //
-    // STOP (review fix, finding #3, HIGH): PR-LAUNCH-085's verification_method calls for proving, from the
-    // installed case, that step nine starts an un-awaited task and that bootstrap's tenth step (the orphan
-    // sweep) begins without waiting for it - i.e. claude's "update" running before codex's, a not-installed
-    // provider being skipped, and Bootstrap() returning while the stand-in's "update" is still blocked. That
-    // needs ProviderRegistry.SetCLIUpdaterExecutableForTesting (ProviderRegistry.cs) to keep the real "claude"/
-    // "codex" executables out of the test process, but that seam is `internal` and Marrow.Services declares
-    // `[assembly: InternalsVisibleTo("Marrow.Services.Tests")]` only - not Marrow.App.Tests (verified: no other
-    // InternalsVisibleTo grant in src/Marrow.Services covers Marrow.App.Tests). Widening that grant, or moving
-    // the seam, is an assembly-boundary change outside this lane's packet. PR-LAUNCH-085 therefore stays
-    // un-IMPLEMENTED (porting/spec/LAUNCH.json already has it as SPECIFIED, not IMPLEMENTED - do not flip it)
-    // until a test reaching that seam exists, in Marrow.Services.Tests or after the boundary is revisited.
-    // No Req trait (it cannot verify PR-LAUNCH-085, per the STOP note above); Rule R-TEST-10 instead, since
+    // The old assembly-boundary STOP is resolved: SetCLIUpdaterExecutableForTesting is now public.
+    // AppModelBootstrapSweepTests uses blocked offline stand-ins to prove Claude then Codex, installed
+    // gating, and completion of the orphan sweep while the first update is still held.
+    // No Req trait (this no-installed-provider case alone cannot verify PR-LAUNCH-085); Rule R-TEST-10 instead, since
     // what it does verify is that this harness's not-installed path never reaches a real "claude"/"codex".
     [Fact]
     [Trait("Rule", "R-TEST-10")]

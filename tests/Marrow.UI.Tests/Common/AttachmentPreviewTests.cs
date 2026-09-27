@@ -200,9 +200,9 @@ public sealed class AttachmentPreviewTests
         Assert.Equal(expectedMime, OnMain(runtime, () => PreviewImages.Attachment(path)).MimeType);
     }
 
-    // PR-COMPOSER-076: DroppyCode/UI/Common/AttachmentPreview.swift:96-106 fileSize via ByteCountFormatter(.file).
+    // PR-COMPOSER-076: DroppyCode/UI/Common/AttachmentPreview.swift:95-98 fileSize via ByteCountFormatStyle(.file).
     [Fact]
-    [Trait("Req", "PR-COMPOSER-076")] // DroppyCode/UI/Common/AttachmentPreview.swift:102-106
+    [Trait("Req", "PR-COMPOSER-076")] // UI/Common/AttachmentPreview.swift:95-98
     public void FileSize_is_null_for_a_missing_file_and_set_for_a_real_one()
     {
         using var runtime = new TestRuntime();
@@ -211,6 +211,43 @@ public sealed class AttachmentPreviewTests
         var real = Path.Combine(root, "real.bin");
         File.WriteAllBytes(real, new byte[1024]);
         Assert.NotNull(OnMain(runtime, () => PreviewImages.FileSize(real)));
+    }
+
+    // B3 :98 delegates to Foundation's .byteCount(style: .file). Expected strings are derived from
+    // work/b3/evidence_6_1/sf-swift-6.2-RELEASE-ByteCountFormatStyle.swift:123, :151-180, :194-222:
+    // strict thresholds 999 / 999499 / 999949999, 0 / 1 / 2 fraction digits, ICU half-even rounding,
+    // byte full names and other units in short form. Zero and 1 byte also have upstream ByteTests.swift
+    // :126-138 assertions. O-66: source-derived expectations, still unverified on macOS Foundation.
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-076")] // UI/Common/AttachmentPreview.swift:95-98
+    [InlineData(0L, "Zero kB")]
+    [InlineData(1L, "1 byte")]
+    [InlineData(998L, "998 bytes")]
+    [InlineData(999L, "1 kB")]
+    [InlineData(1000L, "1 kB")]
+    [InlineData(2500L, "2 kB")]
+    [InlineData(999_498L, "999 kB")]
+    [InlineData(999_499L, "1 MB")]
+    [InlineData(1_000_000L, "1 MB")]
+    [InlineData(1_250_000L, "1.2 MB")]
+    [InlineData(1_350_000L, "1.4 MB")]
+    [InlineData(999_949_998L, "999.9 MB")]
+    [InlineData(999_949_999L, "1 GB")]
+    [InlineData(1_000_000_000L, "1 GB")]
+    [InlineData(1_234_567_890L, "1.23 GB")]
+    public void FileSize_uses_B3_file_style_spelling_thresholds_and_precision(long bytes, string expected)
+    {
+        using var runtime = new TestRuntime();
+        var path = Path.Combine(NewRoot(), "size.bin");
+        // Only one temporary file is held per case, and it is deleted even on a failed assertion.
+        using var file = new FileStream(path, FileMode.Create, FileAccess.ReadWrite,
+            FileShare.ReadWrite | FileShare.Delete, 4096, FileOptions.DeleteOnClose);
+        file.SetLength(bytes);
+        Assert.Equal(expected, OnMain(runtime, () =>
+        {
+            using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+            return PreviewImages.FileSize(path);
+        }));
     }
 
     // PR-COMPOSER-202/209/210 (MediaFrameGrabber): a nonexistent or non-video file yields no frame and no size, the

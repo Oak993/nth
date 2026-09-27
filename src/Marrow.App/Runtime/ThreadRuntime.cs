@@ -727,12 +727,14 @@ public sealed class ThreadRuntime : MainActorModel
         }
     }
 
+    // Source: DroppyCode/App/Runtime/ThreadRuntime.swift (B3 52bc792), :556-565.
+    // :556-560. Sweep C verifies stored plus live token totals and the Droppy-only gate.
     private void Install(ThreadDocument document)
     {
-        // :558-565. Stored rows precede anything that arrived while disk was read.
+        // :556-565. Stored rows precede anything that arrived while disk was read.
         Turns = new ValueList<TurnRecord>(document.Turns.Concat(Turns));
         if (Thread?.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy)
-            HydraTokens = Turns.SelectMany(turn => turn.TokenSpends ?? ValueList<TokenSpend>.Empty).Sum(spend => spend.TotalTokens); // :559-561
+            HydraTokens = Turns.SelectMany(turn => turn.TokenSpends ?? ValueList<TokenSpend>.Empty).Sum(spend => spend.TotalTokens); // :557-560
         Usage = Usage ?? document.Usage; // :562
         Continuation = document.Continuation ?? Continuation; // :563
         FollowUps = new ValueList<FollowUpPrompt>(document.FollowUps.Where(prompt => !prompt.IsEmpty).Concat(FollowUps)); // :564

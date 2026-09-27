@@ -23,9 +23,11 @@ public sealed class MCPStore : MainActorModel
     private Dictionary<string, MCPConnectionState> statesField = new(StringComparer.Ordinal);
 
     // :16 var drafts: [String: [String: String]] = [:]. Keep the public dictionary API; runtime writes copy
-    // the outer map and any changed inner map, then use the tracked setter (R-OBS-1/3/6).
+    // both dictionary levels on reads and assignments (Swift value semantics), then use the tracked setter (R-OBS-1/3/6).
     private Dictionary<string, Dictionary<string, string>> draftsField = new(StringComparer.Ordinal);
-    public Dictionary<string, Dictionary<string, string>> Drafts { get => Read(draftsField); set => Set(ref draftsField, value); }
+    public Dictionary<string, Dictionary<string, string>> Drafts { get => DraftSnapshot(Read(draftsField)); set => Set(ref draftsField, DraftSnapshot(value)); }
+    private static Dictionary<string, Dictionary<string, string>> DraftSnapshot(Dictionary<string, Dictionary<string, string>> value) =>
+        value.ToDictionary(pair => pair.Key, pair => new Dictionary<string, string>(pair.Value, StringComparer.Ordinal), StringComparer.Ordinal);
 
     // :18 private(set) var customs: [MCPCustomServer] = []
     private List<MCPCustomServer> customsField = [];
@@ -51,7 +53,7 @@ public sealed class MCPStore : MainActorModel
     public IReadOnlyList<MCPCustomServer> Customs { get => Read(customsField); private set => Set(ref customsField, new List<MCPCustomServer>(value)); }
 
     // PORT-ONLY: OD-0008 A12 / OD-0012 E6, PR-MCP-228. The report outlives the disconnected/deleted row.
-    // ENGINEERING DECISION: expose the last disconnect's failure for the settings page; the next disconnect replaces it.
+    // ED-221: own the page-level report above its footer; the next disconnect/deletion replaces or clears it.
     private string? credentialDeletionFailure;
     public string? CredentialDeletionFailure { get => Read(credentialDeletionFailure); private set => Set(ref credentialDeletionFailure, value); }
     private const string CredentialDeletionFailureText = "Disconnected, but Credential Manager did not remove this server\u2019s stored values."; // U+2019 RIGHT SINGLE QUOTATION MARK
