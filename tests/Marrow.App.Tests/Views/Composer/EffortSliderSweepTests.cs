@@ -149,10 +149,13 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-133")] // App/Views/Composer/EffortSlider.swift:1049-1050,1070-1071
-    [InlineData(TrackLook.Kind.Supercharged, false)]
-    [InlineData(TrackLook.Kind.Fast, true)]
-    public void Track_timeline_respects_the_thirty_or_sixty_hertz_interval(TrackLook.Kind kind, bool ticksAtTwentyMilliseconds)
+    [Trait("Decision", "ED-117")] // ED-117(7): cadence expectations rest on ED-117(2)-(6), so Decision ED-117 + Oracle O-34, never Req.
+    [Trait("Oracle", "O-34")] // App/Views/Composer/EffortSlider.swift:1049-1050,1070-1071; PR-133 needs a ten-second run (see STOP).
+    [InlineData(TrackLook.Kind.Supercharged, false, false)]
+    [InlineData(TrackLook.Kind.Supercharged, true, true)]
+    [InlineData(TrackLook.Kind.Fast, false, true)]
+    [InlineData(TrackLook.Kind.Fusion, false, true)]
+    public void Track_timeline_respects_the_thirty_or_sixty_hertz_interval(TrackLook.Kind kind, bool hasPair, bool ticksAtTwentyMilliseconds)
     {
         headless.OnUiThread(() =>
         {
@@ -160,14 +163,16 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var time = new ManualTimeProvider();
             using var source = FrameClock.Source.Override(frames);
             using var clock = SwiftClock.Provider.Override(time);
-            var effect = new TrackEffect(new TrackLook(kind, EffortBrand.Purple));
+            var effect = new TrackEffect(new TrackLook(kind, EffortBrand.Purple, hasPair ? new EffortPairBrand(new HydraPair(ProviderKind.Codex)) : null));
             var window = Show(effect);
             window.Activate(); Dispatcher.UIThread.RunJobs();
             var field = typeof(TrackEffect).GetField("time", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            // Cadence-oracle expectations below (ED-117/O-34); source-defined hit-test and accessibility checks follow separately.
             time.Advance(TimeSpan.FromMilliseconds(20)); frames.Advance(TimeSpan.FromMilliseconds(20)); Dispatcher.UIThread.RunJobs();
             Assert.Equal(ticksAtTwentyMilliseconds ? 0.02 : 0, (double)field.GetValue(effect)!, 6);
             time.Advance(TimeSpan.FromMilliseconds(20)); frames.Advance(TimeSpan.FromMilliseconds(20)); Dispatcher.UIThread.RunJobs();
             Assert.Equal(0.04, (double)field.GetValue(effect)!, 6);
+            // Source-defined view contract (EffortSlider.swift:1070-1071): never hit-tests, hidden from assistive tech.
             Assert.False(effect.IsHitTestVisible);
             Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(effect));
             window.Close();
@@ -636,3 +641,15 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 // What is missing: the record's verification_method calls for a capture comparison across a kind change with a pair
 // active; the headless opacity assertions are not that comparison, so Req PR-COMPOSER-132 is dropped.
 // Needed to proceed: a macOS/Windows capture comparison to promote PR-COMPOSER-132 to fully proven.
+//
+// STOP sweepA-fixes #2
+// Kind: partial proof (oracle cadence, ten-second method missing)
+// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:1049-1050,1052-1053,1070-1071 (B3 52bc792)
+// Requirements: PR-COMPOSER-133
+// What is proven: source schedule (supercharged solo at 30 Hz, every other effect at 60 Hz, including paired
+// supercharged) with 20/40 ms update checks across the mode/pair matrix, plus the source hit-test and
+// accessibility contract. Cadence expectations carry Decision ED-117 + Oracle O-34 per ED-117(7), never Req.
+// What is missing: the record's verification_method calls for an instrumented ten-second frame-count run in each
+// mode with pause behavior; this theory runs 40 ms and does not establish the full ten-second, pause, narrow-fill
+// and reduce-motion matrix, so Req PR-COMPOSER-133 is dropped.
+// Needed to proceed: the ten-second instrumented run in each mode with pause/reduce-motion coverage to promote PR-133.
