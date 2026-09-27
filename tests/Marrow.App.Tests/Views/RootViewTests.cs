@@ -577,6 +577,58 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:8-92; App/Window/WindowManager.swift:62-72,86-110
+    [Trait("Req", "PR-WIN-077")] // App/Views/RootView.swift:155-165; App/AppModel.swift:239-287
+    public void A_fresh_empty_bootstrap_renders_the_real_WindowManager_RootView_sidebar_and_welcome_detail()
+    {
+        LoadLoginEnvironmentOffMain();
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness();
+            var manager = harness.Main.OnMain(() => new WindowManager());
+            using var shared = WindowManager.OverrideShared(manager);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(manager.Model.Projects);
+                Assert.Empty(manager.Model.Threads);
+                Assert.Null(manager.Model.SelectedThreadID);
+            });
+            harness.PrepareBootstrap(manager.Model); // absent CLI paths + in-memory secrets; no real provider process or key
+            harness.Main.Loop.Run(() => manager.Model.Bootstrap(), AppModelHarness.Bound); // real bootstrap completes
+            try
+            {
+                harness.Main.OnMain(manager.ShowMain); // MainContent remains its production () => new RootView()
+                harness.Main.OnMain(() =>
+                {
+                    Assert.Empty(manager.Model.Projects);
+                    Assert.Empty(manager.Model.Threads);
+                    Assert.Null(manager.Model.SelectedThreadID);
+                    var window = manager.MainWindow ?? throw new InvalidOperationException("ShowMain built no window");
+                    window.UpdateLayout();
+                    Dispatcher.UIThread.RunJobs();
+                    var root = Assert.Single(LogicalQuery.SelfAndDescendants<RootView>(window));
+                    Assert.Same(manager.Model, AppEnvironment.GetAppModel(root)); // real HostedRoot environment
+                    Assert.NotNull(AppEnvironment.GetWindowLiveResize(root));
+                    var sidebar = Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(root));
+                    Assert.True(sidebar.Bounds.Width > 0);
+                    Assert.Contains("Search threads", LogicalQuery.SelfAndDescendants<TextBox>(sidebar).Select(box => box.PlaceholderText));
+                    var detail = Assert.Single(LogicalQuery.SelfAndDescendants<DetailView>(root));
+                    Assert.Single(LogicalQuery.SelfAndDescendants<WelcomeView>(detail)); // :157-159 no projects/no selection
+                    Assert.Empty(LogicalQuery.SelfAndDescendants<NoThreadView>(detail)); // :161-163 requires a project
+                    Assert.True(detail.Bounds.Width > 0);
+                    Assert.True(detail.Bounds.Height > 0);
+                    using var image = window.CaptureRenderedFrame(); // draw the real hosted tree, not a synthetic child
+                    Assert.NotNull(image);
+                    Assert.True(image.PixelSize.Width > 0);
+                    Assert.True(image.PixelSize.Height > 0);
+                });
+            }
+            finally { harness.Main.OnMain(() => { manager.MainWindow?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91
     public void A_model_alert_shows_through_the_presenter_with_one_OK_button_and_dismissing_clears_it()
     {
