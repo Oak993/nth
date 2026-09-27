@@ -28,8 +28,8 @@ using Marrow.UI.Theme;
 namespace Marrow.App.Views;
 
 // Source: DroppyCode/App/Views/RootView.swift (B3 52bc792), :1-450.
-// Skeleton (c100 group 4): every type the file declares, with the inputs other files pass; every view body and member
-// with behaviour is left to the implementing unit (MARROW_STUB).
+// RootView and the no-thread detail branches are implemented. ThreadColumns and the selected-thread branch
+// alone remain MARROW_STUB, pending App.Views.Chat.ChatView (STOP #2 in RootViewTests.cs).
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; `@Environment(AppModel.self)` and
 // `@Environment(WindowLiveResize.self)` are read from the environment, not passed in. The `@Entry` environment value of
 // `extension EnvironmentValues` (:116-118) is an inherited attached property on the class named after the Swift file
@@ -41,8 +41,8 @@ namespace Marrow.App.Views;
 //
 // This unit implements the 6 types that do not depend on SidebarView.cs or ChatView.cs (DetailView's empty-state
 // branch, WelcomeView, ProviderChecklist, ProviderStatusRow, OpenProvidersSettingsButton, NoThreadView), plus
-// RootView.HandleDrop/HandleDropCore (needs no visual tree), plus - review pass (STOP App.Views.RootView #2 is now
-// stale, see below) - RootView's own top-level body (PR-WIN-062, -063, -066, -067): the HStack, both resize-handle
+// RootView.HandleDrop/HandleDropCore (needs no visual tree), plus RootView's own top-level body
+// (PR-WIN-062, -063, -066, -067): the HStack, both resize-handle
 // overlays, the backdrop/chrome-probe background, the window's own rounded clip, the real drag-and-drop wiring onto
 // HandleDrop, the model-alert dialog and the genie/row-glide/command-palette overlay stack. SidebarView.cs's
 // constructor and CommandPalette.cs's constructor are both real now (0 MARROW_STUB each), which is what unblocked
@@ -76,6 +76,11 @@ public sealed class RootView : Decorator
     private bool lastOnlyFloats;
     private Size lastFloatDetailSize = new(-1, -1);
     private bool alertShowing;
+    private Avalonia.Controls.Window? alertDialog;
+
+    // :80-91 R-VIEW-9: record the owned modal request in headless tests, keeping the real dialog's content.
+    internal static Ambient<Func<Avalonia.Controls.Window, Avalonia.Controls.Window, System.Threading.Tasks.Task>> PresentAlertDialog { get; } =
+        new(() => (dialog, owner) => dialog.ShowDialog(owner));
 
     /// <summary>Test-only: the window's own rounded clip (PR-WIN-062, :66-68).</summary>
     internal Border WindowClip => windowClip;
@@ -192,6 +197,10 @@ public sealed class RootView : Decorator
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
         }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
+
+        // :66 Clip the entire composition, including the backdrop. ED-181's shared curve deferral applies.
+        windowClip.SizeChanged += (_, e) => windowClip.Clip = SwiftShapes.RoundedRectangleGeometry(
+            new Rect(e.NewSize), Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
 
         // :69 .coordinateSpace(.named(GenieAnimator.coordinateSpace)): nothing to install here. Every consumer reaches
         // "the window" through Avalonia's own ancestor-relative TranslatePoint/TransformToVisual directly
@@ -347,32 +356,68 @@ public sealed class RootView : Decorator
         }
     }
 
-    // :80-91 the model alert: a window-modal dialog with one OK button that is also the cancel default (Escape and
-    // Enter both dismiss it, PR-WIN-066's own windows_path), through the same Port/AlertPresenter.cs seam
-    // AppUpdater.cs (:410-414) already uses for its own single-OK alert. Dismissing clears model.Alert, matching the
-    // binding's own setter (:83-84 `set: { if !$0 { model.alert = nil } }`); nothing else in this tree currently
-    // clears model.Alert while one is showing (AppModel.cs's only two writers, :1114 and :1134, both only ever set
-    // it), so the reverse direction - model.Alert cleared from elsewhere closing an already-open dialog - is not
-    // reproduced. ENGINEERING GAP, unreachable with today's callers.
+    // :80-91 The model alert belongs to the rendering window. Clearing the presentation binding closes it;
+    // closing it clears the model. The production shared presenter's ordinary Window.Show has no owner or
+    // reverse binding, so this source site owns its dialog while retaining the existing recording override.
     private void UpdateAlert()
     {
         AppModel model;
         try { model = AppEnvironment.GetAppModel(this); }
         catch (InvalidOperationException) { return; }
-        if (model.Alert is not { } alert || alertShowing) return;
+        if (model.Alert is not { } alert) { alertDialog?.Close(); return; } // :83-84 false presentation binding
+        if (alertShowing) return;
         alertShowing = true;
         _ = ShowAlert(model, alert);
     }
 
     private async Task ShowAlert(AppModel model, AppAlert alert)
     {
-        await AlertPresentation.Presenter.Current.Show(
-            alert.Title, // :81 model.alert?.title ?? ""
-            alert.Message, // :90 message: { alert in Text(alert.message) }
-            AlertStyle.Warning,
-            [new AlertButton("OK", () => { })]); // :88 Button("OK", role: .cancel) {}
-        alertShowing = false;
-        model.Alert = null; // :83-84 set: if !$0 { model.alert = nil }
+        try
+        {
+            var presenter = AlertPresentation.Presenter.Current;
+            if (presenter is WindowsAlertPresenter)
+            {
+                var owner = TopLevel.GetTopLevel(this) as Avalonia.Controls.Window
+                    ?? throw new InvalidOperationException("A model alert requires its rendering window.");
+                var dialog = BuildAlertDialog(alert);
+                alertDialog = dialog;
+                await PresentAlertDialog.Current(dialog, owner); // :80-91 owned, window-modal alert
+            }
+            else
+            {
+                await presenter.Show(alert.Title, alert.Message, AlertStyle.Warning,
+                    [new AlertButton("OK", () => { })]); // existing R-VIEW-9 recorder, :81, :88, :90
+            }
+        }
+        finally
+        {
+            alertDialog = null;
+            alertShowing = false;
+            model.Alert = null; // :83-84 dismissal writes the false presentation binding
+        }
+    }
+
+    // :80-91 The plain Windows alert form already used by Port/AlertPresenter, with the source's one cancel button.
+    // Keep the closeable window in this RootView so model.alert controls presentation in both directions.
+    private static Avalonia.Controls.Window BuildAlertDialog(AppAlert alert)
+    {
+        var dialog = new Avalonia.Controls.Window
+        {
+            Title = alert.Title,
+            SizeToContent = SizeToContent.WidthAndHeight,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        };
+        var button = new Button { Content = "OK", IsDefault = true, IsCancel = true }; // :88; Enter/Escape
+        button.Click += (_, _) => dialog.Close();
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        buttons.Children.Add(button);
+        dialog.Content = new StackPanel
+        {
+            Margin = new Thickness(20), Spacing = 16,
+            Children = { new TextBlock { Text = alert.Message, TextWrapping = TextWrapping.Wrap, MaxWidth = 360 }, buttons },
+        };
+        return dialog;
     }
 
     // PORT-ONLY: Avalonia's drag-and-drop pipeline only fires Drop when a DragOver handler has already accepted the

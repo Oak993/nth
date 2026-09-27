@@ -75,7 +75,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-077")] // RootView.swift:155-165
+    [Trait("Req", "PR-WIN-077")] // App/Views/RootView.swift:155-165
     public void DetailView_shows_the_welcome_page_when_there_are_no_projects_and_no_selected_thread()
     {
         headless.OnUiThread(() =>
@@ -92,7 +92,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-077")] // RootView.swift:155-165
+    [Trait("Req", "PR-WIN-077")] // App/Views/RootView.swift:155-165
     public void DetailView_shows_the_no_thread_page_once_a_project_exists_and_no_thread_is_selected()
     {
         headless.OnUiThread(() =>
@@ -111,7 +111,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-079")] // RootView.swift:304-315, OD-0002
+    [Trait("Req", "PR-WIN-079")] // App/Views/RootView.swift:304-315, OD-0002
     public void WelcomeView_shows_the_Marrow_identity_and_tagline()
     {
         headless.OnUiThread(() =>
@@ -130,7 +130,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-080")] // RootView.swift:316-328
+    [Trait("Req", "PR-WIN-080")] // App/Views/RootView.swift:316-328
     public void WelcomeView_offers_add_a_project_over_the_drop_hint()
     {
         headless.OnUiThread(() =>
@@ -148,7 +148,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-080")] // RootView.swift:317-319. ChooseProjectFolder no-ops when the headless lifetime
+    [Trait("Req", "PR-WIN-080")] // App/Views/RootView.swift:317-319. ChooseProjectFolder no-ops when the headless lifetime
     // carries no IClassicDesktopStyleApplicationLifetime main window (AppModel.swift:526-529), so this only proves
     // the click reaches the model without throwing, not that a folder picker opens.
     public void Clicking_add_a_project_does_not_throw()
@@ -175,7 +175,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     // reproducibly throws "Could not create glyphTypeface" (the same pre-existing headless limitation documented in
     // TerminalPanelTests.cs/followups.md).
     [Theory]
-    [Trait("Req", "PR-WIN-081")] // RootView.swift:329-338
+    [Trait("Req", "PR-WIN-081")] // App/Views/RootView.swift:329-338
     [InlineData(ActivityThreadStyle.Icon)]
     [InlineData(ActivityThreadStyle.ProjectName)]
     public void WelcomeView_activity_list_row_detail_matches_the_style_set_before_construction(ActivityThreadStyle style)
@@ -195,7 +195,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-082")] // RootView.swift:339-342, :352-363
+    [Trait("Req", "PR-WIN-082")] // App/Views/RootView.swift:339-342, :352-363
     public void WelcomeView_lists_a_Providers_section()
     {
         headless.OnUiThread(() =>
@@ -211,7 +211,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-082")] // RootView.swift:352-363
+    [Trait("Req", "PR-WIN-082")] // App/Views/RootView.swift:352-363
     public void ProviderChecklist_renders_one_row_per_provider_with_n_minus_one_dividers()
     {
         headless.OnUiThread(() =>
@@ -232,7 +232,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-084")] // RootView.swift:386-393. Every provider starts "not installed" (no real
+    [Trait("Req", "PR-WIN-084")] // App/Views/RootView.swift:386-393. Every provider starts "not installed" (no real
     // executable is on the harness's binary paths, R-TEST-10), so this exercises the not-installed branch for a
     // CLI provider without needing to fake ProviderRegistry's internal status cache.
     public void A_not_installed_CLI_provider_offers_Install()
@@ -252,7 +252,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-084")] // RootView.swift:386-394
+    [Trait("Req", "PR-WIN-084")] // App/Views/RootView.swift:386-394
     public void A_not_installed_API_key_provider_offers_Add_key()
     {
         headless.OnUiThread(() =>
@@ -271,7 +271,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-088")] // RootView.swift:424-449
+    [Trait("Req", "PR-WIN-088")] // App/Views/RootView.swift:424-449
     public void NoThreadView_offers_a_new_thread_button_with_its_chord_hint()
     {
         headless.OnUiThread(() =>
@@ -290,7 +290,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-088")] // RootView.swift:434-435
+    [Trait("Req", "PR-WIN-088")] // App/Views/RootView.swift:434-435
     public void Clicking_new_thread_creates_a_thread_in_the_current_project()
     {
         headless.OnUiThread(() =>
@@ -320,7 +320,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     // (still MARROW_STUB, see the STOP note below), so these are not blocked by SidebarView.
 
     [Fact]
-    [Trait("Req", "PR-WIN-064")] // RootView.swift:96-105
+    [Trait("Req", "PR-WIN-064")] // App/Views/RootView.swift:96-105
     public void Dropping_folders_adds_each_as_a_project_and_starts_a_thread_in_the_last_one()
     {
         headless.OnUiThread(() =>
@@ -353,7 +353,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-064")] // RootView.swift:98-101
+    [Trait("Req", "PR-WIN-064")] // App/Views/RootView.swift:98-101
     public void Dropping_a_path_that_does_not_exist_is_skipped_and_reports_no_acceptance()
     {
         headless.OnUiThread(() =>
@@ -372,7 +372,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-065")] // RootView.swift:106-108
+    [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:106-108
     public void Dropping_a_file_with_a_thread_selected_attaches_it_to_that_threads_draft()
     {
         headless.OnUiThread(() =>
@@ -407,7 +407,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-065")] // RootView.swift:106-108, "failure_cases": "No thread selected"
+    [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:106-108, "failure_cases": "No thread selected"
     public void Dropping_a_file_with_no_thread_selected_is_silently_discarded()
     {
         headless.OnUiThread(() =>
@@ -430,7 +430,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-065")] // RootView.swift:103-108
+    [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:103-108
     // SOURCE FACT, verified directly against the pinned reference (AppModel.swift:614/623), overriding this
     // record's own windows_path prose ("a thread created by the folder half is NOT the thread the files attach
     // to"): newThread(in:) sets selectedThreadID = thread.id (AppModel.swift:623) BEFORE handleDrop's own read of
@@ -464,7 +464,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-065")] // RootView.swift:103-108; AppModel.swift newThread(in:) sets selectedThreadID = thread.id
+    [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:103-108; AppModel.swift newThread(in:) sets selectedThreadID = thread.id
     // A thread already selected before the drop, in a project unrelated to the folder half, does NOT keep its
     // selection when the drop ALSO contains a folder: newThread(in: lastProject) (called once, after the folder
     // loop, :105) overwrites model.selectedThreadID with the thread it just created in the newly dropped project,
@@ -526,8 +526,8 @@ public sealed class RootViewTests(HeadlessSession headless)
         System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
 
     [Fact]
-    [Trait("Req", "PR-WIN-062")] // RootView.swift:8-92, via the real WindowManager path
-    [Trait("Req", "PR-WIN-077")] // RootView.swift:155-165, the sidebar and the no-thread DetailView
+    [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:8-92, via the real WindowManager path
+    [Trait("Req", "PR-WIN-077")] // App/Views/RootView.swift:155-165, the sidebar and the no-thread DetailView
     public void ShowMain_builds_a_real_RootView_whose_sidebar_and_no_thread_DetailView_render_without_throwing()
     {
         LoadLoginEnvironmentOffMain();
@@ -549,8 +549,8 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-062")] // RootView.swift:64-68
-    [Trait("Req", "PR-WIN-063")] // RootView.swift:33-43; UI/Chrome/Chrome.swift:9-11
+    [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:64-68
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:33-43; UI/Chrome/Chrome.swift:9-11
     public void The_window_content_clips_to_the_windows_rounded_shape_and_the_detail_pane_clips_its_own_bounds()
     {
         headless.OnUiThread(() =>
@@ -577,7 +577,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-066")] // RootView.swift:80-91
+    [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91
     public void A_model_alert_shows_through_the_presenter_with_one_OK_button_and_dismissing_clears_it()
     {
         headless.OnUiThread(() =>
@@ -611,7 +611,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-067")] // RootView.swift:69-76
+    [Trait("Req", "PR-WIN-067")] // App/Views/RootView.swift:69-76
     public void The_command_palette_appears_above_the_genie_and_row_glide_layers_and_leaves_entirely_when_dismissed()
     {
         headless.OnUiThread(() =>
@@ -741,9 +741,11 @@ public sealed class RootViewTests(HeadlessSession headless)
         });
     }
 
-    [Fact]
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91
-    public void A_model_alert_is_owned_by_the_rendering_window_and_clearing_the_model_closes_it()
+    public void A_model_alert_is_owned_by_the_rendering_window_and_clearing_the_model_closes_it(bool beforeAttach)
     {
         headless.OnUiThread(() =>
         {
@@ -759,6 +761,7 @@ public sealed class RootViewTests(HeadlessSession headless)
             {
                 dialog = alertWindow;
                 recordedOwner = owner;
+                Assert.True(owner.IsVisible); // an owned ShowDialog requires an already presented owner
                 var completion = new System.Threading.Tasks.TaskCompletionSource();
                 alertWindow.Closed += (_, _) => completion.TrySetResult();
                 alertWindow.Show();
@@ -769,9 +772,11 @@ public sealed class RootViewTests(HeadlessSession headless)
             {
                 harness.Main.OnMain(() =>
                 {
+                    var alert = new AppAlert { Title = "", Message = "Owned message" }; // :81 empty title is preserved
+                    if (beforeAttach) model.Alert = alert;
                     var host = Build(model, () => new RootView());
                     window = Assert.IsAssignableFrom<AvaloniaWindow>(TopLevel.GetTopLevel(host));
-                    model.Alert = new AppAlert { Title = "", Message = "Owned message" }; // :81 empty title is preserved
+                    if (!beforeAttach) model.Alert = alert;
                 });
                 harness.Main.OnMain(() =>
                 {
@@ -802,8 +807,8 @@ public sealed class RootViewTests(HeadlessSession headless)
     // DroppedFileUrl) on the one shape that never selects a thread, so it stays inside the open boundary: PR-WIN-065's
     // own documented failure case, "No thread selected: the files are discarded with no message".
     [Fact]
-    [Trait("Req", "PR-WIN-064")] // RootView.swift:77-79, wired onto the already-tested HandleDropCore
-    [Trait("Req", "PR-WIN-065")] // RootView.swift:106-108's own failure case
+    [Trait("Req", "PR-WIN-064")] // App/Views/RootView.swift:77-79, wired onto the already-tested HandleDropCore
+    [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:106-108's own failure case
     public void Dropping_a_real_file_with_nothing_selected_reaches_HandleDrop_through_the_real_pipeline_and_discards_it()
     {
         headless.OnUiThread(() =>
@@ -832,30 +837,14 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 }
 
-// STOP App.Views.RootView #2 (B3 unit agent, 2026-09-26; narrowed by the review pass below)
+// STOP App.Views.RootView #2 (Window sweep, narrowed to ChatView alone)
 // Kind: missing dependency
-// Swift: DroppyCode/App/Views/RootView.swift:177-297 (ThreadColumns), :129-133 (DetailView's "a thread is selected"
-// branch)
-// Requirements: ThreadColumns and the "a thread is selected" half of PR-WIN-077 stay MARROW_STUB. Everything else
-// this STOP used to name is done: PR-WIN-062, PR-WIN-063, PR-WIN-066 and PR-WIN-067 (RootView's own top-level body:
-// the window's own clip, the detail pane's clip and insets, the model alert, and the genie/row-glide/command-palette
-// overlay stack) are now implemented and tested above, and PR-WIN-064/PR-WIN-065 (drop handling) were already done
-// through HandleDropCore before this pass, now also wired onto a real Avalonia drag-and-drop event and tested that
-// way too.
-// What is unclear or missing: nothing is unclear. This STOP previously also named SidebarView (its constructor threw
-// unconditionally, so no RootView instance could be built at all) and CommandPalette (its constructor threw, blocking
-// only the command-palette-true branch of PR-WIN-067) as blockers; a review pass (2026-09-27) found both of those
-// claims stale - SidebarView.cs's constructor is real (SidebarView.cs:217-220) and CommandPalette.cs's constructor is
-// real (Palette/CommandPalette.cs:99), 0 MARROW_STUB in src/Marrow.App/Views/Palette - and implemented RootView's own
-// body against the now-real SidebarView and CommandPalette. The one dependency left is ChatView:
-// ThreadColumns.updateNSView calls into ChatView (App.Views.Chat.ChatView.cs, still 23 MARROW_STUB) and needs a
-// WindowLiveResize read from the environment; HostedEnvironment (App.Window.WindowManager.cs) already attaches one
-// for real, so ChatView is the only remaining block here. DetailView's "a thread is selected" branch constructs
-// ThreadColumns and so inherits this one block.
-// Readings or options: wait for App.Views.Chat.ChatView.
-// Needed to proceed: unit App.Views.Chat.ChatView, for ThreadColumns and DetailView's thread-selected branch alone.
-// Done so far: every requirement in both work packets (part1.md, part2.md), plus RootView's own top-level body from
-// this review pass, is implemented and tested: DetailView's empty-state branch, WelcomeView, ProviderChecklist,
-// ProviderStatusRow, OpenProvidersSettingsButton, NoThreadView (CopyCommandButton is gone at B3, B3_PLAN.md section
-// 4; its test is removed, not left failing), HandleDropCore (PR-WIN-064, PR-WIN-065), and RootView's own body
-// (PR-WIN-062, PR-WIN-063, PR-WIN-066, PR-WIN-067), all 0 MARROW_STUB, all green.
+// Swift: DroppyCode/App/Views/RootView.swift:129-133,177-297 (B3 52bc792)
+// Requirements: selected-thread branch of PR-WIN-077 and ThreadColumns only.
+// What is missing: App.Views.Chat.ChatView's real conversation body and the methods ThreadColumns calls when
+// constructing/updating its selected-thread panes. That unit is being ported in another lane and is not edited here.
+// Needed to proceed: the ChatView unit. WindowLiveResize is already attached by the real WindowManager host.
+// Done: RootView's own body, PR-WIN-062/063/066/067 (composited window clip, clipped detail with named zero insets,
+// owned cancel-default model alert with both binding directions, window-wide genie/glide/palette overlay stack).
+// The empty-library WelcomeView and project-with-no-selection NoThreadView are real. SidebarView's real rows are
+// now assembled by this sweep; only its genuine rename/context-menu presentation STOP sites remain.
