@@ -18,6 +18,7 @@ using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.App.Views.Sidebar;
+using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
@@ -956,6 +957,40 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                     Close(view);
                 }
             });
+        });
+    }
+
+    // ---- PR-SIDEBAR-013: Settings (click) ----
+    //
+    // STOP #2 is closed: WindowManager.Shared/ShowSettings has landed on impl/b2
+    // (src/Marrow.App/Window/WindowManager.cs), so the row's click is proven here.
+    // The row's title, glyph and update dot stay proven by the two tests above.
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-013")] // App/Views/Sidebar/SidebarView.swift:168 `action: { WindowManager.shared.showSettings() }`
+    public void Clicking_the_Settings_row_shows_the_settings_window()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var manager = harness.Main.OnMain(() => new WindowManager());
+            Control? shown = null;
+            harness.Main.OnMain(() => manager.SettingsContent = () => shown = new Border());
+            using (WindowManager.OverrideShared(manager))
+            {
+                SidebarView? view = null;
+                harness.Main.OnMain(() => view = Attached(model));
+                harness.Main.OnMain(() => Click(ButtonNamed(view!, "Settings"))); // :168
+                harness.Main.OnMain(() =>
+                {
+                    Assert.NotNull(shown); // ShowSettings built its content
+                    var window = WindowOf(shown!);
+                    Assert.True(window.IsVisible);
+                    window.Close();
+                    Close(view!);
+                });
+            }
         });
     }
 
@@ -2469,6 +2504,39 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Call(view, "DragEnded");
                 Assert.Null(Drag(view).Id);
                 Assert.Null(Field(view, "dragPeers"));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-055")] // App/Views/Sidebar/SidebarView.swift:805-810
+    public void On_release_the_row_springs_home_from_wherever_the_pointer_let_go()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var project = NewProject(harness, "Alpha");
+            var first = NewThread(project, "First", 0);
+            var second = NewThread(project, "Second", 1);
+            var model = Model(harness, [project], [first, second]);
+            SidebarView? view = null;
+            harness.Main.OnMain(() => view = Detached(model));
+            harness.Main.OnMain(() => Call(view!, "DragChanged", first.Id, 30d));
+            IReadOnlyList<Guid> before = null!;
+            harness.Main.OnMain(() => before = model.ThreadsIn(project).Select(thread => thread.Id).ToList());
+            Animation? during = null;
+            using var probe = new OnChange<RowDrag<Guid>>(() => Drag(view!), (_, _) => during = Transaction.Current);
+            harness.Main.OnMain(() => Call(view!, "DragEnded")); // :805-810
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(Animation.Spring(response: 0.32, dampingFraction: 0.8), during); // :806-808
+                Assert.Null(Drag(view!).Id); // :808 drag = RowDrag()
+                Assert.Equal(0d, Drag(view!).Translation); // :808
+                Assert.Equal(0d, Drag(view!).Settled); // :808
+                Assert.Null(Field(view!, "dragPeers")); // :805
+                // The reorder itself was already committed swap by swap during the drag;
+                // release commits nothing further.
+                Assert.Equal(before, model.ThreadsIn(project).Select(thread => thread.Id).ToList());
             });
         });
     }
