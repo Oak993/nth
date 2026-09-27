@@ -249,7 +249,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
         });
     }
 
-    // ---- OpenInMenu: PR-CHAT-180 (the part not BLOCKED on PR-CHAT-181/182) ----
+    // ---- OpenInMenu: PR-CHAT-180 ----
 
     [Fact]
     [Trait("Req", "PR-CHAT-180")] // App/Views/Chat/ChatView.swift:1416,1425-1429
@@ -258,6 +258,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
+            using var workspace = new ChatWorkspaceFixture();
             var menu = Show(OpenInMenu.BuildMenu("C:\\work"));
             var texts = Texts(menu);
             Assert.Equal("Open in", texts[0]);
