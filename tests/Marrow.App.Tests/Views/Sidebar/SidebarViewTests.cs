@@ -141,7 +141,7 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //    UI-SIDEBAR-060's pointer/slide/lift-pieces/release are proven at the seam level by the five trait tests.
 
 [Collection("Headless")]
-public sealed class SidebarViewTests(HeadlessSession headless)
+public sealed partial class SidebarViewTests(HeadlessSession headless)
 {
     private static readonly Assembly AppAssembly = typeof(SidebarView).Assembly;
     private static readonly DateTimeOffset Base = new(2026, 9, 1, 12, 0, 0, TimeSpan.Zero);
