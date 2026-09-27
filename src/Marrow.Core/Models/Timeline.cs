@@ -11,14 +11,6 @@ namespace Marrow.Core.Models;
 // Source: DroppyCode/Core/Models/Timeline.swift (B3 52bc792), :1-369.
 // :202-207 FileEdit is already ported in Models/FileEdit.cs (pre-convention file, kept as is).
 //
-// BLOCKED (reported, not invented): TurnRecord.TokenSpends (:306) and ThreadDocument.Continuation (:353) are left
-// undecoded and unwritten below. Both need the Codable conformance of a sibling skeleton in this unit's dependency
-// cycle (Core.Models.TokenSpend, TokenSpend.swift:56-65 init(from:); Core.Models.ThreadContinuation) which their own
-// file headers say is "left to the implementing unit" - not this one. Writing that Codable here would be inventing
-// another file's behaviour from evidence this packet does not carry (TokenSpend's per-field leniency) or reaching
-// into a sibling unit's file (ThreadContinuation). Both fields decode to null and are omitted on encode, which
-// round-trips a document that never had them (Swift's synthesized encoder omits a nil optional the same way) but
-// loses a real TokenSpend list or a real ThreadContinuation across a save. See the STOP report for this unit.
 
 // :4-33
 [JsonConverter(typeof(TimelineItemConverter))]
@@ -819,7 +811,7 @@ public sealed record TurnRecord
     public string? ProviderDiff { get; init; }                          // :297
     public string? ProviderAnchor { get; init; }                        // :299
     public ValueList<string>? TouchedPaths { get; init; }               // :302
-    public ValueList<TokenSpend>? TokenSpends { get; init; }            // :306 BLOCKED, see the file header note
+    public ValueList<TokenSpend>? TokenSpends { get; init; }            // :306
     public bool HydraMerged { get; init; } = false;                     // :309
 }
 
@@ -856,7 +848,8 @@ internal sealed class TurnRecordConverter : JsonConverter<TurnRecord>
         ProviderAnchor = Coding.Value(element, "providerAnchor", SwiftDecoding.ReadString, () => (string?)null),          // :327
         TouchedPaths = Coding.Value(element, "touchedPaths",
             field => (ValueList<string>?)SwiftDecoding.ReadArray(field, SwiftDecoding.ReadString), () => (ValueList<string>?)null), // :328
-        // :329 tokenSpends - BLOCKED (see file header): left undecoded until Core.Models.TokenSpend has its Codable.
+        TokenSpends = Coding.Value(element, "tokenSpends",
+            field => (ValueList<TokenSpend>?)SwiftDecoding.ReadArray(field, TokenSpend.Decode), () => (ValueList<TokenSpend>?)null), // :329
         HydraMerged = Coding.Value(element, "hydraMerged", SwiftDecoding.ReadBool, () => false),                          // :330
     };
 
@@ -883,7 +876,13 @@ internal sealed class TurnRecordConverter : JsonConverter<TurnRecord>
             foreach (var path in touchedPaths) writer.WriteStringValue(path);
             writer.WriteEndArray();
         }
-        // tokenSpends: BLOCKED, never written (see file header note).
+        if (value.TokenSpends is { } tokenSpends) // :306 synthesized encodeIfPresent
+        {
+            writer.WritePropertyName("tokenSpends");
+            writer.WriteStartArray();
+            foreach (var spend in tokenSpends) TokenSpend.Write(writer, spend);
+            writer.WriteEndArray();
+        }
         writer.WriteBoolean("hydraMerged", value.HydraMerged);
         writer.WriteEndObject();
     }
@@ -935,7 +934,7 @@ public sealed record ThreadDocument
     public ContextUsage? Usage { get; init; }                                                  // :348
     public ValueList<FollowUpPrompt> FollowUps { get; init; } = ValueList<FollowUpPrompt>.Empty; // :349
     public ValueList<HydraMergeRecord> HydraMerges { get; init; } = ValueList<HydraMergeRecord>.Empty; // :350
-    public ThreadContinuation? Continuation { get; init; } = null;                             // :353 BLOCKED, see file header
+    public ThreadContinuation? Continuation { get; init; } = null;                             // :353
 
     // :355-357
     public ThreadDocument(Guid threadID)
@@ -962,7 +961,7 @@ internal sealed class ThreadDocumentConverter : JsonConverter<ThreadDocument>
         Usage = Coding.Value(element, "usage", ContextUsageConverter.Decode, () => (ContextUsage?)null),                           // :364
         FollowUps = Coding.LenientList(element, "followUps", FollowUpPromptConverter.Decode, () => ValueList<FollowUpPrompt>.Empty), // :365
         HydraMerges = Coding.LenientList(element, "hydraMerges", HydraMergeRecordConverter.Decode, () => ValueList<HydraMergeRecord>.Empty), // :366
-        // continuation: BLOCKED (see file header) - left null until Core.Models.ThreadContinuation has its Codable.
+        Continuation = Coding.Value(element, "continuation", ThreadContinuationConverter.Decode, () => (ThreadContinuation?)null), // :367
     };
 
     public override void Write(Utf8JsonWriter writer, ThreadDocument value, JsonSerializerOptions options)
@@ -990,7 +989,11 @@ internal sealed class ThreadDocumentConverter : JsonConverter<ThreadDocument>
         writer.WriteStartArray();
         foreach (var merge in value.HydraMerges) HydraMergeRecordConverter.WriteMembers(writer, merge);
         writer.WriteEndArray();
-        // continuation: BLOCKED, never written (see file header note).
+        if (value.Continuation is { } continuation) // :353 synthesized encodeIfPresent
+        {
+            writer.WritePropertyName("continuation");
+            ThreadContinuationConverter.WriteMembers(writer, continuation);
+        }
         writer.WriteEndObject();
     }
 }
