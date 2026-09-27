@@ -30,6 +30,45 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class MessagePopoverMenuTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "PR-CHAT-087")] // App/Views/Chat/MessagePopoverMenu.swift:9-16
+    public void Review_second_click_refreshes_the_anchor_and_actions() => headless.OnUiThread(() =>
+    {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var reads = 0;
+        var view = Message().RightClickPopover(() => { reads++; return MessageActionsSample.Make(reads > 1, []); });
+        var window = Show(Column(view));
+        RightClick(window, new Point(40, 45));
+        var popup = presenter.Calls[^1].Popup;
+        var firstChild = popup.Child;
+        RightClick(window, new Point(100, 55));
+        Assert.Equal(2, reads);
+        Assert.NotSame(firstChild, popup.Child);
+        Assert.Equal(new Point(100, 55), view.TranslatePoint(popup.PlacementRect!.Value.Position, window));
+        Assert.Equal(Avalonia.Controls.PlacementMode.Top, popup.Placement);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-087")] // App/Views/Chat/MessagePopoverMenu.swift:11-16; PR-CHAT-087 windows_path context-menu key
+    public void Review_context_menu_key_presents_and_other_keys_pass_through() => headless.OnUiThread(() =>
+    {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var view = Message().RightClickPopover(() => MessageActionsSample.Make(false, []));
+        var window = Show(Column(view));
+        var unrelated = new KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Key.A };
+        view.RaiseEvent(unrelated);
+        Assert.False(unrelated.Handled);
+        Assert.Empty(presenter.Calls);
+        var key = new KeyEventArgs { RoutedEvent = Avalonia.Input.InputElement.KeyDownEvent, Key = Key.Apps };
+        view.RaiseEvent(key);
+        Assert.True(key.Handled);
+        Assert.Single(presenter.Calls, c => c.Presented);
+        window.Close();
+    });
+
     // The message sits away from the window origin, so a point in the view's own space and a window point differ.
     private static readonly Thickness Inset = new(10, 20, 0, 0);
 
