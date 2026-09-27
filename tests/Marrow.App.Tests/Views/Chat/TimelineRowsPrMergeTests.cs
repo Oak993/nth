@@ -129,6 +129,11 @@ public sealed class TimelineRowsPrMergeTests(HeadlessSession headless)
                 h.Main.OnMain(() =>
                 {
                     Assert.True(presenter.Calls.Last().Presented);
+                    Click(window!, title!);
+                });
+                h.Main.OnMain(() =>
+                {
+                    Assert.False(presenter.Calls.Last().Presented);
                     var link = LogicalQuery.SelfAndDescendants<Button>(row!).Single(button => Equals(ToolTip.GetTip(button), "Open in the browser"));
                     Assert.Same(title!.Parent, link.Parent);
                     var parent = Assert.IsType<StackPanel>(title.Parent);
@@ -137,7 +142,7 @@ public sealed class TimelineRowsPrMergeTests(HeadlessSession headless)
                     Click(window!, link);
                     Assert.Equal(["https://gitlab.com/g/p/-/merge_requests/7"], opened);
                     // Browser action must not consume the title's action or toggle its report state.
-                    Assert.True(Property<bool>(Field(row!, "state")!, "IsShowingReport"));
+                    Assert.False(Property<bool>(Field(row!, "state")!, "IsShowingReport"));
                 });
             }
             finally { if (window is not null) h.Main.OnMain(() => Close(window)); }

@@ -977,7 +977,7 @@ public sealed class HydraMergeTrackBody : Decorator
     private double position, done, rest;
     private int count;
     private bool hops;
-    private readonly Canvas canvas = new();
+    private readonly Canvas canvas = new() { Background = Brushes.Transparent }; // :966-971 the track is a tap target.
     private readonly Canvas dots = new();
     private readonly HydraMarkImage head;
     private const double Dot = 4;          // :861
@@ -1183,7 +1183,7 @@ public sealed class HydraMergeRow : Decorator
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
         var title = PlainControls.Button(OutcomeTitle(note), () => { if (note.Details.Length != 0) box.IsShowingReport = !box.IsShowingReport; });
         title.IsEnabled = note.Details.Length != 0;
-        ToolTip.SetTip(title, note.Details.Length == 0 ? null : "Show the message");
+        ToolTip.SetTip(title, note.Details.Length == 0 ? "" : "Show the message");
         row.Children.Add(title);
         if (note.Link is { } link) row.Children.Add(HydraReportRow.OpenLink(link));
         row.Children.Add(PlainControls.Popover(title, new Binding<bool>(() => box.IsShowingReport, value => box.IsShowingReport = value), () =>
@@ -3425,7 +3425,7 @@ public sealed class TurnFileCard : Decorator
         var box = state;
         var title = changes.Files.Count == 1 ? "Edited 1 file" : $"Edited {changes.Files.Count} files";
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
-        var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Background = Brushes.Transparent }; // :2745 .contentShape(.rect)
         var badge = SwiftImage.Named("badge-edit").ForegroundStyle(Chrome.SecondaryText);
         badge.Width = 18; badge.Height = 18;
         titleRow.Children.Add(badge);

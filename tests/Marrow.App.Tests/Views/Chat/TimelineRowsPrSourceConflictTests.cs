@@ -49,6 +49,8 @@ public sealed class TimelineRowsPrSourceConflictTests(HeadlessSession headless)
             var model = store.MakeModel(); store.PrepareBootstrap(model);
             var runtime = store.Main.OnMain(() => model.Runtime(thread.Id));
             store.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+            store.Main.OnMain(runtime.SaveNow); // Settle the load-created turn-end repair before testing an idle revision.
+            DiskWriter.Shared.WaitForQueuedWrites();
             var changes = new FileChangeSummary(new ValueList<FileChangeSummary.File>([new("a.txt", 1, 0, false)]), 1, 0);
             store.Main.OnMain(() =>
             {
