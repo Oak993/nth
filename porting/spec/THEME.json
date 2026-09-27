@@ -3788,7 +3788,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The live-resize deferral is a fix for a visible height oscillation; reproduce it on the Windows resize loop.",
       "verification_method": "interaction test: dragging the window edge does not make paragraphs jitter between two heights",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

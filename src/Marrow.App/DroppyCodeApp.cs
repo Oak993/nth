@@ -2,6 +2,10 @@ using System;
 using System.Threading;
 using Marrow.App.Window;
 using Marrow.Core.Support;
+using Marrow.App.Port;
+using Marrow.Core.Port;
+using System.Security.Cryptography;
+using System.Text;
 
 // Source: DroppyCode/App/DroppyCodeApp.swift (B2 1fbf81e), :1-27.
 // Three of the six init() steps are PLATFORM BOUNDARY, not ported (per this unit's own packet, windows_path):
@@ -44,6 +48,24 @@ public static class DroppyCodeApp
     // unchanged (DevDataRoot.KernelObjectName is the identity when not redirected).
     private static string SingleInstanceLockName => DevDataRoot.KernelObjectName(BaseSingleInstanceLockName);
     internal static string ReopenSignalName => DevDataRoot.KernelObjectName(BaseReopenSignalName);
+
+    // AppDelegate.swift (B3 52bc792):77-92, ED-002 / ED-220 (6). Reuse the existing build/root instance identity;
+    // payloads have their own channel so an update click never also runs the ordinary reopen/show-main path.
+    internal static string ToastPipeName => "Marrow.Toast." + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(ReopenSignalName)));
+    internal static bool ForwardNotificationArguments(IReadOnlyList<string> arguments) =>
+        ToastSecondLaunch.Forward(ToastLaunchTransport.Current.Current, ToastPipeName, WindowsToastStartup.Identity, arguments);
+    internal static IDisposable ListenForNotificationArguments(AppDelegate appDelegate) =>
+        ToastLaunchTransport.Current.Current.Listen(ToastPipeName, payload =>
+            MainActor.Spawn(async () => await ToastSecondLaunch.Route(appDelegate, WindowsToastStartup.Identity, payload)));
+    internal static void ReceiveNotificationArguments(AppDelegate appDelegate, IReadOnlyList<string> arguments)
+    {
+        foreach (var argument in arguments)
+            if (ToastActivation.Decode(WindowsToastStartup.Identity, argument) is not null)
+            {
+                MainActor.Spawn(async () => await ToastSecondLaunch.Route(appDelegate, WindowsToastStartup.Identity, argument));
+                break;
+            }
+    }
 
     /// <summary>
     /// True and holding <paramref name="handle"/> when this is the only running instance; false when another

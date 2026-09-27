@@ -88,6 +88,48 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-THEME-152")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:62-65, :515-549; ED-223
+    public void A_live_window_resize_never_oscillates_between_paragraph_heights() => headless.OnUiThread(() =>
+    {
+        var paragraph = new LinkParagraphView("A selectable paragraph with [a link](https://example.com) and enough prose to wrap across several lines as the window edge is dragged.")
+        {
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+        };
+        var window = new Window { Content = paragraph, Width = 420, Height = 400 };
+        window.Show();
+        try
+        {
+            var heights = new System.Collections.Generic.Dictionary<double, double>();
+            double[] widths = [420, 380, 340, 300, 260, 220, 180, 160, 160.25, 160.5, 180, 220, 260, 300, 340, 380, 420];
+            foreach (var width in widths)
+            {
+                window.Width = width;
+                window.UpdateLayout();
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                var height = paragraph.Bounds.Height;
+                Assert.True(height > 0);
+                for (var pass = 0; pass < 4; pass++)
+                {
+                    // Exercise subsequent layout/dispatcher turns at this same proposed width: the Swift's
+                    // second, frame-late measurement must not make the paragraph hop to the previous height.
+                    paragraph.InvalidateMeasure();
+                    window.UpdateLayout();
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    Assert.Equal(height, paragraph.Bounds.Height);
+                    Assert.Equal(height, paragraph.DesiredSize.Height);
+                }
+                if (heights.TryGetValue(width, out var outboundHeight)) Assert.Equal(outboundHeight, height);
+                heights[width] = height;
+            }
+            Assert.True(heights[160] > heights[420]); // The drag really crosses wrapping boundaries.
+            window.UpdateLayout(); // End of the drag: no deferred height change.
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Equal(heights[420], paragraph.Bounds.Height);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-THEME-180")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:121, 152
     public void Dimmed_prose_uses_label_color_with_reduced_alpha() => headless.OnUiThread(() =>
     {

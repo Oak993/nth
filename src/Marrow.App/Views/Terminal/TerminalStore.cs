@@ -1,4 +1,4 @@
-// Source: DroppyCode/App/Views/Terminal/TerminalStore.swift (B2 1fbf81e), :1-176.
+// Source: DroppyCode/App/Views/Terminal/TerminalStore.swift (B3 52bc792), :1-176.
 using Marrow.App.Views.Terminal.Port;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -73,20 +73,16 @@ public sealed class TerminalSession : MainActorModel
         // :35 let shellName = "-" + (shell as NSString).lastPathComponent -- DEVIATION PR-TERM-042: dropped on
         // Windows (no hyphen argv[0] login semantics); TerminalHostView.StartProcess ignores execName.
         var shellName = "-" + SwiftPath.LastPathComponent(shell);
-        // :36-39
-        IReadOnlyList<string> arguments = [];
-        if (command is not null)
-        {
-            // :37-39 arguments = ["-l", "-i", "-c", "\(command); exec \(shell) -l"] -- DEVIATION OD-0008 C5
-            // (PR-TERM-123 open_question): the POSIX -l/-i/-c vector and trailing `exec` do not carry to
-            // PowerShell. ENGINEERING DECISION: -NoExit runs the command then leaves an interactive PowerShell in
-            // the SAME process whether the command succeeded or failed, the source's kept intent; not yet recorded
-            // as an ED, escalate before ship.
-            arguments = ["-NoExit", "-Command", command];
-        }
+        var arguments = ArgumentsForCommand(command); // :36-39; ED-222
         // :40
         View.StartProcess(shell, arguments, environment, shellName, directory);
     }
+
+    // :36-39; DEVIATION OD-0008 C5 / ED-222. The POSIX vector and trailing exec become exactly three
+    // PowerShell arguments: run the command verbatim, then stay interactive in the same process regardless
+    // of its success. Pure extraction of the existing vector so contract tests never need to start a shell.
+    internal static IReadOnlyList<string> ArgumentsForCommand(string? command) =>
+        command is null ? [] : ["-NoExit", "-Command", command];
 
     // :44-45
     private bool? appliedDark;

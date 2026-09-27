@@ -159,7 +159,7 @@ public sealed class MCPSettingsPage : Decorator
     // :91-93,172-176,721-725,928-932
     internal static SwiftImage Symbol(string name, double size, SwiftColor color) => SwiftImage.SystemName(name).Font(SwiftFont.System(size)).ForegroundStyle(color);
     // :328-330,342-348. ENGINEERING DECISION: shared capsule recipe from FollowUpEditor/WelcomeView.
-    // Native .small metrics remain UNVERIFIED under OD-0001; material is MARROW_DEFERRED ED-180.
+    // Native .small metrics remain UNVERIFIED under OD-0001; SwiftGlass draws the material.
     internal static Control ActionButton(string title, Action action, bool prominent = false)
     {
         var label = Text(title, 11, Chrome.PrimaryText);

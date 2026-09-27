@@ -900,19 +900,13 @@
    "deps": [],
    "intra_deps": [],
    "records_total": 6,
-   "records_todo": [
-    "PR-MCP-112"
-   ],
-   "parts": [
-    [
-     "PR-MCP-112"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-073"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Git.DiffParser",
@@ -1343,23 +1337,15 @@
     "Core.Support.Text"
    ],
    "records_total": 26,
-   "records_todo": [
-    "PR-CHAT-013",
-    "PR-CHAT-017"
-   ],
-   "parts": [
-    [
-     "PR-CHAT-013",
-     "PR-CHAT-017"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-055",
     "T-M2-056",
     "T-M2-057"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.TokenSpend",
@@ -1382,19 +1368,13 @@
     "Core.Models.Provider"
    ],
    "records_total": 3,
-   "records_todo": [
-    "PR-USAGE-086"
-   ],
-   "parts": [
-    [
-     "PR-USAGE-086"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-058"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.HangWatchdog",
@@ -1775,20 +1755,14 @@
    ],
    "intra_deps": [],
    "records_total": 11,
-   "records_todo": [
-    "PR-MCP-233"
-   ],
-   "parts": [
-    [
-     "PR-MCP-233"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-063",
     "T-M2-064"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Support.Shell",
@@ -2082,14 +2056,8 @@
    ],
    "intra_deps": [],
    "records_total": 37,
-   "records_todo": [
-    "PR-MCP-011"
-   ],
-   "parts": [
-    [
-     "PR-MCP-011"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M2-027",
     "T-M2-028",
@@ -2097,7 +2065,7 @@
     "T-M2-030"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Core.Models.MCPCustom",
@@ -2387,14 +2355,8 @@
    ],
    "intra_deps": [],
    "records_total": 61,
-   "records_todo": [
-    "PR-STORE-076"
-   ],
-   "parts": [
-    [
-     "PR-STORE-076"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M3-016",
     "T-M3-017",
@@ -2405,7 +2367,7 @@
     "T-M3-022"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Chrome.Chrome",
@@ -2626,7 +2588,6 @@
     "PR-COMPOSER-102",
     "PR-COMPOSER-103",
     "PR-COMPOSER-104",
-    "PR-COMPOSER-105",
     "UI-COMPOSER-017"
    ],
    "parts": [
@@ -2634,7 +2595,6 @@
      "PR-COMPOSER-102",
      "PR-COMPOSER-103",
      "PR-COMPOSER-104",
-     "PR-COMPOSER-105",
      "UI-COMPOSER-017"
     ]
    ],
@@ -2773,23 +2733,15 @@
    ],
    "intra_deps": [],
    "records_total": 23,
-   "records_todo": [
-    "PR-TERM-039",
-    "PR-TERM-123"
-   ],
-   "parts": [
-    [
-     "PR-TERM-039",
-     "PR-TERM-123"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-219",
     "T-M7-220",
     "T-M7-221"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Tour.TourView",
@@ -3060,14 +3012,8 @@
    ],
    "intra_deps": [],
    "records_total": 34,
-   "records_todo": [
-    "PR-WIN-037"
-   ],
-   "parts": [
-    [
-     "PR-WIN-037"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-024",
     "T-M5-025",
@@ -3075,7 +3021,7 @@
     "T-M5-027"
    ],
    "risk": "HIGH",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Common.AttachmentPreview",
@@ -3404,20 +3350,14 @@
    ],
    "intra_deps": [],
    "records_total": 20,
-   "records_todo": [
-    "PR-MCP-237"
-   ],
-   "parts": [
-    [
-     "PR-MCP-237"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-003",
     "T-M4-004"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.MCP.MCPProviderConfig",
@@ -3869,20 +3809,14 @@
     "UI.Markdown.StreamVeil"
    ],
    "records_total": 12,
-   "records_todo": [
-    "PR-THEME-152"
-   ],
-   "parts": [
-    [
-     "PR-THEME-152"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M5-049",
     "T-M5-050"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "UI.Markdown.LinkPopover",
@@ -4713,25 +4647,13 @@
     "Services.Providers.PlanLimits"
    ],
    "records_total": 4,
-   "records_todo": [
-    "PR-PROVCLI-313",
-    "PR-PROVCLI-314",
-    "PR-PROVCLI-315",
-    "PR-PROVCLI-316"
-   ],
-   "parts": [
-    [
-     "PR-PROVCLI-313",
-     "PR-PROVCLI-314",
-     "PR-PROVCLI-315",
-     "PR-PROVCLI-316"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M4-114"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "Services.Providers.PlanLimits",
@@ -5185,13 +5107,11 @@
    ],
    "records_total": 65,
    "records_todo": [
-    "PR-LAUNCH-060",
-    "PR-LAUNCH-085"
+    "PR-LAUNCH-060"
    ],
    "parts": [
     [
-     "PR-LAUNCH-060",
-     "PR-LAUNCH-085"
+     "PR-LAUNCH-060"
     ]
    ],
    "packets": [
@@ -5541,14 +5461,10 @@
    ],
    "records_total": 295,
    "records_todo": [
-    "PR-RUNTIME-160",
-    "PR-RUNTIME-251",
     "PR-RUNTIME-253"
    ],
    "parts": [
     [
-     "PR-RUNTIME-160",
-     "PR-RUNTIME-251",
      "PR-RUNTIME-253"
     ]
    ],
@@ -8754,7 +8670,6 @@
     "PR-MCP-073",
     "PR-MCP-199",
     "PR-MCP-202",
-    "PR-MCP-203",
     "PR-MCP-204",
     "PR-MCP-208",
     "PR-MCP-210",
@@ -8842,7 +8757,6 @@
      "PR-MCP-073",
      "PR-MCP-199",
      "PR-MCP-202",
-     "PR-MCP-203",
      "PR-MCP-204",
      "PR-MCP-208",
      "PR-MCP-210",
@@ -8862,10 +8776,10 @@
      "UI-MCP-011",
      "UI-MCP-012",
      "UI-MCP-013",
-     "UI-MCP-014"
+     "UI-MCP-014",
+     "UI-MCP-015"
     ],
     [
-     "UI-MCP-015",
      "UI-MCP-016",
      "UI-MCP-017",
      "UI-MCP-018",
@@ -8888,10 +8802,10 @@
      "UI-MCP-035",
      "UI-MCP-036",
      "UI-MCP-037",
-     "UI-MCP-038"
+     "UI-MCP-038",
+     "UI-MCP-039"
     ],
     [
-     "UI-MCP-039",
      "UI-MCP-040",
      "UI-MCP-041",
      "UI-MCP-042",
@@ -8914,10 +8828,10 @@
      "UI-MCP-059",
      "UI-MCP-060",
      "UI-MCP-061",
-     "UI-MCP-062"
+     "UI-MCP-062",
+     "UI-MCP-063"
     ],
     [
-     "UI-MCP-063",
      "UI-MCP-064",
      "UI-MCP-065",
      "UI-MCP-066",

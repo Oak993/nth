@@ -734,6 +734,38 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-WIN-037")] // DroppyCode/UI/Chrome/WindowChrome.swift:28, :93; App/Window/WindowManager.swift:129-139; ED-224
+    public void Window_resize_messages_publish_the_UI_signal_only_for_the_resizing_window() => WithManager((harness, manager) =>
+    {
+        harness.Main.OnMain(() =>
+        {
+            var window = new AvaloniaWindow();
+            var other = new AvaloniaWindow();
+            var liveResize = new WindowLiveResize(window);
+            var transitions = new List<bool>();
+            window.PropertyChanged += (_, e) =>
+            {
+                if (e.Property == WindowLiveResizeSignal.IsActiveProperty) transitions.Add(WindowLiveResizeSignal.GetIsActive(window));
+            };
+            Send(liveResize, WM_ENTERSIZEMOVE);
+            Send(liveResize, WM_MOVING);
+            Assert.False(WindowLiveResizeSignal.GetIsActive(window));
+            Send(liveResize, WM_SIZING);
+            Assert.True(WindowLiveResizeSignal.GetIsActive(window));
+            Assert.False(WindowLiveResizeSignal.GetIsActive(other));
+            Send(liveResize, WM_SIZING);
+            Send(liveResize, WM_EXITSIZEMOVE);
+            Assert.False(WindowLiveResizeSignal.GetIsActive(window));
+            Send(liveResize, WM_EXITSIZEMOVE);
+            Assert.Equal(new[] { true, false }, transitions);
+            Send(liveResize, WM_ENTERSIZEMOVE);
+            Send(liveResize, WM_MOVING);
+            Send(liveResize, WM_EXITSIZEMOVE);
+            Assert.Equal(new[] { true, false }, transitions); // A pure move never publishes resize transitions.
+        });
+    });
+
+    [Fact]
     [Trait("Req", "PR-WIN-018")] // App/Window/WindowManager.swift:121-127
     public void isReshaping_is_true_while_either_the_window_or_a_pane_is_being_reshaped() => WithManager((harness, manager) =>
     {
