@@ -965,7 +965,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-level sort. Persist recentSlashCommands under the Windows settings store with the same key name and shape.",
       "verification_method": "unit test of the sort over a fixture list",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
