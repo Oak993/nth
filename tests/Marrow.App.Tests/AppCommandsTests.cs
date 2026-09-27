@@ -2765,7 +2765,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // row with the same three titles (UI-WIN-024) and the "Welcome tour" row (UI-WIN-027, as PR-WIN-115). Nothing is
 // tested for them here; the items themselves are tested above (green).
 
-// STOP App.AppCommands #5 (build agent, part 3, 2026-09-26)
+// STOP App.AppCommands #5 - RESOLVED by fix/canqueue (2026-09-27); first raised by the build agent, part 3, 2026-09-26.
 // Kind: conflict
 // Swift: DroppyCode/App/Runtime/ThreadRuntime.swift:771-788 (B3 52bc792), which AppCommands.swift:74 calls:
 //   var canQueue: Bool { isRunning || hasWorkingHeads }
