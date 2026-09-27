@@ -316,7 +316,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-133")] // App/Views/Composer/EffortSlider.swift:1070-1071
+    // App/Views/Composer/EffortSlider.swift:1070-1071; partial source proof, whole record remains STOP #2.
     public void Track_effect_never_hit_tests_and_is_hidden_from_assistive_tech()
     {
         headless.OnUiThread(() =>
@@ -773,7 +773,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-COMPOSER-127")] // App/Views/Composer/EffortSlider.swift:729-737
-    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:985-998
+    // App/Views/Composer/EffortSlider.swift:985-998; capture method remains STOP #4, no whole-record Req.
     [InlineData(0, false, TrackLook.Kind.Plain)]
     [InlineData(2, false, TrackLook.Kind.Supercharged)]
     [InlineData(0, true, TrackLook.Kind.Fast)]
@@ -848,7 +848,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Assert.Equal(EffortPalette.Title.Resolve(title.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(title.Foreground).Color);
             var slider = Assert.Single(window.GetVisualDescendants().OfType<EffortSlider>());
             var fill = Assert.Single(slider.GetVisualDescendants().OfType<Border>(), b => b.Name == "EffortFill");
-            Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background); // plain fill, no brand gradient
+            Assert.Equal(Chrome.Accent.Resolve(fill.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :990 plain, distinct from solid purple brand fill
             Assert.Empty(slider.GetVisualDescendants().OfType<TrackEffect>()); // plain solo draws no effect
             window.Close();
         });
@@ -913,6 +913,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-121")] // App/Views/Composer/EffortSlider.swift:219-226,230-235
+    [Trait("Req", "PR-COMPOSER-124")] // App/Views/Composer/EffortSlider.swift:230-235; App/AppSettings.swift:859-862 default preference removal
     public void Reset_with_an_unoffered_pair_effort_clears_and_restart_reads_it_back()
     {
         headless.OnUiThread(() =>
@@ -938,6 +939,10 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Assert.False(restarted.Settings.ModelPreferences.ContainsKey("claude/opus")); // :859-862 removes default entry
             Assert.Equal("opus", restarted.Settings.LastModel(ProviderKind.Claude));
             Assert.Null(restarted.Settings.LastEffort(ProviderKind.Claude));
+            Assert.Equal("opus", harness.Defaults.Dictionary("lastModels")!["claude"]);
+            Assert.False(harness.Defaults.Dictionary("lastEfforts")!.ContainsKey("claude"));
+            using var stored = System.Text.Json.JsonDocument.Parse(Assert.IsType<byte[]>(harness.Defaults.Object("modelPreferences")));
+            Assert.False(stored.RootElement.TryGetProperty("claude/opus", out _));
             window.Close();
         });
     }
@@ -1022,7 +1027,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-132")] // App/Views/Composer/EffortSlider.swift:1024-1026; source identity only, capture verification remains STOP #1
+    // App/Views/Composer/EffortSlider.swift:1024-1026; source identity only, capture verification remains STOP #1.
     public void Pair_kind_changes_preserve_the_effect_instance_and_its_clock_origin()
     {
         headless.OnUiThread(() =>
@@ -1094,6 +1099,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-COMPOSER-121")] // App/Views/Composer/EffortSlider.swift:219-235; Providers/ProviderRegistry.swift:71-77
+    [Trait("Req", "PR-COMPOSER-124")] // App/Views/Composer/EffortSlider.swift:230-235; App/AppSettings.swift:859-862 default preference removal
     [InlineData(false)]
     [InlineData(true)]
     public void Reset_with_the_seeded_claude_catalog_persists_with_and_without_an_offered_pair(bool hasPair)
@@ -1124,12 +1130,19 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Assert.Equal("opus", restarted.Settings.LastModel(ProviderKind.Claude));
             Assert.Equal(hasPair ? "high" : null, restarted.Settings.LastEffort(ProviderKind.Claude));
             Assert.Equal(hasPair, restarted.Settings.ModelPreferences.ContainsKey("claude/opus"));
+            Assert.Equal("opus", harness.Defaults.Dictionary("lastModels")!["claude"]);
+            var lastEfforts = harness.Defaults.Dictionary("lastEfforts")!;
+            Assert.Equal(hasPair, lastEfforts.ContainsKey("claude"));
+            if (hasPair) Assert.Equal("high", lastEfforts["claude"]);
+            using var stored = System.Text.Json.JsonDocument.Parse(Assert.IsType<byte[]>(harness.Defaults.Object("modelPreferences")));
+            Assert.Equal(hasPair, stored.RootElement.TryGetProperty("claude/opus", out var preference));
+            if (hasPair) { Assert.Equal("high", preference.GetProperty("effort").GetString()); Assert.False(preference.GetProperty("fastMode").GetBoolean()); }
             window.Close();
         });
     }
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:986-988: pair fill is brand + pair.colors for EVERY kind
+    // App/Views/Composer/EffortSlider.swift:986-988: pair fill is brand + pair.colors for EVERY kind; STOP #4.
     [InlineData(TrackLook.Kind.Plain)]
     [InlineData(TrackLook.Kind.Supercharged)]
     [InlineData(TrackLook.Kind.Fast)]
@@ -1158,7 +1171,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 }
 
-// STOP sweepA-fixes #1
+// STOP opencode-sweepA2 #1
 // Kind: partial proof (capture comparison missing)
 // Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:758-767,799,1024-1026 (B3 52bc792)
 // Requirements: PR-COMPOSER-132
@@ -1166,10 +1179,10 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 // with smooth 0.3) with intermediate opacities and eventual removal; pair kind changes keep one instance and clock.
 // What is missing: the record's verification_method calls for a capture comparison across a kind change with a pair
 // active; the headless opacity assertions are not that comparison. Animation tests omit Req PR-COMPOSER-132;
-// the separate Req test anchors only the source-defined pair identity and clock-origin assertions.
+// the separate source test anchors only the pair identity and clock-origin assertions and also omits the Req.
 // Needed to proceed: a macOS/Windows capture comparison to promote PR-COMPOSER-132 to fully proven.
 //
-// STOP sweepA-fixes #2
+// STOP opencode-sweepA2 #2
 // Kind: partial proof (oracle cadence, ten-second method missing)
 // Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:1049-1050,1052-1053,1070-1071 (B3 52bc792)
 // Requirements: PR-COMPOSER-133
@@ -1178,15 +1191,15 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 // accessibility contract. Cadence expectations carry Decision ED-117 + Oracle O-34 per ED-117(7), never Req.
 // What is missing: the record's verification_method calls for an instrumented ten-second frame-count run in each
 // mode with pause behavior; this theory runs 40 ms and does not establish the full ten-second, pause, narrow-fill
-// and reduce-motion matrix. The cadence theory omits Req PR-COMPOSER-133; the separate Req test covers
-// only source-defined hit-testing/accessibility. The whole record remains unproved.
+// and reduce-motion matrix. The cadence theory and separate source hit-testing/accessibility test both omit
+// Req PR-COMPOSER-133. The whole record remains unproved; ED-117/O-34 do not waive the missing run.
 // Needed to proceed: the ten-second instrumented run in each mode with pause/reduce-motion coverage to promote PR-133.
 //
 // Round 2: the previous STOP #3 was false. ProviderRegistry.swift:71-77 seeds Claude/opus with
 // low, medium, high, xhigh, max. Offered, unoffered and absent-pair resets now use that catalog
 // and a production-written nondefault precondition, so restart assertions can fail.
 //
-// STOP sweepA-fixes #4
+// STOP opencode-sweepA2 #4
 // Kind: partial proof (per-provider capture comparison missing)
 // Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:893-908,985-998 (B3 52bc792)
 // Requirements: PR-COMPOSER-128
