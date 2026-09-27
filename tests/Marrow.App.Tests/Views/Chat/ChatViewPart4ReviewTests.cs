@@ -20,6 +20,44 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
 {
     private static ThreadRuntime Runtime(AppModel model, Project project) => model.Runtime(model.NewThread(project)!.Id);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-CHAT-178")] // App/Views/Chat/ChatView.swift:1231-1236
+    [Trait("Req", "UI-CHAT-078")] // App/Views/Chat/ChatView.swift:1231-1236
+    [Trait("Req", "UI-GIT-043")] // App/Views/Chat/ChatView.swift:1381-1385
+    public void The_production_prompt_uses_the_common_seam_and_cancel_never_performs_the_text_action(bool cancels)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = new AppModelHarness();
+            var recorder = new RecordingPresenter();
+            using var presentation = Presentation.Presenter.Override(recorder);
+            Task shown = null!;
+            string? performed = null;
+            h.Main.OnMain(() => shown = new Marrow.App.Port.WindowsPromptPresenter().Show("Rename thread", "Title", "Before", [
+                new Marrow.App.Port.PromptButton("Rename", false, value => performed = value),
+                new Marrow.App.Port.PromptButton("Cancel", true, _ => performed = "must not run"),
+            ]));
+            var popup = Assert.Single(recorder.Calls).Popup;
+            Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(popup.Child!), text => text.Text == "Rename thread");
+            var field = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(popup.Child!));
+            Assert.Equal("Title", field.PlaceholderText);
+            Assert.Equal("Before", field.Text);
+            Assert.False(shown.IsCompleted);
+            h.Main.OnMain(() =>
+            {
+                field.Text = "Typed";
+                var button = ChatGitFixtures.Button(popup.Child!, cancels ? "Cancel" : "Rename");
+                Assert.Equal(cancels, button.IsCancel);
+                ChatGitFixtures.Click(button);
+            });
+            Assert.True(shown.IsCompletedSuccessfully);
+            Assert.False(recorder.Calls.Last().Presented);
+            Assert.Equal(cancels ? null : "Typed", performed);
+        });
+    }
+
     // STOP App.Views.Chat.ChatView #5
     // Kind: missing dependency / native style metrics.
     // Swift: App/Views/Chat/ChatView.swift:1582-1584,1672-1673,1681-1682.

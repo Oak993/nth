@@ -29,6 +29,9 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
 
     private static T Show<T>(T control) where T : Control
     {
+        // These editor tests inspect state, source dimensions/fonts and input actions, not measured glyph bounds.
+        // Attach without measuring the shared headless glyph cache (its fresh-run font failure is documented in SidebarViewTests).
+        if (control is ScriptsEditor) control.IsVisible = false;
         var window = new AvaloniaWindow { Content = control };
         window.Show();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();

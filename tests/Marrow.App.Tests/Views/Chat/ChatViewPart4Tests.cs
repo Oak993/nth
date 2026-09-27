@@ -20,6 +20,9 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
 {
     private static T Show<T>(T control) where T : Control
     {
+        // All editor assertions concern source properties/structure and actions; keep the appearance lifecycle,
+        // without unrelated Skia glyph-cache layout failures after a prior editor's template is torn down.
+        if (control is ScriptsEditor) control.IsVisible = false;
         var window = new AvaloniaWindow { Content = control };
         window.Show();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
