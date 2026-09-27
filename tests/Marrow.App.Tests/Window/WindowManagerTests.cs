@@ -37,9 +37,8 @@ namespace Marrow.App.Tests.Window;
 //   :197-222 FrameHostingView
 // Forms (ED-095, packet part1.md): NSWindow is an Avalonia Window; a point is one DIP (ED-071); the headless screen
 // is one 1920 x 1280 working area at scale 1 (Avalonia.Headless HeadlessScreensStub), so pixels and points agree.
-// The two windows' content builders (:63 RootView(), :81 SettingsView()) are replaced by stand-ins through
-// WindowManager.MainContent and SettingsContent, because RootView's and SettingsView's bodies are still MARROW_STUB
-// (STOP App.Window.WindowManager #1 below).
+// This original suite isolates content through WindowManager.MainContent and SettingsContent.
+// WindowManagerNextTests also exercises the default real SettingsView; RootView still needs its owning chat.
 [Collection("Headless")]
 public sealed class WindowManagerTests(HeadlessSession headless)
 {
@@ -1239,3 +1238,11 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // Done so far: the three call sites are unwritten (the window keeps the position the platform gives it); the tests
 // that asserted exact centring are withdrawn; the guard at :42-45 (no centring over a hidden or minimised main window)
 // is tested above and green; nothing implemented at these sites.
+
+// Review of STOPs on impl/b2 49eda0591 (2026-09-27):
+// #1 is closed for SettingsView by WindowManagerNextTests' real default-factory tests; RootView's constructor
+// still throws and belongs to another chat (current STOP #7). Neither dependency is modified here.
+// #2 remains closed by AppShell; the new close test verifies the main close handoff and Settings-only hiding.
+// #4's Settings body and requested-page/state retention are now tested with real SettingsView, not stand-ins.
+// AppCommands.cs:57 and CommandPalette.cs:295 already call ShowSettings; the RootView opener/Sidebar path remains
+// blocked by the concurrent Window unit. #3, #5 and #6 remain open; see WindowManagerNextTests and the report.

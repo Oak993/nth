@@ -30,7 +30,9 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // MainWindowClose below, which the close handler of makeWindow (:98) runs for the main window in place of ordering it
 // out (closes STOP App.Window.WindowManager #2). Not written here (STOP #3 in the tests): the ED-063 caption WndProc
 // hook that sits beside WindowChrome.configure (:101). UI-SETTINGS-001 (the Settings window, :21, :80-84, :92-99) is this file's as far as building, placing,
-// opening and keeping the window go; its SettingsView.swift half and its openers are STOP #4, and the Acrylic hint
+// opening and keeping the window go. SettingsView's real body, preserved state and requested-page handling are now
+// exercised by WindowManagerNextTests (closes the Settings portion of STOP #1 and #4). The real main body still
+// depends on the concurrent RootView/SidebarView repairs (STOP #7). The Acrylic hint
 // OD-0014 names for the clear window (WindowChrome.swift:116-117, reached from :101) is STOP #5. The three
 // window.center() calls (:43, :68, :82) are not written: AppKit's placement is unsettled (STOP #6).
 
@@ -67,8 +69,8 @@ public sealed class WindowManager
     private const string MainFrameName = "DroppyCodeMainWindow";
 
     // :63 `{ RootView() }` and :81 `{ SettingsView() }`, each window's content, built by makeWindow (:104). Internal and
-    // settable only so the tests can host a stand-in while RootView's and SettingsView's bodies are still MARROW_STUB
-    // (STOP App.Window.WindowManager #1); nothing in the app sets them.
+    // settable only for headless content substitution. SettingsContent's default is now exercised with the real
+    // SettingsView; MainContent's real RootView is blocked by its owned dependency (STOP #7). The app sets neither.
     internal Func<Control> MainContent { get; set; } = () => new RootView();
     internal Func<Control> SettingsContent { get; set; } = () => new SettingsView();
 
@@ -125,24 +127,36 @@ public sealed class WindowManager
         var parentSize = FrameSizeOf(main);
         var parent = new Rect(main.Position.X / scale, up - (main.Position.Y / scale + parentSize.Height), parentSize.Width, parentSize.Height); // :46
         var frame = FrameSizeOf(window); // :47
-        var x = SwiftNumber.Rounded(parent.Center.X - frame.Width / 2); // :48
-        var y = SwiftNumber.Rounded(parent.Center.Y - frame.Height / 2); // :49, the bottom edge, measured upward
+        Rect? visible = null;
         // :50 (main.screen ?? NSScreen.main)?.visibleFrame: the working area (the taskbar and app bars left out) of the
         // screen the main window is on, else the primary screen; with no screen at all the clamp is skipped.
         if ((main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary) is { } screen)
         {
             var working = screen.WorkingArea.ToRect(scale);
             // visibleFrame in AppKit's y: minY is the working area's bottom edge, maxY its top edge.
-            var visibleMinY = up - working.Bottom;
-            var visibleMaxY = up - working.Top;
-            x = SwiftMin(SwiftMax(x, working.Left), working.Right - frame.Width); // :51
-            y = SwiftMin(SwiftMax(y, visibleMinY), visibleMaxY - frame.Height); // :52
+            visible = new Rect(working.Left, up - working.Bottom, working.Width, working.Height);
         }
+        var centered = CenteredFrame(parent, frame, visible); // :46-54
         // :54 window.setFrame(frame, display: false): only the origin moves (the size is the window's own). Back to
         // Windows' downward y (the top edge is `up` less the bottom edge and the height), and, a position being whole
         // pixels, to pixels at the main window's scale.
-        var top = up - (y + frame.Height);
-        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded(x * scale)), checked((int)SwiftNumber.Rounded(top * scale)));
+        var top = up - centered.Bottom;
+        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded(centered.X * scale)), checked((int)SwiftNumber.Rounded(top * scale)));
+    }
+
+    // :46-54 The source's point-space calculation, shared with the headless edge-case tests. A missing screen
+    // leaves the rounded origin alone; a smaller working area still uses the outer min, without shrinking the
+    // frame. This is only centering over a visible main window, not the unsettled NSWindow.center() fallback.
+    private static Rect CenteredFrame(Rect parent, Avalonia.Size frame, Rect? visible)
+    {
+        var x = SwiftNumber.Rounded(parent.Center.X - frame.Width / 2); // :48
+        var y = SwiftNumber.Rounded(parent.Center.Y - frame.Height / 2); // :49
+        if (visible is { } working) // :50
+        {
+            x = SwiftMin(SwiftMax(x, working.Left), working.Right - frame.Width); // :51
+            y = SwiftMin(SwiftMax(y, working.Top), working.Bottom - frame.Height); // :52 minY and maxY in upward point space
+        }
+        return new Rect(x, y, frame.Width, frame.Height); // :54 only the origin changes
     }
 
     // :57-60 private func present(_ window: NSWindow)

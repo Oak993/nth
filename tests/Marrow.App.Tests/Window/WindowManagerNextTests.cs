@@ -35,8 +35,9 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-011")] // App/Window/WindowManager.swift:48-53
     public void With_no_screen_negative_half_points_round_away_from_zero_and_are_not_clamped()
     {
-        // mid=(-539.5+390,-659.5+290); rounded origin=(-540,-660). :50 has no visibleFrame.
-        Assert.Equal(new Rect(-540, -660, 780, 580), Centered(new Rect(-1200, -800, 1321, 861), new Size(780, 580), null));
+        // midX=-810+1321/2=-149.5; midY=-800+861/2=-369.5. Subtract (390,290) and round
+        // (-539.5,-659.5) to (-540,-660). :50 has no visibleFrame.
+        Assert.Equal(new Rect(-540, -660, 780, 580), Centered(new Rect(-810, -800, 1321, 861), new Size(780, 580), null));
     }
 
     [Fact]
