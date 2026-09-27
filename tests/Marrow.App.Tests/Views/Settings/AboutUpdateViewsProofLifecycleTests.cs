@@ -158,11 +158,12 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
         var progress = UpdateInstallProgressFixtures.NewProgress(); using var running = UpdateInstallProgress.Running.Override(progress);
         var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], "")); using var shared = UpdateChecker.OverrideShared(checker);
         var pill = new AboutVersionPill(); var row = new AboutUpdateCheckRow(); var page = new AboutSoftwareUpdateSection();
-        Avalonia.Controls.Window window = null!;
+        Avalonia.Controls.Window window = null!; TaskHandle oldWork = null!; TaskHandle cancelledSweep = null!;
         runtime.OnMain(() =>
         {
             progress.Begin(); if (failureReset) progress.Fail();
-            Assert.NotNull(Field(progress, failureReset ? "failureReset" : "creepTask")); // real work running BEFORE consume
+            oldWork = Assert.IsType<TaskHandle>(Field(progress, failureReset ? "failureReset" : "creepTask"));
+            Assert.False(oldWork.IsCancelled); // real work running BEFORE consume, not merely a non-null field
             progress.ArmCelebration(); EnvironmentValues.SetAccessibilityReduceMotion(page, reduced);
             window = Show(new StackPanel { Children = { pill, row, page } });
         });
@@ -170,6 +171,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
         {
             Dispatcher.UIThread.RunJobs(); Assert.False(progress.HasPendingCelebration);
             Assert.Null(Field(progress, "creepTask")); Assert.Null(Field(progress, "failureReset"));
+            Assert.True(oldWork.IsCancelled); // AppUpdater.swift:162-163 stops the actual task, not just the stored handle
             Assert.Equal(UpdateInstallProgress.Phase.Celebrating, progress.UpdateInstallProgressPhase); Assert.Equal(0.86, progress.Fraction);
             Assert.Equal(0.86, Assert.Single(pill.GetVisualDescendants().OfType<UpdateProgressSlider>()).Fraction);
             Assert.Equal("No update feed is set.", checker.LastError); Assert.NotNull(checker.LastCheckedAt);
@@ -198,14 +200,17 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
         {
             Dispatcher.UIThread.RunJobs(); Assert.False(progress.HasPendingCelebration); Assert.Equal(UpdateInstallProgress.Phase.Celebrating, progress.UpdateInstallProgressPhase);
             Assert.Single(window.GetVisualDescendants().OfType<UpdateProgressSlider>());
+            cancelledSweep = Assert.IsType<TaskHandle>(Field(Assert.Single(window.GetVisualDescendants().OfType<AboutSoftwareUpdateSection>()), "celebration"));
             // Remove just the page, leaving the real accessory attached to observe the immediate standing.
             var stack = Assert.IsType<StackPanel>(window.Content); stack.Children.RemoveAt(1);
             Assert.Equal(UpdateInstallProgress.Phase.Idle, progress.UpdateInstallProgressPhase); Assert.Equal(0, progress.Fraction);
+            Assert.True(cancelledSweep.IsCancelled); // :739 cancellation of the real sweep handle
         });
         runtime.OnMain(() =>
         {
             Dispatcher.UIThread.RunJobs();
             Assert.Empty(window.GetVisualDescendants().OfType<UpdateProgressSlider>()); Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Check failed");
+            Assert.Equal(0, frames.Pending); // :737-743 no detached slider timeline survives
         });
         runtime.AdvanceMilliseconds(3000);
         runtime.OnMain(() => { Assert.Equal(UpdateInstallProgress.Phase.Idle, progress.UpdateInstallProgressPhase); Assert.Equal(0, progress.Fraction); window.Close(); });
