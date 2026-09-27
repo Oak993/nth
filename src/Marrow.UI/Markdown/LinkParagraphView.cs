@@ -717,14 +717,14 @@ public sealed class LinkTextView : Decorator
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && HeadMention(point) is { } head)
         {
             OnOpenHead?.Invoke(head.Url);
-            e.Handled = true;
+            Consume(e);
             return;
         }
 
         if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed ||
             (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Control)))
         {
-            if (PresentLinkPopover(e.GetPosition(this))) e.Handled = true;
+            if (PresentLinkPopover(e.GetPosition(this))) Consume(e);
             return;
         }
 
@@ -734,8 +734,19 @@ public sealed class LinkTextView : Decorator
             // MarkdownLinkOpener, :90-100); with no delegate, or one that declines, the link still opens (B3 :337-341,
             // was InlineText.OpenUrl, a pre-existing divergence).
             if (Delegate?.TextView(this, hit.Url, hit.Range.Location) != true) MarkdownLinkOpener.Open(hit.Url);
-            e.Handled = true;
+            Consume(e);
         }
+    }
+
+    // A press handled here is one the text never tracks (:446-449 and :453-456 return without super). Marking it
+    // handled keeps SelectableTextBlock's press handler from running, but the mouse device has already captured the
+    // pointer for the text block, and Avalonia 12.1.2's SelectableTextBlock.OnPointerMoved extends the selection from
+    // a stale SelectionStart whenever it holds that capture with the left button down. Releasing the capture leaves
+    // the rest of the gesture to ordinary hit testing, so a pixel of movement before the release selects nothing.
+    private static void Consume(Avalonia.Input.PointerPressedEventArgs e)
+    {
+        e.Handled = true;
+        e.Pointer.Capture(null);
     }
 
     // See the wiring comment at the AddHandler call in Render(_:): a right-button release over a link would
