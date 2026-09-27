@@ -1350,9 +1350,9 @@ ENGINEERING DECISION; macOS's exact scale stepping stays UNVERIFIED under OD-000
 
 ED-215 [UI][FOUNDATION] Every asset-catalogue image the pinned Swift names is bundled. This extends ED-182's asset table, which
 held three names, droppy-logo, hydra-mark and badge-edit, plus the 25 hydra-head marks. SOURCE FACT: at B3,
-DroppyCode/Resources/Assets.xcassets holds 88 imagesets and the port bundles 28 of them. Still missing:
+DroppyCode/Resources/Assets.xcassets holds 85 imagesets and the port bundles 28 of them. Still missing:
 - 13 provider-* images (ProviderKind.iconName; ProviderIcon, Components.swift:4-14);
-- 32 mcp-* images (the MCP catalogue marks; MCPGlyph);
+- 33 mcp-* images (the MCP catalogue marks; MCPGlyph);
 - UpdateBugFixesIcon, UpdateNewFeaturesIcon and UpdateRefinementsIcon (the AboutUpdateViews release-note cards);
 - 8 tour-* images (TourView.swift:256).
 SwiftImage.Named returns an empty image for an unknown name, so every one of those sites draws nothing and reports nothing (found
