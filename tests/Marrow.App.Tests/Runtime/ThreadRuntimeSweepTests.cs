@@ -11,6 +11,42 @@ namespace Marrow.App.Tests.Runtime;
 
 public sealed class ThreadRuntimeSweepTests
 {
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-253")] // App/Runtime/ThreadRuntime.swift:556-560
+    public void Two_stored_spent_turns_total_350_for_a_Droppy_head_and_leave_a_lead_count_unchanged()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Stored tokens", h.NewFolder("stored-tokens"));
+        var head = AppModelSamples.Thread(project) with { Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) };
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true };
+        h.WriteLibrary([project], [head, lead]);
+        var model = h.MakeModel();
+        var document = new ThreadDocument(head.Id)
+        {
+            Turns = new ValueList<TurnRecord>([
+                new TurnRecord { Index = 1, Status = TurnStatus.Completed,
+                    TokenSpends = new ValueList<TokenSpend>([new TokenSpend(ProviderKind.Codex, 100)]) },
+                new TurnRecord { Index = 2, Status = TurnStatus.Completed,
+                    TokenSpends = new ValueList<TokenSpend>([new TokenSpend(ProviderKind.Claude, 250)]) },
+            ]),
+        };
+        h.Main.OnMain(() =>
+        {
+            var headRuntime = model.Runtime(head.Id);
+            var leadRuntime = model.Runtime(lead.Id);
+            headRuntime.HydraTokens = leadRuntime.HydraTokens = 17;
+            var install = typeof(ThreadRuntime).GetMethod("Install", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            install.Invoke(headRuntime, [document]);
+            install.Invoke(leadRuntime, [document]);
+            Assert.Equal(350, headRuntime.HydraTokens);
+            Assert.Equal(17, leadRuntime.HydraTokens);
+            Assert.Equal(document.Turns.Select(turn => turn.Id), headRuntime.Turns.Select(turn => turn.Id));
+            Assert.Equal(document.Turns.Select(turn => turn.Id), leadRuntime.Turns.Select(turn => turn.Id));
+            headRuntime.CancelPersistence();
+            leadRuntime.CancelPersistence();
+        });
+    }
+
     [Theory]
     [InlineData("droppy", 375L)]
     [InlineData("native", 17L)]

@@ -26,6 +26,68 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    [Trait("Req", "PR-HYDRA-226")] // App/Views/Chat/SubagentPanel.swift:329,498-523,530-547; UI/Chrome/Chrome.swift:99-104
+    public void Resizable_placement_keeps_conversation_and_grips_at_the_presented_size(bool reducedMotion)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 9, 27, 0, 0, 0, TimeSpan.Zero));
+            using var timeScope = SwiftClock.Provider.Override(time);
+            using var motionScope = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reducedMotion });
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var content = new Border();
+            var resize = new PanelResize
+            {
+                Corner = PanelDockCorner.TopLeading,
+                OnResize = (_, _) => { }, OnResizeEnd = () => { }, OnReset = () => { },
+            };
+            var placed = new PlacedPanel(new PanelDragState(), new Point(20, 72), new Size(400, 300), content, resize);
+            var window = new Avalonia.Controls.Window { Content = placed };
+            AppEnvironment.SetWindowLiveResize(placed, new WindowLiveResize(window));
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            try
+            {
+                var placement = Assert.IsAssignableFrom<Decorator>(placed.Child);
+                var overlay = Assert.IsType<Panel>(placement.Child);
+                var grips = Assert.Single(overlay.Children.OfType<PanelResizeGrips>());
+                CheckSize(400, 300);
+                placed.UpdatePlacement(new Point(50, 90), new Size(450, 350), true);
+                CheckSize(450, 350);
+                Assert.Equal(0, frames.Pending);
+                placed.UpdatePlacement(new Point(70, 100), new Size(500, 400));
+                CheckSize(450, 350);
+                Assert.Equal(1, frames.Pending);
+                time.Advance(TimeSpan.FromSeconds(0.09));
+                frames.Advance(TimeSpan.FromSeconds(0.09));
+                var progress = (reducedMotion ? Animation.EaseOut(0.18) : Animation.Spring(response: 0.32, dampingFraction: 0.9)).Progress(0.09);
+                CheckSize(450 + 50 * progress, 350 + 50 * progress);
+                time.Advance(TimeSpan.FromSeconds(1));
+                frames.Advance(TimeSpan.FromSeconds(1));
+                CheckSize(500, 400);
+                Assert.Equal(0, frames.Pending);
+
+                void CheckSize(double width, double height)
+                {
+                    window.UpdateLayout();
+                    Assert.Same(content, overlay.Children[0]);
+                    Assert.Equal(width, content.Width, 8);
+                    Assert.Equal(height, content.Height, 8);
+                    Assert.Equal(width, overlay.Bounds.Width, 8);
+                    Assert.Equal(height, overlay.Bounds.Height, 8);
+                    Assert.Equal(width, grips.Bounds.Width, 8);
+                    Assert.Equal(height, grips.Bounds.Height, 8);
+                }
+            }
+            finally { window.Close(); }
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
     [Trait("Req", "PR-HYDRA-226")] // App/Views/Chat/SubagentPanel.swift:530-547; UI/Chrome/Chrome.swift:99-104
     public void Drag_is_immediate_release_animates_and_live_resize_cancels_settling(bool reducedMotion)
     {
