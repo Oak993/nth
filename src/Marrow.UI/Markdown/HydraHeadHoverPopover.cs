@@ -13,7 +13,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.UI.Markdown;
 
-// Source: DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift (B2 1fbf81e), :1-90.
+// Source: DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift (B3 52bc792), :1-90.
 // Records: PR-HYDRA-197, UI-HYDRA-035.
 // Form (ED-095): NSPopover is Avalonia Popup; a @MainActor class with a static `let shared` becomes
 // a sealed class with a static Instance property, main-actor isolated via R-ISO-1 MainActor; a stored
@@ -35,6 +35,8 @@ public sealed class HydraHeadHoverPopover
     private readonly Popup _popover; // :8 private let popover = NSPopover()
     private Guid? _shownThreadID; // :9 private var shownID: UUID?
     private TaskHandle? _pending; // :10 private var pending: Task<Void, Never>?
+    private bool _presented; // :20,37 shown state across the R-VIEW-9 presentation seam
+    private bool IsShown => _presented || _popover.IsOpen;
 
     /// <summary>The thread ID of the popover currently shown, or null if none.</summary>
     public Guid? ShownThreadID => _shownThreadID;
@@ -44,12 +46,10 @@ public sealed class HydraHeadHoverPopover
         // :12-16 private override init()
         _popover = new Popup();
         // :14 popover.behavior = .applicationDefined
-        // (Avalonia Popup has no direct equivalent; light-dismiss is the default)
         // :15 popover.animates = true
-        _popover.IsLightDismissEnabled = true;
+        _popover.IsLightDismissEnabled = false;
         // :16 popover.delegate = self
-        // (Avalonia Popup does not have a delegate pattern; we handle PopoverDidClose
-        // through the Closing event or by our own Hide method)
+        _popover.Closed += (_, _) => PopoverDidClose(null);
     }
 
     /// <summary>
@@ -64,7 +64,7 @@ public sealed class HydraHeadHoverPopover
     public void Show(HydraPersona persona, HydraMentionTarget target, Rect relativeTo, Visual of)
     {
         // :20 if popover.isShown, shownID == target.threadID { return }
-        if (_popover.IsOpen && _shownThreadID == target.ThreadID)
+        if (IsShown && _shownThreadID == target.ThreadID)
         {
             return;
         }
@@ -85,9 +85,10 @@ public sealed class HydraHeadHoverPopover
             }
 
             // :25 if self.popover.isShown { self.popover.close() }
-            if (_popover.IsOpen)
+            if (IsShown)
             {
-                _popover.Close();
+                _presented = false;
+                Presentation.Presenter.Current.SetPresented(_popover, false);
             }
 
             // :26-29 // Measured with the card's own width pinned...
@@ -126,6 +127,7 @@ public sealed class HydraHeadHoverPopover
             // to show the popover below the mention (equivalent to preferredEdge: .maxY)
             _popover.Placement = PlacementMode.Bottom;
             _popover.PlacementTarget = of as Control;
+            _presented = true; // :37
             Presentation.Presenter.Current.SetPresented(_popover, true);
         });
     }
@@ -143,13 +145,15 @@ public sealed class HydraHeadHoverPopover
         _pending = null;
 
         // :44 if popover.isShown { popover.performClose(nil) }
-        if (_popover.IsOpen)
+        if (IsShown)
         {
+            _presented = false;
             Presentation.Presenter.Current.SetPresented(_popover, false);
         }
 
         // :45 shownID = nil
         _shownThreadID = null;
+        _presented = false;
     }
 
     /// <summary>
@@ -160,6 +164,7 @@ public sealed class HydraHeadHoverPopover
     {
         // :49 shownID = nil
         _shownThreadID = null;
+        _presented = false;
     }
 }
 
@@ -189,10 +194,9 @@ internal sealed class HydraHeadHoverCard : Decorator
         Target = target;
 
         // HStack(spacing: 10)
-        var hstack = new StackPanel
+        var hstack = new Grid
         {
-            Orientation = Orientation.Horizontal,
-            Spacing = 10,
+            ColumnDefinitions = new ColumnDefinitions("Auto,10,*"), // :62 spacing 10; :76 flexible text column
         };
 
         // HydraGlyph(persona: persona, size: 28, isRunning: target.status == .running, status: target.status)
@@ -257,6 +261,7 @@ internal sealed class HydraHeadHoverCard : Decorator
 
         // .frame(maxWidth: .infinity, alignment: .leading)
         vstack.HorizontalAlignment = HorizontalAlignment.Stretch;
+        Grid.SetColumn(vstack, 2); // :76 bounded to the remaining width, enabling :71's three-line limit
         hstack.Children.Add(vstack);
 
         // .padding(12)

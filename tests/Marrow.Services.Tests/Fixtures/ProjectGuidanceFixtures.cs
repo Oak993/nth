@@ -8,6 +8,25 @@ namespace Marrow.Services.Tests.Fixtures;
 /// <summary>A fresh real folder under MARROW_PORT_DATA_DIR for one test, used as a project working directory.</summary>
 public sealed class ProjectGuidanceScratch : IDisposable
 {
+    // No elevation/Developer Mode is required for a directory junction.
+    public static void CreateJunction(string link, string target)
+    {
+        var root = Path.GetFullPath(Marrow.Testing.TestDataDirectory.Read()!);
+        var checkedLink = Path.GetFullPath(link);
+        var checkedTarget = Path.GetFullPath(target);
+        if (!checkedLink.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+            !checkedTarget.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Junction test paths must remain inside scratch data.");
+        using var process = System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+        {
+            FileName = Path.Combine(Environment.SystemDirectory, "cmd.exe"),
+            Arguments = "/d /c mklink /J \"" + checkedLink + "\" \"" + checkedTarget + "\"",
+            UseShellExecute = false, CreateNoWindow = true, WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden,
+            RedirectStandardOutput = true, RedirectStandardError = true,
+        })!;
+        process.WaitForExit();
+        if (process.ExitCode != 0) throw new IOException("Creating the test junction failed: " + process.StandardError.ReadToEnd());
+    }
     public ProjectGuidanceScratch()
     {
         // R-TEST-9: the variable is set before anything runs. No fallback folder is invented when it is missing.

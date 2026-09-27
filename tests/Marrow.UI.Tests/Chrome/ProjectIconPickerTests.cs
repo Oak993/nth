@@ -468,7 +468,40 @@ public sealed class ProjectIconPickerTests(HeadlessSession headless)
 
         var text = Assert.Single(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == "\U0001F680");
         Assert.Equal(SwiftFont.Title3.PointSize, text.FontSize);
+        Assert.True(double.IsNaN(text.Width)); // UI/Chrome/ProjectIconPicker.swift:253-254 frame centers natural-sized content
+        Assert.True(double.IsNaN(text.Height));
+        var slot = Assert.IsType<Panel>(text.GetVisualParent());
+        Assert.Equal(26, slot.Bounds.Width); Assert.Equal(26, slot.Bounds.Height);
+        Assert.InRange(Math.Abs(text.Bounds.X - (26 - text.Bounds.Width) / 2), 0, 0.5);
+        Assert.InRange(Math.Abs(text.Bounds.Y - (26 - text.Bounds.Height) / 2), 0, 0.5);
         window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-152")] // UI/Chrome/ProjectIconPicker.swift:221 surviving ForEach identities keep hover state
+    [Trait("Req", "PR-SIDEBAR-153")] // UI/Chrome/ProjectIconPicker.swift:249,256-270
+    public void Review_surviving_search_tile_keeps_identity_and_hover() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var project = new CellSample<ProjectIcon?>(null);
+        var picker = new ProjectIconPicker(new Binding<ProjectIcon?>(() => project.Value, v => project.Value = v));
+        var window = Show(picker, ThemeVariant.Light, width: 400, height: 500);
+        var box = SearchBox(picker); box.Text = "star"; Dispatcher.UIThread.RunJobs();
+        var image = Images(picker).First(i => i.SymbolName == "star.fill");
+        var button = Buttons(picker).First(b => VisualQuery.Descendants<SwiftImage>(b).Contains(image));
+        var fill = VisualQuery.Descendants<Border>(button).First(b => b.BorderThickness.Left == 0);
+        // Raise the actual routed hover event; no state is assigned by the test.
+        button.RaiseEvent(new Avalonia.Input.PointerEventArgs(Avalonia.Input.InputElement.PointerEnteredEvent, button,
+            new Avalonia.Input.Pointer(1, Avalonia.Input.PointerType.Mouse, true), button, default, 0, default, default));
+        Dispatcher.UIThread.RunJobs();
+        var tileState = button.GetVisualParent()!.GetType().GetField("state", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(button.GetVisualParent())!;
+        Assert.True((bool)tileState.GetType().GetProperty("IsHovering")!.GetValue(tileState)!);
+        box.Text = "star."; Dispatcher.UIThread.RunJobs();
+        var surviving = Images(picker).First(i => i.SymbolName == "star.fill");
+        Assert.Same(image, surviving);
+        Assert.Same(fill, VisualQuery.Descendants<Border>(button).First(b => b.BorderThickness.Left == 0));
+        Assert.True((bool)tileState.GetType().GetProperty("IsHovering")!.GetValue(tileState)!);
+        window.Close(); Dispatcher.UIThread.RunJobs();
     });
 
     [Fact]

@@ -2,8 +2,10 @@ using System.Globalization;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Tour;
+using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
@@ -13,16 +15,10 @@ using Marrow.UI.Port;
 // as a table in the source's order, each with its action, its enablement rule and its chord; Port/MenuKeyEquivalents.cs
 // dispatches the chords with no menu present. The groups, the "Thread" menu and the dividers (:24, :32, :52, :84, :99)
 // are drawn by nothing, so they have no entries. Chords are named in Windows notation (OD-0008 B7, ED-050, ED-099).
-// Parts 1 to 3 of 3 (App.AppCommands): :1-115 except the two sites below. Part 3 (the UI contract's menu-item records
-// of :48-113) adds no member: its items are the entries parts 1 and 2 wrote. Not written here:
-// - :12-15 (the Settings item) and :21-25 (the app-name item that shows the main window) call WindowManager.shared,
-//   still MARROW_STUB (App/Window/WindowManager.cs): STOP App.AppCommands #1 in tests/Marrow.App.Tests/AppCommandsTests.cs.
-// - :17-19 replaces the save placement with nothing, so it has no entry; Ctrl+W stays free for the archive command and
-//   a secondary window closes itself (ThreadWindow.cs SecondaryWindow).
-// Outside this file, the install is not written either: DroppyCodeApp.swift:24 puts these commands in front of every
-// window of the app, and the port's replacement, MenuKeyEquivalents.Attach(window, new AppCommands(model)
-// .PerformKeyEquivalent) on each window, has no caller until the windows are built (WindowManager.cs, still a stub):
-// STOP App.AppCommands #6. How a key typed with AltGr, which Windows reports as Ctrl+Alt, is read: STOP #7.
+// Sweep B: :12-15 and :21-25 now call the landed WindowManager (STOP #1 resolved).
+// :17-19 replaces the save placement with nothing; secondary windows close themselves on Ctrl+W.
+// Outside this file the runtime install still has no caller: STOP #6 names the remaining install-site decision.
+// AltGr handling is still unsettled (STOP #7); the Welcome tour palette row needs its own decision (STOP #4).
 // The zoom items (:53-62) carry literal key equivalents, "+", "-", "0" and "=". Port/MenuKeyEquivalents.cs reads a key
 // event as a US key position (ED-099), which gives "=", "-" and "0" but never "+": how a key press reaches the "+" key
 // equivalent, and whether these four match by character rather than position, is STOP App.AppCommands #2.
@@ -54,6 +50,16 @@ public sealed class AppCommands
         {
             var body = new List<MenuCommand>
             {
+                // :12-15 CommandGroup(replacing: .appSettings)
+                new("Settings\U00002026", // :13
+                    shortcuts.KeyboardShortcut(AppShortcut.OpenSettings), // :14
+                    false,
+                    () => WindowManager.Shared.ShowSettings()), // :13
+                // :21-25 CommandGroup(before: .windowArrangement)
+                new(AppInfo.Current.Name, // :22; OD-0012 F1: Marrow
+                    shortcuts.KeyboardShortcut(AppShortcut.ShowMainWindow), // :23; OD-0012 G6: no default
+                    false,
+                    () => WindowManager.Shared.ShowMain()), // :22
                 // :27-35 CommandGroup(replacing: .newItem)
                 new("New thread", // :28
                     shortcuts.KeyboardShortcut(AppShortcut.NewThread), // :29

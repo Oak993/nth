@@ -9,7 +9,7 @@ using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Composer/HydraFusedPairIcon.swift (B2 1fbf81e), :1-91.
+// Source: DroppyCode/App/Views/Composer/HydraFusedPairIcon.swift (B3 52bc792), :1-91.
 
 namespace Marrow.App.Views.Composer;
 
@@ -32,6 +32,9 @@ public sealed class HydraFusedPairIcon : Decorator
 
     // HydraFusedPairIcon.swift:15
     private bool isFused;
+    private double fuseProgress;
+    private IFrameSource? animationFrames;
+    private Action<TimeSpan>? pendingAnimation;
 
     /// <param name="lead">HydraFusedPairIcon.swift:8 <c>let lead: ProviderKind</c>.</param>
     /// <param name="heads">HydraFusedPairIcon.swift:9 <c>let heads: ProviderKind</c>.</param>
@@ -74,6 +77,11 @@ public sealed class HydraFusedPairIcon : Decorator
 
         // HydraFusedPairIcon.swift:23-34
         SetFused(!animates);
+        DetachedFromVisualTree += (_, _) =>
+        {
+            if (pendingAnimation is { } frame) animationFrames?.CancelFrame(frame);
+            pendingAnimation = null;
+        };
 
         // HydraFusedPairIcon.swift:37-42
         this.Task(() => $"{lead.Id}/{heads.Id}", async _ =>
@@ -145,6 +153,7 @@ public sealed class HydraFusedPairIcon : Decorator
     {
         var icon = SwiftImage.Named(provider.IconName)
             .Resizable()
+            .RenderingMode(ImageRenderingMode.Template) // :53 silhouette, even for originally colored provider art
             .AspectRatio(ContentMode.Fit);
         icon.Width = size;
         icon.Height = size;
@@ -207,10 +216,36 @@ public sealed class HydraFusedPairIcon : Decorator
         if (isFused == fused) return;
 
         isFused = fused;
-        leadHalf.Opacity = fused ? 1 : 0;
-        headsHalf.Opacity = fused ? 1 : 0;
-        leadHalf.RenderTransform = new TranslateTransform(fused ? 0 : -size * 0.35, 0);
-        headsHalf.RenderTransform = new TranslateTransform(fused ? 0 : size * 0.35, 0);
-        divider.RenderTransform = new ScaleTransform(1, fused ? 1 : 0.15);
+        if (pendingAnimation is { } oldFrame) animationFrames?.CancelFrame(oldFrame);
+        pendingAnimation = null;
+        var target = fused ? 1.0 : 0.0;
+        if (Transaction.Current is not { } animation) { ApplyFuseProgress(target); return; }
+        var from = fuseProgress;
+        var began = SwiftClock.Now;
+        var span = TimeSpan.FromSeconds(animation.Duration);
+        var frames = FrameClock.Source.Current;
+        Action<TimeSpan>? tick = null;
+        tick = _ =>
+        {
+            var now = SwiftClock.Now;
+            var complete = now - began >= span; // :41 spring duration, evaluated on display frames
+            ApplyFuseProgress(complete ? target : from + (target - from) * animation.Progress((now - began).TotalSeconds));
+            if (complete) pendingAnimation = null;
+            else frames.RequestFrame(tick!);
+        };
+        animationFrames = frames;
+        pendingAnimation = tick;
+        frames.RequestFrame(tick);
+    }
+
+    // :25-34 all four modifiers interpolate within the same :41 spring transaction.
+    private void ApplyFuseProgress(double progress)
+    {
+        fuseProgress = progress;
+        leadHalf.Opacity = progress;
+        headsHalf.Opacity = progress;
+        leadHalf.RenderTransform = new TranslateTransform(-(1 - progress) * size * 0.35, 0);
+        headsHalf.RenderTransform = new TranslateTransform((1 - progress) * size * 0.35, 0);
+        divider.RenderTransform = new ScaleTransform(1, 0.15 + 0.85 * progress);
     }
 }
