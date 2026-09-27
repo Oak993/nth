@@ -1155,6 +1155,7 @@ internal sealed class CommitSheet : Decorator
     private readonly ThreadRuntime runtime;
     private readonly TextBox messageField;
     private readonly Border messageFrame;
+    private readonly TextBlock messagePlaceholder;
     private readonly TextBlock summaryBlock;
     private readonly Border summaryFrame;
     private readonly Button writeForMeButton;
@@ -1193,7 +1194,7 @@ internal sealed class CommitSheet : Decorator
         var heading = new TextBlock { Text = "Commit changes" }; // :1545
         SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1546
 
-        summaryBlock = new TextBlock { HorizontalAlignment = HorizontalAlignment.Left }; // :1549-1552
+        summaryBlock = new TextBlock { HorizontalAlignment = HorizontalAlignment.Stretch, TextAlignment = TextAlignment.Left }; // :1549-1552
         SwiftFont.System(SwiftFont.TextStyle.Subheadline, design: SwiftFont.Design.Monospaced).Apply(summaryBlock); // :1550
         summaryFrame = new Border // :1547-1556
         {
@@ -1203,12 +1204,15 @@ internal sealed class CommitSheet : Decorator
         }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1555
         summaryFrame.Background = Chrome.Overlay(0.05).Brush(summaryFrame);
 
-        messageField = new TextBox { AcceptsReturn = true, PlaceholderText = "Commit message", BorderThickness = new Thickness(0), Background = Brushes.Transparent }; // :1558-1563,1567
+        messageField = new TextBox { AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, PlaceholderText = "Commit message", BorderThickness = new Thickness(0), Background = Brushes.Transparent, Margin = new Thickness(8) }; // :1558-1563,1567
+        ChatDialogControls.TextEditor(messageField, showsPrompt: false);
         SwiftFont.Body.Apply(messageField); // :1559
+        messagePlaceholder = new TextBlock { Text = "Commit message", IsHitTestVisible = false,
+            HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(13, 8) }; // :1562-1567.
+        messagePlaceholder.Foreground = Chrome.SecondaryText.Brush(messagePlaceholder);
         messageFrame = new Border // :1557-1571
         {
-            Child = messageField,
-            Padding = new Thickness(8), // :1561
+            Child = new Panel { Children = { messageField, messagePlaceholder } },
             MinHeight = 130, // :1570
         }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1571
         messageFrame.Background = Chrome.Overlay(0.05).Brush(messageFrame);
@@ -1219,32 +1223,39 @@ internal sealed class CommitSheet : Decorator
         pushToggle = new CheckBox { Content = "Push after committing" }; // :1593
         var cancelButton = new Button { Content = "Cancel" }; // :1596
         commitButton = new Button { Content = "Commit", IsEnabled = false }; // :1598-1600
+        ChatDialogControls.Glass(writeForMeButton);
+        ChatDialogControls.Checkbox(pushToggle);
+        ChatDialogControls.Glass(cancelButton);
+        cancelButton.IsCancel = true; // :1596 cancel role.
+        ChatDialogControls.Glass(commitButton, prominent: true);
 
         writeForMeButton.Click += (_, _) => MainActor.Spawn(() => Generate(model, runtime, directory, null));
         cancelButton.Click += (_, _) => dismiss(); // :1596
         commitButton.Click += (_, _) => MainActor.Spawn(() => Commit(model, directory, git, dismiss));
         messageField.PropertyChanged += (_, e) =>
         {
-            if (e.Property == TextBox.TextProperty) commitButton.IsEnabled = Message.Trimmed().Length > 0 && !isCommitting; // :1600
+            if (e.Property == TextBox.TextProperty) UpdateMessageState(); // :1562,1600
         };
 
         UpdateWriteForMeState();
 
-        Child = new StackPanel
+        Child = new Border { Padding = new Thickness(20), Child = new StackPanel
         {
-            HorizontalAlignment = HorizontalAlignment.Left, // :1544 .leading
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :1544 .leading applies to content, not the width of the stack.
             Spacing = 14, // :1544
             Children =
             {
                 heading,
                 summaryFrame,
                 messageFrame,
-                new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { writeForMeButton, pushToggle, cancelButton, commitButton } },
+                ChatDialogControls.Footer(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { writeForMeButton, pushToggle } }, cancelButton, commitButton, spacing: 12),
             },
-        };
+        } }; // :1603 .padding(20).
         Width = 560; // :1604
 
-        MainActor.Spawn(() => Load(model, runtime, directory)); // :1605-1609 .task
+        this.Track(() => CanGenerate, _ => UpdateWriteForMeState()); // :1575 observable settings/provider state.
+        this.Task(() => directory, value => Load(model, runtime, value)); // :1605-1609 .task, cancelled on disappearance.
+        KeyDown += (_, e) => { if (e.Key == Key.Escape) { dismiss(); e.Handled = true; } }; // :1596 cancel role, including popup presentation.
     }
 
     // :1605-1609
@@ -1270,6 +1281,14 @@ internal sealed class CommitSheet : Decorator
             ? "Write a commit message from these changes"
             : "Turn on text generation in Settings > Source control"); // :1592
         messageField.PlaceholderText = isGenerating ? "Writing a message…" : "Commit message"; // :1563
+        messagePlaceholder.Text = messageField.PlaceholderText;
+    }
+
+    // :1562,1600 SwiftUI re-evaluates both reads on any @State change.
+    private void UpdateMessageState()
+    {
+        messagePlaceholder.IsVisible = Message.Length == 0;
+        commitButton.IsEnabled = Message.Trimmed().Length > 0 && !isCommitting;
     }
 
     // :1612-1631
@@ -1297,6 +1316,7 @@ internal sealed class CommitSheet : Decorator
     private async Task Commit(AppModel model, string directory, GitStatusModel git, Action dismiss)
     {
         isCommitting = true;
+        UpdateMessageState();
         try
         {
             var repository = new Git(directory);
@@ -1314,6 +1334,7 @@ internal sealed class CommitSheet : Decorator
         finally
         {
             isCommitting = false; // :1635 defer
+            UpdateMessageState();
         }
     }
 }
