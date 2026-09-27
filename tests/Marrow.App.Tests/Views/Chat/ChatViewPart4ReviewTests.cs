@@ -36,7 +36,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
                 var sidebar = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.App.Views.Sidebar.SidebarView>(popup));
                 Assert.Equal(model.Sidebar.Width, sidebar.Width);
                 Assert.Equal(560, sidebar.Height);
-                Assert.IsType<WindowBackdrop>(popup); // :1258 presentedChrome shared recipe.
+                Assert.True(Popovers.GetIsCapsuleButtonBorderShape(popup)); // :1258; UI/Chrome/Popovers.swift:8-12, capsule modifier, not a backdrop wrapper.
             });
         });
     }
