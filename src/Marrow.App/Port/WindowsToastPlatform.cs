@@ -59,12 +59,13 @@ public sealed class AvaloniaToastActivationWindows : IToastActivationWindows
 
 public static class WindowsToastStartup
 {
+    private static IReadOnlyList<string> launchArguments = [];
     public static ToastBuildIdentity Identity
     {
         get
         {
-            var identity = ToastBuildIdentity.ForBuild(IsDebug,
-                !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(DevDataRoot.VariableName)));
+            var identity = ToastBuildIdentity.ForLaunch(IsDebug,
+                !string.IsNullOrEmpty(Environment.GetEnvironmentVariable(DevDataRoot.VariableName)), launchArguments);
             return DevDataRoot.IsRedirected ? identity with { DevRoot = DevDataRoot.LocalApplicationData() } : identity;
         }
     }
@@ -76,6 +77,7 @@ public static class WindowsToastStartup
 
     public static void RestoreDevRoot(IReadOnlyList<string> arguments)
     {
+        launchArguments = arguments.ToArray(); // identity travels with a protocol launch on either build channel
 #if DEBUG
         // A protocol launch is a fresh Explorer process. Restore ED-212's explicit, already registered root before
         // its validation and lock selection, never a fallback to real data. Release retains ED-212's no-redirect rule.

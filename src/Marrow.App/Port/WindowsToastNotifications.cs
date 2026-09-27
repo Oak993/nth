@@ -12,7 +12,15 @@ namespace Marrow.App.Port;
 public sealed record ToastBuildIdentity(string AppId, string Scheme)
 {
     public string? DevRoot { get; init; }
-    public static ToastBuildIdentity ForLaunch(bool debug, bool dev, IReadOnlyList<string> arguments) => ForBuild(debug, dev);
+    public static ToastBuildIdentity ForLaunch(bool debug, bool dev, IReadOnlyList<string> arguments)
+    {
+        var identity = ForBuild(debug, dev);
+        if (debug || dev) return identity;
+        // ED-220: a release process originally launched with the dev variable owns the Dev scheme. Explorer's
+        // later protocol process may lack that variable, so its validated URI retains the original identity.
+        var protocolIdentity = ForBuild(debug: false, dev: true);
+        return arguments.Any(argument => ToastActivation.Decode(protocolIdentity, argument) is not null) ? protocolIdentity : identity;
+    }
     public static ToastBuildIdentity ForBuild(bool debug, bool dev) => debug || dev
         ? new("MarrowCode.Marrow.Dev", "marrow-code-dev")
         : new("MarrowCode.Marrow", "marrow-code-release"); // ED-220 (2), (6)
