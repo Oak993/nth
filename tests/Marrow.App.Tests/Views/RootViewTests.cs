@@ -3,9 +3,12 @@ using System.IO;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Palette;
@@ -641,6 +644,151 @@ public sealed class RootViewTests(HeadlessSession headless)
             harness.Main.Loop.RunUntilIdle();
             harness.Main.OnMain(() =>
                 Assert.Empty(LogicalQuery.SelfAndDescendants<CommandPalette>(host))); // :74 "holds no state between openings"
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:64-68
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:33-43; UI/Chrome/Chrome.swift:9-11
+    public void The_real_body_keeps_the_backdrop_inside_its_window_clip_and_the_detail_inside_zero_insets()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            harness.Main.OnMain(() =>
+            {
+                var host = Assert.IsType<Border>(Build(model, () => new RootView()));
+                var root = Assert.IsType<RootView>(host.Child);
+                var window = Assert.IsAssignableFrom<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+                try
+                {
+                    window.Width = 900;
+                    window.Height = 600;
+                    window.UpdateLayout();
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.Equal(root.Bounds.Size, root.WindowClip.Bounds.Size); // :68 ignoresSafeArea
+                    Assert.NotNull(root.WindowClip.Clip);
+                    Assert.Equal(root.WindowClip.Bounds.Size, root.WindowClip.Clip.Bounds.Size); // backdrop shares the curved clip
+                    Assert.Single(LogicalQuery.SelfAndDescendants<WindowBackdrop>(root.WindowClip)); // :64 before clipShape
+                    Assert.Single(LogicalQuery.SelfAndDescendants<DetailView>(root.DetailClip)); // :40 clips the detail itself
+                    var padding = Assert.IsType<Border>(root.DetailClip.GetVisualParent());
+                    Assert.Equal(new Thickness(0), padding.Padding); // :41-43 Chrome.sheetInset == 0
+                    Assert.True(root.DetailClip.ClipToBounds);
+                    Assert.True(root.DetailClip.Bounds.Width > 0);
+                    using var image = window.CaptureRenderedFrame();
+                    Assert.NotNull(image); // forces the composited tree to draw as well as lay out
+                    window.Width = 760;
+                    window.UpdateLayout();
+                    Assert.Equal(root.WindowClip.Bounds.Size, root.WindowClip.Clip.Bounds.Size); // :66 the clip follows the resized shape
+                }
+                finally { window.Hide(); Dispatcher.UIThread.RunJobs(); }
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-067")] // App/Views/RootView.swift:69-76
+    public void The_three_overlay_layers_share_the_whole_window_origin_and_palette_state_is_fresh_on_reopen()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            Border host = null!;
+            RootView root = null!;
+            AvaloniaWindow window = null!;
+            CommandPalette first = null!;
+            try
+            {
+                harness.Main.OnMain(() =>
+                {
+                    host = Assert.IsType<Border>(Build(model, () => new RootView()));
+                    root = Assert.IsType<RootView>(host.Child);
+                    window = Assert.IsAssignableFrom<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+                    model.IsCommandPalettePresented = true;
+                });
+                harness.Main.OnMain(() =>
+                {
+                    window.UpdateLayout();
+                    Dispatcher.UIThread.RunJobs();
+                    var layers = Assert.IsType<Panel>(root.Child);
+                    Assert.Equal(4, layers.Children.Count); // clipped body, genie, row glide, palette host
+                    Assert.Same(root.WindowClip, layers.Children[0]);
+                    Assert.IsType<GenieLayer>(layers.Children[1]);
+                    Assert.IsType<RowGlideLayer>(layers.Children[2]);
+                    var paletteHost = Assert.IsType<Panel>(layers.Children[3]);
+                    first = Assert.Single(LogicalQuery.SelfAndDescendants<CommandPalette>(paletteHost));
+                    foreach (var layer in layers.Children)
+                    {
+                        Assert.Equal(root.Bounds.Size, layer.Bounds.Size); // covers sidebar as well as detail
+                        Assert.Equal(new Point(0, 0), layer.TranslatePoint(default, window)); // one shared window origin
+                    }
+                    model.IsCommandPalettePresented = false;
+                });
+                harness.Main.OnMain(() =>
+                {
+                    Assert.Empty(LogicalQuery.SelfAndDescendants<CommandPalette>(root));
+                    model.IsCommandPalettePresented = true;
+                });
+                harness.Main.OnMain(() =>
+                {
+                    Assert.NotSame(first, Assert.Single(LogicalQuery.SelfAndDescendants<CommandPalette>(root))); // :73 no state held between openings
+                    model.IsCommandPalettePresented = false;
+                });
+            }
+            finally { harness.Main.OnMain(() => { window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91
+    public void A_model_alert_is_owned_by_the_rendering_window_and_clearing_the_model_closes_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            // R-VIEW-9: record the owned ShowDialog request; headless opens the same real dialog nonmodally.
+            var property = typeof(RootView).GetProperty("PresentAlertDialog", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(property);
+            var presentation = Assert.IsType<Ambient<Func<AvaloniaWindow, AvaloniaWindow, System.Threading.Tasks.Task>>>(property.GetValue(null));
+            AvaloniaWindow? dialog = null;
+            AvaloniaWindow? recordedOwner = null;
+            using var presenter = presentation.Override((alertWindow, owner) =>
+            {
+                dialog = alertWindow;
+                recordedOwner = owner;
+                var completion = new System.Threading.Tasks.TaskCompletionSource();
+                alertWindow.Closed += (_, _) => completion.TrySetResult();
+                alertWindow.Show();
+                return completion.Task;
+            });
+            AvaloniaWindow? window = null;
+            try
+            {
+                harness.Main.OnMain(() =>
+                {
+                    var host = Build(model, () => new RootView());
+                    window = Assert.IsAssignableFrom<AvaloniaWindow>(TopLevel.GetTopLevel(host));
+                    model.Alert = new AppAlert { Title = "", Message = "Owned message" }; // :81 empty title is preserved
+                });
+                harness.Main.OnMain(() =>
+                {
+                    Assert.NotNull(dialog);
+                    Assert.Same(window, recordedOwner); // window-modal, not an independent Window.Show()
+                    Assert.True(dialog.IsVisible);
+                    Assert.Equal("", dialog.Title);
+                    Assert.Contains("Owned message", AllText(dialog), StringComparison.Ordinal);
+                    var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(dialog));
+                    Assert.Equal("OK", button.Content);
+                    Assert.True(button.IsDefault); // Enter
+                    Assert.True(button.IsCancel); // Escape, :88 cancel role
+                    model.Alert = null; // :83-84 the binding must also close the presented alert
+                });
+                harness.Main.OnMain(() => Assert.False(dialog!.IsVisible));
+            }
+            finally { harness.Main.OnMain(() => { dialog?.Close(); window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
         });
     }
 
