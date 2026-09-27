@@ -158,6 +158,15 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         using var stream = new MemoryStream(); bitmap.Save(stream, new PngBitmapEncoderOptions()); return stream.ToArray();
     }
     [Fact]
+    [Trait("Rule", "R-TEST-10")] // ProviderRegistry.swift:299-310; CommandCodeAPI.swift:15-35; isolate both home paths.
+    public void Provider_usage_home_and_HOME_are_bound_to_the_fixture_before_any_login_lookup() => WithView(() => new ProvidersSettingsPage(), (_, model, h) =>
+    {
+        Assert.Equal(h.Home, LoginEnvironment.HomeDirectory);
+        Assert.Equal(h.Home, LoginEnvironment.Current["HOME"]);
+        Assert.Equal(h.Home, model.Providers.Environment(ProviderKind.Commandcode)["HOME"]);
+    });
+
+    [Fact]
     [Trait("Req", "UI-PROVREG-001")] // App/Views/Settings/SettingsView.swift:9,23,38,55,72,138-177
     public void Providers_sidebar_matches_every_keyword_in_source_order_and_click_mounts_the_page() => WithView(() => new SettingsView(), (view, _, _) =>
     {
