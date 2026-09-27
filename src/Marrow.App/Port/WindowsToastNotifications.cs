@@ -12,6 +12,7 @@ namespace Marrow.App.Port;
 public sealed record ToastBuildIdentity(string AppId, string Scheme)
 {
     public string? DevRoot { get; init; }
+    public static ToastBuildIdentity ForLaunch(bool debug, bool dev, IReadOnlyList<string> arguments) => ForBuild(debug, dev);
     public static ToastBuildIdentity ForBuild(bool debug, bool dev) => debug || dev
         ? new("MarrowCode.Marrow.Dev", "marrow-code-dev")
         : new("MarrowCode.Marrow", "marrow-code-release"); // ED-220 (2), (6)

@@ -9,6 +9,14 @@ namespace Marrow.App.Tests;
 // These tests exercise the actual DroppyCodeApp entry points; OS transport, file IO and window activation are fakes.
 public sealed class WindowsToastStartupTests
 {
+    [Theory]
+    [Trait("Req", "PR-LAUNCH-025")] // App/AppDelegate.swift:15; ED-220 (2), (6) protocol retains origin identity
+    [InlineData("marrow-code-dev://notification?payload=%7B%22update%22%3A%222.0%22%7D", "MarrowCode.Marrow.Dev")]
+    [InlineData("marrow-code-release://notification?payload=%7B%22update%22%3A%222.0%22%7D", "MarrowCode.Marrow")]
+    [InlineData("marrow-code-dev://notification?payload=invalid", "MarrowCode.Marrow")]
+    public void Release_protocol_launch_retains_dev_identity_without_inherited_environment(string argument, string appId) =>
+        Assert.Equal(appId, ToastBuildIdentity.ForLaunch(debug: false, dev: false, [argument]).AppId);
+
     [Fact]
     [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; ED-002, ED-212, ED-220 (6)
     public void Activation_keeps_its_origin_root_even_if_another_dev_instance_registered_the_shared_scheme()
