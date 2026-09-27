@@ -8,6 +8,7 @@ namespace Marrow.App.Port;
 
 public sealed record ToastBuildIdentity(string AppId, string Scheme)
 {
+    public string? DevRoot { get; init; }
     public static ToastBuildIdentity ForBuild(bool debug, bool dev) => throw new NotImplementedException("MARROW_STUB toasts identity");
 }
 
@@ -66,6 +67,7 @@ public sealed class WindowsToastCenter(IWindowsToastPlatform platform, ToastBuil
 
 public static class ToastActivation
 {
+    public static string? DevRoot(ToastBuildIdentity identity, string argument) => null; // tests-first ED-212 transport seam
     public static string Encode(ToastBuildIdentity identity, IReadOnlyDictionary<string, object> userInfo) => throw new NotImplementedException("MARROW_STUB toasts arguments");
     public static UNNotification? Decode(ToastBuildIdentity identity, string argument) => throw new NotImplementedException("MARROW_STUB toasts arguments");
 }

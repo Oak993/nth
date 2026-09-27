@@ -10,6 +10,30 @@ namespace Marrow.App.Tests;
 public sealed class WindowsToastStartupTests
 {
     [Fact]
+    [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; ED-002, ED-212, ED-220 (6)
+    public void Activation_keeps_its_origin_root_even_if_another_dev_instance_registered_the_shared_scheme()
+    {
+        var origin = new ToastBuildIdentity("MarrowCode.Marrow.Dev", "marrow-code-dev") { DevRoot = "C:\\First Dev Root" };
+        var current = origin with { DevRoot = "C:\\Second Dev Root" };
+        var info = new Dictionary<string, object> { ["threadID"] = "00112233-4455-6677-8899-AABBCCDDEEFF" };
+        var uri = ToastActivation.Encode(origin, info);
+        Assert.Equal("C:\\First Dev Root", ToastActivation.DevRoot(current, uri));
+        Assert.Equal(info["threadID"], ToastActivation.Decode(current, uri)!.UserInfo["threadID"]);
+        Assert.Null(ToastActivation.DevRoot(new("MarrowCode.Marrow", "marrow-code-release"), uri));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-025")] // App/AppDelegate.swift:15; ED-220 (2) existing app icon resource
+    public void The_existing_app_icon_can_be_read_before_Avalonia_startup()
+    {
+        // Read the compiled app's resource, as production does before any window; no registry/file writes.
+        using var icon = new Avalonia.Platform.StandardAssetLoader().Open(new Uri("avares://Marrow.App/Assets/icon.png"));
+        var signature = new byte[8];
+        icon.ReadExactly(signature);
+        Assert.Equal(new byte[] { 137, 80, 78, 71, 13, 10, 26, 10 }, signature);
+    }
+
+    [Fact]
     [Trait("Req", "PR-LAUNCH-025")] // App/AppDelegate.swift:15; ED-220 (2) app icon
     public void Shell_readable_icon_is_written_only_if_the_embedded_PNG_differs()
     {
