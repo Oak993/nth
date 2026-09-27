@@ -3604,7 +3604,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exactly these fields; the file format is the compatibility surface for an existing installation.",
       "verification_method": "contract fixture - round-trip encode and decode",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5743,7 +5743,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Append without merging. This arm, not the routing arm of PR-RUNTIME-252, is the behaviour to reproduce.",
       "verification_method": "unit - two spends in one turn give two entries in order; a spend with no current turn is dropped; saveRevision bumps and no save is scheduled",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

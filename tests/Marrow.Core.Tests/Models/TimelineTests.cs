@@ -10,10 +10,8 @@ namespace Marrow.Core.Tests.Models;
 
 // Source: DroppyCode/Core/Models/Timeline.swift (B3 52bc792), :1-369.
 //
-// Tests for part 1 of Core.Models.Timeline (work packet part1.md): the records listed there, minus
-// TurnRecord.tokenSpends and ThreadDocument.continuation, both reported as blocked in Timeline.cs's header comment
-// (Core.Models.TokenSpend and Core.Models.ThreadContinuation own their own Codable, a sibling skeleton this part
-// does not touch).
+// Tests for part 1 of Core.Models.Timeline (work packet part1.md). TimelineAuditTests additionally covers
+// TurnRecord.tokenSpends and ThreadDocument.continuation persistence from the B3 audit.
 //
 // Expectations are derived from the Swift source quoted in the records, never from running the port. JSON shapes
 // come from Coding.swift's JSONEncoder.storage (sorted keys, compact, "/" escaped) as PR-CHAT-017 and PR-CHAT-019

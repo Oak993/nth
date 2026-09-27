@@ -188,11 +188,14 @@ public sealed class ForEach<TItem, TId> where TId : notnull
     private void CancelLayout() { if (nextLayout is not null) panel.LayoutUpdated -= nextLayout; nextLayout = null; }
     private void StopGlides() { foreach (var glide in glides.Values.ToArray()) glide.Stop(); glides.Clear(); }
 
+    // Source: DroppyCode/App/Views/Settings/MCPSettingsPage.swift (B3 52bc792), :52-58.
     // PORT-ONLY ED-218 FLIP: layout sizes are final immediately; translate the old position to the new one.
+    // :54-58 The row's transition and its surviving-layout glide run together, including interrupted insertion.
     private sealed class RowGlide
     {
         private readonly Control control;
-        private readonly ITransform? original;
+        private ITransform? original;
+        private readonly TransformGroup transform = new();
         private readonly TranslateTransform translation;
         private readonly IFrameSource source = FrameClock.Source.Current;
         private readonly Action<TimeSpan> tick;
@@ -203,9 +206,8 @@ public sealed class ForEach<TItem, TId> where TId : notnull
         {
             this.control = control; this.finished = finished; original = control.RenderTransform;
             translation = new TranslateTransform(offset.X, offset.Y);
-            var transform = new TransformGroup();
-            if (original is not null) transform.Children.Add(new MatrixTransform(original.Value));
-            transform.Children.Add(translation); control.RenderTransform = transform;
+            ComposeTransform();
+            control.PropertyChanged += TransformChanged;
             var start = SwiftClock.Now;
             tick = _ =>
             {
@@ -218,10 +220,33 @@ public sealed class ForEach<TItem, TId> where TId : notnull
             };
             source.RequestFrame(tick);
         }
+
+        // :54 + ED-218: SwiftTransition owns the base transform and may replace it on every insertion frame.
+        // Keep that current transform beneath our layout offset; never restore a stale insertion snapshot.
+        private void TransformChanged(object? sender, AvaloniaPropertyChangedEventArgs change)
+        {
+            if (change.Property != Visual.RenderTransformProperty || ReferenceEquals(control.RenderTransform, transform)) return;
+            original = control.RenderTransform;
+            ComposeTransform();
+        }
+
+        private void ComposeTransform()
+        {
+            transform.Children.Clear();
+            // Retain mutable transforms themselves so in-place updates also continue beneath the glide.
+            if (original is Transform mutable) transform.Children.Add(mutable);
+            else if (original is not null) transform.Children.Add(new MatrixTransform(original.Value));
+            transform.Children.Add(translation);
+            control.RenderTransform = transform;
+        }
+
         public void Stop()
         {
             if (stopped) return;
-            stopped = true; source.CancelFrame(tick); control.RenderTransform = original; finished();
+            stopped = true; source.CancelFrame(tick);
+            control.PropertyChanged -= TransformChanged;
+            control.RenderTransform = original;
+            finished();
         }
     }
 }

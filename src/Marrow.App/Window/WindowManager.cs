@@ -35,6 +35,8 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // depends on the concurrent RootView/SidebarView repairs (STOP #7). The Acrylic hint
 // OD-0014 names for the clear window (WindowChrome.swift:116-117, reached from :101) is STOP #5. The three
 // window.center() calls (:43, :68, :82) use ED-225; Apple's exact bias remains UNVERIFIED OD-0001.
+// makeWindow also carries the port's stand-in for the menu bar DroppyCodeApp.swift:24 installs: each window it makes
+// dispatches the AppCommands chords itself (OD-0008 C3, Port/MenuKeyEquivalents.cs; STOP App.AppCommands #6).
 
 namespace Marrow.App.Window;
 
@@ -243,6 +245,13 @@ public sealed class WindowManager
         var container = new Panel();
         container.Children.Add(hosting); // :107
         window.Content = container; // :108
+        // PORT-ONLY (OD-0008 C3): DroppyCodeApp.swift:21-25 installs `AppCommands(model: WindowManager.shared.model)` as
+        // the menu bar, which answers the key equivalents of whichever window of the app is key. With no menu bar, each
+        // window this factory makes (main and Settings) carries the port's dispatch of those chords
+        // (Port/MenuKeyEquivalents.cs) for as long as it lives (:98 keeps it). The command table is read afresh at each
+        // key-down, as SwiftUI re-reads the Commands body, over this manager's model (:13). Views that monitor the window's
+        // keys register when they attach, after this, so they still see a key-down first, as a local monitor does.
+        _ = MenuKeyEquivalents.Attach(window, shortcut => new AppCommands(Model).PerformKeyEquivalent(shortcut));
         return window; // :109
     }
 
@@ -318,12 +327,17 @@ public sealed class WindowLiveResize : MainActorModel
     private bool isPaneResizing; // :125
     private bool inSizeMove;
     private bool resizing;
+    private readonly AvaloniaWindow window; // ED-224: publish to the UI signal on this window only.
 
     // :120 private(set) var isActive = false
     public bool IsActive
     {
         get => Read(isActive);
-        private set => Set(ref isActive, value);
+        private set
+        {
+            Set(ref isActive, value);
+            WindowLiveResizeSignal.SetIsActive(window, value); // WindowChrome.swift:28, :93; ED-224
+        }
     }
 
     // :121-125 var isPaneResizing = false. Written by the chat view, where the sidebar-edge and terminal-divider drags
@@ -343,7 +357,11 @@ public sealed class WindowLiveResize : MainActorModel
     // live resize starts at the first WM_SIZING inside the loop and ends at the loop's WM_EXITSIZEMOVE, and a move is
     // not one (PR-WIN-017 windows_path). The window keeps the hook for as long as it exists: like the observations
     // (:129-130), it is never taken down.
-    public WindowLiveResize(AvaloniaWindow window) => Win32Properties.AddWndProcHookCallback(window, WndProc);
+    public WindowLiveResize(AvaloniaWindow window)
+    {
+        this.window = window;
+        Win32Properties.AddWndProcHookCallback(window, WndProc);
+    }
 
     // :133-138 the two observations, on the window's own (main) thread: MainActor.assumeIsolated.
     internal nint WndProc(nint hWnd, uint msg, nint wParam, nint lParam, ref bool handled)

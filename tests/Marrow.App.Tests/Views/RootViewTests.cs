@@ -1,14 +1,26 @@
 using System;
 using System.IO;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
+using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Chat;
+using Marrow.App.Views.Composer;
+using Marrow.App.Views.Palette;
+using Marrow.App.Views.Sidebar;
+using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.App.Views;
 using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
@@ -16,13 +28,12 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views;
 
 // Source: DroppyCode/App/Views/RootView.swift (B3 52bc792), :1-450.
-// Covers the 6 types that do not depend on SidebarView.cs or ChatView.cs (both blocked): DetailView's empty-state
-// branch, WelcomeView, ProviderChecklist, ProviderStatusRow, OpenProvidersSettingsButton and NoThreadView; and
-// RootView.HandleDropCore (PR-WIN-064, PR-WIN-065), the whole body of the private handleDrop(_:) (:94-110), which
-// needs no visual tree and so is not blocked by SidebarView the way RootView's own top-level body is. CopyCommandButton
-// is gone at B3 (B3_PLAN.md section 4); its test is removed with it. RootView's top-level body, ThreadColumns and
-// DetailView's "a thread is selected" branch stay MARROW_STUB (see the STOP note at the end of this file) and are not
-// exercised here.
+// Covers the detail empty states and first-launch selected conversation: DetailView's empty-state branch, WelcomeView, ProviderChecklist, ProviderStatusRow,
+// OpenProvidersSettingsButton and NoThreadView; RootView.HandleDropCore (PR-WIN-064, PR-WIN-065), the whole body of
+// the private handleDrop(_:) (:94-110); and, from this review pass, RootView's own top-level body (PR-WIN-062,
+// PR-WIN-063, PR-WIN-066, PR-WIN-067): the window's own clip, the detail pane's clip and (inert) insets, the model
+// alert, and the genie/row-glide/command-palette overlay stack. CopyCommandButton is gone at B3 (B3_PLAN.md section
+// 4); its test is removed with it. RootViewTestsColumns covers the selected thread's cache and prebuild lifecycle.
 // AppModelHarness's TestRuntime makes MainActorModel writes (Track callbacks fired during AttachedToVisualTree)
 // require an active Pump, so both construction and interaction happen inside harness.Main.OnMain(...), matching the
 // pattern this session already established for App.Views.Terminal.TerminalPanel and App.Views.Settings.HydraSettingsPage.
@@ -53,6 +64,15 @@ public sealed class RootViewTests(HeadlessSession headless)
         return SwiftURL.Create("marrow-dropped-path:" + builder) ?? throw new InvalidOperationException("bad test path");
     }
 
+    // Headless keeps its virtual native client fixed; deliver the resize notification the real platform sends.
+    private static void ResizeWindow(AvaloniaWindow window, Size size)
+    {
+        var resized = (Delegate)typeof(Avalonia.Platform.ITopLevelImpl)
+            .GetProperty("Resized", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(window.PlatformImpl)!;
+        resized.DynamicInvoke(size, WindowResizeReason.User);
+    }
+
     private static Control Build(AppModel model, Func<Control> makeView)
     {
         var host = new Border();
@@ -64,7 +84,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-077")] // RootView.swift:155-165
+    [Trait("Req", "PR-WIN-077")] // App/Views/RootView.swift:155-165
     public void DetailView_shows_the_welcome_page_when_there_are_no_projects_and_no_selected_thread()
     {
         headless.OnUiThread(() =>
@@ -81,7 +101,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-077")] // RootView.swift:155-165
+    [Trait("Req", "PR-WIN-077")] // App/Views/RootView.swift:155-165
     public void DetailView_shows_the_no_thread_page_once_a_project_exists_and_no_thread_is_selected()
     {
         headless.OnUiThread(() =>
@@ -100,7 +120,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-079")] // RootView.swift:304-315, OD-0002
+    [Trait("Req", "PR-WIN-079")] // App/Views/RootView.swift:304-315, OD-0002
     public void WelcomeView_shows_the_Marrow_identity_and_tagline()
     {
         headless.OnUiThread(() =>
@@ -119,7 +139,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-080")] // RootView.swift:316-328
+    [Trait("Req", "PR-WIN-080")] // App/Views/RootView.swift:316-328
     public void WelcomeView_offers_add_a_project_over_the_drop_hint()
     {
         headless.OnUiThread(() =>
@@ -137,7 +157,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-080")] // RootView.swift:317-319. ChooseProjectFolder no-ops when the headless lifetime
+    [Trait("Req", "PR-WIN-080")] // App/Views/RootView.swift:317-319. ChooseProjectFolder no-ops when the headless lifetime
     // carries no IClassicDesktopStyleApplicationLifetime main window (AppModel.swift:526-529), so this only proves
     // the click reaches the model without throwing, not that a folder picker opens.
     public void Clicking_add_a_project_does_not_throw()
@@ -164,7 +184,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     // reproducibly throws "Could not create glyphTypeface" (the same pre-existing headless limitation documented in
     // TerminalPanelTests.cs/followups.md).
     [Theory]
-    [Trait("Req", "PR-WIN-081")] // RootView.swift:329-338
+    [Trait("Req", "PR-WIN-081")] // App/Views/RootView.swift:329-338
     [InlineData(ActivityThreadStyle.Icon)]
     [InlineData(ActivityThreadStyle.ProjectName)]
     public void WelcomeView_activity_list_row_detail_matches_the_style_set_before_construction(ActivityThreadStyle style)
@@ -184,7 +204,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-082")] // RootView.swift:339-342, :352-363
+    [Trait("Req", "PR-WIN-082")] // App/Views/RootView.swift:339-342, :352-363
     public void WelcomeView_lists_a_Providers_section()
     {
         headless.OnUiThread(() =>
@@ -200,7 +220,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-082")] // RootView.swift:352-363
+    [Trait("Req", "PR-WIN-082")] // App/Views/RootView.swift:352-363
     public void ProviderChecklist_renders_one_row_per_provider_with_n_minus_one_dividers()
     {
         headless.OnUiThread(() =>
@@ -221,7 +241,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-084")] // RootView.swift:386-393. Every provider starts "not installed" (no real
+    [Trait("Req", "PR-WIN-084")] // App/Views/RootView.swift:386-393. Every provider starts "not installed" (no real
     // executable is on the harness's binary paths, R-TEST-10), so this exercises the not-installed branch for a
     // CLI provider without needing to fake ProviderRegistry's internal status cache.
     public void A_not_installed_CLI_provider_offers_Install()
@@ -241,7 +261,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-084")] // RootView.swift:386-394
+    [Trait("Req", "PR-WIN-084")] // App/Views/RootView.swift:386-394
     public void A_not_installed_API_key_provider_offers_Add_key()
     {
         headless.OnUiThread(() =>
@@ -260,7 +280,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-088")] // RootView.swift:424-449
+    [Trait("Req", "PR-WIN-088")] // App/Views/RootView.swift:424-449
     public void NoThreadView_offers_a_new_thread_button_with_its_chord_hint()
     {
         headless.OnUiThread(() =>
@@ -279,7 +299,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-088")] // RootView.swift:434-435
+    [Trait("Req", "PR-WIN-088")] // App/Views/RootView.swift:434-435
     public void Clicking_new_thread_creates_a_thread_in_the_current_project()
     {
         headless.OnUiThread(() =>
@@ -306,10 +326,10 @@ public sealed class RootViewTests(HeadlessSession headless)
     // HandleDropCore (RootView.swift:94-110): the whole body of private func handleDrop(_:), reached through the
     // internal static extraction RootView.HandleDropCore documented on that method. Every case below drives it
     // directly with real files and folders under harness.Scratch (R-TEST-9); none of it needs RootView's own body
-    // (still MARROW_STUB, see the STOP note below), so these are not blocked by SidebarView.
+    // so these exercise the drop body independently of the hosted views.
 
     [Fact]
-    [Trait("Req", "PR-WIN-064")] // RootView.swift:96-105
+    [Trait("Req", "PR-WIN-064")] // App/Views/RootView.swift:96-105
     public void Dropping_folders_adds_each_as_a_project_and_starts_a_thread_in_the_last_one()
     {
         headless.OnUiThread(() =>
@@ -342,7 +362,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-064")] // RootView.swift:98-101
+    [Trait("Req", "PR-WIN-064")] // App/Views/RootView.swift:98-101
     public void Dropping_a_path_that_does_not_exist_is_skipped_and_reports_no_acceptance()
     {
         headless.OnUiThread(() =>
@@ -361,7 +381,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-065")] // RootView.swift:106-108
+    [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:106-108
     public void Dropping_a_file_with_a_thread_selected_attaches_it_to_that_threads_draft()
     {
         headless.OnUiThread(() =>
@@ -396,7 +416,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-065")] // RootView.swift:106-108, "failure_cases": "No thread selected"
+    [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:106-108, "failure_cases": "No thread selected"
     public void Dropping_a_file_with_no_thread_selected_is_silently_discarded()
     {
         headless.OnUiThread(() =>
@@ -419,7 +439,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-065")] // RootView.swift:103-108
+    [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:103-108
     // SOURCE FACT, verified directly against the pinned reference (AppModel.swift:614/623), overriding this
     // record's own windows_path prose ("a thread created by the folder half is NOT the thread the files attach
     // to"): newThread(in:) sets selectedThreadID = thread.id (AppModel.swift:623) BEFORE handleDrop's own read of
@@ -453,7 +473,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-065")] // RootView.swift:103-108; AppModel.swift newThread(in:) sets selectedThreadID = thread.id
+    [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:103-108; AppModel.swift newThread(in:) sets selectedThreadID = thread.id
     // A thread already selected before the drop, in a project unrelated to the folder half, does NOT keep its
     // selection when the drop ALSO contains a folder: newThread(in: lastProject) (called once, after the folder
     // loop, :105) overwrites model.selectedThreadID with the thread it just created in the newly dropped project,
@@ -496,45 +516,707 @@ public sealed class RootViewTests(HeadlessSession headless)
             });
         });
     }
+
+    // ---- RootView's own top-level body (review pass; SidebarView and CommandPalette are both real now) ----
+
+    // Review pass item (5): the only other RootView tests build it directly (Build(model, ...) above); this one
+    // instead goes through WindowManager.MainContent/MakeMainWindow (WindowManager.cs:72,160-180), the actual
+    // production path (WindowManagerTests.cs's own ShowMain helper proves real windows open fine under this
+    // project's headless session; RecordingAlertPresenter exists only because a SECOND, ad-hoc modal window does
+    // not, unrelated to this one). WindowManager() makes its own AppModel internally (:86), so PrepareBootstrap runs
+    // on THAT model, the freshest one this path can produce, rather than a separate model WindowManager would never
+    // actually use.
+    // PrepareBootstrap's own LoginEnvironment.Load().Wait() captures the Avalonia dispatcher's context if awaited on
+    // that thread and deadlocks (FollowUpEditorTests.cs's own identical RuntimeHarness() note). Completed once here,
+    // on a pool thread with no synchronization context, the process-wide cached load (Shell.cs's Loader) then makes
+    // every later PrepareBootstrap's own Wait() return at once; a private helper, not the [Fact] body itself, per
+    // xUnit1031 (FollowUpEditorTests.cs's RuntimeHarness() is the same shape for the same reason).
+    private static void LoadLoginEnvironmentOffMain() =>
+        System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+
+    [Fact]
+    [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:8-92, via the real WindowManager path
+    [Trait("Req", "PR-WIN-077")] // App/Views/RootView.swift:155-165, the sidebar and the no-thread DetailView
+    public void ShowMain_builds_a_real_RootView_whose_sidebar_and_no_thread_DetailView_render_without_throwing()
+    {
+        LoadLoginEnvironmentOffMain();
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var manager = harness.Main.OnMain(() => new WindowManager());
+            harness.PrepareBootstrap(manager.Model);
+            harness.Main.OnMain(manager.ShowMain);
+            harness.Main.OnMain(() =>
+            {
+                var window = manager.MainWindow ?? throw new InvalidOperationException("ShowMain built no window");
+                window.UpdateLayout();
+                Assert.NotEmpty(LogicalQuery.SelfAndDescendants<SidebarView>(window));
+                Assert.NotEmpty(LogicalQuery.SelfAndDescendants<WelcomeView>(window)); // no projects yet: :157-159
+                Assert.Empty(LogicalQuery.SelfAndDescendants<NoThreadView>(window));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:64-68
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:33-43; UI/Chrome/Chrome.swift:9-11
+    public void The_window_content_clips_to_the_windows_rounded_shape_and_the_detail_pane_clips_its_own_bounds()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            harness.Main.OnMain(() =>
+            {
+                var host = Build(model, () => new RootView());
+                var root = Assert.IsType<RootView>(((Border)host).Child);
+
+                // PR-WIN-063 verification_method: "unit: the constant is 0 and the clip is present".
+                Assert.Equal(0, Chrome.SheetInset);
+                Assert.True(root.DetailClip.ClipToBounds); // :40 .clipped()
+
+                // PR-WIN-062: clipped to the 26-point continuous rounded rectangle, after the backdrop (:64-65
+                // paint behind windowClip; RootView's own constructor builds them in that order) is painted.
+                Assert.True(root.WindowClip.ClipToBounds);
+                Assert.Equal(new CornerRadius(Chrome.WindowCornerRadius), root.WindowClip.CornerRadius);
+                Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(root.WindowClip));
+                Assert.NotEmpty(LogicalQuery.SelfAndDescendants<WindowBackdrop>(root.WindowClip));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:8-92; App/Window/WindowManager.swift:62-72,86-110
+    [Trait("Req", "PR-WIN-077")] // App/Views/RootView.swift:155-165; App/AppModel.swift:239-287
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:33-43,130-133,266-283
+    public void A_fresh_empty_bootstrap_renders_the_real_WindowManager_RootView_sidebar_and_welcome_detail()
+    {
+        LoadLoginEnvironmentOffMain();
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness();
+            using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+            var manager = harness.Main.OnMain(() => new WindowManager());
+            using var shared = WindowManager.OverrideShared(manager);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(manager.Model.Projects);
+                Assert.Empty(manager.Model.Threads);
+                Assert.Null(manager.Model.SelectedThreadID);
+            });
+            harness.PrepareBootstrap(manager.Model); // absent CLI paths + in-memory secrets; no real provider process or key
+            harness.Main.Loop.Run(() => manager.Model.Bootstrap(), AppModelHarness.Bound); // real bootstrap completes
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            try
+            {
+                harness.Main.OnMain(manager.ShowMain); // MainContent remains its production () => new RootView()
+                harness.Main.OnMain(() =>
+                {
+                    Assert.Empty(manager.Model.Projects);
+                    Assert.Empty(manager.Model.Threads);
+                    Assert.Null(manager.Model.SelectedThreadID);
+                    var window = manager.MainWindow ?? throw new InvalidOperationException("ShowMain built no window");
+                    window.UpdateLayout();
+                    Dispatcher.UIThread.RunJobs();
+                    var root = Assert.Single(LogicalQuery.SelfAndDescendants<RootView>(window));
+                    Assert.Same(manager.Model, AppEnvironment.GetAppModel(root)); // real HostedRoot environment
+                    Assert.NotNull(AppEnvironment.GetWindowLiveResize(root));
+                    var sidebar = Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(root));
+                    Assert.True(sidebar.Bounds.Width > 0);
+                    Assert.Contains("Search threads", LogicalQuery.SelfAndDescendants<TextBox>(sidebar).Select(box => box.PlaceholderText));
+                    var detail = Assert.Single(LogicalQuery.SelfAndDescendants<DetailView>(root));
+                    Assert.Single(LogicalQuery.SelfAndDescendants<WelcomeView>(detail)); // :157-159 no projects/no selection
+                    Assert.Empty(LogicalQuery.SelfAndDescendants<NoThreadView>(detail)); // :161-163 requires a project
+                    Assert.True(detail.Bounds.Width > 0);
+                    Assert.True(detail.Bounds.Height > 0);
+                    using var image = window.CaptureRenderedFrame(); // draw the real hosted tree, not a synthetic child
+                    Assert.NotNull(image);
+                    Assert.True(image.PixelSize.Width > 0);
+                    Assert.True(image.PixelSize.Height > 0);
+                });
+                // :130-133 the same real RootView changes to the selected thread after first launch.
+                harness.Main.OnMain(() =>
+                {
+                    var project = manager.Model.AddProject(new Project("First project", harness.NewFolder("first-project")).Url);
+                    var thread = manager.Model.NewThread(project)!;
+                    Assert.Equal(thread.Id, manager.Model.SelectedThreadID);
+                });
+                harness.Main.OnMain(() =>
+                {
+                    var window = manager.MainWindow!;
+                    window.UpdateLayout();
+                    Dispatcher.UIThread.RunJobs();
+                    var root = Assert.Single(LogicalQuery.SelfAndDescendants<RootView>(window));
+                    Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(root));
+                    var detail = Assert.Single(LogicalQuery.SelfAndDescendants<DetailView>(root));
+                    Assert.Empty(LogicalQuery.SelfAndDescendants<WelcomeView>(detail));
+                    var chat = Assert.Single(LogicalQuery.SelfAndDescendants<ChatView>(detail));
+                    Assert.Same(manager.Model, AppEnvironment.GetAppModel(chat));
+                    Assert.Same(AppEnvironment.GetWindowLiveResize(root), AppEnvironment.GetWindowLiveResize(chat));
+                    Assert.Single(LogicalQuery.SelfAndDescendants<ThreadTimeline>(chat));
+                    Assert.Single(LogicalQuery.SelfAndDescendants<ComposerView>(chat));
+                    Assert.True(chat.Bounds.Width > 0);
+                    Assert.True(chat.Bounds.Height > 0);
+                    using var image = window.CaptureRenderedFrame();
+                    Assert.NotNull(image);
+                });
+            }
+            finally { harness.Main.OnMain(() => { manager.MainWindow?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91
+    public void A_model_alert_shows_through_the_presenter_with_one_OK_button_and_dismissing_clears_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var presenter = new RecordingAlertPresenter { AutoDismiss = false };
+            using var alertSeam = AlertPresentation.Presenter.Override(presenter);
+            harness.Main.OnMain(() =>
+            {
+                model.Alert = new AppAlert { Title = "Trouble", Message = "Something went wrong." }; // set before
+                // attach, so the Track's own first (synchronous) evaluation at AttachedToVisualTree already sees it.
+                Build(model, () => new RootView());
+
+                var shown = Assert.Single(presenter.Shown);
+                Assert.Equal("Trouble", shown.Title); // :81 model.alert?.title ?? ""
+                Assert.Equal("Something went wrong.", shown.InformativeText); // :90 Text(alert.message)
+                Assert.Equal(AlertStyle.Warning, shown.Style);
+                var button = Assert.Single(shown.Buttons); // :87-88 one Button("OK", role: .cancel)
+                Assert.Equal("OK", button.Title);
+                Assert.NotNull(model.Alert); // still showing: dismissing, not raising it, is what clears it (:83-84)
+
+                presenter.Dismiss(); // simulates the OK click (or, per PR-WIN-066's windows_path, Escape or Enter)
+            });
+            // ShowAlert's continuation after `await Show(...)` (where it sets model.Alert = null) is posted, not
+            // inline (RecordingAlertPresenter's own TaskCompletionSource uses RunContinuationsAsynchronously, the
+            // same shape AppUpdaterFailureAlertTests.cs's identical Dismiss-then-pump already needs).
+            harness.Main.Loop.RunUntilIdle();
+            harness.Main.OnMain(() => Assert.Null(model.Alert)); // :83-84 set: if !$0 { model.alert = nil }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-067")] // App/Views/RootView.swift:69-76
+    public void The_command_palette_appears_above_the_genie_and_row_glide_layers_and_leaves_entirely_when_dismissed()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            Control host = null!;
+            harness.Main.OnMain(() =>
+            {
+                host = Build(model, () => new RootView());
+                Assert.Empty(LogicalQuery.SelfAndDescendants<CommandPalette>(host)); // :73 not presented yet
+                model.IsCommandPalettePresented = true; // :73
+            });
+            harness.Main.Loop.RunUntilIdle(); // Tracked<T>'s reactive update (after the first, synchronous one) is posted
+            harness.Main.OnMain(() =>
+            {
+                var order = LogicalQuery.SelfAndDescendants<Control>(host).ToList();
+                var genieIndex = order.FindIndex(control => control is GenieLayer);
+                var rowGlideIndex = order.FindIndex(control => control is RowGlideLayer);
+                var paletteIndex = order.FindIndex(control => control is CommandPalette);
+                Assert.True(genieIndex >= 0, "GenieLayer is missing"); // :70
+                Assert.True(rowGlideIndex >= 0, "RowGlideLayer is missing"); // :71
+                Assert.True(paletteIndex >= 0, "CommandPalette is missing while presented"); // :72-74
+                // :69-76 chained in this order: the later .overlay draws over the earlier ones.
+                Assert.True(paletteIndex > genieIndex, "the palette must draw above the genie layer");
+                Assert.True(paletteIndex > rowGlideIndex, "the palette must draw above the row-glide layer");
+
+                model.IsCommandPalettePresented = false; // :73
+            });
+            harness.Main.Loop.RunUntilIdle();
+            harness.Main.OnMain(() =>
+                Assert.Empty(LogicalQuery.SelfAndDescendants<CommandPalette>(host))); // :74 "holds no state between openings"
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:64-68
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:33-43; UI/Chrome/Chrome.swift:9-11
+    public void The_real_body_keeps_the_backdrop_inside_its_window_clip_and_the_detail_inside_zero_insets()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            harness.Main.OnMain(() =>
+            {
+                var host = Assert.IsType<Border>(Build(model, () => new RootView()));
+                var root = Assert.IsType<RootView>(host.Child);
+                var window = Assert.IsAssignableFrom<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+                try
+                {
+                    window.Width = 900;
+                    window.Height = 600;
+                    window.UpdateLayout();
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.Equal(root.Bounds.Size, root.WindowClip.Bounds.Size); // :68 ignoresSafeArea
+                    Assert.NotNull(root.WindowClip.Clip);
+                    Assert.Equal(root.WindowClip.Bounds.Size, root.WindowClip.Clip.Bounds.Size); // backdrop shares the curved clip
+                    Assert.Single(LogicalQuery.SelfAndDescendants<WindowBackdrop>(root.WindowClip)); // :64 before clipShape
+                    Assert.Single(LogicalQuery.SelfAndDescendants<DetailView>(root.DetailClip)); // :40 clips the detail itself
+                    var padding = Assert.IsType<Border>(root.DetailClip.GetVisualParent());
+                    Assert.Equal(new Thickness(0), padding.Padding); // :41-43 Chrome.sheetInset == 0
+                    Assert.True(root.DetailClip.ClipToBounds);
+                    Assert.True(root.DetailClip.Bounds.Width > 0);
+                    using var image = window.CaptureRenderedFrame();
+                    Assert.NotNull(image); // forces the composited tree to draw as well as lay out
+                    window.Width = 760;
+                    window.UpdateLayout();
+                    Assert.Equal(root.WindowClip.Bounds.Size, root.WindowClip.Clip.Bounds.Size); // :66 the clip follows the resized shape
+                }
+                finally { window.Hide(); Dispatcher.UIThread.RunJobs(); }
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-067")] // App/Views/RootView.swift:69-76
+    public void The_three_overlay_layers_share_the_whole_window_origin_and_palette_state_is_fresh_on_reopen()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            Border host = null!;
+            RootView root = null!;
+            AvaloniaWindow window = null!;
+            CommandPalette first = null!;
+            try
+            {
+                harness.Main.OnMain(() =>
+                {
+                    host = Assert.IsType<Border>(Build(model, () => new RootView()));
+                    root = Assert.IsType<RootView>(host.Child);
+                    window = Assert.IsAssignableFrom<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+                    model.IsCommandPalettePresented = true;
+                });
+                harness.Main.OnMain(() =>
+                {
+                    window.UpdateLayout();
+                    Dispatcher.UIThread.RunJobs();
+                    var layers = Assert.IsType<Panel>(root.Child);
+                    Assert.Equal(4, layers.Children.Count); // clipped body, genie, row glide, palette host
+                    Assert.Same(root.WindowClip, layers.Children[0]);
+                    Assert.IsType<GenieLayer>(layers.Children[1]);
+                    Assert.IsType<RowGlideLayer>(layers.Children[2]);
+                    var paletteHost = Assert.IsType<Panel>(layers.Children[3]);
+                    first = Assert.Single(LogicalQuery.SelfAndDescendants<CommandPalette>(paletteHost));
+                    foreach (var layer in layers.Children)
+                    {
+                        Assert.Equal(root.Bounds.Size, layer.Bounds.Size); // covers sidebar as well as detail
+                        Assert.Equal(new Point(0, 0), layer.TranslatePoint(default, window)); // one shared window origin
+                    }
+                    model.IsCommandPalettePresented = false;
+                });
+                harness.Main.OnMain(() =>
+                {
+                    Assert.Empty(LogicalQuery.SelfAndDescendants<CommandPalette>(root));
+                    model.IsCommandPalettePresented = true;
+                });
+                harness.Main.OnMain(() =>
+                {
+                    Assert.NotSame(first, Assert.Single(LogicalQuery.SelfAndDescendants<CommandPalette>(root))); // :73 no state held between openings
+                    model.IsCommandPalettePresented = false;
+                });
+            }
+            finally { harness.Main.OnMain(() => { window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91
+    public void A_model_alert_is_owned_by_the_rendering_window_and_clearing_the_model_closes_it(bool beforeAttach)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            // R-VIEW-9: record the owned ShowDialog request; headless opens the same real dialog nonmodally.
+            var property = typeof(RootView).GetProperty("PresentAlertDialog", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(property);
+            var presentation = Assert.IsType<Ambient<Func<AvaloniaWindow, AvaloniaWindow, System.Threading.Tasks.Task>>>(property.GetValue(null));
+            AvaloniaWindow? dialog = null;
+            AvaloniaWindow? recordedOwner = null;
+            using var presenter = presentation.Override((alertWindow, owner) =>
+            {
+                dialog = alertWindow;
+                recordedOwner = owner;
+                Assert.True(owner.IsVisible); // an owned ShowDialog requires an already presented owner
+                var completion = new System.Threading.Tasks.TaskCompletionSource();
+                alertWindow.Closed += (_, _) => completion.TrySetResult();
+                alertWindow.Show();
+                return completion.Task;
+            });
+            AvaloniaWindow? window = null;
+            try
+            {
+                harness.Main.OnMain(() =>
+                {
+                    var alert = new AppAlert { Title = "", Message = "Owned message" }; // :81 empty title is preserved
+                    if (beforeAttach) model.Alert = alert;
+                    var host = Build(model, () => new RootView());
+                    window = Assert.IsAssignableFrom<AvaloniaWindow>(TopLevel.GetTopLevel(host));
+                    if (!beforeAttach) model.Alert = alert;
+                });
+                harness.Main.OnMain(() =>
+                {
+                    Assert.NotNull(dialog);
+                    Assert.Same(window, recordedOwner); // window-modal, not an independent Window.Show()
+                    Assert.True(dialog.IsVisible);
+                    Assert.Equal("", dialog.Title);
+                    Assert.Contains("Owned message", AllText(dialog), StringComparison.Ordinal);
+                    var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(dialog));
+                    Assert.Equal("OK", Assert.IsType<TextBlock>(button.Content).Text); // ED-216 shared button label; same source title
+                    Assert.True(button.IsDefault); // Enter
+                    Assert.True(button.IsCancel); // Escape, :88 cancel role
+                    model.Alert = null; // :83-84 the binding must also close the presented alert
+                });
+                harness.Main.OnMain(() => Assert.False(dialog!.IsVisible));
+            }
+            finally { harness.Main.OnMain(() => { dialog?.Close(); window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+        });
+    }
+
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:14-43 overlay at 22-31 takes no layout space
+    public void The_sidebar_resize_overlay_does_not_reserve_detail_width(bool visible, bool onlyFloating) => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        var model = launch.Manager.Model;
+        AvaloniaWindow window = null!;
+        RootView root = null!;
+        try
+        {
+            launch.Harness.Main.OnMain(() =>
+            {
+                model.Settings.SidebarFloats = onlyFloating;
+                model.Settings.SidebarOnlyFloats = onlyFloating;
+                if (model.Sidebar.IsVisible != visible) model.Sidebar.Toggle();
+                var host = Assert.IsType<Border>(Build(model, () => new RootView()));
+                root = Assert.IsType<RootView>(host.Child);
+                window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+                window.Width = 900;
+                window.Height = 600;
+            });
+            launch.Harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                var expectedX = visible && !onlyFloating ? model.Sidebar.RenderedWidth : 0;
+                Assert.Equal(expectedX, root.DetailClip.TranslatePoint(default, root)!.Value.X);
+                Assert.Equal(root.Bounds.Width - expectedX, root.DetailClip.Bounds.Width);
+                Assert.Equal(window.ClientSize.Width, root.Bounds.Width);
+            });
+        }
+        finally { launch.Harness.Main.OnMain(() => { window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:44-51; App/Views/Sidebar/FloatingSidebarPanel.swift:23-35
+    public void Resizing_the_detail_keeps_the_floating_panel_sidebar_and_search_state() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        var model = launch.Manager.Model;
+        AvaloniaWindow window = null!;
+        RootView root = null!;
+        FloatingSidebarPanel panel = null!;
+        SidebarView sidebar = null!;
+        TextBox search = null!;
+        try
+        {
+            launch.Harness.Main.OnMain(() =>
+            {
+                model.Settings.SidebarFloats = true;
+                model.Settings.SidebarOnlyFloats = true;
+                var host = Assert.IsType<Border>(Build(model, () => new RootView()));
+                root = Assert.IsType<RootView>(host.Child);
+                window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+                window.Width = 900;
+                window.Height = 700;
+                ResizeWindow(window, new Size(900, 700));
+                window.UpdateLayout();
+            });
+            launch.Harness.Main.OnMain(() =>
+            {
+                panel = Assert.Single(LogicalQuery.SelfAndDescendants<FloatingSidebarPanel>(root));
+                sidebar = Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(panel));
+                search = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(sidebar));
+                search.Text = "kept query";
+                window.Width = 1000;
+                window.Height = 740;
+                ResizeWindow(window, new Size(1000, 740));
+                window.UpdateLayout();
+            });
+            launch.Harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Same(panel, Assert.Single(LogicalQuery.SelfAndDescendants<FloatingSidebarPanel>(root)));
+                Assert.Equal(1000, root.DetailClip.Bounds.Width); // exact requested geometry, within the headless screen
+                Assert.Same(sidebar, Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(panel)));
+                Assert.Same(search, Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(sidebar)));
+                Assert.Equal("kept query", search.Text);
+                Assert.Equal(root.DetailClip.Bounds.Size, panel.Bounds.Size); // new area, same instance
+            });
+        }
+        finally { launch.Harness.Main.OnMain(() => { window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
+    [Theory]
+    [InlineData("escape")]
+    [InlineData("ok")]
+    [InlineData("return")]
+    [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91; ED-216 lone cancel-role OK still takes Return
+    public void A_replaced_alert_updates_the_owned_dialog_and_production_dismissal_clears_the_model(string dismissal) => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        var property = typeof(RootView).GetProperty("PresentAlertDialog", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        var presentation = Assert.IsType<Ambient<Func<AvaloniaWindow, AvaloniaWindow, Task>>>(property.GetValue(null));
+        AvaloniaWindow dialog = null!;
+        AvaloniaWindow window = null!;
+        var presentations = 0;
+        using var seam = presentation.Override((shown, owner) =>
+        {
+            presentations++;
+            dialog = shown;
+            var completion = new TaskCompletionSource();
+            shown.Closed += (_, _) => completion.TrySetResult();
+            shown.Show();
+            return completion.Task;
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var host = Build(model, () => new RootView());
+                window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(host));
+                model.Alert = new AppAlert { Title = "First title", Message = "First message" };
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal("First title", dialog.Title);
+                Assert.Contains("First message", AllText(dialog), StringComparison.Ordinal);
+                var titleLine = Assert.IsType<TextBlock>(Assert.IsType<StackPanel>(dialog.Content).Children[0]);
+                Assert.Equal("First title", titleLine.Text); // :81 and ED-216: bold first line as well as window title
+                Assert.Equal(Avalonia.Media.FontWeight.Bold, titleLine.FontWeight);
+                model.Alert = new AppAlert { Title = "Replacement title", Message = "Replacement message" };
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(1, presentations); // update the existing owned dialog
+                Assert.Equal("Replacement title", dialog.Title);
+                var titleLine = Assert.IsType<TextBlock>(Assert.IsType<StackPanel>(dialog.Content).Children[0]);
+                Assert.Equal("Replacement title", titleLine.Text);
+                Assert.Equal(Avalonia.Media.FontWeight.Bold, titleLine.FontWeight);
+                Assert.Contains("Replacement message", AllText(dialog), StringComparison.Ordinal);
+                Assert.DoesNotContain("First message", AllText(dialog), StringComparison.Ordinal);
+                var ok = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(dialog));
+                Assert.True(ok.IsDefault);
+                Assert.True(ok.IsCancel);
+                if (dismissal == "ok") ok.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                else if (dismissal == "escape") dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "\u001b");
+                else dialog.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, "\r");
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.False(dialog.IsVisible);
+                Assert.Null(model.Alert); // false presentation binding, :83-84
+            });
+        }
+        finally { harness.Main.OnMain(() => { dialog?.Close(); window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91; ED-216 extended request, owner and cancel-role OK
+    public void The_model_alert_uses_the_extended_shared_request_with_its_rendering_owner_and_cancel_role_OK() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        var recorder = new RecordingConfirmationPresenter();
+        using var presenter = AlertPresentation.Presenter.Override(recorder);
+        AvaloniaWindow window = null!;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var host = Build(model, () => new RootView());
+                window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(host));
+                model.Alert = new AppAlert { Title = "Request title", Message = "Request message" };
+            });
+            harness.Main.OnMain(() =>
+            {
+                var request = Assert.Single(recorder.Shown);
+                Assert.Equal("Request title", request.Title);
+                Assert.Equal("Request message", request.Message);
+                Assert.Same(window, request.Owner);
+                Assert.Equal(AlertKind.Alert, request.Kind);
+                Assert.Null(request.TextFields);
+                var ok = Assert.Single(request.Buttons);
+                Assert.Equal("OK", ok.Title); // :88
+                Assert.Equal(AlertButtonRole.Cancel, ok.Role);
+                Assert.Same(ok, request.ReturnDefault); // ED-216 lone cancel button is also the Return default
+                Assert.NotNull(model.Alert);
+                recorder.Cancel();
+            });
+            harness.Main.OnMain(() => Assert.Null(model.Alert)); // :83-84 false presentation binding
+        }
+        finally { harness.Main.OnMain(() => { window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-064")] // App/Views/RootView.swift:77-79 dropDestination(for: URL.self)
+    public void Drag_over_accepts_local_file_URLs_and_rejects_text_only_drags() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        harness.Main.OnMain(() =>
+        {
+            var host = Assert.IsType<Border>(Build(model, () => new RootView()));
+            var root = Assert.IsType<RootView>(host.Child);
+            var window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+            try
+            {
+                using var textData = new DataTransfer();
+                textData.Add(DataTransferItem.CreateText("not a file URL"));
+                var textDrag = new DragEventArgs(DragDrop.DragOverEvent, textData, root, default, KeyModifiers.None);
+                root.RaiseEvent(textDrag);
+                Assert.Equal(DragDropEffects.None, textDrag.DragEffects);
+                var path = Path.Combine(harness.Scratch, "drag-over.txt");
+                File.WriteAllText(path, "file");
+                var file = window.StorageProvider.TryGetFileFromPathAsync(new Uri(path)).GetAwaiter().GetResult()!;
+                using var files = new DataTransfer();
+                files.Add(DataTransferItem.CreateFile(file));
+                var fileDrag = new DragEventArgs(DragDrop.DragOverEvent, files, root, default, KeyModifiers.None);
+                root.RaiseEvent(fileDrag);
+                Assert.Equal(DragDropEffects.Copy, fileDrag.DragEffects);
+            }
+            finally { window.Hide(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
+    // The no-selection failure case travels through the real drag-and-drop pipeline. The folder and selected-file
+    // shapes are covered independently through HandleDropCore above.
+    [Fact]
+    [Trait("Req", "PR-WIN-064")] // App/Views/RootView.swift:77-79, wired onto the already-tested HandleDropCore
+    [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:106-108's own failure case
+    public void Dropping_a_real_file_with_nothing_selected_reaches_HandleDrop_through_the_real_pipeline_and_discards_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var filePath = Path.Combine(harness.Scratch, "dropped.txt");
+            File.WriteAllText(filePath, "hello");
+            harness.Main.OnMain(() =>
+            {
+                var host = Build(model, () => new RootView());
+                var root = Assert.IsType<RootView>(((Border)host).Child);
+                var topLevel = TopLevel.GetTopLevel(host) ?? throw new InvalidOperationException("no TopLevel");
+                var storageFile = topLevel.StorageProvider.TryGetFileFromPathAsync(new Uri(filePath)).GetAwaiter().GetResult()
+                    ?? throw new InvalidOperationException("no storage file for " + filePath);
+                var dt = new DataTransfer();
+                dt.Add(DataTransferItem.CreateFile(storageFile));
+
+                Assert.Null(model.SelectedThreadID);
+                root.RaiseEvent(new DragEventArgs(DragDrop.DropEvent, dt, root, new Point(10, 10), KeyModifiers.None));
+
+                Assert.Null(model.SelectedThreadID); // :106 `if !files.isEmpty, let threadID = model.selectedThreadID`
+                Assert.Empty(model.Projects); // a file never adds a project (:101 isDirectory.boolValue's else branch)
+            });
+        });
+    }
+    [Fact]
+    [Trait("Req", "PR-WIN-067")] // App/Views/RootView.swift:69-76; App/Views/Sidebar/RowGlide.swift:224-236
+    public void Opening_the_palette_during_a_live_glide_preserves_the_ghost_origin_and_layer_order() => headless.OnUiThread(() =>
+    {
+        using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var harness = new AppModelHarness();
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        using var departure = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(200, 24));
+        using var arrival = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(200, 24));
+        var model = harness.MakeModel();
+        AvaloniaWindow window = null!;
+        RootView root = null!;
+        RowGlideView ghost = null!;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                root = Assert.IsType<RootView>(Assert.IsType<Border>(Build(model, () => new RootView())).Child);
+                window = Assert.IsAssignableFrom<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+                animator.Launch(Guid.NewGuid(), RowGlideAnimator.Glide.Direction.Settle,
+                    new Rect(20, 60, 200, 24), new Rect(20, 260, 200, 24), new Rect(root.Bounds.Size),
+                    departure, arrival, 1, 1);
+            });
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                ghost = Assert.Single(LogicalQuery.SelfAndDescendants<RowGlideView>(root));
+            });
+            harness.Main.AdvanceMilliseconds(100); // live flight, before the source's arrival/finish deadlines
+            harness.Main.OnMain(() =>
+            {
+                frames.Advance(TimeSpan.FromMilliseconds(100));
+                var progress = (double)typeof(RowGlideView).GetField("progress", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(ghost)!;
+                Assert.InRange(progress, double.Epsilon, 1);
+                Assert.False(Assert.Single(animator.Glides).HasArrived);
+                model.IsCommandPalettePresented = true;
+            });
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                var layers = Assert.IsType<Panel>(root.Child);
+                Assert.IsType<GenieLayer>(layers.Children[1]);
+                var glideLayer = Assert.IsType<RowGlideLayer>(layers.Children[2]);
+                var paletteLayer = Assert.IsType<Panel>(layers.Children[3]);
+                Assert.Same(ghost, Assert.Single(LogicalQuery.SelfAndDescendants<RowGlideView>(glideLayer)));
+                Assert.Single(LogicalQuery.SelfAndDescendants<CommandPalette>(paletteLayer));
+                Assert.Single(animator.Glides); // opening the palette must not finish or replace the active ghost
+                foreach (var layer in new Control[] { layers.Children[1], glideLayer, paletteLayer })
+                {
+                    Assert.Equal(root.Bounds.Size, layer.Bounds.Size);
+                    Assert.Equal(new Point(0, 0), layer.TranslatePoint(default, window));
+                }
+                model.IsCommandPalettePresented = false;
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<CommandPalette>(root));
+                Assert.Same(ghost, Assert.Single(LogicalQuery.SelfAndDescendants<RowGlideView>(root)));
+                Assert.False(Assert.Single(animator.Glides).HasArrived);
+            });
+        }
+        finally { harness.Main.OnMain(() => { window?.Close(); Dispatcher.UIThread.RunJobs(); }); }
+    });
 }
 
-// STOP App.Views.RootView #2 (B3 unit agent, 2026-09-26)
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/RootView.swift:8-92 (RootView body, B3 52bc792), :177-297 (ThreadColumns), :129-133
-// (DetailView's "a thread is selected" branch)
-// Requirements: PR-WIN-062, PR-WIN-063, PR-WIN-066, PR-WIN-067 (RootView's own body: window clip, backdrop and
-// chrome-configurator backgrounds, the model-alert dialog, the genie/row-glide/command-palette overlay stack) and
-// the "a thread is selected" half of PR-WIN-077 stay MARROW_STUB. PR-WIN-064 and PR-WIN-065 (drop handling) are now
-// implemented and tested above through HandleDropCore, which needed no visual tree and so was not blocked by the
-// dependency below.
-// What is unclear or missing: nothing is unclear; this narrows STOP #1 (helper Claude, 2026-09-26), whose own
-// blockers were checked again directly against the files named, not inferred:
-//   - GenieLayer, RowGlideLayer (App.Views.Sidebar.RowGlide.cs), WindowChromeConfigurator/WindowChromeProbe and
-//     WallpaperStore (src/Marrow.App/Theme/Wallpaper.cs; ED-195 supersedes ED-189 to move it to Marrow.UI.Theme in a
-//     later lane, so its current App.Theme namespace is not this unit's to change) are ALL now real, 0 MARROW_STUB
-//     each: STOP #1 listed them as blockers and that is no longer true.
-//   - SidebarView (App.Views.Sidebar.SidebarView.cs) is still 53 MARROW_STUB; its constructor
-//     (`public SidebarView(bool inPopover = false, Action? dismiss = null) => throw new
-//     NotImplementedException(...)`, SidebarView.cs's own current text) throws unconditionally. RootView's body
-//     builds `SidebarView()` as the first child of its HStack every time (RootView.swift:17), eagerly per R-VIEW-1
-//     ("body is built once in the constructor"), so no `new RootView()` can succeed while this throws, for any
-//     input, in production or in a test. This is the one unconditional blocker for PR-WIN-062, 063, 066 and 067.
-//   - CommandPalette (App.Views.Palette.CommandPalette.cs) is also still MARROW_STUB (constructor throws), but only
-//     reached when model.IsCommandPalettePresented is true (RootView.swift:72-76); it does not by itself block
-//     PR-WIN-062, 063 or 066, only the true branch of PR-WIN-067, and only once SidebarView unblocks the rest.
-//   - ThreadColumns.updateNSView calls into ChatView (App.Views.Chat.ChatView.cs, still 23 MARROW_STUB) and needs a
-//     WindowLiveResize read from the environment; HostedEnvironment (App.Window.WindowManager.cs) now attaches one
-//     for real, so ChatView is the only remaining block here. DetailView's "a thread is selected" branch constructs
-//     ThreadColumns and so inherits this one block.
-// Readings or options: wait for App.Views.Sidebar.SidebarView and, for the command-palette-true branch of
-// PR-WIN-067, App.Views.Palette.CommandPalette; separately, wait for App.Views.Chat.ChatView for ThreadColumns and
-// DetailView's thread-selected branch. RootView's own top-level body and ThreadColumns do not share a blocker any
-// more (SidebarView versus ChatView), so they could be picked up in separate later passes if that helps sequencing,
-// unlike STOP #1's assessment.
-// Needed to proceed: unit App.Views.Sidebar.SidebarView (and, only for PR-WIN-067's true branch,
-// App.Views.Palette.CommandPalette) for RootView's own body; unit App.Views.Chat.ChatView for ThreadColumns and
-// DetailView's thread-selected branch.
-// Done so far: every requirement in both work packets (part1.md, part2.md) not listed above is implemented and
-// tested: DetailView's empty-state branch, WelcomeView, ProviderChecklist, ProviderStatusRow,
-// OpenProvidersSettingsButton, NoThreadView (CopyCommandButton is gone at B3, B3_PLAN.md section 4; its test is
-// removed, not left failing) and HandleDropCore (PR-WIN-064, PR-WIN-065), all 0 MARROW_STUB, all green.
+// Resolved STOP #3: the AlertPresenter owner's ED-216 request/window/session landed during this review pass.
+// RootView now supplies its rendering owner and cancel-role OK through AlertPresentation.Show(AlertRequest),
+// and uses the shared window/session for the real dialog. The source's replacement/model-clear binding is
+// retained by a thin adapter; bold title, message, owned presentation and Escape/Return/OK are proven above.
+// Swift: App/Views/RootView.swift:80-91 (B3 52bc792). Record: PR-WIN-066.
+
+// STOP App.Views.RootView #4 (Window review fixes)
+// Kind: platform/capture gap.
+// Swift: App/Views/RootView.swift:64-68 (B3 52bc792). Record: PR-WIN-062 (partial composited-clip proof only).
+// Missing: window region or DWM corner preference so the native shadow follows the curve, and a four-corner capture.
+// Needed: the native window-chrome owner supplies that region/preference and a four-corner capture verifies it.
+// This review explicitly defers implementing PR-WIN-062's remaining native/capture portion.

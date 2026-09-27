@@ -1,6 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia.Controls;
+using Avalonia.Automation;
+using Avalonia.Threading;
+using Marrow.App.Window;
+using Marrow.App.Views.Settings;
 using Avalonia.Interactivity;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
@@ -13,6 +17,52 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class HydraIntroPopoverTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "UI-HYDRA-063")] // App/Views/Chat/HydraIntroPopover.swift:133-134; UI/Common/HydraGlyph.swift:40
+    public void Heads_step_one_keeps_the_persona_accessibility_name()
+    {
+        headless.OnUiThread(() => {
+            var glyphs = LogicalQuery.SelfAndDescendants<HydraGlyph>(new HydraInfoPopover(HydraInfoPopover.Topic.Heads)).ToArray();
+            Assert.Equal(6, glyphs.Length);
+            Assert.Equal(AutomationProperties.GetName(glyphs[0]), AutomationProperties.GetName(glyphs[5]));
+            Assert.NotEmpty(AutomationProperties.GetName(glyphs[5])!);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-059")] // App/Views/Chat/HydraIntroPopover.swift:63-67
+    [Trait("Req", "UI-HYDRA-060")] // App/Views/Chat/HydraIntroPopover.swift:68-70
+    public void Action_buttons_have_regular_and_prominent_interactive_glass()
+    {
+        headless.OnUiThread(() => {
+            var buttons = LogicalQuery.SelfAndDescendants<Button>(new HydraIntroPopover(() => {})).ToArray();
+            var regular = Assert.Single(LogicalQuery.SelfAndDescendants<Control>(buttons[0]).Select(SwiftGlass.GetEffect).OfType<GlassEffect>());
+            var prominent = Assert.Single(LogicalQuery.SelfAndDescendants<Control>(buttons[1]).Select(SwiftGlass.GetEffect).OfType<GlassEffect>());
+            Assert.Equal(GlassShapeKind.Capsule, regular.Shape.Kind); Assert.True(regular.IsInteractive); Assert.Null(regular.TintColor);
+            Assert.Equal(GlassShapeKind.Capsule, prominent.Shape.Kind); Assert.True(prominent.IsInteractive); Assert.NotNull(prominent.TintColor);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-059")] // App/Views/Chat/HydraIntroPopover.swift:63-66
+    public void Setup_dismisses_before_opening_settings_on_the_hydra_page()
+    {
+        headless.OnUiThread(() => {
+            using var harness = new AppModelHarness();
+            harness.Main.OnMain(() => {
+                var manager = new WindowManager(); var content = new Border(); var events = new List<string>();
+                manager.SettingsContent = () => { events.Add("open"); return content; };
+                using var shared = WindowManager.OverrideShared(manager);
+                var prior = SettingsNavigation.Shared.RequestedPage;
+                try {
+                    var intro = new HydraIntroPopover(() => events.Add("dismiss"));
+                    LogicalQuery.SelfAndDescendants<Button>(intro).Single(b => ButtonText(b) == "Set up in Settings").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    Assert.Equal(new[] {"dismiss", "open"}, events); Assert.Equal(SettingsPage.Hydra, SettingsNavigation.Shared.RequestedPage);
+                    Assert.True(((Avalonia.Controls.Window)TopLevel.GetTopLevel(content)!).IsVisible);
+                } finally { ((Avalonia.Controls.Window?)TopLevel.GetTopLevel(content))?.Close(); SettingsNavigation.Shared.RequestedPage = prior; Dispatcher.UIThread.RunJobs(); }
+            });
+        });
+    }
     [Fact]
     [Trait("Req", "PR-HYDRA-217")] // App/Views/Chat/HydraIntroPopover.swift:11-75
     [Trait("Req", "UI-HYDRA-052")] // App/Views/Chat/HydraIntroPopover.swift:11-25
@@ -164,7 +214,7 @@ public sealed class HydraIntroPopoverTests(HeadlessSession headless)
             var popover = new HydraInfoPopover(HydraInfoPopover.Topic.Heads);
 
             Assert.Equal(
-                new[] { 24d, 24d, 24d, 24d, 24d },
+                new[] { 24d, 24d, 24d, 24d, 24d, 24d }, // five header glyphs plus Swift :133 step-one glyph.
                 LogicalQuery.SelfAndDescendants<HydraGlyph>(popover).Select(glyph => glyph.Size));
 
             var symbols = LogicalQuery.SelfAndDescendants<SwiftImage>(popover)
@@ -196,6 +246,6 @@ public sealed class HydraIntroPopoverTests(HeadlessSession headless)
         {
             string text => text,
             TextBlock textBlock => textBlock.Text,
-            _ => null,
+            _ => LogicalQuery.SelfAndDescendants<TextBlock>(button).FirstOrDefault()?.Text,
         };
 }

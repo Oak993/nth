@@ -2447,7 +2447,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Re-resolve the brush on a theme/appearance change without recreating the visual tree.",
       "verification_method": "interaction test switching light and dark mid-turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

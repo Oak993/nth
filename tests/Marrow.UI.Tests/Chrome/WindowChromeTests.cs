@@ -1,4 +1,5 @@
 using Avalonia.Controls;
+using Marrow.UI.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Tests.Fixtures;
 
@@ -27,6 +28,79 @@ using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not th
 public sealed class WindowChromeTests(HeadlessSession headless)
 {
     private static Window NewWindow() => new();
+
+    [Fact]
+    [Trait("Req", "PR-WIN-037")] // DroppyCode/UI/Chrome/WindowChrome.swift:28, :216-219; ED-224
+    public void A_live_resize_suppresses_even_an_explicitly_requested_placement_animation() => headless.OnUiThread(() =>
+    {
+        var window = NewWindow();
+        WindowChrome.PlaceTrafficLights(window, sidebarVisible: true, animated: true);
+        WindowLiveResizeSignal.SetIsActive(window, true);
+        WindowChrome.PlaceTrafficLights(window, sidebarVisible: false, animated: true);
+        var (close, miniaturize, zoom) = WindowChrome.Buttons(window);
+        foreach (var button in new[] { close, miniaturize, zoom }) Assert.Null(((Border)button).Transitions);
+        Assert.Equal(14, Canvas.GetLeft(close));
+        Assert.Equal(21, Canvas.GetTop(close));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-037")] // DroppyCode/UI/Chrome/WindowChrome.swift:28, :52, :93; ED-224
+    public void The_probe_places_once_without_animation_at_the_end_of_a_live_resize() => headless.OnUiThread(() =>
+    {
+        var probe = new WindowChromeProbe();
+        var window = new Window { Content = probe };
+        window.Show();
+        try
+        {
+            var (close, miniaturize, zoom) = WindowChrome.Buttons(window);
+            Assert.Null(((Border)close).Transitions); // :52 initial placement.
+            WindowLiveResizeSignal.SetIsActive(window, true);
+            probe.SidebarVisible = false;
+            Assert.Null(((Border)close).Transitions); // :28 while dragging.
+            // Make the end placement observable even with unchanged target coordinates (:185-186 unhide).
+            foreach (var button in new[] { close, miniaturize, zoom }) button.IsVisible = false;
+            WindowLiveResizeSignal.SetIsActive(window, false);
+            foreach (var button in new[] { close, miniaturize, zoom }) Assert.True(button.IsVisible);
+            Assert.Null(((Border)close).Transitions);
+            Assert.Equal(14, Canvas.GetLeft(close));
+            Assert.Equal(21, Canvas.GetTop(close));
+            close.IsVisible = false;
+            WindowLiveResizeSignal.SetIsActive(window, false);
+            Assert.False(close.IsVisible); // No second placement without a new end transition.
+            probe.SidebarVisible = true;
+            Assert.NotNull(((Border)close).Transitions); // Ordinary changes animate again after the drag.
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-037")] // DroppyCode/UI/Chrome/WindowChrome.swift:40-57, :93; ED-224
+    public void Moving_a_probe_unregisters_the_previous_windows_resize_observer() => headless.OnUiThread(() =>
+    {
+        var probe = new WindowChromeProbe();
+        var first = new Window { Content = probe };
+        var second = NewWindow();
+        first.Show();
+        second.Show();
+        try
+        {
+            WindowLiveResizeSignal.SetIsActive(first, true);
+            first.Content = null;
+            var (oldClose, _, _) = WindowChrome.Buttons(first);
+            oldClose.IsVisible = false;
+            second.Content = probe;
+            WindowLiveResizeSignal.SetIsActive(second, true);
+            var (newClose, _, _) = WindowChrome.Buttons(second);
+            newClose.IsVisible = false;
+            WindowLiveResizeSignal.SetIsActive(first, false);
+            Assert.False(oldClose.IsVisible);
+            Assert.False(newClose.IsVisible);
+            WindowLiveResizeSignal.SetIsActive(second, false);
+            Assert.True(newClose.IsVisible);
+            Assert.Null(((Border)newClose).Transitions);
+        }
+        finally { first.Close(); second.Close(); }
+    });
 
     [Trait("Req", "PR-WIN-022")] // WindowChrome.swift:104-110
     [Fact]
