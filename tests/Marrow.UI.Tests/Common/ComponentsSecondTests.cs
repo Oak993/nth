@@ -80,9 +80,9 @@ public sealed class ComponentsSecondTests(HeadlessSession headless)
                 var date = new DateTimeOffset(2025, 9, 3, 12, 0, 0, TimeSpan.Zero);
                 var expected = SwiftFormatters.Formatted(date, DateFormatStyle.DateTime.Month().Day());
                 Assert.NotEqual(date.ToString("MMM d", CultureInfo.InvariantCulture), expected);
-                Assert.Equal(expected, RelativeTime.Short(date, date.AddDays(8)));
+                Assert.Equal(expected, runtime.OnMain(() => RelativeTime.Short(date, date.AddDays(8))));
                 CultureInfo.CurrentCulture = CultureInfo.GetCultureInfo("en-US");
-                Assert.Equal(expected, RelativeTime.Short(date, date.AddDays(9))); // :30 date-only cache survives locale change.
+                Assert.Equal(expected, runtime.OnMain(() => RelativeTime.Short(date, date.AddDays(9)))); // :30 date-only cache survives locale change.
             }
             finally { CultureInfo.CurrentCulture = previous; }
         });
@@ -165,5 +165,35 @@ public sealed class ComponentsSecondTests(HeadlessSession headless)
         var window = new Window { Width = 200, Height = 100, Content = content, Background = Brushes.White };
         window.Show(); Dispatcher.UIThread.RunJobs(); return window;
     }
-}
 
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-022")] // DroppyCode/UI/Common/Components.swift:73-84
+    public void Chip_respects_explicit_label_font_inherited_tint_and_capsule_hit_target()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var label = new TextBlock { Text = "Weekly", FontSize = 13 };
+            var button = new Button { Content = label };
+            var helper = typeof(ChipButtonStyleHelper);
+            helper.GetMethod("SetTint")!.Invoke(null, [button, SwiftColor.Rgb(0xFF0000)]);
+            helper.GetMethod("Chip", [typeof(Button), typeof(bool)])!.Invoke(null, [button, true]);
+            var clicks = 0; button.Click += (_, _) => clicks++;
+            var window = Show(button);
+            try
+            {
+                Assert.Equal(13, label.FontSize); // :73 supplies an environment default; label's explicit font wins.
+                Assert.Equal(Colors.Red, ((ISolidColorBrush)label.Foreground!).Color);
+                Assert.NotNull(button.Clip); // :82 contentShape(.capsule): corners outside the capsule cannot activate.
+                Assert.False(button.Clip!.FillContains(new Point(0, 0)));
+                window.MouseDown(new Point(0, 0), MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(new Point(0, 0), MouseButton.Left, RawInputModifiers.None);
+                Assert.Equal(0, clicks);
+                window.MouseDown(new Point(20, 14), MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(new Point(20, 14), MouseButton.Left, RawInputModifiers.None);
+                Assert.Equal(1, clicks);
+            }
+            finally { window.Close(); }
+        });
+    }
+}

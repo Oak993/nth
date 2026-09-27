@@ -12,6 +12,29 @@ namespace Marrow.UI.Tests.Common;
 public sealed class ComponentsWorkspaceTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Rule", "R-TEST-10")]
+    [Trait("Decision", "ED-087")]
+    public void Every_unoverridden_native_operation_fails_closed_before_registry_PATH_icons_or_process_access()
+    {
+        using var runtime = new TestRuntime();
+        var type = typeof(Workspace).GetNestedType("Backend") ?? throw new InvalidOperationException("Workspace.Backend is missing");
+        var backend = Activator.CreateInstance(type)!;
+        var appPath = (Func<string, bool, string?>)type.GetProperty("AppPath")!.GetValue(backend)!;
+        var which = (Func<string, string?>)type.GetProperty("Which")!.GetValue(backend)!;
+        var exists = (Func<string, bool>)type.GetProperty("Exists")!.GetValue(backend)!;
+        var icon = (Func<string, IImage?>)type.GetProperty("ReadIcon")!.GetValue(backend)!;
+        var launch = (Action<string, IReadOnlyList<string>, string?, bool>)type.GetProperty("Launch")!.GetValue(backend)!;
+        var reveal = (Action<string>)type.GetProperty("Reveal")!.GetValue(backend)!;
+        Assert.Throws<InvalidOperationException>(() => appPath("Code.exe", false));
+        Assert.Throws<InvalidOperationException>(() => appPath("Code.exe", true));
+        Assert.Throws<InvalidOperationException>(() => which("wt.exe"));
+        Assert.Throws<InvalidOperationException>(() => exists(@"C:\fixture\Code.exe"));
+        Assert.Throws<InvalidOperationException>(() => icon(@"C:\fixture\Code.exe"));
+        Assert.Throws<InvalidOperationException>(() => launch("wt.exe", [], null, true));
+        Assert.Throws<InvalidOperationException>(() => reveal(@"C:\fixture\file.txt"));
+    }
+
+    [Fact]
     [Trait("Req", "PR-CHAT-181")] // DroppyCode/UI/Common/Components.swift:109-117
     [Trait("Req", "PR-CHAT-182")] // DroppyCode/UI/Common/Components.swift:137-147
     [Trait("Decision", "ED-087")]
@@ -50,12 +73,12 @@ public sealed class ComponentsWorkspaceTests(HeadlessSession headless)
             using var bitmap = new WriteableBitmap(new PixelSize(32, 32), new Vector(96, 96));
             fake.Image = bitmap;
             fake.Path["code"] = @"C:\Apps\Code.exe";
-            var image = Assert.IsAssignableFrom<IImage>(Workspace.Icon(Workspace.Editors[0]));
+            var image = Assert.IsAssignableFrom<IImage>(runtime.OnMain(() => Workspace.Icon(Workspace.Editors[0])));
             Assert.Equal(new Size(16, 16), image.Size);
-            Assert.Same(image, Workspace.Icon(Workspace.Editors[0] with { Name = "Other display name" }));
+            Assert.Same(image, runtime.OnMain(() => Workspace.Icon(Workspace.Editors[0] with { Name = "Other display name" })));
             Assert.Single(fake.IconReads);
-            var explorer = Assert.IsAssignableFrom<IImage>(Workspace.FileExplorerIcon);
-            Assert.Same(explorer, Workspace.FileExplorerIcon);
+            var explorer = Assert.IsAssignableFrom<IImage>(runtime.OnMain(() => Workspace.FileExplorerIcon));
+            Assert.Same(explorer, runtime.OnMain(() => Workspace.FileExplorerIcon));
             Assert.Equal(2, fake.IconReads.Count);
             Assert.Equal(@"C:\Windows\explorer.exe", fake.IconReads[1]);
             var original = ShellWorkspace.RevealInFileExplorer;
