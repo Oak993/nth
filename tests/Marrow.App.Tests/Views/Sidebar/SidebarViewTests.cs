@@ -3629,6 +3629,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     public void The_delete_popover_is_280_wide_with_a_header_a_curly_quoted_note_a_divider_and_delete_rows() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
         var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
         var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
         var deletes = new List<bool>();
@@ -3643,10 +3644,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         Assert.DoesNotContain("Delete thread and worktree", texts); // :977, no worktree
 
         var deleteButton = LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Delete thread");
-        PointerClick(deleteButton);
+        harness.Main.OnMain(() => PointerClick(deleteButton));
         harness.Main.RunUntilIdle(); // :271-274 PopoverItem.Activate spawns the action on the main actor
         Assert.Equal([false], deletes); // :976 onDelete(false)
-        WindowOf(popover).Close();
+        harness.Main.OnMain(() => WindowOf(popover).Close());
     });
 
     [Fact]
@@ -3657,6 +3658,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     public void The_delete_and_worktree_row_shows_only_with_a_worktree_and_deletes_with_it_true() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
         var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
         var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug", WorktreePath = "C:/Alpha/wt" };
         var deletes = new List<bool>();
@@ -3664,10 +3666,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
         Assert.Contains("Delete thread and worktree", Texts(popover)); // :977
         var button = LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Delete thread and worktree");
-        PointerClick(button);
+        var window = WindowOf(popover);
+        window.Height = 200; // this standalone fixture must expose both menu rows to actual pointer hit testing
+        window.UpdateLayout();
+        harness.Main.OnMain(() => PointerClick(button));
         harness.Main.RunUntilIdle(); // :271-274 PopoverItem.Activate spawns the action on the main actor
         Assert.Equal([true], deletes); // :978 onDelete(true)
-        WindowOf(popover).Close();
+        harness.Main.OnMain(() => WindowOf(popover).Close());
     });
 
     // ---- PR-SIDEBAR-095, PR-SIDEBAR-096: ArchiveThreadPopover ----
@@ -4800,6 +4805,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     public void The_settled_header_shows_its_count_toggles_the_fold_and_rotates_the_chevron() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
         var project = NewProject(harness, "Alpha");
         var thread = NewThread(project, "Thread", 0);
         var model = Model(harness, [project], [thread]);
@@ -5399,6 +5405,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Empty(model.ThreadsIn(project));
             PointerClick(plus); // :1119-1123
             Assert.Single(model.ThreadsIn(project)); // :1120 model.newThread(in: project)
+            window.Close();
         });
     });
 
@@ -5516,6 +5523,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
             var project = NewProject(harness, "Alpha");
             var model = Model(harness, [project], []);
             Control? row = null;
@@ -5544,6 +5552,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             {
                 Assert.False(model.Project(project.Id)!.IsExpanded);
                 Assert.Equal(Chrome.PanelSlide, during); // :1102-1104
+                WindowOf(row!).Close(); // detach tracked hover accessories before the headless application resets
             });
         });
     }
@@ -6838,6 +6847,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     public void Clicking_Settings_opens_the_real_shared_managers_SettingsView_and_reuses_its_window() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
         var managerType = typeof(Marrow.App.Window.WindowManager);
         var manager = harness.Main.OnMain(() => (Marrow.App.Window.WindowManager)Activator.CreateInstance(managerType, nonPublic: true)!);
         using var shared = (IDisposable)managerType.GetMethod("OverrideShared", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [manager])!;

@@ -2282,7 +2282,7 @@ internal sealed class HeadCardsRow : Decorator
     // .animation(.snappy(duration: 0.18), value: cardRows) and :1541 .animation(Chrome.panelSlide, value:
     // heads.map(\.id)), neither of which was wired to anything but a bare property assignment before this fix).
     // REVIEW FIX.
-    private sealed class AnimatedDouble(Action<double> apply)
+    internal sealed class AnimatedDouble(Action<double> apply)
     {
         private double current;
         private bool primed;
@@ -2322,7 +2322,7 @@ internal sealed class HeadCardsRow : Decorator
             frames.RequestFrame(tick);
         }
 
-        private void Stop()
+        internal void Stop()
         {
             if (pending is { } frame) source?.CancelFrame(frame);
             pending = null;
@@ -3774,6 +3774,8 @@ internal sealed class SettledHeader : Decorator
         var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Semibold)); // :2376-2377, OD-0010 Lucide chevron-right
         chevron.RenderTransformOrigin = RelativePoint.Center;
         chevron.ForegroundStyle(Chrome.SecondaryText); // :2392 cascades to every child of the HStack
+        var rotation = new HeadCardsRow.AnimatedDouble(angle => chevron.RenderTransform = new RotateTransform(angle)); // :2378-2379
+        DetachedFromVisualTree += (_, _) => rotation.Stop(); // cancel the frame callback when this header leaves
 
         var title = new TextBlock { Text = "Settled" }; // :2380
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(title); // :2381
@@ -3785,7 +3787,9 @@ internal sealed class SettledHeader : Decorator
         countText.Foreground = Chrome.SecondaryText.Brush(countText); // :2392
 
         // :2375 HStack(alignment: .firstTextBaseline, spacing: 5). Bottom alignment approximates the mixed-size
-        // baseline (chevron 10 pt, title/count 12 pt); no record measures the sub-pixel baseline offset.
+        // baseline (chevron 10 pt, title/count 12 pt).
+        // STOP opencode-App.Views.Sidebar.SidebarView #13: UI-SIDEBAR-040 needs a shared firstTextBaseline layout
+        // guide for SwiftImage alongside text. The current shared symbol API exposes no such guide or ED/PA recipe.
         var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Children = { chevron, title, countText } };
         foreach (var part in header.Children) if (part is Layoutable layoutable) layoutable.VerticalAlignment = VerticalAlignment.Bottom;
 
@@ -3802,7 +3806,7 @@ internal sealed class SettledHeader : Decorator
         button.HorizontalAlignment = HorizontalAlignment.Stretch;
         button.Track(() => Model.Settings.SettledCollapsed, collapsed => // :2369
         {
-            chevron.RenderTransform = new RotateTransform(collapsed ? 0 : 90); // :2378-2379
+            rotation.Set(collapsed ? 0 : 90, Chrome.PanelSlide); // :2378-2379 .animation(Chrome.panelSlide, value:)
             ToolTip.SetTip(button, collapsed ? "Show settled threads" : "Hide settled threads"); // :2401
             AutomationProperties.SetName(button, $"Settled, {count} threads"); // :2402, always the plural "threads"
             AutomationProperties.SetItemStatus(button, collapsed ? "Collapsed" : "Expanded"); // :2403, as ActivityViewToggle maps .accessibilityValue
