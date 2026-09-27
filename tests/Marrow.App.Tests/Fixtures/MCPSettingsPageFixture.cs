@@ -56,3 +56,12 @@ public sealed class MCPSettingsWindowScope(Avalonia.Controls.Window window) : ID
 
 
 
+
+public sealed class MCPSettingsRefusingCredentialBackend : Marrow.Services.Port.ICredentialBackend
+{
+    private readonly AppModelCredentialBackend memory = new();
+    public bool Refuse { get; set; } = true;
+    public int Write(Marrow.Services.Port.GenericCredential credential) => Refuse ? 5 : memory.Write(credential);
+    public int Read(string name, out Marrow.Services.Port.GenericCredential? credential) => memory.Read(name, out credential);
+    public int Delete(string name) => memory.Delete(name);
+}
