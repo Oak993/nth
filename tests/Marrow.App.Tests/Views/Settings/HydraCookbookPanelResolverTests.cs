@@ -125,6 +125,59 @@ public sealed class HydraCookbookPanelResolverTests(HeadlessSession headless)
             });
         });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-177")] // App/HydraCookbook+Resolve.swift:36-42,49-58; Core/Models/HydraCookbook.swift:39,45-48; App/Views/Settings/HydraCookbookPanel.swift:96-106
+    public void An_equal_version_tie_between_catalog_rows_sharing_an_id_keeps_the_first_row_as_the_swift_max_does() =>
+        headless.OnUiThread(() =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                // Two Codex catalog rows with the same id and the same name (so the same version): the
+                // first offers the efforts, the second offers none.
+                HydraCookbookResolveFixture.SetEnabled(model.Settings, ProviderKind.Codex, true);
+                HydraCookbookResolveFixture.SetInstalled(model.Providers, ProviderKind.Codex, true);
+                HydraCookbookResolveFixture.SetModels(model.Providers, ProviderKind.Codex,
+                    HydraCookbookResolveFixture.Model("gpt-6-astra", "GPT-6 Astra", ["high", "medium"]),
+                    HydraCookbookResolveFixture.Model("gpt-6-astra", "GPT-6 Astra", []));
+
+                // Swift :54-58: matches.max(by:) with the comparator `version < version`, else
+                // `firstIndex(lhs.id) > firstIndex(rhs.id)`. Rows sharing an id have equal first indices,
+                // so the comparator is false both ways, and Sequence.max(by:) replaces its running result
+                // only when areInIncreasingOrder(result, e) is true: the FIRST row stays chosen. The
+                // effort then comes from that row (:38, :42) and is kept only when the row offers it
+                // (Core HydraCookbook.swift :45-48). Recipe astra-astra (HydraCookbook.swift :39): Codex
+                // lead "Astra" at "high", Codex heads "Astra" at "medium", maxHeads nil.
+                var swiftPair = new HydraPair(ProviderKind.Codex)
+                {
+                    OrchestratorModel = "gpt-6-astra",
+                    OrchestratorEffort = "high",
+                    WorkerModel = "gpt-6-astra",
+                    WorkerEffort = "medium",
+                    MaxHeads = null,
+                };
+                var efforts = HydraPairSummary.Efforts(swiftPair);
+                Assert.NotNull(efforts);
+
+                var host = new Border();
+                AppEnvironment.SetAppModel(host, model);
+                host.Child = new HydraCookbookPanel();
+                var window = new AvaloniaWindow { Content = host };
+                window.Show();
+
+                var recipe = HydraCookbook.Recipes.Single(r => r.Id == "astra-astra");
+                var row = LogicalQuery.SelfAndDescendants<HydraCookbookRow>(host)
+                    .SingleOrDefault(r => RowText(r).Contains(recipe.Tagline, System.StringComparison.Ordinal));
+                Assert.NotNull(row);
+                var text = RowText(row!);
+                Assert.Equal(1, row!.Opacity);
+                Assert.Contains(HydraPairSummary.Title(swiftPair, model.Providers), text, System.StringComparison.Ordinal);
+                // :96-106: the detail line carries the efforts (same provider, so no providers line).
+                Assert.Contains(efforts!, text, System.StringComparison.Ordinal);
+            });
+        });
+
     private static string RowText(Control control)
     {
         var parts = new List<string>();
