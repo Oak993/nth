@@ -430,7 +430,7 @@ internal sealed class SettingsScalarAnimation
         Action<TimeSpan>? tick = null;
         tick = _ =>
         {
-            var elapsed = (SwiftClock.Now - start).TotalSeconds; var finished = elapsed >= animation.Duration;
+            var elapsed = (SwiftClock.Now - start).TotalSeconds; var finished = (SwiftClock.Now - start).Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(animation.Duration).Ticks; // ED-117 (2): frame-clock completion tolerance.
             Value = finished ? target : from + (target - from) * animation.Progress(elapsed); apply(Value);
             if (finished) pending = null; else frames.RequestFrame(tick!);
         };
