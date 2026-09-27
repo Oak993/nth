@@ -267,7 +267,14 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             var runtime = Unresolved(h);
             var area = h.Main.OnMain(() => new ComposerArea(runtime, workingDirectory: null));
             var window = h.Main.OnMain(() => Show(area, h.App, width: 900));
-            h.Main.OnMain(() => runtime.EnqueueFollowUp("queued prompt", []));
+            // A prompt stays queued behind a running turn; an idle lead would take it out of the queue at once
+            // (ThreadRuntime.swift:1003-1007, :1054-1061). The running pill's working dots draw on the frame clock.
+            using var frameScope = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                runtime.RehearseTurn(null);
+                runtime.EnqueueFollowUp("queued prompt", []);
+            });
             Pump(h, window);
             h.Main.OnMain(() =>
             {
@@ -406,7 +413,14 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             var runtime = Unresolved(h);
             var area = h.Main.OnMain(() => new ComposerArea(runtime, workingDirectory: null));
             var window = h.Main.OnMain(() => Show(area, h.App, width: 900));
-            h.Main.OnMain(() => runtime.EnqueueFollowUp("queued prompt", []));
+            // A prompt stays queued behind a running turn; an idle lead would take it out of the queue at once
+            // (ThreadRuntime.swift:1003-1007, :1054-1061). The running pill's working dots draw on the frame clock.
+            using var frameScope = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                runtime.RehearseTurn(null);
+                runtime.EnqueueFollowUp("queued prompt", []);
+            });
             Pump(h, window);
             h.Main.OnMain(() =>
             {

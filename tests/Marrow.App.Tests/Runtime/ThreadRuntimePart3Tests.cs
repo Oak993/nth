@@ -177,15 +177,25 @@ public sealed class ThreadRuntimePart3Tests
         h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
         var attachment = new Attachment { Name = "brief.png", Path = Path.Combine(h.Scratch, "brief.png"), MimeType = "image/png" };
 
-        h.Main.OnMain(() => runtime.SendHydraBrief("archived brief", [attachment]));
+        // The deferral is enqueueFollowUp (:1181-1184), which ends with flushFollowUpsIfIdle (:1003-1007). On this idle
+        // lead the flush's Task drains the prompt straight back into startTurn (:1056-1071, :1116-1137), which defers
+        // it again, so the main actor never goes idle: pumping to idle cannot end. The loop is pumped until the
+        // prompt is queued, then through three more rounds of that cycle, none of which adds a turn or a row.
+        h.Main.Loop.Enqueue(() => runtime.SendHydraBrief("archived brief", [attachment]));
+        h.Main.Loop.RunUntil(() => runtime.FollowUps.Count == 1, AppModelHarness.Bound);
 
-        h.Main.OnMain(() =>
-        {
-            var followUp = Assert.Single(runtime.FollowUps);
-            Assert.Equal("archived brief", followUp.Text);
-            Assert.Equal(attachment, Assert.Single(followUp.Attachments));
-            Assert.Empty(runtime.Entries);
-        });
+        var followUp = Assert.Single(runtime.FollowUps);
+        Assert.Equal("archived brief", followUp.Text);
+        Assert.Equal(attachment, Assert.Single(followUp.Attachments));
+        Assert.Empty(runtime.Entries);
+
+        // :1134-1135 each round counts one turn that starts on its own; :1181-1184 none of them starts.
+        h.Main.Loop.RunUntil(() => runtime.AutoStartedTurnToken == 3 && runtime.FollowUps.Count == 1, AppModelHarness.Bound);
+        var again = Assert.Single(runtime.FollowUps);
+        Assert.Equal("archived brief", again.Text);
+        Assert.Equal(attachment, Assert.Single(again.Attachments));
+        Assert.Empty(runtime.Entries);
+        Assert.Empty(runtime.Turns);
     }
 
     [Fact]

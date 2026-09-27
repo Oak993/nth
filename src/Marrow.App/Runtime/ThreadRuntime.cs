@@ -1314,11 +1314,11 @@ public sealed class ThreadRuntime : MainActorModel
         }
     }
 
-    // :992-1009. Swift: enqueueFollowUp(text:attachments:).
+    // :991-1008. Swift: enqueueFollowUp(text:attachments:).
     public void EnqueueFollowUp(string text, IReadOnlyList<Attachment> attachments) =>
-        EnqueueFollowUpCore(text, attachments); // ThreadRuntime.swift:992-1009
+        EnqueueFollowUpCore(text, attachments); // ThreadRuntime.swift:991-1008
 
-    // ThreadRuntime.swift:992-1009
+    // ThreadRuntime.swift:991-1008
     private void EnqueueFollowUpCore(string text, IReadOnlyList<Attachment> attachments)
     {
         var prompt = new FollowUpPrompt
@@ -1331,6 +1331,9 @@ public sealed class ThreadRuntime : MainActorModel
         FollowUps = followUps.Appending(prompt);
         saveRevision++;
         ScheduleSave();
+        // :1003-1007 An idle lead takes the next queued message at once, even with heads still out: the queue only
+        // ever waits behind a running turn, never behind an idle lead.
+        FlushFollowUpsIfIdle();
     }
 
     // :1074-1079
