@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Security.Cryptography;
+using Marrow.Core.Port;
 using Marrow.UI.Port;
 using Marrow.UI.Sound;
 using Marrow.UI.Tests.Fixtures;
@@ -17,7 +18,8 @@ namespace Marrow.UI.Tests.Sound;
 // `Sound` lazy: proving it is uncreated before the first Play() needs to be the first thing in the whole
 // process that touches it, which is only safe to assert inside one self-contained test (xUnit does not
 // guarantee method order across [Fact]s in a class). No other test below calls SettleChime.Play() or
-// reads Sound, so this is not a race against the rest of the file.
+// reads Sound, so this is not a race against the rest of the file. The review test calls real Play twice
+// with the private async-flow Voice override and never touches the shared Sound lazy.
 //
 // What this file cannot test, and why:
 // - The exact bytes ToneSynth.Wave(Notes, Partials, 0.32) produces are proved once, independently of
@@ -27,7 +29,8 @@ namespace Marrow.UI.Tests.Sound;
 // - SettleChime's own wave bytes always parse as a valid WAV (ToneSynth.Wave's fixed header shape), so
 //   SwiftSound.Create never actually returns null for SettleChime's real Notes/Partials/duration: there is
 //   no way to drive SettleChime.Play() through its own null branch without inventing a test-only seam on
-//   SettleChime itself, which the source does not have. Play_is_a_silent_no_op_when_Create_fails instead
+//   SettleChime itself. RESOLVED: the review test uses the scoped Voice seam to prove the real null branch.
+//   Historical Play_is_a_silent_no_op_when_Create_fails instead
 //   proves the general mechanism the optional chain at :19-20 relies on (SwiftSound.Create returning null,
 //   and C#'s `?.` on a null value doing nothing and throwing nothing), the same guarantee SettleChime's
 //   `sound?.stop(); sound?.play();` depends on; it does not call SettleChime.Play().
@@ -35,6 +38,19 @@ namespace Marrow.UI.Tests.Sound;
 //   that plays anything uses FakeSoundOutput (R-TEST-10: no test drives the real Windows audio device).
 public sealed class SettleChimeTests
 {
+    [Fact]
+    [Trait("Req", "PR-THEME-082")] // UI/Sound/SettleChime.swift:11-15,19-20 a failed lazy voice is attempted once and Play is a no-op
+    public void Review_real_Play_twice_is_silent_and_does_not_retry_a_failed_voice()
+    {
+        var field = typeof(SettleChime).GetField("Voice", BindingFlags.NonPublic | BindingFlags.Static);
+        Assert.NotNull(field);
+        var seam = Assert.IsType<Ambient<Lazy<SwiftSound?>>>(field.GetValue(null));
+        var attempts = 0;
+        using var voice = seam.Override(new Lazy<SwiftSound?>(() => { attempts++; return null; }));
+        var output = new FakeSoundOutput(); using var outputSeam = SoundOutput.Current.Override(output);
+        SettleChime.Play(); SettleChime.Play();
+        Assert.Equal(1, attempts); Assert.Empty(output.Log); Assert.Empty(output.Plays);
+    }
     // Transcribed from tests/Marrow.UI.Tests/Sound/ToneSynthTests.cs's SettleGoldenSha256, which proves
     // ToneSynth.Wave(SettleChime's notes, SettleChime's partials, 0.32) hashes to this against the Swift
     // wave formula (SettleChime.swift:12,24-35).

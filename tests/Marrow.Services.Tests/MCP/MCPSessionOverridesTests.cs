@@ -13,8 +13,42 @@ namespace Marrow.Services.Tests.MCP;
 
 public sealed class MCPSessionOverridesTests : IDisposable
 {
+    [Fact]
+    [Trait("Req", "PR-MCP-173")] // Services/MCP/MCPSessionOverrides.swift:4-12
+    public void Review_home_fixture_reads_its_scratch_config_instead_of_the_real_profile()
+    {
+        CreateCopilotConfig(new Dictionary<string, object> { ["scratch-only"] = new { } });
+        using var home = new HomeEnvironmentOverride(tempDir);
+        Assert.Equal(["scratch-only"], MCPSessionOverrides.CopilotUserServerNames());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-174")] // Services/MCP/MCPSessionOverrides.swift:40-69 recursive sortedKeys
+    public void Review_opencode_serialization_sorts_every_object_level()
+    {
+        var config = CreateClaudeConfig(new Dictionary<string, object>
+        {
+            ["remote"] = new { type = "http", url = "https://example.com", headers = new { Z = "z", A = "a" } },
+            ["local"] = new { command = "exe", args = new[] { "arg" }, env = new { Z = "z", A = "a" } },
+        });
+        using var seam = new ClaudeConfigOverride(config);
+        Assert.Equal("{\"$schema\":\"https://opencode.ai/config.json\",\"mcp\":{\"local\":{\"command\":[\"exe\",\"arg\"],\"enabled\":true,\"environment\":{\"A\":\"a\",\"Z\":\"z\"},\"type\":\"local\"},\"remote\":{\"enabled\":true,\"headers\":{\"A\":\"a\",\"Z\":\"z\"},\"type\":\"remote\",\"url\":\"https://example.com\"}}}", MCPSessionOverrides.OpencodeEnvironment()["OPENCODE_CONFIG_CONTENT"]);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-173")] // Services/MCP/MCPSessionOverrides.swift:11,16-24 Swift canonical sorting and set membership
+    public void Review_copilot_names_sort_and_match_canonically()
+    {
+        var config = CreateCopilotConfig(new Dictionary<string, object> { ["e\u0301"] = new { }, ["z"] = new { } });
+        using var seam = new CopilotConfigOverride(config);
+        Assert.Equal(["z", "e\u0301"], MCPSessionOverrides.CopilotUserServerNames());
+        const string json = "{\"mcpServers\":{\"\u00e9\":{}}}";
+        Assert.Equal(["--additional-mcp-config", json, "--disable-mcp-server", "z"], MCPSessionOverrides.CopilotArguments(json));
+    }
+
     private readonly string tempDir;
     private readonly StorageScratchFolder storage;
+    private readonly CopilotConfigOverride defaultCopilotConfig;
 
     public MCPSessionOverridesTests()
     {
@@ -29,12 +63,14 @@ public sealed class MCPSessionOverridesTests : IDisposable
 
         tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tempDir);
+        defaultCopilotConfig = new CopilotConfigOverride(Path.Combine(tempDir, ".copilot", "mcp-config.json"));
 
         storage = new StorageScratchFolder();
     }
 
     public void Dispose()
     {
+        defaultCopilotConfig.Dispose();
         storage?.Dispose();
 
         if (Directory.Exists(tempDir))

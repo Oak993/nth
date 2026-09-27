@@ -16,6 +16,14 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Views.Composer;
 
+// STOP App.Views.Composer.ComposerTextView #1
+// Kind: platform default not specified by pinned source
+// Swift: App/Views/Composer/ComposerTextView.swift:61 (B3 52bc792)
+// Records: PR-COMPOSER-046
+// Missing: NSPopover.animates native show/close/reposition behavior has no Avalonia Popup equivalent.
+// Needed: an owner-defined shared presenter animation contract; Swift supplies no duration or curve.
+// Done: explicit source citation/UNVERIFIED marker and real applicationDefined flag assertion.
+
 // Source: DroppyCode/App/Views/Composer/ComposerTextView.swift (B2 1fbf81e), :1-379.
 [Collection("Headless")]
 public sealed class ComposerTextViewTests(HeadlessSession headless)
@@ -159,6 +167,7 @@ public sealed class ComposerTextViewTests(HeadlessSession headless)
 
         var (popup, presented) = Assert.Single(recorder.Calls);
         Assert.True(presented);
+        Assert.False(popup.IsLightDismissEnabled); // App/Views/Composer/ComposerTextView.swift:60 .applicationDefined
         var frame = Assert.IsType<Border>(popup.Child);
         Assert.Equal(340, frame.Width);
         Assert.Equal(44 + 3 * 26, frame.Height); // min(340, 44 + 3*26) = 122

@@ -2174,7 +2174,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce both quirks: the sound is gated on a motion preference rather than on the sound setting, and it bypasses the sound setting entirely. Several servers connecting in one update each call play(), and because the settle chime restarts from the top (PR-THEME-082) the result is one tick, not several.",
       "verification_method": "interaction test with the settle sound setting off: connecting a server is still audible",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3788,7 +3788,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The live-resize deferral is a fix for a visible height oscillation; reproduce it on the Windows resize loop.",
       "verification_method": "interaction test: dragging the window edge does not make paragraphs jitter between two heights",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
