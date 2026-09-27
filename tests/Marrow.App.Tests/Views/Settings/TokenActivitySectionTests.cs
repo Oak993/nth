@@ -43,6 +43,22 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class TokenActivitySectionTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-138")] // App/Views/Settings/TokenActivitySection.swift:143; App/Views/Usage/UsagePanel.swift:110-118
+    [Trait("Req", "PR-SETTINGS-139")] // App/Views/Settings/TokenActivitySection.swift:145
+    public void Legend_reuses_the_shared_usage_formatter_without_a_local_copy()
+    {
+        var source = System.IO.File.ReadAllText(TokenActivitySourcePath());
+        Assert.DoesNotContain("FormatTokens(", source, StringComparison.Ordinal);
+        Assert.Contains("UsagePanel.Tokens(total)", source, StringComparison.Ordinal);
+        Assert.Contains("UsagePanel.Tokens(uncertainTokens)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsagePanel is not yet ported", source, StringComparison.Ordinal);
+    }
+
+    private static string TokenActivitySourcePath([System.Runtime.CompilerServices.CallerFilePath] string path = "") =>
+        System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!, "..", "..", "..", "..",
+            "src", "Marrow.App", "Views", "Settings", "TokenActivitySection.cs"));
+
     private static object Field(object owner, string name) => owner.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(owner)!;
     private static object StateValue(object state, string name) => state.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(state)!;
     private static Button Chip(TokenActivitySection section, string name) => section.GetVisualDescendants().OfType<Button>().Single(b => AutomationProperties.GetName(b) == name);

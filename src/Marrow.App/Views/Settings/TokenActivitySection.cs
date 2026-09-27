@@ -12,10 +12,8 @@
 // becomes TokenActivityMonthStrip : Canvas, rebuilding its labels in ArrangeOverride so they track the available
 // width the way SwiftUI's GeometryReader does.
 //
-// UsagePanel.tokens(_:) (DroppyCode/App/Views/Usage/UsagePanel.swift:109-118) is used at :143, :145 but
-// Views.Usage.UsagePanel is not yet ported as its own unit. TokenActivityFormat.FormatTokens duplicates that exact
-// algorithm from the pinned source pending that unit's port; it must be reconciled (not re-implemented) when
-// App.Views.Usage.UsagePanel lands, per the "never invent, only reuse with proven equivalence" rule.
+// UsagePanel.tokens(_:) (DroppyCode/App/Views/Usage/UsagePanel.swift:110-118) is used at :143, :145.
+// Views.Usage.UsagePanel.Tokens is the shared port of that formatter; both legend values call it directly.
 //
 // ChipButtonStyle (DroppyCode/UI/Common/Components.swift:58-99, cited by this file's own records) has no ported
 // twin: UI.Common.Components's TokenActivitySection-independent ChipButtonStyleHelper (Components.cs:120-125) is an
@@ -46,6 +44,7 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.Core.Port;
+using Marrow.App.Views.Usage;
 using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -81,20 +80,6 @@ internal static class TokenActivityStyle
 /// private, for the same reason as TokenActivityStyle above).
 internal static class TokenActivityFormat
 {
-    /// UsagePanel.tokens(_:), UsagePanel.swift:109-118 (not yet ported as its own unit; see file header).
-    internal static string FormatTokens(long count)
-    {
-        static string Compact(double value, string suffix)
-        {
-            var text = value.ToString("F1", CultureInfo.InvariantCulture);
-            return (text.EndsWith(".0", StringComparison.Ordinal) ? text[..^2] : text) + suffix;
-        }
-        if (count >= 1_000_000_000) return Compact((double)count / 1_000_000_000, "B");
-        if (count >= 1_000_000) return Compact((double)count / 1_000_000, "M");
-        if (count >= 1_000) return Compact((double)count / 1_000, "k");
-        return count.ToString(CultureInfo.InvariantCulture);
-    }
-
     /// :179-185 modeHelp(_:). PR-SETTINGS-131, UI-SETTINGS-022.
     internal static string ModeHelp(TokenActivityMode mode) => mode switch
     {
@@ -107,9 +92,9 @@ internal static class TokenActivityFormat
     /// :142-146, :169-171. summary/detail/accessibility-value for the legend. PR-SETTINGS-138, PR-SETTINGS-139.
     internal static (string Summary, string Detail, string AccessibilityValue) Legend(long total, long uncertainTokens)
     {
-        var summary = $"{FormatTokens(total)} tokens"; // :143
+        var summary = $"{UsagePanel.Tokens(total)} tokens"; // :143
         var detail = uncertainTokens > 0 // :144-146
-            ? $"{FormatTokens(uncertainTokens)} tokens have an unknown source and may overlap imported history."
+            ? $"{UsagePanel.Tokens(uncertainTokens)} tokens have an unknown source and may overlap imported history."
             : "Total tokens recorded this year.";
         var accessibilityValue = uncertainTokens > 0 ? $"{summary}. {detail}" : summary; // :169-171
         return (summary, detail, accessibilityValue);
