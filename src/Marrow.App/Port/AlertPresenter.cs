@@ -1,16 +1,18 @@
 using Avalonia.Controls;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.Core.Port;
+using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
 namespace Marrow.App.Port;
 
-// PORT-ONLY: the presentation seam behind NSAlert.runModal() (AppUpdater.swift:274-280 is its only site so
-// far). Mirrors UI.Port.ViewLifetime's Presentation.Presenter seam for popovers (R-VIEW-9): production shows
-// a real modal window and the returned Task does not complete until it closes, matching runModal's block;
-// a test overrides the Ambient and records instead, because Avalonia 12.1.2 headless cannot open a real
-// Window any more than it can a Popup ("Unable to create IPopupImpl and no overlay layer is found").
+// PORT-ONLY: ED-216's shared SwiftUI alert/confirmationDialog and NSAlert.runModal seam.
+// Source sites: AppUpdater.swift:274-280, TimelineRows.swift:191-196, SettingsView.swift:920-934,
+// RootView.swift:80-91, ChatView.swift:1231-1237, :1381-1385 (B3 52bc792).
+// The Windows ordering/default/sheet appearance remain UNVERIFIED under OD-0001.
 
 /// <summary>One alert button: its title and the action a click performs before the alert closes.</summary>
 public sealed record AlertButton(string Title, Action Perform)
@@ -18,22 +20,39 @@ public sealed record AlertButton(string Title, Action Perform)
     public AlertButtonRole Role { get; init; }
 }
 
-// ED-216: declarations for tests-first implementation of the shared dialog contract.
+// ED-216: preserve the updater's two-argument AlertButton constructor and old Show overload.
 public enum AlertButtonRole { None, Cancel, Destructive }
 public enum AlertKind { Alert, ConfirmationDialog }
 public sealed record AlertTextField(string Label, Binding<string> Value);
 public sealed record AlertRequest(string Title, string? Message, IReadOnlyList<AlertButton> Buttons,
     AlertKind Kind = AlertKind.Alert, IReadOnlyList<AlertTextField>? TextFields = null, Avalonia.Controls.Window? Owner = null)
 {
-    public AlertButton? ReturnDefault => throw new NotImplementedException("ED-216 declaration only");
+    public AlertButton? ReturnDefault => Buttons.FirstOrDefault(button => button.Role == AlertButtonRole.None)
+        ?? (Buttons.Count == 1 && Buttons[0].Role == AlertButtonRole.Cancel ? Buttons[0] : null);
 }
 
 internal sealed class AlertSession(AlertRequest request, Action close)
 {
-    public Task Completion => throw new NotImplementedException("ED-216 declaration only");
-    public void Press(string title) { _ = request; _ = close; _ = title; throw new NotImplementedException("ED-216 declaration only"); }
-    public void Cancel() => throw new NotImplementedException("ED-216 declaration only");
-    public void Closed() => throw new NotImplementedException("ED-216 declaration only");
+    private readonly TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
+    private bool responded;
+    public Task Completion => completion.Task;
+    public void Press(string title) => Press(request.Buttons.First(button => button.Title == title));
+    public void Press(AlertButton button)
+    {
+        if (responded || completion.Task.IsCompleted) return;
+        responded = true;
+        try { button.Perform(); }
+        finally { close(); }
+    }
+    public void Cancel(bool closeWindow = true)
+    {
+        if (responded || completion.Task.IsCompleted) return;
+        responded = true;
+        try { request.Buttons.FirstOrDefault(button => button.Role == AlertButtonRole.Cancel)?.Perform(); }
+        finally { if (closeWindow) close(); }
+    }
+    public void Closed() => completion.TrySetResult();
+    public void Failed(Exception error) => completion.TrySetException(error);
 }
 
 /// <summary>NSAlert.Style's one case this app ever sets (AppUpdater.swift:278).</summary>
@@ -46,61 +65,86 @@ public interface IAlertPresenter
 {
     /// <summary>Presents a modal alert; the returned Task completes when the alert closes.</summary>
     Task Show(string title, string informativeText, AlertStyle style, IReadOnlyList<AlertButton> buttons);
+
+    // A default bridge preserves existing presenter overrides implementing the updater's original API.
+    Task Show(AlertRequest request) => Show(request.Title, request.Message ?? "", AlertStyle.Warning, request.Buttons);
 }
 
 public static class AlertPresentation
 {
     public static Ambient<IAlertPresenter> Presenter { get; } = new(() => new WindowsAlertPresenter());
-    internal static AlertRequest Prepare(AlertRequest request) { _ = request; throw new NotImplementedException("ED-216 declaration only"); }
+    public static Task Show(AlertRequest request) => Presenter.Current.Show(Prepare(request));
+
+    internal static AlertRequest Prepare(AlertRequest request)
+    {
+        var buttons = request.Buttons.ToList();
+        if (request.Kind == AlertKind.ConfirmationDialog && buttons.All(button => button.Role != AlertButtonRole.Cancel))
+            buttons.Add(new AlertButton("Cancel", () => { }) { Role = AlertButtonRole.Cancel });
+        else if (request.Kind == AlertKind.Alert && buttons.Count == 0)
+            buttons.Add(new AlertButton("OK", () => { }));
+        return request with { Buttons = buttons.OrderBy(button => button.Role == AlertButtonRole.Cancel).ToArray() };
+    }
 }
 
 /// <summary>The production presenter: a plain modal Avalonia window with the message and its buttons.</summary>
 public sealed class WindowsAlertPresenter : IAlertPresenter
 {
     internal static Avalonia.Controls.Window BuildWindow(AlertRequest request, AlertSession session)
-    { _ = request; _ = session; throw new NotImplementedException("ED-216 declaration only"); }
+    {
+        var window = new Avalonia.Controls.Window
+        {
+            Title = request.Title, SizeToContent = SizeToContent.WidthAndHeight, CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner,
+        };
+        var content = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 16 };
+        content.Children.Add(new TextBlock { Text = request.Title, FontWeight = FontWeight.Bold, TextWrapping = TextWrapping.Wrap, MaxWidth = 360 });
+        if (request.Message is { } message)
+            content.Children.Add(new TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, MaxWidth = 360 });
+        foreach (var field in request.TextFields ?? []) content.Children.Add(PlainControls.TextField(field.Label, field.Value));
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        foreach (var button in request.Buttons)
+        {
+            var label = new TextBlock { Text = button.Title };
+            if (button.Role == AlertButtonRole.Destructive) label.Foreground = Chrome.Danger.Brush(label);
+            var control = new Button { Content = label, IsDefault = ReferenceEquals(button, request.ReturnDefault), IsCancel = button.Role == AlertButtonRole.Cancel };
+            control.Click += (_, _) => session.Press(button);
+            row.Children.Add(control);
+        }
+        content.Children.Add(row);
+        window.Content = content;
+        window.KeyDown += (_, args) =>
+        {
+            if (args.Key == Key.Escape) { session.Cancel(); args.Handled = true; }
+            else if (args.Key == Key.Enter && request.ReturnDefault is { } button) { session.Press(button); args.Handled = true; }
+        };
+        window.Closing += (_, _) => session.Cancel(closeWindow: false);
+        window.Closed += (_, _) => session.Closed();
+        return window;
+    }
 
     public Task Show(string title, string informativeText, AlertStyle style, IReadOnlyList<AlertButton> buttons)
     {
         _ = style; // The one style this app shows (Warning) carries no distinct visual treatment yet.
-        var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        return Show(new AlertRequest(title, informativeText, buttons));
+    }
+
+    public Task Show(AlertRequest request)
+    {
+        request = AlertPresentation.Prepare(request);
+        Avalonia.Controls.Window? window = null;
+        var session = new AlertSession(request, () => window?.Close());
         MainActor.Post(() =>
         {
-            var window = new Avalonia.Controls.Window
+            try
             {
-                Title = title,
-                SizeToContent = SizeToContent.WidthAndHeight,
-                CanResize = false,
-                WindowStartupLocation = WindowStartupLocation.CenterOwner,
-            };
-            var buttonRow = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 8,
-                HorizontalAlignment = HorizontalAlignment.Right,
-            };
-            foreach (var button in buttons)
-            {
-                var control = new Button { Content = button.Title };
-                control.Click += (_, _) =>
-                {
-                    button.Perform();
-                    window.Close();
-                };
-                buttonRow.Children.Add(control);
+                var desktop = Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
+                var owner = request.Owner ?? desktop?.Windows.FirstOrDefault(candidate => candidate.IsActive) ?? desktop?.MainWindow
+                    ?? throw new InvalidOperationException("A modal alert requires an owner window.");
+                window = BuildWindow(request, session);
+                _ = window.ShowDialog(owner);
             }
-            var content = new StackPanel { Margin = new Avalonia.Thickness(20), Spacing = 16 };
-            content.Children.Add(new TextBlock
-            {
-                Text = informativeText,
-                TextWrapping = TextWrapping.Wrap,
-                MaxWidth = 360,
-            });
-            content.Children.Add(buttonRow);
-            window.Content = content;
-            window.Closed += (_, _) => completion.TrySetResult();
-            window.Show();
+            catch (Exception error) { session.Failed(error); }
         });
-        return completion.Task;
+        return session.Completion;
     }
 }
