@@ -3,6 +3,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -1063,7 +1064,15 @@ public sealed class AppCommandsTests(HeadlessSession headless)
         h.Main.OnMain(tour.Action);
         // Only a tour presented for this model marks it seen again when it closes (TourPages.swift:26-28).
         h.Main.OnMain(() => model.Settings.HasSeenTour = false);
-        h.Main.OnMain(() => TourWindowController.Shared.Close());
+        h.Main.OnMain(() =>
+        {
+            // TourWindowController.swift:52-63 runs the caller's onClose only through TourView's onClose (the checkmark control); :139-143 close() only clears the retained window/delegate, so controller Close() is not the user-close path.
+            var window = TourWindowController.Shared.Present(TourPages.Pages);
+            var view = Assert.IsType<TourView>(window.Content);
+            var checkmark = view.GetVisualDescendants().OfType<Button>().Single(button =>
+                button.GetVisualDescendants().OfType<SwiftImage>().Any(image => image.SymbolName == "checkmark"));
+            checkmark.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        });
 
         Assert.True(h.Main.OnMain(() => model.Settings.HasSeenTour));
     });
@@ -2398,7 +2407,15 @@ public sealed class AppCommandsTests(HeadlessSession headless)
         h.Main.OnMain(() => model.Settings.HasSeenTour = true);
         h.Main.OnMain(() => commands.Body[^1].Action());
         h.Main.OnMain(() => model.Settings.HasSeenTour = false);
-        h.Main.OnMain(() => TourWindowController.Shared.Close());
+        h.Main.OnMain(() =>
+        {
+            // TourWindowController.swift:52-63 runs the caller's onClose only through TourView's onClose (the checkmark control); :139-143 close() only clears the retained window/delegate, so controller Close() is not the user-close path.
+            var window = TourWindowController.Shared.Present(TourPages.Pages);
+            var view = Assert.IsType<TourView>(window.Content);
+            var checkmark = view.GetVisualDescendants().OfType<Button>().Single(button =>
+                button.GetVisualDescendants().OfType<SwiftImage>().Any(image => image.SymbolName == "checkmark"));
+            checkmark.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        });
         Assert.True(h.Main.OnMain(() => model.Settings.HasSeenTour));
     });
 
