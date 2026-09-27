@@ -40,6 +40,85 @@ namespace Marrow.App.Tests.Views.Chat;
 public sealed class TimelineRowsTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Req", "PR-CHAT-078")] // App/Views/Chat/TimelineRows.swift:97-114
+    [Trait("Req", "UI-CHAT-008")] // App/Views/Chat/TimelineRows.swift:97-114
+    public void Leading_quotes_render_with_the_real_ChipChrome_excerpt_and_help() => headless.OnUiThread(() =>
+    {
+        using var h = RuntimeHarness();
+        h.Main.OnMain(() =>
+        {
+            var row = new UserMessageRow(UserEntry("> quoted words\n\nprompt", null), h.Runtime, false);
+            var window = Show(row);
+            var chip = LogicalQuery.SelfAndDescendants<Border>(row).Single(control => AutomationProperties.GetName(control) == "Quote: quoted words");
+            Assert.Equal(new Thickness(9, 5, 7, 5), chip.Padding); // ComposerView.swift:965-968
+            Assert.Equal("quoted words", ToolTip.GetTip(chip));
+            Assert.Equal(260, TextNamed(chip, "quoted words").MaxWidth);
+            Assert.Contains("text.quote", Symbols(chip));
+            Assert.Equal("prompt", Assert.Single(LogicalQuery.SelfAndDescendants<InlineText>(row)).Source);
+            Close(window);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")] // App/Views/Chat/TimelineRows.swift:2580-2585
+    [Trait("Req", "PR-CHAT-155")] // App/Views/Chat/TimelineRows.swift:2580-2585
+    public void Expanded_turns_use_real_groups_and_exclude_the_separate_head_list() => headless.OnUiThread(() =>
+    {
+        using var h = RuntimeHarness();
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty,
+                new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Agent, "Hank: work")), ToolEntry(Call(ToolCall.Kind.Read, "Read file")), ReplyEntry(CodeOnlyReply, turn: turn)]), null, false, false);
+            var derived = Invoke(block, "DerivedFor", true);
+            Assert.NotNull(derived);
+            var groups = Assert.IsAssignableFrom<IReadOnlyList<TimelineGroup>>(derived.GetType().GetProperty("DetailGroups")!.GetValue(derived));
+            Assert.NotEmpty(groups);
+            Assert.DoesNotContain(groups, group => group is TimelineGroup.Heads);
+            var steps = Assert.IsAssignableFrom<Control>(Invoke(block, "Steps", derived, false));
+            var window = Show(steps);
+            Assert.Contains("Read file", Texts(steps));
+            Close(window);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-152")] // App/Views/Chat/TimelineRows.swift:401-418; App/AppModel.swift:396-400
+    [Trait("Req", "UI-CHAT-052")] // App/Views/Chat/TimelineRows.swift:401-418
+    public void Finished_heads_mount_from_the_live_AppModel_helper_cells_without_manual_injection() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var (store, app, runtime) = TeamHarness(Head(0, HydraHeadInfo.Status.Failed), Head(1, HydraHeadInfo.Status.Completed));
+        using (store)
+        {
+            store.Main.OnMain(() =>
+            {
+                var row = new HydraHeadsWorkingRow(new ValueList<int>([1, 0, 5]), runtime);
+                var host = new Border { Child = row };
+                Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
+                var window = Show(host);
+                Assert.Equal(["Walter finished working", "Hank failed"], LogicalQuery.SelfAndDescendants<FinishedHeadPill>(row).Select(AutomationProperties.GetName));
+                Close(window);
+            });
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-154")] // App/Views/Chat/TimelineRows.swift:1969-1973; ED-217
+    [Trait("Req", "UI-CHAT-055")] // App/Views/Chat/TimelineRows.swift:1969-1973; ED-217
+    public void Head_step_tool_labels_use_the_two_line_middle_truncation_control() => headless.OnUiThread(() =>
+    {
+        using var actor = new TestRuntime();
+        actor.OnMain(() =>
+        {
+            var step = Assert.IsAssignableFrom<Control>(InvokeStatic(typeof(HydraHeadStepsPopover), "Step", ToolEntry(Call(ToolCall.Kind.Read, "Read a file"))));
+            var label = Assert.Single(LogicalQuery.SelfAndDescendants<MiddleTruncatingTextBlock>(step));
+            Assert.Equal(2, label.LineLimit);
+            Assert.Equal("Read a file", label.FullText);
+        });
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-033")] // App/Views/Chat/TimelineRows.swift:2356-2369
     public void Checklist_symbols_share_the_first_text_baseline_with_their_steps()
     {
