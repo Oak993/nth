@@ -478,12 +478,9 @@ public sealed class EffortSliderTests(HeadlessSession headless)
 // Needed: port ProviderIcon's bundled provider artwork and the shared chip(active:) style in their owning unit.
 // Surrounding labels, actions, widths, popover, rows and subtitles are now implemented and tested in EffortSliderSweepTests.
 
-// STOP App.Views.Composer.EffortSlider #4
-// Kind: missing shared Windows haptic boundary.
-// Swift: App/Views/Composer/EffortSlider.swift:812; records PR-COMPOSER-125, UI-COMPOSER-035.
-// Missing: Haptics.Perform in ShortcutsSettingsPage.cs:783-786 is a no-op, with no observable or native boundary.
-// Needed: implement that owning unit's haptic adaptation/seam. This unit now calls Alignment once per index change;
-// drag rounding, clamping, pointer capture and both source springs are implemented and tested.
+// PR-COMPOSER-125 windows_path explicitly drops haptics silently on Windows, without a sound substitute.
+// The shared Haptics.Perform no-op is the specified adaptation, not an unported dependency (port_impacts X6).
+// The source Alignment call remains once per index change; drag rounding, clamping, capture and springs are tested.
 
 // STOP App.Views.Composer.EffortSlider #5
 // Kind: missing 2D drawing primitive for additive path compositing.

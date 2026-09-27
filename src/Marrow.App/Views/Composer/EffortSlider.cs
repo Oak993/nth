@@ -710,7 +710,7 @@ public sealed class EffortSlider : Decorator
         else dragX = x;
         var step = count > 1 ? (Bounds.Width - ThumbSize) / (count - 1) : 0;
         var nearest = count > 1 && step > 0 ? Math.Clamp((int)Math.Round((x - ThumbSize / 2) / step, MidpointRounding.AwayFromZero), 0, count - 1) : 0;
-        if (nearest != index.Value) { index.Value = nearest; Haptics.Perform(HapticPattern.Alignment); } // STOP #4: shared no-op haptics
+        if (nearest != index.Value) { index.Value = nearest; Haptics.Perform(HapticPattern.Alignment); } // PR-COMPOSER-125 windows_path: silent Windows no-op, no substitute cue.
         LayoutTrack();
     }
 

@@ -515,7 +515,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:712-713,740-799
-    [Trait("Req", "PR-COMPOSER-125")] // App/Views/Composer/EffortSlider.swift:802-818,833-836 (haptic boundary remains STOP)
+    [Trait("Req", "PR-COMPOSER-125")] // App/Views/Composer/EffortSlider.swift:802-818,833-836 (windows_path silently drops haptics)
     [Trait("Req", "UI-COMPOSER-035")] // App/Views/Composer/EffortSlider.swift:740-831
     public void Drag_clamps_and_snaps_to_each_stop_and_preserves_track_and_knob_sizes()
     {
