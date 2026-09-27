@@ -6,11 +6,15 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
+using Avalonia.Platform.Storage;
 using Marrow.App.Port;
+using Marrow.App.Views.Palette;
 using Marrow.App.Views.Settings;
+using Marrow.App.Views.Sidebar;
 using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -19,6 +23,7 @@ using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 
 namespace Marrow.App.Views;
 
@@ -34,24 +39,379 @@ namespace Marrow.App.Views;
 // pinned B3 tree confirms no CopyCommandButton in RootView.swift and no other DroppyCode file declaring it either
 // (SOURCE FACT, verified against E:/Droppy/reference/droppy-code-v1.7.0). Its class and test are deleted here.
 //
-// This unit implements the 6 remaining types that do not depend on SidebarView.cs (53 MARROW_STUB) or ChatView.cs (23
-// MARROW_STUB): DetailView's empty-state branch, WelcomeView, ProviderChecklist, ProviderStatusRow,
-// OpenProvidersSettingsButton and NoThreadView. RootView.HandleDrop (below) is implemented and tested through an
-// extracted HandleDropCore, which needs no visual tree at all. RootView's top-level body and ThreadColumns stay
-// MARROW_STUB: RootView's body needs SidebarView (still 53 MARROW_STUB; its own constructor throws unconditionally,
-// so no RootView instance can be built while it does) and, only for the isCommandPalettePresented branch,
-// CommandPalette (still MARROW_STUB); GenieLayer, RowGlideLayer, WindowChromeConfigurator and WallpaperStore are now
-// real (0 MARROW_STUB each), narrowing the block from the prior STOP note (see the STOP note at the end of
-// RootViewTests.cs). ThreadColumns needs ChatView (blocked) and a WindowLiveResize read from the environment, which
-// HostedEnvironment (App.Window.WindowManager.cs) now attaches for real; DetailView's "a thread is selected" branch
-// calls into ThreadColumns and so stays MARROW_STUB for ChatView's sake alone.
+// This unit implements the 6 types that do not depend on SidebarView.cs or ChatView.cs (DetailView's empty-state
+// branch, WelcomeView, ProviderChecklist, ProviderStatusRow, OpenProvidersSettingsButton, NoThreadView), plus
+// RootView.HandleDrop/HandleDropCore (needs no visual tree), plus - review pass (STOP App.Views.RootView #2 is now
+// stale, see below) - RootView's own top-level body (PR-WIN-062, -063, -066, -067): the HStack, both resize-handle
+// overlays, the backdrop/chrome-probe background, the window's own rounded clip, the real drag-and-drop wiring onto
+// HandleDrop, the model-alert dialog and the genie/row-glide/command-palette overlay stack. SidebarView.cs's
+// constructor and CommandPalette.cs's constructor are both real now (0 MARROW_STUB each), which is what unblocked
+// this. ThreadColumns and DetailView's "a thread is selected" branch stay MARROW_STUB: ThreadColumns.updateNSView
+// calls into ChatView (App.Views.Chat.ChatView.cs, still 23 MARROW_STUB), the one dependency left (see the STOP note
+// at the end of RootViewTests.cs, narrowed to name only ChatView).
 
 /// <summary>:4-111 <c>struct RootView: View</c>, with the file's <c>extension EnvironmentValues</c> (:116-118).</summary>
 public sealed class RootView : Decorator
 {
+    private readonly SidebarView sidebarView = new();
+    private readonly Border sidebarClip;
+    private readonly SidebarResizeHandle trailingHandleConfig;
+    private readonly DragHandleView trailingHandle;
+    private readonly SidebarResizeHandle leadingHandleConfig;
+    private readonly DragHandleView leadingHandle;
+    private readonly DetailView detailView = new();
+    private readonly Border detailClip;
+    private readonly Border detailPadded;
+    private readonly Panel detailSlot = new();
+    private readonly WindowBackdrop backdrop;
+    private readonly WindowChromeProbe chromeProbe = new();
+    private readonly WindowChromeConfigurator chromeConfig = new();
+    private readonly Border windowClip;
+    private readonly Panel outerRoot = new();
+    private readonly Panel paletteHost = new();
+    private CommandPalette? palette;
+    private Control? floatingPanel;
+    private Size detailSize;
+    private bool? lastFloats;
+    private bool lastOnlyFloats;
+    private Size lastFloatDetailSize = new(-1, -1);
+    private bool alertShowing;
+
+    /// <summary>Test-only: the window's own rounded clip (PR-WIN-062, :66-68).</summary>
+    internal Border WindowClip => windowClip;
+
+    /// <summary>Test-only: the detail column's own clip, before its (inert) padding (PR-WIN-063, :40).</summary>
+    internal Border DetailClip => detailClip;
+
     // :8-92 body
-    public RootView() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/RootView.swift:8");
+    public RootView()
+    {
+        // :14-31 the sidebar column: laid out at its own full target width (:18), then clipped to the visible
+        // (rendered) width (:19-20), the visible slice aligned trailing so it slides in from the sidebar's own
+        // leading edge as the width grows. :21 onGeometryChange reports the clip's own laid-out width back to the
+        // model, the same SizeChanged-report convention already used for a laid-out width (SidebarView.cs:2304).
+        sidebarView.HorizontalAlignment = HorizontalAlignment.Right; // :19 alignment: .trailing
+        sidebarClip = new Border
+        {
+            Child = sidebarView,
+            ClipToBounds = true, // :20 .clipped()
+            Width = 0,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        };
+        sidebarClip.SizeChanged += (_, e) => // :21
+        {
+            AppModel model;
+            try { model = AppEnvironment.GetAppModel(this); }
+            catch (InvalidOperationException) { return; }
+            model.Sidebar.NoteLaidOutWidth(e.NewSize.Width);
+        };
+
+        // :22-31 the trailing resize handle, over the sidebar column's own trailing edge, active while visible.
+        trailingHandleConfig = new SidebarResizeHandle
+        {
+            OnBegin = () => AppEnvironment.GetAppModel(this).Sidebar.BeginDrag(),
+            OnChange = delta => AppEnvironment.GetAppModel(this).Sidebar.Drag(delta),
+            OnEnd = () => AppEnvironment.GetAppModel(this).Sidebar.EndDrag(),
+        };
+        trailingHandle = trailingHandleConfig.MakeNSView();
+        trailingHandle.Width = SidebarResizeHandle.HitWidth; // :29
+        trailingHandle.HorizontalAlignment = HorizontalAlignment.Right; // :22 overlay(alignment: .trailing)
+        trailingHandle.VerticalAlignment = VerticalAlignment.Stretch;
+        trailingHandle.Margin = new Thickness(0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0); // :30
+
+        var sidebarSlot = new Panel { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Stretch };
+        sidebarSlot.Children.Add(sidebarClip);
+        sidebarSlot.Children.Add(trailingHandle);
+
+        // :33-51 the detail column: stretches, clips its own bounds first (:40), then insets by the sheet inset on
+        // every side but the leading one (:41-43; inert at Chrome.SheetInset == 0, PR-WIN-063).
+        detailView.HorizontalAlignment = HorizontalAlignment.Stretch;
+        detailView.VerticalAlignment = VerticalAlignment.Stretch;
+        detailClip = new Border
+        {
+            Child = detailView,
+            ClipToBounds = true, // :40 .clipped()
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        };
+        detailPadded = new Border { Child = detailClip, HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch }; // :41-43
+        detailPadded.SizeChanged += (_, e) => // :44 onGeometryChange(for: CGSize.self, of: { $0.size }) { detailSize = $0 }
+        {
+            detailSize = e.NewSize;
+            RebuildFloatingOverlay(animated: false);
+        };
+        detailSlot.Children.Add(detailPadded);
+        detailSlot.HorizontalAlignment = HorizontalAlignment.Stretch;
+        detailSlot.VerticalAlignment = VerticalAlignment.Stretch;
+
+        // :14 HStack(spacing: 0)
+        var hstack = new Grid { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+        hstack.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
+        hstack.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+        Grid.SetColumn(sidebarSlot, 0);
+        Grid.SetColumn(detailSlot, 1);
+        hstack.Children.Add(sidebarSlot);
+        hstack.Children.Add(detailSlot);
+
+        // :53-63 the leading-edge strip, over the whole HStack, that pulls the hidden sidebar back out.
+        leadingHandleConfig = new SidebarResizeHandle
+        {
+            OnBegin = () => AppEnvironment.GetAppModel(this).Sidebar.BeginDrag(),
+            OnChange = delta => AppEnvironment.GetAppModel(this).Sidebar.Drag(delta),
+            OnEnd = () => AppEnvironment.GetAppModel(this).Sidebar.EndDrag(),
+        };
+        leadingHandle = leadingHandleConfig.MakeNSView();
+        leadingHandle.Width = SidebarResizeHandle.HitWidth; // :61
+        leadingHandle.HorizontalAlignment = HorizontalAlignment.Left; // :54 overlay(alignment: .leading)
+        leadingHandle.VerticalAlignment = VerticalAlignment.Stretch;
+        leadingHandle.Margin = new Thickness(0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0); // :62
+
+        var content = new Panel { HorizontalAlignment = HorizontalAlignment.Stretch, VerticalAlignment = VerticalAlignment.Stretch };
+        content.Children.Add(hstack);
+        content.Children.Add(leadingHandle);
+
+        // :64-65 the backdrop and the window-chrome probe, both painted behind the content.
+        backdrop = new WindowBackdrop(AppSettings.DefaultBackdropOpacity); // :64, placeholder until UpdateBackdrop's first real read below
+        var behindContent = new Panel();
+        behindContent.Children.Add(chromeProbe); // :65, no visual output (WindowChromeProbe.IsHitTestVisible false)
+        behindContent.Children.Add(backdrop); // :64
+        behindContent.Children.Add(content);
+
+        // :66-68 clipped to the window's own rounded shape only after the backdrop is painted, so the glass and its
+        // edge stop at the window's own curve (PR-WIN-062, "Clip the composited window to the same squircle... so
+        // the DWM shadow follows the same curve" - WindowChrome.cs's own Configure/PlaceTrafficLights already own
+        // the platform window's frame and region; this Border is the composited content's own clip, the Avalonia
+        // half of that windows_path). .ignoresSafeArea() (:68) has nothing to do here: Windows reserves no OS-drawn
+        // safe area over this fully custom-chromed window, the identical call WindowChrome.cs's own top-of-file
+        // note already makes for the titlebar container it has no counterpart for.
+        windowClip = new Border
+        {
+            Child = behindContent,
+            ClipToBounds = true,
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch,
+        }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
+
+        // :69 .coordinateSpace(.named(GenieAnimator.coordinateSpace)): nothing to install here. Every consumer reaches
+        // "the window" through Avalonia's own ancestor-relative TranslatePoint/TransformToVisual directly
+        // (SidebarView.cs's ReportsFrame, :677-694, is the established convention for exactly this), which replaces a
+        // named coordinate space outright; there is no separate per-control declaration step the way SwiftUI's
+        // modifier needs one.
+        // :70-76 the genie, row-glide and command-palette overlays sit OUTSIDE windowClip (added after it below), so
+        // none of the three is clipped by the window's own rounded shape (PR-WIN-067).
+        var genieLayer = new GenieLayer();
+        var rowGlideLayer = new RowGlideLayer();
+
+        outerRoot.Children.Add(windowClip);
+        outerRoot.Children.Add(genieLayer);
+        outerRoot.Children.Add(rowGlideLayer);
+        outerRoot.Children.Add(paletteHost); // :72-76, CommandPalette added/removed by UpdatePalette below
+
+        HorizontalAlignment = HorizontalAlignment.Stretch;
+        VerticalAlignment = VerticalAlignment.Stretch;
+        Child = outerRoot;
+
+        // :77-79 .dropDestination(for: URL.self) { urls, _ in handleDrop(urls) }
+        DragDrop.SetAllowDrop(this, true);
+        AddHandler(DragDrop.DragOverEvent, OnDragOver);
+        AddHandler(DragDrop.DropEvent, OnDrop);
+
+        // Every model-dependent knob below is deferred past the constructor (DetailView.cs's own identical pattern,
+        // just above): AppEnvironment.SetAppModel(this, ...) runs only after WindowManager finishes building this
+        // instance (HostedEnvironment.Body, App.Window.WindowManager.cs), well after `new RootView()` returns, so
+        // nothing above may read the model, and nothing below may either until each Track's first callback fires.
+        // Independent, sibling Track calls (WelcomeView.cs's own identical note): each fires once immediately at
+        // attach (Port/ViewLifetime.cs's Tracked&lt;T&gt;) and again on its own change alone.
+        this.Track(() => AppEnvironment.GetAppModel(this).Settings.SidebarFloats, _ => Recompute()); // :12-13
+        this.Track(() => AppEnvironment.GetAppModel(this).Settings.SidebarOnlyFloats, _ => Recompute()); // :12
+        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsVisible, _ => Recompute()); // :13
+        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.Width, _ => Recompute()); // :18
+        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.HoldsTrafficLights, _ => UpdateChrome()); // :65
+        this.Track(() => AppEnvironment.GetAppModel(this).Sidebar.IsDragging, _ => UpdateChrome()); // :65
+        this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, _ => UpdateBackdrop()); // :64
+        this.Track(() => WallpaperStore.Shared.Current.Image, _ => UpdateBackdrop()); // :64
+        this.Track(() => AppEnvironment.GetAppModel(this).IsCommandPalettePresented, _ => UpdatePalette()); // :72-76
+        this.Track(() => AppEnvironment.GetAppModel(this).Alert, _ => UpdateAlert()); // :80-91
+    }
+
+    // :9,12-13 the sidebar column's target/rendered width, the two resize handles' active states, and the detail
+    // column's leading inset: everything the HStack itself recomputes fresh on every relevant model change.
+    private void Recompute()
+    {
+        AppModel model;
+        try { model = AppEnvironment.GetAppModel(this); }
+        catch (InvalidOperationException) { return; }
+
+        var sidebar = model.Sidebar; // :9
+        var onlyFloats = model.Settings.SidebarFloats && model.Settings.SidebarOnlyFloats; // :12
+        var floats = model.Settings.SidebarFloats && (onlyFloats || !sidebar.IsVisible); // :13
+
+        sidebarView.Width = sidebar.Width; // :18
+        sidebarClip.Width = onlyFloats ? 0 : sidebar.RenderedWidth; // :19
+
+        trailingHandleConfig.IsActive = !onlyFloats && sidebar.IsVisible; // :24
+        trailingHandleConfig.UpdateNSView(trailingHandle);
+        leadingHandleConfig.IsActive = !onlyFloats && !sidebar.IsVisible; // :56
+        leadingHandleConfig.UpdateNSView(leadingHandle);
+
+        var leadingInset = sidebar.IsVisible && !onlyFloats ? 0 : Chrome.SheetInset; // :41
+        detailPadded.Padding = new Thickness(leadingInset, Chrome.SheetInset, Chrome.SheetInset, Chrome.SheetInset); // :41-43
+
+        var animated = lastFloats is { } previous && previous != floats; // :51 .animation(Chrome.panelSlide, value: floats)
+        lastFloats = floats;
+        RebuildFloatingOverlay(animated);
+    }
+
+    // :45-50 the floating panel overlay: rebuilt fresh from the current inputs every time this or detailPadded's own
+    // SizeChanged handler calls in, skipping the rebuild when nothing it reads actually changed. FloatingSidebarPanel
+    // (Views/Sidebar/FloatingSidebarPanel.cs) carries no Update method of its own (R-VIEW-1's per-render
+    // reconstruction is that unit's own design, not this one's to revisit): a resize that lands mid-drag on the
+    // panel's own title or resize handle loses that drag's transient @State a real SwiftUI re-render would have
+    // kept identity-preserved - ENGINEERING GAP, the same shape as NewThreadPrompt.cs's own noted
+    // minimumScaleFactor gap, and unreachable outside that one simultaneous gesture.
+    private void RebuildFloatingOverlay(bool animated)
+    {
+        AppModel model;
+        try { model = AppEnvironment.GetAppModel(this); }
+        catch (InvalidOperationException) { return; }
+
+        var onlyFloats = model.Settings.SidebarFloats && model.Settings.SidebarOnlyFloats; // :12
+        var floats = model.Settings.SidebarFloats && (onlyFloats || !model.Sidebar.IsVisible); // :13
+        var shouldShow = floats && detailSize != default; // :46 detailSize != .zero
+
+        if (shouldShow == (floatingPanel is not null) && onlyFloats == lastOnlyFloats && detailSize == lastFloatDetailSize) return;
+        lastOnlyFloats = onlyFloats;
+        lastFloatDetailSize = detailSize;
+
+        void Apply()
+        {
+            if (floatingPanel is { } old) // :46 the previous instance leaves under the same transition, if any
+            {
+                SwiftTransition.Remove(detailSlot, old);
+                floatingPanel = null;
+            }
+            if (shouldShow)
+            {
+                var panel = new FloatingSidebarPanel(detailSize, !onlyFloats, () => model.Sidebar.Toggle()) // :47
+                    .Transition(SwiftTransition.Scale(0.94).Combined(SwiftTransition.Opacity)); // :48
+                panel.HorizontalAlignment = HorizontalAlignment.Left;
+                panel.VerticalAlignment = VerticalAlignment.Top; // :45 overlay(alignment: .topLeading)
+                SwiftTransition.Insert(detailSlot, detailSlot.Children.Count, panel);
+                floatingPanel = panel;
+            }
+        }
+
+        if (animated) Transaction.WithAnimation(Chrome.PanelSlide, Apply); else Apply(); // :51
+    }
+
+    // :64 the backdrop updates in place (WindowBackdrop.Update's own doc comment: "The parent passing new inputs...
+    // built again from RootView.swift:64").
+    private void UpdateBackdrop()
+    {
+        AppModel model;
+        try { model = AppEnvironment.GetAppModel(this); }
+        catch (InvalidOperationException) { return; }
+        backdrop.Update(model.Settings.BackdropOpacity, WallpaperStore.Shared.Current.Image);
+    }
+
+    // :65 the window-chrome probe updates in place the same way (WindowChromeConfigurator.Update's identical shape).
+    private void UpdateChrome()
+    {
+        AppModel model;
+        try { model = AppEnvironment.GetAppModel(this); }
+        catch (InvalidOperationException) { return; }
+        chromeConfig.SidebarVisible = model.Sidebar.HoldsTrafficLights; // :65 sidebarVisible: sidebar.holdsTrafficLights
+        chromeConfig.SidebarDragging = model.Sidebar.IsDragging; // :65 sidebarDragging: sidebar.isDragging
+        chromeConfig.Update(chromeProbe);
+    }
+
+    // :72-76 the command palette: built only while shown, torn down entirely when not (PR-WIN-067's "holds no state
+    // between openings").
+    private void UpdatePalette()
+    {
+        AppModel model;
+        try { model = AppEnvironment.GetAppModel(this); }
+        catch (InvalidOperationException) { return; }
+
+        if (model.IsCommandPalettePresented) // :73
+        {
+            if (palette is not null) return;
+            palette = new CommandPalette(); // :74
+            paletteHost.Children.Add(palette);
+        }
+        else if (palette is { } shown)
+        {
+            paletteHost.Children.Remove(shown);
+            palette = null;
+        }
+    }
+
+    // :80-91 the model alert: a window-modal dialog with one OK button that is also the cancel default (Escape and
+    // Enter both dismiss it, PR-WIN-066's own windows_path), through the same Port/AlertPresenter.cs seam
+    // AppUpdater.cs (:410-414) already uses for its own single-OK alert. Dismissing clears model.Alert, matching the
+    // binding's own setter (:83-84 `set: { if !$0 { model.alert = nil } }`); nothing else in this tree currently
+    // clears model.Alert while one is showing (AppModel.cs's only two writers, :1114 and :1134, both only ever set
+    // it), so the reverse direction - model.Alert cleared from elsewhere closing an already-open dialog - is not
+    // reproduced. ENGINEERING GAP, unreachable with today's callers.
+    private void UpdateAlert()
+    {
+        AppModel model;
+        try { model = AppEnvironment.GetAppModel(this); }
+        catch (InvalidOperationException) { return; }
+        if (model.Alert is not { } alert || alertShowing) return;
+        alertShowing = true;
+        _ = ShowAlert(model, alert);
+    }
+
+    private async Task ShowAlert(AppModel model, AppAlert alert)
+    {
+        await AlertPresentation.Presenter.Current.Show(
+            alert.Title, // :81 model.alert?.title ?? ""
+            alert.Message, // :90 message: { alert in Text(alert.message) }
+            AlertStyle.Warning,
+            [new AlertButton("OK", () => { })]); // :88 Button("OK", role: .cancel) {}
+        alertShowing = false;
+        model.Alert = null; // :83-84 set: if !$0 { model.alert = nil }
+    }
+
+    // PORT-ONLY: Avalonia's drag-and-drop pipeline only fires Drop when a DragOver handler has already accepted the
+    // drag (Composer/ComposerTextView.cs's identical OnDragOverEvent note; there is no NSDraggingInfo counterpart
+    // needing this on macOS).
+    private void OnDragOver(object? sender, DragEventArgs e)
+    {
+        e.DragEffects = DragDropEffects.Copy; // :77-79 dropDestination(for: URL.self) accepts a URL drag unconditionally
+        e.Handled = true;
+    }
+
+    // :77-79 .dropDestination(for: URL.self) { urls, _ in handleDrop(urls) }: every dropped item that has a file (or
+    // folder) representation is turned into the same non-"file"-scheme SwiftURL DroppedFileUrl below builds, and
+    // HandleDrop (below) does the rest - already implemented and tested through HandleDropCore (PR-WIN-064, -065).
+    private void OnDrop(object? sender, DragEventArgs e)
+    {
+        var urls = new List<SwiftURL>();
+        foreach (var item in e.DataTransfer.Items)
+            if (item.TryGetFile() is { } file && file.TryGetLocalPath() is { } path)
+                urls.Add(DroppedFileUrl(path));
+        if (urls.Count == 0) return;
+        e.Handled = HandleDrop(urls);
+    }
+
+    // Builds the same non-"file"-scheme SwiftURL RootViewTests.cs's own DroppedUrl helper builds for HandleDropCore's
+    // tests (both exist so a Windows drive-letter path round-trips through SwiftURL.Path; see the comment above
+    // HandleDropCore below for why a "file://" URL corrupts one instead).
+    private static SwiftURL DroppedFileUrl(string path)
+    {
+        var normalized = path.Replace('\\', '/');
+        var builder = new System.Text.StringBuilder();
+        foreach (var b in System.Text.Encoding.UTF8.GetBytes(normalized))
+        {
+            var c = (char)b;
+            if (b < 0x80 && (char.IsAsciiLetterOrDigit(c) || "-._~/:".IndexOf(c, StringComparison.Ordinal) >= 0)) builder.Append(c);
+            else builder.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+        return SwiftURL.Create("marrow-dropped-path:" + builder) ?? throw new InvalidOperationException("bad dropped path");
+    }
 
     // :94-110 @discardableResult private func handleDrop(_ urls: [URL]) -> Bool. Delegates to HandleDropCore, which
     // holds the whole function body: HandleDropCore needs only the model and the dropped urls, never `this` or any

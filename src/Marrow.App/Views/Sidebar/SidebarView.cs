@@ -82,7 +82,10 @@ using Marrow.UI.Sound;
 // full (parts 6 and 7), but each leaves its own `.contextMenu` unattached: SwiftUI's `.contextMenu` re-evaluates its
 // content fresh every time the menu opens, and no ED or platform-adaptation entry names a Windows/Avalonia
 // foundation for that per-open refresh. Attaching one fixed at construction time would go stale the first time the
-// underlying state changed without the row being rebuilt: an invented, silently wrong behaviour.
+// underlying state changed without the row being rebuilt: an invented, silently wrong behaviour. Re-checked at B3
+// (review pass, 2026-09-27): ED-193 through ED-211 (the whole B3 batch) and every helper in src/Marrow.UI/Chrome
+// still name no per-open-refresh mechanism for a context menu of any kind; this STOP's missing foundation is
+// unchanged, not stale.
 // Needed to proceed: an engineering or platform-adaptation decision naming that foundation (then PR-SIDEBAR-130's
 // own request field and popover follow, extending SidebarMenuRequests' Rename/Delete precedent).
 // Done so far: nothing claimed for PR-SIDEBAR-130 or -133, or for the right-click interaction alone of
@@ -1617,12 +1620,18 @@ internal sealed class RenameThreadPopover : Decorator
     /// <param name="title">:988 <c>let title: String</c>.</param>
     /// <param name="onRename">:989 <c>let onRename: (String) -> Void</c>.</param>
     /// <param name="onCancel">:990 <c>let onCancel: () -> Void</c>.</param>
-    // :995-1000 init; :1002-1024 body. STOP #6 (this unit): `.textFieldStyle(.roundedBorder)` (:1009) and
-    // `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` (:1017, :1019-1022) have no Windows chrome anywhere
+    // :995-1000 init; :1002-1024 body. STOP #6 (this unit): `.textFieldStyle(.roundedBorder)` (:1007) and
+    // `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` (:1013, :1015-1017) have no Windows chrome anywhere
     // in this port yet, and no ED/PA decision (this packet's part 4 list: ED-008, ED-009, ED-010, ED-041, ED-051,
     // ED-059, ED-062, ED-149, ED-187, OD-0001, OD-0005, OD-0008, OD-0009, OD-0010, PA-0019) or engineering_decisions.md
-    // entry names either style. Every other row-level popover this part ports (Delete, Archive) reuses PopoverItem or
-    // the already-decided `.glass`/`.glassProminent` recipe (OD-0005); this one alone needs a new, undecided pair.
+    // entry names either style. B3 re-citation (review pass, 2026-09-27): the B2 line numbers this comment used to
+    // cite (:1008, :1014, :1016) drifted by one line at B3 (AM-0003); re-verified directly against
+    // E:/Droppy/reference/droppy-code-v1.7.0's SidebarView.swift and corrected above. Also re-checked at B3:
+    // ED-193 through ED-211 (the whole B3 batch) and every helper in src/Marrow.UI/Chrome name no roundedBorder,
+    // bordered/borderedProminent button, or text-field recipe either; both STOPs stay open on that same missing
+    // foundation, not a stale one. Every other row-level popover this part ports (Delete, Archive) reuses
+    // PopoverItem or the already-decided `.glass`/`.glassProminent` recipe (OD-0005); this one alone needs a new,
+    // undecided pair.
     public RenameThreadPopover(string title, Action<string> onRename, Action onCancel) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:995 (STOP #6)");
 }

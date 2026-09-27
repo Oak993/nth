@@ -1,14 +1,21 @@
 using System;
 using System.IO;
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Platform.Storage;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Palette;
+using Marrow.App.Views.Sidebar;
+using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.App.Views;
 using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
@@ -16,13 +23,14 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views;
 
 // Source: DroppyCode/App/Views/RootView.swift (B3 52bc792), :1-450.
-// Covers the 6 types that do not depend on SidebarView.cs or ChatView.cs (both blocked): DetailView's empty-state
-// branch, WelcomeView, ProviderChecklist, ProviderStatusRow, OpenProvidersSettingsButton and NoThreadView; and
-// RootView.HandleDropCore (PR-WIN-064, PR-WIN-065), the whole body of the private handleDrop(_:) (:94-110), which
-// needs no visual tree and so is not blocked by SidebarView the way RootView's own top-level body is. CopyCommandButton
-// is gone at B3 (B3_PLAN.md section 4); its test is removed with it. RootView's top-level body, ThreadColumns and
-// DetailView's "a thread is selected" branch stay MARROW_STUB (see the STOP note at the end of this file) and are not
-// exercised here.
+// Covers the 6 types that do not depend on SidebarView.cs or ChatView.cs (SidebarView is unblocked as of this review
+// pass; ChatView still is not): DetailView's empty-state branch, WelcomeView, ProviderChecklist, ProviderStatusRow,
+// OpenProvidersSettingsButton and NoThreadView; RootView.HandleDropCore (PR-WIN-064, PR-WIN-065), the whole body of
+// the private handleDrop(_:) (:94-110); and, from this review pass, RootView's own top-level body (PR-WIN-062,
+// PR-WIN-063, PR-WIN-066, PR-WIN-067): the window's own clip, the detail pane's clip and (inert) insets, the model
+// alert, and the genie/row-glide/command-palette overlay stack. CopyCommandButton is gone at B3 (B3_PLAN.md section
+// 4); its test is removed with it. ThreadColumns and DetailView's "a thread is selected" branch stay MARROW_STUB
+// (see the STOP note at the end of this file, narrowed to name only ChatView) and are not exercised here.
 // AppModelHarness's TestRuntime makes MainActorModel writes (Track callbacks fired during AttachedToVisualTree)
 // require an active Pump, so both construction and interaction happen inside harness.Main.OnMain(...), matching the
 // pattern this session already established for App.Views.Terminal.TerminalPanel and App.Views.Settings.HydraSettingsPage.
@@ -496,45 +504,210 @@ public sealed class RootViewTests(HeadlessSession headless)
             });
         });
     }
+
+    // ---- RootView's own top-level body (review pass; SidebarView and CommandPalette are both real now) ----
+
+    // Review pass item (5): the only other RootView tests build it directly (Build(model, ...) above); this one
+    // instead goes through WindowManager.MainContent/MakeMainWindow (WindowManager.cs:72,160-180), the actual
+    // production path (WindowManagerTests.cs's own ShowMain helper proves real windows open fine under this
+    // project's headless session; RecordingAlertPresenter exists only because a SECOND, ad-hoc modal window does
+    // not, unrelated to this one). WindowManager() makes its own AppModel internally (:86), so PrepareBootstrap runs
+    // on THAT model, the freshest one this path can produce, rather than a separate model WindowManager would never
+    // actually use.
+    // PrepareBootstrap's own LoginEnvironment.Load().Wait() captures the Avalonia dispatcher's context if awaited on
+    // that thread and deadlocks (FollowUpEditorTests.cs's own identical RuntimeHarness() note). Completed once here,
+    // on a pool thread with no synchronization context, the process-wide cached load (Shell.cs's Loader) then makes
+    // every later PrepareBootstrap's own Wait() return at once; a private helper, not the [Fact] body itself, per
+    // xUnit1031 (FollowUpEditorTests.cs's RuntimeHarness() is the same shape for the same reason).
+    private static void LoadLoginEnvironmentOffMain() =>
+        System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+
+    [Fact]
+    [Trait("Req", "PR-WIN-062")] // RootView.swift:8-92, via the real WindowManager path
+    [Trait("Req", "PR-WIN-077")] // RootView.swift:155-165, the sidebar and the no-thread DetailView
+    public void ShowMain_builds_a_real_RootView_whose_sidebar_and_no_thread_DetailView_render_without_throwing()
+    {
+        LoadLoginEnvironmentOffMain();
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var manager = harness.Main.OnMain(() => new WindowManager());
+            harness.PrepareBootstrap(manager.Model);
+            harness.Main.OnMain(manager.ShowMain);
+            harness.Main.OnMain(() =>
+            {
+                var window = manager.MainWindow ?? throw new InvalidOperationException("ShowMain built no window");
+                window.UpdateLayout();
+                Assert.NotEmpty(LogicalQuery.SelfAndDescendants<SidebarView>(window));
+                Assert.NotEmpty(LogicalQuery.SelfAndDescendants<WelcomeView>(window)); // no projects yet: :157-159
+                Assert.Empty(LogicalQuery.SelfAndDescendants<NoThreadView>(window));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-062")] // RootView.swift:64-68
+    [Trait("Req", "PR-WIN-063")] // RootView.swift:33-43; UI/Chrome/Chrome.swift:9-11
+    public void The_window_content_clips_to_the_windows_rounded_shape_and_the_detail_pane_clips_its_own_bounds()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            harness.Main.OnMain(() =>
+            {
+                var host = Build(model, () => new RootView());
+                var root = Assert.IsType<RootView>(((Border)host).Child);
+
+                // PR-WIN-063 verification_method: "unit: the constant is 0 and the clip is present".
+                Assert.Equal(0, Chrome.SheetInset);
+                Assert.True(root.DetailClip.ClipToBounds); // :40 .clipped()
+
+                // PR-WIN-062: clipped to the 26-point continuous rounded rectangle, after the backdrop (:64-65
+                // paint behind windowClip; RootView's own constructor builds them in that order) is painted.
+                Assert.True(root.WindowClip.ClipToBounds);
+                Assert.Equal(new CornerRadius(Chrome.WindowCornerRadius), root.WindowClip.CornerRadius);
+                Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(root.WindowClip));
+                Assert.NotEmpty(LogicalQuery.SelfAndDescendants<WindowBackdrop>(root.WindowClip));
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-066")] // RootView.swift:80-91
+    public void A_model_alert_shows_through_the_presenter_with_one_OK_button_and_dismissing_clears_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var presenter = new RecordingAlertPresenter { AutoDismiss = false };
+            using var alertSeam = AlertPresentation.Presenter.Override(presenter);
+            harness.Main.OnMain(() =>
+            {
+                model.Alert = new AppAlert { Title = "Trouble", Message = "Something went wrong." }; // set before
+                // attach, so the Track's own first (synchronous) evaluation at AttachedToVisualTree already sees it.
+                Build(model, () => new RootView());
+
+                var shown = Assert.Single(presenter.Shown);
+                Assert.Equal("Trouble", shown.Title); // :81 model.alert?.title ?? ""
+                Assert.Equal("Something went wrong.", shown.InformativeText); // :90 Text(alert.message)
+                Assert.Equal(AlertStyle.Warning, shown.Style);
+                var button = Assert.Single(shown.Buttons); // :87-88 one Button("OK", role: .cancel)
+                Assert.Equal("OK", button.Title);
+                Assert.NotNull(model.Alert); // still showing: dismissing, not raising it, is what clears it (:83-84)
+
+                presenter.Dismiss(); // simulates the OK click (or, per PR-WIN-066's windows_path, Escape or Enter)
+            });
+            // ShowAlert's continuation after `await Show(...)` (where it sets model.Alert = null) is posted, not
+            // inline (RecordingAlertPresenter's own TaskCompletionSource uses RunContinuationsAsynchronously, the
+            // same shape AppUpdaterFailureAlertTests.cs's identical Dismiss-then-pump already needs).
+            harness.Main.Loop.RunUntilIdle();
+            harness.Main.OnMain(() => Assert.Null(model.Alert)); // :83-84 set: if !$0 { model.alert = nil }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-067")] // RootView.swift:69-76
+    public void The_command_palette_appears_above_the_genie_and_row_glide_layers_and_leaves_entirely_when_dismissed()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            Control host = null!;
+            harness.Main.OnMain(() =>
+            {
+                host = Build(model, () => new RootView());
+                Assert.Empty(LogicalQuery.SelfAndDescendants<CommandPalette>(host)); // :73 not presented yet
+                model.IsCommandPalettePresented = true; // :73
+            });
+            harness.Main.Loop.RunUntilIdle(); // Tracked<T>'s reactive update (after the first, synchronous one) is posted
+            harness.Main.OnMain(() =>
+            {
+                var order = LogicalQuery.SelfAndDescendants<Control>(host).ToList();
+                var genieIndex = order.FindIndex(control => control is GenieLayer);
+                var rowGlideIndex = order.FindIndex(control => control is RowGlideLayer);
+                var paletteIndex = order.FindIndex(control => control is CommandPalette);
+                Assert.True(genieIndex >= 0, "GenieLayer is missing"); // :70
+                Assert.True(rowGlideIndex >= 0, "RowGlideLayer is missing"); // :71
+                Assert.True(paletteIndex >= 0, "CommandPalette is missing while presented"); // :72-74
+                // :69-76 chained in this order: the later .overlay draws over the earlier ones.
+                Assert.True(paletteIndex > genieIndex, "the palette must draw above the genie layer");
+                Assert.True(paletteIndex > rowGlideIndex, "the palette must draw above the row-glide layer");
+
+                model.IsCommandPalettePresented = false; // :73
+            });
+            harness.Main.Loop.RunUntilIdle();
+            harness.Main.OnMain(() =>
+                Assert.Empty(LogicalQuery.SelfAndDescendants<CommandPalette>(host))); // :74 "holds no state between openings"
+        });
+    }
+
+    // A dropped folder always selects the thread it creates (:104-105 newThread(in: lastProject)), and a dropped
+    // file attaches only when a thread is ALREADY selected (:106-108): either shape, live through a fully attached
+    // RootView, reactively rebuilds DetailView with a thread selected, whose "a thread is selected" branch is still
+    // MARROW_STUB (STOP App.Views.RootView #2, blocked on ChatView alone) - proving either live here would just
+    // retrace that STOP, not this record. Both thread-selecting shapes stay proven at the HandleDropCore level by
+    // the tests above (which build no visual tree at all, so they are not blocked by ChatView either way); this one
+    // exercises the real Avalonia drag-and-drop pipeline itself (DragDrop.DropEvent through OnDrop, HandleDrop and
+    // DroppedFileUrl) on the one shape that never selects a thread, so it stays inside the open boundary: PR-WIN-065's
+    // own documented failure case, "No thread selected: the files are discarded with no message".
+    [Fact]
+    [Trait("Req", "PR-WIN-064")] // RootView.swift:77-79, wired onto the already-tested HandleDropCore
+    [Trait("Req", "PR-WIN-065")] // RootView.swift:106-108's own failure case
+    public void Dropping_a_real_file_with_nothing_selected_reaches_HandleDrop_through_the_real_pipeline_and_discards_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var filePath = Path.Combine(harness.Scratch, "dropped.txt");
+            File.WriteAllText(filePath, "hello");
+            harness.Main.OnMain(() =>
+            {
+                var host = Build(model, () => new RootView());
+                var root = Assert.IsType<RootView>(((Border)host).Child);
+                var topLevel = TopLevel.GetTopLevel(host) ?? throw new InvalidOperationException("no TopLevel");
+                var storageFile = topLevel.StorageProvider.TryGetFileFromPathAsync(new Uri(filePath)).GetAwaiter().GetResult()
+                    ?? throw new InvalidOperationException("no storage file for " + filePath);
+                var dt = new DataTransfer();
+                dt.Add(DataTransferItem.CreateFile(storageFile));
+
+                Assert.Null(model.SelectedThreadID);
+                root.RaiseEvent(new DragEventArgs(DragDrop.DropEvent, dt, root, new Point(10, 10), KeyModifiers.None));
+
+                Assert.Null(model.SelectedThreadID); // :106 `if !files.isEmpty, let threadID = model.selectedThreadID`
+                Assert.Empty(model.Projects); // a file never adds a project (:101 isDirectory.boolValue's else branch)
+            });
+        });
+    }
 }
 
-// STOP App.Views.RootView #2 (B3 unit agent, 2026-09-26)
+// STOP App.Views.RootView #2 (B3 unit agent, 2026-09-26; narrowed by the review pass below)
 // Kind: missing dependency
-// Swift: DroppyCode/App/Views/RootView.swift:8-92 (RootView body, B3 52bc792), :177-297 (ThreadColumns), :129-133
-// (DetailView's "a thread is selected" branch)
-// Requirements: PR-WIN-062, PR-WIN-063, PR-WIN-066, PR-WIN-067 (RootView's own body: window clip, backdrop and
-// chrome-configurator backgrounds, the model-alert dialog, the genie/row-glide/command-palette overlay stack) and
-// the "a thread is selected" half of PR-WIN-077 stay MARROW_STUB. PR-WIN-064 and PR-WIN-065 (drop handling) are now
-// implemented and tested above through HandleDropCore, which needed no visual tree and so was not blocked by the
-// dependency below.
-// What is unclear or missing: nothing is unclear; this narrows STOP #1 (helper Claude, 2026-09-26), whose own
-// blockers were checked again directly against the files named, not inferred:
-//   - GenieLayer, RowGlideLayer (App.Views.Sidebar.RowGlide.cs), WindowChromeConfigurator/WindowChromeProbe and
-//     WallpaperStore (src/Marrow.App/Theme/Wallpaper.cs; ED-195 supersedes ED-189 to move it to Marrow.UI.Theme in a
-//     later lane, so its current App.Theme namespace is not this unit's to change) are ALL now real, 0 MARROW_STUB
-//     each: STOP #1 listed them as blockers and that is no longer true.
-//   - SidebarView (App.Views.Sidebar.SidebarView.cs) is still 53 MARROW_STUB; its constructor
-//     (`public SidebarView(bool inPopover = false, Action? dismiss = null) => throw new
-//     NotImplementedException(...)`, SidebarView.cs's own current text) throws unconditionally. RootView's body
-//     builds `SidebarView()` as the first child of its HStack every time (RootView.swift:17), eagerly per R-VIEW-1
-//     ("body is built once in the constructor"), so no `new RootView()` can succeed while this throws, for any
-//     input, in production or in a test. This is the one unconditional blocker for PR-WIN-062, 063, 066 and 067.
-//   - CommandPalette (App.Views.Palette.CommandPalette.cs) is also still MARROW_STUB (constructor throws), but only
-//     reached when model.IsCommandPalettePresented is true (RootView.swift:72-76); it does not by itself block
-//     PR-WIN-062, 063 or 066, only the true branch of PR-WIN-067, and only once SidebarView unblocks the rest.
-//   - ThreadColumns.updateNSView calls into ChatView (App.Views.Chat.ChatView.cs, still 23 MARROW_STUB) and needs a
-//     WindowLiveResize read from the environment; HostedEnvironment (App.Window.WindowManager.cs) now attaches one
-//     for real, so ChatView is the only remaining block here. DetailView's "a thread is selected" branch constructs
-//     ThreadColumns and so inherits this one block.
-// Readings or options: wait for App.Views.Sidebar.SidebarView and, for the command-palette-true branch of
-// PR-WIN-067, App.Views.Palette.CommandPalette; separately, wait for App.Views.Chat.ChatView for ThreadColumns and
-// DetailView's thread-selected branch. RootView's own top-level body and ThreadColumns do not share a blocker any
-// more (SidebarView versus ChatView), so they could be picked up in separate later passes if that helps sequencing,
-// unlike STOP #1's assessment.
-// Needed to proceed: unit App.Views.Sidebar.SidebarView (and, only for PR-WIN-067's true branch,
-// App.Views.Palette.CommandPalette) for RootView's own body; unit App.Views.Chat.ChatView for ThreadColumns and
-// DetailView's thread-selected branch.
-// Done so far: every requirement in both work packets (part1.md, part2.md) not listed above is implemented and
-// tested: DetailView's empty-state branch, WelcomeView, ProviderChecklist, ProviderStatusRow,
-// OpenProvidersSettingsButton, NoThreadView (CopyCommandButton is gone at B3, B3_PLAN.md section 4; its test is
-// removed, not left failing) and HandleDropCore (PR-WIN-064, PR-WIN-065), all 0 MARROW_STUB, all green.
+// Swift: DroppyCode/App/Views/RootView.swift:177-297 (ThreadColumns), :129-133 (DetailView's "a thread is selected"
+// branch)
+// Requirements: ThreadColumns and the "a thread is selected" half of PR-WIN-077 stay MARROW_STUB. Everything else
+// this STOP used to name is done: PR-WIN-062, PR-WIN-063, PR-WIN-066 and PR-WIN-067 (RootView's own top-level body:
+// the window's own clip, the detail pane's clip and insets, the model alert, and the genie/row-glide/command-palette
+// overlay stack) are now implemented and tested above, and PR-WIN-064/PR-WIN-065 (drop handling) were already done
+// through HandleDropCore before this pass, now also wired onto a real Avalonia drag-and-drop event and tested that
+// way too.
+// What is unclear or missing: nothing is unclear. This STOP previously also named SidebarView (its constructor threw
+// unconditionally, so no RootView instance could be built at all) and CommandPalette (its constructor threw, blocking
+// only the command-palette-true branch of PR-WIN-067) as blockers; a review pass (2026-09-27) found both of those
+// claims stale - SidebarView.cs's constructor is real (SidebarView.cs:217-220) and CommandPalette.cs's constructor is
+// real (Palette/CommandPalette.cs:99), 0 MARROW_STUB in src/Marrow.App/Views/Palette - and implemented RootView's own
+// body against the now-real SidebarView and CommandPalette. The one dependency left is ChatView:
+// ThreadColumns.updateNSView calls into ChatView (App.Views.Chat.ChatView.cs, still 23 MARROW_STUB) and needs a
+// WindowLiveResize read from the environment; HostedEnvironment (App.Window.WindowManager.cs) already attaches one
+// for real, so ChatView is the only remaining block here. DetailView's "a thread is selected" branch constructs
+// ThreadColumns and so inherits this one block.
+// Readings or options: wait for App.Views.Chat.ChatView.
+// Needed to proceed: unit App.Views.Chat.ChatView, for ThreadColumns and DetailView's thread-selected branch alone.
+// Done so far: every requirement in both work packets (part1.md, part2.md), plus RootView's own top-level body from
+// this review pass, is implemented and tested: DetailView's empty-state branch, WelcomeView, ProviderChecklist,
+// ProviderStatusRow, OpenProvidersSettingsButton, NoThreadView (CopyCommandButton is gone at B3, B3_PLAN.md section
+// 4; its test is removed, not left failing), HandleDropCore (PR-WIN-064, PR-WIN-065), and RootView's own body
+// (PR-WIN-062, PR-WIN-063, PR-WIN-066, PR-WIN-067), all 0 MARROW_STUB, all green.
