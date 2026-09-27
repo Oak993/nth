@@ -6,6 +6,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -26,11 +27,8 @@ using Marrow.UI.Port;
 namespace Marrow.App.Views.Chat;
 
 // Source: DroppyCode/App/Views/Chat/ChatView.swift (B3 52bc792), :1-1731.
-// Skeleton (c100 group 2): every type the file declares, private and nested ones included, the views' inputs, the
-// records' shapes and the members the other cycle files use. Every view body and every member with behaviour is left to
-// the implementing unit (MARROW_STUB), as are ChatView's private members (:48-65, :326-710), PanelScene's private
-// flippedVertically (:1075-1082), GitStatusModel's private snapshot cache (:1286-1287) and apply (:1309-1314), and the
-// private views' private members.
+// The mounted ChatView body and jump action retain their MARROW_STUB sites until their dependent view/scroll units
+// are available (ChatView STOP #1). Standalone helpers and dialogs below follow the pinned source.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; CGPoint/CGSize are Avalonia Point/Size; `URL` is SwiftURL; a Swift `Error` value is
 // an Exception. The `@Entry` environment values of `extension EnvironmentValues` (:727-735) are inherited attached
@@ -65,9 +63,8 @@ public sealed class ChatView : Decorator
     public static void SetReserveSlideOffset(Control control, double value) => control.SetValue(ReserveSlideOffsetProperty, value);
 
     // :36-52 private var isMovingAPanel: Bool. Extracted as a static helper so it is directly testable ahead of
-    // ChatView's own body, which is not built here: it composes ThreadTimeline, TerminalPanel and ComposerView,
-    // all still TODO units (see the CLOUD REPORT open points). ChatView's real body will call this with its own
-    // @State drag fields once those land.
+    // ChatView's own body, whose timeline/composer dependencies remain blocked (STOP #1). The mounted body
+    // will call this with its own @State drag fields once those dependencies land.
     internal static bool IsMovingAPanel(
         PanelDragState subagentDrag,
         PanelDragState hydraDrag,
@@ -95,6 +92,119 @@ public sealed class ChatView : Decorator
         OnResizeEnd = () => CommitPanelResize(model, resize), // :573
         OnReset = () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.UsagePanelHeight = null), // :574-577
     };
+
+    // :533-551 shared panel grips.
+    internal static PanelResize Resizer(AppModel model, PanelResizeState resize, PanelDockCorner corner, PanelScene scene) => new()
+    {
+        Corner = corner,
+        OnResize = (translation, axes) =>
+        {
+            var start = resize.Begin(scene.Layout.PanelSize);
+            var across = corner.Side == PanelDockSide.Trailing ? -1 : 1;
+            var down = corner.IsTop ? 1 : -1;
+            resize.LiveSize = scene.Layout.Fitted(new Size(
+                start.Width + (axes.Contains(PanelResizeAxes.Width) ? translation.Width * across : 0),
+                start.Height + (axes.Contains(PanelResizeAxes.Height) ? translation.Height * down : 0)));
+        },
+        OnResizeEnd = () => CommitPanelResize(model, resize),
+        OnReset = () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.PanelSize = null),
+    };
+
+    // :595-598. Only the live timeline width is quantized; commit keeps the exact preference.
+    internal static Size? LivePreferredSize(PanelResizeState resize) => resize.IsActive && resize.LiveSize is { } live
+        ? new Size(Math.Round(live.Width / 12, MidpointRounding.AwayFromZero) * 12, live.Height) : null;
+
+    // :611-617 the key path is expressed as an explicit binding (R-VIEW-7).
+    internal static void Dock(FloatingPanelID id, Binding<PanelDockCorner> corner, Point position, PanelScene scene)
+    {
+        var wanted = scene.Layout.DockCorner(position, corner.Value, scene.Docks);
+        var next = scene.LockedSide(id) is { } side ? PanelDockCorner.Make(side, wanted.IsTop) : wanted;
+        if (next != corner.Value) corner.Value = next;
+    }
+
+    // :620-625 usage corner is shared by every chat.
+    internal static void DockUsage(AppModel model, Point position, PanelScene scene) =>
+        Dock(new FloatingPanelID.Usage(), new Binding<PanelDockCorner>(() => model.Settings.UsagePanelDock, value => model.Settings.UsagePanelDock = value), position, scene);
+
+    // :628-634.
+    internal static void DockAuto(ThreadRuntime runtime, Guid id, Point position, PanelScene scene)
+    {
+        var panel = new FloatingPanelID.Auto(id);
+        var current = runtime.HydraAutoPanelDocks.TryGetValue(id, out var stored) ? stored
+            : scene.Slots.TryGetValue(panel, out var slot) ? slot.Corner : runtime.HydraPanelDock.AcrossTheColumn;
+        var wanted = scene.Layout.DockCorner(position, current, scene.Docks);
+        var next = scene.LockedSide(panel) is { } side ? PanelDockCorner.Make(side, wanted.IsTop) : wanted;
+        if (!runtime.HydraAutoPanelDocks.TryGetValue(id, out var existing) || existing != next)
+            runtime.HydraAutoPanelDocks = runtime.HydraAutoPanelDocks.Mutating(values => values[id] = next);
+    }
+
+    // :641-690. Swap on a full side, otherwise displace through the first free slot and rewrite its order.
+    internal static void Reorder(AppModel model, ThreadRuntime runtime, FloatingPanelID id, Point position, PanelDockCorner corner, PanelScene scene)
+    {
+        var side = corner.Side;
+        var others = scene.Slots.Where(entry => entry.Value.Corner.Side == side && entry.Key != id).ToArray();
+        var slots = scene.SlotsOnSide.TryGetValue(side, out var count) ? count : 1;
+        var n = Math.Max(slots, others.Length + 1);
+        var target = scene.Layout.SlotIndex(position, n, scene.Docks);
+        var occupancy = new Dictionary<long, FloatingPanelID>();
+        foreach (var (panel, slot) in others) occupancy[slot.Corner.IsTop ? slot.Below : n - 1 - slot.Below] = panel;
+        long? previous = scene.Slots.TryGetValue(id, out var old) && old.Corner.Side == side
+            ? old.Corner.IsTop ? old.Below : n - 1 - old.Below : null;
+        var full = !(others.Length + 1 > slots);
+        if (occupancy.TryGetValue(target, out var other) && previous is { } before && full)
+        {
+            occupancy[before] = other;
+            occupancy[target] = id;
+        }
+        else if (occupancy.TryGetValue(target, out other))
+        {
+            occupancy.Remove(target);
+            occupancy[target] = id;
+            var forward = previous is null || previous < target;
+            var displaced = other;
+            var next = target + (forward ? 1 : -1);
+            while (true)
+            {
+                if (next < 0 || next >= n)
+                {
+                    var free = Enumerable.Range(0, checked((int)n)).Select(index => (long)index);
+                    if (!forward) free = free.Reverse();
+                    foreach (var index in free)
+                        if (!occupancy.ContainsKey(index)) { occupancy[index] = displaced; break; }
+                    break;
+                }
+                if (!occupancy.TryGetValue(next, out var occupant)) { occupancy[next] = displaced; break; }
+                occupancy[next] = displaced;
+                displaced = occupant;
+                next += forward ? 1 : -1;
+            }
+        }
+        else occupancy[target] = id;
+        foreach (var (index, panel) in occupancy) SetCorner(model, runtime, panel, PanelDocks.Corner(index, n, side).Corner);
+        var occupiedCorners = occupancy.ToDictionary(entry => entry.Value, entry => PanelDocks.Corner(entry.Key, n, side).Corner);
+        var top = occupancy.Where(entry => occupiedCorners[entry.Value].IsTop).OrderBy(entry => entry.Key).Select(entry => entry.Value);
+        var bottom = occupancy.Where(entry => !occupiedCorners[entry.Value].IsTop).OrderByDescending(entry => entry.Key).Select(entry => entry.Value);
+        var onSide = occupancy.Values.ToHashSet();
+        var kept = runtime.PanelStackOrder.Where(panel => !onSide.Contains(panel) && panel != id);
+        var order = new ValueList<FloatingPanelID>(kept.Concat(top).Concat(bottom));
+        if (order != runtime.PanelStackOrder) runtime.PanelStackOrder = order;
+    }
+
+    // :693-704.
+    internal static void SetCorner(AppModel model, ThreadRuntime runtime, FloatingPanelID id, PanelDockCorner corner)
+    {
+        switch (id)
+        {
+            case FloatingPanelID.Subagent: if (runtime.SubagentPanelDock != corner) runtime.SubagentPanelDock = corner; break;
+            case FloatingPanelID.Hydra: if (runtime.HydraPanelDock != corner) runtime.HydraPanelDock = corner; break;
+            case FloatingPanelID.Popped: if (runtime.HydraPoppedPanelDock != corner) runtime.HydraPoppedPanelDock = corner; break;
+            case FloatingPanelID.Usage: if (model.Settings.UsagePanelDock != corner) model.Settings.UsagePanelDock = corner; break;
+            case FloatingPanelID.Auto head:
+                if (!runtime.HydraAutoPanelDocks.TryGetValue(head.Value, out var old) || old != corner)
+                    runtime.HydraAutoPanelDocks = runtime.HydraAutoPanelDocks.Mutating(values => values[head.Value] = corner);
+                break;
+        }
+    }
 
     // :581-590. Preferences are written once on release; clear the live state afterwards.
     internal static void CommitPanelResize(AppModel model, PanelResizeState resize)
@@ -128,8 +238,7 @@ public sealed class ChatView : Decorator
     private sealed record HydraCaptureFrame(Guid ThreadID, WindowLiveResize LiveResize)
     {
         // :407-416 func body(content:)
-        public Control Body(Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:407");
+        public Control Body(Control content) => content; // :414-415 non-capture branch; ED-001 excludes the other branch.
     }
 }
 
@@ -537,9 +646,10 @@ public sealed class JumpToLatestButton : Decorator
 /// passes; it lays out its content unchanged. Visual parity is UNVERIFIED without macOS (OD-0001).</summary>
 internal sealed class GlassEffectContainer : Decorator
 {
+    public double Spacing { get; }
     public GlassEffectContainer(double spacing, Func<Control> content)
     {
-        _ = spacing;
+        Spacing = spacing; // :1123 retained for ED-180's deferred grouped pass.
         Child = content();
     }
 }
@@ -565,6 +675,10 @@ internal sealed class ChatChromeRow : Decorator
         var titleView = new ChatChromeTitle(model, runtime, title); // :1194-1196 title state survives other row changes.
         StackPanel? titleParent = null;
 
+        var clearanceAnimation = new ChatFrameAnimation(this);
+        clearanceAnimation.AttachLifetime();
+        double? clearance = null;
+        bool? previousSidebarVisible = null;
         void Build()
         {
             titleParent?.Children.Remove(titleView);
@@ -632,16 +746,22 @@ internal sealed class ChatChromeRow : Decorator
             row.Children.Add(trailing);
 
             var container = new GlassEffectContainer(2, () => row); // :1123
-            // :1177-1178 the leading inset stacks on top of the row's own horizontal padding (SwiftUI applies each
-            // .padding from the inside out); UNVERIFIED O: whether :1180's Chrome.panelSlide animates this margin
-            // smoothly is not reproduced (no Thickness/margin transition primitive exists in this tree yet; only
-            // AnimatedColor does, PlainControls.cs:185) — the value itself is correct at rest and on every rebuild,
-            // only the in-between frames of the slide are not.
-            container.Margin = new Thickness(
-                Chrome.ChromeHorizontalPadding + (sidebarVisible ? 0 : Chrome.TrafficLightsWidth + Chrome.TrafficLightClearance),
-                Chrome.ChromeTopPadding, // :1179
-                Chrome.ChromeHorizontalPadding, // :1178
-                0);
+            // :1177-1180 padding follows ownership of the caption buttons through panelSlide frames.
+            var target = Chrome.ChromeHorizontalPadding + (sidebarVisible ? 0 : Chrome.TrafficLightsWidth + Chrome.TrafficLightClearance);
+            void ApplyClearance(double leading)
+            {
+                clearance = leading;
+                foreach (var group in host.Children.OfType<GlassEffectContainer>())
+                    group.Margin = new Thickness(leading, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0);
+                container.Margin = new Thickness(leading, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0);
+            }
+            if (previousSidebarVisible is { } previous && previous != sidebarVisible)
+            {
+                var from = clearance ?? target;
+                clearanceAnimation.Start(Chrome.PanelSlide, progress => ApplyClearance(from + (target - from) * progress));
+            }
+            else ApplyClearance(clearance ?? target);
+            previousSidebarVisible = sidebarVisible;
             host.Children.Add(container);
         }
 
@@ -657,6 +777,9 @@ internal sealed class ChatChromeRow : Decorator
 /// (which drags the window from this row's gaps) never swallows the click.</summary>
 internal sealed class ChatChromeTitle : Decorator
 {
+    private readonly TextBlock titleText = new();
+    private string currentTitle;
+
     private sealed class ViewState : MainActorModel
     {
         private bool isPresented;
@@ -665,8 +788,16 @@ internal sealed class ChatChromeTitle : Decorator
     }
 
     // :1191-1192 the view's inputs; :1198-1239 body
+    public ChatChromeTitle(ThreadRuntime runtime, string title)
+    {
+        currentTitle = title;
+        ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new ChatChromeTitle(model, runtime, currentTitle));
+    }
+
+    // :1185 @Environment(AppModel.self); explicit model overload for callers already holding the environment.
     public ChatChromeTitle(AppModel model, ThreadRuntime runtime, string title)
     {
+        currentTitle = title;
         var state = new ViewState();
         var text = new TextBlock
         {
@@ -674,6 +805,7 @@ internal sealed class ChatChromeTitle : Decorator
             MaxLines = 1, // :1206
             TextTrimming = TextTrimming.CharacterEllipsis, // :1207 .truncationMode(.tail)
         };
+        titleText = text;
         SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold).Apply(text); // :1204
         text.Foreground = (title.Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(text); // :1205
         var padded = new Border
@@ -691,9 +823,18 @@ internal sealed class ChatChromeTitle : Decorator
         var popover = PlainControls.Popover(
             button,
             new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
-            () => new PopoverMenu(() => BuildMenu(model, runtime, button, title))); // :1215-1230
+            () => new PopoverMenu(() => BuildMenu(model, runtime, button, currentTitle))); // :1215-1230
         Child = PlainControls.Background(new Panel { Children = { button, popover } }, new NoWindowDragArea());
         HorizontalAlignment = HorizontalAlignment.Stretch; // :1238 .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // :1147-1151,1203-1205 title input changes cut directly; the button/popover state keeps its identity.
+    internal void UpdateTitle(string title)
+    {
+        currentTitle = title;
+        if (Child is ChatChromeTitle body) body.UpdateTitle(title);
+        titleText.Text = title.Length == 0 ? "New thread" : title;
+        titleText.Foreground = (title.Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(titleText);
     }
 
     // :1219-1229, extracted so a test can inspect the menu without a real popup (headless cannot open one).
@@ -742,6 +883,9 @@ internal sealed class ThreadsButton : Decorator
     }
 
     // :1248-1264 body
+    public ThreadsButton() => ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new ThreadsButton(model));
+
+    // :1243 @Environment(AppModel.self).
     public ThreadsButton(AppModel model)
     {
         var state = new ViewState();
@@ -758,15 +902,18 @@ internal sealed class ThreadsButton : Decorator
         var popover = PlainControls.Popover(
             button,
             new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
-            () =>
-            {
-                var sidebar = new SidebarView(inPopover: true, dismiss: () => state.IsPresented = false); // :1256
-                sidebar.Width = model.Sidebar.Width; // :1257
-                sidebar.Height = 560;
-                return sidebar.PresentedChrome(); // :1258
-            });
+            () => BuildSidebarPopover(model, () => state.IsPresented = false)); // :1255-1259
         Child = new Panel { Children = { button, popover } };
         // :1260-1263 the capture-frame publish (WebsiteCaptures.threadsButtonFrame) is not ported (ED-001).
+    }
+
+    // :1255-1259 lazy popover content, also independently testable without presenting the sidebar's window.
+    internal static Control BuildSidebarPopover(AppModel model, Action dismiss)
+    {
+        var sidebar = new SidebarView(inPopover: true, dismiss: dismiss); // :1256
+        sidebar.Width = model.Sidebar.Width; // :1257
+        sidebar.Height = 560;
+        return sidebar.PresentedChrome(); // :1258
     }
 }
 
@@ -873,7 +1020,10 @@ public sealed class GitStatusModel : MainActorModel
 /// <summary>:1328-1343 <c>private struct PermissionMenu: View</c>.</summary>
 internal sealed class PermissionMenu : Decorator
 {
-    // :1331 let thread; :1333-1342 body. AppModel added explicitly (no Avalonia counterpart of @Environment).
+    // :1331 let thread; :1329 @Environment(AppModel.self), resolved when the original view input is attached.
+    public PermissionMenu(ChatThread thread) => ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new PermissionMenu(model, thread));
+
+    // :1333-1342 explicit environment overload.
     public PermissionMenu(AppModel model, ChatThread thread)
     {
         var mode = thread.RuntimeMode;
@@ -901,7 +1051,11 @@ internal sealed class PermissionMenu : Decorator
 /// <summary>:1345-1409 <c>private struct BranchMenu: View</c>.</summary>
 internal sealed class BranchMenu : Decorator
 {
-    // :1347-1349 the view's inputs; :1354-1386 body. AppModel added explicitly (no Avalonia @Environment).
+    // :1347-1349 original view inputs; :1346 inherited AppModel.
+    public BranchMenu(ThreadRuntime runtime, string directory, GitStatusModel git) =>
+        ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new BranchMenu(model, runtime, directory, git));
+
+    // :1354-1386 explicit environment overload.
     public BranchMenu(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git)
     {
         var title = git.Activity ?? git.Status?.Branch ?? "Detached"; // :1357
@@ -987,18 +1141,8 @@ internal sealed class OpenInMenu : Decorator
         // Workspace.Icon, PR-CHAT-181/182) are BLOCKED on an owner decision (UI/Common/Components.cs); this
         // menu still opens correctly, only its icon and the editor rows are missing until that lands.
         stack.Children.Add(new PopoverItem("File Explorer", () => Workspace.RevealInFileExplorer(directory)));
-        try
-        {
-            foreach (var editor in Workspace.InstalledEditors) // :1420-1424
-            {
-                var chosen = editor;
-                stack.Children.Add(new PopoverItem(chosen.Name, () => Workspace.Open(directory, chosen), symbol: "chevron.left.forwardslash.chevron.right"));
-            }
-        }
-        catch (NotImplementedException)
-        {
-            // BLOCKED PR-CHAT-181/182: no editor catalogue yet (see Workspace.InstalledEditors).
-        }
+        // :1420-1424 STOP #2: the installed-editor catalogue/icon/open primitives are blocked in Workspace.
+        // Leave this site unwritten, without catching a dependency stub and claiming the menu is complete.
         stack.Children.Add(new PopoverDivider()); // :1425
         stack.Children.Add(new PopoverItem("Copy path", () => CopyPath(directory), symbol: "doc.on.doc")); // :1426-1429
         return stack;
@@ -1021,14 +1165,21 @@ internal sealed class OpenInMenu : Decorator
 /// <summary>:1434-1466 <c>private struct ScriptsMenu: View</c>.</summary>
 internal sealed class ScriptsMenu : Decorator
 {
-    // :1436-1437 the view's inputs; :1441-1465 body. AppModel added explicitly (no Avalonia @Environment).
+    // :1436-1437 original view inputs; :1435 inherited AppModel.
+    public ScriptsMenu(Project project, ThreadRuntime runtime) =>
+        ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new ScriptsMenu(model, project, runtime));
+
+    // :1441-1465 explicit environment overload.
     public ScriptsMenu(AppModel model, Project project, ThreadRuntime runtime)
     {
-        Child = new ChromeMenuButton("play", "Run a project script", () => BuildMenu(model, project, runtime)); // :1442
+        Child = new ChromeMenuButton("play", "Run a project script", () => BuildMenuCore(model, project, runtime, this)); // :1442
     }
 
     // :1443-1455, extracted so a test can inspect the menu without a real popup (headless cannot open one).
     internal static Control BuildMenu(AppModel model, Project project, ThreadRuntime runtime)
+        => BuildMenuCore(model, project, runtime, null);
+
+    private static Control BuildMenuCore(AppModel model, Project project, ThreadRuntime runtime, Control? anchor)
     {
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
         if (project.Scripts.Count > 0) // :1443
@@ -1041,50 +1192,55 @@ internal sealed class ScriptsMenu : Decorator
             }
             stack.Children.Add(new PopoverDivider()); // :1450
         }
-        // :1452-1454, :1456-1463 PR-TERM-064: presents the scripts editor sheet. No generic `.sheet` primitive
-        // exists yet (see GitActionsMenu.ShowCommitSheet's own note); this opens the same kind of plain modal
-        // window AlertPresenter/PromptPresenter/CommitSheet already use.
+        // :1452-1454,1456-1463 editor presentation through R-VIEW-9.
         stack.Children.Add(new PopoverItem(
             project.Scripts.Count == 0 ? "Add a script…" : "Edit scripts…",
-            () => ShowScriptsEditor(model, project.Id),
+            () => MainActor.Post(() => PresentScriptsEditor(model, project.Id, anchor ?? stack)),
             symbol: project.Scripts.Count == 0 ? "plus" : "pencil"));
         return stack;
     }
 
     private static void ShowScriptsEditor(AppModel model, Guid projectID) => MainActor.Post(() =>
+        PresentScriptsEditor(model, projectID, null));
+
+    // :1456-1463.
+    private static void PresentScriptsEditor(AppModel model, Guid projectID, Control? anchor) => ChatSheetPresentation.Show(anchor, dismiss =>
     {
-        var window = new Avalonia.Controls.Window
-        {
-            SizeToContent = Avalonia.Controls.SizeToContent.WidthAndHeight,
-            CanResize = false,
-            WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
-        };
-        var editor = new ScriptsEditor(model, projectID, window.Close);
-        window.Content = editor.PresentedChrome();
-        window.Show();
+        var editor = new ScriptsEditor(model, projectID, dismiss).PresentedChrome();
+        var backdrop = new WindowBackdrop(model.Settings.BackdropOpacity);
+        backdrop.Track(() => model.Settings.BackdropOpacity, opacity => backdrop.Update(opacity, null));
+        return new Border { Child = new Panel { Children = { backdrop, editor } }, ClipToBounds = true }
+            .RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
     });
 }
 
 /// <summary>:1468-1528 <c>private struct GitActionsMenu: View</c>.</summary>
 internal sealed class GitActionsMenu : Decorator
 {
-    // :1470-1472 the view's inputs; :1476-1493 body. AppModel added explicitly (no Avalonia @Environment).
+    // :1470-1472 original view inputs; :1469 inherited AppModel.
+    public GitActionsMenu(ThreadRuntime runtime, string directory, GitStatusModel git) =>
+        ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new GitActionsMenu(model, runtime, directory, git));
+
+    // :1476-1493 explicit environment overload.
     public GitActionsMenu(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git)
     {
         var changed = git.Status?.ChangedFiles ?? 0; // :1477
         Child = new ChromeMenuButton(
             "arrow.triangle.pull",
             changed == 0 ? "Commit, push and open pull requests" : $"{changed} changed files", // :1478
-            () => BuildMenu(model, runtime, directory, git, changed));
+            () => BuildMenuCore(model, runtime, directory, git, changed, this));
     }
 
     // :1479-1487, extracted so a test can inspect the menu without a real popup (headless cannot open one).
     internal static Control BuildMenu(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git, long changed)
+        => BuildMenuCore(model, runtime, directory, git, changed, null);
+
+    private static Control BuildMenuCore(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git, long changed, Control? anchor)
     {
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
         stack.Children.Add(new PopoverNote(changed == 1 ? "1 changed file" : $"{changed} changed files")); // :1479
         stack.Children.Add(new PopoverDivider()); // :1480
-        stack.Children.Add(new PopoverItem("Commit…", () => ShowCommitSheet(model, runtime, directory, git), symbol: "checkmark.circle", isEnabled: changed > 0)); // :1481
+        stack.Children.Add(new PopoverItem("Commit…", () => MainActor.Post(() => PresentCommitSheet(model, runtime, directory, git, anchor ?? stack)), symbol: "checkmark.circle", isEnabled: changed > 0)); // :1481
         stack.Children.Add(new PopoverItem("Push", () => Push(model, git, directory), symbol: "arrow.up.circle")); // :1482
         stack.Children.Add(new PopoverItem("Create pull request", () => OpenPullRequest(model, git, directory), symbol: "arrow.triangle.pull")); // :1483
         if (git.RemoteURL is { } url) // :1484
@@ -1095,22 +1251,12 @@ internal sealed class GitActionsMenu : Decorator
         return stack;
     }
 
-    // :1489-1492 `.sheet(isPresented: $isCommitting) { CommitSheet(...).presentedChrome() }`. No generic `.sheet`
-    // primitive exists yet in this tree (only `.popover` and the AlertPresenter/PromptPresenter modal-window
-    // seam do), so this opens the same kind of plain modal window those use.
+    // :1489-1492 sheet through R-VIEW-9's shared presentation seam.
     private static void ShowCommitSheet(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git) => MainActor.Post(() =>
-    {
-        var window = new Avalonia.Controls.Window
-        {
-            SizeToContent = Avalonia.Controls.SizeToContent.Height,
-            Width = 560, // :1604 .frame(width: 560)
-            CanResize = false,
-            WindowStartupLocation = Avalonia.Controls.WindowStartupLocation.CenterOwner,
-        };
-        var sheet = new CommitSheet(model, runtime, directory, git, window.Close);
-        window.Content = sheet.PresentedChrome();
-        window.Show();
-    });
+        PresentCommitSheet(model, runtime, directory, git, null));
+
+    private static void PresentCommitSheet(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git, Control? anchor) =>
+        ChatSheetPresentation.Show(anchor, dismiss => new CommitSheet(model, runtime, directory, git, dismiss).PresentedChrome());
 
     // :1495-1503
     private static void Push(AppModel model, GitStatusModel git, string directory) => MainActor.Spawn(async () =>
@@ -1151,41 +1297,61 @@ internal sealed class GitActionsMenu : Decorator
 /// <summary>:1530-1650 <c>private struct CommitSheet: View</c>.</summary>
 internal sealed class CommitSheet : Decorator
 {
-    private readonly AppModel model;
+    private readonly AppModel model = null!;
     private readonly ThreadRuntime runtime;
-    private readonly TextBox messageField;
-    private readonly Border messageFrame;
-    private readonly TextBlock messagePlaceholder;
-    private readonly TextBlock summaryBlock;
-    private readonly Border summaryFrame;
-    private readonly Button writeForMeButton;
-    private readonly SwiftImage writeForMeIcon; // :1584-1587 sparkles, swapped for a spinner while generating
-    private readonly ProgressBar writeForMeSpinner; // :1582-1584 ProgressView().controlSize(.small)
-    private readonly Button commitButton;
-    private readonly CheckBox pushToggle;
+    private readonly TextBox messageField = null!;
+    private readonly Border messageFrame = null!;
+    private readonly TextBlock messagePlaceholder = null!;
+    private readonly TextBlock summaryBlock = null!;
+    private readonly Border summaryFrame = null!;
+    private readonly Button writeForMeButton = null!;
+    private readonly SwiftImage writeForMeIcon = null!; // :1584-1587 sparkles, swapped for a spinner while generating
+    private readonly ProgressBar writeForMeSpinner = null!; // :1582-1584 ProgressView().controlSize(.small)
+    private readonly Button commitButton = null!;
+    private readonly CheckBox pushToggle = null!;
     private bool isGenerating;
     private bool isCommitting;
+    private string initialMessage = "";
+    private bool initialPushes;
+    private CommitSheet? InheritedBody => Child as CommitSheet;
 
     /// <summary>For tests: the field xUnit reads without needing a headless layout pass.</summary>
-    public string Message { get => messageField.Text ?? ""; set => messageField.Text = value; }
+    public string Message
+    {
+        get => InheritedBody?.Message ?? messageField?.Text ?? initialMessage;
+        set { if (InheritedBody is { } body) body.Message = value; else if (messageField is not null) messageField.Text = value; else initialMessage = value; }
+    }
 
-    public string Summary => summaryBlock.Text ?? "";
+    public string Summary => InheritedBody?.Summary ?? summaryBlock?.Text ?? "";
 
-    public bool IsGenerating => isGenerating;
+    public bool IsGenerating => InheritedBody?.IsGenerating ?? isGenerating;
 
-    public bool IsCommitting => isCommitting;
+    public bool IsCommitting => InheritedBody?.IsCommitting ?? isCommitting;
 
-    public bool PushesAfterCommit { get => pushToggle.IsChecked == true; set => pushToggle.IsChecked = value; }
+    public bool PushesAfterCommit
+    {
+        get => InheritedBody?.PushesAfterCommit ?? (pushToggle?.IsChecked ?? initialPushes);
+        set { if (InheritedBody is { } body) body.PushesAfterCommit = value; else if (pushToggle is not null) pushToggle.IsChecked = value; else initialPushes = value; }
+    }
 
-    public Button WriteForMeButton => writeForMeButton;
+    public Button WriteForMeButton => InheritedBody?.WriteForMeButton ?? writeForMeButton;
 
-    public Button CommitButton => commitButton;
+    public Button CommitButton => InheritedBody?.CommitButton ?? commitButton;
 
-    public Border SummaryFrame => summaryFrame;
+    public Border SummaryFrame => InheritedBody?.SummaryFrame ?? summaryFrame;
 
-    public Border MessageFrame => messageFrame;
+    public Border MessageFrame => InheritedBody?.MessageFrame ?? messageFrame;
 
-    // :1533-1535 the view's inputs, plus AppModel and dismiss explicitly (no Avalonia @Environment or `.dismiss`).
+    // :1533-1535 original view inputs; :1531-1532 model/dismiss environments inherited on attachment.
+    public CommitSheet(ThreadRuntime runtime, string directory, GitStatusModel git)
+    {
+        this.runtime = runtime;
+        Width = 560; // :1604
+        ChatSheetPresentation.BuildWhenAttached(this, (model, dismiss) =>
+            new CommitSheet(model, runtime, directory, git, dismiss) { Message = initialMessage, PushesAfterCommit = initialPushes });
+    }
+
+    // :1543-1610 explicit environment overload.
     public CommitSheet(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git, Action dismiss)
     {
         this.model = model;
@@ -1218,7 +1384,8 @@ internal sealed class CommitSheet : Decorator
         messageFrame.Background = Chrome.Overlay(0.05).Brush(messageFrame);
 
         writeForMeIcon = SwiftImage.SystemName("sparkles"); // :1586
-        writeForMeSpinner = new ProgressBar { IsIndeterminate = true, Width = 16, Height = 16, IsVisible = false }; // :1582-1584
+        writeForMeSpinner = new ProgressBar { IsIndeterminate = true, IsVisible = false }; // :1582-1584; native metrics STOP #5.
+        writeForMeSpinner.SetValue(ChatDialogControls.InputStyleProperty, "SmallProgressView"); // :1584 .controlSize(.small)
         writeForMeButton = new Button { Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { writeForMeSpinner, writeForMeIcon, new TextBlock { Text = "Write for me" } } } }; // :1578-1589
         pushToggle = new CheckBox { Content = "Push after committing" }; // :1593
         var cancelButton = new Button { Content = "Cancel" }; // :1596
@@ -1253,7 +1420,7 @@ internal sealed class CommitSheet : Decorator
         } }; // :1603 .padding(20).
         Width = 560; // :1604
 
-        this.Track(() => CanGenerate, _ => UpdateWriteForMeState()); // :1575 observable settings/provider state.
+        this.Track(() => (CanGenerate, model.Providers.Statuses), _ => UpdateWriteForMeState()); // :1575,1591-1592 observable settings/provider state.
         this.Task(() => directory, value => Load(model, runtime, value)); // :1605-1609 .task, cancelled on disappearance.
         KeyDown += (_, e) => { if (e.Key == Key.Escape) { dismiss(); e.Handled = true; } }; // :1596 cancel role, including popup presentation.
     }
@@ -1342,20 +1509,37 @@ internal sealed class CommitSheet : Decorator
 /// <summary>:1652-1730 <c>private struct ScriptsEditor: View</c>.</summary>
 internal sealed class ScriptsEditor : Decorator
 {
-    private readonly AppModel model;
+    private readonly AppModel model = null!;
     private readonly Guid projectID;
-    private readonly Action dismiss;
+    private readonly Action dismiss = null!;
     private readonly StackPanel rows = new() { Orientation = Orientation.Vertical, Spacing = 10 }; // :1667
-    private readonly Button saveButton;
+    private readonly ForEach<ProjectScript, Guid> cards = null!;
+    private readonly Dictionary<Guid, (TextBox Name, TextBox Command, CheckBox Worktree)> fields = [];
+    private readonly Button saveButton = null!;
     private List<ProjectScript> scripts = [];
 
-    // :1655 let projectID, plus AppModel and dismiss explicitly (no Avalonia @Environment or `.dismiss`);
-    // :1659-1724 body
+    // :1655 original view input; :1653-1654 inherited model/dismiss environments.
+    public ScriptsEditor(Guid projectID)
+    {
+        this.projectID = projectID;
+        Width = 580; Height = 460; // :1722
+        ChatSheetPresentation.BuildWhenAttached(this, (model, dismiss) => new ScriptsEditor(model, projectID, dismiss));
+    }
+
+    // :1659-1724 explicit environment overload.
     public ScriptsEditor(AppModel model, Guid projectID, Action dismiss)
     {
         this.model = model;
         this.projectID = projectID;
         this.dismiss = dismiss;
+        cards = new ForEach<ProjectScript, Guid>(rows, script => script.Id, BuildCard, (_, script) =>
+        {
+            var field = fields[script.Id];
+            field.Name.Text = script.Name;
+            field.Command.Text = script.Command;
+            field.Worktree.IsChecked = script.RunOnWorktreeCreate;
+        }); // :1668 ForEach($scripts), identity survives array changes and appearance.
+        this.Font(SwiftFont.Body); // SwiftUI's inherited default body style, ED-059.
 
         var heading = new TextBlock { Text = "Project scripts" }; // :1661
         SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1662
@@ -1370,28 +1554,29 @@ internal sealed class ScriptsEditor : Decorator
         var scroll = new ScrollViewer { Content = rows, MinHeight = 220 }; // :1666,1700
 
         var addButton = new Button { Content = "Add script" }; // :1701-1707
+        ChatDialogControls.SetSymbol(addButton, "plus"); // :1705.
+        ChatDialogControls.Glass(addButton);
         addButton.Click += (_, _) =>
         {
             scripts = [.. scripts, new ProjectScript("New script", "")]; // :1703
             Rebuild();
         };
         var cancelButton = new Button { Content = "Cancel" }; // :1709
+        ChatDialogControls.Glass(cancelButton);
+        cancelButton.IsCancel = true;
         cancelButton.Click += (_, _) => dismiss();
         saveButton = new Button { Content = "Save" }; // :1712-1717
+        ChatDialogControls.Glass(saveButton, prominent: true);
         saveButton.Click += (_, _) =>
         {
             model.UpdateProject(projectID, p => p with { Scripts = new ValueList<ProjectScript>(scripts) }); // :1713
             dismiss(); // :1714
         };
-        var footer = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Children = { addButton, new Control { HorizontalAlignment = HorizontalAlignment.Stretch }, cancelButton, saveButton }, // :1708 Spacer()
-        };
+        var footer = ChatDialogControls.Footer(addButton, cancelButton, saveButton); // :1708 Spacer().
 
         Child = new Border { Padding = new Thickness(20), Child = new StackPanel
         {
-            HorizontalAlignment = HorizontalAlignment.Left, // :1660 .leading
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :1660 leading content; the stack fills the fixed frame.
             Spacing = 14, // :1660
             Children = { heading, explanation, scroll, footer },
         } }; // :1721 .padding(20), inside the fixed frame.
@@ -1399,6 +1584,8 @@ internal sealed class ScriptsEditor : Decorator
         Height = 460;
 
         Load(); // :1723 .onAppear
+        AttachedToVisualTree += (_, _) => Load(); // :1723 reset the local copy on every appearance.
+        KeyDown += (_, e) => { if (e.Key == Key.Escape) { dismiss(); e.Handled = true; } }; // :1709 cancel role.
     }
 
     /// <summary>For tests: the editor's current local copy (never the project's own array).</summary>
@@ -1415,8 +1602,8 @@ internal sealed class ScriptsEditor : Decorator
 
     private void Rebuild()
     {
-        rows.Children.Clear();
-        foreach (var script in scripts) rows.Children.Add(BuildCard(script));
+        cards.Apply(scripts.ToArray());
+        foreach (var id in fields.Keys.Where(id => !scripts.Any(script => script.Id == id)).ToArray()) fields.Remove(id);
         UpdateSaveState();
     }
 
@@ -1435,11 +1622,14 @@ internal sealed class ScriptsEditor : Decorator
     private Control BuildCard(ProjectScript script)
     {
         var nameField = new TextBox { Text = script.Name, PlaceholderText = "Name" }; // :1672-1673
+        ChatDialogControls.TextEditor(nameField, style: "RoundedBorder"); // :1673, STOP #5 native bezel metrics.
         nameField.PropertyChanged += (_, e) =>
         {
             if (e.Property == TextBox.TextProperty) Update(script.Id, s => s with { Name = nameField.Text ?? "" });
         };
-        var trash = new Button { Content = SwiftImage.SystemName("trash") }; // :1674-1679 .buttonStyle(.borderless)
+        var trashIcon = SwiftImage.SystemName("trash");
+        TextElement.SetForeground(trashIcon, Chrome.Danger.Brush(trashIcon)); // :1674 destructive role.
+        var trash = PlainControls.Button(trashIcon, () => { }); // :1674-1679 borderless template.
         trash.Click += (_, _) =>
         {
             scripts = [.. scripts.Where(s => s.Id != script.Id)]; // :1675
@@ -1448,6 +1638,7 @@ internal sealed class ScriptsEditor : Decorator
         var top = new StackPanel { Orientation = Orientation.Horizontal, Children = { nameField, trash } }; // :1671
 
         var commandField = new TextBox { Text = script.Command, PlaceholderText = "Command" }; // :1681-1682
+        ChatDialogControls.TextEditor(commandField, style: "RoundedBorder"); // :1682, STOP #5.
         SwiftFont.System(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced).Apply(commandField); // :1683 (Cascadia Mono, OD-0009)
         // :1686-1691 the outline overlay, as a Border wrapping the field (no adorner layer needed for this shape).
         var commandFrame = new Border { Child = commandField }.RoundedRectangle(6, RoundedCornerStyle.Continuous); // :1688
@@ -1465,6 +1656,8 @@ internal sealed class ScriptsEditor : Decorator
         };
 
         var worktreeToggle = new CheckBox { Content = "Run when a worktree is created", IsChecked = script.RunOnWorktreeCreate }; // :1692-1693
+        ChatDialogControls.Checkbox(worktreeToggle);
+        fields[script.Id] = (nameField, commandField, worktreeToggle);
         worktreeToggle.IsCheckedChanged += (_, _) => Update(script.Id, s => s with { RunOnWorktreeCreate = worktreeToggle.IsChecked == true });
 
         var body = new StackPanel

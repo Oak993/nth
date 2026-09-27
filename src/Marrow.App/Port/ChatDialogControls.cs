@@ -14,6 +14,13 @@ namespace Marrow.App.Port;
 
 internal static class ChatDialogControls
 {
+    public static void Plain(Button button) => button.Template = new FuncControlTemplate<Button>((owner, scope) =>
+        new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope));
+    // Native style kinds are kept without guessing the platform's implicit metric values (ChatView STOP #5).
+    public static readonly AttachedProperty<string?> InputStyleProperty = AvaloniaProperty.RegisterAttached<Control, string?>("ChatInputStyle", typeof(ChatDialogControls));
+    public static readonly AttachedProperty<string?> SymbolProperty = AvaloniaProperty.RegisterAttached<Control, string?>("ChatLabelSymbol", typeof(ChatDialogControls));
+    public static string? GetSymbol(Control control) => control.GetValue(SymbolProperty);
+    public static void SetSymbol(Control control, string symbol) => control.SetValue(SymbolProperty, symbol);
     public static void Glass(Button button, bool prominent = false)
     {
         var effect = GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive();
@@ -23,7 +30,9 @@ internal static class ChatDialogControls
         {
             var label = new ContentPresenter { Name = "PART_ContentPresenter", VerticalAlignment = VerticalAlignment.Center,
                 [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope);
-            var layer = new Border { Child = label, Height = Chrome.CapsuleContentHeight, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0) };
+            Control content = label;
+            if (GetSymbol(owner) is { } symbol) content = new StackPanel { Orientation = Orientation.Horizontal, Children = { SwiftImage.SystemName(symbol), label } };
+            var layer = new Border { Child = content, Height = Chrome.CapsuleContentHeight, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0) };
             layer.Capsule(RoundedCornerStyle.Continuous);
             SwiftGlass.SetEffect(layer, effect);
             if (prominent) layer.Background = Chrome.Accent.Opacity(0.3).Brush(layer);
@@ -31,8 +40,9 @@ internal static class ChatDialogControls
         });
     }
 
-    public static void TextEditor(TextBox field, bool showsPrompt = true)
+    public static void TextEditor(TextBox field, bool showsPrompt = true, string style = "TextEditor")
     {
+        field.SetValue(InputStyleProperty, style);
         field.Template = new FuncControlTemplate<TextBox>((box, scope) =>
         {
             var text = new TextPresenter { Name = "PART_TextPresenter", TextWrapping = box.TextWrapping,
