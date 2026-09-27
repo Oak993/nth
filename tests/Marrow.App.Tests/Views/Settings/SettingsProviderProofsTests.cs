@@ -1,8 +1,5 @@
 using System.Diagnostics;
 using System.Reflection;
-using System.Net;
-using System.Net.Sockets;
-using System.Text;
 using System.Text.Json;
 using Avalonia;
 using Avalonia.Automation;
@@ -12,7 +9,6 @@ using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Input;
 using Avalonia.Headless;
-using Marrow.Testing;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -92,7 +88,17 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             finally { window.Close(); Sync(); SettingsNavigation.Shared.RequestedPage = null; }
         });
     }
-    private static void ColorIs(Control owner, IBrush? actual, SwiftColor expected) => Assert.Equal(expected.Resolve(owner.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(actual).Color);
+    private static void ColorIs(Control owner, IBrush? actual, SwiftColor expected)
+    {
+        // Chrome.swift:76,79 / ED-051,062: appearance-dependent tokens, including the 0.7 alpha derivation.
+        var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(owner)); var saved = window.RequestedThemeVariant;
+        try
+        {
+            foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
+            { window.RequestedThemeVariant = theme; Sync(); Assert.Equal(theme, owner.ActualThemeVariant); Assert.Equal(expected.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(actual).Color); }
+        }
+        finally { window.RequestedThemeVariant = saved; Sync(); }
+    }
     private static void HeaderMetrics(Control section)
     {
         // SettingsView.swift:650-675 `HStack(spacing: 12)`, `.frame(width: 22)`, VStack spacing 2, padding 16/10/11.
@@ -124,8 +130,8 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     }
     private static void Divider(ChromeRowDivider divider)
     {
-        // Chrome.swift:1082-1087 leading 16; port paints a system hairline with Overlay(0.14), unverified OD-0001.
-        Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin); var line = Assert.IsType<Border>(divider.Child); Assert.Equal(1, line.Height); Assert.Equal(new Thickness(0, 0, 0, 1), line.BorderThickness); ColorIs(line, line.BorderBrush, Chrome.Overlay(0.14));
+        // Chrome.swift:1082-1087 leading 16; system color remains STOP #1, no source RGBA.
+        Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin); Assert.IsType<Border>(divider.Child);
     }
     private static void PrecededByDivider(ChromeRow row)
     {
@@ -353,7 +359,10 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-PROVREG-009")] // App/Views/Settings/SettingsView.swift:677,690,720,731,739,748; UI/Chrome/Chrome.swift:1082-1087
+    [Trait("Rule", "R-TEST-2")] // Partial divider proof only; no Req while STOP #1 is open.
+    // STOP opencode-proofs-settings-prov #1 UI-PROVREG-009: placement/gates below are proven, but Swift Divider() delegates color to macOS.
+    // Kind: platform rendering; Chrome.swift:1084. No source RGBA or approved specific divider mapping/reference exists (OD-0001).
+    // Needed: approved divider-color mapping or pinned macOS measurement. The current Overlay(0.14) is only an unverified approximation.
     public void Every_present_row_and_usage_block_has_one_preceding_inset_divider_in_all_states() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
         foreach (var provider in SwiftEnum<ProviderKind>.AllCases)
@@ -403,7 +412,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     public void Zai_usage_reads_real_quota_and_cards_throttles_and_posts_reset_before_two_second_reread() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
         var mode = 0;
-        using var server = new BodyReadingServer(request => request.Target.Contains("/use", StringComparison.Ordinal) ? CannedResponse.Json("""{"code":200,"success":true}""") : request.Target.Contains("/list", StringComparison.Ordinal) ? mode == 1 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Cards) : mode == 2 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Quota));
+        using var server = new SettingsProviderProofServer(request => request.Target.Contains("/use", StringComparison.Ordinal) ? CannedResponse.Json("""{"code":200,"success":true}""") : request.Target.Contains("/list", StringComparison.Ordinal) ? mode == 1 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Cards) : mode == 2 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Quota));
         using var endpoints = Endpoints(typeof(ZaiAPI), server.Url);
         model.Settings.SetAPIKeyInput("fixture-key-never-sent", ProviderKind.Zai);
         Seed(model, ProviderKind.Zai, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync();
@@ -423,7 +432,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Seed(model, ProviderKind.Zai, model.Providers.Status(ProviderKind.Zai) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Wait(() => server.Requests.Count == initial + 2 && !model.Providers.LoadingLimits.Contains(ProviderKind.Zai));
         var resetRow = Nodes<BankedResetRow>(section)[0]; Click(Nodes<Button>(resetRow).Single(x => Equals(x.Content, "Use reset"))); Sync(); Assert.DoesNotContain(server.Requests, x => x.Method == "POST");
         var quotaBefore = server.Requests.Count(x => x.Target.Contains("/quota/", StringComparison.Ordinal));
-        var clock = new RecordingClock(h.Main.Time); using var recordedClock = SwiftClock.Provider.Override(clock);
+        var clock = new SettingsProviderProofClock(h.Main.Time); using var recordedClock = SwiftClock.Provider.Override(clock);
         Click(Nodes<Button>(section).Single(x => Equals(x.Content, "Reset now"))); Sync();
         Wait(() => server.Requests.Any(x => x.Method == "POST") && clock.Durations.Contains(TimeSpan.FromSeconds(2)));
         using var body = JsonDocument.Parse(server.PostBody!); Assert.Equal("PERSONAL", body.RootElement.GetProperty("targetType").GetString()); Assert.Equal("FIVE_HOUR", body.RootElement.GetProperty("resetType").GetString()); Assert.Equal(1, body.RootElement.GetProperty("recordId").GetInt32()); Assert.True(Guid.TryParse(body.RootElement.GetProperty("requestId").GetString(), out _));
@@ -457,146 +466,5 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         model.Settings.SetAPIKeyInput("", ProviderKind.Deepseek); model.Providers.RefreshCredits(ProviderKind.Deepseek, force: true); Sync(); Assert.False(model.Providers.Credits.ContainsKey(ProviderKind.Deepseek)); Assert.DoesNotContain("$12.34", Text(section));
         Close(section, h);
     });
-    private sealed class RecordingClock(ManualTimeProvider time) : TimeProvider
-    {
-        private readonly System.Collections.Concurrent.ConcurrentQueue<TimeSpan> durations = new();
-        public TimeSpan[] Durations => durations.ToArray();
-        public override DateTimeOffset GetUtcNow() => time.GetUtcNow();
-        public override long GetTimestamp() => time.GetTimestamp();
-        public override long TimestampFrequency => time.TimestampFrequency;
-        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
-        { durations.Enqueue(dueTime); return time.CreateTimer(callback, state, dueTime, period); }
-    }
-    // R-TEST-10: loopback HTTP fixture drains POST bodies before closing the TCP connection.
-    private sealed class BodyReadingServer : IDisposable
-    {
-        private readonly TcpListener listener;
-        private readonly Func<ReceivedRequest, Task<CannedResponse?>> respond;
-        private readonly CancellationTokenSource stop = new();
-        private readonly Lock gate = new();
-        private readonly List<ReceivedRequest> requests = [];
-
-        public BodyReadingServer(Func<ReceivedRequest, Task<CannedResponse?>> respond)
-        {
-            this.respond = respond;
-            listener = new TcpListener(IPAddress.Loopback, 0);
-            listener.Start();
-            Port = ((IPEndPoint)listener.LocalEndpoint).Port;
-            _ = AcceptLoop();
-        }
-
-        public BodyReadingServer(Func<ReceivedRequest, CannedResponse?> respond)
-            : this(request => Task.FromResult(respond(request)))
-        {
-        }
-
-        public int Port { get; }
-        public string? PostBody { get; private set; }
-
-        /// <summary>An absolute http URL on this server for a path that starts with "/" (and may carry a query).</summary>
-        public string Url(string pathAndQuery) =>
-            "http://127.0.0.1:" + Port.ToString(System.Globalization.CultureInfo.InvariantCulture) + pathAndQuery;
-
-        public IReadOnlyList<ReceivedRequest> Requests
-        {
-            get { lock (gate) return requests.ToArray(); }
-        }
-
-        public void Dispose()
-        {
-            stop.Cancel();
-            listener.Stop();
-        }
-
-        private async Task AcceptLoop()
-        {
-            while (!stop.IsCancellationRequested)
-            {
-                TcpClient client;
-                try { client = await listener.AcceptTcpClientAsync(stop.Token); }
-                catch (Exception) { return; }
-                _ = Serve(client);
-            }
-        }
-
-        private async Task Serve(TcpClient client)
-        {
-            using (client)
-            {
-                try
-                {
-                    var stream = client.GetStream();
-                    var head = await ReadHead(stream);
-                    if (head is null) return;
-                    var request = Parse(head);
-                    var length = request.HeaderValues("Content-Length").FirstOrDefault();
-                    if (length is not null)
-                    {
-                        var payload = new byte[int.Parse(length, System.Globalization.CultureInfo.InvariantCulture)];
-                        await stream.ReadExactlyAsync(payload, stop.Token);
-                        if (request.Method == "POST") PostBody = Encoding.UTF8.GetString(payload);
-                    }
-                    lock (gate) requests.Add(request);
-                    var answer = await respond(request).WaitAsync(stop.Token);
-                    if (answer is null) return;
-                    await Write(stream, request, answer);
-                }
-                catch (Exception)
-                {
-                    // A client that gave up (a timeout, a cancelled request) or a disposed server ends the exchange.
-                }
-            }
-        }
-
-        private async Task<string?> ReadHead(NetworkStream stream)
-        {
-            var buffer = new List<byte>();
-            var one = new byte[1];
-            while (buffer.Count < 65536)
-            {
-                var read = await stream.ReadAsync(one, stop.Token);
-                if (read == 0) return null;
-                buffer.Add(one[0]);
-                var n = buffer.Count;
-                if (n >= 4 && buffer[n - 4] == '\r' && buffer[n - 3] == '\n' && buffer[n - 2] == '\r' && buffer[n - 1] == '\n')
-                    return Encoding.Latin1.GetString(buffer.ToArray(), 0, n - 4);
-            }
-            return null;
-        }
-
-        private static ReceivedRequest Parse(string head)
-        {
-            var lines = head.Split("\r\n");
-            var requestLine = lines[0].Split(' ');
-            var headers = new List<KeyValuePair<string, string>>();
-            foreach (var line in lines.Skip(1))
-            {
-                var colon = line.IndexOf(':', StringComparison.Ordinal);
-                if (colon <= 0) continue;
-                headers.Add(new(line[..colon].Trim(), line[(colon + 1)..].Trim()));
-            }
-            return new ReceivedRequest(requestLine[0], requestLine.Length > 1 ? requestLine[1] : "", headers);
-        }
-
-        private async Task Write(NetworkStream stream, ReceivedRequest request, CannedResponse answer)
-        {
-            var head = new StringBuilder();
-            head.Append("HTTP/1.1 ").Append(answer.Status.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(' ')
-                .Append(answer.Reason).Append("\r\n");
-            var hasLength = false;
-            foreach (var (name, value) in answer.Headers)
-            {
-                head.Append(name).Append(": ").Append(value).Append("\r\n");
-                if (string.Equals(name, "Content-Length", StringComparison.OrdinalIgnoreCase)) hasLength = true;
-            }
-            if (!hasLength)
-                head.Append("Content-Length: ").Append(answer.Body.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("\r\n");
-            head.Append("Connection: close\r\n\r\n");
-            await stream.WriteAsync(Encoding.Latin1.GetBytes(head.ToString()), stop.Token);
-            if (!string.Equals(request.Method, "HEAD", StringComparison.Ordinal))
-                await stream.WriteAsync(answer.Body, stop.Token);
-            await stream.FlushAsync(stop.Token);
-        }
-    }
 
 }
