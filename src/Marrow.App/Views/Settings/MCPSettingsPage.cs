@@ -204,7 +204,25 @@ internal sealed class MCPServerCard : Decorator
         var state = AppEnvironment.GetAppModel(this).Mcp.State(entry.Id); var stack = new StackPanel { Spacing = 8 };
         if (celebrating)
         {
-            var image = MCPSettingsPage.Symbol("checkmark.circle.fill", 34, Chrome.Success); image.RenderTransform = new ScaleTransform(0.5, 0.5); image.HorizontalAlignment = HorizontalAlignment.Center;
+            var image = MCPSettingsPage.Symbol("checkmark.circle.fill", 34, Chrome.Success); image.RenderTransform = new ScaleTransform(0.5, 0.5); image.RenderTransformOrigin = RelativePoint.Center; image.HorizontalAlignment = HorizontalAlignment.Center;
+            // :371-374 use the shared frame seam and manual-clock-compatible source spring.
+            image.AttachedToVisualTree += (_, _) =>
+            {
+                if (EnvironmentValues.GetAccessibilityReduceMotion(this)) return;
+                var start = SwiftClock.Now;
+                var animation = Animation.Spring(duration: 0.5, bounce: 0.4);
+                var frames = FrameClock.Source.Current;
+                Action<TimeSpan>? frame = null;
+                frame = _ =>
+                {
+                    var elapsed = (SwiftClock.Now - start).TotalSeconds;
+                    var scale = elapsed >= 0.5 ? 1 : 0.5 + 0.5 * animation.Progress(elapsed);
+                    image.RenderTransform = new ScaleTransform(scale, scale);
+                    if (elapsed < 0.5) frames.RequestFrame(frame!);
+                };
+                image.DetachedFromVisualTree += (_, _) => frames.CancelFrame(frame!);
+                frames.RequestFrame(frame);
+            };
             var count = state is MCPConnectionState.Connected c ? c.ToolCount : 0;
             var success = new StackPanel { Spacing = 8, MinHeight = 120, VerticalAlignment = VerticalAlignment.Center, Children = { image, MCPSettingsPage.Text("Connected \U000000B7 " + count.ToString(CultureInfo.InvariantCulture) + " tools", 12, Chrome.PrimaryText, SwiftFont.Weight.Medium) } }; // U+00B7 MIDDLE DOT
             success.Children[1].HorizontalAlignment = HorizontalAlignment.Center; stack.Children.Add(success);
@@ -266,7 +284,13 @@ internal sealed class MCPCustomSection : Decorator
             }
             else for (var i = 0; i < visible.Length; i++) { if (i > 0) stack.Children.Add(new ChromeRowDivider()); stack.Children.Add(new MCPCustomRow(visible[i])); }
             stack.Children.Add(new ChromeRowDivider()); // :403,409
-            var add = PlainControls.Button(MCPSettingsPage.Text("Add server", 13, Chrome.PrimaryText, SwiftFont.Weight.Medium), () => state.Adding = true);
+            // :417-436 the whole row is the rectangular hit area.
+            var addRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), ColumnSpacing = 12 };
+            var addGlyph = MCPSettingsPage.Symbol("plus.circle", 13, Chrome.Accent); addGlyph.HorizontalAlignment = HorizontalAlignment.Center;
+            addRow.Children.Add(new Border { Width = 26, Child = addGlyph });
+            var addText = MCPSettingsPage.Text("Add server", 13, Chrome.PrimaryText, SwiftFont.Weight.Medium); Grid.SetColumn(addText, 1); addRow.Children.Add(addText);
+            var spacer = new Border { MinWidth = 12 }; Grid.SetColumn(spacer, 2); addRow.Children.Add(spacer);
+            var add = PlainControls.Button(new Border { Background = Brushes.Transparent, Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = addRow }, () => state.Adding = true);
             stack.Children.Add(new Panel { Children = { add, MCPSettingsPage.Popover(add, new Binding<bool>(() => state.Adding, v => state.Adding = v), () => new MCPCustomEditor(null), this) } });
             Child = new ChromeSection("Custom", () => new ChromeCard(() => stack, lazy: true));
         });
@@ -298,22 +322,25 @@ internal sealed class MCPCustomRow : Decorator
             MCPConnectionState.Failed f => MCPSettingsPage.Text(f.Message, 11, Chrome.Danger, lines: 3),
             _ => MCPSettingsPage.Text(server.Summary, 11, Chrome.SecondaryText),
         };
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { new MCPIcon(entry, 22), new StackPanel { Spacing = 2, Children = { MCPSettingsPage.Text(server.Name, 13, Chrome.PrimaryText, SwiftFont.Weight.Semibold), status } } } };
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto"), ColumnSpacing = 12 };
+        row.Children.Add(new Border { Width = 26, Child = new MCPIcon(entry, 22) { HorizontalAlignment = HorizontalAlignment.Center } });
+        var copy = new StackPanel { Spacing = 2, Children = { MCPSettingsPage.Text(server.Name, 13, Chrome.PrimaryText, SwiftFont.Weight.Semibold), status } }; Grid.SetColumn(copy, 1); row.Children.Add(copy);
+        var spacer = new Border { MinWidth = 12 }; Grid.SetColumn(spacer, 2); row.Children.Add(spacer);
         Control action = state switch
         {
             MCPConnectionState.NotConnected => MCPSettingsPage.ActionButton("Connect", () => MCPSettingsPage.Begin(this, entry)),
-            MCPConnectionState.Connecting => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new WorkingSpinner(3), MCPSettingsPage.Text("Connecting", 11, Chrome.SecondaryText) } },
+            MCPConnectionState.Connecting => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new WorkingSpinner(3), new TextBlock { Text = "Connecting", FontSize = 11, Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.NoWrap } } },
             MCPConnectionState.Connected => new SettingsSwitch(new Binding<bool>(() => model.Mcp.Connection(server.Id)?.IsEnabled ?? true, v => model.Mcp.SetEnabled(v, entry))),
             MCPConnectionState.NeedsSetup n => MCPSettingsPage.ActionButton("Fix it", () => MCPSetupPanel.Shared.Present(entry, n.Guide, model), true),
             MCPConnectionState.Failed => MCPSettingsPage.ActionButton("Try again", () => MCPSettingsPage.Begin(this, entry)),
             _ => throw new UnreachableException(),
         };
-        row.Children.Add(action); var menu = MCPSettingsPage.Options(() => view.Menu = !view.Menu);
-        row.Children.Add(new Panel { Children = { menu,
+        Grid.SetColumn(action, 3); row.Children.Add(action); var menu = MCPSettingsPage.Options(() => view.Menu = !view.Menu);
+        var menus = new Panel { Children = { menu,
             MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Menu, v => view.Menu = v), BuildMenu, this),
             MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Editing, v => view.Editing = v), () => new MCPCustomEditor(server), this),
             MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Confirming, v => view.Confirming = v), () => DeleteConfirmation!, this),
-        } });
+        } }; Grid.SetColumn(menus, 4); row.Children.Add(menus);
         Child = new Border { Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = row };
     }
     // :554-568
@@ -411,7 +438,7 @@ internal sealed class MCPCustomEditor : Decorator
     {
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 10 }; row.Children.Add(new MCPIcon(Draft.CatalogEntry(), 26));
         var copy = new StackPanel { Spacing = 1, Children = { MCPSettingsPage.Text(server?.Name ?? "New server", 14, Chrome.PrimaryText, SwiftFont.Weight.Semibold), MCPSettingsPage.Text("Custom \U000000B7 " + (kind == MCPCustomServer.Kind.Stdio ? "stdio" : "http"), 11, Chrome.SecondaryText) } }; Grid.SetColumn(copy, 1); row.Children.Add(copy); // U+00B7 MIDDLE DOT
-        var close = PlainControls.Button(MCPSettingsPage.Symbol("xmark", 11, Chrome.SecondaryText), () => Popovers.GetClosePopover(this)?.Invoke()); close.Width = 24; close.Height = 24; AutomationProperties.SetName(close, "Close"); Grid.SetColumn(close, 2); row.Children.Add(close); return row;
+        var close = PlainControls.Button(MCPSettingsPage.Symbol("xmark", 11, Chrome.SecondaryText).Font(SwiftFont.System(11, SwiftFont.Weight.Semibold)), () => Popovers.GetClosePopover(this)?.Invoke()); close.Width = 24; close.Height = 24; AutomationProperties.SetName(close, "Close"); Grid.SetColumn(close, 2); row.Children.Add(close); return row;
     }
     // :747-753
     private static Control Field(string label, Control content) => new StackPanel { Spacing = 5, Children = { MCPSettingsPage.Text(label, 11, Chrome.SecondaryText, SwiftFont.Weight.Semibold), content } };
@@ -419,7 +446,7 @@ internal sealed class MCPCustomEditor : Decorator
     private static TextBox EditorField(string prompt, Func<string> read, Action<string> write, bool secret = false, bool name = false)
     {
         var box = PlainControls.TextField(prompt, new Binding<string>(read, write)); if (secret) box.PasswordChar = '\u2022'; // U+2022 BULLET
-        SwiftFont.System(name ? 15 : 12, name ? SwiftFont.Weight.Semibold : SwiftFont.Weight.Regular, name ? SwiftFont.Design.Default : SwiftFont.Design.Monospaced).Apply(box); box.Foreground = Chrome.PrimaryText.Brush(box); return box;
+        SwiftFont.System(name ? 15 : 12, name ? SwiftFont.Weight.Semibold : SwiftFont.Weight.Regular, name ? SwiftFont.Design.Default : SwiftFont.Design.Monospaced).Apply(box); box.Foreground = Chrome.PrimaryText.Brush(box); if (name) box.Padding = new Thickness(10, 7); return box;
     }
     // :794-840
     private Control VariableRow(VariableDraft variable)
