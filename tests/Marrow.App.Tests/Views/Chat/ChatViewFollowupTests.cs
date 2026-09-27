@@ -14,6 +14,7 @@ using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
+using Avalonia.Threading;
 
 namespace Marrow.App.Tests.Views.Chat;
 
@@ -23,13 +24,23 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
     private static T Field<T>(object owner, string name) => (T)owner.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(owner)!;
     private static void Call(object owner, string name, params object?[] values) => owner.GetType().GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(owner, values);
     private static ThreadTimeline Timeline(ChatView view) => Assert.Single(LogicalQuery.SelfAndDescendants<ThreadTimeline>(view));
+    private static void Drain(AppModelHarness h)
+    {
+        h.Main.RunUntilIdle();
+        h.Main.OnMain(() => Dispatcher.UIThread.RunJobs());
+        h.Main.RunUntilIdle();
+    }
 
     private void WithChat(Action<ChatView, ThreadRuntime, AppModel, AppModelHarness, Avalonia.Controls.Window, ManualFrameSource> check) =>
         ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
             var frames = new ManualFrameSource();
             using var clock = FrameClock.Source.Override(frames);
+            var project = new Project("Project", h.NewFolder("project"));
+            h.WriteLibrary([project], []);
             var model = h.MakeModel();
             Avalonia.Controls.Window? window = null;
             try
@@ -40,7 +51,6 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
                 {
                     model.Settings.ShowsUsagePanel = false;
                     model.Settings.HydraEnabled = false;
-                    var project = model.AddProject(new Project("Project", h.NewFolder("project")).Url);
                     runtime = model.Runtime(model.NewThread(project)!.Id);
                     view = new ChatView(runtime);
                     window = new Avalonia.Controls.Window { Content = view, Width = 1400, Height = 900 };
@@ -50,13 +60,13 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
                     window.Show();
                     window.UpdateLayout();
                 });
-                h.Main.RunUntilIdle();
+                Drain(h);
                 check(view, runtime, model, h, window!, frames);
             }
             finally
             {
                 h.Main.OnMain(() => { window?.Close(); model.Terminals.TerminateAll(); });
-                h.Main.RunUntilIdle();
+                Drain(h);
             }
         });
 
@@ -100,23 +110,25 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
                 var layout = Field<PanelScene>(view, "scene").Layout;
                 drag.Move(new Size(10, 10), new Point(20, 20), layout);
             });
-            h.Main.RunUntilIdle();
+            Drain(h);
             Assert.False(Timeline(view).IsHitTestVisible);
             Assert.True(Assert.Single(LogicalQuery.SelfAndDescendants<ComposerArea>(view)).IsHitTestVisible);
             h.Main.OnMain(() => drag.Release());
-            h.Main.RunUntilIdle();
+            Drain(h);
             Assert.True(Timeline(view).IsHitTestVisible);
         });
 
     [Fact]
     [Trait("Req", "PR-CHAT-159")] // App/Views/Chat/ChatView.swift:143-145; UI/Chrome/Chrome.swift:568-579,585-624
     public void The_mounted_top_veil_uses_the_same_scroll_chrome_model_as_the_timeline()
-        => WithChat((view, _, _, h, _, _) =>
+        => WithChat((view, runtime, _, h, _, _) =>
         {
             var veil = Assert.Single(LogicalQuery.SelfAndDescendants<PaneTopVeil>(view));
             Assert.False(veil.IsHitTestVisible);
+            h.Main.OnMain(() => typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.IsLoadingHistory))!.SetValue(runtime, true));
+            Drain(h); // suppress the empty timeline's source-mandated reset while injecting measured scroll travel.
             h.Main.OnMain(() => Field<ChromeScrollModel>(view, "scrollChrome").Update(44));
-            h.Main.RunUntilIdle();
+            Drain(h);
             var layer = Assert.IsType<Panel>(veil.Child);
             Assert.Equal(Chrome.VeilHeight, layer.Height);
             Assert.Equal(1, layer.Opacity);
@@ -131,7 +143,7 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
             var composer = Assert.Single(LogicalQuery.SelfAndDescendants<ComposerArea>(view));
             Assert.Equal(0, Timeline(view).Margin.Left);
             h.Main.OnMain(() => model.Settings.ShowsUsagePanel = true);
-            h.Main.RunUntilIdle();
+            Drain(h);
             var scene = Field<PanelScene>(view, "scene");
             Assert.True(scene.IsMeasured);
             Assert.True(scene.ShowsUsage);
@@ -140,7 +152,7 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
             Assert.Equal(scene.Reserve.Leading, timeline.Margin.Left); // final width snaps once.
             Assert.True(ChatView.GetReserveSlideOffset(timeline) < 0);
             Assert.Same(composer, Assert.Single(LogicalQuery.SelfAndDescendants<ComposerArea>(view)));
-            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration));
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001));
             frames.Advance(TimeSpan.Zero);
             window.UpdateLayout();
             Assert.Equal(0, ChatView.GetReserveSlideOffset(Timeline(view)));
@@ -175,23 +187,50 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
     public void The_terminal_flag_inserts_and_removes_the_actual_drawer_with_bottom_move_and_fade()
         => WithChat((view, runtime, _, h, window, frames) =>
         {
+            Assert.True(Directory.Exists(Field<string>(view, "directory")), Field<string>(view, "directory"));
             h.Main.OnMain(() => runtime.IsTerminalVisible = true);
-            h.Main.RunUntilIdle();
+            Drain(h);
             window.UpdateLayout();
             var terminal = Assert.Single(LogicalQuery.SelfAndDescendants<TerminalPanel>(view));
             Assert.Equal(0, terminal.Opacity);
             Assert.True(terminal.RenderTransform!.Value.M32 > 0); // move(bottom), its measured height.
-            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
             Assert.Equal(1, terminal.Opacity);
             Assert.Equal(0, terminal.RenderTransform!.Value.M32);
             h.Main.OnMain(() => runtime.IsTerminalVisible = false);
-            h.Main.RunUntilIdle();
+            Drain(h);
             Assert.Contains(terminal, LogicalQuery.SelfAndDescendants<TerminalPanel>(view)); // remains through removal frames.
-            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
             Assert.Empty(LogicalQuery.SelfAndDescendants<TerminalPanel>(view));
             Assert.Equal(0, terminal.Opacity);
             Assert.True(terminal.RenderTransform!.Value.M32 > 0);
         });
+
+    [Fact]
+    [Trait("Rule", "R-FILE-1")] // App/Views/Chat/ChatView.swift:601-607 (shared panel transition; its two scale constants have no packet item).
+    public void Floating_panels_grow_from_point_ninety_two_and_leave_at_point_ninety_six()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var frames = new ManualFrameSource();
+            using var clock = FrameClock.Source.Override(frames);
+                var transition = (SwiftTransition)typeof(ChatView).GetProperty("PanelTransition", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+                var content = new Border().Transition(transition);
+                var host = new Panel();
+                Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Insert(host, 0, content));
+                Assert.Equal(0.92, content.RenderTransform!.Value.M11, 8);
+                Assert.Equal(0, content.Opacity);
+                h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
+                Assert.Equal(1, content.RenderTransform!.Value.M11);
+                Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Remove(host, content));
+                h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
+                Assert.Equal(0.96, content.RenderTransform!.Value.M11, 8);
+                Assert.Equal(0, content.Opacity);
+                Assert.Empty(host.Children);
+        });
+    }
 
     [Fact]
     [Trait("Req", "UI-CHAT-006")] // App/Views/Chat/ChatView.swift:1089-1103
@@ -200,6 +239,7 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
         ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             var frames = new ManualFrameSource();
             using var clock = FrameClock.Source.Override(frames);
             TimelineScrollState state = null!; JumpToLatestButton view = null!;
@@ -211,7 +251,7 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
                 Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(view));
                 Transaction.WithAnimation(Chrome.PanelSlide, () => state.ShowsJumpButton = true);
             });
-            h.Main.RunUntilIdle();
+            Drain(h);
             var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(view));
             var circle = Assert.Single(LogicalQuery.SelfAndDescendants<ChromeCircleButton>(view)); // :1091 source transition encloses the whole chrome surface.
             Assert.Equal("Jump to latest", ToolTip.GetTip(button));
@@ -220,12 +260,12 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
             Assert.Equal(0, circle.Opacity);
             Assert.Equal(0.6, circle.RenderTransform!.Value.M11, 8);
             Assert.Equal(10, circle.RenderTransform!.Value.M32, 8);
-            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
             h.Main.OnMain(() => ChatGitFixtures.Click(button));
             Assert.Equal(1, state.JumpRequest);
             h.Main.OnMain(() => Transaction.WithAnimation(Chrome.PanelSlide, () => state.ShowsJumpButton = false));
-            h.Main.RunUntilIdle();
-            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
+            Drain(h);
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
             Assert.Equal(0, circle.Opacity);
             Assert.Equal(0.85, circle.RenderTransform!.Value.M11, 8);
             Assert.Equal(6, circle.RenderTransform!.Value.M32, 8);
