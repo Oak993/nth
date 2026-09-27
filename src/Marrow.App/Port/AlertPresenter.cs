@@ -57,6 +57,11 @@ public sealed class WindowsAlertPresenter : IAlertPresenter
             foreach (var button in buttons)
             {
                 var control = new Button { Content = button.Title };
+                // A lone button is both the alert's default (Return) and its cancel default (Escape): the shape
+                // AppUpdater.cs's own single "OK" button (:410-414, App/AppUpdater.swift:274-280's implicit,
+                // unadorned NSAlert default button) and RootView.cs's single "OK" button (PR-WIN-066,
+                // `Button("OK", role: .cancel)`, "so Escape and Enter both dismiss") both already need.
+                if (buttons.Count == 1) { control.IsDefault = true; control.IsCancel = true; }
                 control.Click += (_, _) =>
                 {
                     button.Perform();

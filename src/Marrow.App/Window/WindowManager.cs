@@ -66,9 +66,11 @@ public sealed class WindowManager
     // settings store under this exact name (PR-WIN-006 windows_path).
     private const string MainFrameName = "DroppyCodeMainWindow";
 
-    // :63 `{ RootView() }` and :81 `{ SettingsView() }`, each window's content, built by makeWindow (:104). Internal and
-    // settable only so the tests can host a stand-in while RootView's and SettingsView's bodies are still MARROW_STUB
-    // (STOP App.Window.WindowManager #1); nothing in the app sets them.
+    // :63 `{ RootView() }` and :81 `{ SettingsView() }`, each window's content, built by makeWindow (:104). Internal
+    // and settable only so a test can host a stand-in: SettingsView's body is still MARROW_STUB (STOP App.Window.
+    // WindowManager #1 stays open for it), and a RootView built this way still throws once it reaches DetailView's
+    // "a thread is selected" branch (App.Views.RootView.swift:130, blocked on ChatView) - nothing in the app sets
+    // either override.
     internal Func<Control> MainContent { get; set; } = () => new RootView();
     internal Func<Control> SettingsContent { get; set; } = () => new SettingsView();
 
