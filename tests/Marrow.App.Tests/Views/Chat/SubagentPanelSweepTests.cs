@@ -32,12 +32,11 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
-            var time = new ManualTimeProvider(DateTimeOffset.Parse("2026-09-27T00:00:00Z"));
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 9, 27, 0, 0, 0, TimeSpan.Zero));
             using var timeScope = SwiftClock.Provider.Override(time);
             using var motionScope = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reducedMotion });
             var frames = new ManualFrameSource();
             using var frameScope = FrameClock.Source.Override(frames);
-            runtime.OnMain(() =>
             {
                 var content = new Border();
                 var drag = new PanelDragState();
@@ -96,7 +95,7 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
                     Assert.Equal(0, frames.Pending);
                 }
                 finally { window.Close(); }
-            });
+            }
         });
     }
 
