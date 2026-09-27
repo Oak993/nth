@@ -2784,6 +2784,11 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // in part 1 (green). Not written, because it would fail on the dependency rather than on this unit: Ctrl+Return with
 // a draft such as "/plan" on a selected idle thread (Swift: send() handles it locally, ThreadRuntime.swift:743-750,
 // :1157-1162, so the thread flips to plan and the draft is emptied; no follow-up is queued).
+// Resolution (fix/canqueue): ThreadRuntime.CanQueue is now IsRunning || HasWorkingHeads and QueueDraftAsFollowUp
+// sends the draft when it cannot queue (ThreadRuntime.swift:771-788). The case above is now written:
+// Queue_a_chat_with_nothing_to_queue_behind_sends_the_draft_so_a_plan_command_flips_the_thread_to_plan (green).
+// fix/canqueue round 2: enqueueFollowUp now ends with flushFollowUpsIfIdle (ThreadRuntime.swift:1003-1007), so a draft
+// this item queues on an idle lead with heads at work goes out at once as its own turn (ThreadRuntimeQueueDraftTests).
 
 // STOP App.AppCommands #6 (repair agent, 2026-09-26)
 // Kind: missing dependency
@@ -2855,8 +2860,9 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // Sweep B recheck (2026-09-27, base d62329d42): STOP #2 and #7 still lack character-key / AltGr decisions.
 // STOP #3 still needs AppModel.FinishActionTitle's helper branch repaired, delayed finish/reopen and archive fallback,
 // and empty loaded-thread deletion (AppModel.swift:855-921). AppModel.cs:850-899 still has all four divergences.
-// STOP #5 still needs ThreadRuntime.CanQueue and QueueDraftAsFollowUp repaired: :1020-1025 still reject an idle draft
-// instead of sending it (Swift ThreadRuntime.swift:771-788). No AppModel or ThreadRuntime file is changed by this sweep.
+// STOP #5 still needed ThreadRuntime.CanQueue and QueueDraftAsFollowUp repaired at that base: :1020-1025 rejected an
+// idle draft instead of sending it (Swift ThreadRuntime.swift:771-788). No AppModel or ThreadRuntime file is changed by
+// this sweep. Later note (fix/canqueue, 2026-09-27): STOP #5 is RESOLVED; see its resolution above.
 
 // STOP App.AppCommands #8 (opencode citation correction, 2026-09-27)
 // Kind: unresolved precedence, macOS menu key-equivalent dispatch.
