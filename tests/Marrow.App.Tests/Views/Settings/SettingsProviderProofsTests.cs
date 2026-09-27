@@ -645,13 +645,19 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-PROVREG-005")] // App/Views/Settings/SettingsView.swift:655-656; ProviderRegistry.swift:19-26
-    public void Checking_never_evaluates_the_production_summary_getter() => WithView(() => new ProvidersSettingsPage(), (view, model, _) =>
+    public void Checking_shows_its_own_literal_and_never_the_summary_it_would_otherwise_disagree_with() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
-        var reads = 0; var seam = typeof(ProviderStatus).GetProperty("SummaryReading", BindingFlags.Static | BindingFlags.NonPublic); Assert.NotNull(seam);
-        using var observing = Assert.IsType<Ambient<Action>>(seam.GetValue(null)).Override(() => reads++);
-        Seed(model, ProviderKind.Codex, new ProviderStatus { IsChecking = true }); Sync();
-        Assert.Equal("Checking…", Text(Labels(Section(view, ProviderKind.Codex)))[0]); Assert.Equal(0, reads);
-        Seed(model, ProviderKind.Codex, new ProviderStatus()); Sync(); Assert.Equal(1, reads); Assert.Equal("Not installed", Text(Labels(Section(view, ProviderKind.Codex)))[0]);
+        // status.summary for this exact status would read "Signed in as prover" (ProviderRegistry.swift:22):
+        // installed (Executable set) and signedIn with an account. If the call site's ternary (SettingsView.swift:655-656)
+        // ever stopped short-circuiting on isChecking and fell through to status.summary, the row would show that
+        // text instead. Asserting the literal proves the branch was actually taken, not merely that both exist somewhere.
+        var checking = new ProviderStatus { IsChecking = true, Executable = SwiftURL.Create(new Uri(Path.Combine(h.Scratch, "not-launched.exe")).AbsoluteUri)!, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn("prover") };
+        Assert.Equal("Signed in as prover", checking.Summary); // sanity: the getter really does disagree with "Checking…" for this status
+        Seed(model, ProviderKind.Codex, checking); Sync();
+        Assert.Equal("Checking…", Text(Labels(Section(view, ProviderKind.Codex)))[0]);
+        Assert.DoesNotContain("Signed in as prover", Text(Section(view, ProviderKind.Codex)));
+        Seed(model, ProviderKind.Codex, checking with { IsChecking = false }); Sync();
+        Assert.Equal("Signed in as prover", Text(Labels(Section(view, ProviderKind.Codex)))[0]);
     });
 
     [Fact]
