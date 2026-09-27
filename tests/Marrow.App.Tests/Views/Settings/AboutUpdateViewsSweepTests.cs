@@ -294,7 +294,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     [Theory]
     [Trait("Req", "PR-SETTINGS-243")] // App/Views/Settings/AboutUpdateViews.swift:731-744,794-818
     [Trait("Req", "PR-UPDATE-060")] // App/Views/Settings/AboutUpdateViews.swift:731-736,798-803
-    [Trait("Req", "PR-UPDATE-061")] // App/Views/Settings/AboutUpdateViews.swift:794-818 (haptic delivery remains STOP #1)
+    [Trait("Req", "PR-UPDATE-061")] // App/Views/Settings/AboutUpdateViews.swift:794-818 (windows_path specifies the shared no-op haptic shim)
     [Trait("Req", "PR-UPDATE-063")] // App/Views/Settings/AboutUpdateViews.swift:738-744
     [InlineData(false, 2600)]
     [InlineData(true, 1450)]
@@ -345,9 +345,6 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     }
 }
 
-// STOP App.Views.Settings.AboutUpdateViews #1
-// Kind: missing shared Windows haptic boundary, independent of the now-tested celebration timing.
-// Swift: App/Views/Settings/AboutUpdateViews.swift:805,810,813; record PR-UPDATE-061 (haptic delivery only).
-// Missing: Haptics.Perform in ShortcutsSettingsPage.cs is a no-op, with no injectable/observable native boundary.
-// Needed: port that owning unit's Haptics adaptation. This unit calls Alignment and LevelChange at the exact
-// source sites; the 550/900/450/700 ms sequence, 1450 ms reduced path, and cancellation are exercised above.
+// PR-UPDATE-061 windows_path specifies the shared no-op haptic shim (port_impacts X6).
+// Alignment and LevelChange calls remain at the Swift sites; a native haptic boundary is not required on Windows.
+// The 550/900/450/700 ms sequence, 1450 ms reduced path, and cancellation are exercised above.
