@@ -222,7 +222,8 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
     [Theory]
     [Trait("Req", "PR-UPDATE-073")] // App/Views/Settings/AboutUpdateViews.swift:581-583,638-640
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:581-583,638-640
-    [InlineData("release-withdrawn")] [InlineData("install-showing")]
+    [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:581-583,638-640 ("Click while ready to install")
+    [InlineData("release-withdrawn")] [InlineData("install-showing")] [InlineData("release-not-newer")]
     public void A_click_reads_the_live_checker_and_progress_not_the_face_it_was_built_from(string change) => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -236,7 +237,9 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
         {
             var pill = new AboutVersionPill(); var window = Show(pill);
             var built = Assert.Single(pill.GetVisualDescendants().OfType<Button>()); Assert.True(built.IsHitTestVisible); // built while ready
-            if (change == "release-withdrawn") Set(checker, nameof(UpdateChecker.Update), null); else progress.Begin();
+            if (change == "release-withdrawn") Set(checker, nameof(UpdateChecker.Update), null);
+            else if (change == "release-not-newer") Set(checker, nameof(UpdateChecker.Update), AboutUpdateViewsProofLifecycleTests.Release(url: "http://127.0.0.1:1/never") with { Version = "1.7.0" }); // UpdateChecker.swift:93-96 updateAvailable false
+            else progress.Begin();
             Dispatcher.UIThread.RunJobs();
             var phase = progress.UpdateInstallProgressPhase;
             built.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
@@ -252,6 +255,7 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-UPDATE-073")] // App/Views/Settings/AboutUpdateViews.swift:638-640; App/AppUpdater.swift:261-283
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:638-640
+    [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:638-640
     public void A_click_installs_the_release_the_checker_holds_when_the_click_lands() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -279,6 +283,35 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("/new", Assert.Single(server.Requests).Target);
             Assert.Single(boundary.Calls, call => call.StartsWith("Stage(", StringComparison.Ordinal) && call.EndsWith(", 9.1.0)", StringComparison.Ordinal));
+            window.Close();
+        });
+    });
+
+    // Swift :581-583 isReady needs checker.updateAvailable as well as a release object; UpdateChecker.swift:93-96 makes
+    // updateAvailable false for a stored release that is not newer than the running version (after an install it is the
+    // running version). The pill then shows its standing, not the install button.
+    [Fact]
+    [Trait("Req", "PR-UPDATE-073")] // App/Views/Settings/AboutUpdateViews.swift:581-583 ("only when a newer release is stored")
+    [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:581-583 ("an update is available")
+    [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:581-583
+    [Trait("Req", "PR-UPDATE-075")] // App/Views/Settings/AboutUpdateViews.swift:678-702
+    public void A_stored_release_that_is_not_newer_leaves_the_pill_a_standing() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
+        runtime.OnMain(() =>
+        {
+            var checker = new UpdateChecker(AppInfo.Current, [], ""); Set(checker, nameof(UpdateChecker.LastCheckedAt), SwiftDate.Now);
+            Set(checker, nameof(UpdateChecker.Update), AboutUpdateViewsProofLifecycleTests.Release() with { Version = "1.7.0" });
+            Assert.False(checker.UpdateAvailable);
+            using var shared = UpdateChecker.OverrideShared(checker);
+            using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
+            var pill = new AboutVersionPill(); var window = Show(pill);
+            var button = Assert.Single(pill.GetVisualDescendants().OfType<Button>());
+            Assert.Equal("Up to date", Assert.Single(pill.GetVisualDescendants().OfType<TextBlock>()).Text); // :602
+            Assert.False(button.IsHitTestVisible); // :674
+            Assert.Equal("Marrow 1.7.0, up to date", AutomationProperties.GetName(button)); // :702, OD-0012 F1
+            Assert.Equal("Marrow 1.7.0 is the latest version", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :695
             window.Close();
         });
     });

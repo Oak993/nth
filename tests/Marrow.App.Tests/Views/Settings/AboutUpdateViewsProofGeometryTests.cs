@@ -130,6 +130,11 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
             Assert.Equal(symbol, icon.SymbolName); Assert.Equal(11, SwiftImage.GetFont(icon)!.PointSize);
             Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Semibold), SwiftImage.GetFont(icon));
             Assert.Equal(text, title.Text); Assert.Equal(12, title.FontSize); Assert.Equal(FontWeight.SemiBold, title.FontWeight);
+            // :659-660 lineLimit(1) + fixedSize(horizontal: true): the title is laid out on one line at its full width.
+            Assert.Equal(1, title.MaxLines); Assert.Single(title.TextLayout.TextLines); Assert.Equal(title.DesiredSize.Width, title.Bounds.Width);
+            Assert.True(title.TextLayout.WidthIncludingTrailingWhitespace <= title.Bounds.Width);
+            // :673-674 the standing is a plain button with hit testing off, not a disabled one (windows_path: non-interactive, not disabled-looking).
+            Assert.True(button.IsEnabled);
             // Chrome.swift:79 primary.opacity(0.7), :82-84 theme success/warning, :86 fixed blue.
             var tint = ready ? new SwiftColor(0.040, 0.478, 1.000) : error is not null ? Chrome.Warning : checkedBefore ? Chrome.Success : Chrome.PrimaryText.Opacity(0.7);
             Assert.Equal(tint.Resolve(icon.ActualThemeVariant), ColorOf(icon.Foreground));
@@ -151,6 +156,8 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:581-583,638-642,693-703
     [Trait("Req", "PR-UPDATE-075")] // App/Views/Settings/AboutUpdateViews.swift:693-703
     [Trait("Req", "UI-UPDATE-003")] // App/Views/Settings/AboutUpdateViews.swift:693-699
+    [Trait("Req", "PR-UPDATE-073")] // App/Views/Settings/AboutUpdateViews.swift:581-583 (checker.update != nil)
+    [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:581-583
     public void Production_defensive_branches_keep_nil_release_inert_and_nil_error_help_verbatim() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -178,6 +185,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
     [Trait("Decision", "ED-180")] // PR-UPDATE-074 source geometry proven; macOS capture comparison remains unavailable (OD-0001).
     [Trait("Req", "UI-UPDATE-006")] // App/Views/Settings/AboutUpdateViews.swift:625-636; App/AppUpdater.swift:72-78
     [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:625-636
+    [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:625-636 (104-point slider in the glass capsule)
     public void Every_progress_phase_replaces_the_face_at_104_plus_padding_and_failure_restores_it() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
