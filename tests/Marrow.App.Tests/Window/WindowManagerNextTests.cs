@@ -74,6 +74,7 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         var appearance = application.RequestedThemeVariant;
         var theme = ThemeManager.Current;
         using var harness = new AppModelHarness(withRuntime: false);
+        using var cursor = WindowCenteringTestHooks.OverrideCursor(new WindowCenteringCursor());
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var wallpaper = WallpaperStore.Shared.Override((WallpaperStore)Activator.CreateInstance(typeof(WallpaperStore), nonPublic: true)!);
         using var updates = UpdateChecker.OverrideShared(new UpdateChecker(AppInfo.Current, [], ""));

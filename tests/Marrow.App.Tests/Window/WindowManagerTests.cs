@@ -60,6 +60,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         var variant = application.RequestedThemeVariant;
         var theme = ThemeManager.Current;
         using var harness = new AppModelHarness();
+        using var cursor = WindowCenteringTestHooks.OverrideCursor(new WindowCenteringCursor());
         var page = harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage);
         try
         {
