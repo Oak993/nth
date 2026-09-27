@@ -109,8 +109,8 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Decision", "ED-117")] // Crossfade timing rests on ED-117(2)-(6), so Decision ED-117 + Oracle O-34, never Req.
-    [Trait("Oracle", "O-34")] // App/Views/Composer/EffortSlider.swift:758-767,799,1024-1026; PR-132 needs a capture comparison (see STOP).
+    [Trait("Decision", "ED-092")] // App/Views/Composer/EffortSlider.swift:758-767,799,1024-1026; the fade is Animation.Smooth(0.3) (ED-092(2)) settling per ED-011, never ED-117 cadence (no TimelineView, DisplayLink or 1 ms rule); PR-132 needs a capture comparison (see STOP).
+    [Trait("Decision", "ED-011")]
     public void Pair_keeps_effect_identity_across_kind_changes_while_a_solo_track_crossfades()
     {
         headless.OnUiThread(() =>
@@ -148,13 +148,191 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
         });
     }
 
+    private static TrackLook.Kind KindOf(TrackEffect effect) =>
+        ((TrackLook)typeof(TrackEffect).GetField("look", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(effect)!).TrackLookKind;
+
+    [Fact]
+    [Trait("Decision", "ED-092")] // App/Views/Composer/EffortSlider.swift:758-767,799; the fade curve is Animation.Smooth(0.3) (ED-092(2)), settling per ED-011.
+    [Trait("Decision", "ED-011")]
+    public void Card_effort_change_crossfades_keeping_the_outgoing_look()
+    {
+        headless.OnUiThread(() =>
+        {
+            var frames = new ManualFrameSource();
+            var time = new ManualTimeProvider();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var effort = new ObservableStringBox { Value = "high" };
+            var fast = new ObservableBoolBox { Value = true };
+            var card = new EffortSliderCard("Model", null, new ValueList<string>(["low", "medium", "high"]), "low", true,
+                effort.AsBinding(), fast.AsBinding(), () => { });
+            var window = Show(card);
+            var slider = Assert.Single(card.GetVisualDescendants().OfType<EffortSlider>());
+            var outgoing = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            Assert.Equal(TrackLook.Kind.Fusion, KindOf(outgoing)); // maximum with fast mode
+            effort.Value = "medium"; Dispatcher.UIThread.RunJobs(); // the card's and the slider's Track each run LayoutTrack; no clock advance
+            var effects = slider.GetVisualDescendants().OfType<TrackEffect>().ToArray();
+            Assert.Equal(2, effects.Length);
+            Assert.Contains(outgoing, effects);
+            Assert.Equal(TrackLook.Kind.Fusion, KindOf(outgoing)); // Swift :765-766: the view leaving under .transition(.opacity) keeps its own look
+            var incoming = Assert.Single(effects, e => !ReferenceEquals(e, outgoing));
+            Assert.Equal(TrackLook.Kind.Fast, KindOf(incoming));
+            Assert.Equal(1, outgoing.Opacity);
+            Assert.Equal(0, incoming.Opacity);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-092")] // App/Views/Composer/EffortSlider.swift:758-767,799; later passes with the same look must reach only the incoming effect.
+    [Trait("Decision", "ED-011")]
+    public void A_second_layout_with_the_same_look_updates_only_the_incoming_effect()
+    {
+        headless.OnUiThread(() =>
+        {
+            var frames = new ManualFrameSource();
+            var time = new ManualTimeProvider();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var selected = 2;
+            var slider = new EffortSlider(3, new Binding<int>(() => selected, _ => { }), "High", true);
+            var window = Show(slider);
+            var outgoing = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            Assert.Equal(TrackLook.Kind.Fusion, KindOf(outgoing));
+            selected = 1; slider.UpdateLook(true, "Medium", null); // solo identity change: fusion -> fast
+            Assert.Equal(2, slider.GetVisualDescendants().OfType<TrackEffect>().Count());
+            slider.UpdateLook(true, "Medium", null); // a later pass with the same look: pointer move, spring frame, resize
+            var effects = slider.GetVisualDescendants().OfType<TrackEffect>().ToArray();
+            Assert.Equal(2, effects.Length);
+            Assert.Contains(outgoing, effects);
+            Assert.Equal(TrackLook.Kind.Fusion, KindOf(outgoing)); // the fading view keeps its look; only the incoming takes the new one
+            Assert.Equal(TrackLook.Kind.Fast, KindOf(Assert.Single(effects, e => !ReferenceEquals(e, outgoing))));
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-092")] // App/Views/Composer/EffortSlider.swift:758-767,799,1024-1026; a kind change under the same pair identity must reach the kept pair effect.
+    [Trait("Decision", "ED-011")]
+    public void A_kind_change_during_a_solo_to_pair_crossfade_reaches_the_kept_pair_effect()
+    {
+        headless.OnUiThread(() =>
+        {
+            var frames = new ManualFrameSource();
+            var time = new ManualTimeProvider();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var selected = 2;
+            var slider = new EffortSlider(3, new Binding<int>(() => selected, _ => { }), "High", false);
+            var window = Show(slider);
+            var solo = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            var pair = new EffortPairBrand(new HydraPair(ProviderKind.Codex));
+            slider.UpdateLook(false, "High", pair); // identity change: solo supercharged -> pair
+            var paired = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>(), e => !ReferenceEquals(e, solo));
+            slider.UpdateLook(true, "High", pair); // fast toggled within 0.3 s: same pair identity, kind becomes fusion
+            var span = TimeSpan.FromSeconds(1);
+            time.Advance(span); frames.Advance(span); Dispatcher.UIThread.RunJobs();
+            var kept = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            Assert.Same(paired, kept);
+            Assert.Equal(TrackLook.Kind.Fusion, KindOf(kept)); // Swift :1024-1026: the kept pair view draws the current look
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-092")] // App/Views/Composer/EffortSlider.swift:758-767,799; each leaving view ends its own removal ~0.33 s after it leaves.
+    [Trait("Decision", "ED-011")]
+    public void Rapid_identity_changes_keep_only_the_fades_swiftui_would_keep()
+    {
+        headless.OnUiThread(() =>
+        {
+            var frames = new ManualFrameSource();
+            var time = new ManualTimeProvider();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var selected = 1;
+            var slider = new EffortSlider(3, new Binding<int>(() => selected, _ => { }), "Medium", true);
+            var window = Show(slider);
+            var step = TimeSpan.FromMilliseconds(100);
+            var peak = 0;
+            for (var i = 0; i < 20; i++)
+            {
+                selected = selected == 1 ? 2 : 1; slider.UpdateLook(true, selected == 2 ? "High" : "Medium", null); // Fast <-> Fusion
+                time.Advance(step); frames.Advance(step); Dispatcher.UIThread.RunJobs();
+                peak = Math.Max(peak, slider.GetVisualDescendants().OfType<TrackEffect>().Count());
+            }
+            Assert.True(peak <= 5, "alive effects " + peak);
+            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
+            Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-092")] // App/Views/Composer/EffortSlider.swift:799; Animation.Smooth(0.3) is Spring(response: 0.3, dampingFraction: 1) (ED-092(2)), settling in ln(1000)/(2*pi/0.3) = 0.32982 s (ED-011).
+    [Trait("Decision", "ED-011")] // Critically-damped progress at t is 1 - e^(-wt)(1+wt), w = 2*pi/0.3; at half the span (0.16491 s) that is 0.8592 in / 0.1408 out, while 0.2 s gives 0.9652/0.0348 and 0.4 s gives 0.7308/0.2692.
+    public void Crossfade_opacities_match_the_smooth_point_three_spring_at_a_fixed_time()
+    {
+        headless.OnUiThread(() =>
+        {
+            var frames = new ManualFrameSource();
+            var time = new ManualTimeProvider();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var span = TimeSpan.FromSeconds(Animation.Smooth(0.3).Duration); // :799 smooth(duration: 0.3)
+            var selected = 0;
+            var slider = new EffortSlider(3, new Binding<int>(() => selected, _ => { }), "Low", true);
+            var window = Show(slider);
+            var before = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            selected = 2; slider.UpdateLook(true, "High", null); // solo identity change: fast -> fusion
+            var half = TimeSpan.FromTicks(span.Ticks / 2);
+            time.Advance(half); frames.Advance(half); Dispatcher.UIThread.RunJobs();
+            var mid = slider.GetVisualDescendants().OfType<TrackEffect>().ToArray();
+            Assert.Equal(2, mid.Length);
+            Assert.Contains(before, mid);
+            var incoming = Assert.Single(mid, e => !ReferenceEquals(e, before));
+            Assert.Equal(0.8592, incoming.Opacity, 2);
+            Assert.Equal(0.1408, before.Opacity, 2);
+            time.Advance(span - half - TimeSpan.FromMilliseconds(10)); frames.Advance(span - half - TimeSpan.FromMilliseconds(10)); Dispatcher.UIThread.RunJobs();
+            Assert.Equal(2, slider.GetVisualDescendants().OfType<TrackEffect>().Count()); // the outgoing view is still attached one frame before its fade ends
+            time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
+            var after = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            Assert.NotSame(before, after);
+            Assert.Equal(1, after.Opacity);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-133")] // App/Views/Composer/EffortSlider.swift:1070-1071
+    public void Track_effect_never_hit_tests_and_is_hidden_from_assistive_tech()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            foreach (var kind in new[] { TrackLook.Kind.Plain, TrackLook.Kind.Supercharged, TrackLook.Kind.Fast, TrackLook.Kind.Fusion })
+            {
+                foreach (var paired in new[] { false, true })
+                {
+                    var effect = new TrackEffect(new TrackLook(kind, EffortBrand.Purple, paired ? new EffortPairBrand(new HydraPair(ProviderKind.Codex)) : null));
+                    var window = Show(effect);
+                    Assert.False(effect.IsHitTestVisible);
+                    Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(effect));
+                    window.Close();
+                }
+            }
+        });
+    }
+
     [Theory]
     [Trait("Decision", "ED-117")] // ED-117(7): cadence expectations rest on ED-117(2)-(6), so Decision ED-117 + Oracle O-34, never Req.
     [Trait("Oracle", "O-34")] // App/Views/Composer/EffortSlider.swift:1049-1050,1070-1071; PR-133 needs a ten-second run (see STOP).
     [InlineData(TrackLook.Kind.Supercharged, false, false)]
     [InlineData(TrackLook.Kind.Supercharged, true, true)]
     [InlineData(TrackLook.Kind.Fast, false, true)]
+    [InlineData(TrackLook.Kind.Fast, true, true)]
     [InlineData(TrackLook.Kind.Fusion, false, true)]
+    [InlineData(TrackLook.Kind.Fusion, true, true)]
     public void Track_timeline_respects_the_thirty_or_sixty_hertz_interval(TrackLook.Kind kind, bool hasPair, bool ticksAtTwentyMilliseconds)
     {
         headless.OnUiThread(() =>
@@ -167,14 +345,11 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var window = Show(effect);
             window.Activate(); Dispatcher.UIThread.RunJobs();
             var field = typeof(TrackEffect).GetField("time", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-            // Cadence-oracle expectations below (ED-117/O-34); source-defined hit-test and accessibility checks follow separately.
+            // Cadence-oracle expectations below (ED-117/O-34); hit-test and accessibility moved to the Req test below.
             time.Advance(TimeSpan.FromMilliseconds(20)); frames.Advance(TimeSpan.FromMilliseconds(20)); Dispatcher.UIThread.RunJobs();
             Assert.Equal(ticksAtTwentyMilliseconds ? 0.02 : 0, (double)field.GetValue(effect)!, 6);
             time.Advance(TimeSpan.FromMilliseconds(20)); frames.Advance(TimeSpan.FromMilliseconds(20)); Dispatcher.UIThread.RunJobs();
             Assert.Equal(0.04, (double)field.GetValue(effect)!, 6);
-            // Source-defined view contract (EffortSlider.swift:1070-1071): never hit-tests, hidden from assistive tech.
-            Assert.False(effect.IsHitTestVisible);
-            Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(effect));
             window.Close();
         });
     }

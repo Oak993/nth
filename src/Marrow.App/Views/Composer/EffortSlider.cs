@@ -659,6 +659,8 @@ public sealed class EffortSlider : Decorator
     private readonly Ellipse glow = new();
     private readonly Ellipse lens = new();
     private TrackLook? drawnLook;
+    private TrackEffect? currentEffect;
+    private readonly System.Collections.Generic.HashSet<TrackEffect> outgoingEffects = [];
     private readonly System.Collections.Generic.List<Ellipse> stops = [];
 
     public EffortSlider(int count, Binding<int> index, string accessibilityTitle, bool fastMode = false, EffortBrand brand = EffortBrand.Purple, EffortPairBrand? pair = null)
@@ -765,36 +767,47 @@ public sealed class EffortSlider : Decorator
         if (drawnLook?.EffectIdentity != look.EffectIdentity && !Equals(drawnLook?.EffectIdentity, look.EffectIdentity))
         {
             // :760-767 .transition(.opacity) with :799 .animation(.smooth(duration: 0.3), value: look).
-            // A solo identity change crossfades instead of jumping: the outgoing effect is retained while its
-            // opacity fades out and the replacement fades in. Pair kind changes keep one instance via SetLook below.
-            var outgoing = effects.Children.OfType<TrackEffect>().ToArray();
-            effects.Children.Clear();
+            // A solo identity change crossfades instead of jumping: the previous current effect is retained
+            // under its OLD look while its opacity fades out, and the replacement fades in. Every later
+            // layout pass with the same identity updates only the incoming effect (currentEffect below),
+            // never FirstOrDefault, so the fading view keeps its look for its whole fade. A new change
+            // during a fade does not restart the effects already leaving: each keeps its own fade and is
+            // removed when that fade ends, the way a SwiftUI view already leaving plays its own removal
+            // transition while a later transaction starts a new one (ED-092(2) smooth 0.3, settling per ED-011).
+            var previous = currentEffect;
+            currentEffect = null;
             if (drawnLook is null)
             {
-                if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null) effects.Children.Add(new TrackEffect(look) { Opacity = 1 });
+                if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null)
+                {
+                    var first = new TrackEffect(look) { Opacity = 1 };
+                    effects.Children.Add(first);
+                    currentEffect = first;
+                }
             }
             else
             {
-                foreach (var retained in outgoing) effects.Children.Add(retained);
                 if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null)
                 {
                     var fresh = new TrackEffect(look) { Opacity = 0 };
                     effects.Children.Add(fresh);
+                    currentEffect = fresh;
                     EffortView.Animate(fresh, Animation.Smooth(0.3), progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
                 }
-                foreach (var old in outgoing)
+                if (previous is not null)
                 {
-                    var fading = old;
+                    outgoingEffects.Add(previous);
+                    var fading = previous;
                     var from = fading.Opacity;
                     EffortView.Animate(fading, Animation.Smooth(0.3), progress =>
                     {
-                        if (progress >= 1) { fading.Opacity = 0; effects.Children.Remove(fading); }
+                        if (progress >= 1) { fading.Opacity = 0; effects.Children.Remove(fading); outgoingEffects.Remove(fading); }
                         else fading.Opacity = from * (1 - Math.Clamp(progress, 0, 1));
                     });
                 }
             }
         }
-        else if (effects.Children.FirstOrDefault() is TrackEffect effect) effect.SetLook(look);
+        else if (currentEffect is not null) currentEffect.SetLook(look);
         drawnLook = look;
     }
 
