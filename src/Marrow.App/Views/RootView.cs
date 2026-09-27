@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -12,6 +13,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform.Storage;
 using Marrow.App.Port;
+using Marrow.App.Views.Chat;
 using Marrow.App.Views.Palette;
 using Marrow.App.Views.Settings;
 using Marrow.App.Views.Sidebar;
@@ -28,8 +30,7 @@ using Marrow.UI.Theme;
 namespace Marrow.App.Views;
 
 // Source: DroppyCode/App/Views/RootView.swift (B3 52bc792), :1-450.
-// RootView and the no-thread detail branches are implemented. ThreadColumns and the selected-thread branch
-// alone remain MARROW_STUB, pending App.Views.Chat.ChatView (STOP #2 in RootViewTests.cs).
+// RootView, both detail branches and the independently hosted, cached chat columns are implemented.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; `@Environment(AppModel.self)` and
 // `@Environment(WindowLiveResize.self)` are read from the environment, not passed in. The `@Entry` environment value of
 // `extension EnvironmentValues` (:116-118) is an inherited attached property on the class named after the Swift file
@@ -46,9 +47,7 @@ namespace Marrow.App.Views;
 // overlays, the backdrop/chrome-probe background, the window's own rounded clip, the real drag-and-drop wiring onto
 // HandleDrop, the model-alert dialog and the genie/row-glide/command-palette overlay stack. SidebarView.cs's
 // constructor and CommandPalette.cs's constructor are both real now (0 MARROW_STUB each), which is what unblocked
-// this. ThreadColumns and DetailView's "a thread is selected" branch stay MARROW_STUB: ThreadColumns.updateNSView
-// calls into ChatView (App.Views.Chat.ChatView.cs, still 23 MARROW_STUB), the one dependency left (see the STOP note
-// at the end of RootViewTests.cs, narrowed to name only ChatView).
+// this. The selected-thread branch now hosts the real ChatView in ThreadColumns (:130-154,177-297).
 
 /// <summary>:4-111 <c>struct RootView: View</c>, with the file's <c>extension EnvironmentValues</c> (:116-118).</summary>
 public sealed class RootView : Decorator
@@ -496,7 +495,7 @@ public sealed class RootView : Decorator
 
     // :94-110 @discardableResult private func handleDrop(_ urls: [URL]) -> Bool. Delegates to HandleDropCore, which
     // holds the whole function body: HandleDropCore needs only the model and the dropped urls, never `this` or any
-    // control, so it is directly testable without RootView's own body (still MARROW_STUB, see above) ever running.
+    // control, so it is directly testable independently of RootView's own visual tree.
     // ENGINEERING DECISION: this split is pure testability scaffolding, not an observable behaviour change; the
     // Swift function's own body is reproduced verbatim in HandleDropCore, cited line for line below.
     private bool HandleDrop(IReadOnlyList<SwiftURL> urls) =>
@@ -505,7 +504,7 @@ public sealed class RootView : Decorator
     // :94-110 the whole handleDrop body. internal (not private, R-NAME-6's testability exception noted above): tests
     // reach it through Marrow.App's existing [assembly: InternalsVisibleTo("Marrow.App.Tests")]
     // (Port/AttachmentFlightPlatform.cs:10), the same visibility every other testable internal member already uses.
-    // FOR WHOEVER WIRES THIS TO A REAL DROP EVENT (RootView's own top-level body, still MARROW_STUB): do not build
+    // The real drop handler uses DroppedFileUrl above: do not build
     // these SwiftURL arguments as a plain "file://" + path URL. SOURCE FACT, empirically confirmed in
     // RootViewTests.cs's own DroppedUrl helper and already documented on Services.Providers.CodexSession.cs's
     // DirectoryFileUrl and ACPSession.cs: a "file://" SwiftURL's .Path (SwiftURL.cs's FileSystemPath, cited there)
@@ -566,14 +565,96 @@ public sealed class RootView : Decorator
 /// <summary>:120-167 <c>struct DetailView: View</c>: the selected thread's column, or the empty states.</summary>
 public sealed class DetailView : Decorator
 {
+    private readonly List<Guid> prebuilt = [];
+    private bool hasPrebuiltTopRows;
+    private Guid? shown;
+    private ThreadColumns? columns;
+    private AppModel? columnModel;
+    private ObservationTracker? runningObservation;
+
+    // :147 combined-session input idle. Windows' session-wide last-input tick is the Quartz counterpart;
+    // the ambient seam lets headless tests exercise the one-second gate without the user's real pointer.
+    internal static Ambient<Func<double>> SecondsSinceLastInput { get; } = new(InputIdleSeconds);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct LastInputInfo
+    {
+        public uint Size;
+        public uint Tick;
+    }
+
+    [DllImport("user32.dll")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool GetLastInputInfo(ref LastInputInfo info);
+
+    private static double InputIdleSeconds()
+    {
+        if (!OperatingSystem.IsWindows()) return double.PositiveInfinity;
+        var info = new LastInputInfo { Size = (uint)Marshal.SizeOf<LastInputInfo>() };
+        return GetLastInputInfo(ref info) ? unchecked((uint)Environment.TickCount - info.Tick) / 1000.0 : 0;
+    }
+
     // :129-166 body. Each Track call is an independent, sibling top-level statement in the constructor (not nested
     // inside another Track's apply callback): a tracker registered from inside AttachedToVisualTree's own dispatch
     // does not fire for that same attachment (standard .NET event-handler-added-during-dispatch semantics).
     public DetailView()
     {
         this.Track(() => AppEnvironment.GetAppModel(this), _ => Rebuild());
-        this.Track(() => AppEnvironment.GetAppModel(this).SelectedThreadID, _ => Rebuild());
-        this.Track(() => AppEnvironment.GetAppModel(this).Projects.Count, _ => Rebuild());
+        this.Track(() =>
+        {
+            var model = AppEnvironment.GetAppModel(this);
+            // :130-133 thread existence and every existing runtime's running state are body inputs.
+            return (model.SelectedThreadID, model.Threads, model.Projects.Count);
+        }, _ => Rebuild());
+        this.Task(() =>
+        {
+            var model = AppEnvironment.GetAppModel(this);
+            return model.SelectedThreadID is { } id && model.Thread(id) is not null ? (Guid?)id : null;
+        }, Prebuild); // :134 .task(id: threadID), cancelled on selection change or detach.
+        DetachedFromVisualTree += (_, _) => { runningObservation?.Cancel(); runningObservation = null; };
+    }
+
+    // :131-133 evaluate the running input again after columns create their runtimes. A state-driven Swift body
+    // reads those new runtimes on its next evaluation; an observation captured only on attach misses them.
+    private void ObserveRunning(AppModel model)
+    {
+        runningObservation?.Cancel();
+        runningObservation = ObservationTracking.Track(() =>
+        {
+            foreach (var thread in model.Threads) _ = model.ExistingRuntime(thread.Id)?.IsRunning;
+            return true;
+        }, () => MainActor.Post(() =>
+        {
+            if (TopLevel.GetTopLevel(this) is not null) Rebuild();
+        })).Tracker;
+    }
+
+    // :134-153 neighbours, then the first six sidebar rows once per DetailView lifetime.
+    private async System.Threading.Tasks.Task Prebuild(Guid? threadID)
+    {
+        if (threadID is not { } selected) return;
+        await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(1500));
+        if (SwiftTask.IsCancelled) return;
+        var model = AppEnvironment.GetAppModel(this);
+        var candidates = model.Neighbors(selected).ToList();
+        if (!hasPrebuiltTopRows)
+        {
+            hasPrebuiltTopRows = true;
+            candidates.AddRange(model.SidebarThreads.Take((int)ThreadColumns.TopRowsBuiltAtLaunch).Select(thread => thread.Id));
+        }
+        foreach (var id in candidates)
+        {
+            if (SwiftTask.IsCancelled) break;
+            while (!SwiftTask.IsCancelled && SecondsSinceLastInput.Current() < 1)
+                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(300));
+            if (SwiftTask.IsCancelled || model.ExistingRuntime(selected)?.IsRunning == true) return;
+            if (id != selected && !prebuilt.Contains(id))
+            {
+                prebuilt.Add(id);
+                Rebuild();
+            }
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(400));
+        }
     }
 
     private void Rebuild()
@@ -585,12 +666,27 @@ public sealed class DetailView : Decorator
         // :130 `if let threadID = model.selectedThreadID, model.thread(threadID) != nil`
         if (model.SelectedThreadID is { } threadID && model.Thread(threadID) is not null)
         {
-            // MARROW_STUB: :132 ThreadColumns(threadID:prebuilt:running:model:liveResize:). Genuinely blocked: it
-            // needs a WindowLiveResize read from the environment, which nothing yet attaches (WindowManager's
-            // HostedEnvironment, :165-179, is itself MARROW_STUB), and ThreadColumns.updateNSView (:193-198) calls
-            // into ChatView (App.Views.Chat.ChatView.cs, 23 MARROW_STUB).
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/RootView.swift:132");
+            if (shown != threadID) prebuilt.Clear(); // :133 onChange(threadID)
+            shown = threadID;
+            var running = model.Threads.Where(thread => model.ExistingRuntime(thread.Id)?.IsRunning == true).Select(thread => thread.Id).ToHashSet();
+            var liveResize = AppEnvironment.GetWindowLiveResize(this);
+            if (columns is null || !ReferenceEquals(columnModel, model))
+            {
+                columnModel = model;
+                columns = new ThreadColumns(threadID, prebuilt, running, model, liveResize);
+                Child = columns;
+            }
+            else columns.Update(threadID, prebuilt, running, model, liveResize);
+            ObserveRunning(model);
+            return;
         }
+
+        shown = null;
+        columns = null;
+        columnModel = null;
+        prebuilt.Clear();
+        runningObservation?.Cancel();
+        runningObservation = null;
 
         // :156-164 the empty states, frame(maxWidth:.infinity,maxHeight:.infinity).detailSheet()
         Control content = model.Projects.Count == 0 ? new WelcomeView() : new NoThreadView();
@@ -608,26 +704,118 @@ internal sealed class ThreadColumns : Decorator
     public const long TopRowsBuiltAtLaunch = 6;
 
     // :181-187 let threadID, prebuilt, running, model, liveResize; :189-202 makeNSView, updateNSView, makeCoordinator
-    public ThreadColumns(Guid threadID, IReadOnlyList<Guid> prebuilt, IReadOnlySet<Guid> running, AppModel model, WindowLiveResize liveResize) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/RootView.swift:189");
+    private readonly Panel pane = new();
+    private readonly Coordinator coordinator = new();
+
+    public ThreadColumns(Guid threadID, IReadOnlyList<Guid> prebuilt, IReadOnlySet<Guid> running, AppModel model, WindowLiveResize liveResize)
+    {
+        Child = pane; // :189-190 empty pane; each independently hosted column fills it.
+        Update(threadID, prebuilt, running, model, liveResize);
+    }
+
+    // :193-198 updateNSView. The coordinator survives input changes, just as NSViewRepresentable's does.
+    public void Update(Guid threadID, IReadOnlyList<Guid> prebuilt, IReadOnlySet<Guid> running, AppModel model, WindowLiveResize liveResize)
+    {
+        coordinator.Show(threadID, pane, model, liveResize);
+        coordinator.DropHidden(id => running.Contains(id) || model.Thread(id) is null || model.ExistingRuntime(id) is null);
+        coordinator.Prebuild(prebuilt.Where(id => model.Thread(id) is not null && !running.Contains(id)).ToArray(), pane, model, liveResize);
+    }
 
     /// <summary>:204-296 <c>@MainActor final class Coordinator</c>.</summary>
     public sealed class Coordinator
     {
         // :206 private static let keptLimit = 8
         private const long KeptLimit = 8;
+        private readonly Dictionary<Guid, FrameHostingView> columns = [];
+        private readonly List<Guid> order = [];
+        private Guid? shown;
+        private HashSet<Guid> requested = [];
+        private readonly List<FrameHostingView> retired = [];
+        private TaskHandle? retirement;
 
         // :224-243 func show(_:in:model:liveResize:)
-        public void Show(Guid id, Control @in, AppModel model, WindowLiveResize liveResize) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/RootView.swift:224");
+        public void Show(Guid id, Control @in, AppModel model, WindowLiveResize liveResize)
+        {
+            if (id == shown) return;
+            if (shown is { } previousID && columns.TryGetValue(previousID, out var previous))
+            {
+                previous.Width = previous.Bounds.Width;
+                previous.Height = previous.Bounds.Height; // :207-209 freeze hidden layout at the size built.
+                RootView.SetChatColumnIsShown(previous, false);
+                previous.IsVisible = false;
+            }
+            if (columns.TryGetValue(id, out var kept))
+            {
+                RootView.SetChatColumnIsShown(kept, true);
+                kept.Width = double.NaN;
+                kept.Height = double.NaN;
+                kept.IsVisible = true;
+                kept.Measure(@in.Bounds.Size);
+                kept.Arrange(new Rect(@in.Bounds.Size));
+            }
+            else Make(id, true, @in, model, liveResize);
+            shown = id;
+            order.Remove(id);
+            order.Add(id);
+            while (order.Count > KeptLimit + 1) Drop(order[0]);
+        }
 
         // :247-249 func dropHidden(where:)
-        public void DropHidden(Func<Guid, bool> where) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/RootView.swift:247");
+        public void DropHidden(Func<Guid, bool> where)
+        {
+            foreach (var id in columns.Keys.ToArray())
+                if (id != shown && where(id)) Drop(id);
+        }
 
         // :254-263 func prebuild(_:in:model:liveResize:)
-        public void Prebuild(IReadOnlyList<Guid> ids, Control @in, AppModel model, WindowLiveResize liveResize) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/RootView.swift:254");
+        public void Prebuild(IReadOnlyList<Guid> ids, Control @in, AppModel model, WindowLiveResize liveResize)
+        {
+            foreach (var id in ids)
+            {
+                if (requested.Contains(id) || columns.ContainsKey(id)) continue;
+                Make(id, false, @in, model, liveResize);
+                // :255-257 SwitchLatency's development-only instrumentation is a no-op under ED-005.
+                order.Insert(0, id);
+                while (order.Count > KeptLimit + 1) Drop(order[0]);
+            }
+            requested = ids.ToHashSet();
+        }
+
+        // :266-283 make/root. Keep the ChatView tree when its visibility input changes, preserving its @State.
+        private FrameHostingView Make(Guid id, bool isShown, Control pane, AppModel model, WindowLiveResize liveResize)
+        {
+            var column = new FrameHostingView(new HostedEnvironment(model, liveResize).Body(new ChatView(model.Runtime(id))));
+            RootView.SetChatColumnIsShown(column, isShown);
+            ((Panel)pane).Children.Add(column);
+            column.Measure(pane.Bounds.Size);
+            column.Arrange(new Rect(pane.Bounds.Size));
+            if (!isShown)
+            {
+                column.Width = pane.Bounds.Width;
+                column.Height = pane.Bounds.Height;
+                column.IsVisible = false;
+            }
+            columns[id] = column;
+            return column;
+        }
+
+        // :284-294 release tree teardown after the switch frame, coalescing further retirements.
+        private void Drop(Guid id)
+        {
+            order.Remove(id);
+            if (!columns.Remove(id, out var column)) return;
+            retired.Add(column);
+            retirement?.Cancel();
+            var weak = new WeakReference<Coordinator>(this);
+            retirement = MainActor.Spawn(async () =>
+            {
+                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(500));
+                if (SwiftTask.IsCancelled || !weak.TryGetTarget(out var owner)) return;
+                foreach (var view in owner.retired)
+                    if (view.Parent is Panel parent) parent.Children.Remove(view);
+                owner.retired.Clear();
+            });
+        }
     }
 }
 
