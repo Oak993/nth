@@ -293,7 +293,8 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:235-237. Swift: children(of:).
     public ValueList<ChatThread> Children(Guid parentID) => new(ChildIDs(parentID).Select(Thread).OfType<ChatThread>()); // AppModel.swift:235-237
 
-    // AppModel.swift:239-287 (B3)
+    // Source: DroppyCode/App/AppModel.swift (B3 52bc792), :240-287.
+    // :275-282. Sweep C verified the inherited ninth step with blocked offline updaters; no behavior change needed.
     public async Task Bootstrap()
     {
         var recent = threads
