@@ -78,6 +78,51 @@ public sealed class ChatView : Decorator
             || poppedDrag.Position is not null || usageDrag.Position is not null
             || autoDrags.Values.Any(drag => drag.Position is not null);
 
+    // :554-590. Model and resize state are explicit here so the grips can be ported before the blocked body mounts.
+    internal static PanelResize UsageResizer(AppModel model, PanelResizeState resize, PanelDockCorner corner, PanelScene scene, Size size, double minimum) => new()
+    {
+        Corner = corner,
+        OnResize = (translation, axes) =>
+        {
+            var start = resize.Begin(size); // :559
+            var across = corner.Side == PanelDockSide.Trailing ? -1 : 1; // :562
+            var down = corner.IsTop ? 1 : -1; // :563
+            if (axes.Contains(PanelResizeAxes.Width)) // :564-568
+                resize.LiveSize = scene.Layout.Fitted(new Size(start.Width + translation.Width * across, scene.Layout.PanelHeight));
+            if (axes.Contains(PanelResizeAxes.Height)) // :569-571
+                resize.LiveUsageHeight = Math.Max(minimum, start.Height + translation.Height * down);
+        },
+        OnResizeEnd = () => CommitPanelResize(model, resize), // :573
+        OnReset = () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.UsagePanelHeight = null), // :574-577
+    };
+
+    // :581-590. Preferences are written once on release; clear the live state afterwards.
+    internal static void CommitPanelResize(AppModel model, PanelResizeState resize)
+    {
+        if (resize.LiveSize is { } size) model.Settings.PanelSize = size;
+        if (resize.LiveUsageHeight is { } height) model.Settings.UsagePanelHeight = height;
+        resize.LiveSize = null;
+        resize.LiveUsageHeight = null;
+        resize.End();
+    }
+
+    // :707-710.
+    internal static Point Rest(PanelScene.PanelSlot slot, PanelScene scene)
+    {
+        var count = scene.SlotsOnSide.TryGetValue(slot.Corner.Side, out var slots) ? slots : 1;
+        var stacked = scene.Docks.Stacked(slot.Corner, slot.Below, count, scene.Layout);
+        return new Point(stacked.X, slot.Corner.IsTop ? stacked.Y + slot.Lift : stacked.Y - slot.Lift);
+    }
+
+    // :496-503. A bottom-docked panel retains its full-height panel's bottom edge.
+    internal static Point UsageOrigin(PanelScene.PanelSlot slot, PanelScene scene)
+    {
+        var rest = Rest(slot, scene);
+        var full = scene.Layout.PanelSize;
+        var height = scene.UsageHeight ?? full.Height;
+        return slot.Corner.IsTop ? rest : new Point(rest.X, rest.Y + full.Height - height);
+    }
+
     /// <summary>:399-417 <c>private struct HydraCaptureFrame: ViewModifier</c>. The capture run it feeds is not ported
     /// (ED-001: WebsiteCaptures.isEnabled is always false, porting/dead_code.md entry 44).</summary>
     private sealed record HydraCaptureFrame(Guid ThreadID, WindowLiveResize LiveResize)
@@ -369,7 +414,8 @@ internal sealed record PanelScene
                 var usageOnSide = showsUsage && (usageCorner == corner || usageCorner == other); // :975
                 var used = placed.Count(p => p.Corner == corner) + placed.Count(p => p.Corner == other) + (usageOnSide ? usageExtra : 0); // :976
                 var free = Math.Max(0, natural - used); // :977
-                for (var i = 0; i < Math.Min(free, candidates.Count); i++) // :978
+                var take = Math.Min(free, candidates.Count); // :978 Swift evaluates the range before removing any candidates.
+                for (var i = 0; i < take; i++)
                 {
                     var head = candidates[0];
                     candidates.RemoveAt(0); // :979
@@ -1322,12 +1368,12 @@ internal sealed class ScriptsEditor : Decorator
             Children = { addButton, new Control { HorizontalAlignment = HorizontalAlignment.Stretch }, cancelButton, saveButton }, // :1708 Spacer()
         };
 
-        Child = new StackPanel
+        Child = new Border { Padding = new Thickness(20), Child = new StackPanel
         {
             HorizontalAlignment = HorizontalAlignment.Left, // :1660 .leading
             Spacing = 14, // :1660
             Children = { heading, explanation, scroll, footer },
-        };
+        } }; // :1721 .padding(20), inside the fixed frame.
         Width = 580; // :1722
         Height = 460;
 
@@ -1385,14 +1431,14 @@ internal sealed class ScriptsEditor : Decorator
         // :1686-1691 the outline overlay, as a Border wrapping the field (no adorner layer needed for this shape).
         var commandFrame = new Border { Child = commandField }.RoundedRectangle(6, RoundedCornerStyle.Continuous); // :1688
         void UpdateOutline() =>
-            commandFrame.BorderBrush = IsIncomplete(script) ? Chrome.Danger.Opacity(0.65).Brush(commandFrame) : null; // :1687,1689
+            commandFrame.BorderBrush = IsIncomplete(scripts.FirstOrDefault(s => s.Id == script.Id) ?? script)
+                ? Chrome.Danger.Opacity(0.65).Brush(commandFrame) : null; // :1687,1689
         UpdateOutline();
         commandFrame.BorderThickness = new Thickness(1);
         commandField.PropertyChanged += (_, e) =>
         {
             if (e.Property != TextBox.TextProperty) return;
-            script = script with { Command = commandField.Text ?? "" };
-            Update(script.Id, _ => script);
+            Update(script.Id, s => s with { Command = commandField.Text ?? "" }); // :1681 updates only this field of the binding.
             UpdateOutline();
             UpdateSaveState();
         };
