@@ -53,6 +53,51 @@ public sealed class ThreadTimelineProofTests(HeadlessSession headless)
         Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(finished), text => text.Text == "Earlier steps");
     });
 
+    // ThreadTimeline.swift:1966-1970 folds assistant singles into the live work beside the work groups' tool entries.
+    private static TimelineEntry Reply(string id) => new(new TimelineItem(Turn, new TimelineItem.Content.Assistant(new AssistantMessage { Text = id }), id));
+    private static string[] Texts(Control control) => LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(text => text.Text ?? "").ToArray();
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-186")] // App/Views/Chat/ThreadTimeline.swift:1966-1970,2101-2104,2123; App/Views/Chat/TimelineRows.swift:1603
+    public void Live_work_of_assistant_entries_only_has_no_tool_so_the_line_shows_the_word_or_Earlier_steps() => WithHost((runtime, host, _) =>
+    {
+        var liveWork = new ValueList<TimelineEntry>(new[] { Reply("a1"), Reply("a2") });
+        // :2103 hasTools is `liveWork.contains { $0.kind == .tool }`, not `!liveWork.isEmpty`: a live work with no tool entry
+        // takes the running word (:2104) and never the summary, which over no tool call would read "Worked" (TimelineRows.swift:1603).
+        var running = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), liveWork, new([]), false); host.Child = running; Run();
+        Assert.Contains(WorkingWords.Word(1, 0) + "\u2026", Texts(running));
+        Assert.DoesNotContain("Worked", Texts(running));
+        // :2104 finished (finishedAt set, :2102) with no tool entry: the literal "Earlier steps".
+        var finished = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), liveWork, new([]), false, SwiftDate.Now); host.Child = finished; Run();
+        Assert.Contains("Earlier steps", Texts(finished));
+        Assert.DoesNotContain("Worked", Texts(finished));
+        // :2100-2101 the word is the one for the whole seconds since startedAt: 7.5 s in is 7 s, one rotation on
+        // (UI/Common/WorkingIndicators.swift:329 rotateSeconds 7, :342-343), a word other than the one at 0 s.
+        var later = new WorkingIndicator(runtime, SwiftDate.Now.AddSeconds(-7.5), 1, new([]), liveWork, new([]), false); host.Child = later; Run();
+        Assert.NotEqual(WorkingWords.Word(1, 0), WorkingWords.Word(1, 7));
+        Assert.Contains(WorkingWords.Word(1, 7) + "\u2026", Texts(later));
+        Assert.DoesNotContain(WorkingWords.Word(1, 0) + "\u2026", Texts(later));
+        // :2101 `Int64(max(0, elapsed))` truncates: 6.6 s in is 6 s, still the first word, not the next one a rounded 7 would give.
+        var early = new WorkingIndicator(runtime, SwiftDate.Now.AddSeconds(-6.6), 1, new([]), liveWork, new([]), false); host.Child = early; Run();
+        Assert.Contains(WorkingWords.Word(1, 6) + "\u2026", Texts(early));
+        Assert.DoesNotContain(WorkingWords.Word(1, 7) + "\u2026", Texts(early));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-186")] // App/Views/Chat/ThreadTimeline.swift:1966-1970,2101-2104,2123; App/Views/Chat/TimelineRows.swift:1594-1596,1626
+    public void Live_work_mixing_assistant_and_tool_entries_shows_the_summary_of_its_tool_work() => WithHost((runtime, host, _) =>
+    {
+        var liveWork = new ValueList<TimelineEntry>(new[] { Reply("a1"), Tool("t1"), Reply("a2") });
+        // :2103 one tool entry is enough ("at least one", `contains`), the assistant entries around it do not matter;
+        // TimelineRows.swift:1595 skips them, so the summary is the running command's "Running commands" (:1626).
+        var running = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), liveWork, new([]), false); host.Child = running; Run();
+        Assert.Contains("Running commands", Texts(running));
+        Assert.DoesNotContain(WorkingWords.Word(1, 0) + "\u2026", Texts(running));
+        var finished = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), liveWork, new([]), false, SwiftDate.Now); host.Child = finished; Run();
+        Assert.Contains("Running commands", Texts(finished));
+        Assert.DoesNotContain("Earlier steps", Texts(finished));
+    });
+
     [Fact]
     [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2105,2155,2169-2172; UI/Chrome/Chrome.swift:938-944,949-952,960
     [Trait("Req", "PR-CHAT-125")] // App/Views/Chat/ThreadTimeline.swift:2091-2092,2155,2185-2188; App/Views/Chat/TimelineRows.swift:1523-1536
