@@ -318,12 +318,17 @@ public sealed class WindowLiveResize : MainActorModel
     private bool isPaneResizing; // :125
     private bool inSizeMove;
     private bool resizing;
+    private readonly AvaloniaWindow window; // ED-224: publish to the UI signal on this window only.
 
     // :120 private(set) var isActive = false
     public bool IsActive
     {
         get => Read(isActive);
-        private set => Set(ref isActive, value);
+        private set
+        {
+            Set(ref isActive, value);
+            WindowLiveResizeSignal.SetIsActive(window, value); // WindowChrome.swift:28, :93; ED-224
+        }
     }
 
     // :121-125 var isPaneResizing = false. Written by the chat view, where the sidebar-edge and terminal-divider drags
@@ -343,7 +348,11 @@ public sealed class WindowLiveResize : MainActorModel
     // live resize starts at the first WM_SIZING inside the loop and ends at the loop's WM_EXITSIZEMOVE, and a move is
     // not one (PR-WIN-017 windows_path). The window keeps the hook for as long as it exists: like the observations
     // (:129-130), it is never taken down.
-    public WindowLiveResize(AvaloniaWindow window) => Win32Properties.AddWndProcHookCallback(window, WndProc);
+    public WindowLiveResize(AvaloniaWindow window)
+    {
+        this.window = window;
+        Win32Properties.AddWndProcHookCallback(window, WndProc);
+    }
 
     // :133-138 the two observations, on the window's own (main) thread: MainActor.assumeIsolated.
     internal nint WndProc(nint hWnd, uint msg, nint wParam, nint lParam, ref bool handled)

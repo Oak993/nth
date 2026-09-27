@@ -1,18 +1,18 @@
 using System.Diagnostics;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
 namespace Marrow.Core.Models;
 
-// Source: DroppyCode/Core/Models/ThreadContinuation.swift (B2 1fbf81e), :1-162.
-// Codable conformance (synthesized) is out of scope for this part: none of PR-RUNTIME-177/178/179 names a
-// JSON shape for this type, so it is not written here. This leaves the gap Models/Timeline.cs:14-21 already
-// reports (ThreadDocument.Continuation decodes to null and is omitted on encode).
+// Source: DroppyCode/Core/Models/ThreadContinuation.swift (B3 52bc792), :1-162.
 //
 // PR-RUNTIME-178's private ContinuationUnit (:137-162) stays private (R-NAME-6) and is proved only through
 // Capture()'s observable context string.
 
 // :4-27
+[JsonConverter(typeof(ThreadContinuationConverter))]
 public sealed record ThreadContinuation
 {
     public Guid SourceThreadID { get; init; }            // :5
@@ -162,6 +162,42 @@ public sealed record ThreadContinuation
             lines.Add("----- END FORWARDED CONTEXT -----"); // :132
             return string.Join("\n", lines); // :133
         }
+    }
+}
+
+// :4-10 synthesized Codable: all six stored properties are required, even those defaulted by init.
+internal sealed class ThreadContinuationConverter : JsonConverter<ThreadContinuation>
+{
+    public override ThreadContinuation Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        using var document = JsonDocument.ParseValue(ref reader);
+        return Decode(document.RootElement);
+    }
+
+    internal static ThreadContinuation Decode(JsonElement element) => new(
+        sourceThreadID: SwiftDecoding.Decode(element, "sourceThreadID", SwiftDecoding.ReadUUID),
+        sourceTitle: SwiftDecoding.Decode(element, "sourceTitle", SwiftDecoding.ReadString),
+        context: SwiftDecoding.Decode(element, "context", SwiftDecoding.ReadString),
+        createdAt: SwiftDecoding.Decode(element, "createdAt", SwiftDecoding.ReadStorageDate),
+        attachments: SwiftDecoding.Decode(element, "attachments", e => SwiftDecoding.ReadArray(e, AttachmentConverter.Decode)),
+        isTruncated: SwiftDecoding.Decode(element, "isTruncated", SwiftDecoding.ReadBool));
+
+    public override void Write(Utf8JsonWriter writer, ThreadContinuation value, JsonSerializerOptions options) => WriteMembers(writer, value);
+
+    // :5-10 declaration order; Attachment's own Codable writes its metadata using the shared rules.
+    internal static void WriteMembers(Utf8JsonWriter writer, ThreadContinuation value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("sourceThreadID", SwiftUUID.UuidString(value.SourceThreadID));
+        writer.WriteString("sourceTitle", value.SourceTitle);
+        writer.WriteString("createdAt", FoundationISO8601.Format(value.CreatedAt));
+        writer.WriteString("context", value.Context);
+        writer.WritePropertyName("attachments");
+        writer.WriteStartArray();
+        foreach (var attachment in value.Attachments) AttachmentConverter.WriteMembers(writer, attachment);
+        writer.WriteEndArray();
+        writer.WriteBoolean("isTruncated", value.IsTruncated);
+        writer.WriteEndObject();
     }
 }
 
