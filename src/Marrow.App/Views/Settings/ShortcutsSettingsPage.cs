@@ -758,8 +758,7 @@ public sealed class ShortcutRecordingPopoverContent : Decorator
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(text); // :452
         text.Foreground = (action.IsDestructive ? KeycapColors.Rejected : Chrome.PrimaryText).Brush(text); // :476
         var padded = new Border { Child = text, Padding = new Thickness(12, 0), Height = 26, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center }; // :454-455
-        var glass = new Border { Child = padded, Background = Brushes.Transparent }.Capsule(RoundedCornerStyle.Continuous);
-        SwiftGlass.SetEffect(glass, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive()); // :477 no tint
+        var glass = padded.ChromeGlassCapsule(); // :477 .glassEffect(.regular.interactive(), in: Capsule)
         var scale = new ScaleTransform(1, 1);
         glass.RenderTransform = scale;
         glass.RenderTransformOrigin = RelativePoint.Center;

@@ -94,7 +94,6 @@ public sealed class HydraPanel : Decorator
                 ? new Grid()
                 : new HydraHeadTranscript(selected, size.Height, workingDirectory, projectName)
         };
-        SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous))); // :105
 
         // :113-121 The scrim carries the panel's shadow: black at 0.3 in dark and white at 0.34 in light,
         // with a black shadow at 1.0 in dark and 0.65 in light, radius 28, y offset 10. It is a plain

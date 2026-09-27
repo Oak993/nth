@@ -85,8 +85,11 @@ public sealed class ThreadChangesTab : Button
         // :39-40 AttachmentAnchorCapture in the background for anchor capture
         anchorCapture = new AttachmentAnchorCapture(onResolve: anchor);
 
-        // :38 .glassEffect(.regular.interactive(), in: shape): the material reads all four
-        // Border corner radii, retaining the 12-point top corners and square bottom corners.
+        // :38 .glassEffect(.regular.interactive(), in: shape). GlassShape has no uneven-rectangle
+        // kind (SwiftShapes/SwiftGlass only draw RoundedRectangle, Capsule, Circle, ED-180/ED-181),
+        // so the closest available shape (12pt rounded rectangle, matching the top corners this
+        // border actually draws) records the tint-less, interactive glass as data on the layer.
+        // MARROW_DEFERRED ED-180: the app-drawn material and the .interactive() press response.
         SwiftGlass.SetEffect(borderControl, GlassEffect.Regular(GlassShape.RoundedRectangle(12, RoundedCornerStyle.Continuous)).Interactive());
 
         // Build the final control

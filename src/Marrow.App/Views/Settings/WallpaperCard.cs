@@ -260,7 +260,9 @@ public sealed class WallpaperCard : Decorator
     // :35-58 `GeometryReader { geo in ... }`: a stand-in for the app window, 60% of the preview's size, centred.
     private static Control MockWindow(Panel previewFrame)
     {
-        // :39-42 `mockShape.fill(.clear).glassEffect(in: mockShape)`, drawn under the source black overlay (OD-0005).
+        // :39-42 `mockShape.fill(.clear).glassEffect(in: mockShape)`. ED-180: the glass effect is recorded as data on
+        // the layer (no compositor draws it yet), reproducing the source-defined shape under the black overlay
+        // (PR-THEME-068 deviation, OD-0005 shader half).
         var glass = new Border { Background = Brushes.Transparent, IsHitTestVisible = false };
         glass.RoundedRectangle(8, RoundedCornerStyle.Continuous);
         SwiftGlass.SetEffect(glass, GlassEffect.Regular(GlassShape.RoundedRectangle(8, RoundedCornerStyle.Continuous)));

@@ -85,7 +85,7 @@ public sealed class MessageEditor : Decorator
             });
 
         // :56-62 action row.
-        // :57-60 OD-0005: the established capsule/glass recipe with the app-owned material.
+        // :57-60 DEVIATION OD-0005: the established capsule/glass recipe; compositor remains MARROW_DEFERRED ED-180.
         var cancelLabel = new TextBlock { Text = "Cancel", VerticalAlignment = VerticalAlignment.Center };
         var cancelFrame = new Border { Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0), Height = Chrome.CapsuleContentHeight, Child = cancelLabel };
         cancelFrame.Capsule(RoundedCornerStyle.Continuous);

@@ -425,7 +425,6 @@ public sealed class SubagentPanel : Decorator
         content.Children.Add(strip);
 
         shape.Child = content;
-        SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous))); // :339
         var scrim = new Border
         {
             Width = size.Width,

@@ -406,8 +406,7 @@ internal sealed class ProviderModelsSection : Decorator
                 var loading = registry.LoadingCatalogs.Contains(provider);
                 var content = new ChromeRow(loading ? "Loading models…" : "No models loaded", () => // U+2026 HORIZONTAL ELLIPSIS
                 {
-                    var loadButton = new Button { Content = "Load models", IsEnabled = !loading }; // :337 .buttonStyle(.glass)
-                    SwiftGlass.StyleButton(loadButton);
+                    var loadButton = new Button { Content = "Load models", IsEnabled = !loading }; // MARROW_DEFERRED ED-180: .buttonStyle(.glass)
                     loadButton.Click += async (_, _) => await registry.LoadCatalog(provider, force: true);
                     return loadButton;
                 });
