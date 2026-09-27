@@ -4213,18 +4213,6 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 }
 
-// STOP App.Views.Chat.TimelineRows #1 (part 1, 2026-09-26)
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:110 (B3 52bc792) `.modifier(ChipChrome())`
-// Requirements: PR-CHAT-078; UI-CHAT-008.
-// What is unclear or missing: the quote chips wear ChipChrome (App/Views/Composer/ComposerView.swift:962-970), whose
-// C# Body is still MARROW_STUB in src/Marrow.App/Views/Composer/ComposerView.cs (App.Views.Composer.ComposerView unit).
-// UserMessageRow calls it as written, so a sent message that leads with a quote throws that unit's MARROW_STUB until it
-// lands; the chips' glyph, excerpt, 260-point cap, tooltip and accessibility label are written but cannot be rendered.
-// Readings or options: none; the modifier is the other unit's.
-// Needed to proceed: unit App.Views.Composer.ComposerView (ChipChrome.Body).
-// Done so far: the no-leading-quote path (no chips, whole text in the bubble) is tested above and passes.
-//
 // STOP App.Views.Chat.TimelineRows #2 (part 1, 2026-09-26)
 // Kind: platform gap
 // Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:191-196 (B3 52bc792) `.confirmationDialog("Edit from this
@@ -4241,29 +4229,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Needed to proceed: a decision (ED or PA) on the confirmationDialog seam.
 // Done so far: the menu offers Edit from here with its divider (tested above); nothing is presented.
 //
-// STOP App.Views.Chat.TimelineRows #3 (part 1, 2026-09-26)
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:2580-2585 (B3 52bc792) `TimelineGroup.build(content,
-// showReasoning: false)`, read when the finished turn is expanded (:2631-2663)
-// Requirements: PR-CHAT-104 (the expanded half); PR-CHAT-155 (expanded exclusion); UI-CHAT-036; UI-CHAT-059.
-// What is unclear or missing: TimelineGroup.Build is still MARROW_STUB in src/Marrow.App/Views/Chat/ThreadTimeline.cs
-// (App.Views.Chat.ThreadTimeline unit). The expanded card is written as the Swift writes it, but opening a finished
-// turn throws that unit's MARROW_STUB until it lands, so the chevron's opening and the expanded group contents are
-// untested. A real folded Derived tests the owned 14-point frame and 20-point bottom gap independently.
-// Needed to proceed: unit App.Views.Chat.ThreadTimeline (TimelineGroup.Build).
-// Done so far: the folded turn (header, tooltip, rule, answer selection) is tested above and passes.
-//
-// STOP App.Views.Chat.TimelineRows #4 (part 2, 2026-09-27)
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:401-403; App/AppModel.swift:396-400 (B3 52bc792).
-// Records: PR-CHAT-152; UI-CHAT-052.
-// Missing: AppModel.Helpers has the B2 predicate !IsHydraHead, whereas B3 helpers(of:) includes every
-// unarchived head, in its panel or not. Using that API would silently render no finished heads.
-// Needed: the App.AppModel owner must port the B3 per-parent helper-cell predicate and newest-first order.
-// Only the environment lookup is unwritten. ApplyTeam tests the :404-418 dictionary, requested order,
-// missing-index omission, pill rendering and layout against actual fixture children without faking Helpers.
-//
 // STOP App.Views.Chat.TimelineRows #5 (part 5, 2026-09-27)
+// deferred by ED-180 (the glass material is built after the app runs)
 // Kind: platform gap
 // Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:2796 `.controlSize(.small)` on the confirmation buttons.
 // Records: UI-CHAT-039; UI-GIT-047.
@@ -4273,11 +4240,3 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // actions are implemented and tested. Generic .green is allowed by ED-092 (1), with the existing AppTheme
 // FrameworkGreen mapping precedent; its visual appearance remains UNVERIFIED under OD-0001.
 //
-// STOP App.Views.Chat.TimelineRows #6 (part 6, 2026-09-27)
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:1972-1973 `.lineLimit(2).truncationMode(.middle)`.
-// Records: PR-CHAT-154; UI-CHAT-055.
-// Missing: a multiline middle-truncation adapter; MiddleTruncatingTextBlock elides a single measured line only.
-// Needed: the text-foundation owner must provide a two-line middle-truncation primitive (or an approved mapping).
-// Only the middle truncation modifier is unwritten; the constrained, wrapping, two-line text column, font, color,
-// icon baseline and stat are implemented. No tail/head truncation substitute is asserted as source behavior.

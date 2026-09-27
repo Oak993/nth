@@ -333,7 +333,7 @@ public sealed class UserMessageRow : Decorator
         var chip = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, HorizontalAlignment = HorizontalAlignment.Right };
         chip.Children.Add(glyph);
         chip.Children.Add(excerpt);
-        // :110 .modifier(ChipChrome()): App.Views.Composer.ComposerView's, still MARROW_STUB (STOP #1).
+        // :110 .modifier(ChipChrome()).
         var chrome = new ChipChrome().Body(chip);
         ToolTip.SetTip(chrome, quote.Text); // :111 .help(quote.text)
         AutomationProperties.SetName(chrome, "Quote: " + quote.Excerpt); // :112-113 children combined, one label
@@ -581,11 +581,11 @@ public sealed class HydraHeadsWorkingRow : Decorator
         var column = headsColumn;
         Child = column;
         Padding = new Thickness(0, 0, 96, 0);
-        // STOP #4: AppModel.Helpers still has the B2 predicate excluding all Hydra heads.
-        // B3 :401-403 requires the corrected helper cells before this lookup can be wired.
+        this.Track(() => AppEnvironment.GetAppModel(this).Helpers(runtime.ThreadID)
+            .Where(thread => thread.IsHydraHead).ToArray(), team => ApplyTeam(team)); // :401-403
     }
 
-    // :401-418 body after the environment lookup; independently usable while STOP #4 is unresolved.
+    // :401-418 body after the environment lookup.
     internal void ApplyTeam(IReadOnlyList<ChatThread> team)
     {
         var column = headsColumn;
@@ -2409,9 +2409,7 @@ public sealed class HydraHeadStepsPopover : Decorator
                 row.Children.Add(new Border { Width = TimelineMetrics.IconWidth, Child = mcp is { } badge
                     ? new MCPGlyph(badge.Entry, 14, call.ToolCallStatus == ToolCall.Status.Running, call.ToolCallStatus) : new ToolStatusIcon(call) });
                 var words = mcp is { } server ? ToolPresentation.McpLabel(server.Entry, server.Tool, call.ToolCallStatus == ToolCall.Status.Running) : ToolPresentation.Label(call);
-                // STOP #6: the shared middle-truncation helper supports one line only. Keep the source's two
-                // wrapping lines; only .truncationMode(.middle) remains unwritten pending a multiline adapter.
-                var label = new TextBlock { Text = words, MaxLines = 2, TextWrapping = TextWrapping.Wrap };
+                var label = new MiddleTruncatingTextBlock { FullText = words, LineLimit = 2 }; // :1969-1973, ED-217
                 ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(label); label.Foreground = Chrome.SecondaryText.Brush(label); row.Children.Add(label);
                 if (ToolPresentation.Stats(call) is { } stats) row.Children.Add(new DiffStatLabel { Additions = stats.Additions, Deletions = stats.Deletions });
                 return row;
@@ -3341,7 +3339,6 @@ public sealed class TurnFinishedBlock : Decorator
             HeadEntries = new ValueList<TimelineEntry>(headEntries);
             if (expanded) // :2580-2585 the full steps, built only while showing; the heads have their own list below
             {
-                // TimelineGroup.build is App.Views.Chat.ThreadTimeline's, still MARROW_STUB (STOP #3).
                 DetailGroups = new ValueList<TimelineGroup>(TimelineGroup.Build(content, showReasoning: false).Where(group => group is not TimelineGroup.Heads));
             }
         }
