@@ -201,8 +201,8 @@ public sealed class CommandCodeSessionTests
         var completed = Assert.Single(events);
         Assert.Equal("MessageCompleted", completed.GetType().Name);
         Assert.Equal("complete", completed.GetType().GetProperty("Text")!.GetValue(completed));
-        Assert.Null(GetField(session, "currentMessageID"));
-        Assert.Null(GetField(session, "currentThinkingID"));
+        Assert.Null(GetStream(session).CurrentMessageID);
+        Assert.Null(GetStream(session).CurrentThinkingID);
     }
 
     [Fact]
@@ -386,7 +386,7 @@ public sealed class CommandCodeSessionTests
     }
 
     // PR-PROVCLI-209's flag resets (runtimeMode, interactionMode, model, effort, isFinalReport,
-    // turnCounter, turnActive, interruptRequested, runResult, runError, streamedText) and its
+    // turnCounter, turnActive, interruptRequested, runResult, runError, stream.ResetForTurn()) and its
     // dictionary clears (editSnapshots/toolNames/toolInputs) all happen inline at the top of Send,
     // before Send unconditionally calls the real MCPBridge.InstallBridge() (no DI seam on that call)
     // and reads MCPPaths.ClaudeConfigURL under the live Storage.Locations - so driving Send far enough
@@ -591,8 +591,8 @@ public sealed class CommandCodeSessionTests
             InvokeHandle(session, """{"type":"event","event":{"type":"tool_queued","toolCallId":"c1","toolName":"write_file","input":{"file_path":""" +
                 System.Text.Json.JsonSerializer.Serialize(file) + ""","content":"after"}}}""");
 
-            var snapshots = (System.Collections.IDictionary)GetField(session, "editSnapshots")!;
-            Assert.Equal("", snapshots["c1"]);
+            var snapshots = (EditSnapshots)GetField(session, "editSnapshots")!;
+            Assert.Equal("", snapshots.Text("c1"));
         }
         finally
         {
@@ -678,8 +678,43 @@ public sealed class CommandCodeSessionTests
         {
             var file = Path.Combine(root, "same.txt");
             File.WriteAllText(file, "same");
-            var snapshots = (System.Collections.IDictionary)GetField(session, "editSnapshots")!;
-            snapshots["c1"] = "same";
+            var snapshots = (EditSnapshots)GetField(session, "editSnapshots")!;
+            snapshots.Capture("c1", file);
+            var inputs = (System.Collections.IDictionary)GetField(session, "toolInputs")!;
+            inputs["c1"] = JSONValue.FromDictionaryLiteral(("file_path", file));
+            var events = CaptureEvents(session);
+
+            InvokeHandle(session, """{"type":"event","event":{"type":"tool_completed","toolCallId":"c1","result":""}}""");
+
+            var edits = Assert.IsType<ProviderEvent.ToolUpdated>(Assert.Single(events)).Update.Edits;
+            var edit = Assert.Single(edits!);
+            Assert.Null(edit.Diff);
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-230")] // CommandCodeSession.swift:600-605; SessionSupport.swift:27-33 (B3 defect fix:
+    // Finish compares before/after with SwiftString.Equal's canonical equivalence, not ordinal ==)
+    public void Tool_completed_reports_a_path_only_edit_when_before_and_after_are_canonically_equal_but_not_ordinally_equal()
+    {
+        var session = CreateSession();
+        var root = ScratchDirectory();
+        try
+        {
+            // "café" as NFC (single precomposed U+00E9) versus NFD (U+0065 U+0301, "e" then a combining
+            // acute accent): the same text under Unicode canonical equivalence, but different UTF-8 bytes,
+            // so an ordinal string compare (the pre-fix defect) sees them as changed.
+            var nfd = "café";
+            var nfc = "café";
+            var file = Path.Combine(root, "nfc.txt");
+            File.WriteAllText(file, nfd);
+            var snapshots = (EditSnapshots)GetField(session, "editSnapshots")!;
+            snapshots.Capture("c1", file);
+            File.WriteAllText(file, nfc);
             var inputs = (System.Collections.IDictionary)GetField(session, "toolInputs")!;
             inputs["c1"] = JSONValue.FromDictionaryLiteral(("file_path", file));
             var events = CaptureEvents(session);
@@ -1202,29 +1237,30 @@ public sealed class CommandCodeSessionTests
         Assert.Equal("one\n[image]", InvokeStaticArgs("ContentText", blocks));
     }
 
-    // ---- PR-PROVCLI-243: todos(from:) ----
+    // ---- PR-PROVCLI-243: tool_queued's todo_write now emits ACPSession.ParseTodoItems(input["todos"]),
+    // the shared four-text-key/seven-status parser (ACPSession.swift:688-699), not CommandCodeSession's
+    // own deleted three-key/five-status todos(from:). ACPSession's own parser is exhaustively covered by
+    // ACPSessionTests.ParseTodoItems_takes_the_first_of_four_keys_maps_seven_statuses_and_defaults_to_pending
+    // (PR-PROVACP-087); this test instead proves CommandCodeSession's tool_queued delegates to it, through
+    // the "step" key (new, ranks before "title"), a whitespace-only entry (dropped, not emitted blank),
+    // "complete" and the "inProgress"/"in-progress" spellings (all new at B3, only "in_progress" existed
+    // for Command Code before). ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-243")] // DroppyCode/Services/Providers/CommandCodeSession.swift:534-544
-    public void Todos_reads_three_text_keys_and_five_status_strings()
+    [Trait("Req", "PR-PROVCLI-243")] // CommandCodeSession.swift:348; ACPSession.swift:688-699
+    public void Tool_queued_todo_write_uses_the_shared_ACP_parser_step_blank_complete_and_inProgress_spellings()
     {
-        var input = JSONValue.FromDictionaryLiteral(("todos", JSONValue.FromArrayLiteral(
-            JSONValue.FromDictionaryLiteral(("content", "c"), ("status", "completed")),
-            JSONValue.FromDictionaryLiteral(("text", "t"), ("status", "done")),
-            JSONValue.FromDictionaryLiteral(("title", "ti"), ("status", "in_progress")),
-            JSONValue.FromDictionaryLiteral(("content", "active-one"), ("status", "active")),
-            JSONValue.FromDictionaryLiteral(("content", "pending-one")),
-            JSONValue.FromDictionaryLiteral(("status", "done")))));
+        var session = CreateSession();
+        var events = CaptureEvents(session);
 
-        var result = (System.Collections.IEnumerable)InvokeStatic("Todos", input)!;
-        var steps = result.Cast<TodoStep>().ToList();
+        InvokeHandle(session, """{"type":"event","event":{"type":"tool_queued","toolCallId":"c1","toolName":"todo_write","input":{"todos":[{"step":"from step, ranks before title","title":"ignored because step is present"},{"content":"   "},{"title":"complete one","status":"complete"},{"content":"in progress camel","status":"inProgress"},{"content":"in progress hyphen","status":"in-progress"}]}}}""");
 
-        Assert.Equal(5, steps.Count);
-        Assert.Equal(("c", TodoStep.Status.Done), (steps[0].Text, steps[0].TodoStepStatus));
-        Assert.Equal(("t", TodoStep.Status.Done), (steps[1].Text, steps[1].TodoStepStatus));
-        Assert.Equal(("ti", TodoStep.Status.Active), (steps[2].Text, steps[2].TodoStepStatus));
-        Assert.Equal(("active-one", TodoStep.Status.Active), (steps[3].Text, steps[3].TodoStepStatus));
-        Assert.Equal(("pending-one", TodoStep.Status.Pending), (steps[4].Text, steps[4].TodoStepStatus));
+        var value = Assert.IsType<ProviderEvent.Todos>(Assert.Single(events)).Value;
+        Assert.Equal(4, value.Count); // the whitespace-only "content" entry is dropped, not emitted blank
+        Assert.Equal(("from step, ranks before title", TodoStep.Status.Pending), (value[0].Text, value[0].TodoStepStatus));
+        Assert.Equal(("complete one", TodoStep.Status.Done), (value[1].Text, value[1].TodoStepStatus));
+        Assert.Equal(("in progress camel", TodoStep.Status.Active), (value[2].Text, value[2].TodoStepStatus));
+        Assert.Equal(("in progress hyphen", TodoStep.Status.Active), (value[3].Text, value[3].TodoStepStatus));
     }
 
     // ---- PR-PROVCLI-394/395 ----
@@ -1889,16 +1925,11 @@ public sealed class CommandCodeSessionTests
         Assert.Empty(events);
     }
 
-    [Fact]
-    [Trait("Req", "PR-PROVCLI-249")] // DroppyCode/Services/Providers/CommandCodeSession.swift:749-762, :741-747
-    public void GrantKey_maps_tool_permissions_and_plan_to_the_same_key()
-    {
-        Assert.Equal("command", InvokeStatic("GrantKey", ApprovalRequest.Kind.Command));
-        Assert.Equal("fileChange", InvokeStatic("GrantKey", ApprovalRequest.Kind.FileChange));
-        Assert.Equal("tool", InvokeStatic("GrantKey", ApprovalRequest.Kind.Tool));
-        Assert.Equal("tool", InvokeStatic("GrantKey", ApprovalRequest.Kind.Permissions));
-        Assert.Equal("tool", InvokeStatic("GrantKey", ApprovalRequest.Kind.Plan));
-    }
+    // The GrantKey mapping itself (PR-PROVCLI-248) is now the shared ApprovalRequestKindExtensions.GrantKey
+    // (ProviderSession.cs, B3 lane A7): see ProviderSessionTests.GrantKey_maps_each_kind_to_its_grant_string.
+    // CommandCodeSession no longer has its own copy to test here. PR-PROVCLI-249's grant-insertion behavior
+    // (the "always" branch inserting that key into sessionGrants) stays covered above by
+    // ResolveApproval_always_also_grants_the_session_and_writes_the_allow_reply.
 
     // ---- Test helpers for part 2 ----
 
@@ -2017,4 +2048,8 @@ public sealed class CommandCodeSessionTests
 
     private static object? GetField(object instance, string name) =>
         instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(instance);
+
+    /// <summary>The session's shared StreamedTextTracker (SessionSupport.cs, B3), for the current
+    /// message/thinking ids a public event does not itself carry.</summary>
+    private static StreamedTextTracker GetStream(object session) => (StreamedTextTracker)GetField(session, "stream")!;
 }

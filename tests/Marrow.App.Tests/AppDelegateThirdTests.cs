@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Threading;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Markdown;
 using Xunit;
@@ -12,6 +13,7 @@ namespace Marrow.App.Tests;
 // applicationShouldHandleReopen(_:hasVisibleWindows:), written by the Boot unit now that App.Window.WindowManager is in
 // the tree (it closes STOP App.AppDelegate #1 and #2 of AppDelegateTests.cs, except the lines named there that stay
 // open). Every expected value is transcribed from the cited Swift line or from the record, never from the C#:
+//   :13 URLCache.shared is reconfigured to 8 MiB memory-only, before :14 and :16
 //   :14 MarkdownDelegationCard.render is set before :16 reads WindowManager.shared
 //   :16-17 the model is WindowManager.shared.model; :22 showMain() before :23 openThreadOnLaunch()
 //   :24-26 hasSeenTour false: a main-actor task sleeps 700 ms, then Tour.present(model:); true: nothing
@@ -57,6 +59,60 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     // ===== applicationDidFinishLaunching(_:) :9-34 =====
 
     [Fact]
+    [Trait("Req", "PR-LAUNCH-029")] // App/AppDelegate.swift:23; App/AppModel.swift:580-590
+    public void Launch_reuses_the_newest_unused_thread_and_excludes_each_of_the_seven_disqualifying_states()
+    {
+        Guid newest = default;
+        var count = 0;
+        WithLaunch(h =>
+        {
+            var project = AppModelSamples.Project("Last project", h.NewFolder("last"));
+            var other = AppModelSamples.Project("Other", h.NewFolder("other"));
+            var now = SwiftDate.Now;
+            var older = AppModelSamples.Thread(project) with { CreatedAt = now.AddHours(-3) };
+            var unused = AppModelSamples.Thread(project) with { CreatedAt = now.AddHours(-2) };
+            newest = unused.Id;
+            ChatThread[] threads =
+            [
+                older, unused,
+                AppModelSamples.Thread(other) with { CreatedAt = now },
+                AppModelSamples.Thread(project) with { CreatedAt = now, IsArchived = true },
+                AppModelSamples.Thread(project) with { CreatedAt = now, IsSettled = true },
+                AppModelSamples.Thread(project) with { CreatedAt = now, ParentThreadID = older.Id },
+                AppModelSamples.Thread(project) with { CreatedAt = now, LastStatus = TurnStatus.Completed },
+                AppModelSamples.Thread(project) with { CreatedAt = now, HasCustomTitle = true },
+                AppModelSamples.Thread(project) with { CreatedAt = now, Title = "Named chat" },
+            ];
+            count = threads.Length;
+            h.WriteLibrary([project, other], threads);
+            h.Defaults.Set("lastProjectID", SwiftUUID.UuidString(project.Id));
+        }, launch =>
+        {
+            launch.Harness.Main.OnMain(launch.Delegate.ApplicationDidFinishLaunching);
+            Assert.Equal(newest, launch.Harness.Main.OnMain(() => launch.Manager.Model.SelectedThreadID));
+            Assert.Equal(count, launch.Harness.Main.OnMain(() => launch.Manager.Model.Threads.Count));
+            Assert.Null(launch.SelectedWhenMainWindowBuilt); // :22 showMain precedes :23 selection
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-071")] // App/AppDelegate.swift:22-33
+    public void First_launch_opens_the_chat_then_only_the_delayed_tour_with_no_onboarding_alert()
+    {
+        WithLaunch(h => WriteProjectWithUnusedThread(h), launch =>
+        {
+            launch.Harness.Main.OnMain(launch.Delegate.ApplicationDidFinishLaunching);
+            Assert.NotNull(launch.Harness.Main.OnMain(() => launch.Manager.Model.SelectedThreadID));
+            Assert.Null(launch.Harness.Main.OnMain(() => launch.Manager.Model.Alert));
+            Assert.Equal(["main window built", "bootstrap"], launch.Events);
+            launch.Harness.Main.AdvanceMilliseconds(700); // :25
+            Assert.Equal(["main window built", "bootstrap", "tour"], launch.Events);
+            Assert.Null(launch.Harness.Main.OnMain(() => launch.Manager.Model.Alert));
+            Assert.DoesNotContain("settings window built", launch.Events); // :30 no relaunch marker
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-LAUNCH-026")] // App/AppDelegate.swift:7, :16-17
     public void Launch_takes_the_window_managers_model_then_shows_the_main_window_before_opening_the_launch_thread()
     {
@@ -79,6 +135,26 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-LAUNCH-083")] // App/AppDelegate.swift:10-13
+    [Trait("Req", "PR-LAUNCH-025")] // App/AppDelegate.swift:10-13, now the first statement
+    public void Launch_reconfigures_the_shared_URLCache_to_8_MiB_memory_only_before_it_reaches_the_window_manager()
+    {
+        WithLaunch(null, launch =>
+        {
+            var before = URLCache.Shared;
+
+            launch.Harness.Main.OnMain(launch.Delegate.ApplicationDidFinishLaunching);
+
+            // :13 URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0), set before :16.
+            Assert.NotSame(before, launch.UrlCacheWhenMainWindowBuilt);
+            Assert.NotNull(launch.UrlCacheWhenMainWindowBuilt);
+            Assert.Equal(8 * 1024 * 1024, launch.UrlCacheWhenMainWindowBuilt!.MemoryCapacity);
+            Assert.Equal(0, launch.UrlCacheWhenMainWindowBuilt!.DiskCapacity);
+            Assert.Same(launch.UrlCacheWhenMainWindowBuilt, URLCache.Shared); // still the shared instance after launch
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-LAUNCH-026")] // App/AppDelegate.swift:14, :16
     public void Launch_installs_the_delegation_block_renderer_before_it_reaches_the_window_manager()
     {
@@ -97,6 +173,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-070")] // App/AppDelegate.swift:24-26
     [Trait("Req", "PR-LAUNCH-037")] // App/AppDelegate.swift:24-26
     [Trait("Req", "PR-UPDATE-090")] // App/AppDelegate.swift:22-26; App/AppSettings.swift:178
+    [Trait("Req", "UI-LAUNCH-002")] // App/AppDelegate.swift:24-26
     public void On_a_first_launch_the_tour_is_presented_exactly_700_ms_after_the_main_window()
     {
         WithLaunch(null, launch =>
@@ -119,6 +196,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-070")] // App/AppDelegate.swift:24
     [Trait("Req", "PR-LAUNCH-037")] // App/AppDelegate.swift:24
     [Trait("Req", "PR-UPDATE-090")] // App/AppDelegate.swift:24; App/AppSettings.swift:178
+    [Trait("Req", "UI-LAUNCH-002")] // App/AppDelegate.swift:24
     public void When_the_tour_has_been_seen_launch_never_presents_it()
     {
         WithLaunch(h => h.Defaults.Set(HasSeenTourKey, true), launch =>
@@ -297,7 +375,11 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 // Readings or options: (a) a port-only, Debug-only redirect of every root above to MARROW_PORT_DATA_DIR -> needs an
 // ED (it is a config key the source does not have); (b) launch as is -> writes the port's own "Marrow Code" data.
 // Needed to proceed: a decision on (a) if a manual launch must leave %LOCALAPPDATA%\Marrow Code untouched.
-// Done so far: nothing; the report names the paths.
+// Done so far (2026-09-27, ED-212): (a), with its own variable (MARROW_DEV_DATA_ROOT, not MARROW_PORT_DATA_DIR,
+// which stays a test-only convention). Marrow.Core.Support.DevDataRoot redirects every root this note names, plus
+// the two per-user identities (the .marrow-dev state directory and Credential Manager's service names) that were
+// still unredirected after a first pass. Debug-only (#if DEBUG), inert in Release. See
+// porting/engineering_decisions.md ED-212 and E:/Droppy/work/b3/DEV_LAUNCH.md for the launch and cleanup steps.
 
 // STOP Boot #5 (build agent, 2026-09-26)
 // Kind: ambiguity

@@ -1145,3 +1145,372 @@ itself part of PR-THEME-143 (the mention-scan-extraction record) but a port-only
 ENGINEERING DECISION; not a deviation (no real input's output changes; the guard only forecloses a hang on an input
 this port never produces).
 
+ED-209 [MCP][NET] A per-header origin-bound mark on `URLRequest`, so F.HTTP's redirect handling can drop one of a
+caller's own header fields on a cross-origin redirect, the same way ED-152 already drops Authorization
+(`src/Marrow.Core/Port/Http.cs`: `URLRequest.MarkOriginBound`/`OriginBoundHeaderFields`, `Hop.OriginBoundFields`,
+`Redirected`). FOUND: lane L3a review finding L3a-1 (HIGH). PR-MCP-188's deviation record already states OD-0022
+("Marrow sends a server's custom headers only to that server: a redirect that changes scheme, host or port drops
+them") and both MCPWire.cs and MCPProbe.cs carried a comment tracking the gap, but neither `MCPHub.swift:343-352`'s
+port (`MCPHub.cs`'s private `Post`) nor F.HTTP itself ever implemented it, and no test exercised a redirect at
+all: `MCPWire.Post` (`MCPWire.swift:66` `for (field, value) in headers { request.setValue(...) }`) put every one of
+a server's custom headers directly on the request with no marking, and `Http.cs`'s `Redirected` (`Http.cs`,
+ED-152) stripped only a literal `Authorization` field on an origin change, so `X-Api-Key` and any other custom
+header rode along to a redirect target the server never configured. DECISION: `URLRequest.MarkOriginBound(field)`
+records a field name (case-insensitive, idempotent) that `Hop.OriginBoundFields` carries through every redirect
+hop; `Redirected` drops it, alongside `Authorization`, the moment scheme, host or port changes, and never restores
+it even if a later hop returns to the original origin (matching Authorization's own one-way rule, UNVERIFIED
+O-29). `MCPWire.Post` (`:90`) now calls `.MarkOriginBound(field)` for every one of its caller-supplied `headers`
+entries (a server's own custom headers), which is the only per-server secret MCPHub's http client ever sends,
+before `Content-Type`, `Accept`, `MCP-Protocol-Version` and `Mcp-Session-Id` are added (those are protocol
+constants, never marked, and travel with every redirect exactly as before). PORT-ONLY: upstream `URLRequest` has
+no such member; like ED-152's own Authorization handling, this is F.HTTP-internal machinery with no Swift source
+line, justified by OD-0022's ruling. `MCPProbe.cs:246-266` carries its own, still-open copy of the same note for
+its own inline `Post` (a different unit, Services.MCP.MCPProbe, out of this lane's scope) and is not touched here.
+Tests: `HttpTests.A_same_origin_redirect_keeps_an_origin_bound_header` and
+`A_redirect_to_another_origin_drops_an_origin_bound_header_but_keeps_an_unmarked_one` (Core, the mechanism
+in isolation, mirroring the existing Authorization pair); `MCPHubTests.Http_client_keeps_the_servers_custom_header_across_a_same_origin_redirect`
+and `Http_client_drops_the_servers_custom_header_across_a_cross_origin_redirect` (through the real hub and two
+LoopbackHttpServer instances, all three of a client's POSTs - initialize, notifications/initialized, the real
+call - each redirecting in turn, since `MCPHub.swift:317,328,335` all post to the same configured URL, never a
+remembered redirect target). ENGINEERING DECISION extending ED-152's mechanism; the resulting behaviour (headers
+dropped across an origin-changing redirect) is OD-0022's owner-ruled deviation, not a new one.
+
+ED-210 [UI] How ProseRunView's single NSAttributedString in a single NSTextView is represented on Avalonia (unit
+UI.Markdown.ProseRunView; PR-THEME-149, PR-THEME-150; the verifier's "mixed paragraph styles" block).
+
+SOURCE FACT: B3 (52bc792) `UI/Markdown/ProseRunView.swift:114-208` builds a whole run of headings, paragraphs, list
+items and quotes as ONE NSMutableAttributedString. Blocks are joined by a "\n" in the base font and colour (:201-208).
+Each block's line carries its own NSMutableParagraphStyle: firstLineHeadIndent, headIndent, paragraphSpacing and
+paragraphSpacingBefore, plus, on a list item, one left NSTextTab at indent + 18 and defaultTabInterval 18 (:131-134,
+:155-159, :180-185). The lines are made from LinkParagraphView.attributed(source:...) pieces (:130, :146, :178;
+LinkParagraphView.swift:110-223): its fonts, favicon and dragon-glyph NSTextAttachments, and .link and .hydraHead
+runs. :71 hands the string to LinkTextView.render (LinkParagraphView.swift:481-496), which is one NSTextView. The run
+therefore has one selection, one character index space for the link, head-mention and popover lookups (:355-428,
+:463-471), and one height (height(forWidth:), :498-507). ProseRunView.swift is the only B3 file that sets a paragraph
+style (NSMutableParagraphStyle occurs at :131, :155 and :180 only). The merged port draws a LinkParagraphView
+paragraph through one Avalonia SelectableTextBlock. Its TextLayout takes a single TextParagraphProperties for all of
+its text, so it has no per-paragraph indent, hanging indent, paragraph spacing or tab stop, and its tab is a
+fixed-width advance rather than a stop.
+
+Rejected: (a) one SelectableTextBlock with line breaks: it loses every per-paragraph indent, the hanging list indent,
+the paragraph spacing and the tab stop. (b) A StackPanel of one text block per paragraph: a drag cannot cross blocks
+and a copy cannot join them, so the run's single selection and single index space are lost, and the run is no longer
+"one text object" (PR-THEME-149 expected_result). (c) Spacer InlineUIContainers or padding characters in one text
+block: they add characters that copy and indices count, and they still cannot hang continuation lines.
+
+DECISION:
+
+(1) Value. A port-only `ParagraphText` (src/Marrow.UI/Port/ParagraphText.cs) is the NSMutableAttributedString subset
+these two files use. It is a UTF-16 string held as ordered runs. Each run has an optional font (SwiftFont), foreground
+colour (SwiftColor), .link (SwiftURL), .hydraHead (SwiftURL), attachment and paragraph style. An attachment holds an
+image and its bounds, and its run is the single character U+FFFC, as NSAttributedString(attachment:) stores it.
+`ParagraphStyle` holds exactly firstLineHeadIndent, headIndent, paragraphSpacing, paragraphSpacingBefore, tabStops
+(left stops in container coordinates) and defaultTabInterval. Its default is NSParagraphStyle.default: 0, 0, 0, 0,
+twelve stops 28 apart, and 0 (platform knowledge, UNVERIFIED under OD-0001). The operations are the ones the Swift
+calls:
+- append a string with attributes, an attachment, or an attributed string;
+- addAttribute over a range, for a paragraph style or a font;
+- enumerateAttribute(.font);
+- the attributes at an index;
+- isEqual.
+
+`LinkParagraphView.Attributed(source:pointSize:dimmed:streaming:mentions:targets:)` is ported to return a
+ParagraphText (LinkParagraphView.swift:110-223). It keeps the fonts cache and places favicon and dragon attachments at
+y = base.descender + 1. NSFont.descender is read from the Inter glyph metrics. `ProseRunRepresentable.Attributed`,
+`Append` and `Separate` are line-for-line ports of :114-208. SwiftFont gains HasBoldTrait (bold or heavier) and
+HasMonoSpaceTrait (monospaced design) for the symbolicTraits test at :150-151. Semibold never reaches that test,
+because the heading line holds only regular, bold, italic and monospaced faces, so whether AppKit treats semibold as
+bold is not modelled. The dimmed and undimmed label colours are a single SwiftColor value each
+(LinkParagraphView.LabelTextColor and DimmedLabelTextColor), so two builds of the same text compare equal.
+
+(2) Layout. A port-only control, `ParagraphTextPresenter` (src/Marrow.UI/Port/ParagraphTextPresenter.cs), is the
+NSTextView and NSLayoutManager half.
+- Paragraphs: it splits the string at NSString's paragraph separators (U+000A, U+000D, CRLF, U+0085, U+2029). A
+paragraph takes the style of its first character (the "\n" that separate() inserts carries none and ends the paragraph
+before it); with no style it uses NSParagraphStyle.default.
+- Lines: it formats one line at a time with Avalonia's TextFormatter.FormatLine. The first line sits at x =
+firstLineHeadIndent with width W - firstLineHeadIndent; every later line sits at x = headIndent with width W -
+headIndent. This matches zero container inset and zero line fragment padding (LinkParagraphView.swift:319).
+- Vertical spacing: paragraphSpacingBefore goes above a paragraph's first line and paragraphSpacing below its last.
+This applies to every paragraph, the first and last included, which is the Swift's literal style and the record's
+wording. Whether TextKit 1 drops the space before the first paragraph, or leaves the last paragraph's space out of
+usedRect, is UNVERIFIED under OD-0001.
+- Line heights are Avalonia's for the fonts on the line, as on the LinkParagraphView path.
+- Tabs: a tab is a drawable run whose width moves the pen to the first tab stop to its right, or failing that to the
+next multiple of defaultTabInterval. Both are in container coordinates, as NSTextTab locations are, which is why :183
+writes indent + 18. The width is measured before the line is formatted. With neither a stop nor an interval, the pen
+does not move (UNVERIFIED).
+- Attachments: an attachment is a drawable run of its bounds, with its bottom bounds.y above the baseline, and the
+presenter draws the image there.
+- Links: a .link run is drawn in linkTextAttributes' colour, Chrome.AccentNSColor, with no underline (:485-489).
+- Height: height(forWidth:) is the laid-out height rounded up and cached per width. The cache is dropped when the
+storage changes (:490-495, :498-507).
+
+(3) The view. `LinkTextView.Render(ParagraphText)` is render(_:) (:481-496):
+- the first call replaces the view's SelectableTextBlock with one presenter;
+- every call sets the link colour;
+- the storage is replaced and the measurement dropped only when the new text is not isEqual to the storage (:490-494);
+- the size is invalidated either way.
+
+The link, head-mention and popover lookups (:355-428, :463-471) run over the storage. A point maps to the character
+whose own glyph box contains it (:367-369, :418-420). A link is the longest effective range of one .link value. A head
+mention is the longest effective range of one .hydraHead value. Its name is that range's text with U+FFFC removed and
+trimmed, or else the text of the next .hydraHead range (:381-412). LinkParagraphView's own paragraph path (RenderText
+and its SelectableTextBlock) is unchanged.
+
+(4) Selection. There is one selection over the whole string:
+- a press places the caret, and a drag or shift-press extends it;
+- two presses select a word and three select a paragraph;
+- Ctrl+C copies the selected substring, separators and U+FFFC included, and Ctrl+A selects all.
+
+The highlight uses SelectableTextBlock's SelectionBrush property, with the same default, painted under the glyphs.
+passesProseThrough is false on this path (:50), so a press on prose selects. Before the presenter's own selection
+handling sees a press (a tunnel handler), a head press opens the head and a link press goes to the delegate first, as
+mouseDown (:444-451) and clickedOnLink do. The word, paragraph and key behaviour follow NSTextView's standard
+behaviour, not B3 source (UNVERIFIED under OD-0001). Like the LinkParagraphView path, this path offers no system text
+menu on a right-click over prose.
+
+(5) Representable lifecycle. ProseRunRepresentable keeps SwiftUI's names:
+- The constructor runs makeCoordinator, then makeNSView (delegate = coordinator, passesProseThrough = false, onHost,
+merge target; :43-54), then a first updateNSView.
+- `Update(...)` stands for SwiftUI handing it new inputs and running updateNSView (:56-77). The string is rebuilt only
+when the joined source, point size, dimming, revision, mention names or head URLs change. The head handler and the
+merge target are set on every call.
+- A change of the inherited merge-request target also runs updateNSView.
+- Leaving the visual tree runs dismantleNSView, which clears the delegate, handler and merge target and does not
+detach the veil (upstream defect 55, :84-88). Coming back makes a new text view and coordinator, as SwiftUI would.
+- sizeThatFits (:79-82) answers only a finite proposed width.
+
+LinkTextView gains Delegate (NSTextView.delegate). A link click asks the delegate first, and opens through
+MarkdownLinkOpener when there is no delegate or it declines. The LinkParagraphView path sets no delegate, so it opens
+links as before. ProseRunView re-reads the environment (:6-9) and faviconRevision (:14) whenever they change, and
+hands the representable the point size rounded to the nearest half point (:17).
+
+Tests: tests/Marrow.UI.Tests/Markdown/ProseRunViewTests.cs, 31 tests, traits PR-THEME-149 and PR-THEME-150. They
+cover:
+- the joined sources;
+- the string and every paragraph style, font and colour the Swift sets;
+- the laid-out x of quoted text (14), and of list text and its continuation lines (18, or 36 nested);
+- the vertical gaps (12, 18, 14, 6, 12), and a level-1 heading's 6 before and 12 after inside the height;
+- one drag selecting across two paragraphs;
+- a link in a later paragraph found under the pointer;
+- the rebuild check and the handlers;
+- make and dismantle.
+
+ENGINEERING DECISION: the representation is a port mechanism, not a deviation. The UNVERIFIED items above wait on a
+macOS capture (OD-0001): the default tab stops, the edges of paragraph spacing, a tab with no stop, and NSTextView's
+word, paragraph and key selection.
+ED-211 [TEST] Test processes can never resolve a real installed provider CLI (R-TEST-10; incident 2026-09-27). SOURCE FACT:
+ProviderRegistry.ResolveExecutable (ProviderRegistry.swift:219-226) finds a provider CLI by searching PATH and the fallback
+locations; AppModel reaches it for commit messages (TextEngine), sessions and the B3 self-updater. Several test harnesses override it
+(AppModelHarness.PrepareBootstrap's missing.exe, the AsyncLocal SetCLIUpdaterExecutableForTesting seam), but a test that forgets its
+override resolves the real CLI: AppModelHydraMergeTests (about 40 tests without PrepareBootstrap) generated commit messages through
+the owner's real signed-in CLI, and a ProviderRegistry test once ran a real `claude update` (followups.md). DECISION: a port-only,
+process-wide `ProviderRegistry.ExecutableRootsForTesting` (null in production, so production is unchanged). When set, an executable
+that resolves outside the listed folders is treated as not installed (fails closed). Every test assembly that can reach
+ProviderRegistry (Marrow.Services.Tests, Marrow.App.Tests) sets it from a module initializer (Fixtures/ProviderCliGuard.cs) to
+Marrow.Testing.ProviderCliRoots.Compute(): the repository root (stand-ins under tests/fixtures), the temp folder and
+MARROW_PORT_DATA_DIR. Real installs (%USERPROFILE%\.local\bin, %LOCALAPPDATA%\Programs, %APPDATA%\npm) are outside every root.
+Tests: ProviderCliGuardTests (guard installed and excludes the real install folders; a binary outside the roots resolves to
+nothing; a stand-in in the temp folder still resolves). ENGINEERING DECISION; test safety, not a behaviour change.
+
+ED-212 [DEV] A Debug-only MARROW_DEV_DATA_ROOT redirect of every app-owned data location, so a manual Debug launch
+can run against a throwaway folder instead of the developer's own real %LOCALAPPDATA%\Marrow Code,
+%USERPROFILE%\.marrow-dev and Windows Credential Manager entries (STOP Boot #4,
+tests/Marrow.App.Tests/AppDelegateThirdTests.cs:305-321; E:/Droppy/work/b3/DEV_LAUNCH.md).
+
+SOURCE FACT: none of this has a B3 Swift counterpart (52bc7926). MARROW_DEV_DATA_ROOT is not read anywhere in the
+pinned source, and Storage.swift, StoragePaths.swift, HangWatchdog.swift, MCPBridgeSource.swift, PiCLI.swift,
+CommandCodeAPI.swift and APIKeychain.swift/MCPKeychain.swift each resolve their own root unconditionally
+(kSecAttrService = AppInfo.name; the Application Support/Library folder on the Mac side). This is a development
+affordance the port adds for its own manual testing, not a behavior traced to the source.
+
+DECISION: `Marrow.Core.Support.DevDataRoot` (src/Marrow.Core/Support/DevDataRoot.cs, PORT-ONLY). Its
+`LocalApplicationData()` returns, under `#if DEBUG` only, the value of MARROW_DEV_DATA_ROOT when that variable
+names a directory that already exists; every other case (Release; Debug with the variable unset, empty, or naming
+a directory that does not exist) returns `Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)`
+unchanged, byte-for-byte the value every one of the call sites below returned before this decision. The whole
+redirect is behind `#if DEBUG`, so it does not exist in a Release build's compiled code, not merely a runtime
+branch that happens to be false.
+
+Every production site that used to call `Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)`
+directly now calls `DevDataRoot.LocalApplicationData()` instead:
+- `Marrow.App/Program.cs:46` (Main's `localAppData`, feeding SettingsStore.ProductionPath, Storage.Locations and
+  StoragePaths.Locations at start-up).
+- `Marrow.Core/Support/HangWatchdog.cs:44` (the hang-report log folder, ED-162).
+- `Marrow.Core/Support/StoragePaths.cs:70` (`StoragePathsLocations.CreateProduction`: root and wallpaper).
+- `Marrow.Services/Store/Storage.cs:130` (`StorageLocations.CreateProduction`'s `root` factory: library.json,
+  threads, attachments).
+- `Marrow.Services/MCP/MCPBridgeSource.cs:309` (`InstallBridge()`'s base folder).
+- `Marrow.Services/Providers/CommandCodeAPI.cs:634` (`SupportDirectory` / `InstallMod()`'s base folder).
+- `Marrow.Services/Providers/PiCLI.cs:39` (`SupportDirectory`'s base folder).
+- `Marrow.Services/Providers/CommandCodeSession.cs:1030` (`ApprovalDirectoryRoot()`, the test seam that duplicates
+  CommandCodeAPI's own "Marrow Code/CommandCode" literal so approvals land next to the mod's own support folder).
+
+Two more per-user identities get the same treatment, both PORT-ONLY (OD-0012 F1's ".marrow"/".marrow-dev" folder
+name and ED-093's credential target names are otherwise unchanged):
+- `Storage.StorageLocations.CreateProduction`'s `homeDirectory` factory (Storage.cs) returns
+  `DevDataRoot.LocalApplicationData()` in place of `LoginEnvironment.HomeDirectory` while the redirect is active, so
+  the ".marrow-dev" worktrees/patches folder moves under the dev root too, never under the developer's own
+  %USERPROFILE%.
+- `DevDataRoot.KernelObjectName(baseName)` and `DevDataRoot.CredentialService(baseService)`: the identity function
+  when not redirected; while redirected, `baseName + "." + tag` and `baseService + " [" + tag + "]"`, where `tag`
+  is the first 8 lowercase hex characters of SHA-256 over the active dev root's own directory path. The tag is hex
+  only, so it is used in a Win32 kernel-object name (`DroppyCodeApp.cs`'s `SingleInstanceLockName` and
+  `ReopenSignalName`) with no backslash-escaping question, and it differs between two different dev roots (so two
+  dev launches on different roots never contend for the same single-instance lock, never signal each other's
+  reopen, and never read or overwrite each other's stored provider keys). `APIKeychain.cs`'s three call sites and
+  `MCPKeychain.cs`'s `Service` property route `AppInfo.Current.Name` through `CredentialService` before it becomes
+  a Credential Manager service name; nothing else reads `AppInfo.Current.Name` differently, so the display name,
+  window title and every other reader of `AppInfo.Current.Name` are unchanged.
+
+Tests: `tests/Marrow.Core.Tests/Support/DevDataRootTests.cs` (unset/empty/missing-directory all resolve the real
+special folder and report not redirected; an existing directory is returned verbatim and reports redirected;
+`KernelObjectName`/`CredentialService` are the identity when not redirected, tagged with 8 hex characters when
+redirected, and two different dev roots get two different tags).
+`tests/Marrow.Services.Tests/Support/DevDataRootProductionSitesTests.cs` (every Marrow.Services site above, tested
+by pointing MARROW_DEV_DATA_ROOT at a throwaway MARROW_PORT_DATA_DIR folder for every redirected case, so no
+side-effecting call (InstallMod, InstallBridge, StorageLocations.Root/.WorktreesDirectory/.PatchesDirectory) ever
+creates anything under a real %LOCALAPPDATA%\Marrow Code; the two path-only sites (SupportDirectory,
+ApprovalDirectoryRoot) are additionally checked unredirected against the real special folder, since neither one
+creates anything on its own; APIKeychain/MCPKeychain tests confirm a redirected write lands only under the tagged
+service and the plain, untagged service sees nothing).
+`tests/Marrow.App.Tests/DroppyCodeAppTests.cs` (ReopenSignalName is the unchanged literal with no dev root active;
+tagged, and distinct between two different dev roots, once one is active).
+`tests/Marrow.Services.Tests/Providers/CommandCodeAPITests.cs`'s pre-existing
+`SupportDirectory_is_LocalAppData_Marrow_Code_CommandCode_as_a_directory_URL` now clears MARROW_DEV_DATA_ROOT in its
+own try/finally scope before comparing `CommandCodeAPI.SupportDirectory` against the real special folder, so its
+assertion holds regardless of whatever a developer's shell happens to have set.
+
+ENGINEERING DECISION; not a deviation (no Swift source declares or reads this variable); not present in a Release
+build, which never compiles the `#if DEBUG` branch. `E:/Droppy/work/b3/DEV_LAUNCH.md` gives the manual launch and
+cleanup steps this decision exists for.
+ED-213 [UI] GraphicsContext `.plusLighter` path drawing (sweep-A STOP #5; PR-COMPOSER-138). SOURCE FACT: EffortSlider.swift is
+the only pinned file that sets `.plusLighter` (:1278 `plasma.blendMode = .plusLighter`, :1320 `glow.blendMode = .plusLighter`), inside
+the fusion drawing (:1232-1335): path layers that are blurred (:1279 radius 2.5, :1321 radius 7) and clipped (:1282
+`plasma.clip(to: Path(side))`). Apple documents kCGBlendModePlusLighter as R = MIN(1, S + D) on premultiplied colour. Avalonia's
+DrawingContext has no per-drawing blend mode for vector paths, so the site was left unwritten. DECISION: the fusion drawing runs as an
+Avalonia ICustomDrawOperation on the Skia lease (ISkiaSharpApiLeaseFeature), the pattern ShaderLibrary.cs's
+GenieDistortionOperation already uses. Each GraphicsContext copy that sets `.plusLighter` becomes an SKCanvas save layer composited
+with SKBlendMode.Plus (the same saturating per-channel add). Its blur is a Skia Gaussian whose standard deviation is the SwiftUI
+radius, the convention EffortSlider's other blurred layers already follow through CometPainter.GaussianBlur (and Wallpaper.cs's
+radius-as-sigma). Its clip is the same path through SKCanvas.ClipPath with anti-aliasing. Draw order, paths, colours and opacities
+are the Swift's, and the helper stays private to EffortSlider unless a second site appears. Tests render to an offscreen Skia surface:
+- two 0.5-alpha red plus-layers sum to 1.0 and clamp;
+- the blur spreads past the path edge;
+- the clip bounds the result.
+ENGINEERING DECISION; the exact macOS blur kernel and colour space stay UNVERIFIED under OD-0001.
+
+ED-214 [UI] Text `.minimumScaleFactor` (sweep-A STOP #6; the untracked gap at NewThreadPrompt.cs:55-57). SOURCE FACT: four pinned
+sites, each on one-line text:
+- NewThreadPrompt.swift:46 (0.6);
+- EffortSlider.swift:614 (0.85) and :648 (0.9);
+- AboutUpdateViews.swift:227 (0.8), on a VStack of two texts.
+Apple documents minimumScaleFactor as the minimum amount text scales down to fit the available space, applied before truncation, and
+as an environment value every Text inside the modified view reads. Avalonia's TextBlock has no counterpart. DECISION: one port
+primitive in Marrow.UI/Port, used at all four sites. During measure, when the proposed width is finite and the text's natural
+one-line width is larger, the font size becomes size x max(factor, available / natural). When it still does not fit at factor x
+size, the text truncates with its own trimming (tail unless the site says otherwise). The scale changes the font size, not a render
+transform, so line height and the reported height follow the scaled text. An infinite proposal never scales. Applied to a container,
+it reaches each text inside, and each text scales independently. Tests:
+- a text that fits is unchanged;
+- a slightly-too-wide text lands exactly at the fitting size;
+- a far-too-wide text lands at factor x size with an ellipsis;
+- each of the four sites carries its own factor.
+ENGINEERING DECISION; macOS's exact scale stepping stays UNVERIFIED under OD-0001.
+
+ED-215 [UI][FOUNDATION] Every asset-catalogue image the pinned Swift names is bundled. This extends ED-182's asset table, which
+held three names, droppy-logo, hydra-mark and badge-edit, plus the 25 hydra-head marks. SOURCE FACT: at B3,
+DroppyCode/Resources/Assets.xcassets holds 85 imagesets and the port bundles 28 of them. Still missing:
+- 13 provider-* images (ProviderKind.iconName; ProviderIcon, Components.swift:4-14);
+- 33 mcp-* images (the MCP catalogue marks; MCPGlyph);
+- UpdateBugFixesIcon, UpdateNewFeaturesIcon and UpdateRefinementsIcon (the AboutUpdateViews release-note cards);
+- 8 tour-* images (TourView.swift:256).
+SwiftImage.Named returns an empty image for an unknown name, so every one of those sites draws nothing and reports nothing (found
+2026-09-27 while reviewing sweep-A). PA-0012 already classes the provider and mcp marks as the app's own shipped artwork and
+reusable; UNK-0002 was resolved by OD-0002. DECISION: copy each imageset's files byte for byte into src/Marrow.UI/Assets/Images/ and
+register each under its imageset name in SwiftImage's table, following its Contents.json:
+- an SVG with preserves-vector-representation stays a vector image;
+- PNG scale variants map to Bitmap (1x) and Bitmap2x (2x);
+- template-rendering-intent "original" or "template" maps to ImageRenderingMode.Original or Template; an imageset without it
+  follows the rule ED-182 already applies.
+A test reads a manifest of every non-tour imageset name at B3, checked in beside the tests, and proves each one resolves to a
+non-empty image with the intent its Contents.json declares. The 8 tour-* screenshots are held back by OD-0027 (retaken in Marrow on Windows once it runs): they show
+macOS window controls and "DroppyCode" text (OD-0012 F1). TourView keeps a visible STOP naming OD-0027 until the captures exist.
+ENGINEERING DECISION.
+
+ED-216 [UI] One dialog seam for every SwiftUI `.alert`, `.confirmationDialog` and NSAlert (TimelineRows STOP 2). SOURCE FACT: six
+sites in 1.7.0:
+- TimelineRows.swift:191-196, confirmationDialog "Edit from this message?": "Revert and keep file changes", then "Revert files too"
+  (role .destructive), and a message;
+- SettingsView.swift:920-934, confirmationDialog "Delete \"<title>\"?" or "Delete the archived thread?": "Delete thread"
+  (.destructive), and a message;
+- RootView.swift:80-91, .alert(model.alert.title): "OK" (role .cancel), message model.alert.message;
+- ChatView.swift:1231-1237, .alert("Rename thread"): TextField("Title"), "Rename", "Cancel" (.cancel);
+- ChatView.swift:1381-1385, .alert("New branch"): TextField("Branch name"), "Create", "Cancel" (.cancel);
+- AppUpdater.swift:274-280, NSAlert "Update Failed", warning style, runModal (already on the seam).
+Apple documents that every dialog action dismisses the dialog after it runs; that a confirmation dialog includes a standard dismiss
+action unless a button has the cancel role, which then takes its place; and that an alert without actions gets a standard "OK".
+Today the port has AlertPresentation (src/Marrow.App/Port/AlertPresenter.cs, the updater's plain OK alert) and a private window in
+SettingsView.cs:761-772 with no Cancel button. DECISION: AlertPresentation becomes the one seam for all six sites:
+- AlertButton gains a Role (None, Cancel, Destructive; SwiftUI ButtonRole), and Show takes the title, an optional message, the
+  buttons in declared order, optional text fields (label plus a two-way value) and a kind (Alert or ConfirmationDialog);
+- a ConfirmationDialog with no cancel-role button gets a "Cancel" button with that role;
+- an Alert with no buttons gets "OK";
+- every button runs its action, then closes the dialog;
+- Escape and the window's close box run the cancel-role button, or just close when there is none;
+- destructive titles draw in Chrome.Danger;
+- buttons sit right-aligned in declared order with the cancel-role button moved last (the Windows convention);
+- Return activates the first button with no role, and a dialog with no such button has no Return default;
+- the title is the window title and a bold first line, and the message and fields follow;
+- the dialog is modal, centred on the owner window, and returns a Task that completes on close.
+The seam keeps its test override (the Ambient Presenter): tests record the request and press buttons by title, never open a
+window. SettingsView's private window, TimelineRows STOP 2, RootView and ChatView all move onto it. ENGINEERING DECISION. macOS's
+button order, default-button choice and the look of the sheet stay UNVERIFIED under OD-0001.
+
+ED-217 [UI] Two-line middle truncation (TimelineRows STOP 6). SOURCE FACT: TimelineRows.swift:1969-1973 sets `.lineLimit(2)` and
+`.truncationMode(.middle)` on a tool row's label. Every other `.truncationMode(.middle)` site in 1.7.0 is single-line, and those are
+served by src/Marrow.UI/Port/MiddleTruncatingText.cs (MiddleTruncatingTextBlock), which is single-line. DECISION:
+MiddleTruncatingTextBlock gains a line limit. With a limit of 2, the text wraps normally. When it needs more than two lines, the first
+line keeps its normal wrap and the second holds the rest of the text, elided in its own middle to fit the width: the start of the
+remainder, U+2026, then the end of the whole string. This is TextKit's rule of truncating only the last line; its exact
+middle-truncation of a wrapped paragraph on macOS stays UNVERIFIED under OD-0001. A limit of 1 behaves exactly as today. Tests:
+- text that fits in one line or in two is unchanged;
+- an overflowing string keeps a whole first line, and its second line ends with the string's own last characters, with one U+2026;
+- a limit of 1 is unchanged from today.
+ENGINEERING DECISION.
+
+ED-218 [UI][FOUNDATION] ForEach rows enter and leave through their transitions, and surviving rows glide (MCPSettingsPage STOP #4).
+SOURCE FACT: 1.7.0 has 136 ForEach sites and 88 .transition(...) sites, many of them rows inside a ForEach under withAnimation or
+.animation(_:value:). Examples: MCPSettingsPage.swift:55-57 (the connected grid); TimelineRows.swift:410-414 (FinishedHeadPill with
+.settleGlide under .smooth(duration: 0.3)). In SwiftUI, an inserted row plays its insertion transition and a removed row its removal
+transition, under the transaction's animation; rows that survive but move animate from their old frame to their new one under the same
+transaction. The port's ForEach (src/Marrow.UI/Port/ViewLifetime.cs:88-130) inserts and removes Panel children directly, so none of that
+happens. 52 call sites work around it by calling SwiftTransition.Insert/Remove by hand. DECISION: ForEach.Apply does it itself:
+- a new row goes in through SwiftTransition.Insert, and a vanished row leaves through SwiftTransition.Remove (it is disposed when its
+  removal ends), whenever the row carries a transition (SwiftTransition's attached value) or Transaction.Current is animated;
+- rows with no transition and no animated transaction behave exactly as today, so existing callers and tests are unchanged;
+- when Transaction.Current is animated, each surviving row whose laid-out position changes is moved FLIP-style: record its bounds
+  before Apply; after the next layout pass, set a RenderTransform translation from the old position to the new one and animate it to
+  zero with the transaction's curve. Size changes are not animated by this mechanism;
+- reduce motion (Transaction.Current already carries it) and window live resize (WindowLiveResize) turn the glide off, as the
+  sources gate animations elsewhere.
+The 52 hand-written call sites may move to the new ForEach later, but none has to. Tests (headless, clock-driven):
+- insert and remove play the row's transition and the removed row is disposed after it;
+- a reorder under an animated transaction starts each moved row at its old offset and ends at zero;
+- no transition and no animation behaves exactly as before.
+ENGINEERING DECISION; SwiftUI's exact interpolation of a moved row stays UNVERIFIED under OD-0001.
+
+ED-219 [WIN][LAUNCH] The Dock unread badge becomes a taskbar overlay badge (AppModel.updateDockBadge). SOURCE FACT: AppModel.swift:1270-1273
+sets `NSApp.dockTile.badgeLabel` to the number of threads with hasUnread that are neither archived nor in a panel, or nil when there are
+none. The port (AppModel.cs UpdateDockBadge) keeps the count but shows nothing, with a comment that the taskbar cannot show text; no
+decision recorded that. Windows has ITaskbarList3::SetOverlayIcon, a small icon drawn over the app's taskbar button, which is how
+Windows apps show unread counts. DECISION:
+- the port sets the main window's taskbar overlay icon to a badge drawn in code: the count in white on a filled red circle
+  (NSColor.systemRed at macOS's light values, the Dock badge's own colours), rendered at the system small-icon size for the current DPI;
+- above 99 the badge text stays the decimal count, shrunk to fit, exactly as the source's String(unread) (no "99+" is invented);
+- nil clears the overlay;
+- the accessible description is the count as text;
+- the COM call goes through a seam, so tests record the count and rendered pixels and never touch the real taskbar.
+ENGINEERING DECISION.
+

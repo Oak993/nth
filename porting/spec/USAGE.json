@@ -19,7 +19,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Renderer component in the composer row reading the same three predicates. No platform boundary.",
       "verification_method": "interaction test over the predicate combinations plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -42,7 +42,7 @@
       "cancellation": "not cancellable",
       "windows_path": "SVG circle with stroke-dasharray/offset or a conic mask, rotated -90deg; the track uses the quaternary label token.",
       "verification_method": "capture comparison at 0%, 50%, 86% and 100%",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -65,7 +65,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two CSS custom properties; the arc stroke switches at fraction > 0.85. The tint branch must resolve to the theme accent, not a hardcoded colour.",
       "verification_method": "unit test on the predicate plus capture comparison in two themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -88,7 +88,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Native tooltip with the same three strings and the same truncating integer conversion (Math.trunc, never Math.round).",
       "verification_method": "unit test on helpText over the three branches and the truncation boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -112,7 +112,7 @@
       "cancellation": "not cancellable",
       "windows_path": "aria-label plus aria-valuetext on the button; do not merge them into one string.",
       "verification_method": "interaction test reading the accessibility tree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -139,7 +139,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Anchored popover above the trigger with a bottom-edge arrow. Windows has no NSPopover: the shell supplies the arrow, the shadow and the light-dismiss.",
       "verification_method": "interaction test: open, reopen, dismiss by outside click",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -166,7 +166,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Header div plus a 32px round glass button. The arrow.up.right glyph follows OD-0010: it maps to Lucide arrow-up-right through the published symbol-by-symbol table (porting/icons/sf-symbols-to-lucide.json), which closes the icon half of UNK-0007; Apple glyphs cannot ship. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "capture comparison plus interaction test on the tooltip string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -198,7 +198,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Set the persisted setting and animate the panel mount with the panelSlide spring; honour the OS reduce-motion flag for the ease-out fallback.",
       "verification_method": "interaction test plus restart test that the panel is still shown",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -222,7 +222,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed 360px content box with 16px padding, height auto; the fillsWidth variant is width:100% with left alignment.",
       "verification_method": "capture comparison, width measured against the source constant",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1489,7 +1489,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Scrollable container with the same four-part predicate; keep the port's fraction derived from windowTokens (port_impacts entry 199).",
       "verification_method": "unit test over the four predicate terms plus a fixture asserting the fraction implication still holds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1515,7 +1515,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Centred placeholder with a 50px top inset; report 94px to the placer on mount. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "interaction test with a provider that exposes nothing, asserting the reported height",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -1542,7 +1542,7 @@
       "cancellation": "not cancellable",
       "windows_path": "ResizeObserver on the content, reporting height + 58; guard against feedback loops by writing state only on change.",
       "verification_method": "interaction test measuring the reported height for a known content height",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1567,7 +1567,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows has no Liquid Glass. The glass layer follows OD-0005, an owner-approved deviation, not parity (UNK-0004 resolved as an accepted deviation): where the window shows the desktop behind the panel, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop behind the panel, the full source-defined material is reproduced: the continuous rounded rectangle of radius 22 and the Chrome.glassTint tint at 0.22 in dark or 0.16 in light. In both cases the layer order, the scrim opacities and the exact shadow are reproduced as specified above. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the panel's glass sits over the desktop and takes the Acrylic branch (Acrylic plus the app-drawn scrim, probe P3); the drawn material applies once a wallpaper is set. This default is exact parity, not a deviation.",
       "verification_method": "capture comparison in both themes against the reference panel",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1596,7 +1596,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Disable the panel's layout transition while the window is being resized; the Windows shell must expose an equivalent live-resize flag. OD-0013: the window live resize this record reacts to is the main window's, whose live-resize edge strip measured by probe P4 (a 3-5 px strip of the window's own backdrop on growing edges and a clip of about a frame on shrinking edges while the pointer moves) must be fixed before the main window chrome is accepted, and is not downgraded to a deviation; the panel behaviour specified here is unchanged.",
       "verification_method": "interaction test resizing the window and sampling the panel frame per frame",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1621,7 +1621,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Glass capsule with the same token-derived paddings emitted as CSS custom properties (port_impacts entry 212). OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing).",
       "verification_method": "capture comparison against the field capture of the two-panel layout",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1652,7 +1652,7 @@
       "cancellation": "Releasing ends the drag; the source has no escape-to-cancel for a panel drag.",
       "windows_path": "Pointer capture on the two handle regions reporting cumulative translation. On macOS this is an NSView representable; on Windows it is a pointer-events region in the renderer.",
       "verification_method": "interaction test dragging from the capsule and from the middle, asserting the reported translation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1677,7 +1677,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same predicate in the strip component. Do not deduplicate.",
       "verification_method": "unit test rendering the strip with headsProvider equal to provider and asserting two icons",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "71",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1702,7 +1702,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Round glass button with the xmark glyph mapped to Lucide x through the published symbol-by-symbol table (OD-0010, porting/icons/sf-symbols-to-lucide.json); same persisted setting. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing).",
       "verification_method": "interaction test plus restart test that the panel stays closed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1911,7 +1911,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Settings row component with the two strings verbatim.",
       "verification_method": "capture comparison of the General page plus an interaction test on the toggle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1944,7 +1944,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared component used by both surfaces; the Settings page composition itself belongs to the settings area.",
       "verification_method": "capture comparison of the same provider in the popover and in Settings, with the provider's section both expanded and collapsed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2178,7 +2178,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names on the wire; lenient per-field reads with the same defaults.",
       "verification_method": "contract fixture decoding a minimal record and a full record",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3687,7 +3687,8 @@
         "decision": "OD-0005",
         "upstream": "`shape.fill(.clear).glassEffect(.regular, in: shape)` under a `Chrome.glassTint.opacity(isDark ? 0.22 : 0.16)` overlay (DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:53-63, the glass at :59), macOS Liquid Glass",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-037",
@@ -3714,7 +3715,8 @@
         "decision": "OD-0005",
         "upstream": "`.chromeGlassCapsule()` (DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:93; DroppyCode/UI/Chrome/Chrome.swift:129-131), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` in a `Capsule(style: .continuous)` (DroppyCode/UI/Chrome/Chrome.swift:165, :180), macOS Liquid Glass",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-038",
@@ -3737,7 +3739,8 @@
         "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:100-104",
         "DroppyCode/App/Views/Chat/ChatView.swift:509-519"
       ],
-      "notes": "Tooltip and accessibility label are both exactly Drag to move. The capsule's overlaid handle has neither."
+      "notes": "Tooltip and accessibility label are both exactly Drag to move. The capsule's overlaid handle has neither.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-039",
@@ -3767,7 +3770,8 @@
         "decision": "OD-0005",
         "upstream": "`ChromeCircleButton` applies `.chromeGlassCircle()` (DroppyCode/UI/Chrome/Chrome.swift:429, :141-143), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` in a `Circle()` (DroppyCode/UI/Chrome/Chrome.swift:167, :180), macOS Liquid Glass",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-040",

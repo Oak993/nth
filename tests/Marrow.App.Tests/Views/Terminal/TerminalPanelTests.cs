@@ -1,24 +1,357 @@
 using System.Linq;
+using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
+using Avalonia.Threading;
 using Marrow.App;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Terminal;
 using Marrow.Core.Models;
+using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Terminal;
 
-// Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B2 1fbf81e), :1-443.
+// Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B3 52bc792), :1-318.
 [Collection("Headless")]
 public sealed class TerminalPanelTests(HeadlessSession headless)
 {
+    private readonly List<AvaloniaWindow> windows = [];
+
+    // Hide test windows and drain layout before the headless session disposes its font manager. Closing currently
+    // hits DragHandleView.RefreshHover after detach (an external defect); see STOP #3. Assertions remain unchanged.
+    private void HideTestWindows()
+    {
+        foreach (var window in windows) window.Hide();
+        windows.Clear();
+        Dispatcher.UIThread.RunJobs();
+    }
     private static string AllText(Control control) =>
         string.Join("\n", LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(block => block.Text ?? ""));
+
+    // The tab chip does not require an ANSI render surface. Use a real, isolated shell session, and terminate it
+    // on every path; ProcessEnded/Terminate supply the dead-shell state without waiting on a real process.
+    private void WithTabSession(Action<TerminalSession> body) => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness();
+        h.Main.OnMain(() =>
+        {
+            var session = new TerminalSession(Guid.NewGuid(), TerminalTestFolders.Create("tab sweep"), "PowerShell", null);
+            try { body(session); }
+            finally { session.Terminate(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
+    private static Button TabButton(TerminalTab tab, string tooltip) =>
+        LogicalQuery.SelfAndDescendants<Button>(tab).Single(button => Equals(ToolTip.GetTip(button), tooltip));
+
+    private static Color BrushColor(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color;
+
+    [Fact]
+    [Trait("Req", "PR-TERM-021")] // App/Views/Terminal/TerminalPanel.swift:143-146,172-177
+    public void The_tab_uses_the_source_spacing_font_single_line_truncation_padding_and_capsule() => WithTabSession(session =>
+    {
+        session.Title = "A long terminal title";
+        var tab = new TerminalTab(session, true, () => { }, () => { }, () => { });
+        var row = Assert.IsType<StackPanel>(tab.Child);
+        Assert.Equal(6, row.Spacing);
+        var icon = Assert.IsType<SwiftImage>(row.Children[0]);
+        Assert.Equal(SwiftFont.Caption, SwiftImage.GetFont(icon)); // :145
+        var text = Assert.IsType<TextBlock>(row.Children[1]);
+        Assert.Equal("A long terminal title", text.Text);
+        Assert.Equal(1, text.MaxLines); // :146 .lineLimit(1)
+        Assert.Equal(TextTrimming.CharacterEllipsis, text.TextTrimming);
+        Assert.Equal(12, text.FontSize); // :172 .callout; ED-059, B1 ChatZoom.swift:52
+        Assert.Equal(new Thickness(10, 5), tab.Padding); // :173-174
+        Assert.True(tab.CornerRadius.TopLeft >= tab.Padding.Top); // :176 .capsule, grows with content
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-022")] // App/Views/Terminal/TerminalPanel.swift:148-158; TerminalStore.swift:139-155
+    public void Only_an_exited_shell_has_the_plain_secondary_restart_control_and_it_replaces_the_session_in_place() => headless.OnUiThread(() =>
+    {
+        var fixture = MakeFixture();
+        using var h = fixture.Store;
+        h.Main.OnMain(() =>
+        {
+            try
+            {
+                var directory = TerminalTestFolders.Create("restart tab sweep");
+                var first = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
+                var session = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
+                var running = new TerminalTab(session, true, () => { }, () => fixture.App.Terminals.Restart(session), () => { });
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(running), button => Equals(ToolTip.GetTip(button), "Start a new shell in this tab"));
+                session.Terminate();
+                var exited = new TerminalTab(session, true, () => { }, () => fixture.App.Terminals.Restart(session), () => { });
+                var restart = TabButton(exited, "Start a new shell in this tab");
+                Assert.Equal("Restart " + session.Title, AutomationProperties.GetName(restart));
+                Assert.Equal(new Thickness(0), restart.BorderThickness);
+                var icon = Assert.IsType<SwiftImage>(restart.Content);
+                Assert.Equal(SwiftFont.Caption2.FontWeight(SwiftFont.Weight.Bold), SwiftImage.GetFont(icon));
+                Assert.Equal(BrushColor(Chrome.SecondaryText.Brush(icon)), BrushColor(icon.Foreground));
+                restart.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var sessions = fixture.App.Terminals.Sessions(fixture.Thread.Id);
+                Assert.Equal(2, sessions.Count);
+                Assert.Same(first, sessions[0]);
+                var fresh = sessions[1]; // TerminalStore.swift:148-151 replaces at the original index
+                Assert.True(fresh.IsRunning);
+                Assert.NotEqual(session.Id, fresh.Id);
+                Assert.Equal(session.Directory, fresh.Directory);
+                Assert.Equal(session.Title, fresh.Title);
+                Assert.Equal(fresh.Id, fixture.App.Terminals.Selected(fixture.Thread.Id)?.Id);
+            }
+            finally { fixture.App.Terminals.TerminateAll(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-023")] // App/Views/Terminal/TerminalPanel.swift:159-170
+    public void The_close_control_keeps_its_slot_but_only_hovered_or_selected_tabs_accept_a_close() => WithTabSession(session =>
+    {
+        var tab = new TerminalTab(session, false, () => { }, () => { }, () => { });
+        var close = TabButton(tab, "Close terminal");
+        Assert.Equal("Close " + session.Title, AutomationProperties.GetName(close));
+        Assert.True(close.IsVisible); // opacity, not layout removal
+        Assert.Equal(0, close.Opacity);
+        Assert.False(close.IsHitTestVisible);
+        var icon = Assert.IsType<SwiftImage>(close.Content);
+        Assert.Equal(SwiftFont.Caption2.FontWeight(SwiftFont.Weight.Bold), SwiftImage.GetFont(icon));
+        Assert.Equal(BrushColor(Chrome.SecondaryText.Brush(icon)), BrushColor(icon.Foreground));
+        tab.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, tab, new Pointer(1, PointerType.Mouse, true), tab, new Point(), 0, new PointerPointProperties(), KeyModifiers.None));
+        Assert.Equal(1, close.Opacity);
+        Assert.True(close.IsHitTestVisible);
+        tab.RaiseEvent(new PointerEventArgs(InputElement.PointerExitedEvent, tab, new Pointer(1, PointerType.Mouse, true), tab, new Point(), 0, new PointerPointProperties(), KeyModifiers.None));
+        Assert.Equal(0, close.Opacity);
+        Assert.False(close.IsHitTestVisible);
+        var selected = new TerminalTab(session, true, () => { }, () => { }, () => { });
+        Assert.Equal(1, TabButton(selected, "Close terminal").Opacity);
+        Assert.True(TabButton(selected, "Close terminal").IsHitTestVisible);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-024")] // App/Views/Terminal/TerminalPanel.swift:27,177-179
+    public void Clicking_the_capsule_padding_selects_the_session_and_the_hidden_cross_falls_through_to_selection() => headless.OnUiThread(() =>
+    {
+        var fixture = MakeFixture();
+        using var h = fixture.Store;
+        h.Main.OnMain(() =>
+        {
+            AvaloniaWindow? window = null;
+            try
+            {
+                var directory = TerminalTestFolders.Create("select tab sweep");
+                var first = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
+                var second = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
+                var selected = false;
+                var tab = new TerminalTab(first, false, () =>
+                {
+                    selected = true;
+                    fixture.App.Terminals.Selection = fixture.App.Terminals.Selection.Mutating(map => map[first.ThreadID] = first.Id);
+                }, () => { }, () => fixture.App.Terminals.Close(first));
+                window = new AvaloniaWindow { Width = 400, Height = 100, Content = new StackPanel { Children = { tab } } };
+                window.Show();
+                Settle(window);
+                var padding = tab.TranslatePoint(new Point(5, tab.Bounds.Height / 2), window)!.Value; // :173 horizontal padding 10
+                window.MouseDown(padding, MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(padding, MouseButton.Left, RawInputModifiers.None);
+                Assert.True(selected);
+                Assert.Equal(first.Id, fixture.App.Terminals.Selected(first.ThreadID)?.Id);
+
+                selected = false;
+                var close = TabButton(tab, "Close terminal");
+                tab.RaiseEvent(new PointerEventArgs(InputElement.PointerExitedEvent, tab, new Pointer(1, PointerType.Mouse, true), tab, new Point(), 0, new PointerPointProperties(), KeyModifiers.None));
+                Assert.False(close.IsHitTestVisible);
+                var cross = Center(close, window);
+                window.MouseDown(cross, MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(cross, MouseButton.Left, RawInputModifiers.None);
+                Assert.True(selected);
+                Assert.Equal(2, fixture.App.Terminals.Sessions(first.ThreadID).Count);
+                Assert.NotEqual(first.Id, second.Id);
+            }
+            finally { window?.Close(); fixture.App.Terminals.TerminateAll(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-025")] // App/Views/Terminal/TerminalPanel.swift:175-176
+    public void Selection_uses_primary_text_and_an_eight_percent_capsule_while_unselected_text_is_secondary_on_clear() => WithTabSession(session =>
+    {
+        foreach (var selected in new[] { false, true })
+        {
+            var tab = new TerminalTab(session, selected, () => { }, () => { }, () => { });
+            var row = Assert.IsType<StackPanel>(tab.Child);
+            var text = Assert.IsType<TextBlock>(row.Children[1]);
+            var icon = Assert.IsType<SwiftImage>(row.Children[0]);
+            var foreground = selected ? SwiftColor.Primary : SwiftColor.Secondary;
+            Assert.Equal(BrushColor(foreground.Brush(text)), BrushColor(text.Foreground));
+            Assert.Equal(BrushColor(foreground.Brush(icon)), BrushColor(icon.Foreground));
+            Assert.Equal(selected ? BrushColor(SwiftColor.Primary.Opacity(0.08).Brush(tab)) : Colors.Transparent, BrushColor(tab.Background));
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-026")] // App/Views/Terminal/TerminalPanel.swift:180
+    public void Dead_tabs_dim_the_entire_chip_to_55_percent_even_while_selected() => WithTabSession(session =>
+    {
+        Assert.Equal(1, new TerminalTab(session, true, () => { }, () => { }, () => { }).Opacity);
+        session.Terminate();
+        foreach (var selected in new[] { false, true })
+            Assert.Equal(0.55, new TerminalTab(session, selected, () => { }, () => { }, () => { }).Opacity);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-021")] // App/Views/Terminal/TerminalPanel.swift:146; TerminalStore.swift:11
+    [Trait("Req", "PR-TERM-022")] // App/Views/Terminal/TerminalPanel.swift:148-158
+    [Trait("Req", "PR-TERM-026")] // App/Views/Terminal/TerminalPanel.swift:180
+    [Trait("Req", "PR-TERM-027")] // App/Views/Terminal/TerminalPanel.swift:181-184
+    public void A_live_panel_updates_the_tab_title_restart_control_dimming_and_exit_labels_when_its_session_changes() => headless.OnUiThread(() =>
+    {
+        var fixture = MakeFixture();
+        using var h = fixture.Store;
+        try
+        {
+            var host = h.Main.OnMain(() => Build(fixture.App, fixture.Runtime, TerminalTestFolders.Create("live tab sweep")));
+            var session = h.Main.OnMain(() => fixture.App.Terminals.Sessions(fixture.Thread.Id).Single());
+            h.Main.OnMain(() =>
+            {
+                session.Title = "Renamed shell";
+                session.Terminate(); // sets the same observable isRunning false as the process-exit callback
+            });
+            h.Main.OnMain(() =>
+            {
+                var tab = LogicalQuery.SelfAndDescendants<TerminalTab>(host).Single();
+                Assert.Contains("Renamed shell", AllText(tab), StringComparison.Ordinal);
+                Assert.Equal(0.55, tab.Opacity);
+                Assert.Equal("Renamed shell \U000000B7 the shell has exited", ToolTip.GetTip(tab));
+                Assert.Equal("Renamed shell, the shell has exited", AutomationProperties.GetName(tab));
+                Assert.Equal("Restart Renamed shell", AutomationProperties.GetName(TabButton(tab, "Start a new shell in this tab")));
+            });
+        }
+        finally
+        {
+            h.Main.OnMain(() => { HideTestWindows(); fixture.App.Terminals.TerminateAll(); });
+            Dispatcher.UIThread.RunJobs();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-021")] // App/Views/Terminal/TerminalPanel.swift:140-146
+    [Trait("Req", "PR-TERM-023")] // App/Views/Terminal/TerminalPanel.swift:159-170,179
+    public void A_hovered_tab_keeps_its_identity_and_close_cross_through_title_and_exit_changes() => headless.OnUiThread(() =>
+    {
+        var fixture = MakeFixture();
+        using var h = fixture.Store;
+        try
+        {
+            Control host = null!;
+            TerminalSession session = null!;
+            TerminalTab tab = null!;
+            TerminalTab selectedTab = null!;
+            TerminalHost terminal = null!;
+            Button close = null!;
+            h.Main.OnMain(() =>
+            {
+                var directory = TerminalTestFolders.Create("hover preservation");
+                session = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
+                fixture.App.Terminals.Open(fixture.Thread.Id, directory); // hover the unselected tab
+                host = Build(fixture.App, fixture.Runtime, directory);
+                var tabs = LogicalQuery.SelfAndDescendants<TerminalTab>(host).ToArray();
+                tab = tabs[0];
+                selectedTab = tabs[1];
+                terminal = LogicalQuery.SelfAndDescendants<TerminalHost>(host).Single();
+                close = TabButton(tab, "Close terminal");
+                Assert.Equal(0, close.Opacity);
+                tab.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, tab, new Pointer(1, PointerType.Mouse, true), tab, new Point(), 0, new PointerPointProperties(), KeyModifiers.None));
+                Assert.Equal(1, close.Opacity);
+                session.Title = "Hovered renamed shell";
+            });
+            void AssertPreserved()
+            {
+                var tabs = LogicalQuery.SelfAndDescendants<TerminalTab>(host).ToArray();
+                Assert.Same(tab, tabs[0]); // @State isHovering belongs to the surviving tab
+                Assert.Same(selectedTab, tabs[1]);
+                Assert.Same(terminal, LogicalQuery.SelfAndDescendants<TerminalHost>(host).Single());
+                Assert.Same(close, TabButton(tab, "Close terminal"));
+                Assert.Equal(1, close.Opacity);
+                Assert.True(close.IsHitTestVisible);
+                Assert.Equal("Close Hovered renamed shell", AutomationProperties.GetName(close));
+                Assert.Contains("Hovered renamed shell", AllText(tab), StringComparison.Ordinal);
+            }
+            h.Main.OnMain(() => { AssertPreserved(); session.Terminate(); });
+            h.Main.OnMain(() =>
+            {
+                AssertPreserved();
+                Assert.Equal(0.55, tab.Opacity);
+                Assert.NotNull(TabButton(tab, "Start a new shell in this tab"));
+            });
+        }
+        finally
+        {
+            h.Main.OnMain(() => { HideTestWindows(); fixture.App.Terminals.TerminateAll(); });
+            Dispatcher.UIThread.RunJobs();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-027")] // App/Views/Terminal/TerminalPanel.swift:181-184
+    public void Tab_tooltips_and_accessibility_names_keep_the_distinct_exit_punctuation_and_button_selection_traits() => WithTabSession(session =>
+    {
+        var running = new TerminalTab(session, false, () => { }, () => { }, () => { });
+        Assert.Equal(session.Title, ToolTip.GetTip(running));
+        Assert.Equal(session.Title, AutomationProperties.GetName(running));
+        session.Terminate();
+        foreach (var selected in new[] { false, true })
+        {
+            var tab = new TerminalTab(session, selected, () => { }, () => { }, () => { });
+            Assert.Equal("PowerShell \U000000B7 the shell has exited", ToolTip.GetTip(tab));
+            Assert.Equal("PowerShell, the shell has exited", AutomationProperties.GetName(tab));
+            var peer = ControlAutomationPeer.CreatePeerForElement(tab);
+            Assert.NotNull(peer);
+            Assert.Equal(AutomationControlType.Button, peer.GetAutomationControlType());
+            Assert.Equal(selected, Assert.IsAssignableFrom<ISelectionItemProvider>(peer).IsSelected);
+            Assert.Contains(peer.GetChildren()!, child => child.GetName() == "Restart " + session.Title); // :182 .contain
+            Assert.Contains(peer.GetChildren()!, child => child.GetName() == "Close " + session.Title);
+        }
+    });
+
+    // Same idiom as FollowUpQueueTabTests.cs's own Center/Settle: a real attached, explicitly sized window, so
+    // the resize strip's real hit area and window-space coordinates exist for MouseDown/MouseMove/MouseUp to
+    // land on, unlike Build's auto-sized window (which the non-interaction tests below never need to click into).
+    private (Control Host, AvaloniaWindow Window) BuildForDrag(AppModel model, ThreadRuntime runtime, string directory)
+    {
+        var host = new Border();
+        AppEnvironment.SetAppModel(host, model);
+        host.Child = new TerminalPanel(runtime, directory);
+        var window = new AvaloniaWindow { Content = host, Width = 500, Height = 400 };
+        windows.Add(window);
+        window.Show();
+        Settle(window);
+        return (host, window);
+    }
+
+    private static void Settle(TopLevel window)
+    {
+        for (var pass = 0; pass < 5; pass++)
+        {
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+        }
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static Point Center(Visual control, Visual ancestor) =>
+        control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), ancestor)!.Value;
 
     private static (AppModel App, ThreadRuntime Runtime, AppModelHarness Store, ChatThread Thread) MakeFixture()
     {
@@ -35,12 +368,13 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
     // TerminalPanel.EnsureTerminal really spawns a shell (TerminalStoreTests's own convention: :17-41 always
     // starts a real PowerShell in a throwaway folder), so every test needs a real directory and TerminateAll
     // cleanup, matching TerminalStoreTests.cs's WithStore pattern.
-    private static Control Build(AppModel model, ThreadRuntime runtime, string directory)
+    private Control Build(AppModel model, ThreadRuntime runtime, string directory)
     {
         var host = new Border();
         AppEnvironment.SetAppModel(host, model);
         host.Child = new TerminalPanel(runtime, directory);
         var window = new AvaloniaWindow { Content = host };
+        windows.Add(window);
         window.Show();
         return host;
     }
@@ -76,7 +410,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -110,7 +445,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -135,7 +471,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -165,7 +502,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -194,7 +532,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -219,44 +558,125 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
+            }
+        });
+    }
+
+    // Coordinator review 6.2: the resize strip used to be a hand-rolled Control that duplicated
+    // DragHandleView's mechanics by hand instead of wrapping the shared component (missing its 0.18s grip
+    // transition, painting from Chrome.PrimaryText instead of the source's own label colour, and calling onEnd
+    // from a lost pointer capture where DragHandleView deliberately never does). This test proves the strip in
+    // the live panel really is that shared component, configured exactly as TerminalResizeHandle.body states.
+    [Fact]
+    [Trait("Req", "PR-TERM-012")] // App/Views/Terminal/TerminalPanel.swift:84-99,122-129
+    [Trait("Req", "PR-TERM-016")] // App/Views/Terminal/TerminalPanel.swift:124; UI/Chrome/DragHandle.swift:18-30,58-61
+    public void The_resize_strip_is_the_shared_drag_handle_configured_vertical_with_the_terminal_grip_and_cursor()
+    {
+        headless.OnUiThread(() =>
+        {
+            var harness = MakeFixture();
+            using var store = harness.Store;
+            try
+            {
+                harness.Store.Main.OnMain(() =>
+                {
+                    var host = Build(harness.App, harness.Runtime, TerminalTestFolders.Create("resize handle config"));
+                    var handle = LogicalQuery.SelfAndDescendants<DragHandleView>(host).Single();
+
+                    Assert.Equal(DragHandleView.Axis.Vertical, handle.HandleAxis); // :123 axis: .vertical
+                    Assert.Equal(
+                        new DragHandleView.Grip(RestLength: 12, ShownLength: 28, Thickness: 2.5), // :124
+                        handle.HandleGrip);
+                    Assert.Same(TerminalResizeHandleView.ResizeCursor, handle.Cursor); // :125 cursor: .resizeUpDown
+                    Assert.Equal(8, handle.Height); // TerminalPanel.swift:98 .frame(height: 8)
+                });
+            }
+            finally
+            {
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
+            }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-013")] // App/Views/Terminal/TerminalPanel.swift:86; UI/Chrome/DragHandle.swift:198-208
+    [Trait("Req", "PR-TERM-014")] // App/Views/Terminal/TerminalPanel.swift:87-90,127; UI/Chrome/DragHandle.swift:210-220,259-266
+    [Trait("Req", "PR-TERM-015")] // UI/Chrome/DragHandle.swift:222-232; App/Views/Terminal/TerminalPanel.swift:91-96,126-128
+    public void Dragging_the_resize_strip_upward_grows_the_panel_live_and_commits_the_height_on_release()
+    {
+        headless.OnUiThread(() =>
+        {
+            var harness = MakeFixture();
+            using var store = harness.Store;
+            try
+            {
+                harness.Store.Main.OnMain(() =>
+                {
+                    Assert.Equal(260, harness.App.Settings.TerminalHeight); // sanity: the fixture's stored default
+
+                    var directory = TerminalTestFolders.Create("resize drag");
+                    var (host, window) = BuildForDrag(harness.App, harness.Runtime, directory);
+                    var handle = LogicalQuery.SelfAndDescendants<DragHandleView>(host).Single();
+                    var panel = LogicalQuery.SelfAndDescendants<TerminalPanel>(host).Single();
+                    var start = Center(handle, window);
+
+                    window.MouseDown(start, MouseButton.Left, RawInputModifiers.None);
+                    Assert.True(harness.Runtime.IsTerminalResizing); // :86 onBegin
+
+                    var up40 = start + new Vector(0, -40); // upward travel is positive delta (:116-118)
+                    window.MouseMove(up40, RawInputModifiers.LeftMouseButton);
+                    Assert.Equal(300, panel.Height); // :87-90 dragHeight = min(760, max(140, 260 + 40))
+                    Assert.Equal(260, harness.App.Settings.TerminalHeight); // :11-13 never written mid-drag
+
+                    window.MouseUp(up40, MouseButton.Left, RawInputModifiers.None);
+                    Assert.False(harness.Runtime.IsTerminalResizing); // :95 onEnd
+                    Assert.Equal(300, harness.App.Settings.TerminalHeight); // :92 committed on release
+                    Assert.Equal(300, panel.Height);
+                });
+            }
+            finally
+            {
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
 
 }
 
-// STOP App.Views.Terminal.TerminalPanel #1 (helper Claude, 2026-09-25)
-// Kind: platform gap, deviation pending owner acceptance
-// Swift: DroppyCode/App/Views/Terminal/TerminalPanel.swift:339-346
-// Requirements: PR-TERM-031, PR-TERM-032
-// What is unclear or missing: the source's Escape-at-prompt shortcut needs TerminalSession.ForegroundJobIsTheShell,
-// which IS implemented (TerminalStore.cs:127-133, ProcessDescendants.HasLiveDescendant) - that specific dependency
-// is resolved. What still blocks this is the terminal render surface itself (see STOP #2): the Swift source reads
-// the Escape key from the SwiftTerm NSView's own key-monitor/first-responder plumbing, and no Windows terminal
-// control exists yet to attach an equivalent KeyDown handler to. Wiring the handler with nothing beneath it to
-// receive keys would be inert and untestable.
-// Readings or options: (a) implement now against a placeholder, producing behavior nothing can exercise; (b) wait
-// for the real terminal control unit, then wire this alongside it.
-// Needed to proceed: the terminal rendering unit from STOP #2.
-// Done so far: ForegroundJobIsTheShell's dependency is confirmed resolved; the gate is purely the missing surface.
-//
-// STOP App.Views.Terminal.TerminalPanel #2 (helper Claude, 2026-09-25)
+// STOP App.Views.Terminal.TerminalPanel #1 (sweep B recheck 2026-09-27, base d62329d42)
+// Kind: missing dependency / platform gap
+// Swift: App/Views/Terminal/TerminalPanel.swift:195-197,214-221 (B3 52bc792; older note used B1 :339-346).
+// Records: PR-TERM-031, PR-TERM-032.
+// Landed: TerminalSession.ForegroundJobIsTheShell, via ProcessDescendants.HasLiveDescendant (ED-046 approximation).
+// Missing: TerminalSession.View remains a non-Control TerminalHostView with no keyboard input/rendered ANSI grid.
+// No real first responder can receive Escape, and no hosted-session key-monitor lifecycle exists to install/remove.
+// Needed: the terminal renderer's Avalonia input/focus surface, then this host's unmodified-Escape gate, consumption,
+// weak view ownership and per-session attach/detach disposal. The foreground-job approximation still awaits owner
+// acceptance as described by ED-046; it does not prevent tab-chip tests or supply the missing input surface.
+
+// STOP App.Views.Terminal.TerminalPanel #2 (sweep B recheck 2026-09-27, base d62329d42)
 // Kind: missing dependency
-// Swift: DroppyCode/App/Views/Terminal/TerminalPanel.swift:313-443
-// Requirements: PR-TERM-019, PR-TERM-021, PR-TERM-022, PR-TERM-023, PR-TERM-024, PR-TERM-025, PR-TERM-026,
-// PR-TERM-027, PR-TERM-033, PR-TERM-034, PR-TERM-036
-// What is unclear or missing: Marrow.App.Views.Terminal.Port.TerminalHost.cs (:1-5) documents TerminalHostView as
-// carrying no rendering: "SwiftTerm, a third-party macOS terminal-emulator control with no Windows twin in this
-// tree yet (a future UI unit hosts the visible ANSI grid the panel embeds)". TerminalSession.View is that
-// placeholder, not an Avalonia Control, so this unit cannot embed a real terminal surface, apply live-resize
-// throttling to it, or give it real keyboard focus. TerminalHost (in TerminalPanel.cs) places an empty Border
-// where the real surface will go, once that unit exists.
-// Readings or options: (a) build a minimal terminal-rendering control inside this unit to unblock these records ->
-// scope creep into a separate, larger unit (rendering an ANSI grid) that is not what TerminalPanel.swift itself is
-// about; (b) leave the placeholder and document the gap, as done here.
-// Needed to proceed: the terminal-rendering unit that gives TerminalHostView (or its successor) a real Avalonia
-// Control surface.
-// Done so far: every requirement not touching the actual rendered grid (tab bar, new/close/hide buttons, resize
-// handle mechanics and its 140/760 clamp, the empty state, height persistence, EnsureTerminal on attach) is
-// implemented and tested above.
+// Swift: App/Views/Terminal/TerminalPanel.swift:191-318 (B3 52bc792; older note used B1 :313-443).
+// Records: PR-TERM-019, PR-TERM-033, PR-TERM-034, PR-TERM-036, UI-TERM-010.
+// Missing: Views/Terminal/Port/TerminalHost.cs TerminalHostView still carries no rendering and is not an Avalonia
+// Control. TerminalHost.Child is an empty Border; TerminalHostContainer merely exposes Child as HostedView. There
+// is no long-lived grid/scrollback surface to reparent, focus, sync in a 50 ms beat, or give a final settled size, and
+// no per-window resize-observer registration/teardown for that surface.
+// Needed: the terminal-rendering unit's Control with input/focus, reparenting and grid-size sync, then the host's
+// two resize observers, pending-beat cancellation and frame/autoresize parity. Escape is the separate STOP #1.
+// RESOLVED HERE: PR-TERM-021 through PR-TERM-027 were incorrectly grouped under the renderer STOP; tab chips are
+// independent of it. Source-derived tests now cover spacing/fonts/truncation, restart-in-place, cross hit testing,
+// padding selection, foreground/background, dead-chip opacity, exact labels, button/selection UI Automation, and
+// live session title/exit changes. Implementation fills the omitted font/foreground/automation and tracked reads.
+
+// STOP App.Views.Terminal.TerminalPanel #3 (sweep B discovered during test cleanup, 2026-09-27)
+// Kind: dependency defect
+// Swift: UI/Chrome/DragHandle.swift:127-151 detach/hover handling, reached by TerminalPanel's :122-129 shared handle.
+// Missing: Marrow.UI.Chrome.DragHandleView.OnDetachedFromVisualTree calls RefreshHover after its visual root is
+// removed; RefreshHover's PointToClient throws ArgumentException("Visual does not belong to a visual tree").
+// Needed: the DragHandle unit repairs its detach path. This sweep does not change that unit. Test windows are hidden
+// and queued layout drained while the headless font manager is alive; no tests or source expectations are skipped.

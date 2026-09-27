@@ -3280,7 +3280,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the provider set and the running condition.",
       "verification_method": "interaction test across a Claude thread, a Gemini-class thread and a running thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3692,7 +3692,7 @@
       "cancellation": "not applicable",
       "windows_path": "Platform boundary: there is no NSPopover. The Windows equivalent is a light-dismiss flyout anchored to the same views, sized 640 by 540 device-independent pixels, whose outside click must still deliver to the control beneath. Escape closes and is swallowed.",
       "verification_method": "interaction test on each dismissal route, including an outside click landing on another turn's review button",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0011"

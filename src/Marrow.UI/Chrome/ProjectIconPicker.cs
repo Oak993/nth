@@ -10,7 +10,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.UI.Chrome;
 
-// Source: DroppyCode/UI/Chrome/ProjectIconPicker.swift (B2 1fbf81e), :1-273.
+// Source: DroppyCode/UI/Chrome/ProjectIconPicker.swift (B3 52bc792), :1-273.
 // Records: PR-SIDEBAR-150, PR-SIDEBAR-151, PR-SIDEBAR-152, PR-SIDEBAR-153, UI-SIDEBAR-052, UI-SIDEBAR-053,
 // UI-SIDEBAR-054, UI-SIDEBAR-055, UI-SIDEBAR-056, UI-SIDEBAR-057.
 // Port shape (R-VIEW-1, R-VIEW-2, R-VIEW-9, ED-095): each SwiftUI View is a Decorator built once in its constructor;
@@ -204,7 +204,15 @@ public sealed class ProjectIconPicker : Decorator
         var searchField = BuildSearchField(queryBinding); // :141, :188-203
 
         var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 14, Margin = new Thickness(0, 1) }; // :143 spacing 14, :153 padding(.vertical, 1)
-        content.Track(() => (state.Query, icon.Value), _ => RebuildSections(content, state.Query, icon)); // :144-151
+        var sections = new ForEach<PickerSection, string>(content, section => section.Title,
+            section => new KeyedSection(section, icon), (row, section) => ((KeyedSection)row).Update(section));
+        content.Track(() => (state.Query, icon.Value), _ =>
+        {
+            var matches = MatchingSymbols(state.Query);
+            sections.Apply(matches.Count == 0
+                ? new[] { new PickerSection("Emoji", Emojis, true) }.Concat(Groups.Select(group => new PickerSection(group.Title, group.Names))).ToArray()
+                : new[] { new PickerSection("Symbols", matches) });
+        }); // :144-151 surviving section and tile ids retain their controls and @State
         var scroll = new ScrollViewer
         {
             Content = content,
@@ -216,15 +224,12 @@ public sealed class ProjectIconPicker : Decorator
         divider.Background = Chrome.Overlay(0.12).Brush(divider); // :157
 
         var folderTileSlot = new Panel { Width = CellSize, Height = CellSize };
+        var folderTile = new IconTile(icon.Value is null, () => icon.Value = null,
+            () => SwiftImage.SystemName("folder.fill").Font(SwiftFont.System(SwiftFont.TextStyle.Callout)).ForegroundStyle(Chrome.SecondaryText));
+        folderTileSlot.Children.Add(folderTile);
         folderTileSlot.Track(() => icon.Value is null, _ =>
         {
-            folderTileSlot.Children.Clear();
-            folderTileSlot.Children.Add(new IconTile(
-                isSelected: icon.Value is null, // :159
-                action: () => icon.Value = null, // :159 icon = nil
-                content: () => SwiftImage.SystemName("folder.fill") // :160
-                    .Font(SwiftFont.System(SwiftFont.TextStyle.Callout)) // :161
-                    .ForegroundStyle(Chrome.SecondaryText))); // :162
+            folderTile.Update(icon.Value is null); // :159-162 retain the footer's hover state too
         });
 
         var folderLabel = new TextBlock { Text = "Folder" }; // :164
@@ -279,6 +284,34 @@ public sealed class ProjectIconPicker : Decorator
     }
 
     // :144-151 the sectioned default view, or a single Symbols grid once the search has a match.
+    private sealed record PickerSection(string Title, IReadOnlyList<string> Names, bool IsEmoji = false);
+
+    // :146-148,177,208,221 keyed ForEach, independently within each section.
+    private sealed class KeyedSection : StackPanel
+    {
+        private readonly ForEach<string, string> rows;
+        public KeyedSection(PickerSection section, Binding<ProjectIcon?> icon)
+        {
+            Spacing = 5;
+            var heading = new TextBlock { Text = section.Title };
+            SwiftFont.System(SwiftFont.TextStyle.Footnote, weight: SwiftFont.Weight.Medium).Apply(heading);
+            heading.Foreground = Chrome.SecondaryText.Brush(heading);
+            var grid = new IconGrid();
+            bool Selected(string name) => section.IsEmoji ? icon.Value?.ProjectIconEmoji == name : icon.Value?.SymbolName == name;
+            rows = new ForEach<string, string>(grid, name => name, name => new IconTile(Selected(name),
+                () => icon.Value = section.IsEmoji ? new ProjectIcon.Emoji(name) : new ProjectIcon.Symbol(name),
+                () =>
+                {
+                    if (!section.IsEmoji) return SwiftImage.SystemName(name).Font(SwiftFont.System(SwiftFont.TextStyle.Callout)).ForegroundStyle(Chrome.PrimaryText.Opacity(0.9));
+                    var text = new TextBlock { Text = name };
+                    SwiftFont.System(SwiftFont.TextStyle.Title3).Apply(text);
+                    return text;
+                }), (row, name) => ((IconTile)row).Update(Selected(name)));
+            Children.Add(heading); Children.Add(grid); Update(section);
+        }
+        public void Update(PickerSection section) => rows.Apply(section.Names);
+    }
+
     private static void RebuildSections(StackPanel content, string query, Binding<ProjectIcon?> icon)
     {
         content.Children.Clear();
@@ -379,6 +412,18 @@ public sealed class ProjectIconPicker : Decorator
 /// </summary>
 file sealed class IconTile : Decorator
 {
+    private bool selected;
+    private readonly ViewState state = new();
+    private readonly AnimatedColor fill;
+    private readonly Border selectionRing;
+
+    // :245,256-263 refresh selection without discarding isHovering.
+    public void Update(bool isSelected)
+    {
+        selected = isSelected;
+        selectionRing.IsVisible = selected;
+        fill.Set(Chrome.Overlay(state.IsHovering || selected ? 0.14 : 0), Transaction.Current);
+    }
     // :249 @State private var isHovering = false
     private sealed class ViewState : MainActorModel
     {
@@ -393,21 +438,20 @@ file sealed class IconTile : Decorator
     // :251-266 body
     public IconTile(bool isSelected, Action action, Func<Control> content)
     {
-        var state = new ViewState();
+        selected = isSelected;
 
         var inner = content();
-        inner.Width = 26; // :254
-        inner.Height = 26;
+        // :254 natural-sized content centered in the enclosing26x26 Panel, not inflated to the slot.
         inner.HorizontalAlignment = HorizontalAlignment.Center;
         inner.VerticalAlignment = VerticalAlignment.Center;
 
         var fillLayer = new Border { Width = 26, Height = 26 } // :256-257
             .RoundedRectangle(6, RoundedCornerStyle.Continuous);
-        var fill = new AnimatedColor(fillLayer);
+        fill = new AnimatedColor(fillLayer);
         fillLayer.Background = fill.Brush;
         fill.Set(Chrome.Overlay(isSelected ? 0.14 : 0), null); // :257 isHovering || isSelected, isHovering starts false
 
-        var selectionRing = new Border // :260-263
+        selectionRing = new Border // :260-263
         {
             Width = 26,
             Height = 26,
@@ -423,7 +467,7 @@ file sealed class IconTile : Decorator
         var button = PlainControls.Button(stack, action); // :252-253, :267 buttonStyle(.plain)
         button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :268-270
         button.Track(() => state.IsHovering, hovering =>
-            Transaction.WithAnimation(Chrome.Hover, () => fill.Set(Chrome.Overlay(hovering || isSelected ? 0.14 : 0), Transaction.Current))); // :257
+                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(Chrome.Overlay(hovering || selected ? 0.14 : 0), Transaction.Current))); // :257
         Child = button;
     }
 }

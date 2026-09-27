@@ -1715,7 +1715,7 @@
       "cancellation": "A CancellationError thrown by ensureSession takes this same path and produces a notice with that error's description.",
       "windows_path": "Do not wrap or reformat the error text; PR-RUNTIME-012 relies on it passing through.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2287,7 +2287,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Capture the turn id before the async hop; reading currentTurnID inside the task would race the next turn.",
       "verification_method": "integration test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2312,7 +2312,7 @@
       "cancellation": "not cancellable",
       "windows_path": "releaseSession(stop: false) is deliberate: on Windows a second termination attempt on an exited process is a no-op, but the flag also keeps the runtime from waiting on a handle that is already closed.",
       "verification_method": "integration test - exit with and without an error string, with and without a running turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3556,7 +3556,7 @@
       "cancellation": "The task is cancelled by saveNow and by cancelPersistence.",
       "windows_path": "The 800 millisecond idle debounce, and the running-turn interval formula min(20, max(5, bytes/250_000)) read from DiskWriter's last recorded write size for this thread's file, are exact. The two policies remain different by design; do not unify them, and do not hard-code the old fixed 5 seconds.",
       "verification_method": "unit with an injected clock and a stubbed DiskWriter.lastWrittenSize: 0 bytes gives 5 s, 1,250,000 bytes gives 5 s (at the floor), 2,500,000 bytes gives 10 s, 5,000,000+ bytes gives 20 s (at the ceiling)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3604,7 +3604,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exactly these fields; the file format is the compatibility surface for an existing installation.",
       "verification_method": "contract fixture - round-trip encode and decode",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5743,7 +5743,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Append without merging. This arm, not the routing arm of PR-RUNTIME-252, is the behaviour to reproduce.",
       "verification_method": "unit - two spends in one turn give two entries in order; a spend with no current turn is dropped; saveRevision bumps and no save is scheduled",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6087,7 +6087,7 @@
       "cancellation": "Not cancellable directly; the Task it starts is not stored or cancelled by this function.",
       "windows_path": "Direct port: the same three-condition gate (provider updates its own CLI, error text matches the six needs-newer-CLI substrings, turn id present), the same in-turn info notice text, and the same finish-then-resend sequencing.",
       "verification_method": "unit: a Claude/Codex error matching needsNewerCLI returns true, appends the info notice and eventually calls resendAfterCLIUpdate; any other provider, or a non-matching error, returns false with no notice appended",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6122,7 +6122,7 @@
       "cancellation": "Not cancellable; runs to completion once started by finishTurnUpdatingCLI.",
       "windows_path": "Direct port: force the CLI updater, compare installed version against the per-runtime, per-provider cliResendVersions guard (at most one resend per CLI version per runtime), release-with-stop before resending, and the three exact notice texts for the three failure branches. `claude update` / `codex update` remain the commands named in the first notice; OD-0002 and OD-0012 F1 govern the app name in the notice text.",
       "verification_method": "unit with a stubbed providers registry: (a) update succeeds with a new version and the runtime is idle with the turn intact - resend is called; (b) installedCLIVersion returns the same version twice - the 'could not bring up to date' notice on the second call, no second resend attempt; (c) the runtime is busy when the update finishes - the 'up to date now, send again' notice; (d) resend throws - the 'up to date now, but could not be sent again' notice",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6254,7 +6254,8 @@
       ],
       "notes": "The five icons are SF Symbols \"terminal\", \"doc.badge.plus\", \"wrench.and.screwdriver\", \"lock.shield\" and \"checklist\"; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table, one for one). Glass: OD-0005 applies (Acrylic where the window shows the desktop; where the app draws its own backdrop, a shader reproducing the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing); an owner-approved deviation, not parity.",
       "b2_change": "The flagged range RequestCards.swift:3-65 changed only at :28, :37 and :43 (.secondary -> Chrome.secondaryText on the plan body, the detail and the reason; the plan body is UI-RUNTIME-007). The headline, icon, geometry and glass tint this record states are unchanged. The typography note no longer contrasts the headline with a chat-zoomed font, because B2 removed chat zoom (UI/Common/ChatFont.swift:4-10). Owner rulings applied in this refresh: the glass note states OD-0005 in the ruling's words and as an owner-approved deviation, the icons follow OD-0010 (Lucide) in place of the open UNK-0007, and the face follows OD-0009 (Inter).",
-      "spec_fix": "The first source_evidence was Requests.swift, so plan_units.py and gen_tasks.mjs assigned this view record to Core.Models.Requests, whose Marrow.Core tests cannot reach the card. RequestCards.swift is now first, which moves the record to App.Views.Composer.RequestCards beside UI-RUNTIME-006..008. The headline strings and symbol names stay proven at the model by PR-RUNTIME-017 and PR-RUNTIME-018."
+      "spec_fix": "The first source_evidence was Requests.swift, so plan_units.py and gen_tasks.mjs assigned this view record to Core.Models.Requests, whose Marrow.Core tests cannot reach the card. RequestCards.swift is now first, which moves the record to App.Views.Composer.RequestCards beside UI-RUNTIME-006..008. The headline strings and symbol names stay proven at the model by PR-RUNTIME-017 and PR-RUNTIME-018.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-006",
@@ -6277,7 +6278,8 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1721-1731 resolve"
       ],
       "notes": "Only the .approve role gets the prominent style and the chord; .approveAlways does not, even though it also approves, and it also dismisses rather than accepts a plan row (PR-RUNTIME-138). Command+Return becomes Ctrl+Enter on Windows; port_impacts.md entry 110 requires the whole shortcut table be re-expressed in Windows virtual-key codes and the persisted macOS blob abandoned. Glass: OD-0005 applies to the .glassProminent and .glass button materials (Acrylic where the window shows the desktop; where the app draws its own backdrop, a shader reproducing the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing); an owner-approved deviation, not parity.",
-      "b2_change": "No source change: RequestCards.swift:45-59 is the same at B1 and B2 (the B1..B2 diff of that file touches only :28, :37 and :43). The notes gained the OD-0005 glass sentence, an owner ruling applied in this refresh, stated as an owner-approved deviation, not parity."
+      "b2_change": "No source change: RequestCards.swift:45-59 is the same at B1 and B2 (the B1..B2 diff of that file touches only :28, :37 and :43). The notes gained the OD-0005 glass sentence, an owner ruling applied in this refresh, stated as an owner-approved deviation, not parity.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-007",
@@ -6299,7 +6301,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:79 static let secondaryText = primaryText.opacity(0.7)"
       ],
       "notes": "This is the one body string the app itself writes; every other approval body is the provider's request.title.",
-      "b2_change": "B1 RequestCards.swift:28 `.foregroundStyle(.secondary)`; B2 :28 `.foregroundStyle(Chrome.secondaryText)`."
+      "b2_change": "B1 RequestCards.swift:28 `.foregroundStyle(.secondary)`; B2 :28 `.foregroundStyle(Chrome.secondaryText)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-008",
@@ -6319,7 +6322,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Composer/RequestCards.swift:17-24"
       ],
-      "notes": "Only .command gets the monospaced box; .fileChange, .tool and .permissions show request.title as plain selectable callout text with no background (RequestCards.swift:29-33)."
+      "notes": "Only .command gets the monospaced box; .fileChange, .tool and .permissions show request.title as plain selectable callout text with no background (RequestCards.swift:29-33).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-RUNTIME-009",
@@ -6922,7 +6926,7 @@
       ],
       "notes": "Split out of UI-RUNTIME-003. A nil error appends nothing, so a failed turn can end with no notice row at all. A non-nil error the CLI-update path takes also appends nothing here; see UI-RUNTIME-039 through UI-RUNTIME-042.",
       "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "B3 :2206-2211 (evidence range moves from :2206-2208 to :2206-2210). For Claude or Codex, a .turnCompleted error that ProviderRegistry.needsNewerCLI matches is no longer shown as this unwrapped error row; the .info notice UI-RUNTIME-039 replaces it, and this row returns later, for a failure of the update or the resend, as one of UI-RUNTIME-040/041/042."
     },
     {
@@ -6945,7 +6949,7 @@
       ],
       "notes": "Split out of UI-RUNTIME-003. Appended only while a turn is in flight; an exit with no current turn is silent. A non-nil error the CLI-update path takes also appends nothing here; see UI-RUNTIME-039 through UI-RUNTIME-042.",
       "b2_change": "Typography restated from the notice row: B1 TimelineRows.swift:2413 `.font(.chat(.callout, zoom: zoom))`; B2 :2397 `.font(.chat(.callout))`, and Font.chat takes no zoom (UI/Common/ChatFont.swift:6-10). Text, geometry and colours unchanged. Owner rulings applied in this refresh: the face follows OD-0009 (Inter).",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "B3 :2221-2229 (evidence range moves from :2221-2224). \"An exit error is shown instead, unwrapped\" no longer holds for Claude or Codex when the error matches ProviderRegistry.needsNewerCLI: the CLI-update path takes it (:2226) and posts the .info notice UI-RUNTIME-039 instead. The nil-error \"stopped unexpectedly.\" text is unchanged, now at :2227."
     },
     {
@@ -7012,7 +7016,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2263 - appendNotice(.info, \"This model needs a newer \\(provider.displayName). Updating it, then sending your message again.\")"
       ],
       "notes": "Filed inside the failing turn by finishTurnUpdatingCLI (PR-RUNTIME-265), only for Claude or Codex when the error matches ProviderRegistry.needsNewerCLI. Removed along with the rest of the failed attempt if the resend's revert runs.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-265/266). Also updates UI-RUNTIME-001's 'exactly three info messages' claim to four."
     },
     {
@@ -7034,7 +7038,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2276-2278 - guard let version = await app.providers.installedCLIVersion(provider), cliResendVersions[provider] != version else { appendNotice(.error, \"\\(error)\\n\\nDroppy Code could not bring \\(provider.displayName) up to date. Run `\\(command)` in Terminal, then send the message again.\"); return }"
       ],
       "notes": "Has no turn of its own (appended outside any turn). Shown when the version cannot be read after the forced update, or equals the version already resent at. `claude update` for Claude, `codex update` for Codex. The app name and the 'in Terminal' wording are governed by OD-0002/OD-0012 F1, matching the sibling UI-RUNTIME rows.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-266)."
     },
     {
@@ -7056,7 +7060,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2283-2287 - guard phase == .idle, let turn = turns.first(where: { $0.id == turnID }), let itemID = turn.userItemID, let entry = entryIndex[itemID], case .user(let message) = entry.item.content, !message.isFromHydra else { appendNotice(.error, \"\\(error)\\n\\n\\(provider.displayName) is up to date now (\\(version)). Send the message again.\"); return }"
       ],
       "notes": "Has no turn of its own. Shown when the runtime is not idle, the turn or its user entry is gone, or the message is from Hydra, after the CLI update itself succeeded.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-266)."
     },
     {
@@ -7078,7 +7082,7 @@
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2288-2292 - do { try await resend(turnID, text: message.text, attachments: message.attachments, restoreFiles: false) } catch { appendNotice(.error, \"\\(provider.displayName) is up to date now (\\(version)), but the message could not be sent again: \\(error.localizedDescription) Send it again.\") }"
       ],
       "notes": "Has no turn of its own. Shown when resend(_:text:attachments:restoreFiles:) throws, for example from its own guards or Codex's 'no Codex turn ID' refusal.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New in B3; part of the CLI-update-and-resend path (PR-RUNTIME-266)."
     }
   ]

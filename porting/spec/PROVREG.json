@@ -2276,7 +2276,7 @@
       "cancellation": "The debounce task is explicitly cancelled on the next edit and the cancellation is checked after the sleep before any work.",
       "windows_path": "Same 600 millisecond debounce and the same cancel-then-replace pattern.",
       "verification_method": "interaction test with a fake clock asserting exactly one check after a burst of keystrokes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2298,7 +2298,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-way guard.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2323,7 +2323,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same behavior, including the absence of an automatic re-probe.",
       "verification_method": "interaction test asserting no probe is spawned on a binary path edit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3404,7 +3404,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same merge: the same name condition (not the \"default\" id, a non-empty name, a name not equal to the id, compared with Swift String equality) and the same four per-field conditions.",
       "verification_method": "unit over merge permutations, including a live row that renames a seed row, a live Default row with another name (kept as \"Default\"), an empty live name and a live name equal to its id (both keep the seed name)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6120,7 +6120,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-pass stable partition over the same ordered list, re-evaluated on every status change, with no move animation.",
       "verification_method": "UI test with scripted auth states asserting the section order before and after a status change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6149,7 +6149,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An in-memory per-provider override map owned by the page, a default read from live auth, a height reveal that keeps the card mounted, and the Windows animation-effects setting in place of accessibilityDisplayShouldReduceMotion. Platform boundary: the reduce-motion setting.",
       "verification_method": "UI test: on first render signed-in sections are open and the others closed; a click flips a section; the override survives a status refresh; controls in a collapsed card cannot be focused; a new page instance starts with no overrides",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -6174,7 +6174,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #2): part of the CLI updater added to ProviderRegistry (ProviderRegistry.swift:467-536)."
     },
     {
@@ -6199,7 +6199,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #3): part of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6230,7 +6230,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #4): the gates of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6258,7 +6258,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #5): the updater run of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6286,7 +6286,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #6): the persisted attempt dates of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6313,7 +6313,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #7): the result of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6338,7 +6338,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #8): the in-flight state of the CLI updater added to ProviderRegistry."
     },
     {
@@ -6366,7 +6366,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "New at 1.7.0 (impact R3-25 #9): the version read of the CLI updater added to ProviderRegistry."
     }
   ],

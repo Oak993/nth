@@ -687,112 +687,58 @@ public sealed class AppDelegateTests
     }
 }
 
-// STOP App.AppDelegate #1 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
+// STOP App.AppDelegate #1 (sweep B recheck 2026-09-27, base d62329d42)
 // Kind: missing dependency
-// Swift: DroppyCode/App/AppDelegate.swift:9-34 (B3 52bc792), applicationDidFinishLaunching(_:)
-// Requirements: PR-LAUNCH-025, PR-LAUNCH-026, PR-LAUNCH-028, PR-LAUNCH-029, PR-LAUNCH-037, PR-LAUNCH-038,
-// PR-LAUNCH-046, PR-LAUNCH-047, PR-LAUNCH-071, PR-UPDATE-059; part 2: PR-UPDATE-090, PR-WIN-068, PR-WIN-070,
-// PR-WIN-071, UI-LAUNCH-001, UI-LAUNCH-002, UI-LAUNCH-003
-// Part 2 re-check (2026-09-26): impl/b2 is still 6ca97d568 and src/Marrow.App/Window/WindowManager.cs is unchanged
-// (Shared, ShowMain, ShowSettings throw MARROW_STUB; branch build/App.Window.WindowManager has no commit). Every other
-// callee of :22-33 is in the tree: AppModel.OpenThreadOnLaunch, AppModel.Bootstrap, AppSettings.HasSeenTour
-// ("hasSeenTour", default false), Tour.Present, UpdateChecker.StartBackgroundChecks, AppUpdater.ConsumeRelaunchMarker
-// and UpdateInstallProgress.ArmCelebration. PR-UPDATE-090, PR-WIN-070 and UI-LAUNCH-002 are the tour gate (:24-26),
-// which the Swift evaluates after windows.showMain() (:22) and windows.model.openThreadOnLaunch() (:23) on the model
-// WindowManager owns; PR-WIN-071 and UI-LAUNCH-003 are :30-33, whose windows.showSettings(page: .about) (:32) is
-// WindowManager's; UI-LAUNCH-001 is the main window :22 shows (WindowManager.swift); PR-WIN-068 is the whole order.
-// B3 change to a part 2 requirement: PR-WIN-068 lists the delegate install as the first step of the launch order
-// (B2 :9); in B3 :13 (URLCache.shared) and :14 (MarkdownDelegationCard.render) run before it (:15), and the
-// capture-run gate it excludes reads CaptureRun.isEnabled (:18) where B2 read WebsiteCaptures.isEnabled. The other
-// part 2 requirements cite B2 lines that B3 only moves (B2 :16-27 are B3 :22-33).
-// What is unclear or missing: from :16 on every line goes through `windows`, WindowManager.shared: :17 takes the
-// model from it, :22 calls showMain(), :23-27 use windows.model, :32 calls showSettings(page: .about).
-// src/Marrow.App/Window/WindowManager.cs is still the c100 skeleton (Shared, the constructor that makes the one
-// AppModel, ShowMain and ShowSettings all throw MARROW_STUB; unit App.Window.WindowManager is TODO), so the launch
-// cannot be written past :15 without becoming a no-op, and the member stays unwritten as a whole. The three lines
-// before it: :13 `URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0)` is new in B3; the
-// port's shared cache (src/Marrow.Core/Port/Http.cs URLCache.Shared, ED-118 (4)-(5)) already keeps nothing on disk
-// but has no memory capacity, and ED-118 parks any size cut-off under O-33, so the 8 MiB cap has no port form yet.
-// :14 `MarkdownDelegationCard.render = { AnyView(HydraDelegationBlock(json: $0, sent: $1)) }` (B3 renames the hook
-// from its B2 name, MarkdownBlockView.HydraDelegationBlock, to its own enum, src/Marrow.UI/Markdown/MarkdownView.cs,
-// lane A30): `MarkdownDelegationCard.Render = (json, sent) => new HydraDelegationBlock(json, sent);`. :15
-// `UNUserNotificationCenter.current().delegate = self` needs the Windows toast
-// activation handler (PR-LAUNCH-025 windows_path); no unit has built one (Port/UpdateNotificationCenter.cs binds a
-// no-op, AppModel.Notify delivers nothing). :18-21, the capture-run branch (B3 reads CaptureRun.isEnabled where B2
-// read WebsiteCaptures.isEnabled), is not ported (ED-001). The boot sequence that replaces the plain show at :22
-// (OD-0018, ED-102, ED-103, PR-LAUNCH-028 deviation) needs the main window's restored frame, also WindowManager's.
-// B3 change to a record: PR-LAUNCH-025 says the delegate is set by the first statement (B2 :9); in B3 :13 and :14
-// run before it (:15).
-// Readings or options: (a) wait for App.Window.WindowManager, then port :9-34 in source order -> exact; (b) port now
-// against the skeleton -> every launch throws NotImplementedException out of WindowManager.Shared and no test can
-// run it; (c) route the launch through a port-only window seam -> an invented API the WindowManager unit does not
-// know.
-// Needed to proceed: unit App.Window.WindowManager; a decision on :13 (the 8 MiB memory cap: O-33, ED-118); the
-// Windows toast delivery and activation unit for :15.
-// Done so far: nothing implemented at this site; no test written (the member is not declared, so no test compiles
-// against it). To test then, in this order: :13-:15 before :16; model assigned (:17); showMain (:22) before
-// openThreadOnLaunch (:23); the tour 700 ms later only while hasSeenTour is false (:24-26); bootstrap started and not
-// awaited (:27); startBackgroundChecks (:28); consumeRelaunchMarker, then armCelebration and showSettings(.about)
-// (:30-33).
+// Swift: App/AppDelegate.swift:9-34 (B3 52bc792).
+// Records: PR-LAUNCH-025, PR-WIN-068; PR-LAUNCH-028 and UI-LAUNCH-001 also retain Boot #1's boot/chrome blockers.
+// Missing: only :15's Windows toast delivery/activation binding here. Port/UpdateNotificationCenter.cs still defaults
+// to NoUpdateToastCenter, AppModel.Notify does not deliver, and no activation callback is registered before ShowMain.
+// Needed: the Windows toast unit with delegate registration and payload delivery, before launch shows any window.
+// Landed: WindowManager.Shared/Model/ShowMain/ShowSettings, Port/AppShell and Program; :13's 8 MiB URLCache write,
+// :14's Markdown hook, :16-17, :22-33 are written and tested in AppDelegateThirdTests. CaptureRun :18-21 is deliberately
+// not ported (PR-LAUNCH-027 NOT_APPLICABLE_WITH_EVIDENCE, ED-001/ED-061), rather than an unresolved dependency.
+// :22's OD-0018/ED-103 boot stage still needs P12 evidence and GlassMaterial composition: STOP Boot #1.
+// PR-LAUNCH-029 now has a launch-level test of all seven exclusion predicates and newest-unused selection.
+// PR-LAUNCH-071 and UI-LAUNCH-002 now have tests of the delayed tour / no extra onboarding path.
+// PR-LAUNCH-038 has no Req trait: PR-LAUNCH-026 proves the asynchronous start only; the ten awaited steps are AppModel's dependency
+// contract (AppModel.swift:240-287), whose separate tests cover individual steps, not an aggregate ordering trace.
+// PR-LAUNCH-046 still needs the shell-to-UpdateChecker.HandleActivation binding and a decision about launch activation
+// (STOP Boot #2). PR-LAUNCH-028/UI-LAUNCH-001 additionally need WindowManager's center/chrome/material gaps resolved.
 
-// Boot unit (2026-09-26): impl/b2 ec7c4395 has WindowManager, so :9-34 is now written (AppDelegate.cs) and tested in
-// AppDelegateThirdTests.cs, in source order, with these lines still open: :13 (the 8 MiB memory cap, O-33, ED-118) and
-// :15 (the Windows toast activation handler, PR-LAUNCH-025), which keep PR-LAUNCH-025, PR-WIN-068 and UI-LAUNCH-001
-// open; :22's boot sequence (OD-0018, ED-103) is STOP Boot #1 in AppDelegateThirdTests.cs.
+// STOP App.AppDelegate #2 — RESOLVED except the separate minimized-window reading in STOP Boot #5.
+// Kind: dependency landed
+// Swift: App/AppDelegate.swift:36-39 (B3 52bc792).
+// Records: PR-LAUNCH-048, PR-WIN-072.
+// WindowManager and Port/ReopenSignal now implement the callback and second-launch transport; hidden/visible cases
+// are tested in AppDelegateThirdTests, Port/AppShellSecondTests and Port/ReopenSignalTests. Remaining PR-WIN-072 gap:
+// restoring a minimized main window in WindowManager.Present needs the source/oracle reading Boot #5 names. This sweep
+// may not modify WindowManager.cs. The callback itself no longer lacks a dependency.
 
-// STOP App.AppDelegate #2 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
+// STOP App.AppDelegate #3 (sweep B recheck 2026-09-27, base d62329d42)
 // Kind: missing dependency
-// Swift: DroppyCode/App/AppDelegate.swift:36-39 (B3 52bc792), applicationShouldHandleReopen(_:hasVisibleWindows:),
-// "if !flag { WindowManager.shared.showMain() }" then "return true"
-// Requirements: PR-LAUNCH-048; part 2: PR-WIN-072 (the same path, the same ED-002 second-launch binding; the part 2
-// re-check of STOP #1 found WindowManager unchanged)
-// What is unclear or missing: the one statement with behaviour calls WindowManager.shared.showMain(), still
-// MARROW_STUB. On Windows the path runs on a second launch of the single-instance app (ED-002, PR-LAUNCH-048
-// windows_path), which also needs the second process to reach the first; DroppyCodeApp.TryAcquireSingleInstanceLock
-// only refuses the second instance and nothing carries the reopen to the running one (DroppyCodeAppTests STOP #1).
-// Readings or options: (a) port it with WindowManager and the second-launch signal -> exact; (b) port the
-// `return true` alone -> a no-op where the source shows the main window.
-// Needed to proceed: unit App.Window.WindowManager; the second-launch signal ED-002 asks for (a decision on its
-// mechanism, owned by the shell or App.DroppyCodeApp).
-// Done so far: nothing implemented at this site; no test written.
+// Swift: App/AppDelegate.swift:77-92 (B3 52bc792).
+// Records: PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024, PR-WIN-076, UI-LAUNCH-005, update-tap half of UI-LAUNCH-003.
+// Landed: WindowManager.Shared.ShowMain and ShowSettings(.About), which can now open real windows.
+// Missing: the Windows toast response delivery/activation unit (including the UNNotificationResponse payload form)
+// and the application-wide NSApp.activate binding at :89. Port/ApplicationLifecycle.cs exposes IsActive and quit
+// replies but no Activate; WindowManager.Present activates a particular window, earlier/later in this sequence.
+// Needed: that activation binding plus the toast response dispatcher. The route must show main unless update exists,
+// select a parseable threadID, activate, then open About for update, in exactly that order. Do not move activation
+// before selection by treating ShowMain's activation as :89. No callback/test is invented around absent bindings.
+// willPresent :63-75 is already tested under PR-LAUNCH-063; actual system banner delivery is still absent.
 
-// Boot unit (2026-09-26): CLOSED. :36-39 is written (AppDelegate.cs) and the second-launch signal is
-// Port/ReopenSignal.cs; tests in AppDelegateThirdTests.cs, Port/AppShellSecondTests.cs and Port/ReopenSignalTests.cs.
-// PR-WIN-072's "restores" (a minimised main window) stays open as STOP Boot #5 in AppDelegateThirdTests.cs.
+// STOP App.AppDelegate #4 — close wiring RESOLVED; session-end reason text remains STOP Boot #3.
+// Kind: dependency landed / decision still missing
+// Swift: App/AppDelegate.swift:41-61 (B3 52bc792), OD-0008 C1/C2, ED-004.
+// Records: PR-LAUNCH-074, PR-WIN-073; PR-LAUNCH-050's session-end note.
+// Landed: Program's desktop lifetime and Port/AppShell's close, termination and WM_ENDSESSION wiring, with tests.
+// Missing: the reason string for ShutdownBlockReasonCreate (ED-004 supplies none; Swift has no user-facing string).
+// Needed: an owner/ED string; then the shell owner implements that one call. No WindowManager/shell edit in this lane.
 
-// STOP App.AppDelegate #3 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
+// STOP App.AppDelegate #5 (sweep B, 2026-09-27)
 // Kind: missing dependency
-// Swift: DroppyCode/App/AppDelegate.swift:77-92 (B3 52bc792), userNotificationCenter(_:didReceive:)
-// Requirements: PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024; part 2: PR-WIN-076, the two tap interactions of
-// UI-LAUNCH-005 (its presentation states, :63-75, are implemented and tested above under PR-LAUNCH-063; UI-LAUNCH-005
-// itself carries no Req trait until this stop closes) and the update-notification opening of UI-LAUNCH-003 (:90)
-// What is unclear or missing: the routing calls WindowManager.shared.showMain() (:85) and
-// WindowManager.shared.showSettings(page: .about) (:90), both MARROW_STUB, and NSApp.activate() (:89), whose Windows
-// form WindowManager's present(_:) owns (WindowManager.swift:57-60). No Windows toast activation pipeline exists to
-// deliver a response to it (port_impacts.md entries 115 and 116).
-// Readings or options: (a) port it once WindowManager exists, parsing the response's userInfo with the same
-// UNNotification shape Port/UserNotifications.cs gives willPresent -> exact; (b) port now -> every tap throws.
-// Needed to proceed: unit App.Window.WindowManager; the Windows toast delivery and activation unit.
-// Done so far: nothing implemented at this site; no test written.
-
-// STOP App.AppDelegate #4 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
-// Kind: missing dependency
-// Swift: DroppyCode/App/AppDelegate.swift:1-93 (no applicationShouldTerminateAfterLastWindowClosed), :41-54, :56-61
-// Requirements: PR-LAUNCH-074; part 2: the close-button and Alt+F4 half of PR-WIN-073 (its deferral, 250 ms poll and
-// four-minute cap are implemented and tested above under PR-LAUNCH-049 and PR-LAUNCH-050; PR-WIN-073 itself carries no
-// Req trait until this stop closes) and the WM_QUERYENDSESSION note of its windows_path (ED-004)
-// What is unclear or missing: OD-0008 C1 makes the main window's close (and Alt+F4, C2) quit the app through the
-// terminate handshake. The delegate's side is ported and tested here (PR-LAUNCH-049, -050, -051); what is missing is
-// the window and the shell that turn a close into ApplicationShouldTerminate, implement ITerminationSender (continue
-// into ApplicationWillTerminate and exit on a true reply) and handle WM_QUERYENDSESSION and WM_ENDSESSION as ED-004
-// rules. The main window is WindowManager's makeMainWindow() (MARROW_STUB) and no application shell hosts it yet
-// (Program.cs is still MARROW_STUB_ENTRY_POINT).
-// Readings or options: (a) wire it in the WindowManager unit or the shell unit that hosts the main window -> exact;
-// (b) wire a close handler here -> this file owns no window.
-// Needed to proceed: unit App.Window.WindowManager and the application shell (Program.cs's entry point).
-// Done so far: the terminate decision and the three termination steps are implemented and green in this file; the
-// close wiring is not implemented.
-// Boot unit (2026-09-26): CLOSED. The close wiring is Port/AppShell.cs (Terminate, ShutdownRequested, WillTerminate,
-// the WM_ENDSESSION hook) with WindowManager.MainWindowClose, driven by Program.cs's desktop lifetime; tests in
-// Port/AppShellTests.cs and Port/AppShellSecondTests.cs. ED-004's ShutdownBlockReasonCreate is STOP Boot #3 in
-// AppDelegateThirdTests.cs.
+// Swift: App/AppDelegate.swift:14; App/Views/Chat/TimelineRows.swift:652-707 (B3 52bc792).
+// Records: PR-LAUNCH-084 (no Req trait until a rendering test exists; registration alone is tested).
+// Missing: HydraDelegationBlock's constructor still throws MARROW_STUB at the sweep base. The installed closure is
+// tested before any window, but invoking it cannot render a card until the TimelineRows lane lands its constructor.
+// Needed: App.Views.Chat.TimelineRows.HydraDelegationBlock; that file is explicitly owned by another chat.

@@ -10,7 +10,7 @@ using Avalonia.Media;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift (B2 1fbf81e), :1-82.
+// Source: DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift (B3 52bc792), :1-82.
 
 namespace Marrow.UI.Chrome
 {
@@ -339,7 +339,7 @@ namespace Marrow.UI.Chrome
                 {
                     Text = _option.Title,
                     MaxLines = 1,
-                    HorizontalAlignment = HorizontalAlignment.Left,  // Size to content, don't stretch
+                    HorizontalAlignment = HorizontalAlignment.Center, // :61 frame's default center alignment
                 };
                 return text;
             }
@@ -412,11 +412,7 @@ namespace Marrow.UI.Chrome
                 ApplyLabelStyling(_labelContent);
             }
 
-            // Reset hover state when selection changes
-            if (isNowSelected)
-            {
-                _hoverState.IsHovering = false;
-            }
+            // :67-69 Only pointer entry/exit changes hover; selection preserves it.
 
             // Update background color when selection changes (animation uses current transaction if any)
             UpdateBackgroundColor();

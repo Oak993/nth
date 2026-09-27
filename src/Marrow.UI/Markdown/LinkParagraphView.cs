@@ -7,6 +7,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -95,6 +96,128 @@ public sealed class LinkParagraphView : Decorator
 
             return false;
         }
+    }
+
+    // :121 and ProseRunView.swift:126: `NSColor.labelColor` and `NSColor.labelColor.withAlphaComponent(0.7)`, one
+    // value each so two builds of the same text compare equal (NSAttributedString.isEqual, :490).
+    internal static readonly SwiftColor LabelTextColor = SwiftColor.LabelColor;
+    internal static readonly SwiftColor DimmedLabelTextColor = SwiftColor.LabelColor.Opacity(0.7);
+
+    // :108 @MainActor private static var fonts: [CGFloat: (base: NSFont, bold: NSFont, italic: NSFont, mono: NSFont)];
+    // the base face's descender rides along, measured once per size (:139, :202 `base.descender`).
+    private static readonly Dictionary<double, (SwiftFont Base, SwiftFont Bold, SwiftFont Italic, SwiftFont Mono, double Descender)> attributedFonts = [];
+
+    /// <summary>
+    /// :110-156 <c>static func attributed(source:pointSize:dimmed:streaming:mentions:targets:) -> NSAttributedString</c>:
+    /// the same pretty string the Text path renders (short titles, bold links), on explicit fonts, adaptive colours
+    /// and favicon attachments (:103-105). ProseRunView.swift:130, :146, :178 build a run from it (ED-210); this unit's own
+    /// paragraph path still draws through <see cref="LinkTextView.RenderText"/>.
+    /// </summary>
+    public static ParagraphText Attributed(
+        string source,
+        double pointSize,
+        bool dimmed,
+        bool streaming = false,
+        IReadOnlyList<HydraPersona>? mentions = null,
+        IReadOnlyDictionary<string, HydraMentionTarget>? targets = null)
+    {
+        mentions ??= [];
+        targets ??= new Dictionary<string, HydraMentionTarget>();
+        var pretty = RichLink.PrettyAttributed(source, streaming); // :112
+        var (@base, bold, italic, mono, descender) = AttributedFonts(pointSize); // :113-120
+        var textColor = dimmed ? DimmedLabelTextColor : LabelTextColor; // :121
+        var @out = new ParagraphText(); // :122
+        foreach (var run in pretty.Runs) // :123
+        {
+            var text = run.Text; // :124
+            if (text.Length == 0) continue; // :125
+            var font = @base; // :126
+            if (run.IsCode) // :127-129
+            {
+                font = mono;
+            }
+            else
+            {
+                if (run.IsItalic) font = italic; // :131
+                if (run.IsBold) font = bold; // :132
+            }
+            if (run.Link is { } url) // :134
+            {
+                if (url.Host is { } host && FaviconCache.Cached(SwiftString.Lowercased(host)) is { } icon) // :135-136
+                {
+                    @out.Append(new ParagraphTextAttachment(icon, 0, descender + 1, 14, 14)); // :137-140
+                    @out.Append(" ", font: @base, foregroundColor: textColor); // :141-144
+                }
+                // :146-150 colour and underline come from the view's linkTextAttributes
+                @out.Append(text, font: font, link: url);
+            }
+            else
+            {
+                AppendProse(text, font, textColor, @base, descender, bold, mentions, targets, @out); // :152
+            }
+        }
+        return @out; // :155
+    }
+
+    private static (SwiftFont Base, SwiftFont Bold, SwiftFont Italic, SwiftFont Mono, double Descender) AttributedFonts(double pointSize)
+    {
+        if (attributedFonts.TryGetValue(pointSize, out var known)) return known;
+        var @base = SwiftFont.SystemFont(pointSize); // :114
+        var set = (@base, SwiftFont.BoldSystemFont(pointSize), // :115
+            @base.Italic(), // :116 NSFontManager.shared.convert(base, toHaveTrait: .italicFontMask)
+            SwiftFont.MonospacedSystemFont(Math.Max(9, pointSize - 1), SwiftFont.Weight.Regular), // :117
+            Descender(@base));
+        attributedFonts[pointSize] = set; // :118
+        return set;
+    }
+
+    // NSFont.descender: the base face's descent below the baseline, negative, in points. Avalonia's glyph metrics
+    // store Descent positive below the baseline, in design units (as InlineText.Metrics reads them).
+    private static double Descender(SwiftFont font)
+    {
+        var resolved = font.Resolve();
+        var typeface = new Typeface(resolved.FontFamily, resolved.FontStyle, resolved.FontWeight);
+        if (!FontManager.Current.TryGetGlyphTypeface(typeface, out var glyph))
+            throw new InvalidOperationException("No glyph typeface for the markdown base font (ED-107 registers Inter).");
+        return -glyph.Metrics.Descent * resolved.FontSize / glyph.Metrics.DesignEmHeight;
+    }
+
+    // :179-223 @MainActor private static func appendProse(_:font:color:base:bold:mentions:targets:into:)
+    private static void AppendProse(
+        string value,
+        SwiftFont font,
+        SwiftColor color,
+        SwiftFont @base,
+        double descender,
+        SwiftFont bold,
+        IReadOnlyList<HydraPersona> mentions,
+        IReadOnlyDictionary<string, HydraMentionTarget> targets,
+        ParagraphText @out)
+    {
+        if (mentions.Count == 0) // :180-186
+        {
+            @out.Append(value, font: font, foregroundColor: color);
+            return;
+        }
+        var glyphSize = SwiftNumber.Rounded(@base.PointSize * 1.25); // :187
+        var runStart = 0; // :188
+        foreach (var match in MentionScanner.Matches(value, mentions, persona => persona.Name)) // :197
+        {
+            var persona = match.Value; // :198
+            @out.Append(value[runStart..match.LowerBound], font: font, foregroundColor: color); // :199 flush, :189-196
+            var attachment = new ParagraphTextAttachment(DragonImage(persona, glyphSize), 0, descender + 1, glyphSize, glyphSize); // :200-202
+            if (targets.TryGetValue(persona.Name, out var target)) // :203-210
+                @out.Append(attachment, hydraHead: target.Url);
+            else // :211-213
+                @out.Append(attachment);
+            @out.Append(" ", font: @base, foregroundColor: color); // :214
+            if (targets.TryGetValue(persona.Name, out var head)) // :215-216
+                @out.Append(persona.Name, font: bold, foregroundColor: NsColor(persona), hydraHead: head.Url);
+            else // :217-218
+                @out.Append(persona.Name, font: bold, foregroundColor: NsColor(persona));
+            runStart = match.UpperBound; // :220
+        }
+        @out.Append(value[runStart..], font: font, foregroundColor: color); // :222 flush(from: runStart, to: endIndex)
     }
 
     // :160-162 private static func nsColor(_ persona: HydraPersona) -> NSColor
@@ -306,6 +429,11 @@ public sealed class LinkTextView : Decorator
     private readonly List<LinkHitRange> linkHits = [];
     private readonly List<HeadRange> heads = [];
     private SelectableTextBlock? textBlock;
+    // ED-210: set by Render(ParagraphText) (the ProseRunView path) in place of textBlock; the text it draws is the
+    // view's text storage.
+    private ParagraphTextPresenter? presenter;
+    private ParagraphText? storage;
+    private int renderCount;
     private int textLength;
     private double measuredWidth;
     private double measuredHeight;
@@ -325,6 +453,16 @@ public sealed class LinkTextView : Decorator
 
     // :290 let streamVeil = LinkTextVeil()
     public LinkTextVeil StreamVeil { get; } = new();
+
+    // NSTextView.delegate: set to the coordinator by ProseRunView.swift:49 (and LinkParagraphView.swift:28, which this
+    // unit's port has not wired); a link click asks it first (NSTextViewDelegate.textView(_:clickedOnLink:at:)).
+    public LinkParagraphView.Coordinator? Delegate { get; set; }
+
+    // How many times render(_:) ran, drawn or not (PR-THEME-150 tests).
+    internal int RenderCountForTests => renderCount;
+
+    // The text storage render(_:) last set (ED-210).
+    internal ParagraphText? TextStorageForTests => storage;
 
     // :299-332 init()
     public LinkTextView()
@@ -363,10 +501,10 @@ public sealed class LinkTextView : Decorator
         if (HeadMention(at) is not { } mention) return null;
         var head = heads.FirstOrDefault(candidate =>
             candidate.Location == mention.Range.Location && candidate.Length == mention.Range.Length);
-        var block = textBlock;
-        if (head is null || block is null || block.TextLayout is not { } layout) return null;
+        if (head is null || head.NameLength <= 0 || head.Name.Length == 0) return null; // :401, :403, :406 no name run
 
-        var rects = layout.HitTestTextRange(head.NameLocation, head.NameLength).ToArray();
+        var rects = RangeRects(head.NameLocation, head.NameLength);
+        if (rects is null) return null;
         var rect = rects.Length > 0 ? rects[0] : new Rect();
         foreach (var next in rects.Skip(1)) rect = rect.Union(next);
         if (rect.Width <= 0 || rect.Height <= 0) rect = new Rect(at.X, at.Y, 1, 1);
@@ -384,8 +522,7 @@ public sealed class LinkTextView : Decorator
     // :463-471 private func presentLinkPopover(for event: NSEvent) -> Bool; the event's location in this view.
     private bool PresentLinkPopover(Point @for)
     {
-        if (LinkAndRange(@for) is not { } link || textBlock is not { TextLayout: { } layout } block) return false;
-        var rects = layout.HitTestTextRange(link.Range.Location, link.Range.Length).ToArray();
+        if (LinkAndRange(@for) is not { } link || RangeRects(link.Range.Location, link.Range.Length) is not { } rects) return false;
         var rect = rects.Length > 0 ? rects[0] : new Rect();
         foreach (var next in rects.Skip(1)) rect = rect.Union(next);
         if (rect.Width <= 0 || rect.Height <= 0) rect = new Rect(@for.X, @for.Y, 1, 1);
@@ -396,6 +533,14 @@ public sealed class LinkTextView : Decorator
     /// <summary>:498-507 func height(forWidth width: CGFloat).</summary>
     public double HeightForWidth(double width)
     {
+        if (presenter is { } laidOut) // ED-210: the ProseRunView path
+        {
+            if (width <= 0) return 0;
+            if (width == measuredWidth) return measuredHeight;
+            measuredHeight = laidOut.HeightForWidth(width);
+            measuredWidth = width;
+            return measuredHeight;
+        }
         var block = textBlock;
         if (width <= 0 || block is null) return 0;
         if (width == measuredWidth) return measuredHeight;
@@ -405,8 +550,122 @@ public sealed class LinkTextView : Decorator
         return measuredHeight;
     }
 
+    // NSLayoutManager.boundingRect(forGlyphRange:in:) over the range's glyphs, one box per line; null with no text.
+    private Rect[]? RangeRects(int location, int length)
+    {
+        if (presenter is { } laidOut) return [.. laidOut.RangeRects(location, length)]; // ED-210
+        if (textBlock is not { TextLayout: { } layout }) return null;
+        return layout.HitTestTextRange(location, length).ToArray();
+    }
+
+    /// <summary>
+    /// :481-496 <c>func render(_ text: NSAttributedString)</c>, the path ProseRunView.swift:71 draws through (ED-210):
+    /// links wear the theme's accent with no underline (:485-489, set on every render so a theme change recolours
+    /// links already on screen); the storage is replaced, and the cached measurement dropped, only when the new
+    /// text differs (:490-494); the size is invalidated either way (:495). The text is drawn by one
+    /// <see cref="ParagraphTextPresenter"/>, which takes this view's place of the SelectableTextBlock that
+    /// <see cref="RenderText"/> (the LinkParagraphView path) draws into.
+    /// </summary>
+    public void Render(ParagraphText text)
+    {
+        renderCount++;
+        if (presenter is null)
+        {
+            presenter = new ParagraphTextPresenter { HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch };
+            // Tunnel: a head or link press is the view's (mouseDown :444-451, clickedOnLink) before the presenter's
+            // own press starts a selection.
+            presenter.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+            // Tunnel: suppresses the presenter's own ContextMenu (ParagraphTextPresenter's Windows counterpart of
+            // AppKit's text menu, :459-461) when the press this release pairs with already showed LinkPopover
+            // (:453-456 `rightMouseDown`: presentLinkPopover-or-super, never both). Avalonia opens a control's
+            // ContextMenu from a released, still-unhandled right button (Control.OnPointerReleased), a separate
+            // event from the press PresentLinkPopover already handled, so it needs its own veto here.
+            presenter.AddHandler(PointerReleasedEvent, OnPointerReleasedOverLink, RoutingStrategies.Tunnel);
+            presenter.PointerMoved += OnPointerMoved;
+            presenter.PointerExited += OnPointerExited;
+            if (textBlock is { } old)
+            {
+                old.PointerPressed -= OnPointerPressed;
+                old.PointerMoved -= OnPointerMoved;
+                old.PointerExited -= OnPointerExited;
+            }
+            textBlock = null;
+            Child = presenter;
+        }
+        presenter.LinkColor = Chrome.Chrome.AccentNSColor; // :485-489 linkTextAttributes
+        if (storage?.IsEqual(text) != true) // :490
+        {
+            storage = text; // :491 textStorage?.setAttributedString(text)
+            presenter.SetText(text);
+            IndexRanges(text);
+            measuredHeight = 0; // :492 lastMeasuredHeight = 0
+            measuredWidth = 0; // :493
+        }
+        InvalidateMeasure(); // :495 invalidateIntrinsicContentSize()
+    }
+
+    // The .link and .hydraHead runs of the storage, as the lookups at :365-428 find them: a link is the longest
+    // effective range of one URL (:423); a head mention the longest effective range of one .hydraHead value
+    // (:372-373), whose name is its own text without U+FFFC, trimmed (:388-393), or else the next .hydraHead range
+    // after it (:394-406), since the glyph is an attachment run of its own.
+    private void IndexRanges(ParagraphText text)
+    {
+        links.Clear();
+        linkHits.Clear();
+        heads.Clear();
+        textLength = text.Length;
+        var linkRanges = new List<(int Location, int Length, SwiftURL Url)>();
+        var headRanges = new List<(int Location, int Length, SwiftURL Url)>();
+        foreach (var (run, location) in text.RunsWithLocations())
+        {
+            Merge(linkRanges, run.Link, location, run.Text.Length);
+            Merge(headRanges, run.HydraHead, location, run.Text.Length);
+        }
+        foreach (var (location, length, url) in linkRanges)
+        {
+            var range = new TextRange(location, length, url);
+            links.Add(range);
+            linkHits.Add(new LinkHitRange(location, length, range));
+        }
+        var whole = text.String;
+        for (var index = 0; index < headRanges.Count; index++)
+        {
+            var (location, length, url) = headRanges[index];
+            var nameLocation = location;
+            var nameLength = length;
+            var name = RunName(whole, location, length);
+            if (name.Length == 0)
+            {
+                if (index + 1 < headRanges.Count)
+                {
+                    (nameLocation, nameLength, _) = headRanges[index + 1];
+                    name = RunName(whole, nameLocation, nameLength);
+                }
+                else
+                {
+                    nameLength = 0; // :401 no head run after it: no rect
+                }
+            }
+            heads.Add(new HeadRange(location, length, nameLocation, nameLength, url, name));
+        }
+
+        static void Merge(List<(int Location, int Length, SwiftURL Url)> ranges, SwiftURL? value, int location, int length)
+        {
+            if (value is null) return;
+            if (ranges.Count > 0 && ranges[^1].Location + ranges[^1].Length == location && ranges[^1].Url == value)
+                ranges[^1] = (ranges[^1].Location, ranges[^1].Length + length, value);
+            else
+                ranges.Add((location, length, value));
+        }
+
+        // :388-392 runName: the substring without U+FFFC, trimmed of whitespace and newlines.
+        static string RunName(string whole, int location, int length) =>
+            FoundationText.Trim(whole.Substring(location, length).Replace(ParagraphText.AttachmentCharacter, "", StringComparison.Ordinal), includeNewlines: true);
+    }
+
     private int? CharacterIndexAt(Point point)
     {
+        if (presenter is { } laidOut) return textLength == 0 ? null : laidOut.GlyphIndexAt(point); // ED-210
         var block = textBlock;
         if (block is null || textLength == 0 || block.TextLayout is not { } layout) return null;
         var hit = layout.HitTestPoint(point);
@@ -414,9 +673,12 @@ public sealed class LinkTextView : Decorator
         return hit.TextPosition;
     }
 
+    // The control the text is drawn by: the paragraph's SelectableTextBlock, or the run's presenter (ED-210).
+    private Control? TextHost => (Control?)presenter ?? textBlock;
+
     private void OnPointerMoved(object? sender, PointerEventArgs e)
     {
-        if (textBlock is not { } block) return;
+        if (TextHost is not { } block) return;
         var point = e.GetPosition(block);
         block.Cursor = HeadMention(point) is not null
             ? arrowCursor
@@ -428,12 +690,12 @@ public sealed class LinkTextView : Decorator
     private void OnPointerExited(object? sender, PointerEventArgs e)
     {
         _ = e;
-        if (textBlock is { } block) block.Cursor = null;
+        if (TextHost is { } block) block.Cursor = null;
     }
 
     private void OnPointerPressed(object? sender, Avalonia.Input.PointerPressedEventArgs e)
     {
-        if (textBlock is not { } block) return;
+        if (TextHost is not { } block) return;
         var point = e.GetPosition(block);
         if (HeadMention(point) is { } head)
         {
@@ -449,11 +711,25 @@ public sealed class LinkTextView : Decorator
             return;
         }
 
-        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && Link(point) is { } link)
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && LinkAndRange(point) is { } hit)
         {
-            MarkdownLinkOpener.Open(link); // B3 :337-341 (was InlineText.OpenUrl, a pre-existing divergence)
+            // NSTextView asks its delegate first (textView(_:clickedOnLink:at:), whose coordinator opens through
+            // MarkdownLinkOpener, :90-100); with no delegate, or one that declines, the link still opens (B3 :337-341,
+            // was InlineText.OpenUrl, a pre-existing divergence).
+            if (Delegate?.TextView(this, hit.Url, hit.Range.Location) != true) MarkdownLinkOpener.Open(hit.Url);
             e.Handled = true;
         }
+    }
+
+    // See the wiring comment at the AddHandler call in Render(_:): a right-button release over a link would
+    // otherwise still open the presenter's own ContextMenu (Avalonia's Control.OnPointerReleased opens it from any
+    // released, unhandled right button, independently of the press PresentLinkPopover already handled). Checked at
+    // the release point, not carried over from the press, the same way LinkAndRange itself is always a fresh
+    // lookup; the two agree except across a drag, which :453-461 has no counterpart for either.
+    private void OnPointerReleasedOverLink(object? sender, PointerReleasedEventArgs e)
+    {
+        if (e.InitialPressMouseButton != MouseButton.Right) return;
+        if (LinkAndRange(e.GetPosition(this)) is not null) e.Handled = true;
     }
 
     // :481-496 render(_:)

@@ -468,6 +468,7 @@ Both remain open options for the owner alone.
   (recommended); (2) ship parity without a probe; (3) never run the updaters on Windows (named deviation); (4)
   update only when no session of that provider is live (named deviation).
 - **Blocks:** unit A23 (Services.Providers.ProviderRegistry), A32 (App.AppModel), A33 (App.Runtime.ThreadRuntime).
+- **Trial outcome (SOURCE FACT, 2026-09-26 22:29:36-22:29:53 +03:00; evidence `E:/Droppy/work/b3/evidence_od0025/`):** codex-cli updated 0.154.0 to 0.157.1 headless while a codex process was running (its updater spawns PowerShell); Claude Code reported already up to date (2.1.283, unchanged). Owner watching, verbatim: "On the question, nothing appeared" (no window, prompt or UAC). Exit codes were not captured (a PowerShell Start-Process -PassThru redirection quirk); stdout and the version change stand for success. Resolved per OD-0025: lanes A23 (b3/L3g), A33 (b3/L4a) and A32 (b3/L4b) merged on this evidence (B3 merge batch 6).
 
 ## UNK-0027 Chat links on Windows: drive-letter paths, UNC paths, and what a link may launch
 

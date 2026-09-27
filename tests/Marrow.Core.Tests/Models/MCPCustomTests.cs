@@ -6,6 +6,53 @@ namespace Marrow.Core.Tests.Models;
 
 public sealed class MCPCustomTests
 {
+    [Fact]
+    [Trait("Req", "PR-MCP-094")] // Core/Models/MCPCustom.swift:174-176 requires URLComponents, ED-169
+    public void Review_validation_uses_the_pinned_components_initializer()
+    {
+        var method = typeof(MCPCustomError).GetMethod(nameof(MCPCustomError.ValidRemoteURL))!;
+        var il = method.GetMethodBody()!.GetILAsByteArray()!;
+        var callsComponents = false;
+        for (var i = 0; i + 4 < il.Length; i++)
+        {
+            if (il[i] != 0x28) continue; // IL call
+            try
+            {
+                var called = method.Module.ResolveMethod(BitConverter.ToInt32(il, i + 1));
+                if (called?.DeclaringType == typeof(URLComponents) && called.Name == nameof(URLComponents.Create)) callsComponents = true;
+            }
+            catch (ArgumentException) { }
+        }
+        Assert.True(callsComponents, "Swift :174 constructs URLComponents rather than URL.");
+        Assert.True(MCPCustomError.ValidRemoteURL("http://[::1]/mcp")); // :179
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-088")] // Core/Models/MCPCustom.swift:15-19,24-49 synthesized encoding
+    public void Review_serialization_writes_all_server_and_variable_keys_and_round_trips()
+    {
+        var server = new MCPCustomServer("x", "X", MCPCustomServer.Kind.Stdio)
+        {
+            Command = "exe",
+            Env = new ValueList<MCPCustomServer.Variable>([new("TOKEN", true)]),
+        };
+        var json = JsonSerializer.Serialize(server);
+        Assert.Equal("{\"id\":\"x\",\"name\":\"X\",\"kind\":\"stdio\",\"command\":\"exe\",\"args\":[],\"env\":[{\"key\":\"TOKEN\",\"isSecret\":true}],\"url\":\"\",\"headers\":[]}", json);
+        Assert.Equal(server, JsonSerializer.Deserialize<MCPCustomServer>(json));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-091")] // Core/Models/MCPCustom.swift:164-165 returns raw offending variable.key
+    public void Review_duplicate_header_error_keeps_the_raw_second_key()
+    {
+        var server = new MCPCustomServer("", "X", MCPCustomServer.Kind.Http)
+        {
+            Url = "https://example.com",
+            Headers = new ValueList<MCPCustomServer.Variable>([new("authorization"), new("AUTHORIZATION")]),
+        };
+        Assert.Equal(new MCPCustomError.DuplicateVariableKey("AUTHORIZATION"), MCPCustomError.Validate(server, new HashSet<string>()));
+    }
+
     // ---- PR-MCP-085: makeID ----
 
     [Theory]

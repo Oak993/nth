@@ -108,6 +108,10 @@ public sealed class DroppyCodeAppTests
         Assert.Equal("21", metadata["CFBundleVersion"]);
     }
 
+    // ED-212's ReopenSignalName tests moved to DroppyCodeAppDevDataRootTests (review fix, R-TEST-5): they mutate
+    // the process-wide MARROW_DEV_DATA_ROOT variable and now run in the "Dev data root env" collection so they can
+    // never interleave with another test in this assembly that reads it.
+
     // No dedicated test for RunPrologue() itself: it is exactly `HangWatchdog.Start()`, and Start() spawns a real,
     // never-ending background thread that pings MainActor every 0.5s with no stop() (PR-LAUNCH-014's own text says
     // so) - calling it for real inside a test starts a thread that outlives the test and can crash a LATER,

@@ -121,7 +121,11 @@ public sealed class ChatBadge : Decorator
 
         var button = PlainControls.Button(layers, () => isPresented.Value = !isPresented.Value); // :23 Button { isPresented.toggle() }
         button.IsEnabled = isEnabled; // :53 .disabled(!isEnabled)
-        button.HorizontalAlignment = HorizontalAlignment.Stretch;
+        // :66 windowRectAnchor is applied here, BEFORE :76's outer .frame(maxWidth: .infinity, alignment: .leading):
+        // the reported rect is the button's own natural/compact pill size, left-aligned inside the wider `aligned`
+        // wrapper below, not stretched to it (R-VIEW review fix; was HorizontalAlignment.Stretch with no citation,
+        // which inflated the anchor rect WindowRectAnchor reports to the full row width).
+        button.HorizontalAlignment = HorizontalAlignment.Left;
         AutomationProperties.SetName(button, title); // :78 .accessibilityLabel(Text(title))
         AutomationProperties.SetItemStatus(button, needsAttention ? "Needs your attention" : ""); // :79 .accessibilityValue(...)
         AutomationProperties.SetName(this, title);

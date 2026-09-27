@@ -3,7 +3,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Store;
 
-// Source: DroppyCode/Services/Providers/AntigravitySession.swift (B2 1fbf81e), :1-730.
+// Source: DroppyCode/Services/Providers/AntigravitySession.swift (B3 52bc792), :1-719.
 
 namespace Marrow.Services.Providers;
 
@@ -13,7 +13,7 @@ namespace Marrow.Services.Providers;
 /// `{"event":"user","message":{"content":"..."}}` object per turn on stdin, and `init` / `step_update` / `result`
 /// events on stdout. (:3-13)
 /// </summary>
-// :14-730. @MainActor final class -> sealed class used only on main (R-ISO-1).
+// :14-719. @MainActor final class -> sealed class used only on main (R-ISO-1).
 public sealed class AntigravitySession : ProviderSession
 {
     public Action<ProviderEvent>? OnEvent { get; set; } // :16
@@ -45,7 +45,9 @@ public sealed class AntigravitySession : ProviderSession
     private bool streamedText;
     // Files an edit step is about to change, captured when the step went active. The stream never carries the edit
     // itself, so the row's diff is the file before against the file after. :44-47
-    private readonly Dictionary<string, string> editSnapshots = new(SwiftStringComparer.Instance);
+    // B3 (unit N7): the local map and its reader (B2 :267-273) move onto the shared SessionSupport.EditSnapshots
+    // (ENGINEERING DECISION, recommended so there is one implementation). :47
+    private readonly EditSnapshots editSnapshots = new();
     // Tool steps whose start was announced, so a step that surfaces only as finished still gets its proper row rather
     // than a bare "Tool". :48-50
     private readonly HashSet<string> startedTools = new(SwiftStringComparer.Instance);
@@ -246,7 +248,7 @@ public sealed class AntigravitySession : ProviderSession
                 startedTools.Add(id);
                 var call = MakeToolCall(name, parameters);
                 if (call.ToolCallKind == ToolCall.Kind.Edit && Is(state, "ACTIVE") && Path(parameters) is { } path)
-                    editSnapshots[id] = Snapshot(path) ?? "";
+                    editSnapshots.Capture(id, path); // :232
                 OnEvent?.Invoke(new ProviderEvent.ToolStarted(id, call));
                 if (Is(state, "ACTIVE")) return;
             }
@@ -271,27 +273,18 @@ public sealed class AntigravitySession : ProviderSession
 
     /// <summary>The finished edit as a diff of the file before against after, for the row's inline diff and the turn's
     /// changed-files attribution. Nil for non-edit steps, so the update leaves the call's edits alone. (:256-258)</summary>
-    private ValueList<FileEdit>? FinishEdit(string id, JSONValue parameters) // :259-265
+    // B3: delegates to the shared SessionSupport.EditSnapshots.Finish; the before/after re-read and the
+    // path-only-when-unchanged result are identical (B2 finishEdit :256-265, snapshot :267-273 -> B3 :259-262 here
+    // plus SessionSupport.cs:27-40; PR-PROVCLI-332/333, refactor with no observable change).
+    private ValueList<FileEdit>? FinishEdit(string id, JSONValue parameters) // :259-262
     {
-        if (!editSnapshots.Remove(id, out var before) || Path(parameters) is not { } path) return null;
-        var relative = ToolTitles.RelativePath(path, WorkingDirectory);
-        var after = Snapshot(path) ?? "";
-        if (SwiftString.Equal(before, after)) return new ValueList<FileEdit>([new FileEdit(relative)]);
-        return new ValueList<FileEdit>([new FileEdit(relative, before, after)]);
-    }
-
-    /// <summary>Text files up to 1 MB; anything else (binary, huge, missing) reads as empty so a write shows as a
-    /// whole-file addition. (:267-268)</summary>
-    private static string? Snapshot(string path) // :269-273
-    {
-        var file = new FileInfo(path);
-        if (!file.Exists || file.Length > 1_000_000) return null;
-        return SwiftTry.Optional(() => File.ReadAllBytes(path)) is { } bytes ? SwiftText.DecodeUtf8OrNil(bytes) : null;
+        if (Path(parameters) is not { } path) return null;
+        return editSnapshots.Finish(id, path, WorkingDirectory);
     }
 
     /// <summary>The soft-deny wording headless runs use when a permission rule blocks a tool: the agent asked, the user
-    /// (or a rule) said no. (:275-276)</summary>
-    private static bool IsDenied(string message) // :277-281
+    /// (or a rule) said no. (:264-265)</summary>
+    private static bool IsDenied(string message) // :266-270
     {
         var lowered = SwiftString.Lowercased(message);
         return lowered.Contains("permission check failed", StringComparison.Ordinal) || lowered.Contains("denied permission", StringComparison.Ordinal)
@@ -299,8 +292,8 @@ public sealed class AntigravitySession : ProviderSession
     }
 
     /// <summary>The context in use after a model call: the step's fresh input plus what was served from cache, plus the
-    /// reply. Result totals are the session's cumulative spend and say nothing about the window. (:283-285)</summary>
-    private static ContextUsage? ContextUsage(JSONValue? usage) // :286-291
+    /// reply. Result totals are the session's cumulative spend and say nothing about the window. (:272-274)</summary>
+    private static ContextUsage? ContextUsage(JSONValue? usage) // :275-280
     {
         if (usage is null || usage.IsNull) return null;
         var used = (usage["input_tokens"]?.JSONValueInt ?? 0) + (usage["cache_read_tokens"]?.JSONValueInt ?? 0) + (usage["output_tokens"]?.JSONValueInt ?? 0);
@@ -308,18 +301,18 @@ public sealed class AntigravitySession : ProviderSession
         return new ContextUsage { UsedTokens = used, WindowTokens = null };
     }
 
-    private void HandleResult(JSONValue result) // :293-363
+    private void HandleResult(JSONValue result) // :282-352
     {
-        turnActive = false;        // :294
-        editSnapshots.Clear();     // :295
-        startedTools.Clear();      // :296
-        if (result["usage"] is { IsNull: false } usage) // :297-322
+        turnActive = false;        // :283
+        editSnapshots.RemoveAll(); // :284
+        startedTools.Clear();      // :285
+        if (result["usage"] is { IsNull: false } usage) // :286-311
         {
             // Totals are cumulative over the session (per the headless docs), so the spend tracker resolves them into
             // per-turn deltas, but only once its baseline is known. A conversation resumed with `--conversation`
             // reports a total that already holds the history it resumed with, and the protocol does not say how much
             // that is: the first total seeds the baseline and is left uncounted, rather than charged as new spend or
-            // reported as zero. The context meter is fed per step instead (see handleStep). :298-304
+            // reported as zero. The context meter is fed per step instead (see handleStep). :287-293
             var used = usage["total_tokens"]?.JSONValueInt ?? ((usage["input_tokens"]?.JSONValueInt ?? 0) + (usage["output_tokens"]?.JSONValueInt ?? 0));
             if (used > 0)
             {
@@ -329,28 +322,28 @@ public sealed class AntigravitySession : ProviderSession
                     spendTracker = next;
                     if (spend > 0)
                     {
-                        TokenLedger.Shared.Current.Record(spend); // :310
-                        OnEvent?.Invoke(new ProviderEvent.TokenSpend(new TokenSpend(ProviderKind.Antigravity, spend, model: model))); // :311-315
+                        TokenLedger.Shared.Current.Record(spend); // :299
+                        OnEvent?.Invoke(new ProviderEvent.TokenSpend(new TokenSpend(ProviderKind.Antigravity, spend, model: model))); // :300-304
                     }
                 }
                 else
                 {
-                    spendTracker = spendTracker.SeedBaseline(used); // :318
-                    spendBaselineKnown = true;                      // :319
+                    spendTracker = spendTracker.SeedBaseline(used); // :307
+                    spendBaselineKnown = true;                      // :308
                 }
             }
         }
         // A turn whose reply never streamed (resumed conversations can answer in the result alone) still shows its
-        // text. :323-328
+        // text. :312-317
         if (!streamedText && result["response"]?.JSONValueString is { } response && response.Trimmed().Length != 0)
             OnEvent?.Invoke(new ProviderEvent.MessageCompleted($"agy-{launchID}-result-{SwiftString.Prefix(SwiftUUID.UuidString(Guid.NewGuid()), 8)}", response));
-        streamedText = false; // :329
-        var denied = new List<string>(); // :330
+        streamedText = false; // :318
+        var denied = new List<string>(); // :319
         foreach (var action in result["denied_actions"]?.JSONValueArray ?? [])
         {
             if ((action["display_name"]?.JSONValueString ?? action["action"]?.JSONValueString) is { } name) denied.Add(name);
         }
-        if (denied.Count != 0) // :331-337
+        if (denied.Count != 0) // :320-326
         {
             var names = string.Join(", ", denied);
             OnEvent?.Invoke(new ProviderEvent.Notice(new Notice
@@ -359,29 +352,29 @@ public sealed class AntigravitySession : ProviderSession
                 Message = $"Antigravity held back {names} without prompting. Use Full access or add an allow rule in the CLI's settings.",
             }));
         }
-        if (result["conversation_id"]?.JSONValueString is { Length: > 0 } id) // :338-341
+        if (result["conversation_id"]?.JSONValueString is { Length: > 0 } id) // :327-330
         {
             conversationID = id;
             OnEvent?.Invoke(new ProviderEvent.SessionReady(id));
         }
-        if (interruptRequested) // :342-343
+        if (interruptRequested) // :331-332
         {
             OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Interrupted, null));
         }
-        else // :344-361
+        else // :333-350
         {
             var status = result["status"]?.JSONValueString;
             if (Is(status, "WAITING") && denied.Count != 0)
             {
                 // Stopped for a permission nobody could grant headless, with actions held back: reported as a failure
-                // so a head's lead hears it was starved of permissions rather than reading a clean completion. :347-349
+                // so a head's lead hears it was starved of permissions rather than reading a clean completion. :336-338
                 OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Failed,
                     $"Antigravity held back {string.Join(", ", denied)} waiting for a permission it could not ask for. Use Full access for this chat."));
             }
             else if (Is(status, "SUCCESS") || Is(status, "WAITING"))
             {
                 // WAITING: the agent stopped to ask something it cannot ask headless; the turn is over and the reply
-                // says what it needs. :352-353
+                // says what it needs. :341-342
                 OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Completed, null));
             }
             else if (Is(status, "CANCELED") || Is(status, "INTERRUPTED"))
@@ -394,18 +387,18 @@ public sealed class AntigravitySession : ProviderSession
                 OnEvent?.Invoke(new ProviderEvent.TurnCompleted(TurnStatus.Failed, error is { Length: > 0 } ? error : "Antigravity stopped before finishing."));
             }
         }
-        interruptRequested = false; // :362
+        interruptRequested = false; // :351
     }
 
-    private void DidClose() // :365-383
+    private void DidClose() // :354-372
     {
-        if (initContinuation is { } continuation) // :366-370
+        if (initContinuation is { } continuation) // :355-359
         {
             initContinuation = null;
             var tail = process?.ErrorTail ?? "";
             continuation.Resume(new ProviderError(new ProviderError.Case.Failed(AuthHint(tail) ?? (TextCleanup.LastLines(tail) ?? "Antigravity exited."))));
         }
-        if (turnActive) // :371-380
+        if (turnActive) // :360-369
         {
             turnActive = false;
             if (interruptRequested)
@@ -419,11 +412,11 @@ public sealed class AntigravitySession : ProviderSession
             }
             interruptRequested = false;
         }
-        if (isStopping) return; // :381
-        OnEvent?.Invoke(new ProviderEvent.Exited(TextCleanup.LastLines(process?.ErrorTail ?? ""))); // :382
+        if (isStopping) return; // :370
+        OnEvent?.Invoke(new ProviderEvent.Exited(TextCleanup.LastLines(process?.ErrorTail ?? ""))); // :371
     }
 
-    private static string? AuthHint(string text) // :385-390
+    private static string? AuthHint(string text) // :374-379
     {
         var lowered = SwiftString.Lowercased(text);
         if (!(lowered.Contains("authentication required", StringComparison.Ordinal) || lowered.Contains("not signed in", StringComparison.Ordinal)
@@ -434,10 +427,10 @@ public sealed class AntigravitySession : ProviderSession
 
     // MARK: - Model and Effort Normalization
 
-    // :394-398
+    // :383-387
     public sealed record ParsedModelRow(string BaseSlug, string BaseName, string? Effort);
 
-    public static ParsedModelRow ParseModelRow(string slug, string name) // :400-413
+    public static ParsedModelRow ParseModelRow(string slug, string name) // :389-402
     {
         foreach (var effort in new[] { "high", "medium", "low" })
         {
@@ -456,21 +449,21 @@ public sealed class AntigravitySession : ProviderSession
 
     /// <summary>Normalizes model and effort flags for `agy`. Strips any legacy effort suffixes from model slugs,
     /// resolves the effective effort level, and ensures --effort is only passed for models that support it.
-    /// (:415-417)</summary>
-    public static (string? Model, string? Effort) Normalize(string? model, string? effort) // :418-444
+    /// (:404-406)</summary>
+    public static (string? Model, string? Effort) Normalize(string? model, string? effort) // :407-433
     {
         if (model is not { Length: > 0 }) return (null, null);
         var parsed = ParseModelRow(model, "");
         var baseSlug = parsed.BaseSlug;
 
-        // Models that do not take --effort (such as Claude models hosted on Antigravity). :423-426
+        // Models that do not take --effort (such as Claude models hosted on Antigravity). :412-415
         if (baseSlug.Contains("claude", StringComparison.Ordinal)) return (baseSlug, null);
 
-        var resolvedEffort = effort; // :428-434
+        var resolvedEffort = effort; // :417-423
         if (resolvedEffort is not { Length: > 0 }) resolvedEffort = parsed.Effort;
         if (resolvedEffort is not { Length: > 0 }) resolvedEffort = Is(baseSlug, "gpt-oss-120b") ? "medium" : "high";
 
-        // Validate effort against model constraints. :436-441
+        // Validate effort against model constraints. :425-430
         if (Is(baseSlug, "gemini-3.1-pro") && Is(resolvedEffort, "medium"))
             resolvedEffort = "high";
         else if (Is(baseSlug, "gpt-oss-120b"))
@@ -483,24 +476,24 @@ public sealed class AntigravitySession : ProviderSession
 
     /// <summary>`agy models` prints `slug&lt;TAB&gt;Name` rows on stdout (progress goes to stderr). Rows with effort
     /// variants (-high, -medium, -low) are collapsed into a single base model entry whose supported efforts are toggled
-    /// via the reasoning effort slider. (:448-451)</summary>
-    public static async Task<ValueList<ModelOption>> ListModels(SwiftURL executable, IReadOnlyDictionary<string, string> environment) // :452-517
+    /// via the reasoning effort slider. (:437-440)</summary>
+    public static async Task<ValueList<ModelOption>> ListModels(SwiftURL executable, IReadOnlyDictionary<string, string> environment) // :441-506
     {
         await using var scope = new AsyncLetScope();
-        var modelsFetch = scope.Start(() => Shell.Run(executable.Path, ["models"], environment: environment, timeout: 30)); // :453
-        var defaultFetch = scope.Start(() => Shell.Run(executable.Path, ["-p", "/model", "--output-format", "json"], environment: environment, timeout: 30)); // :454
-        var models = await SwiftTry.OptionalAsync<ShellResult>(async () => await modelsFetch);   // :455
-        var current = await SwiftTry.OptionalAsync<ShellResult>(async () => await defaultFetch); // :456
-        string? currentID = null; // :457-460
+        var modelsFetch = scope.Start(() => Shell.Run(executable.Path, ["models"], environment: environment, timeout: 30)); // :442
+        var defaultFetch = scope.Start(() => Shell.Run(executable.Path, ["-p", "/model", "--output-format", "json"], environment: environment, timeout: 30)); // :443
+        var models = await SwiftTry.OptionalAsync<ShellResult>(async () => await modelsFetch);   // :444
+        var current = await SwiftTry.OptionalAsync<ShellResult>(async () => await defaultFetch); // :445
+        string? currentID = null; // :446-449
         if (current?.Stdout is { } stdout && JSONValue.Parse(stdout) is { } json)
             currentID = json["command"]?["data"]?["id"]?.JSONValueString;
-        if (models?.Stdout is not { } output || SwiftText.DecodeUtf8OrNil(output) is not { } text) // :461-463
+        if (models?.Stdout is not { } output || SwiftText.DecodeUtf8OrNil(output) is not { } text) // :450-452
             throw new ShellError("`agy models` produced no output.");
 
-        var grouped = new Dictionary<string, (string Name, List<string> Efforts, bool IsDefault)>(SwiftStringComparer.Instance); // :465
-        var order = new List<string>(); // :466
+        var grouped = new Dictionary<string, (string Name, List<string> Efforts, bool IsDefault)>(SwiftStringComparer.Instance); // :454
+        var order = new List<string>(); // :455
 
-        foreach (var line in SwiftString.ComponentsSeparatedByNewlines(TextCleanup.StripANSI(text))) // :468-493
+        foreach (var line in SwiftString.ComponentsSeparatedByNewlines(TextCleanup.StripANSI(text))) // :457-482
         {
             var trimmed = line.Trimmed();
             if (trimmed.Length == 0) continue;
@@ -510,23 +503,23 @@ public sealed class AntigravitySession : ProviderSession
             var name = parts.Count > 1 && parts[1].Length != 0 ? parts[1] : slug;
             var parsed = ParseModelRow(slug, name);
 
-            // :476
+            // :465
             var isCurrent = (currentID is not null && SwiftString.Equal(slug, currentID)) || (currentID is not null && SwiftString.Equal(parsed.BaseSlug, currentID))
                 || (currentID is not null && SwiftString.HasPrefix(currentID, parsed.BaseSlug));
 
-            if (!grouped.TryGetValue(parsed.BaseSlug, out var group)) // :478-484
+            if (!grouped.TryGetValue(parsed.BaseSlug, out var group)) // :467-473
             {
                 order.Add(parsed.BaseSlug);
                 grouped[parsed.BaseSlug] = (parsed.BaseName, parsed.Effort is { } seeded ? [seeded] : [], isCurrent);
             }
-            else // :485-492
+            else // :474-481
             {
                 if (parsed.Effort is { } eff && !group.Efforts.Any(existing => SwiftString.Equal(existing, eff))) group.Efforts.Add(eff);
                 if (isCurrent) grouped[parsed.BaseSlug] = group with { IsDefault = true };
             }
         }
 
-        var list = new List<ModelOption>(); // :495-507
+        var list = new List<ModelOption>(); // :484-496
         foreach (var baseSlug in order)
         {
             if (!grouped.TryGetValue(baseSlug, out var data)) continue;
@@ -540,8 +533,8 @@ public sealed class AntigravitySession : ProviderSession
                 isDefault: data.IsDefault));
         }
 
-        if (list.Count == 0) throw new ShellError("`agy models` listed no models."); // :509
-        if (!list.Any(option => option.IsDefault)) // :510-515
+        if (list.Count == 0) throw new ShellError("`agy models` listed no models."); // :498
+        if (!list.Any(option => option.IsDefault)) // :499-504
         {
             var first = list[0];
             list[0] = new ModelOption(
@@ -551,7 +544,7 @@ public sealed class AntigravitySession : ProviderSession
         return new ValueList<ModelOption>(list);
     }
 
-    private static bool IsSlug(string text) // :519-523
+    private static bool IsSlug(string text) // :508-512
     {
         var characters = SwiftString.Characters(text).ToList();
         if (characters.Count == 0 || !(SwiftCharacter.IsLetter(characters[0]) || SwiftCharacter.IsNumber(characters[0]))) return false;
@@ -561,8 +554,8 @@ public sealed class AntigravitySession : ProviderSession
     }
 
     /// <summary>Sign-in state without spending tokens: `agy models` needs the cached Google session (or
-    /// `GEMINI_API_KEY`) and fails loudly without one. (:525-526)</summary>
-    public static async Task<ProviderStatus.Auth> AuthStatus(SwiftURL executable, IReadOnlyDictionary<string, string> environment) // :527-540
+    /// `GEMINI_API_KEY`) and fails loudly without one. (:514-515)</summary>
+    public static async Task<ProviderStatus.Auth> AuthStatus(SwiftURL executable, IReadOnlyDictionary<string, string> environment) // :516-529
     {
         if (await SwiftTry.OptionalAsync<ShellResult>(async () => await Shell.Run(executable.Path, ["models"], environment: environment, timeout: 20)) is not { } result)
             return new ProviderStatus.Auth.Unknown();
@@ -582,27 +575,27 @@ public sealed class AntigravitySession : ProviderSession
     // MARK: - Plan limits
 
     /// <summary>Model quotas (`/usage`: weekly + 5-hour buckets per model group) and the AI credit balance
-    /// (`/credits`). Both are zero-token headless calls, so reading limits never spends quota itself. (:544-546)</summary>
-    public static async Task<PlanLimits?> ReadPlanLimits(SwiftURL executable, IReadOnlyDictionary<string, string> environment) // :547-562
+    /// (`/credits`). Both are zero-token headless calls, so reading limits never spends quota itself. (:533-535)</summary>
+    public static async Task<PlanLimits?> ReadPlanLimits(SwiftURL executable, IReadOnlyDictionary<string, string> environment) // :536-551
     {
         await using var scope = new AsyncLetScope();
-        var usageFetch = scope.Start(() => Shell.Run(executable.Path, ["-p", "/usage", "--output-format", "json"], environment: environment, timeout: 30));     // :548
-        var creditsFetch = scope.Start(() => Shell.Run(executable.Path, ["-p", "/credits", "--output-format", "json"], environment: environment, timeout: 30)); // :549
-        var usage = await SwiftTry.OptionalAsync<ShellResult>(async () => await usageFetch);     // :550
-        var credits = await SwiftTry.OptionalAsync<ShellResult>(async () => await creditsFetch); // :551
-        var windows = new List<PlanLimits.Window>(); // :552
-        if (usage is not null && SwiftText.DecodeUtf8OrNil(usage.Stdout) is { } usageText && JSONValue.Parse(usageText) is { } usageJSON) // :553-555
+        var usageFetch = scope.Start(() => Shell.Run(executable.Path, ["-p", "/usage", "--output-format", "json"], environment: environment, timeout: 30));     // :537
+        var creditsFetch = scope.Start(() => Shell.Run(executable.Path, ["-p", "/credits", "--output-format", "json"], environment: environment, timeout: 30)); // :538
+        var usage = await SwiftTry.OptionalAsync<ShellResult>(async () => await usageFetch);     // :539
+        var credits = await SwiftTry.OptionalAsync<ShellResult>(async () => await creditsFetch); // :540
+        var windows = new List<PlanLimits.Window>(); // :541
+        if (usage is not null && SwiftText.DecodeUtf8OrNil(usage.Stdout) is { } usageText && JSONValue.Parse(usageText) is { } usageJSON) // :542-544
             windows.AddRange(ParseUsage(usageJSON["command"]?["data"], fallback: usageJSON["response"]?.JSONValueString));
-        if (credits is not null && SwiftText.DecodeUtf8OrNil(credits.Stdout) is { } creditsText && JSONValue.Parse(creditsText) is { } creditsJSON // :556-559
+        if (credits is not null && SwiftText.DecodeUtf8OrNil(credits.Stdout) is { } creditsText && JSONValue.Parse(creditsText) is { } creditsJSON // :545-548
             && ParseCredits(creditsJSON["command"]?["data"], fallback: creditsJSON["response"]?.JSONValueString) is { } window)
             windows.Add(window);
-        if (windows.Count == 0) return null; // :560
-        return new PlanLimits { PlanName = null, Windows = new ValueList<PlanLimits.Window>(windows) }; // :561
+        if (windows.Count == 0) return null; // :549
+        return new PlanLimits { PlanName = null, Windows = new ValueList<PlanLimits.Window>(windows) }; // :550
     }
 
     /// <summary>The structured envelope: groups of models sharing a weekly and a 5-hour bucket. `remaining_fraction`
-    /// is what is left, so the usage panel's percent is the complement. (:564-566)</summary>
-    private static ValueList<PlanLimits.Window> ParseUsage(JSONValue? data, string? fallback) // :567-583
+    /// is what is left, so the usage panel's percent is the complement. (:553-555)</summary>
+    private static ValueList<PlanLimits.Window> ParseUsage(JSONValue? data, string? fallback) // :556-572
     {
         var windows = new List<PlanLimits.Window>();
         foreach (var group in data?["groups"]?.JSONValueArray ?? [])
@@ -620,13 +613,13 @@ public sealed class AntigravitySession : ProviderSession
                 });
             }
         }
-        if (windows.Count == 0 && fallback is { } response) windows.AddRange(ParseUsageText(response)); // :581
+        if (windows.Count == 0 && fallback is { } response) windows.AddRange(ParseUsageText(response)); // :570
         return new ValueList<PlanLimits.Window>(windows);
     }
 
     /// <summary>Older CLIs without the structured envelope: `Group&lt;TAB&gt;Bucket&lt;TAB&gt;95%&lt;TAB&gt;&lt;ISO
-    /// date&gt;` rows, where the percent is what remains. (:585-586)</summary>
-    private static List<PlanLimits.Window> ParseUsageText(string response) // :587-603
+    /// date&gt;` rows, where the percent is what remains. (:574-575)</summary>
+    private static List<PlanLimits.Window> ParseUsageText(string response) // :576-592
     {
         var windows = new List<PlanLimits.Window>();
         foreach (var line in SwiftString.ComponentsSeparatedByNewlines(response))
@@ -648,7 +641,7 @@ public sealed class AntigravitySession : ProviderSession
     }
 
     // provider-argv-and-handshakes.md section 10 item 10: the structured branch returns before the fallback is read.
-    private static PlanLimits.Window? ParseCredits(JSONValue? data, string? fallback) // :605-627
+    private static PlanLimits.Window? ParseCredits(JSONValue? data, string? fallback) // :594-616
     {
         if (data?["remaining_credits"]?.JSONValueInt is { } remaining)
         {
@@ -681,31 +674,31 @@ public sealed class AntigravitySession : ProviderSession
 
     /// <summary>Same row shapes as Claude's: the subject is the command, the path, the pattern or the URL, and the
     /// detail is only what qualifies it (a search folder, an MCP tool's input). The stream sends a display subset of the
-    /// parameters (`AbsolutePath`, `TargetFile`, `SearchDirectory`, ...), never the edit content. (:631-635)</summary>
-    private ToolCall MakeToolCall(string name, JSONValue parameters) // :636-676
+    /// parameters (`AbsolutePath`, `TargetFile`, `SearchDirectory`, ...), never the edit content. (:620-624)</summary>
+    private ToolCall MakeToolCall(string name, JSONValue parameters) // :625-665
     {
         var kind = Kind(name);
         var path = Path(parameters) is { } found ? ToolTitles.RelativePath(found, WorkingDirectory) : null;
         switch (kind)
         {
-            case ToolCall.Kind.Command: // :640-642
+            case ToolCall.Kind.Command: // :629-631
             {
                 var command = String(parameters, ["CommandLine", "command", "Command"]) is { } line ? ToolTitles.UnwrapShell(line) : null;
                 return new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = command ?? Humanize(name) };
             }
-            case ToolCall.Kind.Read: // :643-646
+            case ToolCall.Kind.Read: // :632-635
             {
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Read, Title = path ?? String(parameters, ["Url", "URL", "url"]) ?? Humanize(name) };
                 if (path is not null && LineRange(parameters) is { } range) call = call with { Detail = range };
                 return call;
             }
-            case ToolCall.Kind.Edit: // :647-650
+            case ToolCall.Kind.Edit: // :636-639
             {
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Edit, Title = path ?? Humanize(name) };
                 if (path is not null) call = call with { Edits = new ValueList<FileEdit>([new FileEdit(path)]) };
                 return call;
             }
-            case ToolCall.Kind.Search: // :651-658
+            case ToolCall.Kind.Search: // :640-647
             {
                 var pattern = String(parameters, ["Query", "query", "Pattern", "pattern"]);
                 var folder = String(parameters, ["SearchPath", "SearchDirectory", "DirectoryPath", "Path", "path"]) is { } directory
@@ -713,24 +706,24 @@ public sealed class AntigravitySession : ProviderSession
                 if (pattern is not null) return new ToolCall { ToolCallKind = ToolCall.Kind.Search, Title = pattern, Detail = folder };
                 return new ToolCall { ToolCallKind = ToolCall.Kind.Search, Title = folder ?? Humanize(name) };
             }
-            case ToolCall.Kind.Web: // :659-661
+            case ToolCall.Kind.Web: // :648-650
             {
                 var subject = String(parameters, ["Url", "URL", "url", "query", "Query"]);
                 return new ToolCall { ToolCallKind = ToolCall.Kind.Web, Title = subject ?? Humanize(name) };
             }
-            case ToolCall.Kind.Agent: // :662-664
+            case ToolCall.Kind.Agent: // :651-653
             {
                 var task = String(parameters, ["Task", "task", "Prompt", "prompt", "Description", "description"]);
                 return new ToolCall { ToolCallKind = ToolCall.Kind.Agent, Title = task is not null ? TextCleanup.SingleLine(task, limit: 96) : Humanize(name) };
             }
-            case ToolCall.Kind.Mcp: // :665-669
+            case ToolCall.Kind.Mcp: // :654-658
             {
                 var server = String(parameters, ["ServerName", "server_name", "Server", "server"]) ?? "MCP";
                 var tool = String(parameters, ["ToolName", "tool_name", "Tool", "tool"]) ?? "tool";
                 var input = parameters["Arguments"] ?? parameters["arguments"] ?? parameters["Input"] ?? new JSONValue.Null();
                 return new ToolCall { ToolCallKind = ToolCall.Kind.Mcp, Title = $"{server} \U000000B7 {tool}", Detail = input.IsNull ? null : input.CompactString }; // U+00B7 MIDDLE DOT
             }
-            case ToolCall.Kind.Other: // :670-674
+            case ToolCall.Kind.Other: // :659-663
             {
                 var call = new ToolCall { ToolCallKind = ToolCall.Kind.Other, Title = Humanize(name) };
                 var detail = parameters.IsNull ? null : parameters.CompactString;
@@ -743,7 +736,7 @@ public sealed class AntigravitySession : ProviderSession
         }
     }
 
-    private static ToolCall.Kind Kind(string name) => name switch // :678-702
+    private static ToolCall.Kind Kind(string name) => name switch // :667-691
     {
         "run_command" or "send_command_input" or "command_status" or "wait" or "wait_5_seconds" or "schedule"
             => ToolCall.Kind.Command,
@@ -767,13 +760,13 @@ public sealed class AntigravitySession : ProviderSession
         _ => ToolCall.Kind.Other,
     };
 
-    private static string? Path(JSONValue parameters) => // :704-709
+    private static string? Path(JSONValue parameters) => // :693-698
         String(parameters, [
             "AbsolutePath", "TargetFile", "NotebookPath", "FilePath", "File", "file", "path", "Path",
             "DirectoryPath", "directory", "dir",
         ]);
 
-    private static string? String(JSONValue parameters, IReadOnlyList<string> keys) // :711-716
+    private static string? String(JSONValue parameters, IReadOnlyList<string> keys) // :700-705
     {
         foreach (var key in keys)
         {
@@ -782,8 +775,8 @@ public sealed class AntigravitySession : ProviderSession
         return null;
     }
 
-    /// <summary>"L12-40" (with an en dash) when a read names a line window, so partial reads read as such. (:718)</summary>
-    private static string? LineRange(JSONValue parameters) // :719-723
+    /// <summary>"L12-40" (with an en dash) when a read names a line window, so partial reads read as such. (:707)</summary>
+    private static string? LineRange(JSONValue parameters) // :708-712
     {
         if (parameters["StartLine"]?.JSONValueInt is not { } start) return null;
         var startText = start.ToString(System.Globalization.CultureInfo.InvariantCulture);
@@ -792,14 +785,14 @@ public sealed class AntigravitySession : ProviderSession
         return $"L{startText}";
     }
 
-    private static string Humanize(string name) // :725-729
+    private static string Humanize(string name) // :714-718
     {
         var words = SwiftString.Split(name, "_");
         if (words.Count == 0) return name;
         return string.Join(" ", new[] { Capitalized(words[0]) }.Concat(words.Skip(1)));
     }
 
-    // Foundation `String.capitalized` (:405 `effort.capitalized`, :728 `first.capitalized`): the first character of
+    // Foundation `String.capitalized` (:394 `effort.capitalized`, :717 `first.capitalized`): the first character of
     // each word upper-cased and every other character lower-cased, a word being delimited by whitespace (NSString
     // capitalizedString). Every call site here passes one word with no whitespace.
     private static string Capitalized(string text)

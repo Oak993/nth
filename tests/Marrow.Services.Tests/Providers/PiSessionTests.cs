@@ -9,7 +9,11 @@ using Marrow.Testing;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/PiSession.swift (B2 1fbf81e), :1-654.
+// Source: DroppyCode/Services/Providers/PiSession.swift (B3 52bc7926), :1-610. B3 delta (lane L3f): the
+// PR-PROVCLI-275, PR-PROVCLI-276 and PR-PROVCLI-299 tests below now exercise the shared PendingReplies wire
+// (Core/Support/PendingReplies.cs, N1) instead of this file's own continuation dictionary; citations elsewhere
+// in this file are re-pinned to the B3 line numbers, and a few whose code moved to SessionSupport.cs (N7) or
+// ProviderSession.cs cite that file too.
 //
 // Tests for unit Services.Providers.PiSession part 1 of 2 (PR-PROVCLI-267 to 291): the launch path (the
 // resume-file check, the gate and extension setup, the argument vector, the environment, the process launch,
@@ -24,7 +28,7 @@ namespace Marrow.Services.Tests.Providers;
 // session-grant auto-allow, the three-option approval row, didClose's turn/exit reporting, and isRunning's three
 // flags. Most of these dispatch through the internal Handle(...) with no live process; didClose is reached
 // through the internal DidClose(...) seam and a turn is put in flight through the internal TestBeginTurn(...)
-// seam (a no-Swift-twin subset of send()'s state at :179-186, since send() itself requires a live process).
+// seam (a no-Swift-twin subset of send()'s state at :180-187, since send() itself requires a live process).
 public sealed class PiSessionTests
 {
     // See ClaudeSessionTests for why a "file" URL is wrong on this platform for SwiftURL.Path: build from a
@@ -112,7 +116,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-267 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-267")] // PiSession.swift:71,82-84
+    [Trait("Req", "PR-PROVCLI-267")] // PiSession.swift:72,83-85
     public async Task Start_throws_when_the_resume_id_file_is_gone_and_normalizes_an_empty_resume_id_to_a_fresh_start()
     {
         using var runtime = new TestRuntime();
@@ -131,7 +135,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-268 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-268")] // PiSession.swift:85-90
+    [Trait("Req", "PR-PROVCLI-268")] // PiSession.swift:86-91
     public async Task Start_installs_the_extension_and_writes_a_fresh_gate_file_before_launch()
     {
         using var runtime = new TestRuntime();
@@ -155,7 +159,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-269 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-269")] // PiSession.swift:92-93
+    [Trait("Req", "PR-PROVCLI-269")] // PiSession.swift:93-94
     public async Task Start_argument_vector_fixes_the_approve_flag_at_launch_from_the_runtime_mode()
     {
         using var runtime = new TestRuntime();
@@ -182,7 +186,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-270 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-270")] // PiSession.swift:94-96
+    [Trait("Req", "PR-PROVCLI-270")] // PiSession.swift:95-97
     public async Task Start_splits_a_slashed_model_id_and_omits_the_flags_otherwise()
     {
         using var runtime = new TestRuntime();
@@ -207,7 +211,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-271 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-271")] // PiSession.swift:97-99
+    [Trait("Req", "PR-PROVCLI-271")] // PiSession.swift:98-100
     public async Task Start_appends_thinking_only_for_one_of_the_seven_known_levels()
     {
         using var runtime = new TestRuntime();
@@ -225,7 +229,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-272 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-272")] // PiSession.swift:100
+    [Trait("Req", "PR-PROVCLI-272")] // PiSession.swift:101
     public async Task Start_appends_session_with_the_resume_path_last()
     {
         using var runtime = new TestRuntime();
@@ -240,7 +244,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-273 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-273")] // PiSession.swift:102-110
+    [Trait("Req", "PR-PROVCLI-273")] // PiSession.swift:103-111
     public async Task Start_sets_exactly_the_gate_and_version_check_keys_unconditionally()
     {
         using var runtime = new TestRuntime();
@@ -255,7 +259,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-273")] // PiSession.swift:109-110
+    [Trait("Req", "PR-PROVCLI-273")] // PiSession.swift:110-111
     public async Task Start_sets_the_claude_mcp_config_key_only_when_its_file_exists()
     {
         using var runtime = new TestRuntime();
@@ -273,7 +277,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-274 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-274")] // PiSession.swift:112-133
+    [Trait("Req", "PR-PROVCLI-274")] // PiSession.swift:113-134
     public async Task Start_launch_failure_is_reported_with_the_prefixed_message()
     {
         using var runtime = new TestRuntime();
@@ -295,7 +299,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-274")] // PiSession.swift:5-6,112-133; packet requires a CRLF stand-in
+    [Trait("Req", "PR-PROVCLI-274")] // PiSession.swift:5-6,113-134; packet requires a CRLF stand-in
     public async Task Start_reads_crlf_delimited_handshake_response_lines()
     {
         using var runtime = new TestRuntime();
@@ -316,7 +320,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-275 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-275")] // PiSession.swift:135-156
+    [Trait("Req", "PR-PROVCLI-275")] // PiSession.swift:136-157
     public async Task Start_handshakes_with_get_state_then_get_commands_and_no_initialize()
     {
         using var runtime = new TestRuntime();
@@ -340,7 +344,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-275")] // PiSession.swift:139-143
+    [Trait("Req", "PR-PROVCLI-275")] // PiSession.swift:140-144
     public async Task Start_falls_back_to_sessionId_when_sessionFile_is_absent_and_emits_empty_ready_when_neither_is_present()
     {
         using var runtime = new TestRuntime();
@@ -357,7 +361,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-276 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-276")] // PiSession.swift:257-276
+    [Trait("Req", "PR-PROVCLI-276")] // PiSession.swift:258-270
     public async Task Request_returns_null_with_no_process_and_numbers_ids_from_droppy_1()
     {
         var session = new PiSession(new SessionConfiguration
@@ -373,7 +377,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-276")] // PiSession.swift:268-273
+    [Trait("Req", "PR-PROVCLI-276")] // PiSession.swift:266; Core/Support/PendingReplies.swift:21-29 (B3: the 30s timeout moved into PendingReplies.Register)
     public async Task Request_resolves_null_after_thirty_seconds_when_no_response_arrives()
     {
         using var runtime = new TestRuntime();
@@ -393,10 +397,41 @@ public sealed class PiSessionTests
         Assert.Empty(events.OfType<ProviderEvent.Commands>()); // the timed-out get_commands produced no commands
     }
 
+    // B3 delta (N1): PendingReplies.Register checks the caller's own cancellation before calling send, so an
+    // already-cancelled caller resolves null without writing a line at all, though the id number is still used
+    // up (requestCounter incremented before the check). This did not exist at B2, whose own request(_:) had no
+    // cancellation handling of any kind, so there is no earlier version of this test.
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-276")] // PiSession.swift:262-266; Core/Support/PendingReplies.swift:17
+    public void Request_from_an_already_cancelled_caller_resolves_null_and_writes_no_line()
+    {
+        using var runtime = new TestRuntime();
+        using var storage = new StorageScratchFolder(); // MCPPaths.ClaudeConfigURL reads Storage.Root (R-TEST-9)
+        var script = new PiScript("request-already-cancelled");
+        script.Reply(0, "{\"type\":\"response\",\"id\":\"droppy-1\",\"data\":{}}");
+        script.Reply(1, "{\"type\":\"response\",\"id\":\"droppy-2\",\"data\":{}}");
+        var (session, _) = Make(Config(script));
+        runtime.Loop.Enqueue(() => _ = session.Start());
+        runtime.Loop.RunUntil(() => script.StdinLines().Count == 2, TimeSpan.FromSeconds(20));
+
+        JSONValue? result = null;
+        var handle = MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(5));
+            result = await session.Request(JSONValue.FromDictionaryLiteral(("type", "get_state")));
+        });
+        runtime.RunUntilIdle();
+        handle.Cancel(); // cancelled before the sleep ever finishes: Register sees an already-cancelled caller
+        runtime.RunUntilIdle();
+
+        Assert.IsType<JSONValue.Null>(result);
+        Assert.Equal(2, script.StdinLines().Count); // still just the handshake's two lines: the cancelled request wrote nothing
+    }
+
     // ---- PR-PROVCLI-277 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-277")] // PiSession.swift:162-164,278-288
+    [Trait("Req", "PR-PROVCLI-277")] // PiSession.swift:163-165,272-282
     public async Task Send_rewrites_the_gate_before_every_turn_with_the_camelCase_raw_values()
     {
         using var runtime = new TestRuntime();
@@ -426,7 +461,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-279 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-279")] // PiSession.swift:159-161
+    [Trait("Req", "PR-PROVCLI-279")] // PiSession.swift:160-162
     public async Task Send_throws_notRunning_before_start_and_failed_while_a_turn_is_active()
     {
         var session = new PiSession(new SessionConfiguration
@@ -449,7 +484,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-279")] // PiSession.swift:165-174
+    [Trait("Req", "PR-PROVCLI-279")] // PiSession.swift:166-175
     public async Task Send_switches_model_on_a_slashed_change_and_refetches_the_context_window()
     {
         using var runtime = new TestRuntime();
@@ -482,7 +517,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-279")] // PiSession.swift:175-178
+    [Trait("Req", "PR-PROVCLI-279")] // PiSession.swift:176-179
     public async Task Send_switches_thinking_level_only_for_a_changed_known_effort()
     {
         using var runtime = new TestRuntime();
@@ -501,7 +536,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-280 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-280")] // PiSession.swift:179-200
+    [Trait("Req", "PR-PROVCLI-280")] // PiSession.swift:180-201
     public async Task Send_resets_turn_state_writes_the_prompt_with_images_and_emits_turnStarted_after_the_write()
     {
         using var runtime = new TestRuntime();
@@ -533,7 +568,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-280")] // PiSession.swift:188-190
+    [Trait("Req", "PR-PROVCLI-280")] // PiSession.swift:189-191
     public async Task Send_omits_the_images_key_when_no_attachment_is_a_readable_image()
     {
         using var runtime = new TestRuntime();
@@ -552,7 +587,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-281 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-281")] // PiSession.swift:202-205
+    [Trait("Req", "PR-PROVCLI-281")] // PiSession.swift:203-206
     public async Task Interrupt_sends_abort_unconditionally_and_sets_the_flag_with_no_process()
     {
         var session = new PiSession(new SessionConfiguration
@@ -574,7 +609,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-282 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-282")] // PiSession.swift:207-210
+    [Trait("Req", "PR-PROVCLI-282")] // PiSession.swift:208-211
     public async Task Compact_requires_a_running_session_and_sends_a_bare_compact_line()
     {
         var session = new PiSession(new SessionConfiguration
@@ -599,7 +634,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-283 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-283")] // PiSession.swift:212-222
+    [Trait("Req", "PR-PROVCLI-283")] // PiSession.swift:213-223
     public async Task Stop_terminates_the_process_and_deletes_the_gate_file()
     {
         using var runtime = new TestRuntime();
@@ -616,7 +651,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-284 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-284")] // PiSession.swift:224
+    [Trait("Req", "PR-PROVCLI-284")] // PiSession.swift:225
     public async Task StopAgent_always_returns_false()
     {
         var session = new PiSession(new SessionConfiguration
@@ -633,7 +668,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-285 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-285")] // PiSession.swift:226-240,290-296
+    [Trait("Req", "PR-PROVCLI-285")] // PiSession.swift:227-241; ProviderSession.swift:222-229 (B3: ApprovalRequest.Kind.grantKey, moved out of this file)
     public async Task ResolveApproval_sends_the_role_string_and_grants_a_session_key_for_approveAlways()
     {
         using var runtime = new TestRuntime();
@@ -664,7 +699,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-285")] // PiSession.swift:229-237
+    [Trait("Req", "PR-PROVCLI-285")] // PiSession.swift:230-238
     public async Task ResolveApproval_sends_Deny_for_decline_cancel_and_an_unknown_option()
     {
         using var runtime = new TestRuntime();
@@ -682,7 +717,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-286 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-286")] // PiSession.swift:242-253
+    [Trait("Req", "PR-PROVCLI-286")] // PiSession.swift:243-254
     public async Task AnswerQuestion_shapes_the_reply_by_emptiness_confirm_or_plain_value()
     {
         using var runtime = new TestRuntime();
@@ -711,7 +746,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-287 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-287")] // PiSession.swift:302-309
+    [Trait("Req", "PR-PROVCLI-287")] // PiSession.swift:288-294
     public void Handle_a_response_with_no_pending_id_and_a_failed_prompt_command_ends_the_turn()
     {
         var (session, events) = Make(new SessionConfiguration
@@ -733,7 +768,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-287")] // PiSession.swift:331-338
+    [Trait("Req", "PR-PROVCLI-287")] // PiSession.swift:313-320
     public void Handle_compaction_and_retry_and_extension_error_notices_use_the_exact_wording()
     {
         var (session, events) = Make(new SessionConfiguration
@@ -759,7 +794,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-287")] // PiSession.swift:341-343
+    [Trait("Req", "PR-PROVCLI-287")] // PiSession.swift:323-325
     public void Handle_ignores_an_unknown_message_type()
     {
         var (session, events) = Make(new SessionConfiguration
@@ -777,7 +812,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-288 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-288")] // PiSession.swift:37-38,313,361,521
+    [Trait("Req", "PR-PROVCLI-288")] // PiSession.swift:37-38,64-65,476 (B3: the id-format closures moved into init, called from stream.AppendMessage/AppendThinking at :333,:336)
     public void Ids_are_namespaced_by_an_eight_character_launchID_with_m_t_and_plan_shapes()
     {
         var (session, events) = Make(new SessionConfiguration
@@ -801,7 +836,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-289 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-289")] // PiSession.swift:346-368
+    [Trait("Req", "PR-PROVCLI-289")] // PiSession.swift:328-339
     public void HandleUpdate_mints_ids_on_first_delta_only_and_accumulates_text_and_thinking()
     {
         var (session, events) = Make(new SessionConfiguration
@@ -823,7 +858,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-289")] // PiSession.swift:369-380
+    [Trait("Req", "PR-PROVCLI-289")] // PiSession.swift:340-351
     public void HandleUpdate_reports_usage_from_totalTokens_or_the_four_fallback_pairs()
     {
         var (session, events) = Make(new SessionConfiguration
@@ -853,7 +888,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-290 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-290")] // PiSession.swift:384-404
+    [Trait("Req", "PR-PROVCLI-290")] // PiSession.swift:355-375
     public void HandleMessageEnd_ignores_non_assistant_and_prefers_joined_content_blocks_over_the_streamed_text()
     {
         var (session, events) = Make(new SessionConfiguration
@@ -875,7 +910,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-290")] // PiSession.swift:393-396
+    [Trait("Req", "PR-PROVCLI-290")] // PiSession.swift:364-367
     public void HandleMessageEnd_emits_reasoningCompleted_only_for_non_blank_accumulated_thinking()
     {
         var (session, events) = Make(new SessionConfiguration
@@ -895,7 +930,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-291 ----
 
     [Theory]
-    [Trait("Req", "PR-PROVCLI-291")] // PiSession.swift:415-422
+    [Trait("Req", "PR-PROVCLI-291")] // PiSession.swift:386-393
     [InlineData("bash", ToolCall.Kind.Command)]
     [InlineData("read", ToolCall.Kind.Read)]
     [InlineData("edit", ToolCall.Kind.Edit)]
@@ -921,7 +956,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-291")] // PiSession.swift:412-413,496-500
+    [Trait("Req", "PR-PROVCLI-291")] // PiSession.swift:383-384; SessionSupport.swift:9-11,36-40 (B3: EditSnapshots.Capture's own Read, moved out of this file)
     public void HandleToolStart_snapshots_a_write_targets_file_before_the_call()
     {
         var folder = CreateTestFolder("snapshot");
@@ -950,7 +985,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-291")] // PiSession.swift:426-446
+    [Trait("Req", "PR-PROVCLI-291")] // PiSession.swift:397-417
     public void HandleToolStart_titles_bash_and_mcp_and_default_tools()
     {
         var (session, events) = Make(new SessionConfiguration
@@ -993,7 +1028,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-292 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:451-455
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:422-426
     public void HandleToolEnd_completed_uses_result_content_text()
     {
         var (session, events) = Make2();
@@ -1007,7 +1042,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:456-459
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:427-430
     public void HandleToolEnd_an_error_starting_with_the_decline_prefix_reads_declined()
     {
         var (session, events) = Make2();
@@ -1019,7 +1054,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:458-459
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:429-430
     public void HandleToolEnd_an_error_without_the_prefix_reads_failed()
     {
         var (session, events) = Make2();
@@ -1030,7 +1065,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:455
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:426
     public void HandleToolEnd_isError_reads_only_the_boolean_true()
     {
         var (session, events) = Make2();
@@ -1042,7 +1077,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:460
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:431
     public void HandleToolEnd_exitCode_comes_from_result_details()
     {
         var (session, events) = Make2();
@@ -1053,7 +1088,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:465
+    [Trait("Req", "PR-PROVCLI-292")] // PiSession.swift:436
     public void HandleToolEnd_empty_output_yields_a_null_output()
     {
         var (session, events) = Make2();
@@ -1066,7 +1101,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-293 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:472-476,486-493
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:443-447,458-465
     public void EditDiff_edit_builds_a_whole_file_diff_and_never_relativizes_the_path()
     {
         var (session, events) = Make2();
@@ -1082,7 +1117,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:412-413,477-480,496-500
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:383-384,448-452; SessionSupport.swift:9-11,13-15,21-23,36-40 (B3: EditSnapshots, moved out of this file)
     public void EditDiff_write_uses_the_pre_call_snapshot_and_removes_it_as_consumed()
     {
         var dir = CreateTestFolder("editdiff");
@@ -1109,7 +1144,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:479
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:450-451
     public void EditDiff_write_without_a_snapshot_treats_the_old_side_as_empty()
     {
         var (session, events) = Make2();
@@ -1120,7 +1155,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:478
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:449
     public void EditDiff_write_missing_content_yields_no_edits()
     {
         var (session, events) = Make2();
@@ -1130,7 +1165,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:473
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:444
     public void EditDiff_edit_missing_path_yields_no_edits()
     {
         var (session, events) = Make2();
@@ -1140,7 +1175,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:481-483
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:453-455
     public void EditDiff_an_unhandled_tool_name_yields_no_edits()
     {
         var (session, events) = Make2();
@@ -1150,7 +1185,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:489-490
+    [Trait("Req", "PR-PROVCLI-293")] // PiSession.swift:461-462
     public void EditDiff_drops_every_empty_line_on_both_sides()
     {
         var (session, events) = Make2();
@@ -1163,7 +1198,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-294 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:513-522
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:468-477
     public void FinishTurn_plan_mode_with_no_error_publishes_the_plan_then_completes()
     {
         var (session, events) = Make2();
@@ -1180,7 +1215,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:518-519,525-526
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:473-474,480-481
     public void FinishTurn_an_errored_plan_mode_turn_publishes_no_plan()
     {
         var (session, events) = Make2();
@@ -1195,7 +1230,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:519,523-524
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:474,478-479
     public async Task FinishTurn_interrupted_reports_interrupted_and_publishes_no_plan()
     {
         var (session, events) = Make2();
@@ -1211,7 +1246,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:514
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:469
     public void FinishTurn_with_no_active_turn_emits_nothing()
     {
         var (session, events) = Make2();
@@ -1220,7 +1255,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:519
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:474
     public void FinishTurn_outside_plan_mode_publishes_no_plan()
     {
         var (session, events) = Make2();
@@ -1233,7 +1268,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:520
+    [Trait("Req", "PR-PROVCLI-294")] // PiSession.swift:475
     public void FinishTurn_a_blank_last_reply_publishes_no_plan()
     {
         var (session, events) = Make2();
@@ -1248,7 +1283,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-295 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:542-556
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:497-511
     public void HandleExtensionUI_confirm_emits_a_yes_no_question_with_a_pi_header()
     {
         var (session, events) = Make2();
@@ -1266,7 +1301,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:544
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:499
     public void HandleExtensionUI_confirm_prompt_joins_title_and_message_dropping_empties()
     {
         var (session, events) = Make2();
@@ -1275,8 +1310,8 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:543,549
-    [Trait("Req", "UI-PROVCLI-012")] // PiSession.swift:549
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:498,504
+    [Trait("Req", "UI-PROVCLI-012")] // PiSession.swift:504
     public void HandleExtensionUI_confirm_defaults_the_header_and_title_to_pi()
     {
         var (session, events) = Make2();
@@ -1287,8 +1322,8 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:557-569
-    [Trait("Req", "UI-PROVCLI-012")] // PiSession.swift:562-563
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:512-524
+    [Trait("Req", "UI-PROVCLI-012")] // PiSession.swift:517-518
     public void HandleExtensionUI_input_and_editor_allow_other_text_with_a_pi_header()
     {
         var (session, events) = Make2();
@@ -1311,7 +1346,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:570-576
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:525-531
     public void HandleExtensionUI_notify_maps_the_three_levels_and_defaults_the_message()
     {
         var (session, events) = Make2();
@@ -1329,7 +1364,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:577-581
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:532-536
     public void HandleExtensionUI_ignores_the_four_named_ui_methods_and_any_other_method()
     {
         var (session, events) = Make2();
@@ -1339,7 +1374,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:536-537
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:491-492
     public void HandleExtensionUI_with_no_id_or_no_method_is_ignored()
     {
         var (session, events) = Make2();
@@ -1350,7 +1385,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:536-538
+    [Trait("Req", "PR-PROVCLI-295")] // PiSession.swift:491-493
     public void HandleExtensionUI_reads_the_id_from_requestId_and_falls_back_to_the_message_for_params()
     {
         var (session, events) = Make2();
@@ -1370,7 +1405,7 @@ public sealed class PiSessionTests
                 ("options", options is null ? JSONValue.FromArrayLiteral() : new JSONValue.Array(new ValueList<JSONValue>(options.Select(o => (JSONValue)new JSONValue.String(o))))))));
 
     /// <summary>The "droppy-gate " title an approved tool call carries, built from JSONValue so its embedded
-    /// JSON is always well-formed (PiSession.swift:602-609).</summary>
+    /// JSON is always well-formed (PiSession.swift:557-564).</summary>
     private static string GateTitle(string kind, string toolName, string toolCallId, JSONValue? input = null) =>
         "droppy-gate " + JSONValue.FromDictionaryLiteral(("kind", kind), ("toolName", toolName),
             ("toolCallId", toolCallId), ("input", input ?? JSONValue.FromDictionaryLiteral())).CompactString;
@@ -1378,7 +1413,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-296 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:584-601
+    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:539-556
     public void HandleSelect_a_non_gate_title_becomes_a_plain_question_from_the_string_options()
     {
         var (session, events) = Make2();
@@ -1395,7 +1430,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:586
+    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:541
     public void HandleSelect_a_non_string_option_is_dropped_by_compactMap()
     {
         var (session, events) = Make2();
@@ -1408,7 +1443,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:587
+    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:542
     public void HandleSelect_a_malformed_gate_payload_degrades_to_a_plain_question()
     {
         var (session, events) = Make2();
@@ -1419,7 +1454,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:587
+    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:542
     public void HandleSelect_the_gate_prefix_requires_its_trailing_space()
     {
         var (session, events) = Make2();
@@ -1429,7 +1464,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:587,602-609
+    [Trait("Req", "PR-PROVCLI-296")] // PiSession.swift:542,557-564
     public void HandleSelect_a_well_formed_gate_payload_reads_its_fields_as_written()
     {
         var (session, events) = Make2();
@@ -1444,7 +1479,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-297 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-297")] // PiSession.swift:602-606
+    [Trait("Req", "PR-PROVCLI-297")] // PiSession.swift:557-561
     public void HandleSelect_a_granted_kind_auto_allows_with_no_prompt_and_no_event()
     {
         var (session, events) = Make2();
@@ -1458,7 +1493,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-297")] // PiSession.swift:603,290-296
+    [Trait("Req", "PR-PROVCLI-297")] // PiSession.swift:558; ProviderSession.swift:222-229 (B3: ApprovalRequest.Kind.grantKey, moved out of this file)
     public void HandleSelect_a_grant_matches_only_the_exact_kind_string()
     {
         var (session, events) = Make2();
@@ -1474,7 +1509,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-298 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:628-633
+    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:583-588
     public void HandleSelect_the_approval_options_are_always_exactly_three_in_order()
     {
         var (session, events) = Make2();
@@ -1488,7 +1523,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:613-615
+    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:568-570
     public void HandleSelect_a_command_kind_row_has_a_raw_command_detail()
     {
         var (session, events) = Make2();
@@ -1499,7 +1534,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:616-618
+    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:571-573
     public void HandleSelect_a_fileChange_kind_row_has_a_relative_title_and_a_raw_path_detail()
     {
         var dir = CreateTestFolder("filechange");
@@ -1521,7 +1556,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:619-621
+    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:574-576
     public void HandleSelect_a_tool_kind_row_has_a_pretty_printed_input_detail()
     {
         var (session, events) = Make2();
@@ -1534,7 +1569,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:621
+    [Trait("Req", "PR-PROVCLI-298")] // PiSession.swift:576
     public void HandleSelect_a_tool_kind_row_has_no_detail_for_null_or_empty_input()
     {
         var (session, events) = Make2();
@@ -1549,7 +1584,7 @@ public sealed class PiSessionTests
     // ---- PR-PROVCLI-299 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:638-644,650-651
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:593-600,606-607
     // PA-0008: the bounded-tail collector itself (Core/Support/Shell.swift:244-321) is tested at ShellTests;
     // this test proves only DidClose's own branching over that tail.
     public void DidClose_an_active_turn_reports_failed_with_a_null_error_when_the_stderr_tail_is_empty()
@@ -1565,7 +1600,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:641-643
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:597-599
     public async Task DidClose_an_interrupted_active_turn_reports_interrupted()
     {
         var (session, events) = Make2();
@@ -1579,7 +1614,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:645
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:601
     public void DidClose_after_stop_still_reports_the_turn_but_suppresses_the_exit()
     {
         var (session, events) = Make2();
@@ -1591,7 +1626,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:647-648
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:603-604
     public void DidClose_a_zero_status_with_no_active_turn_exits_cleanly()
     {
         var (session, events) = Make2();
@@ -1601,7 +1636,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:649-651
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:605-607
     public void DidClose_a_nonzero_status_formats_the_signed_status_in_the_exit_message()
     {
         var (session, events) = Make2();
@@ -1610,10 +1645,37 @@ public sealed class PiSessionTests
         Assert.Equal("Pi exited with status -1", exited.Error);
     }
 
+    // B3 delta (N1): at 1.7.0, DidClose's first statement releases every waiting request through the shared
+    // PendingReplies, so a request still waiting when pi exits returns at once instead of hanging for the rest
+    // of its 30 second timeout. This did not exist at B2 (the old per-file continuation dictionary was only
+    // ever drained by its own 30 second Task, never by didClose), so there is no earlier version of this test.
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-299")] // PiSession.swift:594
+    [Trait("Req", "PR-PROVCLI-276")] // PiSession.swift:266
+    public async Task DidClose_resolves_a_still_waiting_request_with_null_at_once_instead_of_after_thirty_seconds()
+    {
+        using var runtime = new TestRuntime();
+        var script = new PiScript("didclose-releases-pending-request");
+        var (session, _, startedScript, _) = await Started(runtime, script);
+
+        Task<JSONValue>? pending = null;
+        runtime.Loop.Enqueue(() => pending = session.Request(JSONValue.FromDictionaryLiteral(("type", "get_state"))));
+        runtime.RunUntilIdle();
+        // The extra request (droppy-3, after the handshake's droppy-1/droppy-2) must actually reach the real
+        // child's stdin before didClose can matter: its own background reader is not on this manual loop.
+        runtime.Loop.RunUntil(() => startedScript.StdinLines().Count == 3, TimeSpan.FromSeconds(20));
+        Assert.False(pending!.IsCompleted); // no reply was ever scripted for this line
+
+        runtime.Loop.Enqueue(() => session.DidClose(1)); // pi exits mid-request, with no reply queued
+        runtime.RunUntilIdle();
+        var value = runtime.Loop.Run(() => pending!, TimeSpan.FromSeconds(5)); // resolves without advancing the clock
+        Assert.IsType<JSONValue.Null>(value);
+    }
+
     // ---- PR-PROVCLI-300 ----
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-300")] // PiSession.swift:74
+    [Trait("Req", "PR-PROVCLI-300")] // PiSession.swift:75
     public void IsRunning_is_false_before_start_even_conceptually()
     {
         var (session, _) = Make2();
@@ -1621,7 +1683,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-300")] // PiSession.swift:74 - no process means false, even when started and not stopped
+    [Trait("Req", "PR-PROVCLI-300")] // PiSession.swift:75 - no process means false, even when started and not stopped
     public void IsRunning_is_false_when_started_but_no_process_is_attached()
     {
         var (session, _) = Make2();
@@ -1630,7 +1692,7 @@ public sealed class PiSessionTests
     }
 
     [Fact]
-    [Trait("Req", "PR-PROVCLI-300")] // PiSession.swift:74
+    [Trait("Req", "PR-PROVCLI-300")] // PiSession.swift:75
     public void IsRunning_is_false_after_stop()
     {
         var (session, _) = Make2();
@@ -1645,8 +1707,8 @@ public sealed class PiSessionTests
     // (R-TEST-8): proven through the compiled Pi stand-in, driving both branches of the ordinal comparison.
 
     [Fact]
-    [Trait("Req", "UI-PROVCLI-010")] // PiSession.swift:248,551
-    [Trait("Req", "UI-PROVCLI-011")] // PiSession.swift:248,551
+    [Trait("Req", "UI-PROVCLI-010")] // PiSession.swift:249,506
+    [Trait("Req", "UI-PROVCLI-011")] // PiSession.swift:249,506
     public async Task AnswerQuestion_confirm_maps_exactly_Yes_to_true_and_anything_else_to_false()
     {
         using var runtime = new TestRuntime();
