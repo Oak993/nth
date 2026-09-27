@@ -154,10 +154,10 @@ public sealed class ProviderRegistryRefreshTests
         var registry = MakeRegistry(runtime, settings);
 
         Assert.False(registry.Status(ProviderKind.Codex).IsChecking); // no probe has run yet: no entry at all
-        var task = registry.Refresh(ProviderKind.Codex);
+        var task = runtime.Loop.Run(() => Task.FromResult(registry.Refresh(ProviderKind.Codex)));
         await Task.Delay(30); // the synchronous set (:360-361) happens before the first awaited probe returns
         Assert.True(registry.Status(ProviderKind.Codex).IsChecking);
-        await task;
+        await Task.Run(() => runtime.Loop.Run(() => task));
         Assert.False(registry.Status(ProviderKind.Codex).IsChecking); // cleared only by the replacing status (:377)
     }
 
@@ -167,7 +167,7 @@ public sealed class ProviderRegistryRefreshTests
     {
         using var runtime = new TestRuntime();
         var registry = MakeRegistry(runtime, new FakeProviderSettings());
-        await registry.Refresh(ProviderKind.Deepseek);
+        await Task.Run(() => runtime.Loop.Run(() => registry.Refresh(ProviderKind.Deepseek)));
         var status = registry.Status(ProviderKind.Deepseek);
         Assert.Equal(new ProviderStatus.Auth.SignedOut(), status.ProviderStatusAuth);
         Assert.False(status.ApiKeyConfigured);
@@ -186,12 +186,12 @@ public sealed class ProviderRegistryRefreshTests
         var script = ProviderProbeStandIns.CopyFor("stale").SetStdout("codex-cli 1.4.0\n").SetExitCode(0);
         settings.Paths[ProviderKind.Codex] = script.ExecutablePath;
         var registry = MakeRegistry(runtime, settings);
-        await registry.Refresh(ProviderKind.Codex);
+        await Task.Run(() => runtime.Loop.Run(() => registry.Refresh(ProviderKind.Codex)));
         Assert.NotNull(registry.Status(ProviderKind.Codex).Executable);
         Assert.Equal("1.4.0", registry.Status(ProviderKind.Codex).Version);
 
         settings.Paths[ProviderKind.Codex] = Path.Combine(TempDir(), "gone.exe"); // now unresolvable
-        await registry.Refresh(ProviderKind.Codex);
+        await Task.Run(() => runtime.Loop.Run(() => registry.Refresh(ProviderKind.Codex)));
         var status = registry.Status(ProviderKind.Codex);
         Assert.Equal(new ProviderStatus(), status); // fully default: version and auth are discarded, not kept
     }
@@ -206,7 +206,7 @@ public sealed class ProviderRegistryRefreshTests
         var script = ProviderProbeStandIns.CopyFor("sequence").SetStdout("codex-cli 2.0.0, logged in\n").SetExitCode(0);
         settings.Paths[ProviderKind.Codex] = script.ExecutablePath;
         var registry = MakeRegistry(runtime, settings);
-        await registry.Refresh(ProviderKind.Codex);
+        await Task.Run(() => runtime.Loop.Run(() => registry.Refresh(ProviderKind.Codex)));
 
         var calls = script.RecordedCalls();
         Assert.Equal(2, calls.Count); // exactly two launches
