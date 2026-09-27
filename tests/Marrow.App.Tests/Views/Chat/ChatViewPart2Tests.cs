@@ -67,6 +67,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
+            using var presentation = Presentation.Presenter.Override(new RecordingPresenter()); // R-VIEW-9: real Popup unavailable in headless.
             var model = harness.MakeModel();
             Control emptyMenu = null!, filledMenu = null!;
             harness.Main.OnMain(() =>

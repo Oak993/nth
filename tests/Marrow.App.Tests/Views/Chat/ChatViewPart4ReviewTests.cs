@@ -20,6 +20,40 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
 {
     private static ThreadRuntime Runtime(AppModel model, Project project) => model.Runtime(model.NewThread(project)!.Id);
 
+    // STOP App.Views.Chat.ChatView #5
+    // Kind: missing dependency / native style metrics.
+    // Swift: App/Views/Chat/ChatView.swift:1582-1584,1672-1673,1681-1682.
+    // Records: UI-GIT-035, UI-TERM-024, UI-TERM-026 (also PR-TERM-076).
+    // The theme-less port has no common roundedBorder TextField or small ProgressView template.
+    // Keep the source style kind and small-control-size metadata, and draw the text/interaction already defined;
+    // leave the native bezel and spinner styling unwritten. Do not invent their metric values.
+    // Needed: a shared primitive or an approved native-control metric mapping/oracle. Fonts/validation are independent.
+
+    [Fact]
+    [Trait("Req", "UI-TERM-023")] // App/Views/Chat/ChatView.swift:1667-1699
+    [Trait("Req", "UI-TERM-028")] // App/Views/Chat/ChatView.swift:1701-1707
+    public void Adding_a_script_keeps_existing_card_identity_and_the_source_plus_symbol()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                var project = model.AddProject(new Project("P", h.NewFolder("project")).Url) with { Scripts = new ValueList<ProjectScript>([new ProjectScript("Build", "make")]) };
+                model.UpdateProject(project.Id, _ => project);
+                var editor = new ScriptsEditor(model, project.Id, () => { });
+                var original = LogicalQuery.SelfAndDescendants<TextBox>(editor).Single(t => t.PlaceholderText == "Name");
+                var add = ChatGitFixtures.Button(editor, "Add script");
+                ChatGitFixtures.Click(add);
+                Assert.Same(original, LogicalQuery.SelfAndDescendants<TextBox>(editor).First(t => t.PlaceholderText == "Name")); // R-VIEW-1 keyed ForEach.
+                var symbol = typeof(Marrow.App.Port.ChatDialogControls).GetMethod("GetSymbol");
+                Assert.NotNull(symbol);
+                Assert.Equal("plus", symbol.Invoke(null, [add])); // :1705 Label("Add script", systemImage: "plus").
+            });
+        });
+    }
+
     [Theory]
     [InlineData(0, "Generated commit")]
     [InlineData(1, "Keep my message")]
