@@ -3,6 +3,8 @@ using System.Globalization;
 using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
@@ -6031,6 +6033,289 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // fill/shadow tests below call ApplyDraggedLift directly by reflection on a synthetic Border. This part (8 of 8,
     // the unit's last) closes without wiring that assembly, so the record's end-to-end, on-screen proof waits on a
     // follow-up unit (STOP #8).
+
+    // Window critical path: assembled rows, not synthetic row builders.
+    private static Control LiveThreadRow(ChatThread thread, string? projectName = null, bool dragged = false,
+        object? listFrame = null, Action? fold = null) =>
+        (Control)Activator.CreateInstance(Private("SidebarThreadRow"), thread, projectName, null,
+            Activator.CreateInstance(Private("SidebarMenuRequests")), (Action)(() => { }), (Action)(() => { }),
+            dragged, listFrame, fold)!;
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")] // App/Views/Sidebar/SidebarView.swift:1716-1872
+    public void An_assembled_thread_row_selects_and_shows_hover_actions_and_the_pinned_selection_tint() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Pinned thread", 0) with { IsPinned = true };
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = LiveThreadRow(thread, fold: () => { });
+            row.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+            Assert.Equal(28, row.Bounds.Height); // :2069 Chrome.rowHeight
+            Assert.Contains(thread.Title, Texts(row));
+            Assert.Empty(LogicalQuery.SelfAndDescendants<RowActionsButton>(row)); // :1723, :1774 idle
+            var shape = (Border)Field(row, "shape")!;
+            Assert.Equal(Chrome.Danger.Opacity(0.10).Resolve(shape.ActualThemeVariant), ((ISolidColorBrush)shape.Background!).Color); // :1751
+            Click((Button)Field(row, "selectButton")!); // :1737
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(thread.Id, model.SelectedThreadID);
+            var peer = ControlAutomationPeer.CreatePeerForElement((Control)Field(row, "selectButton")!)!;
+            Assert.Equal(AutomationControlType.Button, peer.GetAutomationControlType());
+            Assert.True(((ISelectionItemProvider)peer).IsSelected); // :1871
+            var tint = (Border)Field(row, "pinnedOverlay")!;
+            Assert.Equal(Chrome.Danger.Opacity(0.06).Resolve(tint.ActualThemeVariant), ((ISolidColorBrush)tint.Background!).Color); // :1756-1758
+            window.MouseMove(row.TranslatePoint(new Point(15, 14), window)!.Value);
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Single(LogicalQuery.SelfAndDescendants<RowActionsButton>(row)); // :1785
+            Assert.NotNull(ButtonNamed(row, "Hide helpers")); // :1805-1813
+            window.Hide();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")] // App/Views/Sidebar/SidebarView.swift:1723-1729,1763-1771,1834-1849,1863-1872
+    [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:1838-1849
+    public void A_real_dragged_row_suppresses_hover_accessories_and_finish_requests_pop_its_check() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Dragged", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.SettleSound = false;
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+            row = LiveThreadRow(thread, dragged: true, fold: () => { });
+            var window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+            Assert.Equal(1.02, ((ScaleTransform)((Control)Field(row, "overlays")!).RenderTransform!).ScaleX); // :1847
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Empty(LogicalQuery.SelfAndDescendants<RowActionsButton>(row)); // :1723 !isDragged
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(row), b => AutomationProperties.GetName(b) == "Hide helpers");
+            model.AppModelFinishRequest = new AppModel.FinishRequest(thread.Id, false); // :1863-1867
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Null(model.AppModelFinishRequest);
+            Assert.True(model.Thread(thread.Id)!.IsSettled);
+            Assert.True((bool)Get(Field(row, "state")!, "IsSettling")!);
+            Assert.Contains(LogicalQuery.SelfAndDescendants<SwiftImage>(row), glyph => glyph.RenderTransform is ScaleTransform { ScaleX: 1.35 }); // :2132
+            WindowOf(row).Hide();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-134")] // App/Views/Sidebar/SidebarView.swift:1820-1833,1903-1905,2433-2440
+    public void Window_frame_reports_are_gated_and_a_matching_arrival_lands_in_window_coordinates() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Landing", 0);
+        var model = Model(harness, [project], [thread]);
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = LiveThreadRow(thread);
+            window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+            Assert.Equal(default(Rect), Get(Field(row, "windowFrame")!, "Frame")); // idle frame deliberately stale
+            animator.Launch(thread.Id, RowGlideAnimator.Glide.Direction.Reopen, new Rect(0, 300, 200, 24),
+                new Rect(0, -28, 200, 28), new Rect(0, 0, 200, 400), new FaceSample(200, 24), new FaceSample(200, 28), 0, 0);
+            row.Margin = new Thickness(0, 20, 0, 0); // a genuine geometry change while a glide is in flight
+            window.UpdateLayout();
+        });
+        harness.Main.OnMain(() =>
+        {
+            var frame = Frame(row, window);
+            Assert.Equal(frame, Get(Field(row, "windowFrame")!, "Frame"));
+            var flight = Assert.Single(animator.Glides);
+            Assert.True(flight.HasLanded);
+            Assert.Equal(frame, flight.To);
+            Assert.Equal(0, row.Opacity); // :1834 hiding is instant
+            animator.Arrive(flight.Id);
+        });
+        harness.Main.OnMain(() =>
+        {
+            harness.Main.Advance(TimeSpan.FromSeconds(1));
+            Assert.Equal(1, row.Opacity); // :1835-1838 reveal over 0.12s
+            window.Hide();
+        });
+    });
+
+    [Theory]
+    [InlineData(null, 28)]
+    [InlineData("Alpha", 48)]
+    [Trait("Req", "PR-SIDEBAR-135")] // App/Views/Sidebar/SidebarView.swift:1912-1916,1933-1978
+    public void A_real_settled_row_reopens_with_two_faces_and_the_destination_height(string? projectName, double height) => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Reopen", 0) with { IsSettled = true };
+        var model = Model(harness, [project], [thread]);
+        var animator = new RowGlideAnimator(new RenderingGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            var listFrame = Activator.CreateInstance(Private("FrameHolder"))!;
+            SetProp(listFrame, "Frame", new Rect(10, 40, 200, 400));
+            row = LiveThreadRow(thread, projectName, listFrame: listFrame);
+            var window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+        });
+        harness.Main.OnMain(() => Click(ButtonNamed(row, "Reopen thread")));
+        harness.Main.OnMain(() =>
+        {
+            Assert.False(model.Thread(thread.Id)!.IsSettled);
+            var glide = Assert.Single(animator.Glides);
+            Assert.Equal(24, glide.Departure.Size.Height); // settled departing face
+            Assert.Equal(height, glide.Arrival.Size.Height); // 48 detailed / 28 compact
+            Assert.Equal(40 - height, glide.To.Y); // one destination height above the list
+            Assert.Equal(height, glide.To.Height);
+            Assert.Equal(RowGlideAnimator.Glide.Direction.Reopen, glide.GlideDirection);
+            WindowOf(row).Hide();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-135")] // App/Views/Sidebar/SidebarView.swift:1934 guard let listFrame else { return }
+    public void A_popover_row_reopens_without_a_glide() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Reopen", 0) with { IsSettled = true };
+        var model = Model(harness, [project], [thread]);
+        var animator = new RowGlideAnimator(new FakeGeniePlatform()); // throws if a render is attempted
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = LiveThreadRow(thread);
+            Hosted(model, row);
+            Click(ButtonNamed(row, "Reopen thread"));
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.False(model.Thread(thread.Id)!.IsSettled);
+            Assert.Empty(animator.Glides);
+            WindowOf(row).Hide();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")] // App/Views/Sidebar/SidebarView.swift:1776-1783,1988-1999
+    public void The_real_hover_archive_button_launches_a_genie_and_archives() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Archive", 0);
+        var model = Model(harness, [project], [thread]);
+        var animator = new GenieAnimator(new RenderingGeniePlatform());
+        using var shared = GenieAnimator.Shared.Override(animator);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Archive;
+            row = LiveThreadRow(thread);
+            var window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+        });
+        harness.Main.OnMain(() => Click(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => Equals(ToolTip.GetTip(b), "Archive thread"))));
+        harness.Main.OnMain(() =>
+        {
+            Assert.True(model.Thread(thread.Id)!.IsArchived);
+            Assert.Single(animator.Flights);
+            WindowOf(row).Hide();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:703-712
+    public void Actual_search_rows_are_compact_selectable_and_cannot_start_a_reorder() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Needle", 0);
+        var model = Model(harness, [project], [thread]);
+        SidebarView view = null!;
+        harness.Main.OnMain(() => { view = Attached(model); SearchBox(view).Text = "Needle"; });
+        harness.Main.OnMain(() =>
+        {
+            WindowOf(view).UpdateLayout();
+            var row = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarThreadRow"));
+            Assert.Equal(28, row.Bounds.Height);
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<ProjectIconMark>(row), _ => true);
+            Assert.DoesNotContain("Alpha", Texts(row));
+            var window = WindowOf(view);
+            var point = row.TranslatePoint(new Point(12, 12), window)!.Value;
+            window.MouseDown(point, MouseButton.Left);
+            window.MouseMove(point + new Vector(0, 12)); // exceeds :129 minimumDistance 4
+            Assert.Null(Drag(view).Id); // :137 isEnabled query.isEmpty
+            window.MouseUp(point + new Vector(0, 12), MouseButton.Left);
+            Click((Button)Field(row, "selectButton")!);
+            Assert.Equal(thread.Id, model.SelectedThreadID);
+            window.Hide();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-056")] // App/Views/Sidebar/SidebarView.swift:347-375,1622-1632
+    public void The_real_list_dispatches_helpers_cards_and_stubs_and_they_follow_a_dragged_parent() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        harness.Main.OnMain(() =>
+        {
+            var helperRow = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarHelperRow"));
+            Assert.Contains("Helper", Texts(helperRow));
+            SetProp(Field(view, "state")!, "Drag", new RowDrag<Guid> { Id = parent.Id, Translation = 17 });
+        });
+        harness.Main.OnMain(() =>
+        {
+            var helperRow = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarHelperRow"));
+            var riding = helperRow.GetVisualAncestors().OfType<Control>().First(c => c.RenderTransform is TranslateTransform);
+            Assert.Equal(17, ((TranslateTransform)riding.RenderTransform!).Y);
+            Assert.Equal(1, riding.ZIndex);
+            model.UpdateThread(parent.Id, t => t.WithFoldsHelpers(true));
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Single(LogicalQuery.SelfAndDescendants<Control>(view), c => c.GetType() == Private("HelperStubRow"));
+            model.UpdateThread(parent.Id, t => t.WithFoldsHelpers(false));
+            model.UpdateThread(helper.Id, t => t with { Hydra = HeadHelper(project, parent.Id, 0, 1).Hydra });
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Single(LogicalQuery.SelfAndDescendants<Control>(view), c => c.GetType() == Private("HeadCardsRow"));
+            WindowOf(view).Hide();
+        });
+    });
 
     // ---- UI-SIDEBAR-060: the release spring dragEnded's write runs inside ----
 
