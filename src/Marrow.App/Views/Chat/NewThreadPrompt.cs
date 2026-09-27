@@ -15,7 +15,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/NewThreadPrompt.swift (B2 1fbf81e), :1-81.
+// Source: DroppyCode/App/Views/Chat/NewThreadPrompt.swift (B3 52bc792), :1-81.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; `@Environment(AppModel.self)` is
 // read from the environment, not passed in.
 
@@ -52,20 +52,19 @@ public sealed class NewThreadPrompt : Decorator
             line.Children.Add(MakeText("What should we build?")); // :40
         }
 
-        // :43-46 the whole line's font, color and single-line clamp. .minimumScaleFactor(0.6) has no direct
-        // Avalonia twin (auto-shrinking text to fit) and is not reproduced; ENGINEERING GAP, only reachable with
-        // an unusually long project name.
+        // :43-46 the whole line's font, color, single-line clamp and minimumScaleFactor(0.6) (ED-214).
         foreach (var child in line.Children)
             if (child is TextBlock text)
             {
                 SwiftFont.System(28, SwiftFont.Weight.Regular).Apply(text);
                 text.Foreground = Chrome.PrimaryText.Brush(text);
                 text.MaxLines = 1;
+                text.TextTrimming = TextTrimming.CharacterEllipsis;
             }
 
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 26, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         stack.Children.Add(icon);
-        stack.Children.Add(line);
+        stack.Children.Add(TextScaling.Apply(line, 0.6)); // :46 also reaches the text inside the project-name button.
 
         var content = new Border { Padding = new Thickness(40, 0), Child = stack };
         HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -90,7 +89,7 @@ public sealed class NewThreadPrompt : Decorator
     // :23-38 the project name button, its dotted underline and its picker popover
     private Control MakeProjectNameButton(AppModel model, Guid threadID, string projectName)
     {
-        var text = new TextBlock { Text = projectName, MaxLines = 1 }; // :28-29 Text(verbatim: projectName)
+        var text = new TextBlock { Text = projectName, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :28-29 Text(verbatim: projectName)
         SwiftFont.System(28, SwiftFont.Weight.Regular).Apply(text); // :43 the whole line shares one font
         text.Foreground = Chrome.PrimaryText.Brush(text); // :44
         var underline = new Line

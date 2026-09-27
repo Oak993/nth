@@ -328,9 +328,13 @@ public sealed class UpdateReleaseSectionCards : Decorator
         HorizontalAlignment = HorizontalAlignment.Stretch;
     }
 
+    // :202 fixedSize(horizontal: false, vertical: true).
+    protected override Size MeasureOverride(Size availableSize) =>
+        PlainControls.MeasureFixed(this, Child, availableSize, horizontal: false, vertical: true);
+
     private Button BuildCard(ReleaseNoteCategory category, UpdateReleaseNotesDigest.Section? section)
     {
-        var icon = SwiftImage.Named(category.AssetName)
+        var icon = SwiftImage.Named(category.AssetName) // :214 original-color artwork bundled by ED-215.
             .Resizable()
             .Interpolation(BitmapInterpolationMode.HighQuality)
             .AspectRatio(ContentMode.Fit);
@@ -343,9 +347,11 @@ public sealed class UpdateReleaseSectionCards : Decorator
             MaxLines = 1,
             TextWrapping = TextWrapping.NoWrap,
             HorizontalAlignment = HorizontalAlignment.Center,
+            TextAlignment = TextAlignment.Center, // :228 inherited multilineTextAlignment(.center).
         };
         SwiftFont.System(12.5, weight: SwiftFont.Weight.Medium).Apply(title);
         title.Foreground = Chrome.PrimaryText.Brush(title);
+        title.TextTrimming = TextTrimming.CharacterEllipsis; // :226 one-line Text uses tail truncation.
 
         var count = new TextBlock
         {
@@ -353,9 +359,11 @@ public sealed class UpdateReleaseSectionCards : Decorator
             MaxLines = 1,
             TextWrapping = TextWrapping.NoWrap,
             HorizontalAlignment = HorizontalAlignment.Center,
+            TextAlignment = TextAlignment.Center, // :228 inherited by both texts.
         };
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(count);
         count.Foreground = Chrome.SecondaryText.Brush(count);
+        count.TextTrimming = TextTrimming.CharacterEllipsis; // :226 one-line Text uses tail truncation.
 
         var labelStack = new StackPanel
         {
@@ -364,10 +372,11 @@ public sealed class UpdateReleaseSectionCards : Decorator
             HorizontalAlignment = HorizontalAlignment.Stretch,
             Children = { icon, title, count },
         };
+        var scaledLabels = TextScaling.Apply(labelStack, 0.8); // :227 VStack minimumScaleFactor reaches both texts (ED-214).
         var surface = new Border
         {
             Padding = new Thickness(8, 12),
-            Child = labelStack,
+            Child = scaledLabels,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
         }.RoundedRectangle(14, RoundedCornerStyle.Continuous);
@@ -394,7 +403,7 @@ internal sealed class UpdateReleaseSectionPopover : Decorator
 {
     public UpdateReleaseSectionPopover(UpdateReleaseNotesDigest.Section section, string version)
     {
-        var headerIcon = SwiftImage.Named(section.Category.AssetName)
+        var headerIcon = SwiftImage.Named(section.Category.AssetName) // :261 the same ED-215 release artwork.
             .Resizable()
             .Interpolation(BitmapInterpolationMode.HighQuality)
             .AspectRatio(ContentMode.Fit);
@@ -949,10 +958,13 @@ internal sealed class AboutVersionPill : Decorator
         bool IsChecking,
         DateTimeOffset? LastCheckedAt,
         string? LastError,
-        UpdateInstallProgress.Phase Phase);
+        UpdateInstallProgress.Phase Phase,
+        bool ReduceMotion);
 
     private readonly UpdateChecker checker;
     private readonly UpdateInstallProgress progress;
+    private bool? previousReady;
+    private SwiftColor? previousIconTint;
 
     public AboutVersionPill()
     {
@@ -968,7 +980,11 @@ internal sealed class AboutVersionPill : Decorator
         checker.IsChecking,
         checker.LastCheckedAt,
         checker.LastError,
-        progress.UpdateInstallProgressPhase);
+        progress.UpdateInstallProgressPhase,
+        EnvironmentValues.GetAccessibilityReduceMotion(this));
+
+    // :635 fixedSize; :660 fixed horizontal label, :662-663 exact capsule height including its padding.
+    protected override Size MeasureOverride(Size availableSize) => PlainControls.MeasureFixed(this, Child, availableSize);
 
     private Control Build(Snapshot snapshot)
     {
@@ -1001,11 +1017,20 @@ internal sealed class AboutVersionPill : Decorator
         }
 
         var isReady = snapshot.UpdateAvailable && snapshot.Update is not null;
+        var wasReady = previousReady;
+        previousReady = isReady;
+        var animation = wasReady is not null && wasReady != isReady && !snapshot.ReduceMotion ? Animation.EaseInOut(0.18) : null; // :671
+        var fromReady = animation is null ? isReady : wasReady == true;
         var standing = ResolveStanding(snapshot);
         var iconName = isReady ? "arrow.down.circle.fill" : Symbol(standing);
-        var icon = SwiftImage.SystemName(iconName)
-            .Font(Chrome.InlineIconFont)
-            .ForegroundStyle(isReady ? Chrome.Blue : Tint(standing));
+        var icon = SwiftImage.SystemName(iconName).Font(Chrome.InlineIconFont);
+        var iconTint = isReady ? Chrome.Blue : Tint(standing);
+        var fromIconTint = previousIconTint ?? iconTint;
+        var iconColor = new AnimatedColor(icon);
+        iconColor.Set(animation is null ? iconTint : fromIconTint, null);
+        iconColor.Set(iconTint, animation);
+        icon.Foreground = iconColor.Brush;
+        previousIconTint = iconTint;
         var title = new TextBlock
         {
             Text = isReady ? "Update & restart" : Title(standing),
@@ -1014,7 +1039,10 @@ internal sealed class AboutVersionPill : Decorator
             VerticalAlignment = VerticalAlignment.Center,
         };
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(title);
-        title.Foreground = (isReady ? Chrome.Blue : Chrome.PrimaryText).Brush(title);
+        var titleColor = new AnimatedColor(title);
+        titleColor.Set(fromReady ? Chrome.Blue : Chrome.PrimaryText, null);
+        titleColor.Set(isReady ? Chrome.Blue : Chrome.PrimaryText, animation);
+        title.Foreground = titleColor.Brush;
 
         var label = new StackPanel
         {
@@ -1026,12 +1054,29 @@ internal sealed class AboutVersionPill : Decorator
         var face = new Border
         {
             Padding = new Thickness(Chrome.CapsuleHorizontalPadding, Chrome.CapsuleVerticalPadding),
-            MinHeight = Chrome.CapsuleContentHeight + Chrome.CapsuleVerticalPadding * 2,
+            Height = Chrome.CapsuleContentHeight + Chrome.CapsuleVerticalPadding * 2,
             Child = label,
         };
         face.Capsule(RoundedCornerStyle.Continuous);
-        if (isReady)
-            face.Background = Chrome.Blue.Opacity(0.2).Brush(face);
+        var fill = new AnimatedColor(face);
+        fill.Set(Chrome.Blue.Opacity(fromReady ? 0.2 : 0), null);
+        fill.Set(Chrome.Blue.Opacity(isReady ? 0.2 : 0), animation);
+        face.Background = fill.Brush; // :666-671 the source's animated ready wash, nil animation under Reduce Motion.
+        if (animation is not null)
+        {
+            // Newly rebuilt children acquire their inherited theme on attachment. AnimatedColor resets
+            // on that change, so start the :671 animation after the entire subtree inherits its theme.
+            face.AttachedToVisualTree += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                if (TopLevel.GetTopLevel(face) is null) return;
+                iconColor.Set(fromIconTint, null);
+                iconColor.Set(iconTint, animation);
+                titleColor.Set(fromReady ? Chrome.Blue : Chrome.PrimaryText, null);
+                titleColor.Set(isReady ? Chrome.Blue : Chrome.PrimaryText, animation);
+                fill.Set(Chrome.Blue.Opacity(fromReady ? 0.2 : 0), null);
+                fill.Set(Chrome.Blue.Opacity(isReady ? 0.2 : 0), animation);
+            });
+        }
 
         var button = PlainControls.Button(face, () =>
         {

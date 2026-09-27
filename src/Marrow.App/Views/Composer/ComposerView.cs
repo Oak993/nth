@@ -35,7 +35,7 @@ namespace Marrow.App.Views.Composer;
 // Binding<T>, and file URLs are path strings. NSRange is a (Location, Length) pair of UTF-16 offsets. Swift private
 // top-level declarations remain internal, preserving every declared type and existing public signature.
 // All five B3 parts have been audited against pinned 1.7.0. The native chooser is behind ComposerFileDialog for
-// isolated tests. STOP #6 leaves only the missing ModelEffortButton content and chip-style calls unwritten; #7 leaves
+// isolated tests. The ModelEffortButton and chip-style sites are implemented; STOP #7 leaves
 // surviving chip/approval layout movement unanimated pending foundation support; #8 records ProviderRegistry's
 // missing notifications; #9 records the SlashCommand.Suggestions dependency after inherited cross-unit code removal.
 // Diff popup and suggestion popup headless limits are documented in tests (STOP #3/#5). ED-180/181/182 retain the
@@ -1225,8 +1225,7 @@ internal sealed class ComposerControls : Decorator
             if (recentDownloadsPicker) showingRecents.Value = !showingRecents.Value; // :628-629
             else onChooseFiles(); // :631
         });
-        // STOP #6: :637 .chip(active:) belongs to UI.Common.Components, whose ChipButtonStyleHelper is empty.
-        // Only that styling site is unwritten; the action, label and presentation below are source behavior.
+        attach.Chip(showingRecents.Value); // :637 .buttonStyle(.chip(active: showingRecents)).
         attach.Focusable = false; // :638
         ToolTip.SetTip(attach, "Attach files"); // :639
         AutomationProperties.SetName(attach, "Attach files"); // :640
@@ -1234,6 +1233,7 @@ internal sealed class ComposerControls : Decorator
         var presented = false;
         attach.Track(() => showingRecents.Value, shown =>
         {
+            attach.Chip(shown); // :637 read the same binding as the popover, including external dismissal.
             if (shown == presented) return;
             presented = shown;
             if (shown) popup.Child = new DownloadsPopover(
@@ -1298,8 +1298,9 @@ internal sealed class ModelEffortSlot : Decorator
     // :683-685 the view's inputs; :687-689 body
     public ModelEffortSlot(ThreadRuntime runtime, ChatThread thread, bool compact)
     {
-        // STOP #6: :688 ModelEffortButton(thread, !runtime.Turns.IsEmpty, compact) is MARROW_STUB in EffortSlider.cs.
-        // This single dependency site remains unwritten; no replacement model chip or canned content is supplied.
+        Child = new ModelEffortButton(thread, runtime.Turns.Count > 0, compact); // :688
+        this.Track(() => runtime.Turns.Count > 0,
+            hasHistory => Child = new ModelEffortButton(thread, hasHistory, compact)); // :688 the slot alone reads turns.
     }
 }
 
