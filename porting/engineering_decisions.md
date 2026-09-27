@@ -1385,3 +1385,57 @@ assertion holds regardless of whatever a developer's shell happens to have set.
 ENGINEERING DECISION; not a deviation (no Swift source declares or reads this variable); not present in a Release
 build, which never compiles the `#if DEBUG` branch. `E:/Droppy/work/b3/DEV_LAUNCH.md` gives the manual launch and
 cleanup steps this decision exists for.
+ED-213 [UI] GraphicsContext `.plusLighter` path drawing (sweep-A STOP #5; PR-COMPOSER-138). SOURCE FACT: EffortSlider.swift is
+the only pinned file that sets `.plusLighter` (:1278 `plasma.blendMode = .plusLighter`, :1320 `glow.blendMode = .plusLighter`), inside
+the fusion drawing (:1232-1335): path layers that are blurred (:1279 radius 2.5, :1321 radius 7) and clipped (:1282
+`plasma.clip(to: Path(side))`). Apple documents kCGBlendModePlusLighter as R = MIN(1, S + D) on premultiplied colour. Avalonia's
+DrawingContext has no per-drawing blend mode for vector paths, so the site was left unwritten. DECISION: the fusion drawing runs as an
+Avalonia ICustomDrawOperation on the Skia lease (ISkiaSharpApiLeaseFeature), the pattern ShaderLibrary.cs's
+GenieDistortionOperation already uses. Each GraphicsContext copy that sets `.plusLighter` becomes an SKCanvas save layer composited
+with SKBlendMode.Plus (the same saturating per-channel add). Its blur is a Skia Gaussian whose standard deviation is the SwiftUI
+radius, the convention EffortSlider's other blurred layers already follow through CometPainter.GaussianBlur (and Wallpaper.cs's
+radius-as-sigma). Its clip is the same path through SKCanvas.ClipPath with anti-aliasing. Draw order, paths, colours and opacities
+are the Swift's, and the helper stays private to EffortSlider unless a second site appears. Tests render to an offscreen Skia surface:
+- two 0.5-alpha red plus-layers sum to 1.0 and clamp;
+- the blur spreads past the path edge;
+- the clip bounds the result.
+ENGINEERING DECISION; the exact macOS blur kernel and colour space stay UNVERIFIED under OD-0001.
+
+ED-214 [UI] Text `.minimumScaleFactor` (sweep-A STOP #6; the untracked gap at NewThreadPrompt.cs:55-57). SOURCE FACT: four pinned
+sites, each on one-line text:
+- NewThreadPrompt.swift:46 (0.6);
+- EffortSlider.swift:614 (0.85) and :648 (0.9);
+- AboutUpdateViews.swift:227 (0.8), on a VStack of two texts.
+Apple documents minimumScaleFactor as the minimum amount text scales down to fit the available space, applied before truncation, and
+as an environment value every Text inside the modified view reads. Avalonia's TextBlock has no counterpart. DECISION: one port
+primitive in Marrow.UI/Port, used at all four sites. During measure, when the proposed width is finite and the text's natural
+one-line width is larger, the font size becomes size x max(factor, available / natural). When it still does not fit at factor x
+size, the text truncates with its own trimming (tail unless the site says otherwise). The scale changes the font size, not a render
+transform, so line height and the reported height follow the scaled text. An infinite proposal never scales. Applied to a container,
+it reaches each text inside, and each text scales independently. Tests:
+- a text that fits is unchanged;
+- a slightly-too-wide text lands exactly at the fitting size;
+- a far-too-wide text lands at factor x size with an ellipsis;
+- each of the four sites carries its own factor.
+ENGINEERING DECISION; macOS's exact scale stepping stays UNVERIFIED under OD-0001.
+
+ED-215 [UI][FOUNDATION] Every asset-catalogue image the pinned Swift names is bundled. This extends ED-182's asset table, which
+held three names, droppy-logo, hydra-mark and badge-edit, plus the 25 hydra-head marks. SOURCE FACT: at B3,
+DroppyCode/Resources/Assets.xcassets holds 85 imagesets and the port bundles 28 of them. Still missing:
+- 13 provider-* images (ProviderKind.iconName; ProviderIcon, Components.swift:4-14);
+- 33 mcp-* images (the MCP catalogue marks; MCPGlyph);
+- UpdateBugFixesIcon, UpdateNewFeaturesIcon and UpdateRefinementsIcon (the AboutUpdateViews release-note cards);
+- 8 tour-* images (TourView.swift:256).
+SwiftImage.Named returns an empty image for an unknown name, so every one of those sites draws nothing and reports nothing (found
+2026-09-27 while reviewing sweep-A). PA-0012 already classes the provider and mcp marks as the app's own shipped artwork and
+reusable; UNK-0002 was resolved by OD-0002. DECISION: copy each imageset's files byte for byte into src/Marrow.UI/Assets/Images/ and
+register each under its imageset name in SwiftImage's table, following its Contents.json:
+- an SVG with preserves-vector-representation stays a vector image;
+- PNG scale variants map to Bitmap (1x) and Bitmap2x (2x);
+- template-rendering-intent "original" or "template" maps to ImageRenderingMode.Original or Template; an imageset without it
+  follows the rule ED-182 already applies.
+A test reads a manifest of every non-tour imageset name at B3, checked in beside the tests, and proves each one resolves to a
+non-empty image with the intent its Contents.json declares. The 8 tour-* screenshots are held back by OD-0027 (retaken in Marrow on Windows once it runs): they show
+macOS window controls and "DroppyCode" text (OD-0012 F1). TourView keeps a visible STOP naming OD-0027 until the captures exist.
+ENGINEERING DECISION.
+
