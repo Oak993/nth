@@ -16,6 +16,7 @@ using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
+using Marrow.Testing;
 
 namespace Marrow.App.Tests.Views.Composer;
 
@@ -23,6 +24,141 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class EffortSliderSweepTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:802-818
+    public void Releasing_a_drag_springs_from_the_drag_position_to_the_nearest_stop()
+    {
+        headless.OnUiThread(() =>
+        {
+            var time = new ManualTimeProvider();
+            var frames = new ManualFrameSource();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var chosen = 0;
+            var slider = new EffortSlider(3, new Binding<int>(() => chosen, value => chosen = value), "Low");
+            var window = Show(slider);
+            var origin = slider.TranslatePoint(default, window)!.Value;
+            var knob = Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == 42 && p.Height == 42);
+            window.MouseDown(new Point(origin.X + 100, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
+            Assert.Equal(1, Assert.IsType<ScaleTransform>(knob.RenderTransform).ScaleX); // spring begins at the resting size
+            time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
+            Assert.NotEqual(1, Assert.IsType<ScaleTransform>(knob.RenderTransform).ScaleX);
+            var draggedLeft = Canvas.GetLeft(knob);
+            window.MouseUp(new Point(origin.X + 100, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
+            Assert.Equal(draggedLeft, Canvas.GetLeft(knob)); // not a jump to the snapped centre
+            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
+            Assert.Equal(144, Canvas.GetLeft(knob)); // width330, inset21, selected1 => centre165 minus21
+            Assert.Equal(1, Assert.IsType<ScaleTransform>(knob.RenderTransform).ScaleX);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:641-650
+    [Trait("Req", "UI-COMPOSER-037")] // App/Views/Composer/EffortSlider.swift:641-650
+    [Trait("Req", "UI-COMPOSER-033")] // App/Views/Composer/EffortSlider.swift:659-683
+    [Trait("Req", "PR-COMPOSER-112")] // App/Views/Composer/EffortSlider.swift:543-555
+    public void Pair_card_uses_a_gradient_and_lifts_its_single_line_caption_by_six_points()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness(withRuntime: false);
+            var model = new AppModel();
+            var pair = new EffortPairLook(new HydraPair(ProviderKind.Codex) { WorkerEffort = "high" }, model.Providers, null);
+            var card = new EffortSliderCard("Lead", ProviderKind.Codex, new ValueList<string>(["low", "high"]), "low", true,
+                new Binding<string?>(() => "low", _ => { }), new Binding<bool>(() => true, _ => { }), () => { }, pair);
+            var window = Show(card);
+            var caption = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "The lead's effort · heads run at high effort");
+            Assert.Equal(new Thickness(0, -6, 0, 0), caption.Margin);
+            Assert.Equal(11, caption.FontSize);
+            Assert.Equal(1, caption.MaxLines);
+            var title = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "Low");
+            var gradient = Assert.IsType<LinearGradientBrush>(title.Foreground);
+            Assert.Equal(pair.Brand.TitleColors.Count + 2, gradient.GradientStops.Count); // brand + heads + fast
+            Assert.Equal(EffortPalette.Fast.Resolve(Avalonia.Styling.ThemeVariant.Light), gradient.GradientStops[^1].Color);
+            var fast = Assert.Single(card.GetVisualDescendants().OfType<FastModeButton>());
+            Assert.Equal(30, Assert.Single(fast.GetVisualDescendants().OfType<Panel>(), p => p.Width == 30).Height);
+            Assert.Equal("On", AutomationProperties.GetItemStatus(Assert.Single(fast.GetVisualDescendants().OfType<Button>())));
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-122")] // App/Views/Composer/EffortSlider.swift:626-637
+    public void Slider_binding_writes_effort_inside_the_point_two_second_snappy_transaction()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            string? effort = "low";
+            Animation? transaction = null;
+            var card = new EffortSliderCard("Model", null, new ValueList<string>(["low", "high"]), "low", false,
+                new Binding<string?>(() => effort, value => { effort = value; transaction = Transaction.Current; }),
+                new Binding<bool>(() => false, _ => { }), () => { });
+            var window = Show(card);
+            var slider = Assert.Single(card.GetVisualDescendants().OfType<EffortSlider>());
+            Assert.IsAssignableFrom<IRangeValueProvider>(ControlAutomationPeer.CreatePeerForElement(slider)).SetValue(1);
+            Assert.Equal("high", effort);
+            Assert.NotNull(transaction);
+            // The source supplies snappy(duration: 0.2); Animation.Duration is the physical spring's settling
+            // time, so compare the full record and its input parameters, not that derived settling time.
+            Assert.Equal(Animation.Snappy(0.2), transaction);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-132")] // App/Views/Composer/EffortSlider.swift:758-764,1024-1026
+    public void Pair_keeps_effect_identity_across_kind_changes_while_a_solo_track_restarts()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var selected = 0;
+            var slider = new EffortSlider(3, new Binding<int>(() => selected, _ => { }), "Low", true);
+            var window = Show(slider);
+            var before = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            selected = 2; slider.UpdateLook(true, "High", null);
+            var after = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            Assert.NotSame(before, after);
+            window.Close();
+            var pair = new EffortPairBrand(new HydraPair(ProviderKind.Codex));
+            var paired = new EffortSlider(3, new Binding<int>(() => selected, _ => { }), "High", false, pair: pair);
+            var pairWindow = Show(paired);
+            before = Assert.Single(paired.GetVisualDescendants().OfType<TrackEffect>());
+            selected = 0; paired.UpdateLook(true, "Low", pair);
+            Assert.Same(before, Assert.Single(paired.GetVisualDescendants().OfType<TrackEffect>()));
+            pairWindow.Close();
+        });
+    }
+
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-133")] // App/Views/Composer/EffortSlider.swift:1049-1050,1070-1071
+    [InlineData(TrackLook.Kind.Supercharged, false)]
+    [InlineData(TrackLook.Kind.Fast, true)]
+    public void Track_timeline_respects_the_thirty_or_sixty_hertz_interval(TrackLook.Kind kind, bool ticksAtTwentyMilliseconds)
+    {
+        headless.OnUiThread(() =>
+        {
+            var frames = new ManualFrameSource();
+            var time = new ManualTimeProvider();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var effect = new TrackEffect(new TrackLook(kind, EffortBrand.Purple));
+            var window = Show(effect);
+            window.Activate(); Dispatcher.UIThread.RunJobs();
+            var field = typeof(TrackEffect).GetField("time", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            time.Advance(TimeSpan.FromMilliseconds(20)); frames.Advance(TimeSpan.FromMilliseconds(20)); Dispatcher.UIThread.RunJobs();
+            Assert.Equal(ticksAtTwentyMilliseconds ? 0.02 : 0, (double)field.GetValue(effect)!, 6);
+            time.Advance(TimeSpan.FromMilliseconds(20)); frames.Advance(TimeSpan.FromMilliseconds(20)); Dispatcher.UIThread.RunJobs();
+            Assert.Equal(0.04, (double)field.GetValue(effect)!, 6);
+            Assert.False(effect.IsHitTestVisible);
+            Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(effect));
+            window.Close();
+        });
+    }
+
     [Theory]
     [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:59-103 (provider artwork remains STOP)
     [Trait("Req", "PR-COMPOSER-107")] // App/Views/Composer/EffortSlider.swift:82-103,142-149
@@ -42,6 +178,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             foreach (var provider in SwiftEnum<ProviderKind>.AllCases)
                 if (!provider.IsAPIKeyBased) model.Settings.SetBinaryPath(System.IO.Path.Combine(harness.Scratch, "missing.exe"), provider);
             var chip = new ModelEffortButton(thread, false, compact);
+            using var presentation = Presentation.Presenter.Override(new RecordingPresenter());
             var window = Host(chip, model);
             var button = Assert.Single(chip.GetVisualDescendants().OfType<Button>());
             Assert.Equal("custom-model-id", ToolTip.GetTip(button));
