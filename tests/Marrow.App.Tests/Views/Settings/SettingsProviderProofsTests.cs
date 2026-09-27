@@ -1,5 +1,9 @@
 using System.Diagnostics;
 using System.Reflection;
+using System.Net;
+using System.Net.Sockets;
+using System.Text;
+using System.Text.Json;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
@@ -7,6 +11,8 @@ using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Input;
+using Avalonia.Headless;
+using Marrow.Testing;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -43,13 +49,23 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     private static void Seed(AppModel model, ProviderKind kind, ProviderStatus status) => typeof(ProviderRegistry).GetProperty("Statuses")!.SetValue(model.Providers, model.Providers.Statuses.Mutating(map => map[kind] = status));
     private static ChromeRow Row(Control root, string title) => Nodes<ChromeRow>(root).Single(x => Text(x).First() == title);
     private static ProviderSettingsSection Section(Control root, ProviderKind kind) => Nodes<ProviderSettingsSection>(root).Single(x => Field<ProviderKind>(x, "provider") == kind);
-    private static Grid StatusRow(Control root) => Nodes<Grid>(root).Single(x => x.ColumnDefinitions.Count == 3);
+    private static Grid StatusRow(Control root) => Nodes<Grid>(root).Single(x => x.ColumnDefinitions.Count == 3 && x.Children.FirstOrDefault() is ProviderIcon);
     private static StackPanel Labels(Control root) => Assert.IsType<StackPanel>(StatusRow(root).Children[1]);
     private static Button Header(Control root) => Assert.Single(Nodes<Button>(Assert.Single(Nodes<CollapsibleProviderHeader>(root))));
     private static void Sync() => Avalonia.Threading.Dispatcher.UIThread.RunJobs();
     private static void Layout(Control root) { for (var i = 0; i < 5; i++) { Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(root)).UpdateLayout(); Sync(); } }
     private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-    private static void Key(Control target, Avalonia.Input.Key key) => target.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = key, Source = target });
+    private static void Key(Control target, Avalonia.Input.Key key)
+    {
+        Assert.True(target.Focus()); var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(target));
+        window.KeyPress(key, RawInputModifiers.None, PhysicalKey.Space, null); window.KeyRelease(key, RawInputModifiers.None, PhysicalKey.Space, null);
+    }
+    private static void PointerClick(Button target)
+    {
+        var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(target)); Layout(target);
+        var point = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)!.Value;
+        window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left);
+    }
     private static void Frames(AppModelHarness h, double ms) { h.Main.AdvanceMilliseconds(ms); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromMilliseconds(ms)); Sync(); }
     private static void Wait(Func<bool> done)
     {
@@ -123,10 +139,11 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         return button;
     }
     // Tests-first reflection: minimal endpoint boundary, default identity; HTTP and parsing stay production.
-    private static IDisposable Endpoints(Type api, LoopbackFeedServer server)
+    private static IDisposable Endpoints(Type api, LoopbackFeedServer server) => Endpoints(api, server.Url);
+    private static IDisposable Endpoints(Type api, Func<string, string> url)
     {
         var property = api.GetProperty("Endpoint", BindingFlags.Static | BindingFlags.NonPublic); Assert.NotNull(property);
-        return Assert.IsType<Ambient<Func<Uri, Uri>>>(property.GetValue(null)).Override(url => new Uri(server.Url(url.PathAndQuery)));
+        return Assert.IsType<Ambient<Func<Uri, Uri>>>(property.GetValue(null)).Override(endpoint => new Uri(url(endpoint.PathAndQuery)));
     }
     private static byte[] Draw(Control control)
     {
@@ -148,17 +165,18 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         var shape = Nodes<Border>(providerRow).Single(x => x.Height == 28); Assert.Equal(new CornerRadius(7), shape.CornerRadius); Assert.Equal(new Thickness(8, 0), shape.Padding);
         var title = Assert.Single(Nodes<TextBlock>(providerRow)); Assert.Equal(13, title.FontSize); Assert.Equal(FontWeight.Normal, title.FontWeight);
         Assert.Equal("cpu", Assert.Single(Nodes<SwiftImage>(providerRow)).SymbolName); Assert.Equal(8, Nodes<StackPanel>(providerRow).Single().Spacing);
-        Click(Nodes<Button>(providerRow).Single()); Sync(); Assert.Single(Nodes<ProvidersSettingsPage>(view)); Assert.Equal(14, Nodes<ProviderSettingsSection>(view).Length);
+        PointerClick(Nodes<Button>(providerRow).Single()); Sync(); Assert.Single(Nodes<ProvidersSettingsPage>(view)); Assert.Equal(14, Nodes<ProviderSettingsSection>(view).Length);
         var selected = Nodes<SidebarRow>(sidebar).Single(row => Text(row).Contains("Providers")); Assert.Equal(FontWeight.Medium, Nodes<TextBlock>(selected).Single().FontWeight);
     });
 
     [Fact]
     [Trait("Req", "UI-PROVREG-002")] // App/Views/Settings/SettingsView.swift:254-255,566-604; Services/Providers/ProviderRegistry.swift:315-333
+    [Trait("Req", "UI-PROVREG-003")] // App/Views/Settings/SettingsView.swift:254-255,585-614: scrolling keeps every eager card mounted.
     public void Refresh_is_the_only_probe_and_is_symbol_only_disabled_and_single_flight() => WithView(() => new SettingsView(), (view, model, h) =>
     {
         Assert.Empty(model.Providers.Statuses); SettingsNavigation.Shared.RequestedPage = SettingsPage.Providers; Sync();
         Layout(view); Assert.Empty(model.Providers.Statuses);
-        var scroll = Nodes<ScrollViewer>(Field<Control>(view, "detail")).Single(); scroll.Offset = new Vector(0, 240); Layout(view); Assert.Empty(model.Providers.Statuses);
+        var scroll = Nodes<ScrollViewer>(Field<Control>(view, "detail")).Single(); scroll.Offset = new Vector(0, 240); Layout(view); Assert.True(scroll.Offset.Y > 0); Assert.Equal(14, Nodes<ProviderSettingsSection>(view).Length); Assert.Empty(model.Providers.Statuses);
         var refresh = Assert.Single(Nodes<ProvidersRefreshButton>(view)); Assert.Single(Nodes<ChromeCapsule>(refresh)); Assert.Single(Nodes<ChromeIconButton>(refresh)); Assert.Empty(Text(refresh));
         var symbol = Assert.Single(Nodes<SwiftImage>(refresh)); Assert.Equal("arrow.clockwise", symbol.SymbolName); Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), SwiftImage.GetFont(symbol));
         Assert.Single(Nodes<Border>(refresh), x => x.Padding == new Thickness(3, 2));
@@ -301,7 +319,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         {
             var section = Section(view, provider); HeaderMetrics(section); Open(section, h); var toggle = Assert.Single(Nodes<SmallSwitch>(section)); Assert.Empty(Text(Assert.Single(Nodes<SettingsSwitch>(section)))); Assert.True(toggle.Focusable);
             var peer = Assert.IsAssignableFrom<IToggleProvider>(ControlAutomationPeer.CreatePeerForElement(toggle)); Assert.Equal(ToggleState.On, peer.ToggleState);
-            var raw = SwiftEnum<ProviderKind>.RawValue(provider); Assert.DoesNotContain(raw, model.Settings.DisabledProviders);
+            var raw = SwiftEnum<ProviderKind>.RawValue(provider); Assert.DoesNotContain(raw, model.Settings.DisabledProviders); Assert.Contains(provider, model.Providers.AvailableProviders);
             var before = Draw(toggle); using var png = SKBitmap.Decode(before); var expected = Chrome.AccentNSColor.Resolve(toggle.ActualThemeVariant); var pixel = png.GetPixel(5, 8); Assert.Equal(expected.R, pixel.Red); Assert.Equal(expected.G, pixel.Green); Assert.Equal(expected.B, pixel.Blue);
             Key(toggle, Avalonia.Input.Key.Space); Sync(); Assert.Equal(ToggleState.Off, peer.ToggleState); Assert.Contains(raw, model.Settings.DisabledProviders); Assert.Contains("disabledProviders", h.Defaults.Writes); Assert.DoesNotContain(provider, model.Providers.AvailableProviders);
             Key(toggle, Avalonia.Input.Key.Space); Sync(); Assert.Equal(ToggleState.On, peer.ToggleState); Assert.DoesNotContain(raw, model.Settings.DisabledProviders);
@@ -385,8 +403,8 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     public void Zai_usage_reads_real_quota_and_cards_throttles_and_posts_reset_before_two_second_reread() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
         var mode = 0;
-        using var server = new LoopbackFeedServer(request => request.Target.Contains("/use", StringComparison.Ordinal) ? CannedResponse.Json("""{"code":200,"success":true}""") : request.Target.Contains("/list", StringComparison.Ordinal) ? mode == 1 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Cards) : mode == 2 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Quota));
-        using var endpoints = Endpoints(typeof(ZaiAPI), server);
+        using var server = new BodyReadingServer(request => request.Target.Contains("/use", StringComparison.Ordinal) ? CannedResponse.Json("""{"code":200,"success":true}""") : request.Target.Contains("/list", StringComparison.Ordinal) ? mode == 1 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Cards) : mode == 2 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Quota));
+        using var endpoints = Endpoints(typeof(ZaiAPI), server.Url);
         model.Settings.SetAPIKeyInput("fixture-key-never-sent", ProviderKind.Zai);
         Seed(model, ProviderKind.Zai, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync();
         Wait(() => model.Providers.PlanLimits.ContainsKey(ProviderKind.Zai) && !model.Providers.LoadingLimits.Contains(ProviderKind.Zai));
@@ -404,9 +422,11 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Frames(h, 60000); Seed(model, ProviderKind.Zai, model.Providers.Status(ProviderKind.Zai) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync();
         Seed(model, ProviderKind.Zai, model.Providers.Status(ProviderKind.Zai) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Wait(() => server.Requests.Count == initial + 2 && !model.Providers.LoadingLimits.Contains(ProviderKind.Zai));
         var resetRow = Nodes<BankedResetRow>(section)[0]; Click(Nodes<Button>(resetRow).Single(x => Equals(x.Content, "Use reset"))); Sync(); Assert.DoesNotContain(server.Requests, x => x.Method == "POST");
-        var quotaBefore = server.Requests.Count(x => x.Target.Contains("/quota/", StringComparison.Ordinal)); var timersBefore = h.Main.Time.ActiveTimers;
+        var quotaBefore = server.Requests.Count(x => x.Target.Contains("/quota/", StringComparison.Ordinal));
+        var clock = new RecordingClock(h.Main.Time); using var recordedClock = SwiftClock.Provider.Override(clock);
         Click(Nodes<Button>(section).Single(x => Equals(x.Content, "Reset now"))); Sync();
-        Wait(() => server.Requests.Any(x => x.Method == "POST") && h.Main.Time.ActiveTimers > timersBefore);
+        Wait(() => server.Requests.Any(x => x.Method == "POST") && clock.Durations.Contains(TimeSpan.FromSeconds(2)));
+        using var body = JsonDocument.Parse(server.PostBody!); Assert.Equal("PERSONAL", body.RootElement.GetProperty("targetType").GetString()); Assert.Equal("FIVE_HOUR", body.RootElement.GetProperty("resetType").GetString()); Assert.Equal(1, body.RootElement.GetProperty("recordId").GetInt32()); Assert.True(Guid.TryParse(body.RootElement.GetProperty("requestId").GetString(), out _));
         var post = server.Requests.Single(x => x.Method == "POST"); Assert.Equal("/api/biz/customer-package-reset/use", post.Target); Assert.Equal(new[] { "Bearer fixture-key-never-sent" }, post.HeaderValues("Authorization"));
         // :178-180: actual production sleeper must retain the old quota for 1999 ms, then read at 2000 ms.
         Frames(h, 1999); Assert.Equal(quotaBefore, server.Requests.Count(x => x.Target.Contains("/quota/", StringComparison.Ordinal))); Assert.NotNull(model.Providers.RedeemingReset);
@@ -437,4 +457,146 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         model.Settings.SetAPIKeyInput("", ProviderKind.Deepseek); model.Providers.RefreshCredits(ProviderKind.Deepseek, force: true); Sync(); Assert.False(model.Providers.Credits.ContainsKey(ProviderKind.Deepseek)); Assert.DoesNotContain("$12.34", Text(section));
         Close(section, h);
     });
+    private sealed class RecordingClock(ManualTimeProvider time) : TimeProvider
+    {
+        private readonly System.Collections.Concurrent.ConcurrentQueue<TimeSpan> durations = new();
+        public TimeSpan[] Durations => durations.ToArray();
+        public override DateTimeOffset GetUtcNow() => time.GetUtcNow();
+        public override long GetTimestamp() => time.GetTimestamp();
+        public override long TimestampFrequency => time.TimestampFrequency;
+        public override ITimer CreateTimer(TimerCallback callback, object? state, TimeSpan dueTime, TimeSpan period)
+        { durations.Enqueue(dueTime); return time.CreateTimer(callback, state, dueTime, period); }
+    }
+    // R-TEST-10: loopback HTTP fixture drains POST bodies before closing the TCP connection.
+    private sealed class BodyReadingServer : IDisposable
+    {
+        private readonly TcpListener listener;
+        private readonly Func<ReceivedRequest, Task<CannedResponse?>> respond;
+        private readonly CancellationTokenSource stop = new();
+        private readonly Lock gate = new();
+        private readonly List<ReceivedRequest> requests = [];
+
+        public BodyReadingServer(Func<ReceivedRequest, Task<CannedResponse?>> respond)
+        {
+            this.respond = respond;
+            listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            Port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            _ = AcceptLoop();
+        }
+
+        public BodyReadingServer(Func<ReceivedRequest, CannedResponse?> respond)
+            : this(request => Task.FromResult(respond(request)))
+        {
+        }
+
+        public int Port { get; }
+        public string? PostBody { get; private set; }
+
+        /// <summary>An absolute http URL on this server for a path that starts with "/" (and may carry a query).</summary>
+        public string Url(string pathAndQuery) =>
+            "http://127.0.0.1:" + Port.ToString(System.Globalization.CultureInfo.InvariantCulture) + pathAndQuery;
+
+        public IReadOnlyList<ReceivedRequest> Requests
+        {
+            get { lock (gate) return requests.ToArray(); }
+        }
+
+        public void Dispose()
+        {
+            stop.Cancel();
+            listener.Stop();
+        }
+
+        private async Task AcceptLoop()
+        {
+            while (!stop.IsCancellationRequested)
+            {
+                TcpClient client;
+                try { client = await listener.AcceptTcpClientAsync(stop.Token); }
+                catch (Exception) { return; }
+                _ = Serve(client);
+            }
+        }
+
+        private async Task Serve(TcpClient client)
+        {
+            using (client)
+            {
+                try
+                {
+                    var stream = client.GetStream();
+                    var head = await ReadHead(stream);
+                    if (head is null) return;
+                    var request = Parse(head);
+                    var length = request.HeaderValues("Content-Length").FirstOrDefault();
+                    if (length is not null)
+                    {
+                        var payload = new byte[int.Parse(length, System.Globalization.CultureInfo.InvariantCulture)];
+                        await stream.ReadExactlyAsync(payload, stop.Token);
+                        if (request.Method == "POST") PostBody = Encoding.UTF8.GetString(payload);
+                    }
+                    lock (gate) requests.Add(request);
+                    var answer = await respond(request).WaitAsync(stop.Token);
+                    if (answer is null) return;
+                    await Write(stream, request, answer);
+                }
+                catch (Exception)
+                {
+                    // A client that gave up (a timeout, a cancelled request) or a disposed server ends the exchange.
+                }
+            }
+        }
+
+        private async Task<string?> ReadHead(NetworkStream stream)
+        {
+            var buffer = new List<byte>();
+            var one = new byte[1];
+            while (buffer.Count < 65536)
+            {
+                var read = await stream.ReadAsync(one, stop.Token);
+                if (read == 0) return null;
+                buffer.Add(one[0]);
+                var n = buffer.Count;
+                if (n >= 4 && buffer[n - 4] == '\r' && buffer[n - 3] == '\n' && buffer[n - 2] == '\r' && buffer[n - 1] == '\n')
+                    return Encoding.Latin1.GetString(buffer.ToArray(), 0, n - 4);
+            }
+            return null;
+        }
+
+        private static ReceivedRequest Parse(string head)
+        {
+            var lines = head.Split("\r\n");
+            var requestLine = lines[0].Split(' ');
+            var headers = new List<KeyValuePair<string, string>>();
+            foreach (var line in lines.Skip(1))
+            {
+                var colon = line.IndexOf(':', StringComparison.Ordinal);
+                if (colon <= 0) continue;
+                headers.Add(new(line[..colon].Trim(), line[(colon + 1)..].Trim()));
+            }
+            return new ReceivedRequest(requestLine[0], requestLine.Length > 1 ? requestLine[1] : "", headers);
+        }
+
+        private async Task Write(NetworkStream stream, ReceivedRequest request, CannedResponse answer)
+        {
+            var head = new StringBuilder();
+            head.Append("HTTP/1.1 ").Append(answer.Status.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append(' ')
+                .Append(answer.Reason).Append("\r\n");
+            var hasLength = false;
+            foreach (var (name, value) in answer.Headers)
+            {
+                head.Append(name).Append(": ").Append(value).Append("\r\n");
+                if (string.Equals(name, "Content-Length", StringComparison.OrdinalIgnoreCase)) hasLength = true;
+            }
+            if (!hasLength)
+                head.Append("Content-Length: ").Append(answer.Body.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)).Append("\r\n");
+            head.Append("Connection: close\r\n\r\n");
+            await stream.WriteAsync(Encoding.Latin1.GetBytes(head.ToString()), stop.Token);
+            if (!string.Equals(request.Method, "HEAD", StringComparison.Ordinal))
+                await stream.WriteAsync(answer.Body, stop.Token);
+            await stream.FlushAsync(stop.Token);
+        }
+    }
+
 }
