@@ -5,6 +5,8 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
 using Marrow.UI.Port;
 using Marrow.App.Window;
+using Marrow.App.Views.Chat;
+using Avalonia.VisualTree;
 
 namespace Marrow.App.Port;
 
@@ -23,6 +25,11 @@ internal static class ChatSheetPresentation
     public static void Show(Control? anchor, Func<Action, Control> content, Action? onDismiss = null)
     {
         anchor ??= (Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        // ChatView.swift:1456-1463,1489-1492 / R-VIEW-9. Sheet state belongs to the column,
+        // whose chrome body can re-evaluate while a sheet is open (including git.Perform).
+        if (anchor is not null)
+            anchor = anchor.GetVisualAncestors().OfType<ChatView>().FirstOrDefault()
+                ?? (Control?)anchor.GetVisualAncestors().OfType<ChatChromeRow>().FirstOrDefault() ?? anchor;
         var presenter = Presentation.Presenter.Current;
         var popup = new Popup { PlacementTarget = anchor, Placement = PlacementMode.Center, IsLightDismissEnabled = false };
         var closed = false;

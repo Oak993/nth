@@ -379,9 +379,27 @@ public sealed class ChatView : Decorator
         void Mount(FloatingPanelID id, object inputs, Func<Control> create)
         {
             wanted.Add(id);
-            if (mountedPanels.TryGetValue(id, out var prior) && Equals(prior.Inputs, inputs)) return;
-            if (prior.View is not null) Transaction.WithAnimation(null, () => RemovePanel(prior.View));
-            var control = create();
+            if (mountedPanels.TryGetValue(id, out var prior) && Equals(prior.Inputs, inputs))
+            {
+                UpdatePanelPlacement(id, (PlacedPanel)prior.View, holds);
+                return;
+            }
+            var surface = create();
+            if (prior.View is not null)
+            {
+                // Membership owns placement/grip lifetime even when the conversation's inputs change.
+                var existing = panelSurfaces[prior.View];
+                Transaction.WithAnimation(null, () =>
+                {
+                    SwiftTransition.Insert(existing.Host, 0, surface);
+                    SwiftTransition.Remove(existing.Host, existing.Surface);
+                });
+                panelSurfaces[prior.View] = (existing.Host, surface);
+                mountedPanels[id] = (prior.View, inputs);
+                UpdatePanelPlacement(id, (PlacedPanel)prior.View, holds);
+                return;
+            }
+            var control = PlacePanel(CurrentDrag(id), CurrentOrigin(id), CurrentSize(id), surface, MountedResizer(id), holds);
             control.HorizontalAlignment = HorizontalAlignment.Left;
             control.VerticalAlignment = VerticalAlignment.Top;
             mountedPanels[id] = (control, inputs);
@@ -390,17 +408,16 @@ public sealed class ChatView : Decorator
             Transaction.WithAnimation(!switching && prior.View is null ? Chrome.PanelSlide : null,
                 () => SwiftTransition.Insert(panel.Host, 0, panel.Surface));
         }
-        var size = scene.Layout.PanelSize;
         if (scene.Subagent is { } helper && scene.IsMeasured)
-            Mount(new FloatingPanelID.Subagent(), (helper, size, scene.Slots, project, holds), () => MakeSubagentPanel(helper, holds));
+            Mount(new FloatingPanelID.Subagent(), (helper, project), () => MakeSubagentPanel(helper, holds));
         if (scene.ShowsHydra)
-            Mount(new FloatingPanelID.Hydra(), (scene.Heads, size, scene.Slots, workingDirectory, project, holds), () => MakeHydraPanel(scene.Heads, new FloatingPanelID.Hydra(), hydraDrag, runtime.HydraPanelDock, holds, popped: false));
+            Mount(new FloatingPanelID.Hydra(), (workingDirectory, project), () => MakeHydraPanel(scene.Heads, new FloatingPanelID.Hydra(), hydraDrag, runtime.HydraPanelDock, holds, popped: false));
         if (scene.Popped is { } head && scene.ShowsPopped)
-            Mount(new FloatingPanelID.Popped(), (head, size, scene.Slots, workingDirectory, project, holds), () => MakeHydraPanel([head], new FloatingPanelID.Popped(), poppedDrag, runtime.HydraPoppedPanelDock, holds, popped: true));
+            Mount(new FloatingPanelID.Popped(), (head.Id, workingDirectory, project), () => MakeHydraPanel([head], new FloatingPanelID.Popped(), poppedDrag, runtime.HydraPoppedPanelDock, holds, popped: true));
         foreach (var autoHead in scene.AutoPopped)
-            Mount(new FloatingPanelID.Auto(autoHead.Id), (autoHead, size, scene.Slots, workingDirectory, project, holds), () => MakeHydraPanel([autoHead], new FloatingPanelID.Auto(autoHead.Id), autoDrags.GetValueOrDefault(autoHead.Id) ?? autoDrag, runtime.HydraPanelDock.AcrossTheColumn, holds, popped: true));
+            Mount(new FloatingPanelID.Auto(autoHead.Id), (workingDirectory, project), () => MakeHydraPanel([autoHead], new FloatingPanelID.Auto(autoHead.Id), autoDrags.GetValueOrDefault(autoHead.Id) ?? autoDrag, runtime.HydraPanelDock.AcrossTheColumn, holds, popped: true));
         if (scene.Usage is { } usage && scene.ShowsUsage)
-            Mount(new FloatingPanelID.Usage(), (usage, size, scene.UsageHeight, scene.Slots, holds), () => MakeUsagePanel(usage, holds));
+            Mount(new FloatingPanelID.Usage(), usage, () => MakeUsagePanel(usage, holds));
         foreach (var id in mountedPanels.Keys.Where(id => !wanted.Contains(id)).ToArray())
         {
             var leaving = mountedPanels[id].View; mountedPanels.Remove(id);
@@ -410,6 +427,84 @@ public sealed class ChatView : Decorator
 
     private PanelScene.PanelSlot Slot(FloatingPanelID id, PanelDockCorner fallback) =>
         scene.Slots.GetValueOrDefault(id) ?? new PanelScene.PanelSlot { Corner = fallback, Below = 0, Lift = 0 }; // :327,360,421,457,491
+
+    // :327-530,533-590 / R-VIEW-1. Placement changes never detach the conversation or its captured grip.
+    private PanelScene.PanelSlot CurrentSlot(FloatingPanelID id) => Slot(id, id switch
+    {
+        FloatingPanelID.Subagent => runtime.SubagentPanelDock,
+        FloatingPanelID.Hydra => runtime.HydraPanelDock,
+        FloatingPanelID.Popped => runtime.HydraPoppedPanelDock,
+        FloatingPanelID.Usage => model!.Settings.UsagePanelDock,
+        FloatingPanelID.Auto auto => runtime.HydraAutoPanelDocks.GetValueOrDefault(auto.Value, runtime.HydraPanelDock.AcrossTheColumn),
+        _ => runtime.HydraPanelDock,
+    });
+
+    private Point CurrentOrigin(FloatingPanelID id) => id is FloatingPanelID.Usage
+        ? UsageOrigin(CurrentSlot(id), scene) : Rest(CurrentSlot(id), scene);
+
+    private PanelDragState CurrentDrag(FloatingPanelID id) => id switch
+    {
+        FloatingPanelID.Subagent => subagentDrag,
+        FloatingPanelID.Hydra => hydraDrag,
+        FloatingPanelID.Popped => poppedDrag,
+        FloatingPanelID.Usage => usageDrag,
+        FloatingPanelID.Auto auto => autoDrags.GetValueOrDefault(auto.Value) ?? autoDrag,
+        _ => autoDrag,
+    };
+
+    private Size CurrentSize(FloatingPanelID id) => id is FloatingPanelID.Usage
+        ? new Size(scene.Layout.PanelSize.Width, scene.UsageHeight ?? scene.Layout.PanelSize.Height) : scene.Layout.PanelSize;
+
+    private PanelResize CurrentResizer(FloatingPanelID id) => id is FloatingPanelID.Usage
+        ? UsageResizer(model!, panelResize, CurrentSlot(id).Corner, scene, CurrentSize(id), PanelScene.UsageMinimumHeight)
+        : Resizer(model!, panelResize, CurrentSlot(id).Corner, scene);
+
+    private PanelResize MountedResizer(FloatingPanelID id) => new()
+    {
+        Corner = CurrentSlot(id).Corner,
+        OnResize = (translation, axes) => CurrentResizer(id).OnResize(translation, axes),
+        OnResizeEnd = () => CurrentResizer(id).OnResizeEnd(),
+        OnReset = () => CurrentResizer(id).OnReset(),
+    };
+
+    private void UpdatePanelPlacement(FloatingPanelID id, PlacedPanel placed, bool holds)
+    {
+        var size = CurrentSize(id);
+        var panel = panelSurfaces[placed];
+        panel.Host.Width = panel.Surface.Width = size.Width;
+        panel.Host.Height = panel.Surface.Height = size.Height;
+        // SubagentPanel.swift:299,340-354 frames both borders explicitly; Hydra/Usage frames its root.
+        if (panel.Surface is SubagentPanel { Child: Border { Child: Border shape } scrim })
+        {
+            scrim.Width = shape.Width = size.Width;
+            scrim.Height = shape.Height = size.Height;
+        }
+        placed.UpdatePlacement(CurrentOrigin(id), size, holds);
+        // SubagentPanel.swift:599-615. Moving to a different dock updates the existing grips' free edges.
+        var dock = CurrentSlot(id).Corner;
+        foreach (var grips in Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(placed).OfType<PanelResizeGrips>())
+            foreach (var handle in Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(grips).OfType<PanelDragHandle>())
+            {
+                var width = !double.IsNaN(handle.Width);
+                var height = !double.IsNaN(handle.Height);
+                var horizontal = width ? (dock.Side == PanelDockSide.Leading ? HorizontalAlignment.Right : HorizontalAlignment.Left) : HorizontalAlignment.Stretch;
+                var vertical = height ? (dock.IsTop ? VerticalAlignment.Bottom : VerticalAlignment.Top) : VerticalAlignment.Stretch;
+                var changed = handle.HorizontalAlignment != horizontal || handle.VerticalAlignment != vertical;
+                handle.HorizontalAlignment = horizontal;
+                handle.VerticalAlignment = vertical;
+                if (changed && width && height && handle.Child is DragHandleView grip)
+                {
+                    var cursor = new Cursor(dock switch
+                    {
+                        PanelDockCorner.TopLeading => StandardCursorType.BottomRightCorner,
+                        PanelDockCorner.TopTrailing => StandardCursorType.BottomLeftCorner,
+                        PanelDockCorner.BottomLeading => StandardCursorType.TopRightCorner,
+                        _ => StandardCursorType.TopLeftCorner,
+                    });
+                    grip.Cursor = grip.HandleCursor = grip.DragCursor = cursor;
+                }
+            }
+    }
 
     private void DragPanel(FloatingPanelID id, PanelDragState drag, Size translation, Point rest, bool release = false) // :336-346,368-378,434-444,469-479,510-520
     {
@@ -433,18 +528,17 @@ public sealed class ChatView : Decorator
 
     private Control MakeSubagentPanel(ChatThread helper, bool holds) // :326-356
     {
-        var id = new FloatingPanelID.Subagent(); var slot = Slot(id, runtime.SubagentPanelDock); var rest = Rest(slot, scene);
+        var id = new FloatingPanelID.Subagent();
         var content = new SubagentPanel(helper, scene.Layout.PanelSize, helper.WorktreePath ?? project?.Path, project?.Name,
-            translation => DragPanel(id, subagentDrag, translation, rest), () => DragPanel(id, subagentDrag, default, rest, release: true),
+            translation => DragPanel(id, subagentDrag, translation, CurrentOrigin(id)), () => DragPanel(id, subagentDrag, default, CurrentOrigin(id), release: true),
             () => Transaction.WithAnimation(Chrome.PanelSlide, () => model!.CloseSubagent(helper.Id))).Transition(PanelTransition);
-        return PlacePanel(subagentDrag, rest, scene.Layout.PanelSize, content, Resizer(model!, panelResize, slot.Corner, scene), holds);
+        return content;
     }
 
     private Control MakeHydraPanel(IReadOnlyList<ChatThread> heads, FloatingPanelID id, PanelDragState drag, PanelDockCorner fallback, bool holds, bool popped) // :359-397,420-485
     {
-        var slot = Slot(id, fallback); var rest = Rest(slot, scene);
         var content = new HydraPanel(runtime, heads, scene.Layout.PanelSize, workingDirectory, project?.Name,
-            translation => DragPanel(id, drag, translation, rest), () => DragPanel(id, drag, default, rest, release: true),
+            translation => DragPanel(id, drag, translation, CurrentOrigin(id)), () => DragPanel(id, drag, default, CurrentOrigin(id), release: true),
             () => Transaction.WithAnimation(Chrome.PanelSlide, () =>
             {
                 if (id is FloatingPanelID.Auto a) { runtime.HydraAutoPopHeld = runtime.HydraAutoPopHeld.Mutating(values => values.Add(a.Value)); runtime.HydraSelectedHeadID = a.Value; }
@@ -455,18 +549,18 @@ public sealed class ChatView : Decorator
                 runtime.HydraPoppedHeadID = head; runtime.HydraPoppedPanelDock = runtime.HydraPanelDock.AcrossTheColumn;
                 if (runtime.HydraSelectedHeadID == head) runtime.HydraSelectedHeadID = null;
             })).Transition(PanelTransition);
-        return PlacePanel(drag, rest, scene.Layout.PanelSize, content, Resizer(model!, panelResize, slot.Corner, scene), holds);
+        return content;
     }
 
     private Control MakeUsagePanel(PanelUsage usage, bool holds) // :490-530
     {
-        var id = new FloatingPanelID.Usage(); var slot = Slot(id, model!.Settings.UsagePanelDock); var origin = UsageOrigin(slot, scene);
+        var id = new FloatingPanelID.Usage();
         var full = scene.Layout.PanelSize; var size = new Size(full.Width, scene.UsageHeight ?? full.Height);
         var content = new UsageFloatingPanel(runtime, usage.Provider, usage.HeadsProvider, size,
             height => { if (usageContentHeight != height) { usageContentHeight = height; MainActor.Post(RefreshScene); } },
-            translation => DragPanel(id, usageDrag, translation, origin), () => DragPanel(id, usageDrag, default, origin, release: true),
-            () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.ShowsUsagePanel = false)).Transition(PanelTransition);
-        return PlacePanel(usageDrag, origin, size, content, UsageResizer(model, panelResize, slot.Corner, scene, size, PanelScene.UsageMinimumHeight), holds);
+            translation => DragPanel(id, usageDrag, translation, CurrentOrigin(id)), () => DragPanel(id, usageDrag, default, CurrentOrigin(id), release: true),
+            () => Transaction.WithAnimation(Chrome.PanelSlide, () => model!.Settings.ShowsUsagePanel = false)).Transition(PanelTransition);
+        return content;
     }
 
     // :731 @Entry var reserveSlideLeading: CGFloat = 0, an inherited environment value (R-VIEW-6).
