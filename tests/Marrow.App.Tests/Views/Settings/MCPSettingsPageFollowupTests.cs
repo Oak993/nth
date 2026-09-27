@@ -13,16 +13,7 @@ using static Marrow.App.Tests.Fixtures.MCPSettingsPageFixture;
 namespace Marrow.App.Tests.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/MCPSettingsPage.swift (B3 52bc792), :19-74,284-290.
-// STOP App.Views.Settings.MCPSettingsPage #4
-// Kind: shared UI dependency not ported at the collection site.
-// Swift: App/Views/Settings/MCPSettingsPage.swift:55-57.
-// Records: UI-MCP-002; PR-MCP-203 (grid transition/spring only).
-// Missing: ForEach.Apply (UI/Port/ViewLifetime.cs) inserts/removes Panel.Children directly; it does not
-// consume SwiftTransition.Insert/Remove or animate the surviving grid's positions. Publishing the 0.35s
-// transaction is insufficient to render the source scale(0.9)+opacity exit and grid layout spring.
-// Needed: the shared UI owner supplies transition-aware keyed reconciliation/grid layout support, then
-// this site attaches the source transition and receives frame-driven motion assertions. No shared UI
-// file was changed. The 900ms celebration, chime, exclusions, live refresh and setup effects are tested.
+// ED-218 resolves the grid motion dependency; frame assertions live in MCPSettingsPageTransitionTests.
 [Collection("Headless")]
 public sealed class MCPSettingsPageFollowupTests(HeadlessSession headless)
 {
@@ -43,7 +34,7 @@ public sealed class MCPSettingsPageFollowupTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var runtime = new TestRuntime(); using var h = new AppModelHarness(withRuntime: false);
-            using var frames = FrameClock.Source.Override(new ManualFrameSource()); using var presentation = Presentation.Presenter.Override(new RecordingPresenter());
+            var frames = new ManualFrameSource(); using var source = FrameClock.Source.Override(frames); using var presentation = Presentation.Presenter.Override(new RecordingPresenter());
             var sound = new MCPSettingsSilentSound(); using var audio = SoundOutput.Current.Override(sound);
             AppModel model = null!; MCPSettingsPage page = null!; IDisposable window = null!;
             runtime.OnMain(() => { model = new AppModel(); model.Settings.SettleSound = false; page = new MCPSettingsPage(""); window = Attach(page, model); });
@@ -54,7 +45,10 @@ public sealed class MCPSettingsPageFollowupTests(HeadlessSession headless)
                 runtime.AdvanceMilliseconds(899);
                 runtime.OnMain(() => Assert.Contains("Connected \u00B7 4 tools", Texts(page))); // U+00B7 MIDDLE DOT
                 runtime.AdvanceMilliseconds(1);
-                runtime.OnMain(() => { Assert.Contains(Nodes<MCPConnectedRow>(page), r => Texts(r).Contains("GitHub")); Assert.DoesNotContain(Nodes<MCPServerCard>(page), c => Read<MCPCatalogEntry>(c, "entry").Id == "github"); Assert.Equal(1, sound.Plays); });
+                runtime.OnMain(() => { Assert.Contains(Nodes<MCPConnectedRow>(page), r => Texts(r).Contains("GitHub")); Assert.Equal(1, sound.Plays); });
+                // Swift :55-57 / ED-218: the 900ms logical move starts the exit; its visual leaves after the spring.
+                runtime.AdvanceMilliseconds(500); runtime.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(500)));
+                runtime.OnMain(() => Assert.DoesNotContain(Nodes<MCPServerCard>(page), c => Read<MCPCatalogEntry>(c, "entry").Id == "github"));
             }
             finally { runtime.OnMain(window.Dispose); }
         });
