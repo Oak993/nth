@@ -10,13 +10,14 @@ using Avalonia.Media;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/TimelineMinimap.swift (B3 52bc7926), :1-435.
+// Source: DroppyCode/App/Views/Chat/TimelineMinimap.swift (B3 52bc792), :1-435.
 
 /// <summary>:4-13 <c>struct TimelineMinimapEntry: Identifiable, Hashable</c>.</summary>
 public sealed record TimelineMinimapEntry
@@ -229,6 +230,7 @@ internal sealed record MinimapOutlineBlock
 /// <summary>:139-162 <c>private struct MinimapSelection: View</c>.</summary>
 internal sealed class MinimapSelection : Decorator
 {
+    private OnChange<string?>? selectionChange;
     // :142-146, :148-156
     public MinimapSelection(
         IReadOnlyList<TimelineMinimapEntry> entries,
@@ -237,18 +239,28 @@ internal sealed class MinimapSelection : Decorator
         double centerHeight,
         Action<string, bool> onNavigate)
     {
-        string? activeID = tracking.ActiveBlockID;
-        if (activeID is null)
+        string? SelectedID()
         {
+            if (tracking.ActiveBlockID is { } active) return active;
             for (var i = outline.Count - 1; i >= 0; i--)
             {
                 if (!outline[i].HasUserMessage) continue;
-                activeID = outline[i].Id;
-                break;
+                return outline[i].Id;
             }
+            return null;
         }
 
-        Child = new TimelineMinimapRail(entries, centerHeight, activeID, onNavigate);
+        var rail = new TimelineMinimapRail(entries, centerHeight, SelectedID(), onNavigate);
+        Child = rail;
+        // :148-161. SwiftUI re-evaluates the binding selection without replacing the ForEach tick identities.
+        void ObserveSelection() => selectionChange ??= new OnChange<string?>(SelectedID, (_, selected) => rail.SetSelectedID(selected));
+        ObserveSelection();
+        AttachedToVisualTree += (_, _) =>
+        {
+            rail.SetSelectedID(SelectedID(), animated: false);
+            ObserveSelection();
+        };
+        DetachedFromVisualTree += (_, _) => { selectionChange?.Dispose(); selectionChange = null; };
     }
 }
 
@@ -259,13 +271,17 @@ public sealed class TimelineMinimapRail : Decorator
 
     private readonly IReadOnlyList<TimelineMinimapEntry> entries;
     private readonly double centerHeight;
-    private readonly string? selectedID;
+    private string? selectedID;
     private readonly Action<string, bool> onNavigate;
     private string? hoveredID;
     private bool isPressing;
     private Border? hitArea;
     private Grid? root;
     private MinimapRailMetrics? metrics;
+    private StackPanel? tickStack;
+    private readonly List<(TimelineMinimapEntry Entry, Button Tick, AnimatedColor Fill)> ticks = [];
+    private IFrameSource? tickFrameSource;
+    private Action<TimeSpan>? tickFrame;
 
     // :169-177, :201-240
     public TimelineMinimapRail(
@@ -286,9 +302,23 @@ public sealed class TimelineMinimapRail : Decorator
         {
             hoveredID = null;
             isPressing = false;
-            RefreshVisuals();
+            RefreshVisuals(animated: false);
         };
     }
+
+    // :241-243. The binding may change the lit block while the rail itself retains its view identity.
+    internal void SetSelectedID(string? id, bool animated = true)
+    {
+        if (OptionalStringEqual(selectedID, id)) return;
+        selectedID = id;
+        RefreshVisuals(animated);
+    }
+
+    // :193-199. Both environment values are inherited from the hosted window; an unattached rail has
+    // no active window resize. Read IsActive, not IsReshaping (pane resizing is not this Swift condition).
+    private Animation? HoverAnimation =>
+        EnvironmentValues.GetAccessibilityReduceMotion(this) ||
+        GetValue(AppEnvironment.WindowLiveResizeProperty)?.IsActive == true ? null : Animation.Smooth(duration: 0.22);
 
     // :181-183
     public static bool InputsEqual(TimelineMinimapRail lhs, TimelineMinimapRail rhs) =>
@@ -389,28 +419,35 @@ public sealed class TimelineMinimapRail : Decorator
         var updated = metrics.HitRect(entries.Count, size);
         hitArea.Height = updated.Height;
         hitArea.Margin = new Thickness(0, updated.Y, 0, 0);
-        RefreshVisuals();
     }
 
     // :245-254,289-330
-    private void RefreshVisuals()
+    private void RefreshVisuals(bool animated = true)
     {
         if (root is null || metrics is null) return;
 
-        while (root.Children.Count > 1)
+        // :245-254 ForEach keeps the same ticks through hover/press/selection. Only the preview mounts/unmounts.
+        while (root.Children.Count > 2)
             root.Children.RemoveAt(root.Children.Count - 1);
 
-        var stack = new StackPanel
+        if (tickStack is null)
         {
-            Orientation = Orientation.Vertical,
-            Spacing = metrics.Spacing,
-            HorizontalAlignment = HorizontalAlignment.Left,
-            VerticalAlignment = VerticalAlignment.Top,
-            Margin = new Thickness(0, metrics.TopInset, 0, 0),
-            IsHitTestVisible = false,
-        };
-        foreach (var entry in entries) stack.Children.Add(CreateTick(entry));
-        root.Children.Add(stack);
+            tickStack = new StackPanel
+            {
+                Orientation = Orientation.Vertical,
+                Spacing = metrics.Spacing,
+                HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Top,
+                Margin = new Thickness(0, metrics.TopInset, 0, 0),
+                IsHitTestVisible = false,
+            };
+            foreach (var entry in entries) tickStack.Children.Add(CreateTick(entry));
+            root.Children.Add(tickStack);
+        }
+        else
+        {
+            Transaction.WithAnimation(animated ? HoverAnimation : null, UpdateTicks); // :241-243
+        }
 
         if (hoveredID is { } current && FindEntry(current) is { } hovered)
             root.Children.Add(CreatePreviewCard(hovered, metrics));
@@ -427,10 +464,7 @@ public sealed class TimelineMinimapRail : Decorator
         RefreshVisuals();
     }
 
-    // :245-274. PR-CHAT-073's static per-state colours/opacities (accent when selected, 0.95 when hovered,
-    // 0.25/0.4 baseOpacity) are implemented below; the 0.22s smooth-curve ANIMATION between those states
-    // (:195-199 hoverAnimation, nil during a live resize or reduced motion) is not - every property snaps
-    // instantly on every RefreshVisuals() rebuild, which happens to match only the "instant" fallback case.
+    // :245-274. First mount is immediate; subsequent changes use the transaction and retain this button/brush.
     private Control CreateTick(TimelineMinimapEntry entry)
     {
         var isSelected = selectedID is { } selected && SwiftString.Equal(entry.Id, selected);
@@ -446,15 +480,64 @@ public sealed class TimelineMinimapRail : Decorator
             Padding = new Thickness(0),
             CornerRadius = new CornerRadius(1),
             BorderThickness = new Thickness(0),
-            Background = (isSelected && !isHovered ? Chrome.Accent : Chrome.PrimaryText).Brush(this),
             Opacity = isHovered ? 0.95 : isSelected && !isHovered ? 1 : (hoveredID is not null || isPressing) ? 0.4 : 0.25,
             IsHitTestVisible = false,
             Focusable = false,
         };
+        var fill = new AnimatedColor(tick);
+        fill.Set(isSelected && !isHovered ? Chrome.Accent : Chrome.PrimaryText, null);
+        tick.Background = fill.Brush;
+        ticks.Add((entry, tick, fill));
         tick.Click += (_, _) => onNavigate(entry.Id, true);
         AutomationProperties.SetName(tick, entry.Title);
         AutomationProperties.SetAccessibilityView(tick, AccessibilityView.Content);
         return tick;
+    }
+
+    // :195-199,241-274. Frame-driven scalar interpolation uses the same transaction as AnimatedColor.
+    // At rest there is no pending frame; interrupted changes start at the current displayed values.
+    private void UpdateTicks()
+    {
+        if (tickFrame is { } previous) tickFrameSource?.CancelFrame(previous);
+        tickFrame = null;
+        var animation = Transaction.Current;
+        var changes = new List<(Button Tick, double WidthFrom, double WidthTo, double OpacityFrom, double OpacityTo)>();
+        foreach (var (entry, tick, fill) in ticks)
+        {
+            var selected = selectedID is { } selectedValue && SwiftString.Equal(entry.Id, selectedValue);
+            var hovered = hoveredID is { } hoveredValue && SwiftString.Equal(entry.Id, hoveredValue);
+            var width = TickWidth(entry, hovered, selected);
+            var opacity = hovered ? 0.95 : selected ? 1 : (hoveredID is not null || isPressing) ? 0.4 : 0.25;
+            fill.Set(selected && !hovered ? Chrome.Accent : Chrome.PrimaryText, animation);
+            if (animation is null)
+            {
+                tick.Width = width;
+                tick.Opacity = opacity;
+            }
+            else if (tick.Width != width || tick.Opacity != opacity)
+                changes.Add((tick, tick.Width, width, tick.Opacity, opacity));
+        }
+        if (animation is null || changes.Count == 0) return;
+        var start = SwiftClock.Now;
+        var span = TimeSpan.FromSeconds(animation.Duration);
+        var frames = FrameClock.Source.Current;
+        Action<TimeSpan>? step = null;
+        step = _ =>
+        {
+            var elapsed = SwiftClock.Now - start;
+            var complete = elapsed >= span;
+            var progress = complete ? 1 : animation.Progress(elapsed.TotalSeconds);
+            foreach (var change in changes)
+            {
+                change.Tick.Width = change.WidthFrom + (change.WidthTo - change.WidthFrom) * progress;
+                change.Tick.Opacity = change.OpacityFrom + (change.OpacityTo - change.OpacityFrom) * progress;
+            }
+            if (complete) tickFrame = null;
+            else frames.RequestFrame(step!);
+        };
+        tickFrameSource = frames;
+        tickFrame = step;
+        frames.RequestFrame(step);
     }
 
     // :276-282

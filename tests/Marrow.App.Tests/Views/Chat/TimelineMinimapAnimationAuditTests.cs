@@ -114,36 +114,38 @@ public sealed class TimelineMinimapAnimationAuditTests(HeadlessSession headless)
         using var runtime = new TestRuntime();
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
+        TimelineScrollTracking tracking = null!;
+        MinimapSelection selection = null!;
+        Avalonia.Controls.Window window = null!;
         runtime.OnMain(() =>
         {
-            var tracking = new TimelineScrollTracking();
+            tracking = new TimelineScrollTracking();
             tracking.SetOutline([("first", true), ("second", true)]);
-            var selection = new MinimapSelection(new[] { Entry("first"), Entry("second") },
+            selection = new MinimapSelection(new[] { Entry("first"), Entry("second") },
                 new[] { new MinimapOutlineBlock { Id = "first", HasUserMessage = true }, new MinimapOutlineBlock { Id = "second", HasUserMessage = true } },
                 tracking, 100, (_, _) => { });
-            var window = new Avalonia.Controls.Window { Content = selection };
+            window = new Avalonia.Controls.Window { Content = selection };
             window.Show();
-            try
-            {
-                var rail = Assert.IsType<TimelineMinimapRail>(selection.Child);
-                var ticks = Ticks(rail);
-                Assert.Equal(0.25, ticks[0].Opacity);
-                Assert.Equal(1, ticks[1].Opacity); // nil active ID falls back to last user block (:150-152)
-                tracking.SetVisible("first", true);
-                runtime.Loop.RunUntilIdle();
-                Dispatcher.UIThread.RunJobs();
-                Assert.Same(rail, selection.Child);
-                Assert.True(frames.Pending > 0);
-                Step(runtime, frames, 50);
-                Assert.InRange(ticks[0].Opacity, 0.250001, 0.999999);
-                Step(runtime, frames, 2000);
-                Assert.Equal(1, ticks[0].Opacity);
-                Assert.Equal(Chrome.Accent.Resolve(rail.ActualThemeVariant), Color(ticks[0]));
-                Assert.Equal(0.25, ticks[1].Opacity);
-                Assert.Equal(0, frames.Pending);
-            }
-            finally { window.Close(); }
         });
+        try
+        {
+            var rail = Assert.IsType<TimelineMinimapRail>(selection.Child);
+            var ticks = Ticks(rail);
+            Assert.Equal(0.25, ticks[0].Opacity);
+            Assert.Equal(1, ticks[1].Opacity); // nil active ID falls back to last user block (:150-152)
+            runtime.OnMain(() => tracking.SetVisible("first", true));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Same(rail, selection.Child);
+            Assert.True(frames.Pending > 0);
+            Step(runtime, frames, 50);
+            Assert.InRange(ticks[0].Opacity, 0.250001, 0.999999);
+            Step(runtime, frames, 2000);
+            Assert.Equal(1, ticks[0].Opacity);
+            Assert.Equal(Chrome.Accent.Resolve(rail.ActualThemeVariant), Color(ticks[0]));
+            Assert.Equal(0.25, ticks[1].Opacity);
+            Assert.Equal(0, frames.Pending);
+        }
+        finally { runtime.OnMain(window.Close); }
     });
 
     [Fact]
