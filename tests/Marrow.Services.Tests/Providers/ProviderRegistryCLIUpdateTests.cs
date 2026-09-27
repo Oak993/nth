@@ -474,7 +474,9 @@ public sealed class ProviderRegistryCLIUpdateTests
 
         var task = runtime.Loop.Run(() => Task.FromResult(registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
         var deadline = DateTime.UtcNow.AddSeconds(5);
-        while (!File.Exists(marker) && DateTime.UtcNow < deadline) await Task.Delay(10);
+        // Swift :510-511 keeps the provider inserted across the awaited CLI probes. Pump its
+        // @MainActor continuations while observing the stand-in; keep the original five-second bound.
+        runtime.Loop.RunUntil(() => File.Exists(marker) || DateTime.UtcNow >= deadline);
         Assert.True(File.Exists(marker), "the stand-in never started (or finished too fast to observe)");
         Assert.True(registry.UpdatingCLIs.Contains(ProviderKind.Claude));
 
