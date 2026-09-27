@@ -6,6 +6,11 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
+using Marrow.App.Tests.App.Fixtures;
+using Avalonia.Interactivity;
+using Avalonia.Media;
+using Marrow.App.Views.Chat;
+using Marrow.UI.Chrome;
 
 namespace Marrow.App.Tests.Views.Settings;
 
@@ -14,6 +19,47 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class HydraCookbookPanelTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-177")] // App/Views/Settings/HydraCookbookPanel.swift:11-16,39-42; App/HydraCookbook+Resolve.swift:49-58
+    [Trait("Req", "PR-SETTINGS-178")] // App/Views/Settings/HydraCookbookPanel.swift:114-129
+    [Trait("Req", "UI-SETTINGS-037")] // App/Views/Settings/HydraCookbookPanel.swift:40-52,83-95,130-131
+    public void Review_real_panel_resolves_the_first_tied_model_and_adds_its_ready_row() => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness();
+        var model = h.MakeModel();
+        Border? host = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            HydraCookbookResolveFixture.SetEnabled(model.Settings, ProviderKind.Claude, true);
+            HydraCookbookResolveFixture.SetInstalled(model.Providers, ProviderKind.Claude, true);
+            HydraCookbookResolveFixture.SetModels(model.Providers, ProviderKind.Claude,
+                HydraCookbookResolveFixture.Model("fable-first", "Fable 5.1 First"),
+                HydraCookbookResolveFixture.Model("fable-second", "Fable 5.1 Second"),
+                HydraCookbookResolveFixture.Model("opus", "Opus 5.5"));
+            var pair = HydraCookbookResolve.Resolve(HydraCookbook.Recipes[0], model.Providers, model.Settings);
+            Assert.NotNull(pair); Assert.Equal("fable-first", pair.OrchestratorModel);
+            host = new Border(); AppEnvironment.SetAppModel(host, model); host.Child = new HydraCookbookPanel();
+            window = new AvaloniaWindow { Content = host }; window.Show();
+            var row = Assert.Single(LogicalQuery.SelfAndDescendants<HydraCookbookRow>(host), r => AllText(r).Contains(HydraCookbook.Recipes[0].Tagline, StringComparison.Ordinal));
+            Assert.Equal(1, row.Opacity);
+            var mark = Assert.Single(LogicalQuery.SelfAndDescendants<HydraPairMark>(row)); Assert.Equal(52, mark.Width);
+            var text = LogicalQuery.SelfAndDescendants<TextBlock>(row).First(); Assert.Equal(FontWeight.SemiBold, text.FontWeight);
+            var dividers = LogicalQuery.SelfAndDescendants<Separator>(host).Where(s => s.Opacity == 0.35).ToList();
+            Assert.NotEmpty(dividers); Assert.All(dividers, d => Assert.Equal(16, d.Margin.Left));
+            Assert.Contains(LogicalQuery.SelfAndDescendants<HydraCookbookRow>(host), r => r.Opacity == 0.55);
+            var add = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row));
+            add.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Contains(model.Settings.HydraPairs, p => p.OrchestratorModel == "fable-first");
+        });
+        h.Main.OnMain(() =>
+        {
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Contains("Added", AllText(host!), StringComparison.Ordinal);
+            window!.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        });
+    });
+
     private static string AllText(Control control)
     {
         var parts = new System.Collections.Generic.List<string>();
