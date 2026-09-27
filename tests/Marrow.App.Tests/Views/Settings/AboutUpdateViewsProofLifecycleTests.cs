@@ -130,9 +130,15 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
         runtime.OnMain(() =>
         {
             window = Show(pill); original = Assert.Single(pill.GetVisualDescendants().OfType<Button>()); Click(original, window);
-            // A stale routed event reaches exactly the production click closure. This catches removing install()'s
-            // :262 single-flight guard, even though the actual pointer button has already disappeared.
+            // A stale routed event reaches exactly the production click closure after the pointer button has already
+            // disappeared. Round 2 root cause of the 4-in-36 flake: the loopback download let the first install reach
+            // Handoff and clear installTask (AppUpdater.swift:264) inside Click's trailing RunJobs (30 of 30 diagnostic
+            // runs), so a closure reading the build-time snapshot started a second install and the test only passed when
+            // that second GET had not yet arrived. Swift :639 reads live state (`guard let update = checker.update,
+            // isReady`), and a showing progress UI makes isReady false (:582): the stale click must start nothing at all.
+            var taskBefore = Field(updater, "installTask"); var phaseBefore = progress.UpdateInstallProgressPhase;
             original.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Same(taskBefore, Field(updater, "installTask")); Assert.Equal(phaseBefore, progress.UpdateInstallProgressPhase);
         });
         HeadlessSession.RunDispatcherUntil(finished.Task, TimeSpan.FromSeconds(20));
         runtime.OnMain(() =>
