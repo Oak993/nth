@@ -1309,17 +1309,16 @@ internal sealed class ChatChromeTitle : Decorator
         await clipboard.SetDataAsync(data);
     });
 
-    // :1231-1236. renameText is always reseeded from title right before use (:1200, :1226), so the alert's
-    // initial text is just title.
+    // :1231-1237. Reseed renameText from title (:1200, :1226); ED-216 supplies the shared field/roles/keyboard seam.
     private static void ShowRenameAlert(AppModel model, ThreadRuntime runtime, string title) => MainActor.Spawn(() =>
-        PromptPresentation.Presenter.Current.Show(
-            "Rename thread",
-            "Title",
-            title,
+    {
+        var renameText = title;
+        return AlertPresentation.Show(new AlertRequest("Rename thread", null,
             [
-                new PromptButton("Rename", IsCancelRole: false, text => model.Rename(runtime.ThreadID, text)), // :1233-1235
-                new PromptButton("Cancel", IsCancelRole: true, _ => { }), // :1236
-            ]));
+                new AlertButton("Rename", () => model.Rename(runtime.ThreadID, renameText)), // :1233-1235
+                new AlertButton("Cancel", () => { }) { Role = AlertButtonRole.Cancel }, // :1236
+            ], TextFields: [new AlertTextField("Title", new Binding<string>(() => renameText, text => renameText = text))])); // :1232
+    });
 }
 
 /// <summary>:1242-1265 <c>private struct ThreadsButton: View</c>. Its capture-frame hook (:1261-1263) is not ported
@@ -1540,14 +1539,14 @@ internal sealed class BranchMenu : Decorator
 
     // :1381-1385
     private static void ShowNewBranchAlert(AppModel model, GitStatusModel git, string directory) => MainActor.Spawn(() =>
-        PromptPresentation.Presenter.Current.Show(
-            "New branch",
-            "Branch name",
-            "",
+    {
+        var branchName = ""; // :1372 reset before presenting.
+        return AlertPresentation.Show(new AlertRequest("New branch", null,
             [
-                new PromptButton("Create", IsCancelRole: false, name => CreateBranch(model, git, directory, name)), // :1383
-                new PromptButton("Cancel", IsCancelRole: true, _ => { }), // :1384
-            ]));
+                new AlertButton("Create", () => CreateBranch(model, git, directory, branchName)), // :1383
+                new AlertButton("Cancel", () => { }) { Role = AlertButtonRole.Cancel }, // :1384
+            ], TextFields: [new AlertTextField("Branch name", new Binding<string>(() => branchName, text => branchName = text))])); // :1382
+    });
 
     // :1388-1396
     private static void SwitchBranch(AppModel model, GitStatusModel git, string directory, string name) => MainActor.Spawn(async () =>
