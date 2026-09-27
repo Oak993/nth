@@ -67,4 +67,18 @@ public sealed class MiddleTruncatingTextTests(HeadlessSession headless)
         control.Measure(new Size(1000, double.PositiveInfinity));
         Assert.Equal("abcdefghij", control.Text);
     });
+
+    [Fact]
+    [Trait("Decision", "ED-217")] // App/Views/Chat/TimelineRows.swift:1969-1973; last line holds the rest, including the whole string's tail
+    public void Explicit_line_breaks_in_an_overflowing_remainder_do_not_hide_the_tail() => headless.OnUiThread(() =>
+    {
+        var control = Text("first line\nsecond line\nlast-file.cs", 2);
+        control.Measure(new Size(600, double.PositiveInfinity));
+        var drawn = Assert.IsType<string>(control.Text);
+        Assert.StartsWith("first line\n", drawn, StringComparison.Ordinal);
+        Assert.Equal(1, drawn.Count(character => character == '\n'));
+        Assert.Equal(1, drawn.Count(character => character == '\u2026'));
+        Assert.EndsWith("last-file.cs", drawn, StringComparison.Ordinal);
+        Assert.Equal(2, control.TextLayout.TextLines.Count);
+    });
 }
