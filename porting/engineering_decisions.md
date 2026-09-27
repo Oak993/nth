@@ -1409,3 +1409,37 @@ middle-truncation of a wrapped paragraph on macOS stays UNVERIFIED under OD-0001
 - a limit of 1 is unchanged from today.
 ENGINEERING DECISION.
 
+ED-218 [UI][FOUNDATION] ForEach rows enter and leave through their transitions, and surviving rows glide (MCPSettingsPage STOP #4).
+SOURCE FACT: 1.7.0 has 136 ForEach sites and 88 .transition(...) sites, many of them rows inside a ForEach under withAnimation or
+.animation(_:value:). Examples: MCPSettingsPage.swift:55-57 (the connected grid); TimelineRows.swift:410-414 (FinishedHeadPill with
+.settleGlide under .smooth(duration: 0.3)). In SwiftUI, an inserted row plays its insertion transition and a removed row its removal
+transition, under the transaction's animation; rows that survive but move animate from their old frame to their new one under the same
+transaction. The port's ForEach (src/Marrow.UI/Port/ViewLifetime.cs:88-130) inserts and removes Panel children directly, so none of that
+happens. 52 call sites work around it by calling SwiftTransition.Insert/Remove by hand. DECISION: ForEach.Apply does it itself:
+- a new row goes in through SwiftTransition.Insert, and a vanished row leaves through SwiftTransition.Remove (it is disposed when its
+  removal ends), whenever the row carries a transition (SwiftTransition's attached value) or Transaction.Current is animated;
+- rows with no transition and no animated transaction behave exactly as today, so existing callers and tests are unchanged;
+- when Transaction.Current is animated, each surviving row whose laid-out position changes is moved FLIP-style: record its bounds
+  before Apply; after the next layout pass, set a RenderTransform translation from the old position to the new one and animate it to
+  zero with the transaction's curve. Size changes are not animated by this mechanism;
+- reduce motion (Transaction.Current already carries it) and window live resize (WindowLiveResize) turn the glide off, as the
+  sources gate animations elsewhere.
+The 52 hand-written call sites may move to the new ForEach later, but none has to. Tests (headless, clock-driven):
+- insert and remove play the row's transition and the removed row is disposed after it;
+- a reorder under an animated transaction starts each moved row at its old offset and ends at zero;
+- no transition and no animation behaves exactly as before.
+ENGINEERING DECISION; SwiftUI's exact interpolation of a moved row stays UNVERIFIED under OD-0001.
+
+ED-219 [WIN][LAUNCH] The Dock unread badge becomes a taskbar overlay badge (AppModel.updateDockBadge). SOURCE FACT: AppModel.swift:1270-1273
+sets `NSApp.dockTile.badgeLabel` to the number of threads with hasUnread that are neither archived nor in a panel, or nil when there are
+none. The port (AppModel.cs UpdateDockBadge) keeps the count but shows nothing, with a comment that the taskbar cannot show text; no
+decision recorded that. Windows has ITaskbarList3::SetOverlayIcon, a small icon drawn over the app's taskbar button, which is how
+Windows apps show unread counts. DECISION:
+- the port sets the main window's taskbar overlay icon to a badge drawn in code: the count in white on a filled red circle
+  (NSColor.systemRed at macOS's light values, the Dock badge's own colours), rendered at the system small-icon size for the current DPI;
+- above 99 the badge text stays the decimal count, shrunk to fit, exactly as the source's String(unread) (no "99+" is invented);
+- nil clears the overlay;
+- the accessible description is the count as text;
+- the COM call goes through a seam, so tests record the count and rendered pixels and never touch the real taskbar.
+ENGINEERING DECISION.
+
