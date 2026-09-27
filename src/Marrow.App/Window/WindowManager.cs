@@ -34,7 +34,7 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // exercised by WindowManagerNextTests (closes the Settings portion of STOP #1 and #4). The real main body still
 // depends on the concurrent RootView/SidebarView repairs (STOP #7). The Acrylic hint
 // OD-0014 names for the clear window (WindowChrome.swift:116-117, reached from :101) is STOP #5. The three
-// window.center() calls (:43, :68, :82) are not written: AppKit's placement is unsettled (STOP #6).
+// window.center() calls (:43, :68, :82) use ED-225; Apple's exact bias remains UNVERIFIED OD-0001.
 
 namespace Marrow.App.Window;
 
@@ -111,8 +111,7 @@ public sealed class WindowManager
         // :42-45
         if (mainWindow is not { } main || !main.IsVisible || main.WindowState == WindowState.Minimized)
         {
-            // :43 window.center(): not written. Where AppKit's center() puts a window is not in the source and no
-            // decision or oracle item settles it (STOP App.Window.WindowManager #6).
+            WindowCentering.Center(window, FrameSizeOf(window)); // :43 window.center(), ED-225
             return; // :44
         }
         // In points: the main window's position (pixels) over its own scale, as NSWindow.frame is in points.
@@ -146,7 +145,7 @@ public sealed class WindowManager
 
     // :46-54 The source's point-space calculation, shared with the headless edge-case tests. A missing screen
     // leaves the rounded origin alone; a smaller working area still uses the outer min, without shrinking the
-    // frame. This is only centering over a visible main window, not the unsettled NSWindow.center() fallback.
+    // frame. This centers over a visible main window; NSWindow.center() uses the separate ED-225 binding.
     private static Rect CenteredFrame(Rect parent, Avalonia.Size frame, Rect? visible)
     {
         var x = SwiftNumber.Rounded(parent.Center.X - frame.Width / 2); // :48
@@ -186,9 +185,8 @@ public sealed class WindowManager
         // :66 window.contentMinSize: Avalonia reports it to Windows as the minimum tracking size (WM_GETMINMAXINFO).
         window.MinWidth = Size.MainMinimum.Width;
         window.MinHeight = Size.MainMinimum.Height;
-        // :67-69 if !window.setFrameUsingName(Self.mainFrameName) { window.center() }: the saved frame is applied when
-        // there is one. The fallback, :68 window.center(), is not written (STOP App.Window.WindowManager #6).
-        _ = SetFrameUsingName(window, MainFrameName);
+        // :67-69 if !window.setFrameUsingName(Self.mainFrameName) { window.center() }
+        if (!SetFrameUsingName(window, MainFrameName)) WindowCentering.Center(window, FrameSizeOf(window)); // :68, ED-225
         SetFrameAutosaveName(window, MainFrameName); // :70
         return window; // :71
     }
@@ -197,7 +195,7 @@ public sealed class WindowManager
     private AvaloniaWindow MakeSettingsWindow()
     {
         var window = MakeWindow("Settings", Size.Settings, resizable: false, SettingsContent, windowClass: () => new SecondaryWindow()); // :81
-        // :82 window.center(): not written (STOP App.Window.WindowManager #6).
+        WindowCentering.Center(window, FrameSizeOf(window)); // :82 window.center(), ED-225
         return window; // :83
     }
 

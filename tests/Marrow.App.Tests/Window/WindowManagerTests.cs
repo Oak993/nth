@@ -159,8 +159,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     });
 
     // ---- PR-WIN-006: the frame autosave name ----
-    // With no saved frame the main window is centred by window.center() (:68), whose placement is AppKit's and not
-    // settled: STOP App.Window.WindowManager #6 below.
+    // With no saved frame the main window is centered by window.center() (:68), now bound by ED-225.
 
     [Fact]
     [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:24, :67
@@ -344,7 +343,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 
     // ---- PR-WIN-011, PR-SETTINGS-002: centred over the main window ----
     // With no main window, or a hidden or minimised one, the Settings window is centred by window.center() (:43), and a
-    // new one is centred by it first (:82): AppKit's placement, not settled (STOP App.Window.WindowManager #6 below).
+    // new one is centered by it first (:82): ED-225 supplies the working-area placement.
     // What the source does fix there is that the window is not centred over the main window.
 
     [Fact]
@@ -1219,26 +1218,9 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // corners outside the 26 pt shape; a capture check by probe P3's method.
 // Done so far: the clear window background (:116-117 through :101) is tested above; nothing is written for the hint.
 
-// STOP App.Window.WindowManager #6 (repair agent, 2026-09-26)
-// Kind: unverified
-// Swift: DroppyCode/App/Window/WindowManager.swift:43, :68, :82 `window.center()` (B3 52bc792)
-// Requirements: PR-WIN-006, PR-WIN-010, PR-WIN-011, PR-SETTINGS-002 (and UI-SETTINGS-001's placement)
-// What is unclear or missing: the source says only `window.center()`; where it puts the window is AppKit's
-// NSWindow.center(), which the pinned tree does not state and no decision, oracle item or reference capture fixes:
-// which screen it uses, whether it centres in the whole or the visible frame, and how far above the middle it sits
-// (porting/critiques/critiques.json flags the vertical bias as needing an explicit Windows decision; ED-006 says only
-// "centered"). The first build had centred exactly in the working area, which no record or decision backs, and its
-// tests asserted that invented placement.
-// Readings or options: (a) exact centre of the working area of the window's screen (Windows' own centre-screen
-// placement) -> the first-run main window, a new Settings window, and a Settings window opened with no visible main
-// window sit lower than upstream's; (b) AppKit's placement measured on the reference runtime (screen, frame and
-// vertical offset) and reproduced -> needs a capture; (c) leave the platform's initial position -> not upstream's
-// either.
-// Needed to proceed: a decision (ED or owner), or an oracle item with a reference capture of NSWindow.center()
-// placement for a 1320 x 860 and a 780 x 580 window.
-// Done so far: the three call sites are unwritten (the window keeps the position the platform gives it); the tests
-// that asserted exact centring are withdrawn; the guard at :42-45 (no centring over a hidden or minimised main window)
-// is tested above and green; nothing implemented at these sites.
+// ED-225 supplies WindowManager.swift:43, :68, :82's screen-centering binding. WindowManagerCenteringTests covers
+// owner/pointer monitor selection, working area, horizontal center, one-third free height above, and clamping.
+// The exact macOS vertical bias remains UNVERIFIED OD-0001.
 
 // Review of STOPs on impl/b2 49eda0591 (2026-09-27):
 // #1 is closed for SettingsView by WindowManagerNextTests' real default-factory tests; RootView's constructor
@@ -1246,4 +1228,4 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // #2 remains closed by AppShell; the new close test verifies the main close handoff and Settings-only hiding.
 // #4's Settings body and requested-page/state retention are now tested with real SettingsView, not stand-ins.
 // AppCommands.cs:57 and CommandPalette.cs:295 already call ShowSettings; the RootView opener/Sidebar path remains
-// blocked by the concurrent Window unit. #3, #5 and #6 remain open; see WindowManagerNextTests and the report.
+// blocked by the concurrent Window unit. #3 and #5 remain open; see WindowManagerNextTests and the report.

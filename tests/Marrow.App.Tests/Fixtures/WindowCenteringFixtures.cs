@@ -34,8 +34,8 @@ public sealed class WindowCenteringScreens(WindowCenteringScreen pointer, Window
     public int OwnerReads { get; private set; }
     public int PointReads { get; private set; }
     public PixelPoint? LastPoint { get; private set; }
-    public Avalonia.Controls.Window? LastOwner { get; private set; }
-    public (PixelRect WorkingArea, double Scaling)? ScreenFromWindow(Avalonia.Controls.Window window) { OwnerReads++; LastOwner = window; return (Owner.WorkingArea, Owner.Scaling); }
+    public WindowBase? LastOwner { get; private set; }
+    public (PixelRect WorkingArea, double Scaling)? ScreenFromWindow(WindowBase window) { OwnerReads++; LastOwner = window; return (Owner.WorkingArea, Owner.Scaling); }
     public (PixelRect WorkingArea, double Scaling)? ScreenFromPoint(Avalonia.Controls.Window window, PixelPoint point) { PointReads++; LastPoint = point; return (Pointer.WorkingArea, Pointer.Scaling); }
 }
 
@@ -53,7 +53,7 @@ public static class WindowCenteringTestHooks
     public static IDisposable OverrideOwnerScreen(WindowCenteringScreens screens)
     {
         Assert.NotNull(Binding);
-        var ambient = Assert.IsType<Ambient<Func<Avalonia.Controls.Window, (PixelRect WorkingArea, double Scaling)?>>>(Binding.GetProperty("OwnerScreen", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null));
+        var ambient = Assert.IsType<Ambient<Func<WindowBase, (PixelRect WorkingArea, double Scaling)?>>>(Binding.GetProperty("OwnerScreen", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null));
         return ambient.Override(screens.ScreenFromWindow);
     }
     public static IDisposable OverridePointerScreen(WindowCenteringScreens screens)

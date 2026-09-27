@@ -259,7 +259,6 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
     // Carried STOP #5: Acrylic/corner treatment belongs to WindowChrome and lacks a settled corner binding.
     // Swift: WindowManager.swift:101; SettingsView.swift:118-120. Records: UI-SETTINGS-001. Needed: its owner
     // ruling and probe P3 verification; no guessed transparency hint here.
-    // Carried STOP #6: Swift WindowManager.swift:43, :68, :82 calls NSWindow.center(), with no pinned placement
-    // rule. Records: PR-WIN-006, PR-WIN-010, PR-WIN-011, PR-SETTINGS-002, UI-SETTINGS-001. Needed: an ED or
-    // oracle fixing screen, working/full frame and vertical bias. Only explicit over-main math is changed.
+    // ED-225 now binds WindowManager.swift:43, :68, :82; WindowManagerCenteringTests covers the three sites.
+    // Apple's exact vertical bias remains UNVERIFIED OD-0001, rather than blocking the Windows binding.
 }
