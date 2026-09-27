@@ -13,7 +13,28 @@ namespace Marrow.App.Port;
 // Window any more than it can a Popup ("Unable to create IPopupImpl and no overlay layer is found").
 
 /// <summary>One alert button: its title and the action a click performs before the alert closes.</summary>
-public sealed record AlertButton(string Title, Action Perform);
+public sealed record AlertButton(string Title, Action Perform)
+{
+    public AlertButtonRole Role { get; init; }
+}
+
+// ED-216: declarations for tests-first implementation of the shared dialog contract.
+public enum AlertButtonRole { None, Cancel, Destructive }
+public enum AlertKind { Alert, ConfirmationDialog }
+public sealed record AlertTextField(string Label, Binding<string> Value);
+public sealed record AlertRequest(string Title, string? Message, IReadOnlyList<AlertButton> Buttons,
+    AlertKind Kind = AlertKind.Alert, IReadOnlyList<AlertTextField>? TextFields = null, Avalonia.Controls.Window? Owner = null)
+{
+    public AlertButton? ReturnDefault => throw new NotImplementedException("ED-216 declaration only");
+}
+
+internal sealed class AlertSession(AlertRequest request, Action close)
+{
+    public Task Completion => throw new NotImplementedException("ED-216 declaration only");
+    public void Press(string title) { _ = request; _ = close; _ = title; throw new NotImplementedException("ED-216 declaration only"); }
+    public void Cancel() => throw new NotImplementedException("ED-216 declaration only");
+    public void Closed() => throw new NotImplementedException("ED-216 declaration only");
+}
 
 /// <summary>NSAlert.Style's one case this app ever sets (AppUpdater.swift:278).</summary>
 public enum AlertStyle
@@ -30,11 +51,15 @@ public interface IAlertPresenter
 public static class AlertPresentation
 {
     public static Ambient<IAlertPresenter> Presenter { get; } = new(() => new WindowsAlertPresenter());
+    internal static AlertRequest Prepare(AlertRequest request) { _ = request; throw new NotImplementedException("ED-216 declaration only"); }
 }
 
 /// <summary>The production presenter: a plain modal Avalonia window with the message and its buttons.</summary>
 public sealed class WindowsAlertPresenter : IAlertPresenter
 {
+    internal static Avalonia.Controls.Window BuildWindow(AlertRequest request, AlertSession session)
+    { _ = request; _ = session; throw new NotImplementedException("ED-216 declaration only"); }
+
     public Task Show(string title, string informativeText, AlertStyle style, IReadOnlyList<AlertButton> buttons)
     {
         _ = style; // The one style this app shows (Warning) carries no distinct visual treatment yet.
