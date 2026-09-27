@@ -143,8 +143,8 @@ public sealed class ProviderRegistryCLIUpdateTests
         var calls = new List<ShellInvocation>();
         using (ShellObserver.Observe(calls.Add))
         {
-            Assert.False(await registry.UpdateCLIIfDue(ProviderKind.Cursor));
-            Assert.False(await registry.UpdateCLIIfDue(ProviderKind.Cursor, force: true));
+            Assert.False(await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Cursor))));
+            Assert.False(await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Cursor, force: true))));
         }
         Assert.Empty(calls); // no process is ever spawned for a provider that is not Claude or Codex
     }
@@ -164,8 +164,8 @@ public sealed class ProviderRegistryCLIUpdateTests
         var calls = new List<ShellInvocation>();
         using (ShellObserver.Observe(calls.Add))
         {
-            Assert.False(await registry.UpdateCLIIfDue(ProviderKind.Claude));
-            Assert.False(await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)); // force does not override this gate
+            Assert.False(await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude))));
+            Assert.False(await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)))); // force does not override this gate
         }
         Assert.Empty(calls);
     }
@@ -188,7 +188,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         var calls = new List<ShellInvocation>();
         using (ShellObserver.Observe(calls.Add))
         {
-            Assert.False(await registry.UpdateCLIIfDue(ProviderKind.Claude));
+            Assert.False(await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude))));
         }
         Assert.Empty(calls); // never even reaches executable resolution
     }
@@ -205,7 +205,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         bool result;
         using (ShellObserver.Observe(calls.Add))
         {
-            result = await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true); // force bypasses the date gate too
+            result = await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true))); // force bypasses the date gate too
         }
         Assert.False(result);
         Assert.Empty(calls); // no --version, no update
@@ -228,7 +228,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         var script = ProviderProbeStandIns.CopyFor("thirteen-hours").SetStdout("1.0.0\n").SetExitCode(0);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        var result = await registry.UpdateCLIIfDue(ProviderKind.Claude);
+        var result = await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude)));
 
         Assert.False(result); // same version before and after: no reload, but the run did happen
         Assert.Equal(3, script.RecordedCalls().Count); // --version, update, --version
@@ -248,7 +248,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         bool result;
         using (ShellObserver.Observe(invocations.Add))
         {
-            result = await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+            result = await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
         }
 
         Assert.False(result); // stand-in reports the same version both times
@@ -288,7 +288,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         script.SetUpdateExitCode(1);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        var result = await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+        var result = await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
 
         Assert.False(result);
         var dates = (IReadOnlyDictionary<string, object>)runtime.Defaults.Object("providerCLIUpdateDates")!;
@@ -314,7 +314,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         var script = ProviderProbeStandIns.CopyFor("malformed-entry").SetStdout("1.0.0\n").SetExitCode(0);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        await registry.UpdateCLIIfDue(ProviderKind.Claude); // unforced: only runs because the dates read as empty
+        await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude))); // unforced: only runs because the dates read as empty
 
         Assert.Equal(3, script.RecordedCalls().Count); // it ran, so claude's own fresh entry did not gate it
     }
@@ -332,7 +332,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         var script = ProviderProbeStandIns.CopyFor("keep-other").SetStdout("1.0.0\n").SetExitCode(0);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+        await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
 
         var dates = (IReadOnlyDictionary<string, object>)runtime.Defaults.Object("providerCLIUpdateDates")!;
         Assert.Equal(12345d, dates["codex"]);
@@ -352,7 +352,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         var script = ProviderProbeStandIns.CopyFor("malformed").SetStdout("1.0.0\n").SetExitCode(0);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        await registry.UpdateCLIIfDue(ProviderKind.Claude); // unforced: only runs because the stored dates read as empty
+        await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude))); // unforced: only runs because the stored dates read as empty
 
         Assert.Equal(3, script.RecordedCalls().Count); // it ran, so the malformed value did not gate it
     }
@@ -371,7 +371,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
         var before = registry.Status(ProviderKind.Claude);
-        var result = await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+        var result = await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
 
         Assert.False(result);
         Assert.Equal(before, registry.Status(ProviderKind.Claude)); // Refresh never ran
@@ -390,7 +390,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         script.SetPostUpdateExitCode(1);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        Assert.False(await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true));
+        Assert.False(await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true))));
     }
 
     [Fact]
@@ -404,7 +404,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         script.SetPostUpdateStdout("2.0.0\n"); // the "update" call installs a newer version
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        var result = await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+        var result = await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
 
         Assert.True(result); // :521
         // Refresh(provider) and LoadCatalog(provider, force: true) both ran (:519-520): Refresh assigns a
@@ -449,7 +449,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         script.SetPostUpdateExitCode(0);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        var result = await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+        var result = await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
 
         Assert.True(result);
         Assert.Equal("9.9.9", registry.Status(ProviderKind.Claude).Version);
@@ -472,13 +472,13 @@ public sealed class ProviderRegistryCLIUpdateTests
         script.SetConcurrencyProbe(marker, sleepMs: 400);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        var task = registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+        var task = runtime.Loop.Run(() => Task.FromResult(registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (!File.Exists(marker) && DateTime.UtcNow < deadline) await Task.Delay(10);
         Assert.True(File.Exists(marker), "the stand-in never started (or finished too fast to observe)");
         Assert.True(registry.UpdatingCLIs.Contains(ProviderKind.Claude));
 
-        await task;
+        await Task.Run(() => runtime.Loop.Run(() => task));
         Assert.False(registry.UpdatingCLIs.Contains(ProviderKind.Claude)); // removed on return, unchanged-version path
     }
 
@@ -498,7 +498,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         var notifications = new List<string>();
         registry.PropertyChanged += (_, e) => { if (e.PropertyName is { } name) notifications.Add(name); };
 
-        await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+        await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
 
         // At least one notification for the insert and one for the remove: other properties this same call
         // touches (Statuses is untouched here - Refresh never runs on the unchanged-version path) may also
@@ -519,12 +519,12 @@ public sealed class ProviderRegistryCLIUpdateTests
         // reach the real Cursor CLI on this machine's PATH with no seam standing in the way.
         using (NoExecutableSeam())
         {
-            Assert.False(await registry.UpdateCLIIfDue(ProviderKind.Cursor)); // wrong provider
+            Assert.False(await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Cursor)))); // wrong provider
         }
         Assert.Empty(registry.UpdatingCLIs);
         using (NoExecutableSeam())
         {
-            Assert.False(await registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)); // no executable
+            Assert.False(await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)))); // no executable
         }
         Assert.Empty(registry.UpdatingCLIs);
     }
@@ -543,7 +543,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         script.SetConcurrencyProbe(marker, sleepMs: 400);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        var first = registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+        var first = runtime.Loop.Run(() => Task.FromResult(registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (!registry.UpdatingCLIs.Contains(ProviderKind.Claude) && DateTime.UtcNow < deadline) await Task.Delay(10);
         Assert.True(registry.UpdatingCLIs.Contains(ProviderKind.Claude), "the first call never became in-flight");
@@ -552,12 +552,12 @@ public sealed class ProviderRegistryCLIUpdateTests
         bool second;
         using (ShellObserver.Observe(calls.Add))
         {
-            second = await registry.UpdateCLIIfDue(ProviderKind.Claude); // unforced: must not wait
+            second = await Task.Run(() => runtime.Loop.Run(() => registry.UpdateCLIIfDue(ProviderKind.Claude))); // unforced: must not wait
         }
         Assert.False(second);
         Assert.Empty(calls); // the unforced caller never itself touches the CLI
 
-        await first;
+        await Task.Run(() => runtime.Loop.Run(() => first));
     }
 
     [Fact]
@@ -572,7 +572,7 @@ public sealed class ProviderRegistryCLIUpdateTests
         script.SetConcurrencyProbe(marker, sleepMs: 300);
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
-        var first = registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+        var first = runtime.Loop.Run(() => Task.FromResult(registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
         var deadline = DateTime.UtcNow.AddSeconds(5);
         while (!registry.UpdatingCLIs.Contains(ProviderKind.Claude) && DateTime.UtcNow < deadline) await Task.Delay(10);
         Assert.True(registry.UpdatingCLIs.Contains(ProviderKind.Claude), "the first call never became in-flight");
@@ -580,13 +580,13 @@ public sealed class ProviderRegistryCLIUpdateTests
         // The second, forced call waits in a 500ms-polling loop driven by SwiftClock.Provider, which
         // TestRuntime fixes: pump it forward in small real-time steps until the first call has finished,
         // so the wait resolves without a real half-second sleep per iteration.
-        var second = registry.UpdateCLIIfDue(ProviderKind.Claude, force: true);
+        var second = runtime.Loop.Run(() => Task.FromResult(registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
         while (!first.IsCompleted)
         {
             runtime.Advance(TimeSpan.FromMilliseconds(500));
             await Task.Delay(10);
         }
-        await first;
+        await Task.Run(() => runtime.Loop.Run(() => first));
         // Give the pump a few more turns so the second call's own wait loop (which may still be mid-sleep)
         // observes the first call's completion and proceeds to its own run.
         for (var i = 0; i < 20 && !second.IsCompleted; i++)
@@ -594,7 +594,7 @@ public sealed class ProviderRegistryCLIUpdateTests
             runtime.Advance(TimeSpan.FromMilliseconds(500));
             await Task.Delay(10);
         }
-        await second; // both calls ran the updater; neither throws
+        await Task.Run(() => runtime.Loop.Run(() => second)); // both calls ran the updater; neither throws
         Assert.Equal(6, script.RecordedCalls().Count); // two full --version/update/--version sequences
     }
 
