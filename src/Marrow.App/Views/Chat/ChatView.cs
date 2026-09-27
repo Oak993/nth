@@ -13,6 +13,9 @@ using Avalonia.Media;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Sidebar;
+using Marrow.App.Views.Composer;
+using Marrow.App.Views.Terminal;
+using Marrow.App.Views.Usage;
 using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -27,8 +30,7 @@ using Marrow.UI.Port;
 namespace Marrow.App.Views.Chat;
 
 // Source: DroppyCode/App/Views/Chat/ChatView.swift (B3 52bc792), :1-1731.
-// The mounted ChatView body and jump action retain their MARROW_STUB sites until their dependent view/scroll units
-// are available (ChatView STOP #1). Standalone helpers and dialogs below follow the pinned source.
+// The column, its measured pane and compositor state stay mounted; child inputs are applied only when changed.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; CGPoint/CGSize are Avalonia Point/Size; `URL` is SwiftURL; a Swift `Error` value is
 // an Exception. The `@Entry` environment values of `extension EnvironmentValues` (:727-735) are inherited attached
@@ -42,9 +44,430 @@ public sealed class ChatView : Decorator
 {
     private const double HydraMinimumPresence = 1.6; // :74
 
+    private readonly ThreadRuntime runtime; // :7
+    private AppModel? model; // :5 inherited on attach.
+    private readonly GitStatusModel git = new(); // :9
+    private ChromeScrollModel scrollChrome = new(); // :10
+    private TimelineScrollState scrollState = new(); // :11
+    private double columnHeight; // :14
+    private Size paneSize; // :17
+    private double composerAreaHeight; // :19
+    private PanelDragState subagentDrag = new(), hydraDrag = new(), poppedDrag = new(), usageDrag = new(), autoDrag = new(); // :22-28
+    private Dictionary<Guid, PanelDragState> autoDrags = []; // :30
+    private double? usageContentHeight; // :33
+    private PanelResizeState panelResize = new(); // :35
+    private DateTimeOffset? hydraShownSince; // :66
+    private bool hydraLingers; // :67
+    private TaskHandle? hydraLingerTask; // :68
+    private Guid? sceneThreadID; // :72
+    private HydraPresence? previousPresence;
+    private Guid[] previousAutoIDs = [];
+    private Tracked<bool>? dragObservation;
+    private readonly Grid column = new() { RowDefinitions = new RowDefinitions("*,Auto") };
+    private readonly Grid pane = new();
+    private readonly Border timelineHost = new();
+    private readonly Grid composerHost = new();
+    private readonly Panel floatingHost = new();
+    private readonly Panel terminalHost = new();
+    private readonly Dictionary<FloatingPanelID, (Control View, object Inputs)> mountedPanels = [];
+    private readonly Dictionary<Control, (Panel Host, Control Surface)> panelSurfaces = [];
+    private ThreadTimeline? timeline;
+    private ComposerArea? composer;
+    private ChatChromeRow? chrome;
+    private TerminalPanel? terminal;
+    private PanelMembers? members;
+    private PanelScene scene = null!;
+    private string? workingDirectory;
+    private string directory = "";
+    private Project? project;
+    private ReserveSlide timelineSlide = new(new PanelReserve(), false);
+    private ReserveSlide composerSlide = new(new PanelReserve(), false, AnimatesWidth: true);
+    private (string? Project, string? Directory, bool Rewind, double Height, bool Minimap)? timelineInputs;
+    private string? composerDirectory;
+    private bool? terminalWasVisible;
+    private string? terminalDirectory;
+    private long? seenDiffRevision;
+
     // :7 @Bindable var runtime: ThreadRuntime; :76-321 body
-    public ChatView(ThreadRuntime runtime) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:76");
+    public ChatView(ThreadRuntime runtime)
+    {
+        this.runtime = runtime;
+        var conversation = new Grid { RowDefinitions = new RowDefinitions("*,Auto") };
+        Grid.SetRow(composerHost, 1);
+        conversation.Children.Add(timelineHost);
+        conversation.Children.Add(composerHost); // :124-140 bottom safe-area inset consumes viewport height.
+        pane.Children.Add(conversation);
+        column.Children.Add(pane);
+        Grid.SetRow(terminalHost, 1);
+        column.Children.Add(terminalHost); // :98,275-280 zero gap, terminal outside the conversation pane.
+        Child = column.DetailSheet(); // :281-282
+        this.Transition(SwiftTransition.Identity); // :283-288, no column transition on a switch.
+
+        this.Track(() => AppEnvironment.GetAppModel(this), attachedModel =>
+        {
+            model = attachedModel;
+            RefreshInputs();
+        });
+        this.Track(() => new PanelMembers(this.runtime, AppEnvironment.GetAppModel(this)), value =>
+        {
+            members = value; // :85-90 membership observation separated from per-frame geometry.
+            RefreshInputs();
+        });
+        this.Track(() =>
+        {
+            var app = AppEnvironment.GetAppModel(this);
+            var thread = app.Thread(this.runtime.ThreadID);
+            return (thread, thread is null ? null : app.Project(thread.ProjectID));
+        }, _ => RefreshInputs()); // :77-84
+        this.Track(() =>
+        {
+            var app = AppEnvironment.GetAppModel(this);
+            var resize = AppEnvironment.GetWindowLiveResize(this);
+            return (app.Settings.PanelSize, app.Settings.UsagePanelHeight, app.Settings.UsagePanelDock,
+                app.Settings.HydraShowsHeadDetails, app.Settings.HydraAutoPopsHeads,
+                this.runtime.SubagentPanelDock, this.runtime.HydraPanelDock, this.runtime.HydraPoppedPanelDock,
+                this.runtime.HydraAutoPanelDocks, this.runtime.HydraAutoPopHeld, this.runtime.PanelStackOrder,
+                panelResize.IsActive, panelResize.LiveSize, panelResize.LiveUsageHeight,
+                app.Sidebar.IsDragging, app.Sidebar.IsSliding, this.runtime.IsTerminalResizing, resize.IsActive);
+        }, _ => RefreshScene()); // :59-64,89-95
+        this.Track(() =>
+        {
+            var app = AppEnvironment.GetAppModel(this);
+            return app.Sidebar.IsDragging || app.Sidebar.IsSliding || this.runtime.IsTerminalResizing;
+        }, value => AppEnvironment.GetWindowLiveResize(this).IsPaneResizing = value); // :252-254 initial:true.
+        bool? wasResizing = null;
+        this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsActive, active =>
+        {
+            if (wasResizing == true && !active) ReclampPanels(); // :257-264
+            wasResizing = active;
+        });
+        this.Track(() => this.runtime.IsTerminalVisible, _ => RefreshTerminal()); // :275-278,290
+        this.Track(() => this.runtime.IsHydraPanelHidden, hidden =>
+        {
+            if (!hidden || !hydraLingers) return;
+            hydraLingerTask?.Cancel();
+            Transaction.WithAnimation(Chrome.PanelSlide, () => { hydraLingers = false; RefreshScene(); });
+        }); // :223-227 a tap cancels a held panel's remaining beat.
+        this.Task(() => ResolveDirectory(), value => git.Refresh(value, force: false)); // :295-297
+        this.Track(() => this.runtime.DiffRevision, revision =>
+        {
+            if (seenDiffRevision is not null && seenDiffRevision != revision)
+                MainActor.Spawn(() => git.Refresh(ResolveDirectory())); // :298-300
+            seenDiffRevision = revision;
+        });
+        // ThreadRuntime.threadID is immutable in both ports. This observation retains the source switch reset
+        // for a bound input replacement; the owning RootView coordinator caches one column per thread id.
+        this.Track(() => this.runtime.ThreadID, id =>
+        {
+            if (sceneThreadID is { } previous && previous != id) ResetThreadScene(); // :306-319
+            sceneThreadID = id;
+        });
+        pane.SizeChanged += (_, _) => NotePaneSize(pane.Bounds.Size); // :241-249
+        composerHost.SizeChanged += (_, _) => NoteComposerAreaHeight(composerHost.Bounds.Height); // :129-138
+        SizeChanged += (_, _) =>
+        {
+            if (columnHeight == Bounds.Height) return;
+            columnHeight = Bounds.Height; RefreshScene(); // :289 full column, independent of composer/terminal height.
+        };
+        AttachedToVisualTree += (_, _) =>
+        {
+            sceneThreadID = this.runtime.ThreadID; // :320
+            ObserveDrags();
+        };
+        DetachedFromVisualTree += (_, _) => { dragObservation?.Dispose(); dragObservation = null; };
+    }
+
+    // :80-84 thread/project values supplied to the children once per input change.
+    private string ResolveDirectory()
+    {
+        var app = AppEnvironment.GetAppModel(this);
+        var thread = app.Thread(runtime.ThreadID);
+        return thread?.WorktreePath ?? (thread is null ? null : app.Project(thread.ProjectID)?.Path) ?? LoginEnvironment.HomeDirectory;
+    }
+
+    private void RefreshInputs() // :77-95,146-153
+    {
+        if (model is null) return;
+        var thread = model.Thread(runtime.ThreadID);
+        project = thread is null ? null : model.Project(thread.ProjectID);
+        workingDirectory = thread is null ? null : thread.WorktreePath ?? project?.Path;
+        directory = workingDirectory ?? LoginEnvironment.HomeDirectory;
+        members ??= new PanelMembers(runtime, model);
+        if (composer is null || composerDirectory != workingDirectory)
+        {
+            composerDirectory = workingDirectory;
+            composerHost.Children.Clear();
+            composer = new ComposerArea(runtime, workingDirectory);
+            composerHost.Children.Add(composer);
+            composerHost.Children.Add(new JumpToLatestButton(scrollState) { VerticalAlignment = VerticalAlignment.Top }); // :125-128
+            composerSlide = new(new PanelReserve(), false, AnimatesWidth: true);
+        }
+        if (chrome is null)
+        {
+            pane.Children.Add(new PaneTopVeil(scrollChrome) { VerticalAlignment = VerticalAlignment.Top }); // :143-145
+            chrome = new ChatChromeRow(model, runtime, scrollChrome, thread?.Title ?? "", project, directory, git) { VerticalAlignment = VerticalAlignment.Top };
+            pane.Children.Add(chrome);
+            pane.Children.Add(floatingHost); // :155-240 overlays above the chrome/conversation.
+        }
+        else chrome.UpdateInputs(thread?.Title ?? "", project, directory);
+        LinkParagraphView.SetMergeRequestTarget(this, new MergeRequestTarget(runtime.ThreadID,
+            link => model.SpawnSubagent(runtime.ThreadID, link.Title, link.Prompt))); // :292-294
+        RefreshScene();
+        RefreshTerminal();
+    }
+
+    private void RefreshScene() // :85-95,155-240
+    {
+        if (model is null || members is null || composer is null) return;
+        scene = new PanelScene(members, runtime, model, paneSize, composerAreaHeight, usageContentHeight,
+            hydraLingers, LivePreferredSize(panelResize), panelResize.LiveUsageHeight);
+        NoteHydraPresence(new HydraPresence { ThreadID = runtime.ThreadID, Present = members.Heads.Count != 0 && scene.IsMeasured });
+        var holds = panelResize.IsActive || model.Sidebar.IsDragging || model.Sidebar.IsSliding || runtime.IsTerminalResizing;
+        var switching = sceneThreadID != runtime.ThreadID;
+        var slides = scene.IsMeasured && !AppEnvironment.GetWindowLiveResize(this).IsActive && !holds && !switching;
+        var thread = model.Thread(runtime.ThreadID);
+        var minimap = !scene.DockedSides.Contains(PanelDockSide.Leading) &&
+            (paneSize == default || paneSize.Width - scene.Reserve.Leading - scene.Reserve.Trailing >= 900); // :108-110
+        var inputs = (project?.Name, workingDirectory, thread?.Provider.SupportsRewind ?? false, columnHeight, minimap);
+        if (timeline is null || timelineInputs != inputs)
+        {
+            timelineInputs = inputs;
+            timeline = new ThreadTimeline(runtime, scrollChrome, scrollState, inputs.Item1, inputs.Item2, inputs.Item3, inputs.Item4, inputs.Item5);
+            timelineHost.Child = timeline; // :116-119 .id(threadID); children receive the unchanged snapshot inputs.
+        }
+        timeline.IsHitTestVisible = !IsMovingAPanel(subagentDrag, hydraDrag, poppedDrag, usageDrag, autoDrags); // :112-115
+        timelineSlide = timelineSlide with { Reserve = scene.Reserve, Slides = slides };
+        timelineSlide.Body(timeline); // :122-123
+        composerSlide = composerSlide with { Reserve = scene.Reserve, Slides = slides };
+        composerSlide.Body(composer); // :140
+        var ids = scene.AutoPopped.Select(head => head.Id).ToArray();
+        if (!previousAutoIDs.SequenceEqual(ids)) { previousAutoIDs = ids; NoteAutoPanelIDs(ids); } // :266-269
+        DrawPanels(holds, switching);
+    }
+
+    private void ObserveDrags() // :48-52,112-115 only the timeline loses hit testing.
+    {
+        dragObservation?.Dispose();
+        if (VisualRoot is null) return;
+        dragObservation = new Tracked<bool>(() => IsMovingAPanel(subagentDrag, hydraDrag, poppedDrag, usageDrag, autoDrags), moving =>
+        {
+            if (timeline is not null) timeline.IsHitTestVisible = !moving;
+        });
+    }
+
+    private void NoteAutoPanelIDs(Guid[] ids) // :266-269 initial:true, one state per visible automatic head.
+    {
+        foreach (var id in ids) if (!autoDrags.ContainsKey(id)) autoDrags[id] = new PanelDragState();
+        foreach (var id in autoDrags.Keys.Where(id => !ids.Contains(id)).ToArray()) autoDrags.Remove(id);
+        ObserveDrags();
+    }
+
+    private void NoteComposerAreaHeight(double height) // :129-138
+    {
+        var old = composerAreaHeight;
+        if (old == height) return;
+        composerAreaHeight = height;
+        if (height > old + 0.5 && old > 0 && !AppEnvironment.GetWindowLiveResize(this).IsActive)
+            scrollState.NoteComposerAreaGrowth();
+        RefreshScene();
+    }
+
+    private void NotePaneSize(Size size) // :241-249
+    {
+        if (paneSize == size) return;
+        paneSize = size;
+        RefreshScene();
+        if (AppEnvironment.GetWindowLiveResize(this).IsActive) ReclampPanels();
+    }
+
+    private void ReclampPanels() // :248-249,260-264
+    {
+        if (scene is null) return;
+        subagentDrag.Reclamp(scene.Layout); hydraDrag.Reclamp(scene.Layout); poppedDrag.Reclamp(scene.Layout); usageDrag.Reclamp(scene.Layout);
+        foreach (var drag in autoDrags.Values) drag.Reclamp(scene.Layout);
+    }
+
+    private void NoteHydraPresence(HydraPresence presence) // :187-225
+    {
+        if (previousPresence == presence) return;
+        var old = previousPresence;
+        previousPresence = presence;
+        if (old is null) return; // onChange has no initial:true at this site.
+        hydraLingerTask?.Cancel();
+        if (old.ThreadID != presence.ThreadID || presence.Present)
+        {
+            hydraLingers = false;
+            hydraShownSince = presence.Present ? SwiftDate.Now : null;
+            return;
+        }
+        if (runtime.IsHydraPanelHidden) { hydraLingers = false; return; }
+        var shown = hydraShownSince is { } since ? SwiftDate.TimeIntervalSince(SwiftDate.Now, since) : double.PositiveInfinity;
+        var remaining = HydraMinimumPresence - shown;
+        if (remaining <= 0) return;
+        hydraLingers = true;
+        hydraLingerTask = MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(SwiftTask.Seconds(remaining));
+            if (SwiftTask.IsCancelled) return;
+            Transaction.WithAnimation(Chrome.PanelSlide, () => { hydraLingers = false; RefreshScene(); });
+        });
+        // This pass was calculated before the presence callback; re-evaluate the held empty panel on the next actor turn.
+        MainActor.Post(RefreshScene);
+    }
+
+    private void ResetThreadScene() // :306-319
+    {
+        hydraLingerTask?.Cancel(); hydraLingers = false;
+        scrollChrome = new(); scrollState = new();
+        subagentDrag = new(); hydraDrag = new(); poppedDrag = new(); usageDrag = new(); autoDrag = new(); autoDrags = [];
+        panelResize = new(); previousAutoIDs = []; previousPresence = null;
+        ObserveDrags();
+    }
+
+    private void RefreshTerminal() // :275-278,290
+    {
+        if (model is null) return;
+        var visible = runtime.IsTerminalVisible;
+        var changed = terminalWasVisible is { } was && was != visible;
+        void Apply()
+        {
+            if (terminal is not null && (!visible || terminalDirectory != directory))
+            {
+                SwiftTransition.Remove(terminalHost, terminal);
+                terminal = null;
+            }
+            if (visible && terminal is null)
+            {
+                terminalDirectory = directory;
+                terminal = new TerminalPanel(runtime, directory).Transition(SwiftTransition.Move(Edge.Bottom).Combined(SwiftTransition.Opacity));
+                SwiftTransition.Insert(terminalHost, terminalHost.Children.Count, terminal);
+            }
+        }
+        if (changed && sceneThreadID == runtime.ThreadID) Transaction.WithAnimation(Chrome.PanelSlide, Apply);
+        else Apply();
+        terminalWasVisible = visible;
+    }
+
+    private static SwiftTransition PanelTransition => SwiftTransition.Asymmetric(
+        SwiftTransition.Scale(0.92).Combined(SwiftTransition.Opacity),
+        SwiftTransition.Scale(0.96).Combined(SwiftTransition.Opacity)); // :601-607
+
+    // :354-356,395-397,451-453,483-485,528-530. Transition the surface inside its positioned wrapper.
+    private Control PlacePanel(PanelDragState drag, Point rest, Size size, Control surface, PanelResize resize, bool holds)
+    {
+        var host = new Panel();
+        var placed = new PlacedPanel(drag, rest, size, host, resize, holds);
+        panelSurfaces[placed] = (host, surface);
+        host.Children.CollectionChanged += (_, _) =>
+        {
+            if (host.Children.Count != 0) return;
+            floatingHost.Children.Remove(placed);
+            panelSurfaces.Remove(placed);
+        };
+        return placed;
+    }
+
+    private void RemovePanel(Control placed)
+    {
+        if (panelSurfaces.TryGetValue(placed, out var panel)) SwiftTransition.Remove(panel.Host, panel.Surface);
+    }
+
+    private void DrawPanels(bool holds, bool switching) // :155-240,326-530
+    {
+        if (model is null) return;
+        var wanted = new HashSet<FloatingPanelID>();
+        void Mount(FloatingPanelID id, object inputs, Func<Control> create)
+        {
+            wanted.Add(id);
+            if (mountedPanels.TryGetValue(id, out var prior) && Equals(prior.Inputs, inputs)) return;
+            if (prior.View is not null) Transaction.WithAnimation(null, () => RemovePanel(prior.View));
+            var control = create();
+            control.HorizontalAlignment = HorizontalAlignment.Left;
+            control.VerticalAlignment = VerticalAlignment.Top;
+            mountedPanels[id] = (control, inputs);
+            floatingHost.Children.Add(control);
+            var panel = panelSurfaces[control];
+            Transaction.WithAnimation(!switching && prior.View is null ? Chrome.PanelSlide : null,
+                () => SwiftTransition.Insert(panel.Host, 0, panel.Surface));
+        }
+        var size = scene.Layout.PanelSize;
+        if (scene.Subagent is { } helper && scene.IsMeasured)
+            Mount(new FloatingPanelID.Subagent(), (helper, size, scene.Slots, project, holds), () => MakeSubagentPanel(helper, holds));
+        if (scene.ShowsHydra)
+            Mount(new FloatingPanelID.Hydra(), (scene.Heads, size, scene.Slots, workingDirectory, project, holds), () => MakeHydraPanel(scene.Heads, new FloatingPanelID.Hydra(), hydraDrag, runtime.HydraPanelDock, holds, popped: false));
+        if (scene.Popped is { } head && scene.ShowsPopped)
+            Mount(new FloatingPanelID.Popped(), (head, size, scene.Slots, workingDirectory, project, holds), () => MakeHydraPanel([head], new FloatingPanelID.Popped(), poppedDrag, runtime.HydraPoppedPanelDock, holds, popped: true));
+        foreach (var autoHead in scene.AutoPopped)
+            Mount(new FloatingPanelID.Auto(autoHead.Id), (autoHead, size, scene.Slots, workingDirectory, project, holds), () => MakeHydraPanel([autoHead], new FloatingPanelID.Auto(autoHead.Id), autoDrags.GetValueOrDefault(autoHead.Id) ?? autoDrag, runtime.HydraPanelDock.AcrossTheColumn, holds, popped: true));
+        if (scene.Usage is { } usage && scene.ShowsUsage)
+            Mount(new FloatingPanelID.Usage(), (usage, size, scene.UsageHeight, scene.Slots, holds), () => MakeUsagePanel(usage, holds));
+        foreach (var id in mountedPanels.Keys.Where(id => !wanted.Contains(id)).ToArray())
+        {
+            var leaving = mountedPanels[id].View; mountedPanels.Remove(id);
+            Transaction.WithAnimation(switching ? null : Chrome.PanelSlide, () => RemovePanel(leaving));
+        }
+    }
+
+    private PanelScene.PanelSlot Slot(FloatingPanelID id, PanelDockCorner fallback) =>
+        scene.Slots.GetValueOrDefault(id) ?? new PanelScene.PanelSlot { Corner = fallback, Below = 0, Lift = 0 }; // :327,360,421,457,491
+
+    private void DragPanel(FloatingPanelID id, PanelDragState drag, Size translation, Point rest, bool release = false) // :336-346,368-378,434-444,469-479,510-520
+    {
+        var position = release ? drag.Release() : drag.Move(translation, rest, scene.Layout);
+        if (position is not { } point || model is null) return;
+        if (id is FloatingPanelID.Auto auto) DockAuto(runtime, auto.Value, point, scene);
+        else if (id is FloatingPanelID.Usage) DockUsage(model, point, scene);
+        else
+        {
+            var current = id is FloatingPanelID.Subagent ? runtime.SubagentPanelDock : id is FloatingPanelID.Hydra ? runtime.HydraPanelDock : runtime.HydraPoppedPanelDock;
+            Dock(id, new Binding<PanelDockCorner>(() => current, next => { current = next; SetCorner(model, runtime, id, next); }), point, scene);
+        }
+        var corner = Slot(id, runtime.HydraPanelDock.AcrossTheColumn).Corner;
+        if (id is FloatingPanelID.Auto a) corner = runtime.HydraAutoPanelDocks.GetValueOrDefault(a.Value, corner);
+        else if (id is FloatingPanelID.Subagent) corner = runtime.SubagentPanelDock;
+        else if (id is FloatingPanelID.Hydra) corner = runtime.HydraPanelDock;
+        else if (id is FloatingPanelID.Popped) corner = runtime.HydraPoppedPanelDock;
+        else if (id is FloatingPanelID.Usage) corner = model.Settings.UsagePanelDock;
+        Reorder(model, runtime, id, point, corner, scene);
+    }
+
+    private Control MakeSubagentPanel(ChatThread helper, bool holds) // :326-356
+    {
+        var id = new FloatingPanelID.Subagent(); var slot = Slot(id, runtime.SubagentPanelDock); var rest = Rest(slot, scene);
+        var content = new SubagentPanel(helper, scene.Layout.PanelSize, helper.WorktreePath ?? project?.Path, project?.Name,
+            translation => DragPanel(id, subagentDrag, translation, rest), () => DragPanel(id, subagentDrag, default, rest, release: true),
+            () => Transaction.WithAnimation(Chrome.PanelSlide, () => model!.CloseSubagent(helper.Id))).Transition(PanelTransition);
+        return PlacePanel(subagentDrag, rest, scene.Layout.PanelSize, content, Resizer(model!, panelResize, slot.Corner, scene), holds);
+    }
+
+    private Control MakeHydraPanel(IReadOnlyList<ChatThread> heads, FloatingPanelID id, PanelDragState drag, PanelDockCorner fallback, bool holds, bool popped) // :359-397,420-485
+    {
+        var slot = Slot(id, fallback); var rest = Rest(slot, scene);
+        var content = new HydraPanel(runtime, heads, scene.Layout.PanelSize, workingDirectory, project?.Name,
+            translation => DragPanel(id, drag, translation, rest), () => DragPanel(id, drag, default, rest, release: true),
+            () => Transaction.WithAnimation(Chrome.PanelSlide, () =>
+            {
+                if (id is FloatingPanelID.Auto a) { runtime.HydraAutoPopHeld = runtime.HydraAutoPopHeld.Mutating(values => values.Add(a.Value)); runtime.HydraSelectedHeadID = a.Value; }
+                else if (popped) { runtime.HydraSelectedHeadID = heads[0].Id; runtime.HydraPoppedHeadID = null; }
+                else model!.DismissHydraHeads(runtime.ThreadID);
+            }), isPoppedOut: popped, popOut: popped ? null : head => Transaction.WithAnimation(Chrome.PanelSlide, () =>
+            {
+                runtime.HydraPoppedHeadID = head; runtime.HydraPoppedPanelDock = runtime.HydraPanelDock.AcrossTheColumn;
+                if (runtime.HydraSelectedHeadID == head) runtime.HydraSelectedHeadID = null;
+            })).Transition(PanelTransition);
+        return PlacePanel(drag, rest, scene.Layout.PanelSize, content, Resizer(model!, panelResize, slot.Corner, scene), holds);
+    }
+
+    private Control MakeUsagePanel(PanelUsage usage, bool holds) // :490-530
+    {
+        var id = new FloatingPanelID.Usage(); var slot = Slot(id, model!.Settings.UsagePanelDock); var origin = UsageOrigin(slot, scene);
+        var full = scene.Layout.PanelSize; var size = new Size(full.Width, scene.UsageHeight ?? full.Height);
+        var content = new UsageFloatingPanel(runtime, usage.Provider, usage.HeadsProvider, size,
+            height => { if (usageContentHeight != height) { usageContentHeight = height; MainActor.Post(RefreshScene); } },
+            translation => DragPanel(id, usageDrag, translation, origin), () => DragPanel(id, usageDrag, default, origin, release: true),
+            () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.ShowsUsagePanel = false)).Transition(PanelTransition);
+        return PlacePanel(usageDrag, origin, size, content, UsageResizer(model, panelResize, slot.Corner, scene, size, PanelScene.UsageMinimumHeight), holds);
+    }
 
     // :731 @Entry var reserveSlideLeading: CGFloat = 0, an inherited environment value (R-VIEW-6).
     public static readonly AttachedProperty<double> ReserveSlideLeadingProperty =
@@ -62,9 +485,7 @@ public sealed class ChatView : Decorator
 
     public static void SetReserveSlideOffset(Control control, double value) => control.SetValue(ReserveSlideOffsetProperty, value);
 
-    // :36-52 private var isMovingAPanel: Bool. Extracted as a static helper so it is directly testable ahead of
-    // ChatView's own body, whose timeline/composer dependencies remain blocked (STOP #1). The mounted body
-    // will call this with its own @State drag fields once those dependencies land.
+    // :36-52 private var isMovingAPanel: Bool. The mounted body reads its own drag fields through this helper.
     internal static bool IsMovingAPanel(
         PanelDragState subagentDrag,
         PanelDragState hydraDrag,
@@ -75,7 +496,7 @@ public sealed class ChatView : Decorator
             || poppedDrag.Position is not null || usageDrag.Position is not null
             || autoDrags.Values.Any(drag => drag.Position is not null);
 
-    // :554-590. Model and resize state are explicit here so the grips can be ported before the blocked body mounts.
+    // :554-590. The mounted grips share the column's model and resize state.
     internal static PanelResize UsageResizer(AppModel model, PanelResizeState resize, PanelDockCorner corner, PanelScene scene, Size size, double minimum) => new()
     {
         Corner = corner,
@@ -635,8 +1056,30 @@ internal sealed record PanelScene
 public sealed class JumpToLatestButton : Decorator
 {
     // :1087 let scrollState; :1089-1103 body
-    public JumpToLatestButton(TimelineScrollState scrollState) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1089");
+    public JumpToLatestButton(TimelineScrollState scrollState)
+    {
+        var host = new Panel();
+        Height = 0; // :1095 zero flow height, above the composer.
+        Child = new ChatBottomOverlay(host, 10); // :1094 bottom padding.
+        ChromeCircleButton? button = null;
+        this.Track(() => scrollState.ShowsJumpButton, shown =>
+        {
+            if (shown && button is null)
+            {
+                button = new ChromeCircleButton("arrow.down", "Jump to latest", scrollState.JumpToLatest)
+                { HorizontalAlignment = HorizontalAlignment.Center }
+                    .Transition(SwiftTransition.Asymmetric(
+                        SwiftTransition.Scale(0.6).Combined(SwiftTransition.Opacity).Combined(SwiftTransition.Offset(y: 10)),
+                        SwiftTransition.Scale(0.85).Combined(SwiftTransition.Opacity).Combined(SwiftTransition.Offset(y: 6)))); // :1096-1101
+                SwiftTransition.Insert(host, host.Children.Count, button);
+            }
+            else if (!shown && button is { } leaving)
+            {
+                button = null;
+                SwiftTransition.Remove(host, leaving);
+            }
+        });
+    }
 }
 
 /// <summary>PORT-ONLY. <c>GlassEffectContainer(spacing:)</c> (ChatView.swift:1123): on macOS 26 it groups nearby
@@ -657,6 +1100,8 @@ internal sealed class GlassEffectContainer : Decorator
 /// <summary>:1106-1182 <c>private struct ChatChromeRow: View</c>: the sticky glass controls across the top.</summary>
 internal sealed class ChatChromeRow : Decorator
 {
+    private Action<string, Project?, string>? updateInputs;
+    internal void UpdateInputs(string title, Project? project, string directory) => updateInputs?.Invoke(title, project, directory); // :1112-1115,1147-1151
     // :1109-1114 the view's inputs, plus AppModel explicitly (no Avalonia @Environment). scrollChrome is not read
     // here (the row has no member citing it); it stays a parameter so the caller's signature matches the Swift
     // view's own inputs and PR-CHAT-159 (a different member) can use it once ChatView's own body is built.
@@ -679,6 +1124,12 @@ internal sealed class ChatChromeRow : Decorator
         clearanceAnimation.AttachLifetime();
         double? clearance = null;
         bool? previousSidebarVisible = null;
+        updateInputs = (nextTitle, nextProject, nextDirectory) =>
+        {
+            title = nextTitle; project = nextProject; directory = nextDirectory;
+            titleView.UpdateTitle(title); // :1147-1151 no title animation.
+            Build();
+        };
         void Build()
         {
             titleParent?.Children.Remove(titleView);

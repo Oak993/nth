@@ -14,15 +14,6 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
 {
-    // STOP App.Views.Chat.ChatView #1
-    // Kind: missing dependency
-    // Swift: DroppyCode/App/Views/Chat/ChatView.swift:76-321, :1089-1103 (1.7.0).
-    // Records: PR-CHAT-157, PR-CHAT-158, PR-CHAT-159, PR-TERM-001, UI-CHAT-006.
-    // ThreadTimeline's constructor, TimelineScrollState.JumpToLatest/NoteComposerAreaGrowth,
-    // and ComposerArea still throw MARROW_STUB on the merged impl/b2 baseline.
-    // Needed: App.Views.Chat.ThreadTimeline and App.Views.Composer.ComposerView integration merges.
-    // The constructor/mount sites remain unwritten; independent helpers are tested below.
-
     // STOP App.Views.Chat.ChatView #2
     // Kind: missing dependency / platform gap
     // Swift: DroppyCode/App/Views/Chat/ChatView.swift:1417-1424 (1.7.0).
