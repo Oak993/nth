@@ -41,6 +41,100 @@ namespace Marrow.App.Tests.Views.Chat;
 public sealed class TimelineRowsTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Req", "UI-CHAT-039")] // App/Views/Chat/TimelineRows.swift:2777-2798
+    public void Revert_panel_UI_keeps_300_point_width_16_insets_and_default_Revert() => The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts();
+    [Fact]
+    [Trait("Req", "UI-CHAT-040")] // App/Views/Chat/TimelineRows.swift:2800-2816
+    public void Review_disc_UI_uses_its_own_lazy_anchor_and_ignores_anchorless_clicks() => The_review_control_hands_its_own_anchor_to_the_review_once_the_pointer_has_been_there_and_does_nothing_before();
+    [Fact]
+    [Trait("Req", "UI-CHAT-041")] // App/Views/Chat/TimelineRows.swift:2829-2858
+    public void File_row_UI_uses_middle_truncation_and_Binary_instead_of_stats() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
+    [Fact]
+    [Trait("Req", "UI-CHAT-042")] // App/Views/Chat/TimelineRows.swift:2850-2856
+    public void File_overflow_UI_keeps_the_exact_singular_and_plural_lines() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
+    [Fact]
+    [Trait("Req", "UI-CHAT-048")] // App/Views/Chat/TimelineRows.swift:241-329, :340-387
+    public void Report_pill_UI_has_overlapping_18_point_glyphs_and_failed_head_names() { A_heads_report_pill_names_who_is_done_and_names_a_failed_or_stopped_head_with_its_outcome(); A_heads_report_pill_overlaps_the_heads_glyphs_and_sits_in_the_tinted_pill_with_96_points_clear_on_the_trailing_side(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-049")] // App/Views/Chat/TimelineRows.swift:304-311
+    public void Report_Open_UI_is_a_sibling_with_the_exact_tooltip() => A_note_that_leads_with_an_address_gets_an_Open_link_beside_the_pill_that_opens_it_in_the_browser();
+    [Fact]
+    [Trait("Req", "UI-CHAT-050")] // App/Views/Chat/TimelineRows.swift:607-639
+    public void Report_panel_UI_is_fixed_460_with_16_14_padding_and_ten_point_spacing() => The_report_popover_is_460_wide_with_a_460_point_scroller_at_the_callout_style_with_12_point_markdown();
+    [Fact]
+    [Trait("Req", "UI-CHAT-051")] // App/Views/Chat/TimelineRows.swift:537-595
+    public void Brief_UI_uses_the_straight_apostrophe_and_cooking_shimmer() => A_brief_reads_as_cooking_until_its_turn_has_output_and_then_as_the_brief();
+    [Fact]
+    [Trait("Req", "UI-CHAT-052")] // App/Views/Chat/TimelineRows.swift:438-476, :398-418
+    public void Finished_head_UI_keeps_the_status_suffix_and_leading_stack() { A_finished_heads_pill_names_its_outcome_beside_its_glyph_with_the_report_one_tap_away(); The_finished_heads_row_draws_one_leading_aligned_pill_per_named_head_found_among_this_threads_helpers(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-053")] // App/Views/Chat/TimelineRows.swift:937-1162
+    public void Merge_outcome_UI_updates_its_title_even_when_both_phases_are_outcomes()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            HydraMergeRow row = null!; AvaloniaWindow window = null!;
+            h.Main.OnMain(() => { row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Outcome(new UserMessage { Text = "Hydra merge held.\nfirst details" })); window = Show(row); Assert.Contains("Hydra merge held", Texts(row)); });
+            h.Main.OnMain(() => row.Update(new HydraMergePhase.Outcome(new UserMessage { Text = "Hydra merge failed.\nsecond details" })));
+            h.Main.OnMain(() => { Settle(window); Assert.Contains("Hydra merge failed", Texts(row)); Close(window); });
+        });
+    }
+    [Fact]
+    [Trait("Req", "UI-CHAT-054")] // App/Views/Chat/TimelineRows.swift:652-783
+    public void Delegation_UI_draws_tasks_projects_and_a_single_sent_wave() { The_delegation_card_says_Summoning_heads_while_streaming_then_names_the_count_or_the_one_head(); The_delegation_card_lists_each_head_with_its_glyph_task_and_other_project_and_once_sent_checks_and_sweeps(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-055")] // App/Views/Chat/TimelineRows.swift:1877-2064
+    public void Head_panel_UI_has_the_source_section_labels_and_runtime_updates() => Head_steps_mount_at_440_with_a_520_cap_and_update_from_the_heads_own_runtime();
+    [Fact]
+    [Trait("Req", "UI-CHAT-056")] // App/Views/Chat/TimelineRows.swift:1766-1793, :1723-1755
+    public void Departure_UI_is_a_head_badge_never_Delegating_Subagent() { A_call_sending_out_a_head_draws_as_a_head_badge_that_reads_Sending_out_Sent_out_or_Could_not_send_out(); A_call_whose_head_is_linked_reads_Sending_out_or_Sent_out_the_heads_name_and_the_title(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-057")] // App/Views/Chat/TimelineRows.swift:2242-2254, :1772-1793
+    public void MCP_UI_uses_the_exact_middle_dot_separator_and_catalog_badge() { An_mcp_call_to_a_catalog_server_draws_as_a_pill_badge_with_the_servers_glyph_and_label(); An_mcp_title_without_the_exact_separator_an_empty_side_an_unknown_server_or_another_kind_is_no_badge(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-059")] // App/Views/Chat/TimelineRows.swift:2631-2663
+    public void Owned_turn_steps_card_has_fourteen_point_insets_and_twenty_point_bottom_gap()
+    {
+        headless.OnUiThread(() => { using var h = RuntimeHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource()); h.Main.OnMain(() => {
+            var turn = System.Guid.NewGuid(); var content = new ValueList<TimelineEntry>([ReplyEntry("```\nanswer\n```", turn: turn)]);
+            var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), new ValueList<TimelineEntry>([UserEntry("question", turn)]), content, null, canUndo: false, chronological: false);
+            // STOP #3 is the external expanded derivation only. A real folded Derived still tests the owned frame.
+            var derived = Invoke(block, "DerivedFor", false);
+            var steps = Assert.IsAssignableFrom<Control>(Invoke(block, "Steps", derived, false));
+            Assert.Contains(LogicalQuery.SelfAndDescendants<Border>(steps), b => b.Padding == new Thickness(14));
+            Assert.Equal(20, steps.Margin.Bottom);
+        }); });
+    }
+    [Fact]
+    [Trait("Req", "UI-CHAT-061")] // App/Views/Chat/TimelineRows.swift:1546-1553
+    public void Narration_UI_is_twelve_point_dimmed_markdown_indented_twenty_four_points() => With_every_step_showing_there_is_no_earlier_line_and_narration_is_dimmed_12_point_markdown_after_the_icon_column();
+    [Fact]
+    [Trait("Req", "UI-CHAT-063")] // App/Views/Chat/TimelineRows.swift:1837-1840
+    public void Declined_UI_is_caption_in_the_theme_warning_colour() => A_failed_call_shows_its_exit_code_in_danger_and_a_declined_one_Declined_in_warning();
+    [Fact]
+    [Trait("Req", "UI-CHAT-064")] // App/Views/Chat/TimelineRows.swift:1833-1836
+    public void Exit_UI_is_lowercase_exit_and_monospaced_digits_in_danger() => A_failed_call_shows_its_exit_code_in_danger_and_a_declined_one_Declined_in_warning();
+    [Fact]
+    [Trait("Req", "UI-CHAT-070")] // App/Views/Chat/TimelineRows.swift:1906-1909
+    public void No_steps_UI_has_its_full_stop_and_disappears_after_a_tool() => Head_steps_mount_at_440_with_a_520_cap_and_update_from_the_heads_own_runtime();
+    [Fact]
+    [Trait("Req", "UI-CHAT-071")] // App/Views/Chat/TimelineRows.swift:680-687
+    public void Next_brief_UI_has_the_horizontal_ellipsis_only_while_streaming() => The_delegation_card_says_Summoning_heads_while_streaming_then_names_the_count_or_the_one_head();
+    [Fact]
+    [Trait("Req", "UI-CHAT-072")] // App/Views/Chat/TimelineRows.swift:2839-2842
+    public void Binary_UI_replaces_the_diff_stat_in_the_trailing_column() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
+    [Fact]
+    [Trait("Req", "UI-GIT-044")] // App/Views/Chat/TimelineRows.swift:2718-2827
+    public void Git_card_UI_has_the_asset_singular_title_and_fixed_control_gap() { The_file_card_reads_Edited_1_file_or_Edited_N_files_beside_the_badge_and_the_totals_with_a_chevron(); The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill(); }
+    [Fact]
+    [Trait("Req", "UI-GIT-045")] // App/Views/Chat/TimelineRows.swift:2829-2858
+    public void Git_file_popover_UI_has_the_twelve_row_cut_and_padding() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
+    [Fact]
+    [Trait("Req", "UI-GIT-046")] // App/Views/Chat/TimelineRows.swift:2770-2776
+    public void Git_revert_UI_is_only_present_when_rewindable_and_never_focusable() => The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill();
+
+    [Fact]
     [Trait("Req", "UI-CHAT-011")] // App/Views/Chat/TimelineRows.swift:219, :31-34
     public void Copy_message_UI_keeps_its_symbol_and_Copied_confirmation() => Copy_message_writes_the_plain_text_and_Copy_as_markdown_the_raw_text_and_both_confirm_Copied();
     [Fact]
@@ -3891,7 +3985,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // STOP App.Views.Chat.TimelineRows #4 (part 2, 2026-09-27)
 // Kind: missing dependency
 // Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:401-403; App/AppModel.swift:396-400 (B3 52bc792).
-// Records: PR-CHAT-152; UI-CHAT-028.
+// Records: PR-CHAT-152; UI-CHAT-052.
 // Missing: AppModel.Helpers has the B2 predicate !IsHydraHead, whereas B3 helpers(of:) includes every
 // unarchived head, in its panel or not. Using that API would silently render no finished heads.
 // Needed: the App.AppModel owner must port the B3 per-parent helper-cell predicate and newest-first order.
