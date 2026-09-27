@@ -475,7 +475,11 @@ public sealed class LinkTextView : Decorator
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
         };
         Child = textBlock;
-        textBlock.PointerPressed += OnPointerPressed;
+        // Tunnel: a head or link press is the view's (mouseDown :444-451, clickedOnLink :90-100; rightMouseDown and
+        // menu(for:) :453-461) before the SelectableTextBlock's own class handler takes the press to move the
+        // selection and marks it handled, which a bubbling instance handler never sees (fix/links), as Render's
+        // presenter path already does.
+        textBlock.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
         textBlock.PointerMoved += OnPointerMoved;
         textBlock.PointerExited += OnPointerExited;
         ActualThemeVariantChanged += (_, _) => ReapplyLinkAttributes();
@@ -589,7 +593,7 @@ public sealed class LinkTextView : Decorator
             presenter.PointerExited += OnPointerExited;
             if (textBlock is { } old)
             {
-                old.PointerPressed -= OnPointerPressed;
+                old.RemoveHandler(PointerPressedEvent, OnPointerPressed);
                 old.PointerMoved -= OnPointerMoved;
                 old.PointerExited -= OnPointerExited;
             }
