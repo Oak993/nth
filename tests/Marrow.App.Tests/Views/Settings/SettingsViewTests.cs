@@ -633,10 +633,22 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-054")] // App/Views/Settings/SettingsView.swift:896-934
     public void Archived_rows_restore_immediately_and_delete_only_after_the_shared_dialog_confirms() => WithView(() => new ArchiveSettingsPage(), (view, model, _) =>
     {
+        var presenter = new RecordingConfirmationPresenter();
+        using var seam = AlertPresentation.Presenter.Override(presenter);
         Assert.Equal(new[] { "Archived", "Another" }, Nodes<ChromeRow>(view).Select(x => Text(x).First())); Assert.Single(Nodes<ChromeRowDivider>(view)); Assert.Contains("One", Text(Row(view, "Archived")));
         Click(Button(Row(view, "Archived"), "Delete")); Sync(); Assert.Equal(2, model.ArchivedThreads.Count);
-        var dialog = Field<Avalonia.Controls.Window>(view, "confirmation"); Assert.Equal("Delete \"Archived\"?", dialog.Title); Assert.Contains("Its history will be removed. Files in your project stay as they are.", Text((Control)dialog.Content!)); dialog.Close(); Sync(); Assert.Equal(2, model.ArchivedThreads.Count);
-        Click(Button(Row(view, "Archived"), "Delete")); Sync(); dialog = Field<Avalonia.Controls.Window>(view, "confirmation"); Click(Button((Control)dialog.Content!, "Delete thread")); Sync(); Assert.Single(model.ArchivedThreads);
+        var dialog = Assert.Single(presenter.Shown);
+        Assert.Equal("Delete \"Archived\"?", dialog.Title);
+        Assert.Equal("Its history will be removed. Files in your project stay as they are.", dialog.Message);
+        Assert.Equal(AlertKind.ConfirmationDialog, dialog.Kind);
+        Assert.Equal(["Delete thread", "Cancel"], dialog.Buttons.Select(button => button.Title));
+        Assert.Equal([AlertButtonRole.Destructive, AlertButtonRole.Cancel], dialog.Buttons.Select(button => button.Role));
+        Assert.Null(dialog.ReturnDefault);
+        var completion = Field<TaskHandle>(view, "confirmation").Completion;
+        presenter.Cancel(); HeadlessSession.RunDispatcherUntil(completion, AppModelHarness.Bound); Sync(); Assert.Equal(2, model.ArchivedThreads.Count);
+        Click(Button(Row(view, "Archived"), "Delete")); Sync(); Assert.Equal(2, presenter.Shown.Count);
+        completion = Field<TaskHandle>(view, "confirmation").Completion;
+        presenter.Press("Delete thread", 1); HeadlessSession.RunDispatcherUntil(completion, AppModelHarness.Bound); Sync(); Assert.Single(model.ArchivedThreads);
         Click(Button(Row(view, "Another"), "Restore")); Sync(); Assert.Empty(model.ArchivedThreads);
     }, beforeModel: h => { var project = new Project("One", h.NewFolder("one")); h.WriteLibrary([project], new[] { "Archived", "Another" }.Select(title => new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised) with { IsArchived = true, Title = title })); });
 
