@@ -282,6 +282,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
                 var glyph = Assert.Single(Nodes<SwiftImage>(button)); var popup = Assert.Single(Nodes<Popup>(info));
                 Assert.Equal(owner == lead ? "About connected servers" : "About Example", AutomationProperties.GetName(button));
                 Assert.Equal(22, button.Width); Assert.Equal(22, button.Height); Assert.False(button.Focusable);
+                Assert.NotNull(button.InputHitTest(new Point(1, 1))); Assert.NotNull(button.InputHitTest(new Point(21, 21))); // :932 .contentShape(.rect), including corners outside the glyph
                 Assert.Equal("info.circle", glyph.SymbolName); Assert.Equal(12, SwiftImage.GetFont(glyph)!.Resolve().FontSize);
                 Assert.Equal(FontWeight.Medium, SwiftImage.GetFont(glyph)!.Resolve().FontWeight);
                 Colour(glyph.Foreground, Chrome.SecondaryText.Opacity(0.55), glyph);
@@ -590,7 +591,9 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
                 runtime.OnMain(() => { if (!custom) foreach (var field in entry.Fields) Assert.True(MCPKeychain.Set("fixture-value", entry.Id, field.Key)); });
                 Connection(model, new MCPConnection(entry.Id) { ConnectedAt = DateTimeOffset.UtcNow }); State(model, entry.Id, new MCPConnectionState.Connected(1));
                 Control owner = custom ? new MCPCustomRow(server) : new MCPConnectedRow(entry); using var window = runtime.OnMain(() => Attach(owner, model));
-                var toggle = Assert.Single(Nodes<SmallSwitch>(owner)); Assert.IsType<SettingsSwitch>(toggle.Parent);
+                var toggle = Assert.Single(Nodes<SmallSwitch>(owner)); var slot = Assert.IsType<SettingsSwitch>(toggle.Parent);
+                var options = Nodes<Button>(owner).Single(b => ToolTip.GetTip(b) as string == "Server options");
+                Assert.True(Grid.GetColumn(slot) < Grid.GetColumn(Assert.IsType<Panel>(options.Parent))); // :165-169,516-520 switch before options / in the action slot
                 runtime.OnMain(() => model.Mcp.SetEnabled(true, entry)); Exported(entry.Id, true);
                 var drawing = new DrawingGroup(); using (var context = drawing.Open()) toggle.Render(context);
                 Colour(Assert.IsType<GeometryDrawing>(drawing.Children[0]).Brush, Chrome.AccentNSColor, toggle); // shared switch's theme accent, Chrome.swift:90
