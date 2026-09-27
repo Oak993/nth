@@ -61,32 +61,19 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // Done so far: Return and the arrows are tested for non-empty queries only; the empty-needle case of the matching
 // helper is left unwritten (a MARROW_STUB naming this STOP), nothing guessed.
 //
-// STOP App.Views.Sidebar.SidebarView #2
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:168 (B3 52bc792) `action: { WindowManager.shared.showSettings() }`
-// Requirements: PR-SIDEBAR-013
-// What is unclear or missing: the Settings row's action is written as the Swift writes it, but WindowManager.Shared
-// and ShowSettings are still MARROW_STUB in the skeleton (unit App.Window.WindowManager), so clicking the row cannot
-// be observed yet.
-// Readings or options: none; the call is the source's.
-// Needed to proceed: unit App.Window.WindowManager.
-// Done so far: the row's title, glyph and update dot are tested; the click's effect is not.
+// Resolved STOP #2: WindowManager.Shared/ShowSettings and SettingsView are real. The source Settings click,
+// manager/model ownership and reused Settings window are exercised by Clicking_Settings_opens_the_real_shared_managers_SettingsView_and_reuses_its_window.
 //
-// STOP App.Views.Sidebar.SidebarView #3
-// Kind: platform gap
-// Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:117-119 (B3 52bc792) `.animation(Chrome.panelSlide, value: ...)`
-// on the LazyVStack
-// Requirements: PR-SIDEBAR-019
-// What is unclear or missing: SwiftUI animates the positions of the rows that stay while a row enters or leaves ("the
-// space opens or closes on a spring"). The port's UI layer has no layout-animation mechanism (UI/Port has transitions
-// for inserted and removed children only, SwiftAnimation.cs), so the surviving rows' slide cannot be reproduced
-// here without a new foundation piece.
-// Readings or options: (a) a foundation panel that animates its children's arranged offsets under the current
-// Transaction -> the source's motion; (b) no positional motion -> rows jump while the entering and leaving ones fade.
-// Needed to proceed: a decision (ED) and, for (a), a UI/Port unit.
-// Done so far: the list applies each rebuild inside Chrome.panelSlide when the thread count, the projects' expansion
-// or the settled fold changed (the entering and leaving fades ride it); no test can observe it before the row views
-// exist, so PR-SIDEBAR-019 is not claimed.
+// STOP App.Views.Sidebar.SidebarView #3 (review: shared foundation landed; caller wiring remains)
+// Kind: missing caller implementation, not a missing decision or shared foundation.
+// Swift: App/Views/Sidebar/SidebarView.swift:117-119 (B3 52bc792), .animation(Chrome.panelSlide, value: ...).
+// Requirements: PR-SIDEBAR-019, partial.
+// Missing: SidebarView.ApplyEntries still manually reconciles its ListEntry controls. It has not adopted the
+// ED-218 ForEach.Apply surviving-row layout motion now present in UI/Port/ViewLifetime.cs. Its current insertion/
+// removal fades and drag offsets do not prove surviving rows slide when a neighbouring slot enters or leaves.
+// Needed: caller integration with the existing ED-218 foundation, preserving ListEntry's update-or-rebuild,
+// row identity, scrollTargets and geometry reporting; then a real list insertion/removal motion proof.
+// No new ED/PA or second layout-animation foundation is needed. PR-SIDEBAR-019 is not certified complete.
 //
 // STOP App.Views.Sidebar.SidebarView #4
 // Kind: conflict
@@ -131,7 +118,9 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // refreshes its snapshot-only capture on every open without retaining row frames or settle/reopen closures.
 // Needed to proceed: the shared foundation decision required by STOP #7. No row-rendering dependency is missing.
 // Done: SidebarThreadRow's live body and handlers, ThreadRow, all three helper dispatch arms, FrameHolder.Note,
-// PR-SIDEBAR-134/135 and UI-SIDEBAR-058 are implemented and tested below. Rename presentation stays under STOP #6.
+// PR-SIDEBAR-134 is proven; PR-SIDEBAR-135 remains partial only for the pinned captures in STOP #9.
+// UI-SIDEBAR-058: compact thread selection/search is proven; the project-row menu slice remains partial under
+// STOP #7. UI-SIDEBAR-017 remains partial for the actual right-click attachment. Rename stays under STOP #6.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -4420,46 +4409,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     // ==== Part 5 of 8: PR-SIDEBAR-111, -113 to -120, -123, -125, -154, -155, -159 ====
     //
-    // Records: PR-SIDEBAR-111, -113, -114, -115, -116, -117, -118, -119, -120, -123, -125, -154, -155, -159 (14 of
-    // this part's 24). PR-SIDEBAR-121, -122, -126, -127, -128, -129, -130, -133, -134, -135 are the STOP below.
-    //
-    // STOP App.Views.Sidebar.SidebarView #7 (narrowed part 6: ProjectRow's own constructor is now built, along with
-    // contextMenuActions, actions(isActive:) and ProjectPairMenuItems; see ProjectRow's own header comment in
-    // SidebarView.cs for why PR-SIDEBAR-133, the live AppKit-style context menu, is a separate, still-open gap)
-    // Kind: missing dependency
-    // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:1436-1548 HeadCardsRow's own constructor; :1138-1161
-    // ProjectRow's own <c>.contextMenu</c> attachment; :1820-1833, :1933-1978 SidebarThreadRow.windowFrame/glide
-    // (B3 52bc792)
-    // Requirements: PR-SIDEBAR-121, PR-SIDEBAR-122 (HeadCardsRow's glyph buttons, hover, selection and the card's own
-    // animation/fold); PR-SIDEBAR-130 (the "Remove project" item's own confirmation, gated behind the same missing
-    // live menu); PR-SIDEBAR-133 (the AppKit context menu itself, live on a right-click); PR-SIDEBAR-134,
-    // PR-SIDEBAR-135 (the row's frame report and the reopen/settle glide it launches)
-    // What is unclear or missing: HeadCardsRow's own constructor and SidebarThreadRow.windowFrame/glide stay
-    // MARROW_STUB, unchanged from part 5 (HeadCardsRow needs a geometry-observed width: PR-SIDEBAR-117's and
-    // PR-SIDEBAR-118's PerRow/RowGap are proven as static pieces below, but the live SizeChanged wiring, the
-    // per-glyph hover scale and selection ring, and the card's own opacity/animation are still unassembled;
-    // SidebarThreadRow.windowFrame and .glide are part of that row's own still-MARROW_STUB constructor). New this
-    // part: ProjectRow's own constructor, contextMenuActions, actions(isActive:) and ProjectPairMenuItems are built
-    // and proven (UI-SIDEBAR-008, -009, -010, -014, -015, -016), but SwiftUI's <c>.contextMenu</c> modifier
-    // re-evaluates isActive, hasOverride and the pairs snapshot fresh every time the menu opens (:1138-1161), and no
-    // ED or platform-adaptation entry names a Windows/Avalonia foundation for that per-open refresh
-    // (porting/engineering_decisions.md and porting/platform_adaptations.md have no ".contextMenu" or "ContextMenu"
-    // entry). A menu attached once, at construction time, would go stale the first time isActive or hasOverride
-    // changed without the row itself being rebuilt: an invented, silently wrong behaviour. PR-SIDEBAR-130's own
-    // confirmation popover (OD-0008 A9, OD-0012 E2 wording; SidebarMenuRequests would need a ProjectRemoval request
-    // field, as it already carries Rename and Delete) is reachable only once that same menu exists, so it is gated
-    // behind this same STOP, not a separate one.
-    // Readings or options: for the context menu, (a) build a menu fixed at construction time -> goes stale, an
-    // invented behaviour the contract forbids more than an honest gap does; (b) invent a rebuild-on-open hook with no
-    // ED/PA backing -> the same objection. For HeadCardsRow and SidebarThreadRow's own remaining pieces: none
-    // attempted; a partial assembly risked an untested or wrong behaviour standing in for a hard feature.
-    // Needed to proceed: an engineering or platform-adaptation decision naming the Windows/Avalonia foundation for
-    // SwiftUI's <c>.contextMenu</c> re-evaluation-on-open (then PR-SIDEBAR-130's request field and popover follow);
-    // separately, HeadCardsRow's own constructor assembly and SidebarThreadRow's own remaining collaborators.
-    // Done so far: HeadCardsRow.Usable, PerRow, RowGap, Chunk, Capped, Visible, CardRows and ChevronTooltip are
-    // proven directly (PR-SIDEBAR-117, -118, -119, -120, part 5); ProjectRow's own body, contextMenuActions,
-    // actions(isActive:), BuildContextMenuItems and ProjectPairMenuItems are proven directly (part 6, below); nothing
-    // is claimed for PR-SIDEBAR-121, -122, -130, -133, -134 or -135, and no test names them.
+    // Records: PR-SIDEBAR-111, -113, -114, -115, -116, -117, -118, -119, -120, -123, -125, -154, -155, -159.
+    // The old part-5/6 constructor and frame/glide dependency list is resolved: HeadCardsRow and SidebarThreadRow
+    // are built and exercised, and PR-SIDEBAR-134 has real geometry/no-write/landing proofs. PR-SIDEBAR-135's
+    // render/DPI contract is covered; its pinned two-face capture comparison remains partial under STOP #9.
+    // STOP #7 is consolidated in its later part-7 block below: only the shared per-open right-click attachment
+    // and the project-removal confirmation gated behind it remain (PR-SIDEBAR-133/-130, UI-SIDEBAR-033/-037).
+    // No missing HeadCardsRow, SidebarThreadRow.windowFrame or SidebarThreadRow.glide body is claimed here.
 
     private static IReadOnlyList<object> Enumerate(object valueList) => ((IEnumerable)valueList).Cast<object>().ToList();
 
