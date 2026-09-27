@@ -876,7 +876,7 @@ public sealed class RootViewTests(HeadlessSession headless)
                     Assert.Equal("", dialog.Title);
                     Assert.Contains("Owned message", AllText(dialog), StringComparison.Ordinal);
                     var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(dialog));
-                    Assert.Equal("OK", button.Content);
+                    Assert.Equal("OK", Assert.IsType<TextBlock>(button.Content).Text); // ED-216 shared button label; same source title
                     Assert.True(button.IsDefault); // Enter
                     Assert.True(button.IsCancel); // Escape, :88 cancel role
                     model.Alert = null; // :83-84 the binding must also close the presented alert
@@ -1009,12 +1009,18 @@ public sealed class RootViewTests(HeadlessSession headless)
             {
                 Assert.Equal("First title", dialog.Title);
                 Assert.Contains("First message", AllText(dialog), StringComparison.Ordinal);
+                var titleLine = Assert.IsType<TextBlock>(Assert.IsType<StackPanel>(dialog.Content).Children[0]);
+                Assert.Equal("First title", titleLine.Text); // :81 and ED-216: bold first line as well as window title
+                Assert.Equal(Avalonia.Media.FontWeight.Bold, titleLine.FontWeight);
                 model.Alert = new AppAlert { Title = "Replacement title", Message = "Replacement message" };
             });
             harness.Main.OnMain(() =>
             {
                 Assert.Equal(1, presentations); // update the existing owned dialog
                 Assert.Equal("Replacement title", dialog.Title);
+                var titleLine = Assert.IsType<TextBlock>(Assert.IsType<StackPanel>(dialog.Content).Children[0]);
+                Assert.Equal("Replacement title", titleLine.Text);
+                Assert.Equal(Avalonia.Media.FontWeight.Bold, titleLine.FontWeight);
                 Assert.Contains("Replacement message", AllText(dialog), StringComparison.Ordinal);
                 Assert.DoesNotContain("First message", AllText(dialog), StringComparison.Ordinal);
                 var ok = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(dialog));
@@ -1031,6 +1037,43 @@ public sealed class RootViewTests(HeadlessSession headless)
             });
         }
         finally { harness.Main.OnMain(() => { dialog?.Close(); window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91; ED-216 extended request, owner and cancel-role OK
+    public void The_model_alert_uses_the_extended_shared_request_with_its_rendering_owner_and_cancel_role_OK() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        var recorder = new RecordingConfirmationPresenter();
+        using var presenter = AlertPresentation.Presenter.Override(recorder);
+        AvaloniaWindow window = null!;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var host = Build(model, () => new RootView());
+                window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(host));
+                model.Alert = new AppAlert { Title = "Request title", Message = "Request message" };
+            });
+            harness.Main.OnMain(() =>
+            {
+                var request = Assert.Single(recorder.Shown);
+                Assert.Equal("Request title", request.Title);
+                Assert.Equal("Request message", request.Message);
+                Assert.Same(window, request.Owner);
+                Assert.Equal(AlertKind.Alert, request.Kind);
+                Assert.Null(request.TextFields);
+                var ok = Assert.Single(request.Buttons);
+                Assert.Equal("OK", ok.Title); // :88
+                Assert.Equal(AlertButtonRole.Cancel, ok.Role);
+                Assert.Same(ok, request.ReturnDefault); // ED-216 lone cancel button is also the Return default
+                Assert.NotNull(model.Alert);
+                recorder.Cancel();
+            });
+            harness.Main.OnMain(() => Assert.Null(model.Alert)); // :83-84 false presentation binding
+        }
+        finally { harness.Main.OnMain(() => { window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
     });
 
     [Fact]
