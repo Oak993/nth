@@ -196,7 +196,7 @@ public sealed class ChromeVisualTile : Decorator
         {
             Child = stageBack,
             Padding = new Thickness(ChromeVisualTileMetrics.RingInset),
-        };
+        }.RoundedRectangle(ChromeVisualTileMetrics.CornerRadius + ChromeVisualTileMetrics.RingInset, RoundedCornerStyle.Continuous); // ChromeVisualPicker.swift:98-101 ring radius 6 + 3.
 
         UpdateRing();
 
@@ -267,6 +267,10 @@ public sealed class ChromeVisualTile : Decorator
         {
             font.Apply(textBlock);
         }
+        else if (control is SwiftImage image)
+        {
+            image.Font(font); // ChromeVisualPicker.swift:88 applies .title2 medium to the caller's Image too.
+        }
         else if (control is ContentControl contentControl && contentControl.Content is Control child)
         {
             ApplyFontToContent(child, font);
@@ -282,6 +286,10 @@ public sealed class ChromeVisualTile : Decorator
         if (control is TextBlock textBlock)
         {
             textBlock.Foreground = color.Brush(this);
+        }
+        else if (control is SwiftImage image)
+        {
+            image.ForegroundStyle(color); // ChromeVisualPicker.swift:89 selected accent / unselected secondaryText.
         }
     }
 
