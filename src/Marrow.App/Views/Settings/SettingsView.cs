@@ -236,7 +236,7 @@ public sealed class SettingsView : Decorator
         var hasControls = state.Page is SettingsPage.Providers or SettingsPage.Models or SettingsPage.Mcp or SettingsPage.Archive or SettingsPage.About; // :270-272
         pageStack = new StackPanel { Spacing = Chrome.SectionSpacing, Margin = new Thickness(Chrome.ContentHorizontalPadding + 8, hasControls ? Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 16 : 22, Chrome.ContentHorizontalPadding + 8, 24), Children = { content } }; // :220-227
         pageStack.Track(() => scrollTracker.IsFrozen, value => pageStack.IsHitTestVisible = !value);
-        var scroll = new ScrollViewer { Content = pageStack, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :228-230
+        var scroll = new ScrollViewer { Template = SettingsScrollTemplate, Content = pageStack, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :228-230
         WireScroll(scroll, page: true);
         var accessories = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         var chromeRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 10, MinHeight = Chrome.CapsuleHeight, Children = { new ChromeCompactTitle(state.Page.Title, scrollChrome), accessories } }; Grid.SetColumn(accessories, 1);
@@ -249,6 +249,13 @@ public sealed class SettingsView : Decorator
         detail.Child = new Panel { Children = { scroll, new PaneTopVeil(scrollChrome) { VerticalAlignment = VerticalAlignment.Top }, chrome } }.DetailSheet();
     }
 
+    // :228-241 ScrollView: the unthemed app owns its real vertical content presenter.
+    private static readonly FuncControlTemplate<ScrollViewer> SettingsScrollTemplate = new((viewer, scope) =>
+    {
+        var presenter = new ScrollContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty] };
+        presenter.GestureRecognizers.Add(new Avalonia.Input.GestureRecognizers.ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
+        return presenter.RegisterInNameScope(scope);
+    });
     // :184-189,231-241. Avalonia reports wheel geometry; pointer phases mirror interaction and coasting.
     private void WireScroll(ScrollViewer scroll, bool page)
     {
@@ -553,7 +560,7 @@ internal sealed class ProviderSettingsSection : Decorator
         {
             state.BinaryPath = model.Settings.BinaryPath(provider); if (provider.AcceptsAPIKey) state.ApiKey = model.Settings.ApiKeyInput(provider); // :768-771
             var statusRow = new Grid { ColumnDefinitions = new ColumnDefinitions("22,*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11) }; // :650,653,673-675
-            var icon = new ProviderIcon { Provider = provider, Size = 18 }; statusRow.Children.Add(icon); // :651
+            var icon = new ProviderIcon { Provider = provider, Size = 18 }; ((SwiftImage)icon.Child!).ForegroundStyle(Chrome.PrimaryText); statusRow.Children.Add(icon); // :651
             var labels = new StackPanel { Spacing = 2 }; Grid.SetColumn(labels, 1); statusRow.Children.Add(labels); // :654
             var toggle = new SettingsSwitch(new Binding<bool>(() => model.Settings.IsEnabled(provider), value => model.Settings.SetEnabled(value, provider))); Grid.SetColumn(toggle, 2); statusRow.Children.Add(toggle); // :668-671
             cardRows.Children.Add(statusRow);
@@ -561,7 +568,7 @@ internal sealed class ProviderSettingsSection : Decorator
             var usageSlot = new StackPanel(); cardRows.Children.Add(usageSlot);
             statusRow.Track(() => { _ = model.Providers.Statuses; return model.Providers.Status(provider); }, status =>
             {
-                labels.Children.Clear(); labels.Children.Add(new TextBlock { Text = status.IsChecking ? "Checking\u2026" : status.Summary }.Font(SwiftFont.System(13))); // :655-656
+                labels.Children.Clear(); labels.Children.Add(new TextBlock { Text = status.IsChecking ? "Checking\u2026" : status.Summary, Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(13))); // :655-656
                 var detailText = !provider.IsAPIKeyBased && status.Version is { } version ? "Version " + version : provider.IsAPIKeyBased && status.ApiKeyConfigured && provider.ApiHost is { } host ? "Native API \u00b7 " + host : null; // :657-664
                 if (detailText is not null) labels.Children.Add(new TextBlock { Text = detailText, Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(11)));
             });
