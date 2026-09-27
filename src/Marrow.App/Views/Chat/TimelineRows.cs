@@ -150,6 +150,8 @@ public static class TimelineRows
     // :2298-2306, :2789-2793. Same glass button recipe as RequestCards / FollowUpEditor (OD-0005).
     internal static Button GlassCommand(string title, Action action, bool prominent, bool small = false)
     {
+        // STOP #5: only the .controlSize(.small) modifier (:2796) is unwritten; the glass/action recipe remains.
+        // No source size or approved small-size adapter is present in the shared button foundation.
         var label = new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center };
         SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(label);
         var frame = new Border { Child = label, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0),
@@ -779,7 +781,8 @@ public sealed class HydraDelegationBlock : Decorator
         header.Children.Add(TimelineRows.ChatText(Title(delegations, streaming, sent), weight: SwiftFont.Weight.Medium));
         if (sent)
         {
-            // Framework .green: same HIG Default mapping as AppTheme.FrameworkGreen (ED-186), not theme success.
+            // ED-092 (1): documented framework .green, same HIG Default mapping as AppTheme.FrameworkGreen;
+            // not theme success. Exact appearance is UNVERIFIED under OD-0001.
             var check = SwiftImage.SystemName("checkmark.circle.fill").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)).ForegroundStyle(SwiftColor.Rgb(0x34C759));
             AutomationProperties.SetName(check, "sent");
             header.Children.Add(check.Transition(SwiftTransition.Scale().Combined(SwiftTransition.Opacity)));
@@ -1080,6 +1083,7 @@ public sealed class HydraMergeRow : Decorator
     private void Build()
     {
         var next = state.Phase is HydraMergePhase.Outcome message ? new HydraMergeOutcome(message.Value) : null;
+        var outcomeChanged = !Equals(outcome, next);
         var merging = next is null;
         if (merging && !runtime.IsHydraMerging)
         {
@@ -1118,7 +1122,7 @@ public sealed class HydraMergeRow : Decorator
         }
         else track!.Update(step, count, mode);
         AutomationProperties.SetName(pill, next?.Title ?? "Merging the team's work: " + stage);
-        if (changed || merging && shownStage != stage)
+        if (changed || outcomeChanged || merging && shownStage != stage)
         {
             var still = next is null ? MergingLabel(stage) : OutcomeLabel(next);
             var live = next is null ? MergingContent(stage) : OutcomeControls(next);

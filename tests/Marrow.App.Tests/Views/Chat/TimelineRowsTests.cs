@@ -3991,3 +3991,13 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Needed: the App.AppModel owner must port the B3 per-parent helper-cell predicate and newest-first order.
 // Only the environment lookup is unwritten. ApplyTeam tests the :404-418 dictionary, requested order,
 // missing-index omission, pill rendering and layout against actual fixture children without faking Helpers.
+//
+// STOP App.Views.Chat.TimelineRows #5 (part 5, 2026-09-27)
+// Kind: platform gap
+// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:2796 `.controlSize(.small)` on the confirmation buttons.
+// Records: UI-CHAT-039; UI-GIT-047.
+// Missing: an approved SwiftUI small-control-size adapter for the glass button recipe. No pixel size is in Swift,
+// and the existing recipe exposes only the normal capsule metrics. Needed: a foundation mapping/ED for small size.
+// Only that modifier is unwritten; exact title/body, width, padding, glass styles, default Revert and close-first
+// actions are implemented and tested. Generic .green is allowed by ED-092 (1), with the existing AppTheme
+// FrameworkGreen mapping precedent; its visual appearance remains UNVERIFIED under OD-0001.
