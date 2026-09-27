@@ -2487,12 +2487,11 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // Requirements: PR-WIN-115; the command-palette half of UI-UPDATE-055
 // What is unclear or missing: OD-0012 G5 moves this command into the command palette as an action titled "Welcome
 // tour" that presents the tour. That row belongs to App/Views/Palette/CommandPalette.swift:153-178, whose twin
-// src/Marrow.App/Views/Palette/CommandPalette.cs is still MARROW_STUB, and PR-WIN-115's open_question leaves the row's
+// src/Marrow.App/Views/Palette/CommandPalette.cs has landed but contains no Welcome tour row; PR-WIN-115 leaves the row's
 // place among the actions (before or after Settings, which the source appends last), its symbol (every palette Item
 // needs one, CommandPalette.swift:28) and its id unset.
 // Readings or options: none to choose here; the row is outside this file.
-// Needed to proceed: unit App.Views.Palette.CommandPalette, and a decision (ED or owner) naming the row's place, symbol
-// and id.
+// Needed to proceed: a decision naming the row's place, symbol and id; then the palette owner adds the row.
 // Done so far: the help group's command itself is in AppCommands.Body, tested in part 1 (PR-UPDATE-092) and above for
 // UI-UPDATE-055 (last, alone, no chord, never disabled), green; nothing is written for the palette row.
 // Part 3 (2026-09-26): the palette halves of UI-WIN-015 to UI-WIN-027 and UI-WIN-074 to UI-WIN-077 are rows of the
@@ -2538,8 +2537,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // windows, attaches the dispatch to each window it makes -> every chord works in both; the tour window and the guide
 // panel need their own attach; (b) one port-only hook attaches it to every window the app opens -> every window of
 // the app, the tour window and the guide panel included, answers the chords.
-// Needed to proceed: unit App.Window.WindowManager (Shared with its Model, MakeWindow), and a decision (ED) naming the
-// install site in place of DroppyCodeApp.swift:24 and the windows it covers.
+// Needed to proceed: a decision naming the runtime chord install site, its owning unit and the windows it covers.
 // Done so far: MenuKeyEquivalents.Attach and AppCommands.PerformKeyEquivalent are implemented and tested on the
 // tests' own windows (green); nothing attaches them to a window of the running app.
 
