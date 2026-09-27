@@ -402,7 +402,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
             var recorder = new RecordingPromptPresenter();
-            using var scope = PromptPresentation.Presenter.Override(recorder);
+            using var scope = AlertPresentation.Presenter.Override(recorder);
             Guid threadId = default;
             Control menu = null!;
             harness.Main.OnMain(() =>
@@ -443,7 +443,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
             var recorder = new RecordingPromptPresenter();
-            using var scope = PromptPresentation.Presenter.Override(recorder);
+            using var scope = AlertPresentation.Presenter.Override(recorder);
             Guid threadId = default;
             Control menu = null!;
             harness.Main.OnMain(() =>
