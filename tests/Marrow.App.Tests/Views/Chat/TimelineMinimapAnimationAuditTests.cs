@@ -1,4 +1,5 @@
 using System.Reflection;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
@@ -22,12 +23,82 @@ public sealed class TimelineMinimapAnimationAuditTests(HeadlessSession headless)
     private static void Hover(TimelineMinimapRail rail, string? id) => typeof(TimelineMinimapRail)
         .GetMethod("SetHovered", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(rail, [id]);
     private static Color Color(Button tick) => Assert.IsType<SolidColorBrush>(tick.Background).Color;
+    private static Control Card(TimelineMinimapRail rail) => Assert.Single(Assert.IsType<Grid>(rail.Child).Children.Skip(2));
+    private static TranslateTransform Offset(Control card) => Assert.IsType<TranslateTransform>(card.RenderTransform);
     private static void Step(TestRuntime runtime, ManualFrameSource frames, int milliseconds)
     {
         runtime.AdvanceMilliseconds(milliseconds);
         frames.Advance(TimeSpan.FromMilliseconds(milliseconds));
         Dispatcher.UIThread.RunJobs();
     }
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-005")] // App/Views/Chat/TimelineMinimap.swift:224-231,289-300 (geometry re-evaluation)
+    public void Resizing_a_hovered_rail_reclamps_only_the_preview_card() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var rail = new TimelineMinimapRail(Enumerable.Range(0, 20).Select(i => Entry(i.ToString(System.Globalization.CultureInfo.InvariantCulture))).ToArray(), 100, null, (_, _) => { })
+            { Height = 100, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var window = new Avalonia.Controls.Window { Width = 400, Height = 300, Content = rail };
+        window.Show();
+        try
+        {
+            window.UpdateLayout();
+            var ticks = Ticks(rail);
+            Hover(rail, "19");
+            Step(runtime, frames, 1000);
+            Assert.Equal(29.5, Offset(Card(rail)).Y); // half=18.5, bottom=100-18.5-2; subtract railHeight/2.
+            rail.Height = 40;
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(40, rail.Bounds.Height);
+            Assert.Equal(0.5, Offset(Card(rail)).Y); // max(top=20.5, bottom=19.5) - 40/2.
+            Assert.Equal(ticks, Ticks(rail));
+            Assert.Equal(0, frames.Pending);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-073")] // App/Views/Chat/TimelineMinimap.swift:195-199,224-240 (preview transition and glide)
+    public void Preview_fades_and_slides_then_glides_between_ticks_and_fades_out() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var rail = new TimelineMinimapRail(new[] { Entry("first"), Entry("second") }, 200, null, (_, _) => { });
+        rail.Measure(new Size(400, 200));
+        rail.Arrange(new Rect(0, 0, 400, 200));
+        Hover(rail, "first");
+        var card = Card(rail);
+        Assert.Equal(0, card.Opacity);
+        Assert.Equal(-6, Offset(card).X);
+        Step(runtime, frames, 50);
+        var progress = Animation.Smooth(duration: 0.22).Progress(0.05);
+        Assert.Equal(progress, card.Opacity, 10);
+        Assert.Equal(-6 + 6 * progress, Offset(card).X, 10);
+        Step(runtime, frames, 1000);
+        Assert.Equal(1, card.Opacity);
+        Assert.Equal(0, Offset(card).X);
+        Assert.Equal(-5, Offset(card).Y);
+        Hover(rail, "second");
+        card = Card(rail);
+        Assert.Equal(-5, Offset(card).Y);
+        Step(runtime, frames, 50);
+        Assert.Equal(-5 + 10 * progress, Offset(card).Y, 10);
+        Step(runtime, frames, 1000);
+        Assert.Equal(5, Offset(card).Y);
+        Hover(rail, null);
+        Assert.Same(card, Card(rail));
+        Step(runtime, frames, 50);
+        Assert.Equal(1 - progress, card.Opacity, 10);
+        Assert.Equal(-6 * progress, Offset(card).X, 10);
+        Step(runtime, frames, 1000);
+        Assert.Empty(Assert.IsType<Grid>(rail.Child).Children.Skip(2));
+        Assert.Equal(0, frames.Pending);
+    });
 
     [Fact]
     [Trait("Req", "PR-CHAT-073")] // App/Views/Chat/TimelineMinimap.swift:195-199,241-274,284-287
@@ -101,6 +172,10 @@ public sealed class TimelineMinimapAnimationAuditTests(HeadlessSession headless)
                 Assert.Same(tick, Assert.Single(Ticks(rail)));
                 Assert.Equal(0.95, tick.Opacity);
                 Assert.Equal(Chrome.PrimaryText.Resolve(rail.ActualThemeVariant), Color(tick));
+                Assert.Equal(1, Card(rail).Opacity);
+                Assert.Equal(0, Offset(Card(rail)).X);
+                Hover(rail, null);
+                Assert.Empty(Assert.IsType<Grid>(rail.Child).Children.Skip(2));
                 Assert.Equal(0, frames.Pending);
             }
             finally { window.Close(); }

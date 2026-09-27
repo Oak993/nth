@@ -2,6 +2,7 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Templates;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -18,6 +19,76 @@ namespace Marrow.App.Tests.Views.Diff;
 [Collection("Headless")]
 public sealed class DiffPopoverAuditTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "PR-GIT-137")] // App/Views/Diff/DiffInspector.swift:599-612,627-658 (close Task follows show session)
+    public void Reopen_to_a_different_anchor_keeps_the_runtime_visible_after_close_bookkeeping() => headless.OnUiThread(() =>
+        WithPopover((coordinator, runtime, window, recorder) =>
+        {
+            var second = Show(new Button { Content = "Review" });
+            try
+            {
+                var target = (Control)second.Content!;
+                runtime.ShowDiff(target, Guid.NewGuid());
+                coordinator.Reopen(runtime);
+                Assert.True(runtime.IsDiffVisible);
+                var call = recorder.Calls[^1];
+                Assert.True(call.Presented);
+                Assert.Same(target, call.Popup.PlacementTarget);
+                var content = call.Popup.Child;
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(runtime.IsDiffVisible);
+                Assert.Same(content, call.Popup.Child);
+                Assert.True((bool)typeof(DiffPopoverCoordinator).GetField("isShown", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(coordinator)!);
+                coordinator.Sync(runtime.IsDiffVisible, runtime);
+                Assert.True(recorder.Calls[^1].Presented);
+                var escape = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape };
+                second.RaiseEvent(escape);
+                Assert.True(escape.Handled); // The old close must not remove the new monitor pair.
+                Dispatcher.UIThread.RunJobs();
+                Assert.False(runtime.IsDiffVisible);
+            }
+            finally { second.Close(); }
+        }));
+
+    [Fact]
+    [Trait("Req", "PR-GIT-137")] // App/Views/Diff/DiffInspector.swift:640-658,662-686; App/Runtime/ThreadRuntime.swift:383-390
+    public void Outside_click_on_another_turns_Review_button_reopens_on_that_button() => headless.OnUiThread(() =>
+        WithPopover((coordinator, runtime, window, recorder) =>
+        {
+            var turn = Guid.NewGuid();
+            var button = new Button
+            {
+                Content = "Review", Width = 100, Height = 40,
+                Template = new FuncControlTemplate<Button>((_, _) => new Border { Background = Avalonia.Media.Brushes.Transparent }),
+            };
+            var second = Show(button);
+            var presses = 0;
+            button.AddHandler(InputElement.PointerPressedEvent, (_, e) =>
+            {
+                Assert.False(e.Handled);
+                Assert.False(recorder.Calls[^1].Presented);
+                presses++;
+            }, RoutingStrategies.Tunnel);
+            var clicks = 0;
+            button.Click += (_, _) => { clicks++; runtime.ShowDiff(button, turn); coordinator.Reopen(runtime); };
+            try
+            {
+                second.UpdateLayout();
+                var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), second)!.Value;
+                second.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
+                second.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(1, presses);
+                Assert.Equal(1, clicks);
+                Assert.True(runtime.IsDiffVisible);
+                Assert.Equal(turn, runtime.DiffSelection);
+                Assert.True(recorder.Calls[^1].Presented);
+                Assert.Same(button, recorder.Calls[^1].Popup.PlacementTarget);
+                Assert.NotNull(recorder.Calls[^1].Popup.Child);
+            }
+            finally { second.Close(); }
+        }));
+
     [Theory]
     [InlineData(MouseButton.Left)]
     [InlineData(MouseButton.Right)]

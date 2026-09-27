@@ -26,6 +26,8 @@ public sealed class CommandCodeUnicodeAuditTests
     [InlineData("\U0001D400", true)] // U+1D400 MATHEMATICAL BOLD CAPITAL A: Uppercase property without a lowercase mapping
     [InlineData("\U00002160", true)] // U+2160 ROMAN NUMERAL ONE: Uppercase property outside Lu category
     [InlineData("\U000001C5", false)] // U+01C5 LATIN CAPITAL LETTER D WITH SMALL LETTER Z WITH CARON (titlecase)
+    [InlineData("\U000000AA", true)] // U+00AA: Cased, unchanged by both mappings (single-scalar isCased).
+    [InlineData("\U0001D44E", true)] // U+1D44E MATHEMATICAL ITALIC SMALL A: same isCased fast path.
     [InlineData("\r\n", false)]
     [Trait("Req", "PR-PROVCLI-260")] // Services/Providers/CommandCodeAPI.swift:204; Swift stdlib CharacterProperties.swift:223-265
     public void Uppercase_helper_uses_scalar_Uppercase_or_cluster_case_changes(string character, bool expected)
@@ -39,6 +41,8 @@ public sealed class CommandCodeUnicodeAuditTests
     [InlineData("\U000000DC", true)] // U+00DC LATIN CAPITAL LETTER U WITH DIAERESIS
     [InlineData("A\U00000301", true)] // U+0301 COMBINING ACUTE ACCENT
     [InlineData("\U000000E9", false)] // U+00E9 LATIN SMALL LETTER E WITH ACUTE
+    [InlineData("\U000000AA", true)] // Single-scalar isCased, even though both mappings leave it unchanged.
+    [InlineData("\U0001D44E", true)] // Supplementary single scalar must take the same path.
     [InlineData("\U0001F600", false)] // U+1F600 GRINNING FACE
     [Trait("Req", "PR-PROVCLI-260")] // Services/Providers/CommandCodeAPI.swift:204-205 (<24 fallback must not mask the uppercase branch)
     public void Long_headers_only_replace_the_section_when_the_first_Character_is_uppercase(string first, bool replaces)
