@@ -30,6 +30,10 @@ namespace Marrow.App.Tests.Views.Settings;
 // Missing: Disconnect ignores MCPKeychain.DeleteAll's deletion failures; no error is returned for this view to show.
 // Needed: service owner must implement OD-0008 A12 / PR-MCP-228. Confirmation and successful deletion are tested.
 
+// STOP App.Views.Settings.MCPSettingsPage #3
+// Kind: conflict; Swift: MCPSettingsPage.swift:77-85; record PR-MCP-202.
+// Packet requires accent-insensitive search, while R-STR-6 / ED-009 requires accent-sensitive secondary-strength search.
+// Needed: orchestrator must reconcile PR-MCP-202 with ED-009; the accent expectation stays red, unchanged.
 [Collection("Headless")]
 public sealed class MCPSettingsPageTests(HeadlessSession headless)
 {
@@ -39,7 +43,7 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
         using var harness = new AppModelHarness(withRuntime: false);
         var model = new AppModel();
         using var presentation = Presentation.Presenter.Override(new RecordingPresenter());
-        test(model, runtime);
+        runtime.OnMain(() => test(model, runtime));
         Dispatcher.UIThread.RunJobs();
     });
 
@@ -81,7 +85,7 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     public void Category_search_omits_connected_entries_and_drops_empty_groups()
     {
         Ui((model, _) => { State(model, "github", new MCPConnectionState.Connected(1)); var page = new MCPSettingsPage("github"); using var window = Attach(page, model); Assert.Empty(Nodes<MCPServerCard>(page));
-            var empty = new MCPSettingsPage("no match anywhere"); using var second = Attach(empty, model); Assert.Empty(Nodes<ChromeSection>(empty));
+            State(model, "github", new MCPConnectionState.NotConnected()); var empty = new MCPSettingsPage("no match anywhere"); using var second = Attach(empty, model); Assert.Empty(Nodes<ChromeSection>(empty));
         });
     }
 
@@ -110,12 +114,17 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     [Trait("Req", "PR-MCP-073")] // App/Views/Settings/MCPSettingsPage.swift:564-566
     public void Delete_confirmation_preserves_server_until_the_destructive_button_is_invoked()
     {
-        Ui((model, _) => { var server = Custom(); Assert.Null(model.Mcp.SaveCustom(server)); var row = new MCPCustomRow(server); using var window = Attach(row, model);
-            Call(row, "Delete"); Assert.Single(model.Mcp.Customs);
-            var confirmation = Read<Control>(row, "DeleteConfirmation"); Assert.Contains("Delete this server?", Texts(confirmation));
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime(); using var harness = new AppModelHarness(withRuntime: false);
+            using var scope = Presentation.Presenter.Override(new RecordingPresenter()); var model = runtime.OnMain(() => new AppModel()); var server = Custom();
+            runtime.OnMain(() => Assert.Null(model.Mcp.SaveCustom(server))); var row = new MCPCustomRow(server); using var window = runtime.OnMain(() => Attach(row, model));
+            runtime.OnMain(() => Call(row, "Delete")); Assert.Single(model.Mcp.Customs); var confirmation = Read<Control>(row, "DeleteConfirmation");
+            Assert.Contains("Delete this server?", Texts(confirmation));
             Assert.Contains("\U0000201CExample\U0000201D and the values it keeps in Credential Manager will be removed.", Texts(confirmation)); // U+201C/201D DOUBLE QUOTATION MARKS
-            Click(Button(confirmation, "Delete server")); Assert.Empty(model.Mcp.Customs);
-            model.Mcp.SaveCustom(server); model.Settings.ConfirmBeforeDeleting = false; Call(row, "Delete"); Assert.Empty(model.Mcp.Customs);
+            runtime.OnMain(() => Click(Button(confirmation, "Delete server"))); Assert.Empty(model.Mcp.Customs);
+            runtime.OnMain(() => { model.Mcp.SaveCustom(server); model.Settings.ConfirmBeforeDeleting = false; Call(row, "Delete"); }); Assert.Empty(model.Mcp.Customs);
+            Dispatcher.UIThread.RunJobs();
         });
     }
 
@@ -169,11 +178,18 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     [Trait("Req", "PR-MCP-211")] // App/Views/Settings/MCPSettingsPage.swift:914-963
     public void Hover_waits_220_to_open_and_320_to_close_and_popover_hover_cancels_close()
     {
-        Ui((model, runtime) => { var info = new MCPHoverInfoButton("About", () => new Border()); using var window = Attach(info, model); var button = Assert.Single(Nodes<Button>(info));
-            button.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, button, new Pointer(1, PointerType.Mouse, true), button, default, 0, default, default)); runtime.RunUntilIdle();
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime(); using var harness = new AppModelHarness(withRuntime: false);
+            using var scope = Presentation.Presenter.Override(new RecordingPresenter());
+            var model = runtime.OnMain(() => new AppModel()); var info = new MCPHoverInfoButton("About", () => new Border());
+            using var window = runtime.OnMain(() => Attach(info, model)); var button = Assert.Single(Nodes<Button>(info));
+            runtime.OnMain(() => button.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, button, new Pointer(1, PointerType.Mouse, true), button, default, 0, default, default)));
             runtime.AdvanceMilliseconds(219); Assert.False(Read<bool>(info, "IsPresented")); runtime.AdvanceMilliseconds(1); Assert.True(Read<bool>(info, "IsPresented"));
-            button.RaiseEvent(new PointerEventArgs(InputElement.PointerExitedEvent, button, new Pointer(1, PointerType.Mouse, true), button, default, 0, default, default)); runtime.RunUntilIdle(); runtime.AdvanceMilliseconds(319); Assert.True(Read<bool>(info, "IsPresented")); runtime.AdvanceMilliseconds(1); Assert.False(Read<bool>(info, "IsPresented"));
-            Click(button); Assert.True(Read<bool>(info, "IsPresented")); Click(button); Assert.False(Read<bool>(info, "IsPresented"));
+            runtime.OnMain(() => button.RaiseEvent(new PointerEventArgs(InputElement.PointerExitedEvent, button, new Pointer(1, PointerType.Mouse, true), button, default, 0, default, default)));
+            runtime.AdvanceMilliseconds(319); Assert.True(Read<bool>(info, "IsPresented")); runtime.AdvanceMilliseconds(1); Assert.False(Read<bool>(info, "IsPresented"));
+            runtime.OnMain(() => Click(button)); Assert.True(Read<bool>(info, "IsPresented")); runtime.OnMain(() => Click(button)); Assert.False(Read<bool>(info, "IsPresented"));
+            Dispatcher.UIThread.RunJobs();
         });
     }
 
@@ -240,5 +256,8 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
         Ui((model, _) => { var lead = new MCPLeadCard(); var border = Assert.IsType<Border>(lead.Child); Assert.Equal(new Thickness(16), border.Padding); Assert.Equal(new CornerRadius(14), border.CornerRadius); Assert.Contains("Connected servers lead", Texts(lead)); Assert.Contains("Connect a server here and every thread can use it. Anything set up in a terminal or another app stays just as it is.", Texts(lead)); var shield = Nodes<SwiftImage>(lead).Single(x => x.SymbolName == "checkmark.shield.fill"); Assert.Equal(22, SwiftImage.GetFont(shield)!.Resolve().FontSize); });
     }
 }
+
+
+
 
 

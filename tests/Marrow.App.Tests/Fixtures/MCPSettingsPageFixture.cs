@@ -1,6 +1,7 @@
 using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Automation;
 using Avalonia.Controls.Primitives;
 using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
@@ -29,7 +30,7 @@ public static class MCPSettingsPageFixture
     };
     public static T[] Nodes<T>(Control control) where T : Control => control.GetSelfAndLogicalDescendants().OfType<T>().ToArray();
     public static string[] Texts(Control control) => Nodes<TextBlock>(control).Select(x => x.Text ?? "").ToArray();
-    public static Button Button(Control control, string title) => Nodes<Button>(control).Single(b => b.Content as string == title || (b.Content is Control c && Texts(c).Contains(title)));
+    public static Button Button(Control control, string title) => Nodes<Button>(control).Single(b => AutomationProperties.GetName(b) == title || b.Content as string == title || (b.Content is Control c && Texts(c).Contains(title)));
     public static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Avalonia.Controls.Button.ClickEvent));
     public static TextBox Field(Control control, string prompt) => Nodes<TextBox>(control).First(x => x.PlaceholderText == prompt);
     public static void State(AppModel model, string id, MCPConnectionState value) =>
@@ -51,4 +52,5 @@ public sealed class MCPSettingsWindowScope(Avalonia.Controls.Window window) : ID
 {
     public void Dispose() => window.Close();
 }
+
 
