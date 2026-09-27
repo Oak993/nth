@@ -374,6 +374,35 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
         runtime.OnMain(() => { Assert.Equal(UpdateInstallProgress.Phase.Idle, progress.UpdateInstallProgressPhase); window.Close(); });
     });
 
+    // Round 3: Swift :551-571 fixes only the identity capsule's height (.frame(height: Chrome.capsuleContentHeight) plus
+    // .padding(.vertical, Chrome.capsuleVerticalPadding)); unlike AboutVersionPill (:635 fixedSize) there is no
+    // .fixedSize modifier here at all, so a narrower parent compresses the width and the :562 lineLimit(1) version
+    // text truncates its tail instead of the capsule holding its natural width.
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-055")] // App/Views/Settings/AboutUpdateViews.swift:559-567 (content height 28, 2 above and below)
+    [Trait("Req", "UI-UPDATE-001")] // App/Views/Settings/AboutUpdateViews.swift:559-567
+    public void The_identity_capsule_fixes_only_its_height_and_truncates_its_version_when_compressed() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
+        runtime.OnMain(() =>
+        {
+            var pill = new AboutIdentityPill();
+            var host = new Border
+            {
+                Width = 70, Height = 200, Child = pill,
+                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+            };
+            var window = Show(host);
+            Assert.Equal(32, pill.Bounds.Height); // :566-567 28 + 2 + 2, not the host's 200 -- height stays fixed
+            Assert.Equal(70, pill.Bounds.Width); // compressed to the offered width, not the natural width
+            var text = Assert.Single(pill.GetVisualDescendants().OfType<TextBlock>());
+            Assert.Equal("v1.7.0", text.Text);
+            Assert.True(Assert.Single(text.TextLayout.TextLines).HasCollapsed); // :562 one line, tail truncated
+            window.Close();
+        });
+    });
+
     // ED-092: SwiftUI .easeInOut is the cubic Bezier (0.42, 0, 0.58, 1). Its progress at a quarter and three quarters of
     // the duration (0.129162 and 0.870838, solved from those control points) differs from linear (0.25/0.75), easeIn
     // (0.093465/0.621862) and easeOut (0.378138/0.906535), so these samples pin the curve, unlike the midpoint.

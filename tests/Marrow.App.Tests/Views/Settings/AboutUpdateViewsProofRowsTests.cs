@@ -132,6 +132,12 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
             window.MouseMove(at, RawInputModifiers.None); Dispatcher.UIThread.RunJobs();
             window.MouseWheel(at, new Vector(0, -1), RawInputModifiers.None); Dispatcher.UIThread.RunJobs();
             Assert.Equal(notes.Contains('\n', StringComparison.Ordinal), scroll.Offset.Y > 0); // :756 basedOnSize: short content cannot scroll
+            // Round 3: :749-762 carries no .scrollIndicators modifier, unlike the sites this template's presenter
+            // recipe is shared with (:139/:363/:781-787 .scrollIndicators(.never)/.hidden), so a real indicator part
+            // must exist and only be visible while the content actually overflows.
+            var bar = Assert.Single(scroll.GetVisualDescendants().OfType<ScrollBar>());
+            Assert.Equal(Orientation.Vertical, bar.Orientation);
+            Assert.Equal(notes.Contains('\n', StringComparison.Ordinal), bar.IsVisible); // Auto: visible only above the cap
             var card = page.GetVisualDescendants().OfType<ChromeCard>().First(); var fill = Assert.IsType<Border>(card.Child);
             Assert.Equal(new CornerRadius(16), fill.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(fill));
             Assert.Equal(Chrome.PrimaryText.Opacity(0.03).Resolve(fill.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color);

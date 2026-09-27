@@ -75,7 +75,8 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
             Assert.Contains(row.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "No update feed is set. " + stamp);
             Assert.Contains(pill.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Check failed");
             var button = Assert.Single(pill.GetVisualDescendants().OfType<Button>());
-            Assert.Equal("No update feed is set.", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680 Assert.Equal("Marrow 1.7.0, check failed", AutomationProperties.GetName(button));
+            Assert.Equal("No update feed is set.", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680
+            Assert.Equal("Marrow 1.7.0, check failed", AutomationProperties.GetName(button)); // :702
             window.Close();
         });
         // Positive control: same production checker does reach the HTTP observer for a real loopback request.
@@ -114,7 +115,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:638-675
     [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:638-675
     [Trait("Decision", "ED-180")] // UI-UPDATE-005 partial: press renderer remains deferred, though the real pointer invokes installation.
-    public void Ready_pointer_click_runs_real_install_and_a_stale_second_click_is_single_flight() => headless.OnUiThread(() =>
+    public void Ready_pointer_click_runs_real_install_and_a_stale_second_click_reads_live_state_and_starts_nothing() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
@@ -131,11 +132,13 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
         {
             window = Show(pill); original = Assert.Single(pill.GetVisualDescendants().OfType<Button>()); Click(original, window);
             // A stale routed event reaches exactly the production click closure after the pointer button has already
-            // disappeared. Round 2 root cause of the 4-in-36 flake: the loopback download let the first install reach
-            // Handoff and clear installTask (AppUpdater.swift:264) inside Click's trailing RunJobs (30 of 30 diagnostic
-            // runs), so a closure reading the build-time snapshot started a second install and the test only passed when
-            // that second GET had not yet arrived. Swift :639 reads live state (`guard let update = checker.update,
-            // isReady`), and a showing progress UI makes isReady false (:582): the stale click must start nothing at all.
+            // disappeared. The round-1 flake (Ready_background_uses, Pill_faces_have_exact, Ready_pointer_click_runs,
+            // 4-in-36) is consistent with the loopback download letting the first install reach Handoff and clear
+            // installTask (AppUpdater.swift:264) inside Click's trailing RunJobs, so a closure reading the build-time
+            // snapshot could start a second install and the test would only pass when that second GET had not yet
+            // arrived; no isolated before-fix repro log exists for that exact mechanism. Swift :639 reads live state
+            // (`guard let update = checker.update, isReady`), and a showing progress UI makes isReady false (:582): the
+            // stale click must start nothing at all, which is what this test now proves regardless of the timing cause.
             var taskBefore = Field(updater, "installTask"); var phaseBefore = progress.UpdateInstallProgressPhase;
             original.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
             Assert.Same(taskBefore, Field(updater, "installTask")); Assert.Equal(phaseBefore, progress.UpdateInstallProgressPhase);
