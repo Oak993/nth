@@ -19,7 +19,31 @@ public sealed class MCPStoreObservationTests
     private static string? Report(MCPStore store) => (string?)typeof(MCPStore).GetProperty("CredentialDeletionFailure")?.GetValue(store);
 
     [Fact]
-    [Trait("Req", "PR-MCP-060")] // Services/MCP/MCPStore.swift:14,179
+    [Trait("Rule", "R-OBS-6")] // Services/MCP/MCPStore.swift:16,67-69; Swift dictionaries are values
+    public void Draft_reads_and_assignments_copy_both_dictionary_levels()
+    {
+        using var h = new MCPStoreHarness();
+        h.Runtime.OnMain(() =>
+        {
+            var store = new MCPStore(); var entry = Custom().CatalogEntry(); var field = entry.Fields[0];
+            store.SetDraft("original", field, entry);
+            var snapshot = store.Drafts; var notices = 0;
+            var tracking = ObservationTracking.Track(() => store.Value(field, entry), () => notices++);
+            try
+            {
+                snapshot[entry.Id][field.Key] = "snapshot-only"; snapshot.Clear();
+                Assert.Equal("original", store.Value(field, entry)); Assert.Equal(0, notices);
+                var assigned = new Dictionary<string, Dictionary<string, string>> { [entry.Id] = new() { [field.Key] = "assigned" } };
+                store.Drafts = assigned; Assert.Equal(1, notices);
+                assigned[entry.Id][field.Key] = "caller-only"; assigned.Clear();
+                Assert.Equal("assigned", store.Value(field, entry));
+            }
+            finally { tracking.Tracker.Cancel(); }
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-OBS-6")] // Services/MCP/MCPStore.swift:14,179
     public void States_tracker_and_state_computation_are_notified_without_mutating_the_previous_snapshot()
     {
         using var h = new MCPStoreHarness();
@@ -36,7 +60,7 @@ public sealed class MCPStoreObservationTests
         });
     }
     [Fact]
-    [Trait("Req", "PR-MCP-059")] // Services/MCP/MCPStore.swift:12,209-234
+    [Trait("Rule", "R-OBS-6")] // Services/MCP/MCPStore.swift:12,209-234
     public void Connections_tracker_and_connection_lookup_are_notified_when_plain_values_are_saved()
     {
         using var h = new MCPStoreHarness();
@@ -86,7 +110,7 @@ public sealed class MCPStoreObservationTests
     }
     [Fact]
     [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPKeychain.swift:52-67; Services/MCP/MCPStore.swift:115-128
-    [Trait("Req", "PR-MCP-073")] // Services/MCP/MCPStore.swift:186-193
+    [Trait("Rule", "R-TEST-2")] // Services/MCP/MCPStore.swift:186-193
     public void Refused_credential_deletion_is_reported_but_custom_definition_connection_and_draft_are_removed()
     {
         using var h = new MCPStoreHarness();

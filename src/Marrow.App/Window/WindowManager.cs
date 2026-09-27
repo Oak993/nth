@@ -30,9 +30,13 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // MainWindowClose below, which the close handler of makeWindow (:98) runs for the main window in place of ordering it
 // out (closes STOP App.Window.WindowManager #2). Not written here (STOP #3 in the tests): the ED-063 caption WndProc
 // hook that sits beside WindowChrome.configure (:101). UI-SETTINGS-001 (the Settings window, :21, :80-84, :92-99) is this file's as far as building, placing,
-// opening and keeping the window go; its SettingsView.swift half and its openers are STOP #4, and the Acrylic hint
+// opening and keeping the window go. SettingsView's real body, preserved state and requested-page handling are now
+// exercised by WindowManagerNextTests (closes the Settings portion of STOP #1 and #4). The real main body still
+// depends on the concurrent RootView/SidebarView repairs (STOP #7). The Acrylic hint
 // OD-0014 names for the clear window (WindowChrome.swift:116-117, reached from :101) is STOP #5. The three
-// window.center() calls (:43, :68, :82) are not written: AppKit's placement is unsettled (STOP #6).
+// window.center() calls (:43, :68, :82) use ED-225; Apple's exact bias remains UNVERIFIED OD-0001.
+// makeWindow also carries the port's stand-in for the menu bar DroppyCodeApp.swift:24 installs: each window it makes
+// dispatches the AppCommands chords itself (OD-0008 C3, Port/MenuKeyEquivalents.cs; STOP App.AppCommands #6).
 
 namespace Marrow.App.Window;
 
@@ -67,8 +71,8 @@ public sealed class WindowManager
     private const string MainFrameName = "DroppyCodeMainWindow";
 
     // :63 `{ RootView() }` and :81 `{ SettingsView() }`, each window's content, built by makeWindow (:104). Internal and
-    // settable only so the tests can host a stand-in while RootView's and SettingsView's bodies are still MARROW_STUB
-    // (STOP App.Window.WindowManager #1); nothing in the app sets them.
+    // settable only for headless content substitution. SettingsContent's default is now exercised with the real
+    // SettingsView; MainContent's real RootView is blocked by its owned dependency (STOP #7). The app sets neither.
     internal Func<Control> MainContent { get; set; } = () => new RootView();
     internal Func<Control> SettingsContent { get; set; } = () => new SettingsView();
 
@@ -109,8 +113,7 @@ public sealed class WindowManager
         // :42-45
         if (mainWindow is not { } main || !main.IsVisible || main.WindowState == WindowState.Minimized)
         {
-            // :43 window.center(): not written. Where AppKit's center() puts a window is not in the source and no
-            // decision or oracle item settles it (STOP App.Window.WindowManager #6).
+            WindowCentering.Center(window, FrameSizeOf(window)); // :43 window.center(), ED-225
             return; // :44
         }
         // In points: the main window's position (pixels) over its own scale, as NSWindow.frame is in points.
@@ -125,24 +128,36 @@ public sealed class WindowManager
         var parentSize = FrameSizeOf(main);
         var parent = new Rect(main.Position.X / scale, up - (main.Position.Y / scale + parentSize.Height), parentSize.Width, parentSize.Height); // :46
         var frame = FrameSizeOf(window); // :47
-        var x = SwiftNumber.Rounded(parent.Center.X - frame.Width / 2); // :48
-        var y = SwiftNumber.Rounded(parent.Center.Y - frame.Height / 2); // :49, the bottom edge, measured upward
+        Rect? visible = null;
         // :50 (main.screen ?? NSScreen.main)?.visibleFrame: the working area (the taskbar and app bars left out) of the
         // screen the main window is on, else the primary screen; with no screen at all the clamp is skipped.
         if ((main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary) is { } screen)
         {
             var working = screen.WorkingArea.ToRect(scale);
             // visibleFrame in AppKit's y: minY is the working area's bottom edge, maxY its top edge.
-            var visibleMinY = up - working.Bottom;
-            var visibleMaxY = up - working.Top;
-            x = SwiftMin(SwiftMax(x, working.Left), working.Right - frame.Width); // :51
-            y = SwiftMin(SwiftMax(y, visibleMinY), visibleMaxY - frame.Height); // :52
+            visible = new Rect(working.Left, up - working.Bottom, working.Width, working.Height);
         }
+        var centered = CenteredFrame(parent, frame, visible); // :46-54
         // :54 window.setFrame(frame, display: false): only the origin moves (the size is the window's own). Back to
         // Windows' downward y (the top edge is `up` less the bottom edge and the height), and, a position being whole
         // pixels, to pixels at the main window's scale.
-        var top = up - (y + frame.Height);
-        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded(x * scale)), checked((int)SwiftNumber.Rounded(top * scale)));
+        var top = up - centered.Bottom;
+        window.Position = new PixelPoint(checked((int)SwiftNumber.Rounded(centered.X * scale)), checked((int)SwiftNumber.Rounded(top * scale)));
+    }
+
+    // :46-54 The source's point-space calculation, shared with the headless edge-case tests. A missing screen
+    // leaves the rounded origin alone; a smaller working area still uses the outer min, without shrinking the
+    // frame. This centers over a visible main window; NSWindow.center() uses the separate ED-225 binding.
+    private static Rect CenteredFrame(Rect parent, Avalonia.Size frame, Rect? visible)
+    {
+        var x = SwiftNumber.Rounded(parent.Center.X - frame.Width / 2); // :48
+        var y = SwiftNumber.Rounded(parent.Center.Y - frame.Height / 2); // :49
+        if (visible is { } working) // :50
+        {
+            x = SwiftMin(SwiftMax(x, working.Left), working.Right - frame.Width); // :51
+            y = SwiftMin(SwiftMax(y, working.Top), working.Bottom - frame.Height); // :52 minY and maxY in upward point space
+        }
+        return new Rect(x, y, frame.Width, frame.Height); // :54 only the origin changes
     }
 
     // :57-60 private func present(_ window: NSWindow)
@@ -172,9 +187,8 @@ public sealed class WindowManager
         // :66 window.contentMinSize: Avalonia reports it to Windows as the minimum tracking size (WM_GETMINMAXINFO).
         window.MinWidth = Size.MainMinimum.Width;
         window.MinHeight = Size.MainMinimum.Height;
-        // :67-69 if !window.setFrameUsingName(Self.mainFrameName) { window.center() }: the saved frame is applied when
-        // there is one. The fallback, :68 window.center(), is not written (STOP App.Window.WindowManager #6).
-        _ = SetFrameUsingName(window, MainFrameName);
+        // :67-69 if !window.setFrameUsingName(Self.mainFrameName) { window.center() }
+        if (!SetFrameUsingName(window, MainFrameName)) WindowCentering.Center(window, FrameSizeOf(window)); // :68, ED-225
         SetFrameAutosaveName(window, MainFrameName); // :70
         return window; // :71
     }
@@ -183,7 +197,7 @@ public sealed class WindowManager
     private AvaloniaWindow MakeSettingsWindow()
     {
         var window = MakeWindow("Settings", Size.Settings, resizable: false, SettingsContent, windowClass: () => new SecondaryWindow()); // :81
-        // :82 window.center(): not written (STOP App.Window.WindowManager #6).
+        WindowCentering.Center(window, FrameSizeOf(window)); // :82 window.center(), ED-225
         return window; // :83
     }
 
@@ -231,6 +245,13 @@ public sealed class WindowManager
         var container = new Panel();
         container.Children.Add(hosting); // :107
         window.Content = container; // :108
+        // PORT-ONLY (OD-0008 C3): DroppyCodeApp.swift:21-25 installs `AppCommands(model: WindowManager.shared.model)` as
+        // the menu bar, which answers the key equivalents of whichever window of the app is key. With no menu bar, each
+        // window this factory makes (main and Settings) carries the port's dispatch of those chords
+        // (Port/MenuKeyEquivalents.cs) for as long as it lives (:98 keeps it). The command table is read afresh at each
+        // key-down, as SwiftUI re-reads the Commands body, over this manager's model (:13). Views that monitor the window's
+        // keys register when they attach, after this, so they still see a key-down first, as a local monitor does.
+        _ = MenuKeyEquivalents.Attach(window, shortcut => new AppCommands(Model).PerformKeyEquivalent(shortcut));
         return window; // :109
     }
 
@@ -306,12 +327,17 @@ public sealed class WindowLiveResize : MainActorModel
     private bool isPaneResizing; // :125
     private bool inSizeMove;
     private bool resizing;
+    private readonly AvaloniaWindow window; // ED-224: publish to the UI signal on this window only.
 
     // :120 private(set) var isActive = false
     public bool IsActive
     {
         get => Read(isActive);
-        private set => Set(ref isActive, value);
+        private set
+        {
+            Set(ref isActive, value);
+            WindowLiveResizeSignal.SetIsActive(window, value); // WindowChrome.swift:28, :93; ED-224
+        }
     }
 
     // :121-125 var isPaneResizing = false. Written by the chat view, where the sidebar-edge and terminal-divider drags
@@ -331,7 +357,11 @@ public sealed class WindowLiveResize : MainActorModel
     // live resize starts at the first WM_SIZING inside the loop and ends at the loop's WM_EXITSIZEMOVE, and a move is
     // not one (PR-WIN-017 windows_path). The window keeps the hook for as long as it exists: like the observations
     // (:129-130), it is never taken down.
-    public WindowLiveResize(AvaloniaWindow window) => Win32Properties.AddWndProcHookCallback(window, WndProc);
+    public WindowLiveResize(AvaloniaWindow window)
+    {
+        this.window = window;
+        Win32Properties.AddWndProcHookCallback(window, WndProc);
+    }
 
     // :133-138 the two observations, on the window's own (main) thread: MainActor.assumeIsolated.
     internal nint WndProc(nint hWnd, uint msg, nint wParam, nint lParam, ref bool handled)

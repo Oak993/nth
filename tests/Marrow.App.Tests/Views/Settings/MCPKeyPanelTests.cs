@@ -362,6 +362,13 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
             var save = ButtonWithText(view, "Save and connect");
             Assert.NotNull(save);
             Assert.False(save!.IsEnabled);
+            var field = Assert.Single(Descendants(view).OfType<TextBox>());
+            field.Text = "offline-test-key";
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.True(save.IsEnabled); // :43 .disabled(!model.mcp.canConnect(entry)): typing the required field enables Save
+            field.Text = "";
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.False(save.IsEnabled);
         });
     }
 

@@ -13,7 +13,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Sidebar;
 
-// Source: DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift (B2 1fbf81e), :1-127.
+// Source: DroppyCode/App/Views/Sidebar/FloatingSidebarPanel.swift (B3 52bc792), :1-127.
 
 /// <summary>:9-127 <c>struct FloatingSidebarPanel: View</c>: the sidebar's thread list as a floating glass panel.</summary>
 public sealed class FloatingSidebarPanel : Decorator
@@ -34,6 +34,7 @@ public sealed class FloatingSidebarPanel : Decorator
     private Point? dragOrigin;
     private Point? grab;
     private Size? resizeStart;
+    private Action<Size> updateArea = null!;
 
     // :13-15, :27-105
     public FloatingSidebarPanel(Size area, bool canClose, Action close)
@@ -84,6 +85,7 @@ public sealed class FloatingSidebarPanel : Decorator
             Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this),
             Child = surfaceContent
         };
+        SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous))); // :90
 
         var panel = new Grid
         {
@@ -221,11 +223,28 @@ public sealed class FloatingSidebarPanel : Decorator
         surfaceContent.Children.Add(strip);
         panelContents.Children.Add(resizeHandle);
 
+        // :13,23-35 Keep the view and drag/search state while its containing area changes.
+        updateArea = newArea =>
+        {
+            area = newArea;
+            size = ReadSize(model.Settings.SidebarPanelSize ?? DefaultSize, area);
+            rest = Clamp(model.Settings.SidebarPanelOrigin ?? new Point(FloatingSidebarPanelMargin, Chrome.ContentTopInset), size, area);
+            origin = dragOrigin ?? rest;
+            canvas.Width = Width = area.Width;
+            canvas.Height = Height = area.Height;
+            surface.Width = panel.Width = size.Width;
+            surface.Height = panel.Height = size.Height;
+            Place(origin);
+        };
+
         Place(origin);
         Child = canvas;
         Width = area.Width;
         Height = area.Height;
     }
+
+    // :13,23-35 The parent changes the input while this instance retains its @State.
+    internal void UpdateArea(Size area) => updateArea(area);
 
     // :28-32
     private static Size ReadSize(Size stored, Size area) =>

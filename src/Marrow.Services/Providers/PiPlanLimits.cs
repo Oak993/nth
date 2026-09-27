@@ -1,7 +1,7 @@
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
-// Source: DroppyCode/Services/Providers/PiPlanLimits.swift (B2 1fbf81e), :1-115.
+// Source: DroppyCode/Services/Providers/PiPlanLimits.swift (B3 52bc792), :1-115.
 // ED-168: URLSession, URLSessionConfiguration, URLRequest, URLResponse, HTTPURLResponse, URLError and URLCache
 // moved from Marrow.Services.Port to Marrow.Core.Port; used here via "using Marrow.Core.Port;".
 
@@ -173,6 +173,9 @@ public static class PiPlanLimits
         {
             base64 += new string('=', 4 - remainder); // :109
         }
+        // :111 Data(base64Encoded:) uses the default strict decoder. Convert.FromBase64String ignores
+        // ASCII whitespace, so reject it here rather than accepting a payload Foundation would reject.
+        if (base64.Any(c => c is ' ' or '\t' or '\r' or '\n')) return null;
         byte[]? data; // :111
         try { data = Convert.FromBase64String(base64); }
         catch (FormatException) { data = null; }

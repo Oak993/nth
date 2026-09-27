@@ -6,8 +6,7 @@ using Marrow.Core.Support;
 
 // Source: DroppyCode/Services/Providers/CommandCodeAPI.swift (B3 52bc7926), :1-460. Not ported yet: the approvalMod
 // literal (:374-439), left as its skeleton stub because the Windows form of its orphan predicate at :430 is not
-// specified (PR-PROVCLI-254 open_question against ED-021; STOP #1 of this unit), and Character.isUppercase for a
-// non-ASCII Character at :204, which no Core/Port helper provides (STOP #2 of this unit).
+// specified (PR-PROVCLI-254 open_question against ED-021; STOP #1 of this unit).
 //
 // PORT-ONLY seams, for tests only (R-TEST-9, R-TEST-10): FetchBaseURL (an Ambient<T> over the static baseURL :13 that
 // fetch :168-175 resolves its route against; production always reads BaseURL), SupportDirectoryUnder and
@@ -389,17 +388,8 @@ public static partial class CommandCodeAPI
         return (id.Value, rest.Value);
     }
 
-    // :204 Character.isUppercase (Swift stdlib CharacterProperties.swift): true for a single-scalar Character whose
-    // scalar has the Unicode Uppercase property, else when the Character equals its uppercased form and isCased. For an
-    // ASCII Character that is exactly A-Z (A-Z hold Uppercase and Cased, a-z Cased only, every other ASCII scalar
-    // neither, and none changes under uppercasing unless it is a-z). A non-ASCII Character needs the Uppercase and
-    // Cased properties, which no Core/Port helper exposes (SwiftCharacter has IsNumber, IsLetter, IsWhitespace only):
-    // STOP #2 of this unit.
-    private static bool IsUppercase(string character)
-    {
-        if (character.Length == 1 && char.IsAscii(character[0])) return character[0] is >= 'A' and <= 'Z';
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/CommandCodeAPI.swift:204 Character.isUppercase of a non-ASCII Character (STOP #2)");
-    }
+    // :204 Character.isUppercase, including non-ASCII scalars and extended grapheme clusters.
+    private static bool IsUppercase(string character) => SwiftCharacter.IsUppercase(character);
 
     // :236-244
     public static bool Matches(string id, string query)

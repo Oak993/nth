@@ -87,6 +87,32 @@ public sealed class ProviderRegistrySlashCommandsTests
     // ---- PR-PROVREG-216: recordCommand move-to-front, no duplicate, capped at 100, whole dict persisted ----
 
     [Fact]
+    [Trait("Req", "PR-PROVREG-216")] // Services/Providers/ProviderRegistry.swift:172,832-838
+    public void A_fresh_registry_recovers_complete_command_order_for_both_providers_from_defaults()
+    {
+        using var runtime = new TestRuntime();
+        var registry = MakeRegistry(runtime, Settings());
+        runtime.OnMain(() =>
+        {
+            registry.RecordCommand("alpha", ProviderKind.Claude);
+            registry.RecordCommand("review", ProviderKind.Codex);
+            registry.RecordCommand("beta", ProviderKind.Claude);
+            registry.RecordCommand("compact", ProviderKind.Codex);
+            registry.RecordCommand("alpha", ProviderKind.Claude);
+            registry.RecordCommand("review", ProviderKind.Codex);
+        });
+        var stored = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(runtime.Defaults.Object("recentSlashCommands"));
+        Assert.Equal(new[] { "claude", "codex" }, stored.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal(new object[] { "alpha", "beta" }, Assert.IsAssignableFrom<IReadOnlyList<object>>(stored["claude"]));
+        Assert.Equal(new object[] { "review", "compact" }, Assert.IsAssignableFrom<IReadOnlyList<object>>(stored["codex"]));
+        var restarted = runtime.OnMain(() => new ProviderRegistry(Settings())); // :172 reads the persisted dictionary.
+        Assert.NotSame(registry, restarted);
+        Assert.Equal(new[] { "claude", "codex" }, restarted.RecentCommands.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal(new[] { "alpha", "beta" }, restarted.RecentCommands["claude"]);
+        Assert.Equal(new[] { "review", "compact" }, restarted.RecentCommands["codex"]);
+    }
+
+    [Fact]
     [Trait("Req", "PR-PROVREG-216")] // ProviderRegistry.swift:753-759
     public void recording_a_command_moves_it_to_front_with_no_duplicate_left_behind()
     {

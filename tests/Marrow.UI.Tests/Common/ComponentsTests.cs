@@ -110,7 +110,7 @@ public sealed class ComponentsTests
     }
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:37-42
+    [Trait("Rule", "R-FMT-2")] // UI/Common/Components.swift:37-41; duration is not part of PR-SIDEBAR-074.
     public void RelativeTime_Duration_0Seconds_Returns0s()
     {
         using var runtime = new TestRuntime();
@@ -119,7 +119,7 @@ public sealed class ComponentsTests
     }
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:37-42
+    [Trait("Rule", "R-FMT-2")] // UI/Common/Components.swift:37-41; duration is not part of PR-SIDEBAR-074.
     public void RelativeTime_Duration_Under1Minute_ReturnsSeconds()
     {
         using var runtime = new TestRuntime();
@@ -128,7 +128,7 @@ public sealed class ComponentsTests
     }
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:37-42
+    [Trait("Rule", "R-FMT-2")] // UI/Common/Components.swift:37-41; duration is not part of PR-SIDEBAR-074.
     public void RelativeTime_Duration_1Minute30Seconds_ReturnsMinutesAndSeconds()
     {
         using var runtime = new TestRuntime();
@@ -137,7 +137,7 @@ public sealed class ComponentsTests
     }
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:37-42
+    [Trait("Rule", "R-FMT-2")] // UI/Common/Components.swift:37-41; duration is not part of PR-SIDEBAR-074.
     public void RelativeTime_Duration_Over1Hour_ReturnsHoursMinutes()
     {
         using var runtime = new TestRuntime();
@@ -146,7 +146,7 @@ public sealed class ComponentsTests
     }
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:37-42
+    [Trait("Rule", "R-FMT-2")] // UI/Common/Components.swift:37-41; duration is not part of PR-SIDEBAR-074.
     public void RelativeTime_Duration_NegativeInterval_Returns0s()
     {
         using var runtime = new TestRuntime();

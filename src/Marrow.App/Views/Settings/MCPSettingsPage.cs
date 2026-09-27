@@ -24,7 +24,6 @@ using Marrow.UI.Sound;
 namespace Marrow.App.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/MCPSettingsPage.swift (B3 52bc792), :1-1141.
-// Partial: :55-57 native grid transitions await shared keyed animation support (STOP #4 in follow-up tests).
 // DEVIATION OD-0012 F1: Marrow; OD-0008 B3/B4: Credential Manager / this PC.
 public sealed class MCPSettingsPage : Decorator
 {
@@ -46,7 +45,10 @@ public sealed class MCPSettingsPage : Decorator
     private MCPCustomSection? customs;
     private string? customsQuery;
     // PORT-ONLY identity cache for :49-59's ForEach/LazyVGrid. Retaining a card keeps its onChange armed.
-    private sealed record CategoryView(ChromeSection Section, Grid Grid, ForEach<MCPCatalogEntry, string> Cards);
+    private sealed record CategoryView(ChromeSection Section, Grid Grid, ForEach<MCPCatalogEntry, string> Cards)
+    {
+        public ValueSet<string> Celebrating { get; set; } = new([], SwiftStringComparer.Instance);
+    }
     private readonly Dictionary<MCPCategory, CategoryView> categories = new();
     private TextBlock? deletionReport; // OD-0008 A12 / OD-0012 E6
     // :7,35-63
@@ -64,12 +66,12 @@ public sealed class MCPSettingsPage : Decorator
         if (EnvironmentValues.GetAccessibilityReduceMotion(this)) return; // :65 suppresses BOTH sound and celebration
         foreach (var (id, state) in current.Where(pair => pair.Value.IsConnected && !(previous.GetValueOrDefault(pair.Key)?.IsConnected ?? false)))
         {
-            Transaction.WithAnimation(Animation.Spring(duration: 0.35), () => view.Celebrating = view.Celebrating.Mutating(ids => ids.Add(id))); // :57,67
+            Transaction.WithAnimation(Animation.Spring(duration: 0.35), () => view.Celebrating = view.Celebrating.Mutating(ids => ids.Add(id))); // :58,67
             SettleChime.Play(); // :68
             MainActor.Spawn(async () =>
             {
                 await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(900)); // :69-70 unstructured task, as in source
-                Transaction.WithAnimation(Animation.Spring(duration: 0.35), () => view.Celebrating = view.Celebrating.Mutating(ids => ids.Remove(id))); // :57,71
+                Transaction.WithAnimation(Animation.Spring(duration: 0.35), () => view.Celebrating = view.Celebrating.Mutating(ids => ids.Remove(id))); // :58,71
             });
         }
     }
@@ -96,21 +98,41 @@ public sealed class MCPSettingsPage : Decorator
         foreach (var group in MCPCatalog.ByCategory)
         {
             var visible = group.Entries.Where(e => (!model.Mcp.State(e.Id).IsConnected || view.Celebrating.Contains(e.Id)) && Matches(e, query)).ToArray(); // :25-33
-            if (visible.Length == 0) continue;
-            visibleCategories.Add(group.Category);
+            if (visible.Length == 0 && !categories.ContainsKey(group.Category)) continue;
             if (!categories.TryGetValue(group.Category, out var category))
             {
                 var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*"), ColumnSpacing = 10, RowSpacing = 10 };
-                var cards = new ForEach<MCPCatalogEntry, string>(grid, e => e.Id, e => new MCPServerCard(e, view.Celebrating.Contains(e.Id)), (control, e) => ((MCPServerCard)control).UpdateCelebrating(view.Celebrating.Contains(e.Id)));
-                categories[group.Category] = category = new CategoryView(new ChromeSection(group.Category.Title(), () => grid), grid, cards);
+                var cards = new ForEach<MCPCatalogEntry, string>(grid, e => e.Id,
+                    e => new MCPServerCard(e, view.Celebrating.Contains(e.Id)).Transition(SwiftTransition.Scale(0.9).Combined(SwiftTransition.Opacity)), // :54
+                    (control, e) => ((MCPServerCard)control).UpdateCelebrating(view.Celebrating.Contains(e.Id)));
+                // ED-218: the last row's removal must finish before its containing category leaves the tree.
+                grid.Children.CollectionChanged += (_, _) =>
+                {
+                    if (grid.Children.Count == 0 && stateChanges is not null)
+                        MainActor.Post(() => { if (stateChanges is not null) Rebuild(); });
+                };
+                categories[group.Category] = category = new CategoryView(new ChromeSection(group.Category.Title(), () => grid), grid, cards) { Celebrating = view.Celebrating };
             }
-            category.Cards.Apply(visible); category.Grid.RowDefinitions.Clear();
-            for (var i = 0; i < category.Grid.Children.Count; i++) { if (i % 2 == 0) category.Grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); Grid.SetColumn(category.Grid.Children[i], i % 2); Grid.SetRow(category.Grid.Children[i], i / 2); }
+            // :58 .animation(_, value: celebrating) also applies when a states-triggered rebuild was already queued.
+            var gridAnimation = category.Celebrating.Equals(view.Celebrating) ? Transaction.Current : Animation.Spring(duration: 0.35);
+            category.Celebrating = view.Celebrating;
+            if (EnvironmentValues.GetAccessibilityReduceMotion(this)) gridAnimation = null;
+            Transaction.WithAnimation(gridAnimation, () =>
+            {
+                category.Cards.Apply(visible); category.Grid.RowDefinitions.Clear();
+                // Exiting controls keep their old grid slot while active rows take their new slots and glide (:54-58).
+                var active = category.Cards.Controls;
+                for (var i = 0; i < active.Count; i++) { Grid.SetColumn(active[i], i % 2); Grid.SetRow(active[i], i / 2); }
+                var rowCount = category.Grid.Children.Count == 0 ? 0 : category.Grid.Children.Max(control => Grid.GetRow(control)) + 1;
+                for (var i = 0; i < rowCount; i++) category.Grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            });
+            if (category.Grid.Children.Count == 0) continue;
+            visibleCategories.Add(group.Category);
             children.Add(category.Section); // :49-59
         }
         foreach (var gone in categories.Keys.Where(category => !visibleCategories.Contains(category)).ToArray()) categories.Remove(gone);
-        // ENGINEERING DECISION (PR-MCP-228 open placement): a page-level report survives a removed custom row.
-        // It uses the existing failure-label style; the next disconnect replaces/clears the service report.
+        // ED-221 (PR-MCP-228): the page-level report survives a removed custom row, above the footer.
+        // :270-273 failed-line style: .subheadline, Chrome.danger, lineLimit(3); next disconnect/deletion clears it.
         if (model.Mcp.CredentialDeletionFailure is { } failure) { deletionReport ??= Text(failure, 11, Chrome.Danger, lines: 3); deletionReport.Text = failure; children.Add(deletionReport); }
         children.Add(footer); Reconcile(root, children); // :60-62 footer remains last
     }
@@ -137,7 +159,7 @@ public sealed class MCPSettingsPage : Decorator
     // :91-93,172-176,721-725,928-932
     internal static SwiftImage Symbol(string name, double size, SwiftColor color) => SwiftImage.SystemName(name).Font(SwiftFont.System(size)).ForegroundStyle(color);
     // :328-330,342-348. ENGINEERING DECISION: shared capsule recipe from FollowUpEditor/WelcomeView.
-    // Native .small metrics remain UNVERIFIED under OD-0001; material is MARROW_DEFERRED ED-180.
+    // Native .small metrics remain UNVERIFIED under OD-0001; SwiftGlass draws the material.
     internal static Control ActionButton(string title, Action action, bool prominent = false)
     {
         var label = Text(title, 11, Chrome.PrimaryText);
@@ -289,9 +311,10 @@ internal sealed class MCPServerCard : Decorator
                 frame = _ =>
                 {
                     var elapsed = (SwiftClock.Now - start).TotalSeconds;
-                    var scale = elapsed >= 0.5 ? 1 : 0.5 + 0.5 * animation.Progress(elapsed);
+                    var complete = elapsed >= animation.Duration; // ED-011: shared spring settling duration, rather than its response
+                    var scale = complete ? 1 : 0.5 + 0.5 * animation.Progress(elapsed);
                     image.RenderTransform = new ScaleTransform(scale, scale);
-                    if (elapsed < 0.5) frames.RequestFrame(frame!);
+                    if (!complete) frames.RequestFrame(frame!);
                 };
                 image.DetachedFromVisualTree += (_, _) => frames.CancelFrame(frame!);
                 frames.RequestFrame(frame);
@@ -402,7 +425,7 @@ internal sealed class MCPCustomRow : Decorator
         Control action = state switch
         {
             MCPConnectionState.NotConnected => MCPSettingsPage.ActionButton("Connect", () => MCPSettingsPage.Begin(this, entry)),
-            MCPConnectionState.Connecting => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new WorkingSpinner(3), new TextBlock { Text = "Connecting", FontSize = 11, Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.NoWrap } } },
+            MCPConnectionState.Connecting => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Children = { new WorkingSpinner(3), ConnectingLabel() } },
             MCPConnectionState.Connected => new SettingsSwitch(new Binding<bool>(() => model.Mcp.Connection(server.Id)?.IsEnabled ?? true, v => model.Mcp.SetEnabled(v, entry))),
             MCPConnectionState.NeedsSetup n => MCPSettingsPage.ActionButton("Fix it", () => MCPSetupPanel.Shared.Present(entry, n.Guide, model), true),
             MCPConnectionState.Failed => MCPSettingsPage.ActionButton("Try again", () => MCPSettingsPage.Begin(this, entry)),
@@ -415,6 +438,13 @@ internal sealed class MCPCustomRow : Decorator
             MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Confirming, v => view.Confirming = v), () => DeleteConfirmation!, this),
         } }; Grid.SetColumn(menus, 4); row.Children.Add(menus);
         Child = new Border { Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = row };
+    }
+    // :508-515 .font(.system(.subheadline)) and .fixedSize().
+    private TextBlock ConnectingLabel()
+    {
+        var label = new TextBlock { Text = "Connecting", Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.NoWrap };
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(label);
+        return label;
     }
     // :554-568
     private Control BuildMenu()

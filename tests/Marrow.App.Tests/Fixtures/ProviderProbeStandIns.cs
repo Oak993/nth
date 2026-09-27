@@ -79,6 +79,19 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
         return this;
     }
 
+    /// <summary>Hold Claude's -p listing result until Release; independent --help probes stay unblocked.</summary>
+    public ProviderProbeScript WaitForRelease()
+    {
+        File.WriteAllBytes(Path.Combine(Folder, "wait-for-release.txt"), []);
+        return this;
+    }
+
+    public void Release() => File.WriteAllBytes(Path.Combine(Folder, "release-listings.txt"), []);
+
+    // ClaudeSession.swift:190: handshake listing starts with -p; profile warmup's --help is a separate call.
+    public IReadOnlyList<IReadOnlyList<string>> CommandListings() =>
+        RecordedCalls().Where(arguments => arguments.Count > 0 && arguments[0] == "-p").ToArray();
+
     /// <summary>What a later "--version" call reports once this stand-in has been called with exactly
     /// ["update"] (ProviderProbeStandIn.cs's post-update-stdout.txt): simulates the CLI's own updater having
     /// installed a newer build, for ResendAfterCLIUpdate's before/after version comparison.</summary>
@@ -91,6 +104,21 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
     /// <summary>The argv (NUL-decoded) of every call so far, in call order (0-based, ClaudeStandIn.cs's shape;
     /// matches Marrow.Services.Tests.Fixtures.ProviderProbeStandIns.RecordedCalls).</summary>
     public IReadOnlyList<IReadOnlyList<string>> RecordedCalls()
+    {
+        if (!File.Exists(Path.Combine(Folder, "wait-for-release.txt"))) return ReadRecordedCalls();
+        // Match the controlled stand-in's lock: Windows can expose the renamed path before closing
+        // its rename handle, so a reader must join publication as well as seeing complete argv.
+        var identity = Encoding.UTF8.GetBytes(Path.GetFullPath(Folder).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+        string lockName;
+        using (var hash = System.Security.Cryptography.SHA256.Create())
+            lockName = "Local\\MarrowProviderProbe-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "", StringComparison.Ordinal);
+        using var recording = new Mutex(false, lockName);
+        recording.WaitOne();
+        try { return ReadRecordedCalls(); }
+        finally { recording.ReleaseMutex(); }
+    }
+
+    private IReadOnlyList<IReadOnlyList<string>> ReadRecordedCalls()
     {
         var calls = new List<IReadOnlyList<string>>();
         var call = 0;

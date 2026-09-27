@@ -729,7 +729,7 @@ internal sealed class PresentedState : MainActorModel
 internal sealed class ArchiveSettingsPage : Decorator
 {
     private ChatThread? pendingDeletion; // :893-894
-    private Avalonia.Controls.Window? confirmation;
+    private TaskHandle? confirmation;
     // :919-958 body
     public ArchiveSettingsPage()
     {
@@ -744,7 +744,7 @@ internal sealed class ArchiveSettingsPage : Decorator
             entries.Apply(threads); var items = rows.Children.OfType<ChromeRow>().ToArray(); rows.Children.Clear();
             for (var i = 0; i < items.Length; i++) { if (i > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(items[i]); }
         });
-        DetachedFromVisualTree += (_, _) => confirmation?.Close();
+        DetachedFromVisualTree += (_, _) => confirmation?.Cancel();
     }
     // :898-918
     private Control MakeRow(ChatThread thread)
@@ -758,16 +758,25 @@ internal sealed class ArchiveSettingsPage : Decorator
         });
         return new ChromeRow(thread.Title, () => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { restore.ChromeGlassCapsule(), delete.ChromeGlassCapsule() } }, model.Project(thread.ProjectID)?.Name);
     }
-    // :920-934. Avalonia has no SwiftUI confirmationDialog; a shared owner-centred modal supplies its
-    // question, message, destructive action and close cancellation, with native auto-sized geometry.
+    // :920-934, ED-216. The shared confirmation seam owns roles, Cancel and owner-centred modal presentation.
     private void PresentConfirmation()
     {
-        if (confirmation is not null) { confirmation.Title = pendingDeletion is { } current ? $"Delete \"{current.Title}\"?" : "Delete the archived thread?"; return; }
+        if (confirmation is not null) return;
         var question = pendingDeletion is { } thread ? $"Delete \"{thread.Title}\"?" : "Delete the archived thread?";
-        var confirm = PlainControls.Button(new TextBlock { Text = "Delete thread", Foreground = Chrome.Danger.Brush(this) }, () => { if (pendingDeletion is { } pending) AppEnvironment.GetAppModel(this).Delete(pending.Id); confirmation?.Close(); });
-        var dialog = new Avalonia.Controls.Window { Title = question, CanResize = false, SizeToContent = SizeToContent.WidthAndHeight, WindowStartupLocation = WindowStartupLocation.CenterOwner, Content = new StackPanel { Children = { new TextBlock { Text = "Its history will be removed. Files in your project stay as they are." }, confirm } } };
-        confirmation = dialog; dialog.Closed += (_, _) => { pendingDeletion = null; confirmation = null; };
-        if (TopLevel.GetTopLevel(this) is Avalonia.Controls.Window owner) _ = dialog.ShowDialog(owner); else dialog.Show();
+        var presented = pendingDeletion;
+        var model = AppEnvironment.GetAppModel(this);
+        var owner = TopLevel.GetTopLevel(this) as Avalonia.Controls.Window;
+        confirmation = MainActor.Spawn(async () =>
+        {
+            try
+            {
+                await AlertPresentation.Show(new AlertRequest(question,
+                    "Its history will be removed. Files in your project stay as they are.",
+                    [new AlertButton("Delete thread", () => { if (presented is { } pending) model.Delete(pending.Id); pendingDeletion = null; })
+                        { Role = AlertButtonRole.Destructive }], AlertKind.ConfirmationDialog, Owner: owner));
+            }
+            finally { pendingDeletion = null; confirmation = null; }
+        });
     }
 }
 

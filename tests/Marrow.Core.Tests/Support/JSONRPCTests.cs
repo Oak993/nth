@@ -11,6 +11,22 @@ namespace Marrow.Core.Tests.Support;
 // Swift dictionary order is unspecified (R-COLL-2), so frames are compared by member set, never key order.
 public sealed class JSONRPCTests
 {
+    [Fact]
+    [Trait("Req", "PR-MCP-233")] // Core/Support/JSONRPC.swift:3-14; Services/MCP/MCPWire.swift:169,219-228.
+    public void Parsed_reply_ids_preserve_string_tags_and_truncate_fractional_numbers_toward_zero()
+    {
+        var waiting = new Dictionary<RPCID, string> { [new RPCID.Int(1)] = "integer request" };
+        var stringId = RPCID.Create(JSONValue.Parse("{\"id\":\"1\"}")!["id"]!);
+        Assert.IsType<RPCID.String>(stringId);
+        Assert.False(waiting.ContainsKey(stringId!));
+        var fractional = RPCID.Create(JSONValue.Parse("{\"id\":1.5}")!["id"]!);
+        Assert.Equal(new RPCID.Int(1), fractional);
+        Assert.Equal("integer request", waiting[fractional!]);
+        Assert.Equal(new RPCID.Int(-1), RPCID.Create(JSONValue.Parse("{\"id\":-1.5}")!["id"]!));
+        Assert.Null(RPCID.Create(JSONValue.Parse("{\"id\":true}")!["id"]!));
+        Assert.Null(RPCID.Create(JSONValue.Parse("{\"id\":null}")!["id"]!));
+    }
+
     private static readonly TimeSpan Bound = TimeSpan.FromSeconds(90);
 
     private const string Pipes = "$i=[Console]::In; $e=[Console]::Error; $o=[Console]::Out; ";

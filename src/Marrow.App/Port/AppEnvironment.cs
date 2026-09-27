@@ -32,5 +32,10 @@ public sealed class AppEnvironment
         control.GetValue(WindowLiveResizeProperty) ?? throw new System.InvalidOperationException(
             "No WindowLiveResize is attached to this control's visual tree (AppEnvironment.SetWindowLiveResize was never called on an ancestor).");
 
-    public static void SetWindowLiveResize(Control control, WindowLiveResize value) => control.SetValue(WindowLiveResizeProperty, value);
+    public static void SetWindowLiveResize(Control control, WindowLiveResize value)
+    {
+        control.SetValue(WindowLiveResizeProperty, value);
+        // ED-218: UI collection layout reads this live callback; UI never references WindowLiveResize/App.
+        Marrow.UI.Port.EnvironmentValues.SetWindowIsLiveResizing(control, () => value.IsReshaping);
+    }
 }

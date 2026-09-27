@@ -299,7 +299,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same tolerant per-key read. A strict schema validator here would silently lose a user's turn history.",
       "verification_method": "restart test: write with the new shape, read a fixture missing touchedPaths, tokenSpends and hydraMerged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -383,7 +383,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and same required/optional split.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -784,7 +784,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the batch-first, time-fallback rule exactly, including the at-or-after comparison.",
       "verification_method": "unit over a fixture head roster",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1793,7 +1793,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The menu must capture values, never the row: the menu outlives the right-click, and retaining the row would pin its state storage after dismissal. Copy writes CF_UNICODETEXT only.",
       "verification_method": "interaction test over both menu shapes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2005,7 +2005,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep WorkGroup's reveal call outside its animation transaction (port_impacts.md 252 and 282); the other three reveal call sites are inside theirs. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "interaction test over open, arriving reply, and re-collapse",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2028,7 +2028,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Lowercase only the first character of each later part; do not lowercase the whole part. These are not localized strings upstream and must not be localized here.",
       "verification_method": "unit over kind combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2071,7 +2071,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Split with a maximum of one split, so a subject containing spaces survives intact.",
       "verification_method": "unit over every kind and both statuses",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2111,7 +2111,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same zero-suppression.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2135,7 +2135,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The separator is U+00B7 with a space on each side. mcpLabel ignores its running parameter, which is upstream behavior and is reproduced.",
       "verification_method": "unit over matched, unmatched and malformed titles",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2162,7 +2162,7 @@
       "cancellation": "The preview slot is closed when the row disappears.",
       "windows_path": "Reproduce the precedence order exactly: head, then diff, then image, then in-place output. The anchor view is mounted only after the pointer has been on the row, and once mounted it stays, because taking it away under an open popover closes it.",
       "verification_method": "interaction test over each of the four branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3863,7 +3863,7 @@
       "cancellation": "not cancellable",
       "windows_path": "No quarantined code path is to be created in this area.",
       "verification_method": "static check that none of deleteCustom, deleteCustomServer or removeCustomServer appears in the chat implementation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4709,7 +4709,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:219",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:31-34"
       ],
-      "notes": "Symbol doc.on.doc. The confirmation text is exactly Copied. Present on both sent messages and replies."
+      "notes": "Symbol doc.on.doc. The confirmation text is exactly Copied. Present on both sent messages and replies.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-012",
@@ -4729,7 +4730,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:220"
       ],
-      "notes": "Symbol number. Lowercase m in markdown."
+      "notes": "Symbol number. Lowercase m in markdown.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-013",
@@ -4749,7 +4751,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:222-226"
       ],
-      "notes": "Symbol arrow.uturn.backward, startsGroup true so a divider precedes it. It posts an intent that the row takes up; the menu must not retain the row."
+      "notes": "Symbol arrow.uturn.backward, startsGroup true so a divider precedes it. It posts an intent that the row takes up; the menu must not retain the row.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-014",
@@ -4771,7 +4774,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:191-196"
       ],
-      "notes": "Body text is exactly This message and everything after it leave the thread, and your prompt returns to the composer."
+      "notes": "Body text is exactly This message and everything after it leave the thread, and your prompt returns to the composer.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-015",

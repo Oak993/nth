@@ -15,7 +15,7 @@ using Marrow.Core.Support;
 using Marrow.UI.Port;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
 
-// Source: DroppyCode/UI/Common/Components.swift (B3 52bc792), :1-168.
+// Source: DroppyCode/UI/Common/Components.swift (B3 52bc792), :1-166.
 namespace Marrow.UI.Common;
 
 // :4-14
@@ -104,19 +104,24 @@ public sealed class DiffStatLabel : Decorator
     }
 }
 
-// :59-92
+// :56-89
 public sealed record ChipButtonStyle(bool IsActive = false)
 {
     private static readonly FuncControlTemplate<Button> ChipTemplate = new((owner, scope) =>
         new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope));
-    // :62-64 Apply the configuration to an existing button, retaining its click, keyboard and automation behaviour.
+    // :60-67 Apply the configuration to an existing button, retaining its click, keyboard and automation behaviour
+    // and the ChipBody identity that owns Swift's @State isHovering. An isActive change does not replace that view.
     public Button Apply(Button button)
     {
-        var label = button.Content as Control ?? new TextBlock { Text = button.Content?.ToString() ?? "" };
-        button.Content = null; // Release the configuration label's logical parent before wrapping it.
-        if (label is Border { Tag: ChipBody previous }) { previous.Dispose(); previous.Surface.Child = null; label = previous.Label; }
-        var body = new ChipBody(button, label, IsActive);
-        button.Content = body.Surface;
+        if (button.Content is Border { Tag: ChipBody previous })
+            previous.SetActive(IsActive); // :66-67 isActive is an input; isHovering keeps the same @State storage.
+        else
+        {
+            var label = button.Content as Control ?? new TextBlock { Text = button.Content?.ToString() ?? "" };
+            button.Content = null; // Release the configuration label's logical parent before wrapping it.
+            var body = new ChipBody(button, label, IsActive);
+            button.Content = body.Surface;
+        }
         button.Padding = default;
         button.BorderThickness = default;
         button.Background = Brushes.Transparent;
@@ -124,39 +129,42 @@ public sealed record ChipButtonStyle(bool IsActive = false)
         return button;
     }
 
-    // :66-92
+    // :64-89
     private sealed class ChipBody : IDisposable
     {
         private readonly Button button;
-        private readonly bool active;
+        private bool active; // :66 configuration input; updates preserve the body's identity.
         private readonly AnimatedColor fill;
-        private bool hovering; // :69
+        private bool hovering; // :67
         public Control Label { get; }
         public Border Surface { get; }
         public ChipBody(Button button, Control label, bool active)
         {
             this.button = button; this.active = active; Label = label;
-            if (label is TextBlock text) { text.MaxLines = 1; text.TextWrapping = TextWrapping.NoWrap; } // :74
-            Surface = new Border { Child = label, Padding = new Thickness(9, 5), Tag = this }.Capsule(RoundedCornerStyle.Circular); // :75-80
-            Surface.Font(SwiftFont.Callout); // :73 inherited default, label's explicit font can override it.
+            if (label is TextBlock text) { text.MaxLines = 1; text.TextWrapping = TextWrapping.NoWrap; } // :72
+            Surface = new Border { Child = label, Padding = new Thickness(9, 5), Tag = this }.Capsule(RoundedCornerStyle.Circular); // :73-78
+            Surface.Font(SwiftFont.Callout); // :71 inherited default, label's explicit font can override it.
             fill = new AnimatedColor(Surface); Surface.Background = fill.Brush;
-            button.PointerEntered += Entered; button.PointerExited += Exited; // :83
+            button.PointerEntered += Entered; button.PointerExited += Exited; // :80
             button.PropertyChanged += Changed; // configuration.isPressed
             button.SizeChanged += Sized;
-            UpdateHitShape(); // :82 contentShape(.capsule), including the button's otherwise rectangular hit area.
+            UpdateHitShape(); // :79 contentShape(.capsule), including the button's otherwise rectangular hit area.
             Surface.Track(() => (ChromeTokens.Accent, ChromeTokens.PrimaryText, ChromeTokens.SecondaryText), _ => Draw(null));
             button.PropertyChanged += TintChanged;
             Draw(null);
         }
+        // :66-67 Updating the input does not create a fresh @State hover value or fresh event subscriptions.
+        public void SetActive(bool value) { active = value; Draw(null); }
+        // :75, :84-87
         private void Draw(Animation? animation)
         {
             var tint = ChipButtonStyleHelper.GetTint(button) ?? ChromeTokens.Accent;
-            Surface.SetValue(TextElement.ForegroundProperty, (active ? tint : ChromeTokens.SecondaryText).Brush(Surface)); // :77
-            var color = active ? tint.Opacity(button.IsPressed ? 0.26 : 0.16) // :89
-                : ChromeTokens.PrimaryText.Opacity(button.IsPressed ? 0.12 : hovering ? 0.07 : 0); // :90-91
+            Surface.SetValue(TextElement.ForegroundProperty, (active ? tint : ChromeTokens.SecondaryText).Brush(Surface)); // :75
+            var color = active ? tint.Opacity(button.IsPressed ? 0.26 : 0.16) // :85
+                : ChromeTokens.PrimaryText.Opacity(button.IsPressed ? 0.12 : hovering ? 0.07 : 0); // :86-87
             fill.Set(color, animation);
         }
-        private void Entered(object? sender, Avalonia.Input.PointerEventArgs args) { hovering = true; Draw(Animation.EaseOut(0.12)); } // :83-84
+        private void Entered(object? sender, Avalonia.Input.PointerEventArgs args) { hovering = true; Draw(Animation.EaseOut(0.12)); } // :80-81
         private void Exited(object? sender, Avalonia.Input.PointerEventArgs args) { hovering = false; Draw(Animation.EaseOut(0.12)); }
         private void Changed(object? sender, AvaloniaPropertyChangedEventArgs args) { if (args.Property == Button.IsPressedProperty) Draw(null); }
         private void TintChanged(object? sender, AvaloniaPropertyChangedEventArgs args) { if (args.Property == ChipButtonStyleHelper.TintProperty) Draw(null); }
@@ -166,7 +174,7 @@ public sealed record ChipButtonStyle(bool IsActive = false)
     }
 }
 
-// :94-99 Keeps the existing helper name, and exposes the .chip / .chip(active:) reusable forms.
+// :92-97 Keeps the existing helper name, and exposes the .chip / .chip(active:) reusable forms.
 public static class ChipButtonStyleHelper
 {
     public static readonly AttachedProperty<SwiftColor?> TintProperty = AvaloniaProperty.RegisterAttached<Button, Control, SwiftColor?>("ChipTint", inherits: true);

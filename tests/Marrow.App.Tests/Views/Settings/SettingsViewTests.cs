@@ -30,14 +30,12 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class SettingsViewTests(HeadlessSession headless)
 {
-    // STOP App.Views.Settings.SettingsView #1
-    // Kind: dependency. Swift: SettingsView.swift:839. Records: PR-GIT-150, UI-SETTINGS-069.
-    // Missing: Workspace.RevealInFileExplorer is a throwing dependency in UI/Common/Components.cs.
-    // Needed: that unit's Windows reveal implementation. The row/path/label are covered; invoking Reveal is not.
-    // STOP App.Views.Settings.SettingsView #2
-    // Kind: dependency. Swift: SettingsView.swift:750-751. Records: provider Login action (parts 5-6), UI-SETTINGS-051.
-    // Missing: Workspace.OpenTerminal is BLOCKED PR-PROVREG-233 in UI/Common/Components.cs.
-    // Needed: the upstream unit's terminal launcher. The login row can be ported; its action cannot be verified.
+    // Resolved STOP App.Views.Settings.SettingsView #1 (Components fixes): Workspace.RevealInFileExplorer
+    // is implemented. Worktree_reveal_calls_the_workspace_boundary_with_the_resolved_directory proves the
+    // SettingsView.swift:839 callback through the offline Workspace.Platform seam. No dependency remains.
+    // Resolved STOP App.Views.Settings.SettingsView #2 (Components fixes): Workspace.OpenTerminal
+    // is implemented. Provider_login_calls_the_workspace_boundary_with_the_literal_command proves
+    // SettingsView.swift:750-751 through the offline seam. No dependency remains at this site.
     private static T Field<T>(object obj, string name) => (T)obj.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(obj)!;
     private static T[] Nodes<T>(Control root) where T : class => LogicalQuery.SelfAndDescendants<T>(root).ToArray();
     private static string[] Text(Control root) => Nodes<TextBlock>(root).Select(x => x is MiddleTruncatingText middle ? middle.FullText : x.Text ?? "").ToArray();
@@ -70,6 +68,39 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     }
 
     private void WithSettings(Action<Control, AppModel, AppModelHarness> check) => WithView(() => new SettingsView(), check, _ => SettingsNavigation.Shared.RequestedPage = SettingsPage.Archive);
+
+    [Fact]
+    [Trait("Req", "PR-GIT-150")] // App/Views/Settings/SettingsView.swift:836-842
+    [Trait("Req", "UI-SETTINGS-069")] // App/Views/Settings/SettingsView.swift:838-840
+    public void Worktree_reveal_calls_the_workspace_boundary_with_the_resolved_directory() => WithView(() => new SourceControlSettingsPage(), (view, _, _) =>
+    {
+        string? revealed = null;
+        using var workspace = Marrow.UI.Common.Workspace.Platform.Override(new Marrow.UI.Common.Workspace.Backend
+        {
+            Reveal = path => revealed = path,
+        });
+        Click(Button(view, "Reveal")); Sync();
+        Assert.Equal(Storage.WorktreesDirectory, revealed); // :839 forwards the resolved directory exactly.
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-051")] // App/Views/Settings/SettingsView.swift:749-754; Core/Models/Provider.swift:76
+    public void Provider_login_calls_the_workspace_boundary_with_the_literal_command() => WithView(() => new ProviderSettingsSection(ProviderKind.Commandcode, Binding<bool>.Constant(true)), (view, _, _) =>
+    {
+        var launches = new List<(string Executable, string[] Arguments, string? Directory, bool Console)>();
+        using var workspace = Marrow.UI.Common.Workspace.Platform.Override(new Marrow.UI.Common.Workspace.Backend
+        {
+            Home = @"C:\fixture home",
+            Which = name => name switch { "pwsh.exe" => @"C:\fixture\pwsh.exe", "wt.exe" => @"C:\fixture\wt.exe", _ => throw new InvalidOperationException("Unexpected lookup") },
+            Launch = (exe, args, cwd, console) => launches.Add((exe, args.ToArray(), cwd, console)),
+        });
+        Click(Button(Row(view, "Sign in"), "Login")); Sync();
+        var launch = Assert.Single(launches);
+        Assert.Equal(@"C:\fixture\wt.exe", launch.Executable);
+        Assert.Equal(new[] { "-w", "new", "new-tab", "-d", @"C:\fixture home", @"C:\fixture\pwsh.exe", "-NoExit", "-Command", "cmd login" }, launch.Arguments); // ED-089, Provider.swift:76.
+        Assert.Equal(@"C:\fixture home", launch.Directory);
+        Assert.False(launch.Console);
+    }, model => Seed(model, ProviderKind.Commandcode, new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/command-code"), ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }));
     private static ChromeRow Row(Control view, string title) => Nodes<ChromeRow>(view).Single(row => Text(row).FirstOrDefault() == title);
 
     [Fact]
@@ -224,7 +255,8 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var header = Assert.Single(Nodes<CollapsibleProviderHeader>(view)); var disclosure = Assert.Single(Nodes<Button>(header)); Assert.Equal(22, disclosure.Height); Assert.Equal("Hide the provider settings", ToolTip.GetTip(disclosure)); Assert.Equal("Expanded", AutomationProperties.GetItemStatus(disclosure)); Assert.Equal("Shows or hides the provider settings", AutomationProperties.GetHelpText(disclosure)); Assert.Equal("Command Code", AutomationProperties.GetName(disclosure));
         Seed(model, ProviderKind.Commandcode, new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/command-code"), ProviderStatusAuth = new ProviderStatus.Auth.SignedOut(), IsChecking = true }); Sync(); Assert.DoesNotContain("Sign in", Text(view)); Assert.DoesNotContain("Install", Text(view));
         Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { IsChecking = false }); Sync(); var login = Row(view, "Sign in"); Assert.Contains("Click here to login again.", Text(login)); Assert.Equal(16, Nodes<TextBlock>(Button(login, "Login")).Single().Height); Assert.True(Button(login, "Login").IsEffectivelyEnabled);
-        // STOP #2: do not invoke the unported terminal launcher.
+        // The Login callback is covered separately through Workspace.Platform by
+        // Provider_login_calls_the_workspace_boundary_with_the_literal_command; no launcher dependency remains.
         Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Assert.DoesNotContain("Sign in", Text(view));
     });
 
@@ -633,10 +665,22 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-054")] // App/Views/Settings/SettingsView.swift:896-934
     public void Archived_rows_restore_immediately_and_delete_only_after_the_shared_dialog_confirms() => WithView(() => new ArchiveSettingsPage(), (view, model, _) =>
     {
+        var presenter = new RecordingConfirmationPresenter();
+        using var seam = AlertPresentation.Presenter.Override(presenter);
         Assert.Equal(new[] { "Archived", "Another" }, Nodes<ChromeRow>(view).Select(x => Text(x).First())); Assert.Single(Nodes<ChromeRowDivider>(view)); Assert.Contains("One", Text(Row(view, "Archived")));
         Click(Button(Row(view, "Archived"), "Delete")); Sync(); Assert.Equal(2, model.ArchivedThreads.Count);
-        var dialog = Field<Avalonia.Controls.Window>(view, "confirmation"); Assert.Equal("Delete \"Archived\"?", dialog.Title); Assert.Contains("Its history will be removed. Files in your project stay as they are.", Text((Control)dialog.Content!)); dialog.Close(); Sync(); Assert.Equal(2, model.ArchivedThreads.Count);
-        Click(Button(Row(view, "Archived"), "Delete")); Sync(); dialog = Field<Avalonia.Controls.Window>(view, "confirmation"); Click(Button((Control)dialog.Content!, "Delete thread")); Sync(); Assert.Single(model.ArchivedThreads);
+        var dialog = Assert.Single(presenter.Shown);
+        Assert.Equal("Delete \"Archived\"?", dialog.Title);
+        Assert.Equal("Its history will be removed. Files in your project stay as they are.", dialog.Message);
+        Assert.Equal(AlertKind.ConfirmationDialog, dialog.Kind);
+        Assert.Equal(["Delete thread", "Cancel"], dialog.Buttons.Select(button => button.Title));
+        Assert.Equal([AlertButtonRole.Destructive, AlertButtonRole.Cancel], dialog.Buttons.Select(button => button.Role));
+        Assert.Null(dialog.ReturnDefault);
+        var completion = Field<TaskHandle>(view, "confirmation").Completion;
+        presenter.Cancel(); HeadlessSession.RunDispatcherUntil(completion, AppModelHarness.Bound); Sync(); Assert.Equal(2, model.ArchivedThreads.Count);
+        Click(Button(Row(view, "Archived"), "Delete")); Sync(); Assert.Equal(2, presenter.Shown.Count);
+        completion = Field<TaskHandle>(view, "confirmation").Completion;
+        presenter.Press("Delete thread", 1); HeadlessSession.RunDispatcherUntil(completion, AppModelHarness.Bound); Sync(); Assert.Single(model.ArchivedThreads);
         Click(Button(Row(view, "Another"), "Restore")); Sync(); Assert.Empty(model.ArchivedThreads);
     }, beforeModel: h => { var project = new Project("One", h.NewFolder("one")); h.WriteLibrary([project], new[] { "Archived", "Another" }.Select(title => new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised) with { IsArchived = true, Title = title })); });
 

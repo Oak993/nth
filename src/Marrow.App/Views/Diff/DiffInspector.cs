@@ -6,8 +6,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Transformation;
+using Avalonia.Threading;
 using Marrow.App.Runtime;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -18,7 +20,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Diff;
 
-// Source: DroppyCode/App/Views/Diff/DiffInspector.swift (B2 1fbf81e), :1-692.
+// Source: DroppyCode/App/Views/Diff/DiffInspector.swift (B3 52bc792), :1-692.
 
 /// <summary>:4-155 <c>struct DiffInspector: View</c>: the thread's diff, file by file.</summary>
 public sealed class DiffInspector : Decorator
@@ -93,6 +95,7 @@ public sealed class DiffInspector : Decorator
             Spacing = 10,
             Margin = new Thickness(14, 12, 14, 10),
         };
+        SwiftGlass.SetContainerSpacing(chromeRow, 2); // :25 GlassEffectContainer(spacing: 2)
         chromeRow.Children.Add(menu);
         chromeRow.Children.Add(new Border
         {
@@ -936,6 +939,11 @@ public sealed class DiffPopoverCoordinator
     private long session;
     private long pendingSession;
     private long seenOpenRequest;
+    private bool isShown;
+    private IDisposable? pointerMonitor;
+    private IDisposable? keyMonitor;
+    private bool reopening;
+    private long? notifiedCloseSession;
 
     // :534-539
     public DiffPopoverCoordinator()
@@ -988,10 +996,14 @@ public sealed class DiffPopoverCoordinator
     // :573-579
     public void Close()
     {
+        StopMonitors(); // :574
         desiredVisible = false;
         session++;
         pendingSession = session;
-        if (popover.IsOpen) popover.IsOpen = false;
+        if (isShown)
+        {
+            HidePopover();
+        }
     }
 
     // :583-586
@@ -1014,12 +1026,15 @@ public sealed class DiffPopoverCoordinator
         seenOpenRequest = runtime.DiffOpenRequest;
         desiredVisible = true;
         var resolved = ResolvedAnchor();
-        if (popover.IsOpen)
+        if (isShown)
         {
             if (resolved is { } currentTarget && ReferenceEquals(shownOn, currentTarget.View)) return;
+            StopMonitors(); // :606
             session++;
             pendingSession = session;
-            popover.IsOpen = false;
+            reopening = true;
+            try { HidePopover(); }
+            finally { reopening = false; }
         }
 
         Show();
@@ -1045,18 +1060,42 @@ public sealed class DiffPopoverCoordinator
     {
         if (runtime is null || ResolvedAnchor() is not { } target) return;
         session++;
-        if (popover.IsOpen) return;
+        if (isShown) return;
         popover.SetFixedContent(new DiffInspector(runtime), new Size(Width, Height));
         popover.PlacementTarget = target.View;
         popover.Placement = target.Edge;
         shownOn = target.View;
         shownRuntime = runtime;
-        popover.IsOpen = true;
+        StartMonitors(); // :632
+        isShown = true;
+        Presentation.Presenter.Current.SetPresented(popover, true);
     }
 
     // :640-658
     public void PopoverDidClose()
     {
+        var closedSession = pendingSession;
+        if (notifiedCloseSession == closedSession) return;
+        notifiedCloseSession = closedSession;
+        // :640-658. A reopen's close finishes after Show has incremented the session, as the Swift Task does.
+        if (reopening) Dispatcher.UIThread.Post(() => CompletePopoverClose(closedSession));
+        else CompletePopoverClose(closedSession);
+    }
+
+    // :606-612,640-658. The native Closed event owns notification; the recording seam needs one fallback only.
+    private void HidePopover()
+    {
+        isShown = false;
+        Presentation.Presenter.Current.SetPresented(popover, false);
+        if (notifiedCloseSession != pendingSession) PopoverDidClose();
+    }
+
+    private void CompletePopoverClose(long closedSession)
+    {
+        // A delayed close must not clear the newer inspector, visibility state, or its new monitor pair.
+        if (session != closedSession) return;
+        StopMonitors(); // :643
+        isShown = false;
         desiredVisible = false;
         if (session == pendingSession)
         {
@@ -1066,5 +1105,41 @@ public sealed class DiffPopoverCoordinator
         }
 
         shownRuntime = null;
+    }
+
+    // :662-666. The popup's content TopLevel is the Swift content window. Every other left/right press
+    // dismisses before routing to its target, without setting Handled (port_impacts X2, PR-GIT-137).
+    private void HandleMouseDown(TopLevel sender, PointerPressedEventArgs e)
+    {
+        if (e.GetCurrentPoint(null).Properties.PointerUpdateKind is not
+            (PointerUpdateKind.LeftButtonPressed or PointerUpdateKind.RightButtonPressed)) return;
+        if (popover.Child is Control content && ReferenceEquals(sender, TopLevel.GetTopLevel(content))) return;
+        Close();
+    }
+
+    // :668-672. The app-wide monitor consumes Escape even when focus never entered the popup.
+    private void HandleKeyDown(TopLevel sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+        Close();
+        e.Handled = true;
+    }
+
+    // :674-686. Class handlers on TopLevel tunnel through every app window and the popup's own root,
+    // including windows opened after this monitor pair; registrations live only while the popover is shown.
+    private void StartMonitors()
+    {
+        if (pointerMonitor is not null || keyMonitor is not null) return;
+        pointerMonitor = InputElement.PointerPressedEvent.AddClassHandler<TopLevel>(HandleMouseDown, RoutingStrategies.Tunnel);
+        keyMonitor = InputElement.KeyDownEvent.AddClassHandler<TopLevel>(HandleKeyDown, RoutingStrategies.Tunnel);
+    }
+
+    // :688-691.
+    private void StopMonitors()
+    {
+        pointerMonitor?.Dispose();
+        pointerMonitor = null;
+        keyMonitor?.Dispose();
+        keyMonitor = null;
     }
 }

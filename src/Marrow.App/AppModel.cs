@@ -293,7 +293,8 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:235-237. Swift: children(of:).
     public ValueList<ChatThread> Children(Guid parentID) => new(ChildIDs(parentID).Select(Thread).OfType<ChatThread>()); // AppModel.swift:235-237
 
-    // AppModel.swift:239-287 (B3)
+    // Source: DroppyCode/App/AppModel.swift (B3 52bc792), :240-287.
+    // :275-282. Sweep C verified the inherited ninth step with blocked offline updaters; no behavior change needed.
     public async Task Bootstrap()
     {
         var recent = threads
@@ -461,7 +462,8 @@ public sealed partial class AppModel : MainActorModel
 
     // AppModel.swift:396-400. Swift: helpers(of:).
     public ValueList<ChatThread> Helpers(Guid parentID) =>
-        new(Children(parentID).Where(thread => !thread.IsArchived && !thread.IsHydraHead).OrderBy(thread => thread.CreatedAt)); // AppModel.swift:392-400
+        new(Children(parentID).Where(thread => !thread.IsArchived && (!thread.IsInPanel || thread.IsHydraHead))
+            .OrderByDescending(thread => thread.CreatedAt)); // AppModel.swift:396-400 (helpers(of:)); B3 checkout :405-409
 
     // AppModel.swift:405-413. Swift: panelHeads(of:).
     public ValueList<ChatThread> PanelHeads(Guid parentID) =>
@@ -1221,21 +1223,27 @@ public sealed partial class AppModel : MainActorModel
         UpdateDockBadge();
     }
 
-    // AppModel.swift:1240-1246
-    public void RequestNotificationPermission() // AppModel.swift:1240-1246
+    // AppModel.swift (B3):1249-1255
+    public void RequestNotificationPermission() // AppModel.swift:1249-1255
     {
-        // Windows notification permission is owned by the shell integration unit; Avalonia exposes no permission prompt.
+        Marrow.App.Port.ToastNotifications.RequestPermissionOnce(this); // B3 :1249-1255, ED-220 (4)
     }
 
-    // AppModel.swift:1248-1259. Swift: notify(threadID:title:body:sound:) with `sound: UNNotificationSound? = .default`. No port
-    // type stands for UNNotificationSound; the only values the source passes are .default and nil (:1215), so the
-    // skeleton carries them as true and false. UNRESOLVED: the Windows notification unit decides the final form.
-    public void Notify(Guid threadID, string title, string body, bool sound = true) // AppModel.swift:1248-1259
+    // AppModel.swift (B3):1257-1268. Swift: notify(threadID:title:body:sound:) with `sound: UNNotificationSound? = .default`.
+    // The source passes .default or nil (:1224); the existing bool API maps these to default or silent audio (ED-220).
+    public void Notify(Guid threadID, string title, string body, bool sound = true) // AppModel.swift:1257-1268
     {
-        if (IsApplicationActive() && Thread(threadID) is { } thread && IsOnScreen(thread)) return;
+        // B3 :1257-1268, ED-001: capture-run mode is not ported. Keep the complete B3 screen gate local to this boundary.
+        if (IsApplicationActive() && Thread(threadID) is { } thread && Marrow.App.Port.ToastNotifications.IsOnScreen(this, thread)) return;
         RequestNotificationPermission();
-        // No Windows notification-center adapter is present in this source set. Preserve the request boundary
-        // without throwing from a completed turn; the OS notification delivery remains a documented deviation.
+        var request = new Marrow.App.Port.ToastRequest(SwiftUUID.UuidString(threadID), title, body, sound,
+            new Dictionary<string, object>(StringComparer.Ordinal) { ["threadID"] = SwiftUUID.UuidString(threadID) });
+        var center = Marrow.App.Port.ToastNotifications.Center.Current;
+        MainActor.Spawn(async () =>
+        {
+            try { await center.Add(request); }
+            catch (Exception) { } // :1268 Task { try? await center.add(request) }
+        });
     }
 
     // AppModel.swift:1261-1264
