@@ -7,9 +7,9 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3580,
+      "IMPLEMENTED": 3581,
       "RETIRED": 15,
-      "SPECIFIED": 369,
+      "SPECIFIED": 368,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
       "DISCOVERED": 6
     },
@@ -6514,7 +6514,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The first label is the OD-0008 B1 wording \"Show in File Explorer\", a named deviation; its action is explorer.exe /select on the file. \"Open\" is verbatim. Size formatting needs a ported SwiftFormatters.ByteCountFormatStyle (ICU skeletons plus the en spell-out of zero), not the existing ByteCountFormatter-shaped FileByteCount helper: \"Zero kB\", \"1 byte\", the 999-byte-to-kB threshold, and lowercase \"kB\"/\"MB\"/\"GB\" units all differ from FileByteCount's \"Zero KB\"/\"999 bytes\"/\"KB\". Text style per ED-059: .caption is 10 point, upstream's B1 table B1:DroppyCode/UI/Common/ChatZoom.swift:54 `case .footnote, .caption, .caption2: 10` (file deleted at B2), set in Inter (OD-0009) and scaled only by the app zoom; visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "interaction test of both links, plus exact-string size assertions at 0, 1, 998, 999, 1000 and the MB/GB boundaries once ByteCountFormatStyle's output is captured (6.1 E2, oracle O-66)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
