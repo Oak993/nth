@@ -3330,7 +3330,7 @@
       "cancellation": "Dismissing the dialog runs nothing.",
       "windows_path": "Direct port of both button labels, the title and the body.",
       "verification_method": "interaction test asserting both branches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5452,7 +5452,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:191-196"
       ],
-      "notes": "Title \"Edit from this message?\"; message \"This message and everything after it leave the thread, and your prompt returns to the composer.\" This is the only revert affordance that offers to keep the files."
+      "notes": "Title \"Edit from this message?\"; message \"This message and everything after it leave the thread, and your prompt returns to the composer.\" This is the only revert affordance that offers to keep the files.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-GIT-052",

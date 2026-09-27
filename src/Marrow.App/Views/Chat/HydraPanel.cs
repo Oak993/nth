@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
@@ -12,6 +13,7 @@ using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Marrow.App.Runtime;
+using Marrow.App.Port;
 using Marrow.App.Views.Composer;
 using Marrow.App.Window;
 using Marrow.Core.Models;
@@ -36,122 +38,185 @@ public sealed class HydraPanel : Decorator
     // :41 static let finishHold: TimeInterval = 2.0
     public const double FinishHold = 2.0;
 
+    private readonly Grid stageHost = new();
+    private readonly Grid waveHost = new() { IsHitTestVisible = false };
+    private readonly Grid nameHost = new();
+    private readonly StackPanel popOutHost = new();
+    private readonly HoldState state = new();
+    private readonly ThreadRuntime runtime;
+    private readonly IReadOnlyList<ChatThread> initialHeads;
+    private readonly Size size;
+    private readonly string? workingDirectory;
+    private readonly string? projectName;
+    private readonly bool isPoppedOut;
+    private readonly Action<Guid>? popOut;
+    private readonly Action<Size> onDrag;
+    private readonly Action onDragEnd;
+    private readonly HydraHeadsButton? headsButton;
+    private ChatThread? selectedHead;
+    private Control? stage;
+    private Control? name;
+    private Control? popButton;
+    private Guid? popId;
+    private Border? wave;
+    private StageHold? waveKey;
+    private StageMark mark = new();
+    private bool rendered;
+
+    // PORT-ONLY: the stage's contents are independently owned; tests isolate the as-yet-unported
+    // JumpToLatestButton dependency while exercising this unit's real lifetime and transitions.
+    internal Func<ChatThread, Control>? StageFactory { get; set; }
+
     // :18-31, :46-122
-    public HydraPanel(
-        ThreadRuntime runtime,
-        IReadOnlyList<ChatThread> heads,
-        Size size,
-        string? workingDirectory,
-        string? projectName,
-        Action<Size> onDrag,
-        Action onDragEnd,
-        Action dismiss,
-        bool isPoppedOut = false,
-        Action<Guid>? popOut = null)
+    public HydraPanel(ThreadRuntime runtime, IReadOnlyList<ChatThread> heads, Size size,
+        string? workingDirectory, string? projectName, Action<Size> onDrag, Action onDragEnd,
+        Action dismiss, bool isPoppedOut = false, Action<Guid>? popOut = null)
     {
-        // :50-56 The head on stage: the one picked, else the newest still working, else the newest. A
-        // popped-out panel holds one head, and that one is on stage.
-        ChatThread? selected = null;
-        if (isPoppedOut)
-        {
-            if (heads.Count > 0) selected = heads[0];
-        }
-        else
-        {
-            foreach (var head in heads)
-            {
-                if (head.Id == runtime.HydraSelectedHeadID)
-                {
-                    selected = head;
-                    break;
-                }
-            }
-
-            if (selected is null)
-            {
-                for (var index = heads.Count - 1; index >= 0; index--)
-                {
-                    if (heads[index].Hydra?.HydraHeadInfoStatus == HydraHeadInfo.Status.Running)
-                    {
-                        selected = heads[index];
-                        break;
-                    }
-                }
-            }
-
-            if (selected is null && heads.Count > 0) selected = heads[heads.Count - 1];
-        }
-
+        this.runtime = runtime;
+        initialHeads = heads;
+        this.size = size;
+        this.workingDirectory = workingDirectory;
+        this.projectName = projectName;
+        this.isPoppedOut = isPoppedOut;
+        this.popOut = popOut;
+        this.onDrag = onDrag;
+        this.onDragEnd = onDragEnd;
+        if (!isPoppedOut) headsButton = new HydraHeadsButton(runtime, heads, dismiss);
         var isDark = ActualThemeVariant == ThemeVariant.Dark;
-        // :99-108 One glass surface washed with Chrome.glassTint at 0.22 in dark and 0.16 in light
-        // (UI-HYDRA-073).
-        var shape = new Border
-        {
-            CornerRadius = new CornerRadius(CornerRadius),
-            ClipToBounds = true,
-            Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this),
-            Child = selected is null
-                ? new Grid()
-                : new HydraHeadTranscript(selected, size.Height, workingDirectory, projectName)
-        };
+        // :99-121 Keep the shadow-bearing scrim outside the clipped glass surface.
+        var shape = new Border { CornerRadius = new CornerRadius(CornerRadius), ClipToBounds = true,
+            Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this), Child = stageHost };
         SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous))); // :105
-
-        // :113-121 The scrim carries the panel's shadow: black at 0.3 in dark and white at 0.34 in light,
-        // with a black shadow at 1.0 in dark and 0.65 in light, radius 28, y offset 10. It is a plain
-        // filled shape, so its shadow is drawn once and kept.
-        var scrim = new Border
-        {
-            CornerRadius = new CornerRadius(CornerRadius),
-            Background = new SolidColorBrush(Color.FromArgb(
-                isDark ? (byte)77 : (byte)87,
-                isDark ? (byte)0 : (byte)255,
-                isDark ? (byte)0 : (byte)255,
-                isDark ? (byte)0 : (byte)255)),
-            BoxShadow = new BoxShadows(new BoxShadow
-            {
-                Color = Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0),
-                Blur = 28,
-                OffsetY = 10
-            })
-        };
-
-        // :92-98, :110-121 Keep the shadow-bearing scrim outside the clipped panel. The panel clips
-        // its surface and strip to the continuous rounded shape; the scrim's shadow remains visible.
+        var scrim = new Border { CornerRadius = new CornerRadius(CornerRadius),
+            Background = new SolidColorBrush(Color.FromArgb(isDark ? (byte)77 : (byte)87,
+                isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255)),
+            BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb(isDark ? (byte)255 : (byte)166,0,0,0), Blur=28, OffsetY=10 }) };
         var panelContents = new Grid();
         panelContents.Children.Add(shape);
-        panelContents.Children.Add(Strip(selected, runtime, heads, isPoppedOut, popOut, dismiss, onDrag, onDragEnd));
-
-        var panel = new Border
+        panelContents.Children.Add(waveHost);
+        panelContents.Children.Add(Strip(isPoppedOut ? heads.FirstOrDefault() : null, runtime, heads, isPoppedOut, popOut, dismiss, onDrag, onDragEnd));
+        var panel = new Border { CornerRadius=new CornerRadius(CornerRadius), ClipToBounds=true, Child=panelContents };
+        Child = new Grid { Children = { scrim, panel } };
+        ClipToBounds=false; Width=size.Width; Height=size.Height;
+        Apply(heads, isPoppedOut ? null : runtime.HydraSelectedHeadID, false, false);
+        // :43-91 Observation and task are registered before attachment. Detachment cancels both.
+        this.Track(() =>
         {
-            CornerRadius = new CornerRadius(CornerRadius),
-            ClipToBounds = true,
-            Child = panelContents
-        };
-
-        var floatingPanel = new Grid();
-        floatingPanel.Children.Add(scrim);
-        floatingPanel.Children.Add(panel);
-        Child = floatingPanel;
-        ClipToBounds = false;
-        Width = size.Width;
-        Height = size.Height;
+            var model = GetValue(AppEnvironment.AppModelProperty)
+                ?? (!isPoppedOut || initialHeads.Count>0 ? WindowManager.Shared.Model : null);
+            IReadOnlyList<ChatThread> current = initialHeads;
+            if (model is not null)
+            {
+                if (isPoppedOut)
+                    current = initialHeads.Select(h => model.Thread(h.Id) ?? h).ToArray();
+                else if (model.Thread(runtime.ThreadID) is not null)
+                    current = model.HydraHeads(runtime.ThreadID);
+                else
+                    current = initialHeads.Select(h => model.Thread(h.Id) ?? h).ToArray();
+            }
+            _ = state.Hold;
+            _ = isPoppedOut ? 0 : runtime.HydraWaitingCount;
+            return (Heads:current, Selection:isPoppedOut ? null : runtime.HydraSelectedHeadID,
+                Resize:GetValue(AppEnvironment.WindowLiveResizeProperty)?.IsActive ?? false,
+                Reduce:EnvironmentValues.GetAccessibilityReduceMotion(this));
+        }, input => Apply(input.Heads,input.Selection,input.Resize,input.Reduce));
+        this.Task(() => state.Hold, async hold =>
+        {
+            if (hold is null || !await SwiftTask.TrySleep(TimeSpan.FromSeconds(FinishHold))) return;
+            Transaction.WithAnimation(Chrome.PanelSlide, () => state.Hold = null);
+        });
     }
 
-    // :124-200 The handle across the top: the count and the head on stage at the left, the pop-out and
-    // close buttons at the right, and the room between them drags the panel.
-    private Control Strip(
-        ChatThread? selected,
-        ThreadRuntime runtime,
-        IReadOnlyList<ChatThread> heads,
-        bool isPoppedOut,
-        Action<Guid>? popOut,
-        Action dismiss,
-        Action<Size> onDrag,
-        Action onDragEnd)
+    // :50-91 selected = held ?? wanted. Only a same-id running -> finished mark starts a hold.
+    private void Apply(IReadOnlyList<ChatThread> heads, Guid? selection, bool resizing, bool reduceMotion)
     {
-        // :128-131
-        var left = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        if (!isPoppedOut) left.Children.Add(new HydraHeadsButton(runtime, heads, dismiss));
+        var wanted = isPoppedOut ? heads.FirstOrDefault()
+            : heads.FirstOrDefault(h => h.Id==selection)
+                ?? heads.LastOrDefault(h => h.Hydra?.HydraHeadInfoStatus==HydraHeadInfo.Status.Running)
+                ?? heads.LastOrDefault();
+        var selected = heads.FirstOrDefault(h => h.Id==state.Hold?.Id) ?? wanted;
+        var nextMark = new StageMark { Id=selected?.Id, Status=selected?.Hydra?.HydraHeadInfoStatus };
+        var finished = nextMark.Id is not null && mark.Id==nextMark.Id
+            && mark.Status==HydraHeadInfo.Status.Running && nextMark.Status!=HydraHeadInfo.Status.Running;
+        mark=nextMark;
+        if (finished)
+            Transaction.WithAnimation(Chrome.PanelSlide, () => state.Hold = new StageHold { Id=selected!.Id, StartedAt=SwiftDate.Now });
+        var animate = rendered && !resizing;
+        Transaction.WithAnimation(animate ? Chrome.PanelSlide : null, () =>
+        {
+            if (selectedHead?.Id != selected?.Id)
+            {
+                Replace(stageHost, ref stage, selected is null ? null :
+                    StageFactory?.Invoke(selected) ?? new HydraHeadTranscript(selected,size.Height,workingDirectory,projectName),
+                    SwiftTransition.Opacity, animate);
+            }
+            else if (stage is HydraHeadTranscript transcript && selected is not null && selectedHead != selected)
+                transcript.Update(selected);
+            if (selectedHead != selected)
+                Replace(nameHost, ref name, Caption(selected,onDrag,onDragEnd), CapsuleAppear,
+                    animate && selectedHead?.Id != selected?.Id);
+            var nextPopId = !isPoppedOut && popOut is not null && heads.Count>1 ? selected?.Id : null;
+            if (popId != nextPopId)
+            {
+                Replace(popOutHost, ref popButton, nextPopId is { } id
+                    ? new ChromeCircleButton("arrow.up.right",$"Pop {selected?.Hydra?.DisplayName ?? "this head"} out into its own panel",()=>popOut!(id))
+                    : null, CapsuleAppear,animate);
+                popId=nextPopId;
+            }
+            var held = heads.FirstOrDefault(h => h.Id==state.Hold?.Id);
+            var key = held is null ? null : state.Hold;
+            if (waveKey != key)
+            {
+                Control? oldWave=wave;
+                Border? next=null;
+                if (key is not null)
+                {
+                    var color=(held!.Hydra?.Persona ?? HydraRoster.Persona(0)).Color;
+                    var tint=new SwiftColor(color.Red,color.Green,color.Blue,color.Alpha);
+                    var sweep=new DotFieldSweep { Tint=tint };
+                    // DotFieldSweep constructs its field before object-initializer tint/environment are applied.
+                    if (sweep.Child is DotFieldControl field) { field.UpdateColor(tint); field.UpdateAnimated(!reduceMotion); }
+                    next=new Border { Child=sweep, CornerRadius=new CornerRadius(CornerRadius), ClipToBounds=true };
+                }
+                Replace(waveHost,ref oldWave,next,SwiftTransition.Opacity,animate);
+                wave=next; waveKey=key;
+            }
+        });
+        selectedHead=selected;
+        headsButton?.Update(heads);
+        rendered=true;
+    }
+
+    // UI/Chrome/Chrome.swift:934-960: softAppear's layer opacity and four-point
+    // offset interpolate on the 0.32-second smooth curve; removal is a 0.12-second ease-out fade.
+    // Express the layer properties directly: the shared Bool modifier has empty animatable data.
+    private static SwiftTransition CapsuleAppear => SwiftTransition.Asymmetric(
+        SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y:4)).Animation(Animation.SoftAppear),
+        SwiftTransition.Opacity.Animation(Animation.EaseOut(duration:0.12)));
+
+    private static void Replace(Panel host, ref Control? old, Control? next, SwiftTransition transition, bool animate)
+    {
+        if (old is not null)
+        {
+            if (!animate) old.Transition(SwiftTransition.Identity);
+            SwiftTransition.Remove(host,old);
+        }
+        old=next;
+        if (next is null) return;
+        // softAppear owns an animation; identity must gate it explicitly during live resize.
+        next.Transition(animate ? transition : SwiftTransition.Identity);
+        SwiftTransition.Insert(host,host.Children.Count,next);
+    }
+
+    private sealed class HoldState : MainActorModel
+    {
+        private StageHold? hold;
+        public StageHold? Hold { get => Read(hold); set => Set(ref hold,value); }
+    }
+
+    // :132-164 The selected head's name capsule.
+    private Control? Caption(ChatThread? selected, Action<Size> onDrag, Action onDragEnd)
+    {
         if (selected?.Hydra is { } info)
         {
             // :132-135 The head's stored record, not its live one: the strip sits over a streaming chat
@@ -201,9 +266,26 @@ public sealed class HydraPanel : Decorator
             var stageDrag = new Border { Background = Brushes.Transparent };
             WireDragHandle(stageDrag, onDrag, onDragEnd);
             stage.Children.Add(stageDrag);
-            left.Children.Add(stage);
+            return stage;
         }
 
+        return null;
+    }
+
+    private Control Strip(
+        ChatThread? selected,
+        ThreadRuntime runtime,
+        IReadOnlyList<ChatThread> heads,
+        bool isPoppedOut,
+        Action<Guid>? popOut,
+        Action dismiss,
+        Action<Size> onDrag,
+        Action onDragEnd)
+    {
+        // :128-131
+        var left = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        if (!isPoppedOut) left.Children.Add(headsButton!);
+        left.Children.Add(nameHost);
         // :169-175 The handle. Invisible, like a window's title bar with no title; the cursor says what it
         // does.
         var drag = new Border
@@ -228,13 +310,7 @@ public sealed class HydraPanel : Decorator
         }
         else
         {
-            // :182-188 The head on stage pops out into a second panel, as long as another head stays
-            // behind to keep this one.
-            if (selected is not null && popOut is not null && heads.Count > 1)
-                right.Children.Add(new ChromeCircleButton(
-                    "arrow.up.right",
-                    $"Pop {selected.Hydra?.DisplayName ?? "this head"} out into its own panel",
-                    () => popOut(selected.Id)));
+            right.Children.Add(popOutHost);
             // :190-192
             right.Children.Add(new ChromeCircleButton("xmark", "Dismiss the panel; heads keep working", dismiss));
         }
@@ -344,11 +420,21 @@ internal sealed record StageMark
 /// <summary>:216-288 <c>private struct HydraHeadsButton: View</c>.</summary>
 internal sealed class HydraHeadsButton : Decorator
 {
-    private readonly Border popover = null!;
+    private Border? popover;
+    private readonly ThreadRuntime runtime;
+    private readonly Action dismiss;
 
     // :223-225, :230-287
     public HydraHeadsButton(ThreadRuntime runtime, IReadOnlyList<ChatThread> heads, Action dismiss)
     {
+        this.runtime=runtime; this.dismiss=dismiss;
+        Update(heads);
+    }
+
+    // :230-287 The count, selection, waiting count and head records all follow observation.
+    internal void Update(IReadOnlyList<ChatThread> heads)
+    {
+        var wasOpen=popover?.IsVisible ?? false;
         // :231 let running = heads.count { $0.hydra?.status == .running }
         var running = 0;
         foreach (var head in heads)
@@ -385,7 +471,7 @@ internal sealed class HydraHeadsButton : Decorator
         {
             if (args.GetCurrentPoint(capsule).Properties.IsLeftButtonPressed)
             {
-                popover.IsVisible = !popover.IsVisible;
+                popover!.IsVisible = !popover!.IsVisible;
                 args.Handled = true;
             }
         };
@@ -398,7 +484,7 @@ internal sealed class HydraHeadsButton : Decorator
             var rowControl = new HydraHeadRow(head, head.Id == runtime.HydraSelectedHeadID, () =>
             {
                 runtime.HydraSelectedHeadID = head.Id;
-                popover.IsVisible = false;
+                popover!.IsVisible = false;
             });
             menu.Children.Add(rowControl);
         }
@@ -413,19 +499,19 @@ internal sealed class HydraHeadsButton : Decorator
             menu.Children.Add(new PopoverItem("Stop all heads", () =>
             {
                 InvokeModelAction(WindowManager.Shared.Model, "StopAllHydraHeads", runtime.ThreadID);
-                popover.IsVisible = false;
+                popover!.IsVisible = false;
             }, "stop.circle"));
         }
         if (finished)
         {
             menu.Children.Add(new PopoverItem("Clear finished heads", () =>
-                InvokeModelAction(WindowManager.Shared.Model, "ClearFinishedHydraHeads", runtime.ThreadID), "checkmark.circle"));
+                Transaction.WithAnimation(Chrome.PanelSlide, () => InvokeModelAction(WindowManager.Shared.Model, "ClearFinishedHydraHeads", runtime.ThreadID)), "checkmark.circle"));
         }
 
         popover = new Border
         {
             Child = menu,
-            IsVisible = false,
+            IsVisible = wasOpen,
             ZIndex = 100,
             Background = Chrome.GlassTint.Opacity(0.22).Brush(this),
             CornerRadius = new CornerRadius(8),
@@ -586,11 +672,20 @@ internal sealed class HydraStopButton : Decorator
 /// <summary>:385-437 <c>private struct HydraHeadTranscript: View</c>.</summary>
 internal sealed class HydraHeadTranscript : Decorator
 {
+    private readonly Border progressHost = new();
+    private readonly Border footerHost = new();
+    private readonly ThreadRuntime runtime;
+    internal void Update(ChatThread head)
+    {
+        if (progressHost.Child is not null) progressHost.Child=new HydraHeadProgress(head,runtime);
+        if (footerHost.Child is not null && head.Hydra is { } info)
+            footerHost.Child=new HydraHeadFooter(HydraLiveInfo.Shown(info,runtime));
+    }
     // :388-391, :396-436
     public HydraHeadTranscript(ChatThread head, double height, string? workingDirectory, string? projectName)
     {
         var model = WindowManager.Shared.Model;
-        var runtime = model.Runtime(head.Id);
+        runtime = model.Runtime(head.Id);
         var scrollChrome = new ChromeScrollModel();
         var scrollState = new TimelineScrollState();
         Control body;
@@ -610,7 +705,8 @@ internal sealed class HydraHeadTranscript : Decorator
         else
         {
             // :413-417 The task and the progress bar stand in for the steps.
-            body = new HydraHeadProgress(head, runtime);
+            progressHost.Child = new HydraHeadProgress(head, runtime);
+            body = progressHost;
         }
 
         // :419-432
@@ -628,7 +724,8 @@ internal sealed class HydraHeadTranscript : Decorator
         else if (head.Hydra is { } info)
         {
             var footer = new Grid();
-            footer.Children.Add(new HydraHeadFooter(HydraLiveInfo.Shown(info, runtime)));
+            footerHost.Child = new HydraHeadFooter(HydraLiveInfo.Shown(info, runtime));
+            footer.Children.Add(footerHost);
             footer.Children.Add(new JumpToLatestButton(scrollState));
             DockPanel.SetDock(footer, Dock.Bottom);
             content.Children.Add(footer);

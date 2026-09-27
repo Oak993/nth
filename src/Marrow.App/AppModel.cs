@@ -293,7 +293,8 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:235-237. Swift: children(of:).
     public ValueList<ChatThread> Children(Guid parentID) => new(ChildIDs(parentID).Select(Thread).OfType<ChatThread>()); // AppModel.swift:235-237
 
-    // AppModel.swift:239-287 (B3)
+    // Source: DroppyCode/App/AppModel.swift (B3 52bc792), :240-287.
+    // :275-282. Sweep C verified the inherited ninth step with blocked offline updaters; no behavior change needed.
     public async Task Bootstrap()
     {
         var recent = threads
@@ -461,7 +462,8 @@ public sealed partial class AppModel : MainActorModel
 
     // AppModel.swift:396-400. Swift: helpers(of:).
     public ValueList<ChatThread> Helpers(Guid parentID) =>
-        new(Children(parentID).Where(thread => !thread.IsArchived && !thread.IsHydraHead).OrderBy(thread => thread.CreatedAt)); // AppModel.swift:392-400
+        new(Children(parentID).Where(thread => !thread.IsArchived && (!thread.IsInPanel || thread.IsHydraHead))
+            .OrderByDescending(thread => thread.CreatedAt)); // AppModel.swift:396-400 (helpers(of:)); B3 checkout :405-409
 
     // AppModel.swift:405-413. Swift: panelHeads(of:).
     public ValueList<ChatThread> PanelHeads(Guid parentID) =>

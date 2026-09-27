@@ -6,6 +6,7 @@ using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
+using Marrow.UI.Tests.Fixtures;
 using Xunit;
 
 namespace Marrow.UI.Tests.Markdown;
@@ -20,7 +21,8 @@ namespace Marrow.UI.Tests.Markdown;
 // UI geometry (typography, colors, layout) is verified through the source code citations and
 // the HydraHeadHoverCard's use of established Avalonia primitives; full visual verification
 // would require headless rendering (see R-TEST-7).
-public sealed class HydraHeadHoverPopoverTests
+[Collection("Headless")]
+public sealed class HydraHeadHoverPopoverTests(HeadlessSession headless)
 {
     private static HydraPersona MakePersona(string name = "Test")
     {
@@ -44,94 +46,115 @@ public sealed class HydraHeadHoverPopoverTests
     [Trait("Req", "PR-HYDRA-197")] // DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift:82-89
     public void Status_line_for_running_is_exactly_working_with_ellipsis()
     {
-        // U+2026 HORIZONTAL ELLIPSIS
-        var target = MakeTarget(status: HydraHeadInfo.Status.Running);
-        var statusLine = HydraHeadHoverCard.StatusLine(target.Status);
+        headless.OnUiThread(() =>
+        {
+            // U+2026 HORIZONTAL ELLIPSIS
+            var target = MakeTarget(status: HydraHeadInfo.Status.Running);
+            var statusLine = HydraHeadHoverCard.StatusLine(target.Status);
 
-        Assert.Equal("Working…", statusLine);
+            Assert.Equal("Working…", statusLine);
+        });
     }
 
     [Fact]
     [Trait("Req", "PR-HYDRA-197")] // DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift:85
     public void Status_line_for_completed_is_exactly_done_with_separator()
     {
-        // U+00B7 MIDDLE DOT separator
-        var target = MakeTarget(status: HydraHeadInfo.Status.Completed);
-        var statusLine = HydraHeadHoverCard.StatusLine(target.Status);
+        headless.OnUiThread(() =>
+        {
+            // U+00B7 MIDDLE DOT separator
+            var target = MakeTarget(status: HydraHeadInfo.Status.Completed);
+            var statusLine = HydraHeadHoverCard.StatusLine(target.Status);
 
-        Assert.Equal("Done · click to open the chat", statusLine);
+            Assert.Equal("Done · click to open the chat", statusLine);
+        });
     }
 
     [Fact]
     [Trait("Req", "PR-HYDRA-197")] // DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift:86
     public void Status_line_for_failed_is_exactly_failed_with_separator()
     {
-        // U+00B7 MIDDLE DOT separator
-        var target = MakeTarget(status: HydraHeadInfo.Status.Failed);
-        var statusLine = HydraHeadHoverCard.StatusLine(target.Status);
+        headless.OnUiThread(() =>
+        {
+            // U+00B7 MIDDLE DOT separator
+            var target = MakeTarget(status: HydraHeadInfo.Status.Failed);
+            var statusLine = HydraHeadHoverCard.StatusLine(target.Status);
 
-        Assert.Equal("Failed · click to open the chat", statusLine);
+            Assert.Equal("Failed · click to open the chat", statusLine);
+        });
     }
 
     [Fact]
     [Trait("Req", "PR-HYDRA-197")] // DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift:87
     public void Status_line_for_stopped_is_exactly_stopped_with_separator()
     {
-        // U+00B7 MIDDLE DOT separator
-        var target = MakeTarget(status: HydraHeadInfo.Status.Stopped);
-        var statusLine = HydraHeadHoverCard.StatusLine(target.Status);
+        headless.OnUiThread(() =>
+        {
+            // U+00B7 MIDDLE DOT separator
+            var target = MakeTarget(status: HydraHeadInfo.Status.Stopped);
+            var statusLine = HydraHeadHoverCard.StatusLine(target.Status);
 
-        Assert.Equal("Stopped · click to open the chat", statusLine);
+            Assert.Equal("Stopped · click to open the chat", statusLine);
+        });
     }
 
     [Fact]
     [Trait("Req", "UI-HYDRA-035")] // DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift:53-90
     public void Card_width_is_pinned_to_300_points()
     {
-        // :56 static let width: CGFloat = 300
-        Assert.Equal(300, HydraHeadHoverCard.CardWidth);
+        headless.OnUiThread(() =>
+        {
+            // :56 static let width: CGFloat = 300
+            Assert.Equal(300, HydraHeadHoverCard.CardWidth);
+        });
     }
 
     [Fact]
     [Trait("Req", "PR-HYDRA-197")] // DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift:19-39
     public void Show_can_be_called_to_schedule_popover()
     {
-        // Verify that Show() can be invoked without error; timing verification is via code inspection
-        // of the SwiftTask.TrySleep(TimeSpan.FromMilliseconds(250)) in the Show method.
-        // Full timing test would require async/await harness without re-entrancy concerns.
-        using var runtime = new TestRuntime();
-
-        var popover = HydraHeadHoverPopover.Instance;
-        var persona = MakePersona();
-        var target = MakeTarget();
-        var placeholder = new Control();
-
-        runtime.OnMain(() =>
+        headless.OnUiThread(() =>
         {
-            // Call Show - should not throw
-            popover.Show(persona, target, new Rect(0, 0, 100, 20), placeholder);
-        });
+            // Verify that Show() can be invoked without error; timing verification is via code inspection
+            // of the SwiftTask.TrySleep(TimeSpan.FromMilliseconds(250)) in the Show method.
+            // Full timing test would require async/await harness without re-entrancy concerns.
+            using var runtime = new TestRuntime();
 
-        runtime.OnMain(() => popover.Hide());
+            var popover = HydraHeadHoverPopover.Instance;
+            var persona = MakePersona();
+            var target = MakeTarget();
+            var placeholder = new Control();
+
+            runtime.OnMain(() =>
+            {
+                // Call Show - should not throw
+                popover.Show(persona, target, new Rect(0, 0, 100, 20), placeholder);
+            });
+
+            runtime.OnMain(() => popover.Hide());
+        });
     }
 
     [Fact]
     [Trait("Req", "PR-HYDRA-197")] // DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift:41-46
     public void Hide_clears_popover_state()
     {
-        using var runtime = new TestRuntime();
-
-        var popover = HydraHeadHoverPopover.Instance;
-        var persona = MakePersona();
-        var placeholder = new Control();
-        var target = MakeTarget();
-
-        runtime.OnMain(() =>
+        headless.OnUiThread(() =>
         {
-            popover.Show(persona, target, new Rect(0, 0, 100, 20), placeholder);
-            popover.Hide();
-            // After Hide, ShownThreadID should be cleared
-            Assert.Null(popover.ShownThreadID);
+            using var runtime = new TestRuntime();
+
+            var popover = HydraHeadHoverPopover.Instance;
+            var persona = MakePersona();
+            var placeholder = new Control();
+            var target = MakeTarget();
+
+            runtime.OnMain(() =>
+            {
+                popover.Show(persona, target, new Rect(0, 0, 100, 20), placeholder);
+                popover.Hide();
+                // After Hide, ShownThreadID should be cleared
+                Assert.Null(popover.ShownThreadID);
+            });
         });
     }
 
@@ -139,14 +162,17 @@ public sealed class HydraHeadHoverPopoverTests
     [Trait("Req", "PR-HYDRA-197")] // DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift:48-50
     public void PopoverDidClose_clears_shown_id()
     {
-        using var runtime = new TestRuntime();
-
-        var popover = HydraHeadHoverPopover.Instance;
-
-        runtime.OnMain(() =>
+        headless.OnUiThread(() =>
         {
-            popover.PopoverDidClose(null);
-            Assert.Null(popover.ShownThreadID);
+            using var runtime = new TestRuntime();
+
+            var popover = HydraHeadHoverPopover.Instance;
+
+            runtime.OnMain(() =>
+            {
+                popover.PopoverDidClose(null);
+                Assert.Null(popover.ShownThreadID);
+            });
         });
     }
 }

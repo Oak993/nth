@@ -1288,17 +1288,18 @@ public sealed class ClaudeSessionTests
     {
         using var runtime = new TestRuntime();
         using var storage_runtime = new StorageScratchFolder();
-        // The stand-in exits right after answering the handshake (its one scripted reply), so nothing can ever
-        // race in a second, real reply for the request this test cancels: the only way that id resolves is
-        // through this test's own cancellation, never the wire.
+        // Answer the handshake only, then stay alive while the next request is pending. Exiting after the
+        // handshake raced DidClose against registration and could fail with notRunning instead of cancellation.
         var script = new ClaudeScript("control-cancel-while-waiting");
         script.SetResponse(MinimalResponse);
-        script.SetExitAfterReply();
+        File.WriteAllText(Path.Combine(script.ControlDirectory, "reply-limit.txt"), "1");
         var session = new ClaudeSession(Config(script));
-        RunStart(runtime, session); // consumes id marrow-1; the stand-in then exits
+        RunStart(runtime, session); // consumes id marrow-1; the stand-in keeps reading
 
         var handle = MainActor.SpawnThrowing(() => session.Control(JSONValue.FromDictionaryLiteral(("subtype", "interrupt"))));
-        runtime.RunUntilIdle(); // registers marrow-2 and runs send(); the dead process can never answer it
+        runtime.RunUntilIdle(); // registers marrow-2 and runs send(); the live stand-in leaves it unanswered
+        Assert.Contains("\"request_id\":\"marrow-2\"", script.CapturedLine(1, 1), StringComparison.Ordinal);
+        runtime.RunUntilIdle();
         Assert.False(handle.Value.IsCompleted); // still waiting
 
         handle.Cancel();
@@ -1313,6 +1314,8 @@ public sealed class ClaudeSessionTests
             ("response", JSONValue.FromDictionaryLiteral(("request_id", "marrow-2"), ("response", JSONValue.FromDictionaryLiteral())))));
         Assert.True(handle.Value.IsFaulted);
         Assert.IsType<CancellationError>(handle.Value.Exception!.InnerException);
+        session.Stop();
+        runtime.RunUntilIdle();
     }
 
     // ---- PR-PROVCLI-044 ----
@@ -2021,14 +2024,27 @@ public sealed class ClaudeSessionTests
         using var runtime = new TestRuntime();
         using var storage_runtime = new StorageScratchFolder();
         var script = Script("didclose-started");
-        script.SetExitAfterReply();
+        File.WriteAllText(Path.Combine(script.ControlDirectory, "reply-limit.txt"), "1");
         var events = new List<ProviderEvent>();
         var session = new ClaudeSession(Config(script)) { OnEvent = events.Add };
         RunStart(runtime, session);
         session.SeedPendingTool("req-1", "Bash", JSONValue.FromDictionaryLiteral(("command", "ls")));
 
+        // Swift :684 fails requests that are already waiting, and :685-686 clears existing prompts.
+        // Keep the child alive until both controls are registered and the tool prompt has been seeded.
+        var first = MainActor.SpawnThrowing(() => session.Control(JSONValue.FromDictionaryLiteral(("subtype", "interrupt"))));
+        var second = MainActor.SpawnThrowing(() => session.Control(JSONValue.FromDictionaryLiteral(("subtype", "set_model"))));
+        runtime.RunUntilIdle();
+        Assert.Contains("\"request_id\":\"marrow-2\"", script.CapturedLine(1, 1), StringComparison.Ordinal);
+        Assert.Contains("\"request_id\":\"marrow-3\"", script.CapturedLine(1, 2), StringComparison.Ordinal);
+        runtime.RunUntilIdle();
+        Assert.False(first.Value.IsCompleted);
+        Assert.False(second.Value.IsCompleted);
+        File.WriteAllText(Path.Combine(script.ControlDirectory, "exit-now.txt"), "1");
+
         var deadline = DateTime.UtcNow.AddSeconds(20);
-        while (session.IsRunning && DateTime.UtcNow < deadline)
+        while ((session.IsRunning || !first.Value.IsCompleted || !second.Value.IsCompleted ||
+                !events.OfType<ProviderEvent.Exited>().Any()) && DateTime.UtcNow < deadline)
         {
             runtime.RunUntilIdle();
             System.Threading.Thread.Sleep(20);
@@ -2038,6 +2054,14 @@ public sealed class ClaudeSessionTests
 
         Assert.Contains(events, e => e is ProviderEvent.RequestResolved r && r.Id == "req-1"); // pending tools fail
         Assert.NotEmpty(events.OfType<ProviderEvent.Exited>()); // a started session says it exited
+        Assert.True(first.Value.IsFaulted);
+        Assert.True(second.Value.IsFaulted);
+        var failure = Assert.IsType<ProviderError>(first.Value.Exception!.InnerException);
+        Assert.Same(failure, second.Value.Exception!.InnerException);
+        Assert.Equal("Claude exited.", failure.ErrorDescription); // :684, empty stderr and no launch error
+        var pendingTools = typeof(ClaudeSession).GetField("pendingTools", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(session)!;
+        Assert.Empty((System.Collections.IEnumerable)pendingTools); // :686 actually cleared the prompts
     }
 
     // ---- PR-PROVCLI-062 ----

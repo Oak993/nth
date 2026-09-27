@@ -22,6 +22,35 @@ namespace Marrow.App.Tests.Views.Settings;
 // Follow-up closes STOP #2: refused deletions, including both OAuth items, are reported under PR-MCP-228 / OD-0012 E6.
 // Follow-up closes STOP #3: PR-MCP-202 corrected in fa697dd35; ED-009 / R-STR-6 accent-sensitive search stands.
 [Collection("Headless")]
+// STOP App.Views.Settings.MCPSettingsPage #5
+// Kind: verification gap. Swift: SettingsView.swift:252; MCPSettingsPage.swift:77-85.
+// Records: PR-MCP-202. Missing: SettingsView search-field interaction (its existing STOP #3 still omits MCP).
+// Needed: type into the SettingsView MCP search field and assert filtering; matcher assertions remain intact.
+// STOP App.Views.Settings.MCPSettingsPage #6
+// Kind: verification gap. Swift: MCPSettingsPage.swift:352-358,534-540. Records: PR-MCP-204.
+// Missing: keyed-server action interaction for both card and custom row. Needed: assert key panel/browser opening.
+// STOP App.Views.Settings.MCPSettingsPage #7
+// Kind: verification gap. Swift: MCPSettingsPage.swift:564-566; MCPStore.swift:186-193. Records: PR-MCP-073.
+// Missing: dismissing confirmation keeps both persisted definition and credentials, and confirmation-disabled deletion.
+// Needed: exercise both settings values and inspect fake credentials/custom-mcp.json after dismiss and confirm.
+// STOP App.Views.Settings.MCPSettingsPage #8
+// Kind: verification gap. Swift: MCPSettingsPage.swift:864-889. Records: PR-MCP-208.
+// Missing: saving an already-connected server re-probes. Needed: connected-editor interaction with a fake probe.
+// STOP App.Views.Settings.MCPSettingsPage #9
+// Kind: verification gap. Swift: MCPSettingsPage.swift:794-840. Records: PR-MCP-210.
+// Missing: Save after toggling a lock, asserting protected and plain stores in both directions.
+// Needed: interaction through Save with fake protected storage and persisted mcp.json inspection.
+// STOP App.Views.Settings.MCPSettingsPage #10
+// Kind: verification gap. Swift: MCPSettingsPage.swift:1002-1020. Records: PR-MCP-213.
+// Missing: optional-field link interaction on gitlab and a custom server. Needed: invoke links and inspect opened panels.
+// STOP App.Views.Settings.MCPSettingsPage #11
+// Kind: verification gap. Swift: MCPSettingsPage.swift:629-658,687-704. Records: PR-MCP-230.
+// Missing: scroll five stdio variables down/back, compare save position, then force error and check visibility.
+// Needed: layout-backed scrolling interaction; current structural assertions remain intact.
+// STOP App.Views.Settings.MCPSettingsPage #12
+// Kind: verification gap. Swift: MCPSettingsPage.swift:718-728. Records: PR-MCP-231.
+// Missing: UI Automation discovery and corner click, with custom-mcp.json unchanged.
+// Needed: native UI Automation verification (OD-0001); logical button invocation is only a subset.
 public sealed class MCPSettingsPageTests(HeadlessSession headless)
 {
     private void Ui(Action<AppModel, TestRuntime> test) => headless.OnUiThread(() =>
@@ -35,8 +64,8 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-MCP-202")] // App/Views/Settings/MCPSettingsPage.swift:77-85
-    public void Search_trims_and_matches_each_of_the_five_fields_ignoring_case_and_accents()
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:77-85; subset only, PR-MCP-202 STOP above
+    public void Search_trims_and_matches_each_of_the_five_fields_ignoring_case_but_preserving_accents()
     {
         var entry = Entry() with { Name = "Caf\U000000E9", Vendor = "Vendor", Summary = "Summary", SampleTools = new[] { "query_tool" } }; // U+00E9 LATIN SMALL LETTER E WITH ACUTE
         foreach (var query in new[] { " \n ", "VENDOR", "SUMMARY", "OFFLINE", "QUERY_TOOL" }) Assert.True(MCPSettingsPage.Matches(entry, query));
@@ -90,7 +119,7 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-204")] // App/Views/Settings/MCPSettingsPage.swift:352-358,534-540
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:352-358,534-540; subset only, PR-MCP-204 STOP above
     public void No_input_action_connects_immediately_without_running_the_queued_probe()
     {
         Ui((model, _) => { var entry = Entry(); var card = new MCPServerCard(entry); using var window = Attach(card, model);
@@ -101,7 +130,7 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-073")] // App/Views/Settings/MCPSettingsPage.swift:564-566
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:564-566; subset only, PR-MCP-073 STOP above
     public void Delete_confirmation_preserves_server_until_the_destructive_button_is_invoked()
     {
         headless.OnUiThread(() =>
@@ -132,7 +161,7 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-208")] // App/Views/Settings/MCPSettingsPage.swift:864-889
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:864-889; subset only, PR-MCP-208 STOP above
     public void Save_keeps_editor_on_validation_failure_then_saves_definition_and_values_and_dismisses()
     {
         Ui((model, _) => { var editor = new MCPCustomEditor(null); using var window = Attach(editor, model); var closed = false; Popovers.SetClosePopover(editor, () => closed = true);
@@ -154,7 +183,7 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-210")] // App/Views/Settings/MCPSettingsPage.swift:794-840
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:794-840; subset only, PR-MCP-210 STOP above
     public void Lock_switches_secure_field_and_keeps_the_typed_value_until_save()
     {
         Ui((model, _) => { var editor = new MCPCustomEditor(Custom(1)); using var window = Attach(editor, model); var value = Field(editor, "value"); value.Text = "sample-mode";
@@ -197,7 +226,7 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-213")] // App/Views/Settings/MCPSettingsPage.swift:1002-1020
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:1002-1020; subset only, PR-MCP-213 STOP above
     public void Optional_link_uses_first_optional_label_and_empty_docs_has_no_link()
     {
         Ui((model, _) => { var info = new MCPInfoPopover(Entry() with { Fields = new[] { new MCPField("key", "API Key", "", IsRequired: false), new MCPField("second", "Other", "", IsRequired: false) } });
@@ -225,14 +254,14 @@ public sealed class MCPSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-230")] // App/Views/Settings/MCPSettingsPage.swift:629-658,687-704
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:629-658,687-704; subset only, PR-MCP-230 STOP above
     public void Header_and_footer_are_outside_the_scrollable_form()
     {
         Ui((model, _) => { var editor = new MCPCustomEditor(null); var scroll = Assert.Single(Nodes<ScrollViewer>(editor)); Assert.DoesNotContain(Button(editor, "Add server"), Nodes<Button>(Assert.IsAssignableFrom<Control>(scroll.Content))); Assert.Equal(12, Assert.Single(Nodes<Grid>(editor), x => x.RowDefinitions.Count == 3).RowSpacing); });
     }
 
     [Fact]
-    [Trait("Req", "PR-MCP-231")] // App/Views/Settings/MCPSettingsPage.swift:718-728
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:718-728; subset only, PR-MCP-231 STOP above
     public void Close_has_24_square_hit_target_and_discards_unsaved_draft()
     {
         Ui((model, _) => { var editor = new MCPCustomEditor(null); var closed = false; Popovers.SetClosePopover(editor, () => closed = true); var close = Nodes<Button>(editor).Single(x => AutomationProperties.GetName(x) == "Close"); Assert.Equal(24, close.Width); Assert.Equal(24, close.Height); Click(close); Assert.True(closed); Assert.Empty(model.Mcp.Customs); });

@@ -183,6 +183,54 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
         });
     }
 
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-076")] // UI/Common/AttachmentPreview.swift:95-98, :341-350
+    [InlineData(0, "Zero kB")]
+    [InlineData(999, "1 kB")]
+    public void Footer_renders_B3_file_size_as_a_caption_in_the_same_secondary_color_as_the_name(int bytes, string expected)
+    {
+        // :98's .byteCount(style: .file) uses Foundation's zero spelling and strict 999-byte threshold;
+        // source evidence: sf-swift-6.2-RELEASE-ByteCountFormatStyle.swift:123, :153-180, :194-222 (O-66).
+        var path = Path.Combine(NewRoot(), "footer.bin");
+        File.WriteAllBytes(path, new byte[bytes]);
+        headless.OnUiThread(() =>
+        {
+            using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+            var preview = new AttachmentLargePreview(new Attachment
+                { Name = "footer.bin", Path = path, MimeType = "application/octet-stream" });
+            var window = Show(preview);
+            try
+            {
+                var name = VisualQuery.Descendants<MiddleTruncatingTextBlock>(preview).Single();
+                var size = Assert.Single(VisualQuery.Descendants<TextBlock>(preview), t => t.Text == expected);
+                Assert.Equal(10, name.FontSize); // .caption, ED-059
+                Assert.Equal(10, size.FontSize);
+                Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(name.ActualThemeVariant), Assert.IsType<SolidColorBrush>(name.Foreground).Color);
+                Assert.Equal(Marrow.UI.Chrome.Chrome.SecondaryText.Resolve(size.ActualThemeVariant), Assert.IsType<SolidColorBrush>(size.Foreground).Color);
+            }
+            finally { window.Close(); }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-076")] // UI/Common/AttachmentPreview.swift:97, :341-351
+    public void Footer_omits_the_size_when_the_file_is_missing()
+    {
+        headless.OnUiThread(() =>
+        {
+            var preview = new AttachmentLargePreview(new Attachment
+                { Name = "missing.bin", Path = Path.Combine(NewRoot(), "missing.bin"), MimeType = "application/octet-stream" });
+            var window = Show(preview);
+            try
+            {
+                var name = VisualQuery.Descendants<MiddleTruncatingTextBlock>(preview).Single();
+                var footerLabels = Assert.IsType<StackPanel>(name.Parent).Children;
+                Assert.Single(footerLabels); // :347's optional size fails: only the filename remains.
+            }
+            finally { window.Close(); }
+        });
+    }
+
     // PR-COMPOSER-076, UI-COMPOSER-078, UI-COMPOSER-079: the footer's name/size text and its two link buttons.
     [Fact]
     [Trait("Req", "PR-COMPOSER-076")] // DroppyCode/UI/Common/AttachmentPreview.swift:348-370

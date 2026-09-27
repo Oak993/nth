@@ -111,54 +111,43 @@ public sealed record ReplyQuote
         }
     }
 
-    // :71-99. nonisolated static.
+    // :66-99. nonisolated static. A sent message read back into the quotes it LED with and the words after them, the
+    // reverse of ComposerDraft.outgoingText: each "> " block up to a blank line that no further ">" line follows. A
+    // leading slash command stays with the words; a message with no leading quote comes back whole. Transcribed line
+    // for line (PR-CHAT-078's windows_path: character for character): an earlier port lifted ">" runs from anywhere in
+    // the message, split "\r\n" apart and trimmed every newline character before the words.
     public static (ValueList<ReplyQuote> Quotes, string Body) Peel(string text)
     {
-        var lines = text.Split('\n', StringSplitOptions.None).ToList();
-        string? command = null;
-        if (lines.Count > 2 && lines[0].StartsWith("/", StringComparison.Ordinal)
-            && lines[1].Length == 0 && lines[2].StartsWith(">", StringComparison.Ordinal))
+        var lines = SwiftString.Split(text, "\n", omittingEmptySubsequences: false).ToList(); // :72
+        string? command = null; // :73
+        if (lines.Count > 0 && SwiftString.HasPrefix(lines[0], "/") && lines.Count > 2 && lines[1].Length == 0
+            && SwiftString.HasPrefix(lines[2], ">")) // :74
         {
-            command = lines[0];
-            lines.RemoveRange(0, 2);
+            command = lines[0]; // :75
+            lines.RemoveRange(0, 2); // :76
         }
-
-        var quotes = new List<ReplyQuote>();
-        var body = new List<string>();
-        for (var index = 0; index < lines.Count;)
+        var quotes = new List<ReplyQuote>(); // :78
+        var index = 0; // :79
+        while (index < lines.Count && SwiftString.HasPrefix(lines[index], ">")) // :80
         {
-            if (!lines[index].StartsWith(">", StringComparison.Ordinal))
+            var block = new List<string>(); // :81
+            while (index < lines.Count && SwiftString.HasPrefix(lines[index], ">")) // :82
             {
-                body.Add(lines[index]);
-                index++;
-                continue;
+                var line = SwiftString.DropFirst(lines[index]); // :83
+                if (SwiftString.HasPrefix(line, " ")) line = SwiftString.DropFirst(line); // :84
+                block.Add(line); // :85
+                index += 1; // :86
             }
-
-            var quotedLines = new List<string>();
-            while (index < lines.Count && lines[index].StartsWith(">", StringComparison.Ordinal))
-            {
-                var line = lines[index][1..];
-                if (line.StartsWith(" ", StringComparison.Ordinal)) line = line[1..];
-                quotedLines.Add(line);
-                index++;
-            }
-            quotes.Add(new ReplyQuote { Text = string.Join("\n", quotedLines) });
-
-            if (index + 1 < lines.Count && lines[index].Length == 0
-                && lines[index + 1].StartsWith(">", StringComparison.Ordinal))
-                index++;
+            quotes.Add(new ReplyQuote { Text = string.Join("\n", block) }); // :88
+            // :89-92 one blank line separates a block from the next; a blank line before the words stays for the trim.
+            if (index + 1 < lines.Count && lines[index].Length == 0 && SwiftString.HasPrefix(lines[index + 1], ">"))
+                index += 1;
         }
-
-        if (quotes.Count == 0) return (ValueList<ReplyQuote>.Empty, text);
-
-        var bodyText = string.Join("\n", body);
-        var leadingNewlines = 0;
-        while (leadingNewlines < bodyText.Length && FoundationText.IsNewline(bodyText[leadingNewlines]))
-            leadingNewlines++;
-        bodyText = bodyText[leadingNewlines..];
-        if (command is not null)
-            bodyText = bodyText.Length == 0 ? command : command + " " + bodyText;
-        return (new ValueList<ReplyQuote>(quotes), bodyText);
+        if (quotes.Count == 0) return (ValueList<ReplyQuote>.Empty, text); // :94
+        var body = string.Join("\n", lines.Skip(index)); // :95
+        while (SwiftString.HasPrefix(body, "\n")) body = SwiftString.DropFirst(body); // :96
+        if (command is not null) body = body.Length == 0 ? command : command + " " + body; // :97
+        return (new ValueList<ReplyQuote>(quotes), body); // :98
     }
 }
 
@@ -727,12 +716,14 @@ public sealed class ThreadRuntime : MainActorModel
         }
     }
 
+    // Source: DroppyCode/App/Runtime/ThreadRuntime.swift (B3 52bc792), :556-565.
+    // :556-560. Sweep C verifies stored plus live token totals and the Droppy-only gate.
     private void Install(ThreadDocument document)
     {
-        // :558-565. Stored rows precede anything that arrived while disk was read.
+        // :556-565. Stored rows precede anything that arrived while disk was read.
         Turns = new ValueList<TurnRecord>(document.Turns.Concat(Turns));
         if (Thread?.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy)
-            HydraTokens = Turns.SelectMany(turn => turn.TokenSpends ?? ValueList<TokenSpend>.Empty).Sum(spend => spend.TotalTokens); // :559-561
+            HydraTokens = Turns.SelectMany(turn => turn.TokenSpends ?? ValueList<TokenSpend>.Empty).Sum(spend => spend.TotalTokens); // :557-560
         Usage = Usage ?? document.Usage; // :562
         Continuation = document.Continuation ?? Continuation; // :563
         FollowUps = new ValueList<FollowUpPrompt>(document.FollowUps.Where(prompt => !prompt.IsEmpty).Concat(FollowUps)); // :564
