@@ -14,6 +14,7 @@
 
 using System.Text;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 
 namespace Marrow.Services.MCP;
 
@@ -306,7 +307,7 @@ export async function loadMCPTools() {
     // (windows_path): a bare drive-letter path fails a Node dynamic import.
     public static Uri InstallBridge() => InstallBridge(LocalApplicationData());
 
-    private static string LocalApplicationData() => Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData);
+    private static string LocalApplicationData() => DevDataRoot.LocalApplicationData(); // ED-212
 
     /// <summary>
     /// <see cref="InstallBridge()"/> with the base directory given explicitly (R-TEST-9: nothing touches the
