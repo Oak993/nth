@@ -205,6 +205,7 @@ public sealed class SidebarView : Decorator
 
     // The list's rows by the id their ForEach keys them with (R-VIEW-8), and the ids ScrollViewReader can reach.
     private readonly Dictionary<string, ListRow> listRows = new(StringComparer.Ordinal);
+    private readonly ForEach<ListEntry, string> layoutMotion;
     private readonly Dictionary<string, Control> scrollTargets = new(StringComparer.Ordinal);
     private ListMotion? lastMotion;
     private Action<TimeSpan>? scrollFrame;
@@ -272,6 +273,8 @@ public sealed class SidebarView : Decorator
             Spacing = 1, // :103
             Margin = new Thickness(Chrome.ListInset, 12, Chrome.ListInset, 8), // :120-122
         };
+        // :117-119 ED-218: the shared keyed layout glide also carries this caller's update-or-rebuild pass.
+        layoutMotion = new ForEach<ListEntry, string>(list, entry => entry.Key, entry => entry.Make(), (_, _) => { });
         scroll = new ScrollViewer
         {
             Template = ListScrollTemplate, // :139 .scrollIndicators(.never)
@@ -479,10 +482,7 @@ public sealed class SidebarView : Decorator
     private void ApplyList(ListPass pass)
     {
         // :117-119 R-VIEW-4: a change of any of the three values animates the pass with Chrome.panelSlide; otherwise the
-        // change's own transaction applies. The entering and leaving rows ride it. STOP #3 (test file): the rows that
-        // stay have no layout animation in the port, so they move without the slide.
-        // STOP opencode-App.Views.Sidebar.SidebarView #2: the surviving rows' positional slide needs a UI/Port
-        // layout-animation foundation plus an ED. Names PR-SIDEBAR-019.
+        // change's own transaction applies. ED-218 carries both the fades and surviving rows' positional motion.
         var animation = lastMotion is not null && lastMotion != pass.Motion ? Chrome.PanelSlide : Transaction.Current;
         lastMotion = pass.Motion;
         Transaction.WithAnimation(animation, () => ApplyEntries(pass.Items is { } items
@@ -559,7 +559,11 @@ public sealed class SidebarView : Decorator
     // The ForEach diff (R-VIEW-8) over the list: a vanished id's row leaves with its transition, a new id's row
     // enters with its own, a surviving id keeps its control and takes the new value, and the rows follow the order.
     // Every transition here is an opacity one, so no row is wrapped and each control is the list's own child.
-    private void ApplyEntries(List<ListEntry> entries)
+    private void ApplyEntries(List<ListEntry> entries) => layoutMotion.ApplyLayout(
+        () => listRows.ToDictionary(pair => pair.Key, pair => pair.Value.Control, StringComparer.Ordinal),
+        () => ReconcileEntries(entries));
+
+    private void ReconcileEntries(List<ListEntry> entries)
     {
         var wanted = new List<ListEntry>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
