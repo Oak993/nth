@@ -412,4 +412,25 @@ public sealed class TextGenerationTests
         var run = TextGenerationHarness.PrepareStub("outputfile", []);
         Assert.Null(await TextGeneration.ThreadTitle("fix it", TextGenerationHarness.CodexEngine(run)));
     }
+    [Theory]
+    [Trait("Req", "PR-PROVAPI-188")] // Services/Providers/TextGeneration.swift:42,47-52
+    [InlineData("This spec needs more context")]
+    [InlineData("As an AI build a parser")]
+    [InlineData("...")]
+    public async Task Review_rejects_unconfounded_forbidden_or_empty_titles(string reply)
+    {
+        Assert.Null(await ThreadTitleWithReply("fix it", reply));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVAPI-188")] // Services/Providers/TextGeneration.swift:42 title.count <= 64
+    [InlineData(64, true)]
+    [InlineData(65, false)]
+    public async Task Review_checks_the_exact_length_boundary_without_exceeding_the_word_cap(int length, bool usable)
+    {
+        var reply = new string('a', length);
+        var title = await ThreadTitleWithReply("fix it", reply);
+        if (usable) Assert.Equal(reply, title);
+        else Assert.Null(title);
+    }
 }

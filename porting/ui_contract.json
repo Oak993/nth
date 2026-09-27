@@ -1129,7 +1129,7 @@
         "DroppyCode/App/Views/Chat/NewThreadPrompt.swift:536-576"
       ],
       "notes": "The sentence is assembled from three literals: What should we build in , the project name, and ?. There is a space before the name and none before the question mark. Tooltip on the name is exactly Choose another project.",
-      "status": "IMPLEMENTED"
+      "status": "SPECIFIED"
     },
     {
       "area": "CHAT",
@@ -2488,7 +2488,7 @@
         "DroppyCode/App/Views/Composer/ComposerView.swift:661-675"
       ],
       "notes": "Once on screen the render server plays it alone: no timer, no view update and no main-thread drawing, however long a turn runs. A Windows port must match that.",
-      "status": "IMPLEMENTED"
+      "status": "SPECIFIED"
     },
     {
       "area": "COMPOSER",
@@ -5923,7 +5923,7 @@
       ],
       "notes": "It reads the head's STORED record, not its live one: reading the live progress here would redraw the strip on every token the head spends. Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005). OD-0013: the window live resize this record reacts to is the main window's, whose one-frame edge strip (probe P4) must be fixed before the window chrome is accepted; the behaviour specified here is unchanged.",
       "b2_change": "Citation re-anchored: B1 HydraPanel.swift:136-165 -> B2 HydraPanel.swift:136-165. Typography was \"Name .system(size: 12.5, weight: .medium); status word .system(size: 12); elapsed time .system(size: 11) with monospaced digits.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
-      "status": "IMPLEMENTED"
+      "status": "SPECIFIED"
     },
     {
       "area": "HYDRA",
@@ -6098,7 +6098,7 @@
         "DroppyCode/App/Views/Chat/HydraPanel.swift:72-91"
       ],
       "notes": "This 2.0-second hold is also what the auto-clear delay is derived from: the head leaves the panel 2.2 seconds after finishing, so the wave has played first.",
-      "status": "IMPLEMENTED"
+      "status": "SPECIFIED"
     },
     {
       "area": "HYDRA",
@@ -8500,7 +8500,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:59"
       ],
       "notes": "Chrome.sectionSpacing is the page's own spacing token; ChromeSection does not apply it internally.",
-      "b2_change": "No shift. The stack and grid are unchanged; only the footer font changed (B1 :61 .font(.system(size: 11)) -> B2 :61 .font(.system(.subheadline)), recorded on UI-MCP-089)."
+      "b2_change": "No shift. The stack and grid are unchanged; only the footer font changed (B1 :61 .font(.system(size: 11)) -> B2 :61 .font(.system(.subheadline)), recorded on UI-MCP-089).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "MCP",
@@ -20201,7 +20202,7 @@
       "typography": ".font(.system(.callout, design: .monospaced)) - the monospaced callout text style, 12 points at the default size per B1's chatBaseSize table (B1:DroppyCode/UI/Common/ChatZoom.swift:52, a file B2 deleted); ED-059 sets the port at that size (the face is Cascadia Mono under OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Rounded-border field default; the error outline is the theme danger hue at 0.65 opacity, 1 point wide.",
       "states": [
-        "incomplete: the command is empty after trimming spaces, so the danger outline is drawn and Save is disabled",
+        "incomplete: the command is empty after trimming Foundation's .whitespaces (spaces and tabs, not newlines), so the danger outline is drawn and Save is disabled",
         "complete: no overlay"
       ],
       "interactions": [
@@ -20212,7 +20213,7 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1726-1729",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "The trim is trimmingCharacters(in: .whitespaces), not .whitespacesAndNewlines, so a tab-only command counts as complete. The comment at :1684-1685 records that such a script used to be dropped on save without a word.",
+      "notes": "The trim is trimmingCharacters(in: .whitespaces), not .whitespacesAndNewlines: .whitespaces holds Unicode Zs plus the tab, so a tab-only command is incomplete and a command holding a line feed is complete (corrected 2026-09-27; R-STR-7). The comment at :1684-1685 records that such a script used to be dropped on save without a word.",
       "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1687 `.font(.system(size: 12, design: .monospaced))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1683 `.font(.system(.callout, design: .monospaced))`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Placeholder, overlay and trim rule unchanged; lines moved."
     },
     {

@@ -18,7 +18,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/MessageEditor.swift (B2 1fbf81e), :1-176.
+// Source: DroppyCode/App/Views/Chat/MessageEditor.swift (B3 52bc792), :1-176.
 
 /// <summary>:7-176 <c>struct MessageEditor: View</c>: edits a message already sent.</summary>
 public sealed class MessageEditor : Decorator
@@ -85,10 +85,14 @@ public sealed class MessageEditor : Decorator
             });
 
         // :56-62 action row.
-        var cancelButton = new Button { Content = "Cancel" }; // :57
-        cancelButton.Click += (_, _) => Cancel(runtime); // :57
-        var sendButton = new Button { Content = "Send" }; // :59
-        sendButton.Click += (_, _) => Send(edit, runtime, state); // :59
+        // :57-60 DEVIATION OD-0005: the established capsule/glass recipe; compositor remains MARROW_DEFERRED ED-180.
+        var cancelLabel = new TextBlock { Text = "Cancel", VerticalAlignment = VerticalAlignment.Center };
+        var cancelFrame = new Border { Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0), Height = Chrome.CapsuleContentHeight, Child = cancelLabel };
+        cancelFrame.Capsule(RoundedCornerStyle.Continuous);
+        SwiftGlass.SetEffect(cancelFrame, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive());
+        var cancelButton = PlainControls.Button(cancelFrame, () => Cancel(runtime)); // :57
+        cancelButton.IsCancel = true;
+        var sendButton = WelcomeView.GlassProminentButton(new TextBlock { Text = "Send" }, Chrome.CapsuleContentHeight, () => Send(edit, runtime, state)); // :59-60
 
         var actions = new StackPanel
         {
@@ -255,6 +259,7 @@ public sealed class MessageEditor : Decorator
             row.Children.Add(icon);
 
             var path = new MiddlePathTextBlock(file.Path); // :131-133
+            path.Margin = new Thickness(0, 0, 8, 0); // :128-134 path-to-spacer spacing, separate from spacer-to-value
             Grid.SetColumn(path, 1);
             row.Children.Add(path);
 

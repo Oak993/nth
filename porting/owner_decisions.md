@@ -401,3 +401,25 @@ instruction may change one.
   a host that model output named). A local target of a type Windows runs directly is shown selected in File Explorer
   instead of launched (named safety deviation; the rule and mechanism are ED-204). Lanes: A29
   (UI.Markdown.LinkParagraphView) and UI.Markdown.LinkPopover. UNK-0027 is resolved by it.
+
+## OD-0027 The tour's eight screenshots are retaken in Marrow on Windows
+
+- **Asked 2026-09-27** (main Claude, while writing ED-215): the tour (`App/Views/Tour/TourView.swift:256`
+  `NSImage(named: page.imageName)`) shows eight asset-catalogue screenshots: tour-welcome, tour-threads, tour-panels,
+  tour-slider, tour-themes, tour-hydra, tour-pairs and tour-recipes, each 1320x824 pixels at 2x (OD-0004). They are
+  real macOS captures showing the red/yellow/green window buttons and "DroppyCode" text (for example
+  "xcodebuild -scheme DroppyCode build" in tour-welcome). Options:
+  - A. the Mac screenshots unchanged;
+  - B. retake the same eight scenes in Marrow on Windows once it runs, with the pictures empty and tracked until then
+    (Recommended);
+  - C. leave the pictures out.
+- **Owner answer, verbatim:** "Option B".
+- **Effect (named deviation from the pinned assets; the tour's code, pages, text and layout stay exact):**
+  - Each tour-* image becomes a Marrow-on-Windows capture of the same scene: same content, same framing, same
+    1320x824-pixel 2x size, and the same asset name so TourView's lookups are unchanged. The Mac captures are the
+    content guide for each scene.
+  - Until the captures exist, TourView draws no picture for those pages and keeps a visible STOP naming OD-0027;
+    ED-215 excludes the eight tour-* sets from the bundled catalogue.
+  - The captures are a post-first-launch task (E:\Droppy\work\followups.md) and need the app running with test data
+    only, never the owner's real projects or accounts.
+  - OD-0004's use of the Mac captures as an approximate visual oracle is unchanged.

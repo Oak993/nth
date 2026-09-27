@@ -189,7 +189,19 @@ public sealed class ProjectGuidanceTests
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            return; // no privilege to create symlinks on this machine
+            // Ordinary Windows accounts can create a junction. Drive the exact production resolver
+            // with a regular file beneath it, so the containment guard is reached before the file-type guard.
+            var junction = scratch.PathOf("linked");
+            ProjectGuidanceScratch.CreateJunction(junction, outside.FullPath);
+            try
+            {
+                Assert.True(File.Exists(Path.Combine(junction, "real-agents.md")));
+                Assert.True((File.GetAttributes(junction) & FileAttributes.ReparsePoint) != 0);
+                var resolver = typeof(ProjectGuidance).GetMethod("ResolvedFile", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+                Assert.Null(resolver.Invoke(null, [Path.Combine("linked", "real-agents.md"), scratch.FullPath]));
+            }
+            finally { Directory.Delete(junction, recursive: false); }
+            return; // The containment assertion above really ran; no silent privilege skip.
         }
 
         var guidance = new ProjectGuidance(scratch.FullPath);
