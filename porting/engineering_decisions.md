@@ -1314,3 +1314,37 @@ MARROW_PORT_DATA_DIR. Real installs (%USERPROFILE%\.local\bin, %LOCALAPPDATA%\Pr
 Tests: ProviderCliGuardTests (guard installed and excludes the real install folders; a binary outside the roots resolves to
 nothing; a stand-in in the temp folder still resolves). ENGINEERING DECISION; test safety, not a behaviour change.
 
+ED-213 [UI] GraphicsContext `.plusLighter` path drawing (sweep-A STOP #5; PR-COMPOSER-138). SOURCE FACT: EffortSlider.swift is
+the only pinned file that sets `.plusLighter` (:1278 `plasma.blendMode = .plusLighter`, :1320 `glow.blendMode = .plusLighter`), inside
+the fusion drawing (:1232-1335): path layers that are blurred (:1279 radius 2.5, :1321 radius 7) and clipped (:1282
+`plasma.clip(to: Path(side))`). Apple documents kCGBlendModePlusLighter as R = MIN(1, S + D) on premultiplied colour. Avalonia's
+DrawingContext has no per-drawing blend mode for vector paths, so the site was left unwritten. DECISION: the fusion drawing runs as an
+Avalonia ICustomDrawOperation on the Skia lease (ISkiaSharpApiLeaseFeature), the pattern ShaderLibrary.cs's
+GenieDistortionOperation already uses. Each GraphicsContext copy that sets `.plusLighter` becomes an SKCanvas save layer composited
+with SKBlendMode.Plus (the same saturating per-channel add). Its blur is a Skia Gaussian whose standard deviation is the SwiftUI
+radius, the convention EffortSlider's other blurred layers already follow through CometPainter.GaussianBlur (and Wallpaper.cs's
+radius-as-sigma). Its clip is the same path through SKCanvas.ClipPath with anti-aliasing. Draw order, paths, colours and opacities
+are the Swift's, and the helper stays private to EffortSlider unless a second site appears. Tests render to an offscreen Skia surface:
+- two 0.5-alpha red plus-layers sum to 1.0 and clamp;
+- the blur spreads past the path edge;
+- the clip bounds the result.
+ENGINEERING DECISION; the exact macOS blur kernel and colour space stay UNVERIFIED under OD-0001.
+
+ED-214 [UI] Text `.minimumScaleFactor` (sweep-A STOP #6; the untracked gap at NewThreadPrompt.cs:55-57). SOURCE FACT: four pinned
+sites, each on one-line text:
+- NewThreadPrompt.swift:46 (0.6);
+- EffortSlider.swift:614 (0.85) and :648 (0.9);
+- AboutUpdateViews.swift:227 (0.8), on a VStack of two texts.
+Apple documents minimumScaleFactor as the minimum amount text scales down to fit the available space, applied before truncation, and
+as an environment value every Text inside the modified view reads. Avalonia's TextBlock has no counterpart. DECISION: one port
+primitive in Marrow.UI/Port, used at all four sites. During measure, when the proposed width is finite and the text's natural
+one-line width is larger, the font size becomes size x max(factor, available / natural). When it still does not fit at factor x
+size, the text truncates with its own trimming (tail unless the site says otherwise). The scale changes the font size, not a render
+transform, so line height and the reported height follow the scaled text. An infinite proposal never scales. Applied to a container,
+it reaches each text inside, and each text scales independently. Tests:
+- a text that fits is unchanged;
+- a slightly-too-wide text lands exactly at the fitting size;
+- a far-too-wide text lands at factor x size with an ellipsis;
+- each of the four sites carries its own factor.
+ENGINEERING DECISION; macOS's exact scale stepping stays UNVERIFIED under OD-0001.
+
