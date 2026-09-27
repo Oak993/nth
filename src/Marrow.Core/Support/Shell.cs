@@ -647,13 +647,18 @@ public static class LoginEnvironment
         environment => DeveloperGit(environment, HomeDirectory)), LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>:341-343</summary>
-    public static ValueMap<string, string> Current => shared.Value.Current;
+    // PORT-ONLY R-TEST-10 boundary; empty in production. Both credential home paths share the scoped override.
+    internal static Ambient<string> HomeForTesting { get; } = new("");
+
+    public static ValueMap<string, string> Current => HomeForTesting.Current is { Length: > 0 } home
+        ? shared.Value.Current.Mutating(environment => environment["HOME"] = home) : shared.Value.Current;
 
     /// <summary>:349-351</summary>
     public static bool IsLoaded => shared.Value.IsLoaded;
 
     /// <summary>:353-355 <c>FileManager.default.homeDirectoryForCurrentUser.path</c>: the user's profile folder.</summary>
-    public static string HomeDirectory => System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+    public static string HomeDirectory => HomeForTesting.Current is { Length: > 0 } home
+        ? home : System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
 
     /// <summary>:357-365</summary>
     public static Task Load() => shared.Value.Load();
