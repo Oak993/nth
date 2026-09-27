@@ -1,4 +1,4 @@
-// Source: DroppyCode/App/Views/Settings/TokenActivitySection.swift (B2 1fbf81e), :1-272.
+// Source: DroppyCode/App/Views/Settings/TokenActivitySection.swift (B3 52bc792), :1-272.
 //
 // Port shape (R-VIEW-1, R-VIEW-2, R-VIEW-9, ED-066): TokenActivitySection is a Decorator whose constructor
 // builds `body` once (:52-99). @State (mode, previousGrid, switchCount, grid) becomes a ViewState : MainActorModel
@@ -377,6 +377,7 @@ public sealed class TokenActivitySection : Decorator
         }.RegisterInNameScope(scope));
 
     private readonly TokenLedger ledger; // :38 @State private var ledger = TokenLedger.shared
+    private readonly ViewTask<int> refreshTask;
     private readonly ViewState state = new();
     private readonly TokenActivityHeatmapCanvas canvas;
     private readonly TokenActivityMonthStrip monthStrip;
@@ -395,6 +396,7 @@ public sealed class TokenActivitySection : Decorator
     internal TokenActivitySection(TokenLedger ledger)
     {
         this.ledger = ledger;
+        refreshTask = new ViewTask<int>(0, async _ => await ledger.RefreshIfNeeded()); // :96-98
 
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 10 }; // :53
 
@@ -437,11 +439,12 @@ public sealed class TokenActivitySection : Decorator
             () => (ledger.DailyTotals.Values.Aggregate(0L, (a, b) => a + b), ledger.UncertainTokensThisYear),
             pair => UpdateLegend(pair.Total, pair.Uncertain)));
 
-        this.Task(() => 0, async _ => await ledger.RefreshIfNeeded()); // :96-98
+        refreshTask.Appear(); // :96-98: start during this appearance, not the next attachment.
     }
 
     private void Disappear()
     {
+        refreshTask.Disappear();
         gridWatch?.Dispose();
         gridWatch = null;
         foreach (var track in tracks) track.Dispose();
@@ -504,12 +507,15 @@ public sealed class TokenActivitySection : Decorator
             fill.Set(color, Transaction.Current);
         }
 
+        var initialized = false;
         button.Track(() => state.Mode == option, active =>
         {
             SwiftFont.System(SwiftFont.TextStyle.Body, weight: active ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(label); // :77
             label.Foreground = (active ? Chrome.Accent : Chrome.SecondaryText).Brush(label); // :80 .tint / .secondary
             button.SetSelected(active); // :84 .isSelected trait
-            UpdateFill();
+            if (initialized) Transaction.WithAnimation(Animation.Smooth(0.25), UpdateFill); // :87 mode changes only.
+            else UpdateFill();
+            initialized = true;
         });
 
         button.OnHover(over =>
@@ -553,16 +559,20 @@ public sealed class TokenActivitySection : Decorator
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(summary); // :150
         summary.Foreground = Chrome.SecondaryText.Brush(summary); // :151
 
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :148 HStack(spacing: 8)
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") }; // :148-154 flexible spacer
         row.Children.Add(summary);
 
-        var spacer = new Control { Width = 12, HorizontalAlignment = HorizontalAlignment.Stretch }; // :154 Spacer(minLength: 12)
+        var spacer = new Control { MinWidth = 28 }; // :154 minimum 12 + adjacent HStack spacings 8 + 8.
+        Grid.SetColumn(spacer, 1);
         row.Children.Add(spacer);
+        var ladder = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        Grid.SetColumn(ladder, 2);
+        row.Children.Add(ladder);
 
         var less = new TextBlock { Text = "Less" }; // :155
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(less); // :156
         less.Foreground = Chrome.SecondaryText.Brush(less); // :157
-        row.Children.Add(less);
+        ladder.Children.Add(less);
 
         foreach (var step in TokenActivityFormat.Ladder()) // :158-162
         {
@@ -573,13 +583,13 @@ public sealed class TokenActivitySection : Decorator
                 Height = 10,
                 Background = step.Brush(row),
             };
-            row.Children.Add(swatch);
+            ladder.Children.Add(swatch);
         }
 
         var more = new TextBlock { Text = "More" }; // :163
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(more); // :164
         more.Foreground = Chrome.SecondaryText.Brush(more); // :165
-        row.Children.Add(more);
+        ladder.Children.Add(more);
 
         // :167 .accessibilityElement(children: .ignore): the ladder swatches carry no automation of their own.
         // :168-171 .accessibilityLabel("Token activity") + .accessibilityValue(...): Avalonia's AutomationProperties
