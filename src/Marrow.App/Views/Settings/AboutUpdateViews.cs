@@ -334,7 +334,7 @@ public sealed class UpdateReleaseSectionCards : Decorator
 
     private Button BuildCard(ReleaseNoteCategory category, UpdateReleaseNotesDigest.Section? section)
     {
-        var icon = SwiftImage.Named(category.AssetName) // :214 STOP #2 (tests): ED-215 artwork catalogue is owned by another chat.
+        var icon = SwiftImage.Named(category.AssetName) // :214 original-color artwork bundled by ED-215.
             .Resizable()
             .Interpolation(BitmapInterpolationMode.HighQuality)
             .AspectRatio(ContentMode.Fit);
@@ -403,7 +403,7 @@ internal sealed class UpdateReleaseSectionPopover : Decorator
 {
     public UpdateReleaseSectionPopover(UpdateReleaseNotesDigest.Section section, string version)
     {
-        var headerIcon = SwiftImage.Named(section.Category.AssetName) // :261 STOP #2 (tests): same three unbundled ED-215 imagesets.
+        var headerIcon = SwiftImage.Named(section.Category.AssetName) // :261 the same ED-215 release artwork.
             .Resizable()
             .Interpolation(BitmapInterpolationMode.HighQuality)
             .AspectRatio(ContentMode.Fit);

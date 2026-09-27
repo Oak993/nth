@@ -348,13 +348,3 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
 // PR-UPDATE-061 windows_path specifies the shared no-op haptic shim (port_impacts X6).
 // Alignment and LevelChange calls remain at the Swift sites; a native haptic boundary is not required on Windows.
 // The 550/900/450/700 ms sequence, 1450 ms reduced path, and cancellation are exercised above.
-
-// STOP App.Views.Settings.AboutUpdateViews #2
-// Kind: missing bundled artwork, ruled by ED-215; another chat owns the asset catalogue.
-// Swift: App/Views/Settings/AboutUpdateViews.swift:19-59,214-217,261-265.
-// Records: PR-UPDATE-078,079; UI-SETTINGS-057; UI-UPDATE-012,013,014,015 (only the named-icon drawing sites).
-// Missing: SwiftImage.Named("UpdateNewFeaturesIcon"), Named("UpdateBugFixesIcon"), and Named("UpdateRefinementsIcon")
-// resolve to empty images because their imagesets are not bundled/registered in this checkout.
-// Needed: the owning UI.Common.Components/asset chat's ED-215 catalogue and exact upstream image files.
-// The three 26-point card icons and 24-point popover header icons already request the correct names and sizes;
-// labels, tint, layout, interactions, and both texts' 0.8 scaling at :227 are implemented/tested.
