@@ -1208,15 +1208,11 @@ public sealed class RootViewTests(HeadlessSession headless)
     });
 }
 
-// STOP App.Views.RootView #3 (Window review fixes, ED-216)
-// Kind: missing shared-dialog seam extension.
+// Resolved STOP #3: the AlertPresenter owner's ED-216 request/window/session landed during this review pass.
+// RootView now supplies its rendering owner and cancel-role OK through AlertPresentation.Show(AlertRequest),
+// and uses the shared window/session for the real dialog. The source's replacement/model-clear binding is
+// retained by a thin adapter; bold title, message, owned presentation and Escape/Return/OK are proven above.
 // Swift: App/Views/RootView.swift:80-91 (B3 52bc792). Record: PR-WIN-066.
-// Missing: ED-216's extended AlertPresentation request with button roles, an owner and bold title line.
-// Verified against current branch and impl/b2: IAlertPresenter only has Show(title, message, style, buttons);
-// no extended request/owner/role API is present. PR-WIN-066 remains partial; the private dialog is not that seam.
-// Needed: migrate this owned dialog to that seam when it lands; the title must be the window title AND a bold
-// first line before the message, with cancel-role OK, owner-modal presentation and both binding directions.
-// Keep the lone cancel-role OK as the Return default per ED-216 amendment. AlertPresenter.cs is not edited here.
 
 // STOP App.Views.RootView #4 (Window review fixes)
 // Kind: platform/capture gap.

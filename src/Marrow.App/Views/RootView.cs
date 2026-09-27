@@ -76,6 +76,7 @@ public sealed class RootView : Decorator
     private Size lastFloatDetailSize = new(-1, -1);
     private bool alertShowing;
     private Avalonia.Controls.Window? alertDialog;
+    private TextBlock? alertTitle;
     private TextBlock? alertMessage;
     private AppAlert? displayedAlert;
 
@@ -355,9 +356,8 @@ public sealed class RootView : Decorator
         }
     }
 
-    // :80-91 The model alert belongs to the rendering window. Clearing the presentation binding closes it;
-    // closing it clears the model. The production shared presenter's ordinary Window.Show has no owner or
-    // reverse binding, so this source site owns its dialog while retaining the existing recording override.
+    // :80-91 The shared ED-216 request/window/session owns the modal UI. This source's binding additionally
+    // updates an already presented alert and closes it when model.alert becomes nil.
     private void UpdateAlert()
     {
         AppModel model;
@@ -370,6 +370,7 @@ public sealed class RootView : Decorator
             if (alertDialog is { IsVisible: true } shown)
             {
                 shown.Title = alert.Title;
+                alertTitle!.Text = alert.Title; // :81; ED-216 window title and bold first line stay in sync
                 alertMessage!.Text = alert.Message;
                 displayedAlert = alert;
             }
@@ -385,24 +386,29 @@ public sealed class RootView : Decorator
         try
         {
             var presenter = AlertPresentation.Presenter.Current;
+            var owner = TopLevel.GetTopLevel(this) as Avalonia.Controls.Window
+                ?? throw new InvalidOperationException("A model alert requires its rendering window.");
+            var request = new AlertRequest(alert.Title, alert.Message,
+                [new AlertButton("OK", () => { }) { Role = AlertButtonRole.Cancel }], Owner: owner); // :81,88,90
             if (presenter is WindowsAlertPresenter)
             {
-                var owner = TopLevel.GetTopLevel(this) as Avalonia.Controls.Window
-                    ?? throw new InvalidOperationException("A model alert requires its rendering window.");
-                var dialog = BuildAlertDialog(alert);
-                alertDialog = dialog;
-                await PresentAlertDialog.Current(dialog, owner); // :80-91 owned, window-modal alert
+                Task showing;
+                // Keep the source's mutable presentation binding and the existing owned-modal test seam,
+                // using ED-216's shared request preparation, real window builder and action/close session.
+                using (AlertPresentation.Presenter.Override(new ModelAlertPresenter(this)))
+                    showing = AlertPresentation.Show(request);
+                await showing;
             }
             else
             {
-                await presenter.Show(alert.Title, alert.Message, AlertStyle.Warning,
-                    [new AlertButton("OK", () => { })]); // existing R-VIEW-9 recorder, :81, :88, :90
+                await AlertPresentation.Show(request); // extended seam; old recorder overloads still bridge
             }
         }
         finally
         {
             var dismissed = displayedAlert;
             alertDialog = null;
+            alertTitle = null;
             alertMessage = null;
             displayedAlert = null;
             alertShowing = false;
@@ -413,28 +419,32 @@ public sealed class RootView : Decorator
         }
     }
 
-    // :80-91 The plain Windows alert form already used by Port/AlertPresenter, with the source's one cancel button.
-    // Keep the closeable window in this RootView so model.alert controls presentation in both directions.
-    private Avalonia.Controls.Window BuildAlertDialog(AppAlert alert)
+    // :80-91 PORT-ONLY binding adapter: no private dialog styling or keyboard/action implementation.
+    // The shared ED-216 builder supplies those; RootView keeps the window only for the source's live binding.
+    private sealed class ModelAlertPresenter(RootView root) : IAlertPresenter
     {
-        var dialog = new Avalonia.Controls.Window
+        public Task Show(string title, string informativeText, AlertStyle style, IReadOnlyList<AlertButton> buttons) =>
+            Show(new AlertRequest(title, informativeText, buttons));
+
+        public Task Show(AlertRequest request)
         {
-            Title = alert.Title,
-            SizeToContent = SizeToContent.WidthAndHeight,
-            CanResize = false,
-            WindowStartupLocation = WindowStartupLocation.CenterOwner,
-        };
-        var button = new Button { Content = "OK", IsDefault = true, IsCancel = true }; // :88; Enter/Escape
-        button.Click += (_, _) => dialog.Close();
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
-        buttons.Children.Add(button);
-        alertMessage = new TextBlock { Text = alert.Message, TextWrapping = TextWrapping.Wrap, MaxWidth = 360 };
-        dialog.Content = new StackPanel
+            Avalonia.Controls.Window? dialog = null;
+            var session = new AlertSession(request, () => dialog?.Close());
+            session.BindLifetime(SwiftTask.CancellationToken);
+            dialog = WindowsAlertPresenter.BuildWindow(request, session);
+            root.alertDialog = dialog;
+            var content = (StackPanel)dialog.Content!;
+            root.alertTitle = (TextBlock)content.Children[0];
+            root.alertMessage = (TextBlock)content.Children[1];
+            _ = Present(dialog, request.Owner!, session);
+            return session.Completion;
+        }
+
+        private static async Task Present(Avalonia.Controls.Window dialog, Avalonia.Controls.Window owner, AlertSession session)
         {
-            Margin = new Thickness(20), Spacing = 16,
-            Children = { alertMessage, buttons },
-        };
-        return dialog;
+            try { await PresentAlertDialog.Current(dialog, owner); session.Closed(); }
+            catch (Exception error) { session.Failed(error); }
+        }
     }
 
     // :22-31,44-51 SwiftUI overlays never contribute to the underlying view's measured size.
