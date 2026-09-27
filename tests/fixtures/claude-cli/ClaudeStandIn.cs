@@ -22,6 +22,10 @@
 //                          first reply, reproducing part 1's original single-reply-then-exit shape for a test
 //                          that needs the child to close its own stdout quickly (e.g. a probe whose stream
 //                          ends without ever matching).
+//   reply-limit.txt      optional maximum number of control replies; later requests are captured but
+//                        left unanswered while the child stays alive (ClaudeSession.swift:301-309).
+//   exit-now.txt         test-created release signal: close stdout and exit only after the test has
+//                        registered its pending requests/prompts (ClaudeSession.swift:678-692).
 // The run also exits on its own after 20 real seconds with no new stdin line, so a test that starts a session
 // and never explicitly stops it does not leave the process (and its reader thread) running for the rest of
 // the test suite: every test's own sequence of calls happens well inside that window, and the process is
@@ -70,6 +74,9 @@ internal static class ClaudeStandIn
         string responsePath = Path.Combine(dir, "response.json");
         string responseTemplate = File.Exists(responsePath) ? File.ReadAllText(responsePath, Encoding.UTF8) : null;
         int message = 0;
+        string replyLimitPath = Path.Combine(dir, "reply-limit.txt");
+        int replyLimit = File.Exists(replyLimitPath) ? int.Parse(File.ReadAllText(replyLimitPath).Trim()) : int.MaxValue;
+        int replies = 0;
 
         // Read stdin on its own thread so the main loop can give up after an idle period instead of blocking
         // forever on ReadLine once the test that started this process has moved on.
@@ -98,9 +105,17 @@ internal static class ClaudeStandIn
         reader.IsBackground = true;
         reader.Start();
 
+        DateTime idleDeadline = DateTime.UtcNow.AddSeconds(20);
         while (true)
         {
-            if (!signal.Wait(TimeSpan.FromSeconds(20))) break; // idle timeout: no line in 20s, exit on our own
+            if (File.Exists(Path.Combine(dir, "exit-now.txt"))) break;
+            // Poll only the test's explicit exit signal; keep the same 20-second no-input idle deadline.
+            if (!signal.Wait(TimeSpan.FromMilliseconds(20)))
+            {
+                if (DateTime.UtcNow >= idleDeadline) break;
+                continue;
+            }
+            idleDeadline = DateTime.UtcNow.AddSeconds(20);
             string line = null;
             bool isClosed;
             lock (gate)
@@ -132,10 +147,12 @@ internal static class ClaudeStandIn
             if (line.IndexOf("\"type\":\"control_request\"", StringComparison.Ordinal) < 0) continue;
             string requestID = ExtractRequestID(line);
             if (requestID == null) continue;
+            if (replies >= replyLimit) continue;
             string reply = responseTemplate.Replace("__REQUEST_ID__", requestID);
             Console.Out.Write(reply);
             Console.Out.Write('\n');
             Console.Out.Flush();
+            replies++;
             if (File.Exists(Path.Combine(dir, "exit-after-reply.txt"))) break;
         }
 
