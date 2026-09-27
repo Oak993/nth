@@ -196,6 +196,11 @@ public sealed class ModelsSettingsPageTests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-041")] // App/Views/Settings/ModelsSettingsPage.swift:423-424
     public void Clicking_the_header_toggles_isExpanded()
     {
+        // App.Views.Settings.SettingsView part 6 (B3, opencode; UI-PROVREG-045) made the chevron rotate through
+        // SettingsScalarAnimation/Chrome.PanelSlide so an equal notification does not restart the motion; that path
+        // requires a bound FrameClock.Source even when this test never ticks it (Marrow.App binds one at start-up,
+        // every other headless UI test in this suite overrides it, e.g. ShortcutsSettingsPageTests.cs:45).
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
         headless.OnUiThread(() =>
         {
             var value = false;
