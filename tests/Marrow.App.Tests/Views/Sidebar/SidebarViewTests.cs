@@ -5539,6 +5539,132 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     });
 
+    // ---- PR-SIDEBAR-126, -127, -129: ProjectRow's own geometry, icon and dimming ----
+    //
+    // UI-SIDEBAR-008/-009/-010 prove the toggle, the count label and the plus
+    // button; PR-SIDEBAR-128 (the hover accessory's collapse) is proven by its
+    // own REVIEW FIX test below. The three tests here prove the PR-ids' numbers:
+    // the 28 pt row with its 40 pt accessory reserve and panelSlide toggle
+    // (-126), the picked-or-folder mark with its two sizes and opacities (-127)
+    // and the 0.55 whole-row dimming with its override-then-global rule (-129).
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-126")] // App/Views/Sidebar/SidebarView.swift:1097-1105; UI/Chrome/Chrome.swift:710-728
+    public void A_project_row_is_a_28pt_sidebar_row_with_a_40pt_accessory_reserve_and_click_toggles_expansion()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var project = NewProject(harness, "Alpha");
+            var model = Model(harness, [project], []);
+            Control? row = null;
+            harness.Main.OnMain(() => row = ShownProjectRow(model, project, 0));
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(28d, row!.Bounds.Height); // :1099 via Chrome.rowHeight
+                var shape = LogicalQuery.SelfAndDescendants<Border>(row!).First(b => b.Height == 28 && b.Padding.Right > 40);
+                Assert.Equal(new Thickness(8, 0, 48, 0), shape.Padding); // :725-726 with :1099's 8 + 40
+                var stack = LogicalQuery.SelfAndDescendants<StackPanel>(row!).First(s => s.Orientation == Orientation.Horizontal && s.Children.Count == 2);
+                Assert.Equal(8d, stack.Spacing); // :711
+                Assert.Equal(20d, stack.Children[0].Width); // :713 Chrome.iconSize
+                var title = LogicalQuery.SelfAndDescendants<TextBlock>(row!).First(t => t.Text == "Alpha");
+                Assert.Equal(1, title.MaxLines); // :718
+                Assert.Equal(TextTrimming.CharacterEllipsis, title.TextTrimming); // :719 .tail
+                Assert.Equal(TextWrapping.NoWrap, title.TextWrapping);
+                Assert.Equal(13d, title.FontSize); // :717 .body
+                Assert.Equal(FontWeight.Normal, title.FontWeight); // never selected, so regular, not medium
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.92).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color); // :718, not selected 1.0
+                Assert.Equal(Chrome.Overlay(0.06).Resolve(title.ActualThemeVariant), ((SwiftColor)CallStatic(typeof(SidebarRow), "FillFor", false, true)!).Resolve(title.ActualThemeVariant)); // :743 the row's own hover fill
+            });
+            Animation? during = null;
+            using var probe = new OnChange<bool>(() => model.Project(project.Id)!.IsExpanded, (_, _) => during = Transaction.Current);
+            harness.Main.OnMain(() => Click(ButtonNamed(row!, "Alpha"))); // :1100-1105
+            harness.Main.OnMain(() =>
+            {
+                Assert.False(model.Project(project.Id)!.IsExpanded);
+                Assert.Equal(Chrome.PanelSlide, during); // :1102-1104
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-127")] // App/Views/Sidebar/SidebarView.swift:1106-1114; UI/Chrome/ProjectIconPicker.swift:11-27; UI/Chrome/Chrome.swift:651-679
+    public void A_project_rows_leading_mark_is_the_picked_emoji_or_symbol_or_the_folder_mark_until_one_is_picked()
+    {
+        // The live row's glyph following the live icon through every branch is
+        // proven by The_icon_glyph_follows_the_live_project_icon_without_rebuilding_the_row
+        // above (same trait); this test proves the two sizes, the two opacities
+        // and the 20 pt box. Each branch is built fresh and measured once: swapping
+        // the badge's glyph and measuring a fresh run in the same pass trips this
+        // harness's own pre-existing "Could not create glyphTypeface" gap (see the
+        // REVIEW FIX test below), so no UpdateProject tearout happens here.
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var project = NewProject(harness, "Alpha"); // no icon yet
+            var model = Model(harness, [project], []);
+            harness.Main.OnMain(() =>
+            {
+                var row = ShownProjectRow(model, project, 0);
+                var badge = LogicalQuery.SelfAndDescendants<SidebarIconBadge>(row).Single();
+                var box = (Panel)badge.Child!;
+                Assert.Equal(20d, box.Width); // :677 both branches sit in a 20 pt square
+                Assert.Equal(20d, box.Height);
+                var fallback = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(i => i.SymbolName is not null);
+                Assert.Equal("folder.fill", fallback.SymbolName); // :1111
+                Assert.Equal(14d, fallback.Width); // the default SidebarSymbol size
+                Assert.Equal(14d, fallback.Height);
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.85).Resolve(fallback.ActualThemeVariant), ((ISolidColorBrush)fallback.GetValue(SwiftImage.ForegroundProperty)!).Color); // :676 the badge's 0.85, inherited
+            });
+            harness.Main.OnMain(() =>
+            {
+                // :1108-1109 a picked symbol: ProjectRow builds ProjectIconMark(icon, 12).
+                var mark = new ProjectIconMark(new ProjectIcon.Symbol("star.fill"), 12);
+                Hosted(model, mark);
+                var symbol = LogicalQuery.SelfAndDescendants<SwiftImage>(mark).Single(i => i.SymbolName is not null);
+                Assert.Equal("star.fill", symbol.SymbolName);
+                Assert.Equal(12d, SwiftImage.GetFont(symbol)!.PointSize); // :1109 size 12, not the 14 pt fallback
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.9).Resolve(symbol.ActualThemeVariant), ((ISolidColorBrush)symbol.GetValue(SwiftImage.ForegroundProperty)!).Color); // :25 0.9, not 0.85
+            });
+            harness.Main.OnMain(() =>
+            {
+                // :1108 an emoji icon.
+                var mark = new ProjectIconMark(new ProjectIcon.Emoji("\U0001F680"), 12);
+                Hosted(model, mark);
+                var emoji = LogicalQuery.SelfAndDescendants<TextBlock>(mark).Single(t => t.Text == "\U0001F680"); // :18
+                Assert.Equal(12d, emoji.FontSize); // :19
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.9).Resolve(emoji.ActualThemeVariant), ((ISolidColorBrush)emoji.Foreground!).Color); // :25
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-129")] // App/Views/Sidebar/SidebarView.swift:1096, :1135-1136; App/AppSettings.swift:343-346
+    public void A_deactivated_projects_whole_row_draws_at_0_55_opacity()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var project = NewProject(harness, "Alpha");
+            var model = Model(harness, [project], []);
+            Control? row = null;
+            harness.Main.OnMain(() => row = ShownProjectRow(model, project, 0));
+            harness.Main.OnMain(() => Assert.Equal(1d, row!.Opacity)); // active by default
+
+            harness.Main.OnMain(() => model.Settings.SetProjectActive(false, project.Id)); // explicit override
+            harness.Main.OnMain(() => Assert.Equal(0.55d, row!.Opacity)); // :1135 the whole body, icon, title and accessories
+
+            harness.Main.OnMain(() => model.Settings.SetProjectActive(true, project.Id));
+            harness.Main.OnMain(() => Assert.Equal(1d, row!.Opacity));
+
+            harness.Main.OnMain(() => model.Settings.ClearProjectActivationOverride(project.Id)); // no override: the global switch rules
+            harness.Main.OnMain(() => model.Settings.ProjectsEnabled = false);
+            harness.Main.OnMain(() => Assert.Equal(0.55d, row!.Opacity));
+            harness.Main.OnMain(() => model.Settings.ProjectsEnabled = true);
+            harness.Main.OnMain(() => Assert.Equal(1d, row!.Opacity));
+        });
+    }
+
     // ---- UI-SIDEBAR-014: the project menu's items (ellipsis popover and context menu) ----
 
     [Fact]
