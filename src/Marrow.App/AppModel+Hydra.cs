@@ -12,13 +12,13 @@ using Marrow.Services.Store;
 
 namespace Marrow.App;
 
-// Source: DroppyCode/App/AppModel+Hydra.swift (B3 52bc792), :132-1143; HydraWatchdog :114-127.
+// Source: DroppyCode/App/AppModel+Hydra.swift (B2 1fbf81e), :132-1143; HydraWatchdog :114-127.
 public sealed partial class AppModel
 {
     // :114-127
     private static partial class HydraWatchdog
     {
-        internal const string StalledNote = "Stalled: no edits for 10 minutes; stopped by Marrow. Resend with a sharper brief.";
+        internal const string StalledNote = "Stalled: no edits for 10 minutes; stopped by Droppy Code. Resend with a sharper brief.";
         internal static readonly HashSet<Guid> StalledHeadIDs = [];
         internal static readonly Dictionary<Guid, long> ToolCounts = [];
         internal static readonly HashSet<Guid> Labelled = [];
@@ -100,7 +100,7 @@ public sealed partial class AppModel
         var workerEffort = keepsModel ? pair?.WorkerEffort : null;
         if (workerEffort is null && Settings.HydraTempersHeadEffort && !elsewhere)
         {
-            var effortModel = Providers.Model(thread.Model, thread.Provider);
+            var effortModel = Providers.Model(workerModel ?? thread.Model, headsProvider);
             workerEffort = HydraHeadsEffort(thread.Effort, effortModel?.Efforts ?? ValueList<string>.Empty);
         }
 
@@ -530,11 +530,10 @@ public sealed partial class AppModel
             : "";
         var spoken = status == TurnStatus.Failed
             ? null
-            : assistant.FirstOrDefault().Message?.Text ?? "";
+            : assistant.FirstOrDefault().Message?.Text;
         var report = status == TurnStatus.Failed ? FailedTurnReport(error, partial) : spoken;
         var toolCount = runtime.Entries.LongCount(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Tool);
         UpdateHydraHead(head.Id, value => value with { ToolCalls = toolCount });
-        if (!head.Provider.IsAPIKeyBased) ExistingRuntime(head.Id)?.StopSession();
 
         var firstUser = runtime.Entries
             .Select(entry => entry.Item.TimelineItemContent)
@@ -568,6 +567,7 @@ public sealed partial class AppModel
             if (ExistingRuntime(head.Id)?.IsRunning == true) return;
             if (Thread(head.Id)?.Hydra?.IsFinished == true)
                 UpdateHydraHead(head.Id, value => value with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running });
+            if (!head.Provider.IsAPIKeyBased) ExistingRuntime(head.Id)?.StopSession();
             FinishHydraHead(head.Id, status, report, landing);
         });
     }

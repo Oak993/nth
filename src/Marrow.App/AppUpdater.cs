@@ -1,11 +1,10 @@
 using Marrow.App;
 using Marrow.App.Port;
 using Marrow.App.Views.Settings;
-using Marrow.App.Window;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
-// Source: DroppyCode/App/AppUpdater.swift (B3 52bc792), :1-528. The Windows installer boundary is defined by PA-0014.
+// Source: DroppyCode/App/AppUpdater.swift (B2 1fbf81e), :1-528. The Windows installer boundary is defined by PA-0014.
 
 // :8-20
 public static class UpdateProgressMilestones
@@ -443,7 +442,7 @@ public sealed class AppUpdater
     {
         // :288-289. DEVIATION OD-0012 F1 ("Droppy Code" -> "Marrow"). No extension: UNK-0009 means the
         // Windows artifact format, and so its extension, is not decided.
-        var destination = Path.Combine(Path.GetTempPath(), $"MarrowUpdate-{SwiftUUID.UuidString(Guid.NewGuid())}");
+        var destination = Path.Combine(Path.GetTempPath(), $"MarrowUpdate-{Guid.NewGuid():D}");
         var downloader = new Downloader(fraction =>
             MainActor.Spawn(() => { UpdateInstallProgress.Shared.NoteDownloadProgress(fraction); return Task.CompletedTask; })); // :290-291
         await downloader.Download(url, destination); // :293
@@ -481,12 +480,11 @@ public sealed class AppUpdater
             UpdateInstallProgress.Shared.Fail(); // :403
         });
 
-        // :405-409. Reuse the shell's bound termination request (AppShell.FinishLaunching), including
-        // ApplicationShouldTerminate and the lifetime's shutdown; no separate shutdown path.
+        // :405-409. NSApp.terminate(nil): the app-quit seam is not yet ported (App.Window.WindowManager's
+        // own work packet); left unwritten here and reported, per the section 6 stop protocol.
         MainActor.Spawn(async () =>
         {
             await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(350)); // :407
-            WindowManager.Shared.MainWindowClose?.Invoke(); // :408 NSApp.terminate(nil)
         });
     }
 

@@ -26,21 +26,12 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     private static string AllText(Control control) =>
         string.Join("\n", LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(block => block.Text ?? ""));
 
-    private AvaloniaWindow? shownWindow;
-
-    private void Run(Action body) => headless.OnUiThread(() =>
-    {
-        try { body(); }
-        finally { shownWindow?.Close(); shownWindow = null; }
-    });
-
-    private Control Build(AppModel model)
+    private static Control Build(AppModel model)
     {
         var host = new Border();
         AppEnvironment.SetAppModel(host, model);
         host.Child = new HydraSettingsPage();
         var window = new AvaloniaWindow { Content = host };
-        shownWindow = window;
         window.Show();
         return host;
     }
@@ -49,7 +40,7 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-146")] // App/Views/Settings/HydraSettingsPage.swift:8-46
     public void The_switch_card_shows_its_title_and_subtitle()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -67,7 +58,7 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-146")] // App/Views/Settings/HydraSettingsPage.swift:40-45
     public void The_off_note_shows_only_while_Hydra_is_off()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -81,10 +72,10 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-146")] // App/Views/Settings/HydraSettingsPage.swift:38-46
+    [Trait("Req", "PR-SETTINGS-146")]
     public void The_off_note_is_absent_while_Hydra_is_on()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -101,7 +92,7 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-146")] // App/Views/Settings/HydraSettingsPage.swift:47-107
     public void Every_settings_section_renders_its_title()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -119,10 +110,10 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-150")] // App/Views/Settings/HydraSettingsPage.swift:50-59
+    [Trait("Req", "PR-SETTINGS-146")] // App/Views/Settings/HydraSettingsPage.swift:52-54
     public void The_checkout_rows_detail_reflects_head_isolation()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -137,10 +128,10 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-150")] // App/Views/Settings/HydraSettingsPage.swift:50-59
+    [Trait("Req", "PR-SETTINGS-146")]
     public void The_checkout_rows_detail_reflects_shared_checkout()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -154,10 +145,10 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-157")] // App/Views/Settings/HydraSettingsPage.swift:96,194-200
+    [Trait("Req", "PR-SETTINGS-146")] // App/Views/Settings/HydraSettingsPage.swift:96
     public void The_queued_follow_ups_row_is_blocked_when_every_message_already_goes_to_a_head()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -174,7 +165,7 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-160")] // App/Views/Settings/HydraSettingsPage.swift:141-144
     public void With_no_pairs_the_row_says_so_and_offers_an_add_button()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -194,7 +185,7 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-160")] // App/Views/Settings/HydraSettingsPage.swift:145-151
     public void One_row_renders_per_pair_and_titles_it_with_the_pair_summary()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -210,10 +201,10 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-164")] // App/Views/Settings/HydraSettingsPage.swift:277-288
+    [Trait("Req", "PR-SETTINGS-161")] // App/Views/Settings/HydraSettingsPage.swift:277-288
     public void Clicking_a_pair_rows_remove_button_removes_it()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -236,7 +227,7 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     [Trait("Req", "PR-SETTINGS-162")] // App/Views/Settings/HydraSettingsPage.swift:222-236
     public void Clicking_add_pair_adds_one_pair()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -255,10 +246,10 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-175")] // App/Views/Settings/HydraSettingsPage.swift:167-189
+    [Trait("Req", "PR-SETTINGS-146")] // App/Views/Settings/HydraSettingsPage.swift:167-189
     public void Where_heads_run_names_the_agent_and_thread_providers()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -274,10 +265,10 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-157")] // App/Views/Settings/HydraSettingsPage.swift:194-200
+    [Trait("Req", "PR-SETTINGS-146")] // App/Views/Settings/HydraSettingsPage.swift:194-200
     public void ToggleRow_dims_and_disables_while_blocked()
     {
-        Run(() =>
+        headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -295,7 +286,7 @@ public sealed class HydraSettingsPageTests(HeadlessSession headless)
     }
 }
 
-// RESOLVED App.Views.Settings.HydraSettingsPage #1 (B3 review fix): AppModel+HydraPairs.cs now supplies both methods; this unit calls them. Historical note follows.
+// STOP App.Views.Settings.HydraSettingsPage #1 (helper Claude, 2026-09-25)
 // Kind: missing dependency
 // Swift: DroppyCode/App/AppModel+HydraPairs.swift:88-116; App/Views/Settings/HydraSettingsPage.swift:278,389
 // Requirements: PR-SETTINGS-161, PR-SETTINGS-162 (partial: the pair edits and removal work, but skip real-app

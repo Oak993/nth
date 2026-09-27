@@ -1,13 +1,10 @@
-// Source: DroppyCode/App/Views/Tour/TourWindowController.swift (B3 52bc792), :1-186.
+// Source: DroppyCode/App/Views/Tour/TourWindowController.swift (B2 1fbf81e), :1-179.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using Avalonia;
 using Avalonia.Controls;
-using Avalonia.Input;
-using Avalonia.Media;
-using Avalonia.VisualTree;
 using AvaloniaWindow = Avalonia.Controls.Window;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
@@ -27,8 +24,6 @@ public sealed class TourWindowController
 
     private AvaloniaWindow? window;
     private WindowDelegate? windowDelegate;
-    internal Action<PointerPressedEventArgs>? MoveDragForTesting { get; set; }
-    internal AvaloniaWindow? MainWindowForTesting { get; set; }
 
     /// <summary>
     /// HostWindow (:8-11): Custom NSWindow that allows becoming key and main.
@@ -134,33 +129,18 @@ public sealed class TourWindowController
         // Set up transparent background
         createdWindow.Background = null;
 
-        // :84-86 Windows floating-panel adaptation: shadow on the unclipped rounded scrim,
-        // using the port's existing borderless-panel recipe; background presses enter the system move loop.
-        if (rootView.Children[0] is Border scrim)
-            scrim.BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb(166, 0, 0, 0), Blur = 28, OffsetY = 10 });
-        rootView.PointerPressed += (_, e) =>
-        {
-            if (e.GetCurrentPoint(rootView).Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed) return;
-            if (e.Source is Visual source && source.GetSelfAndVisualAncestors().OfType<Button>().Any()) return;
-            if (MoveDragForTesting is { } move) move(e);
-            else createdWindow.BeginMoveDrag(e);
-            e.Handled = true;
-        };
-
         // :92-101 Position the window
-        var mainWindow = MainWindowForTesting ?? (Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime
+        var mainWindow = Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime
             ? lifetime.MainWindow
-            : null);
+            : null;
 
         if (mainWindow != null && mainWindow.IsVisible)
         {
-            var mainFrame = mainWindow.FrameSize ?? mainWindow.Bounds.Size;
-            var scale = mainWindow.RenderScaling;
-            var originX = mainWindow.Position.X + (mainFrame.Width - width) * scale / 2;
-            var originY = mainWindow.Position.Y + (mainFrame.Height - totalHeight) * scale / 2;
-            createdWindow.Position = new PixelPoint((int)Math.Round(originX), (int)Math.Round(originY));
+            var mainFrame = mainWindow.Bounds;
+            var originX = mainFrame.Left + (mainFrame.Width - width) / 2;
+            var originY = mainFrame.Top + (mainFrame.Height - totalHeight) / 2;
+            createdWindow.Position = new PixelPoint((int)originX, (int)originY);
         }
-        else createdWindow.WindowStartupLocation = WindowStartupLocation.CenterScreen;
 
         // :103-111 Set up delegate and show window
         var del = new WindowDelegate(() =>
@@ -215,13 +195,27 @@ public sealed class TourWindowController
     /// </summary>
     private static double MeasurePanelHeight(TourPage page, string buttonTitle, double width)
     {
-        var panel = new TourBottomPanelSizingView(page, buttonTitle);
-        panel.Measure(new Size(width, double.PositiveInfinity));
-        return panel.DesiredSize.Height;
+        // Estimate the panel height based on page content
+        const double TitleFontSize = 28;
+        const double DescriptionFontSize = 13;
+        const double ButtonHeight = 42;
+        const double HorizontalPadding = 64; // 32 * 2
+        const double TopPadding = 12;
+        const double BottomPadding = 24;
+        const double InternalSpacing = 6;
+        const double TextMarginSpacing = 24; // 12 * 2
+
+        var availableWidth = width - HorizontalPadding;
+        var titleLines = Math.Ceiling(page.Title.Length / (availableWidth / 8));
+        var descriptionLines = Math.Ceiling(page.Description.Length / (availableWidth / 7));
+        var titleHeight = titleLines * TitleFontSize * 1.2;
+        var descriptionHeight = descriptionLines * DescriptionFontSize * 1.4;
+
+        return TopPadding + TextMarginSpacing + titleHeight + InternalSpacing + descriptionHeight + TextMarginSpacing + BottomPadding + ButtonHeight;
     }
 
     /// <summary>
-    /// close() (:139-143): Closes the window and clears references so present() builds fresh next time.
+    /// close() (:167-171): Closes the window and clears references so present() builds fresh next time.
     /// </summary>
     public void Close()
     {
@@ -231,28 +225,5 @@ public sealed class TourWindowController
         }
         window = null;
         windowDelegate = null;
-    }
-}
-
-/// <summary>:152-186. The literal off-screen sizing tree, measured at each requested window width.</summary>
-internal sealed class TourBottomPanelSizingView : Border
-{
-    public TourBottomPanelSizingView(TourPage page, string buttonTitle)
-    {
-        // :152-186 ED-052: measure the real sizing view, including only the source's
-        // 220x42 text frame (no native button chrome) and the two 12 DIP spacer floors.
-        var title = new TextBlock { Text = page.Title, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
-        SwiftFont.System(28, SwiftFont.Weight.Bold).Apply(title);
-        var description = new TextBlock { Text = page.Description, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 6, 0, 0) };
-        SwiftFont.Body.Apply(description);
-        var label = new TextBlock { Text = buttonTitle, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
-        SwiftFont.Title3.FontWeight(SwiftFont.Weight.Semibold).Apply(label);
-        var stack = new StackPanel
-        {
-            Spacing = 0,
-            Children = { new Border { Height = 12 }, title, description, new Border { Height = 12 }, new Border { Width = 220, Height = 42, Child = label } },
-        };
-        Padding = new Thickness(32, 12, 32, 24);
-        Child = stack;
     }
 }

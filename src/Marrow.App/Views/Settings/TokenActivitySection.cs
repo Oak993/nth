@@ -1,4 +1,4 @@
-// Source: DroppyCode/App/Views/Settings/TokenActivitySection.swift (B3 52bc792), :1-272.
+// Source: DroppyCode/App/Views/Settings/TokenActivitySection.swift (B2 1fbf81e), :1-272.
 //
 // Port shape (R-VIEW-1, R-VIEW-2, R-VIEW-9, ED-066): TokenActivitySection is a Decorator whose constructor
 // builds `body` once (:52-99). @State (mode, previousGrid, switchCount, grid) becomes a ViewState : MainActorModel
@@ -12,8 +12,10 @@
 // becomes TokenActivityMonthStrip : Canvas, rebuilding its labels in ArrangeOverride so they track the available
 // width the way SwiftUI's GeometryReader does.
 //
-// UsagePanel.tokens(_:) (DroppyCode/App/Views/Usage/UsagePanel.swift:110-118) is used at :143, :145.
-// Views.Usage.UsagePanel.Tokens is the shared port of that formatter; both legend values call it directly.
+// UsagePanel.tokens(_:) (DroppyCode/App/Views/Usage/UsagePanel.swift:109-118) is used at :143, :145 but
+// Views.Usage.UsagePanel is not yet ported as its own unit. TokenActivityFormat.FormatTokens duplicates that exact
+// algorithm from the pinned source pending that unit's port; it must be reconciled (not re-implemented) when
+// App.Views.Usage.UsagePanel lands, per the "never invent, only reuse with proven equivalence" rule.
 //
 // ChipButtonStyle (DroppyCode/UI/Common/Components.swift:58-99, cited by this file's own records) has no ported
 // twin: UI.Common.Components's TokenActivitySection-independent ChipButtonStyleHelper (Components.cs:120-125) is an
@@ -44,7 +46,6 @@ using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.Core.Port;
-using Marrow.App.Views.Usage;
 using Marrow.Services.Store;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -80,6 +81,20 @@ internal static class TokenActivityStyle
 /// private, for the same reason as TokenActivityStyle above).
 internal static class TokenActivityFormat
 {
+    /// UsagePanel.tokens(_:), UsagePanel.swift:109-118 (not yet ported as its own unit; see file header).
+    internal static string FormatTokens(long count)
+    {
+        static string Compact(double value, string suffix)
+        {
+            var text = value.ToString("F1", CultureInfo.InvariantCulture);
+            return (text.EndsWith(".0", StringComparison.Ordinal) ? text[..^2] : text) + suffix;
+        }
+        if (count >= 1_000_000_000) return Compact((double)count / 1_000_000_000, "B");
+        if (count >= 1_000_000) return Compact((double)count / 1_000_000, "M");
+        if (count >= 1_000) return Compact((double)count / 1_000, "k");
+        return count.ToString(CultureInfo.InvariantCulture);
+    }
+
     /// :179-185 modeHelp(_:). PR-SETTINGS-131, UI-SETTINGS-022.
     internal static string ModeHelp(TokenActivityMode mode) => mode switch
     {
@@ -92,9 +107,9 @@ internal static class TokenActivityFormat
     /// :142-146, :169-171. summary/detail/accessibility-value for the legend. PR-SETTINGS-138, PR-SETTINGS-139.
     internal static (string Summary, string Detail, string AccessibilityValue) Legend(long total, long uncertainTokens)
     {
-        var summary = $"{UsagePanel.Tokens(total)} tokens"; // :143
+        var summary = $"{FormatTokens(total)} tokens"; // :143
         var detail = uncertainTokens > 0 // :144-146
-            ? $"{UsagePanel.Tokens(uncertainTokens)} tokens have an unknown source and may overlap imported history."
+            ? $"{FormatTokens(uncertainTokens)} tokens have an unknown source and may overlap imported history."
             : "Total tokens recorded this year.";
         var accessibilityValue = uncertainTokens > 0 ? $"{summary}. {detail}" : summary; // :169-171
         return (summary, detail, accessibilityValue);
@@ -362,7 +377,6 @@ public sealed class TokenActivitySection : Decorator
         }.RegisterInNameScope(scope));
 
     private readonly TokenLedger ledger; // :38 @State private var ledger = TokenLedger.shared
-    private readonly ViewTask<int> refreshTask;
     private readonly ViewState state = new();
     private readonly TokenActivityHeatmapCanvas canvas;
     private readonly TokenActivityMonthStrip monthStrip;
@@ -381,7 +395,6 @@ public sealed class TokenActivitySection : Decorator
     internal TokenActivitySection(TokenLedger ledger)
     {
         this.ledger = ledger;
-        refreshTask = new ViewTask<int>(0, async _ => await ledger.RefreshIfNeeded()); // :96-98
 
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 10 }; // :53
 
@@ -424,12 +437,11 @@ public sealed class TokenActivitySection : Decorator
             () => (ledger.DailyTotals.Values.Aggregate(0L, (a, b) => a + b), ledger.UncertainTokensThisYear),
             pair => UpdateLegend(pair.Total, pair.Uncertain)));
 
-        refreshTask.Appear(); // :96-98: start during this appearance, not the next attachment.
+        this.Task(() => 0, async _ => await ledger.RefreshIfNeeded()); // :96-98
     }
 
     private void Disappear()
     {
-        refreshTask.Disappear();
         gridWatch?.Dispose();
         gridWatch = null;
         foreach (var track in tracks) track.Dispose();
@@ -492,15 +504,12 @@ public sealed class TokenActivitySection : Decorator
             fill.Set(color, Transaction.Current);
         }
 
-        var initialized = false;
         button.Track(() => state.Mode == option, active =>
         {
             SwiftFont.System(SwiftFont.TextStyle.Body, weight: active ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(label); // :77
             label.Foreground = (active ? Chrome.Accent : Chrome.SecondaryText).Brush(label); // :80 .tint / .secondary
             button.SetSelected(active); // :84 .isSelected trait
-            if (initialized) Transaction.WithAnimation(Animation.Smooth(0.25), UpdateFill); // :87 mode changes only.
-            else UpdateFill();
-            initialized = true;
+            UpdateFill();
         });
 
         button.OnHover(over =>
@@ -544,20 +553,16 @@ public sealed class TokenActivitySection : Decorator
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(summary); // :150
         summary.Foreground = Chrome.SecondaryText.Brush(summary); // :151
 
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") }; // :148-154 flexible spacer
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :148 HStack(spacing: 8)
         row.Children.Add(summary);
 
-        var spacer = new Control { MinWidth = 28 }; // :154 minimum 12 + adjacent HStack spacings 8 + 8.
-        Grid.SetColumn(spacer, 1);
+        var spacer = new Control { Width = 12, HorizontalAlignment = HorizontalAlignment.Stretch }; // :154 Spacer(minLength: 12)
         row.Children.Add(spacer);
-        var ladder = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
-        Grid.SetColumn(ladder, 2);
-        row.Children.Add(ladder);
 
         var less = new TextBlock { Text = "Less" }; // :155
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(less); // :156
         less.Foreground = Chrome.SecondaryText.Brush(less); // :157
-        ladder.Children.Add(less);
+        row.Children.Add(less);
 
         foreach (var step in TokenActivityFormat.Ladder()) // :158-162
         {
@@ -568,13 +573,13 @@ public sealed class TokenActivitySection : Decorator
                 Height = 10,
                 Background = step.Brush(row),
             };
-            ladder.Children.Add(swatch);
+            row.Children.Add(swatch);
         }
 
         var more = new TextBlock { Text = "More" }; // :163
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(more); // :164
         more.Foreground = Chrome.SecondaryText.Brush(more); // :165
-        ladder.Children.Add(more);
+        row.Children.Add(more);
 
         // :167 .accessibilityElement(children: .ignore): the ladder swatches carry no automation of their own.
         // :168-171 .accessibilityLabel("Token activity") + .accessibilityValue(...): Avalonia's AutomationProperties

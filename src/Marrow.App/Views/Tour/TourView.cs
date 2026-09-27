@@ -14,7 +14,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Tour;
 
-// Source: DroppyCode/App/Views/Tour/TourView.swift (B3 52bc792), :1-299.
+// Source: DroppyCode/App/Views/Tour/TourView.swift (B2 1fbf81e), :1-277.
 //
 // The welcome tour is a port of TourKit by Ram Patra (https://github.com/rampatra/TourKit, MIT License): the
 // slideshow card, its page indicator and its controls, carried over to the app's glass and its asset catalog.

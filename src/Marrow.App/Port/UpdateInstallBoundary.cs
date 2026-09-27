@@ -1,4 +1,3 @@
-// Source: DroppyCode/App/AppUpdater.swift (B3 52bc792), :299-395.
 // PORT-ONLY: the Windows equivalent of AppUpdater.swift's macOS install mechanism (hdiutil attach/copy/
 // detach, the Developer ID signature check plus Gatekeeper, and the shell installer script). ED-188
 // (orchestrator ruling, run16, recorded in porting/engineering_decisions.md and ruled to the build agent as
@@ -75,7 +74,7 @@ public sealed class WindowsUpdateInstallBoundary : IUpdateInstallBoundary
     /// </summary>
     internal static string CreateStagingDirectory()
     {
-        var path = Path.Combine(Path.GetTempPath(), $"MarrowUpdate-{SwiftUUID.UuidString(Guid.NewGuid())}");
+        var path = Path.Combine(Path.GetTempPath(), $"MarrowUpdate-{Guid.NewGuid():D}");
         var info = Directory.CreateDirectory(path);
         var security = new DirectorySecurity();
         security.SetAccessRuleProtection(true, false); // no inherited rules reach this folder
