@@ -28,14 +28,12 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views;
 
 // Source: DroppyCode/App/Views/RootView.swift (B3 52bc792), :1-450.
-// Covers the 6 types that do not depend on SidebarView.cs or ChatView.cs (SidebarView is unblocked as of this review
-// pass; ChatView still is not): DetailView's empty-state branch, WelcomeView, ProviderChecklist, ProviderStatusRow,
+// Covers the detail empty states and first-launch selected conversation: DetailView's empty-state branch, WelcomeView, ProviderChecklist, ProviderStatusRow,
 // OpenProvidersSettingsButton and NoThreadView; RootView.HandleDropCore (PR-WIN-064, PR-WIN-065), the whole body of
 // the private handleDrop(_:) (:94-110); and, from this review pass, RootView's own top-level body (PR-WIN-062,
 // PR-WIN-063, PR-WIN-066, PR-WIN-067): the window's own clip, the detail pane's clip and (inert) insets, the model
 // alert, and the genie/row-glide/command-palette overlay stack. CopyCommandButton is gone at B3 (B3_PLAN.md section
-// 4); its test is removed with it. ThreadColumns and DetailView's "a thread is selected" branch stay MARROW_STUB
-// (see the STOP note at the end of this file, narrowed to name only ChatView) and are not exercised here.
+// 4); its test is removed with it. RootViewTestsColumns covers the selected thread's cache and prebuild lifecycle.
 // AppModelHarness's TestRuntime makes MainActorModel writes (Track callbacks fired during AttachedToVisualTree)
 // require an active Pump, so both construction and interaction happen inside harness.Main.OnMain(...), matching the
 // pattern this session already established for App.Views.Terminal.TerminalPanel and App.Views.Settings.HydraSettingsPage.
@@ -328,7 +326,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     // HandleDropCore (RootView.swift:94-110): the whole body of private func handleDrop(_:), reached through the
     // internal static extraction RootView.HandleDropCore documented on that method. Every case below drives it
     // directly with real files and folders under harness.Scratch (R-TEST-9); none of it needs RootView's own body
-    // (still MARROW_STUB, see the STOP note below), so these are not blocked by SidebarView.
+    // so these exercise the drop body independently of the hosted views.
 
     [Fact]
     [Trait("Req", "PR-WIN-064")] // App/Views/RootView.swift:96-105
@@ -590,6 +588,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:8-92; App/Window/WindowManager.swift:62-72,86-110
     [Trait("Req", "PR-WIN-077")] // App/Views/RootView.swift:155-165; App/AppModel.swift:239-287
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:33-43,130-133,266-283
     public void A_fresh_empty_bootstrap_renders_the_real_WindowManager_RootView_sidebar_and_welcome_detail()
     {
         LoadLoginEnvironmentOffMain();
@@ -1065,15 +1064,8 @@ public sealed class RootViewTests(HeadlessSession headless)
         });
     });
 
-    // A dropped folder always selects the thread it creates (:104-105 newThread(in: lastProject)), and a dropped
-    // file attaches only when a thread is ALREADY selected (:106-108): either shape, live through a fully attached
-    // RootView, reactively rebuilds DetailView with a thread selected, whose "a thread is selected" branch is still
-    // MARROW_STUB (STOP App.Views.RootView #2, blocked on ChatView alone) - proving either live here would just
-    // retrace that STOP, not this record. Both thread-selecting shapes stay proven at the HandleDropCore level by
-    // the tests above (which build no visual tree at all, so they are not blocked by ChatView either way); this one
-    // exercises the real Avalonia drag-and-drop pipeline itself (DragDrop.DropEvent through OnDrop, HandleDrop and
-    // DroppedFileUrl) on the one shape that never selects a thread, so it stays inside the open boundary: PR-WIN-065's
-    // own documented failure case, "No thread selected: the files are discarded with no message".
+    // The no-selection failure case travels through the real drag-and-drop pipeline. The folder and selected-file
+    // shapes are covered independently through HandleDropCore above.
     [Fact]
     [Trait("Req", "PR-WIN-064")] // App/Views/RootView.swift:77-79, wired onto the already-tested HandleDropCore
     [Trait("Req", "PR-WIN-065")] // App/Views/RootView.swift:106-108's own failure case
@@ -1104,18 +1096,6 @@ public sealed class RootViewTests(HeadlessSession headless)
         });
     }
 }
-
-// STOP App.Views.RootView #2 (Window sweep, narrowed to ChatView alone)
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/RootView.swift:129-133,177-297 (B3 52bc792)
-// Requirements: selected-thread branch of PR-WIN-077 and ThreadColumns only.
-// What is missing: App.Views.Chat.ChatView's real conversation body and the methods ThreadColumns calls when
-// constructing/updating its selected-thread panes. That unit is being ported in another lane and is not edited here.
-// Needed to proceed: the ChatView unit. WindowLiveResize is already attached by the real WindowManager host.
-// Done: RootView's own body, PR-WIN-062/063/066/067 (composited window clip, clipped detail with named zero insets,
-// owned cancel-default model alert with both binding directions, window-wide genie/glide/palette overlay stack).
-// The empty-library WelcomeView and project-with-no-selection NoThreadView are real. SidebarView's real rows are
-// now assembled by this sweep; only its genuine rename/context-menu presentation STOP sites remain.
 
 // STOP App.Views.RootView #3 (Window review fixes, ED-216)
 // Kind: missing shared-dialog seam extension.

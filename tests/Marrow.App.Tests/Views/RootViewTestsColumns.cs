@@ -35,6 +35,7 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
     }
     private static void Tick(AppModelHarness h, double milliseconds)
     {
+        h.Main.OnMain(() => Dispatcher.UIThread.RunJobs()); // start queued UI-executor tasks before advancing their timers
         h.Main.AdvanceMilliseconds(milliseconds);
         h.Main.OnMain(() => Dispatcher.UIThread.RunJobs());
     }
@@ -42,7 +43,6 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
     private void WithPane(Action<AppModelHarness, AppModel, Guid[], Panel, WindowLiveResize, Avalonia.Controls.Window> check) => headless.OnUiThread(() =>
     {
         using var h = new AppModelHarness();
-        using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
         using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var model = h.MakeModel();
@@ -62,9 +62,16 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
                 window.Show();
                 window.UpdateLayout();
             });
+            // ThreadRuntime starts a real asynchronous document read. Complete it on the harness loop before
+            // binding mounted ChatView callbacks to the UI dispatcher, so idle release has persisted state.
+            h.Main.Loop.Run(async () =>
+            {
+                foreach (var id in ids) await model.Runtime(id).EnsureLoaded();
+            }, AppModelHarness.Bound);
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             check(h, model, ids, pane, resize, window);
         }
-        finally { h.Main.OnMain(() => { window.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+        finally { h.Main.OnMain(() => { window.Hide(); window.Content = null; Dispatcher.UIThread.RunJobs(); }); }
     });
 
     [Fact]
@@ -119,9 +126,9 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
             Assert.Equal(10, Hosts(pane).Length); // retired stays attached until the switch is drawn
             Assert.False(oldest.IsVisible);
         });
-        h.Main.AdvanceMilliseconds(499);
+        Tick(h, 499);
         h.Main.OnMain(() => Assert.Same(pane, oldest.Parent));
-        h.Main.AdvanceMilliseconds(1);
+        Tick(h, 1);
         h.Main.OnMain(() => { Assert.Null(oldest.Parent); Assert.Equal(9, Hosts(pane).Length); });
     });
 
@@ -139,7 +146,7 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
             Assert.False(RootView.GetChatColumnIsShown(Chat(ahead)));
             foreach (var id in ids.Skip(1).Take(8)) Call(coordinator, "Show", id, pane, model, resize);
         });
-        h.Main.AdvanceMilliseconds(500);
+        Tick(h, 500);
         h.Main.OnMain(() =>
         {
             Assert.Null(ahead.Parent);
@@ -192,7 +199,7 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
             Call(columns, "Update", ids[0], new[] { ids[2], Guid.NewGuid() }, new HashSet<Guid> { ids[1], ids[2] }, model, resize);
             Assert.Equal(2, LogicalQuery.SelfAndDescendants<FrameHostingView>(columns).Count()); // hidden running retired, no filtered prebuild
         });
-        h.Main.AdvanceMilliseconds(500);
+        Tick(h, 500);
         h.Main.OnMain(() =>
         {
             Assert.Single(LogicalQuery.SelfAndDescendants<FrameHostingView>(columns));
@@ -201,7 +208,7 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
             Assert.True(model.ReleaseIdleRuntime(ids[3]));
             Call(columns, "Update", ids[0], Array.Empty<Guid>(), new HashSet<Guid>(), model, resize);
         });
-        h.Main.AdvanceMilliseconds(500);
+        Tick(h, 500);
         h.Main.OnMain(() => Assert.Single(LogicalQuery.SelfAndDescendants<FrameHostingView>(columns)));
     });
 
@@ -274,5 +281,36 @@ public sealed class RootViewTestsColumns(HeadlessSession headless)
         h.Main.OnMain(() => Dispatcher.UIThread.RunJobs());
         Tick(h, 1500);
         h.Main.OnMain(() => Assert.Empty(Prebuilt(detail))); // :150 running selection stops the entire prebuild task
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:131-133,196-197
+    public void A_newly_prebuilt_hidden_column_is_dropped_when_its_runtime_starts_streaming() => WithPane((h, model, ids, _, resize, window) =>
+    {
+        using var idle = Idle(() => 2);
+        var detail = new DetailView();
+        Guid neighbor = default;
+        h.Main.OnMain(() =>
+        {
+            neighbor = model.Neighbors(ids[4])[0];
+            Assert.True(model.ReleaseIdleRuntime(neighbor));
+            model.SelectedThreadID = ids[4];
+            AppEnvironment.SetAppModel(detail, model);
+            AppEnvironment.SetWindowLiveResize(detail, resize);
+            window.Content = detail;
+            Dispatcher.UIThread.RunJobs();
+        });
+        Tick(h, 1500);
+        FrameHostingView hidden = null!;
+        h.Main.OnMain(() =>
+        {
+            Assert.Equal(neighbor, Assert.Single(Prebuilt(detail)));
+            hidden = LogicalQuery.SelfAndDescendants<FrameHostingView>(detail).Single(host => !host.IsVisible);
+            typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Phase))!.SetValue(model.Runtime(neighbor), RuntimePhase.Starting);
+        });
+        // Freeze additional prebuilds without changing the streaming runtime or the source's retirement deadline.
+        using var busy = Idle(() => 0);
+        Tick(h, 500);
+        h.Main.OnMain(() => Assert.Null(hidden.Parent));
     });
 }
