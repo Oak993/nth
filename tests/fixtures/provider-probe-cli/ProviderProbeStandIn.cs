@@ -44,7 +44,13 @@ internal static class ProviderProbeStandIn
             argv.Write(bytes, 0, bytes.Length);
             argv.WriteByte(0);
         }
-        File.WriteAllBytes(Path.Combine(dir, "call-" + call + ".args"), argv.ToArray());
+        string recorded = Path.Combine(dir, "call-" + call + ".args");
+        if (File.Exists(Path.Combine(dir, "wait-for-release.txt")))
+        {
+            File.WriteAllBytes(recorded + ".tmp", argv.ToArray());
+            File.Move(recorded + ".tmp", recorded); // The controlled listing publishes only complete argv.
+        }
+        else File.WriteAllBytes(recorded, argv.ToArray()); // Existing probe mode stays unchanged.
 
         string markerPath = Path.Combine(dir, "marker.txt");
         string marker = File.Exists(markerPath) ? File.ReadAllText(markerPath).Trim() : "";
@@ -57,6 +63,19 @@ internal static class ProviderProbeStandIn
 
         try
         {
+            // Optional test-only gate for ComposerView.swift:205-215's delayed command listing. No fixed sleep
+            // decides delivery: the test releases listings after asserting its focused panel is already open.
+            // Claude's independent --help warmup is not a listing and must never wait on this gate.
+            if (args.Length > 0 && args[0] == "-p" && File.Exists(Path.Combine(dir, "wait-for-release.txt")))
+            {
+                DateTime deadline = DateTime.UtcNow.AddSeconds(20);
+                string release = Path.Combine(dir, "release-listings.txt");
+                while (!File.Exists(release))
+                {
+                    if (DateTime.UtcNow >= deadline) return 1;
+                    Thread.Sleep(10);
+                }
+            }
             string stdoutPath = Path.Combine(dir, "stdout.txt");
             string stderrPath = Path.Combine(dir, "stderr.txt");
             string exitPath = Path.Combine(dir, "exit.txt");
