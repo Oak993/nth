@@ -2,7 +2,11 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
+using Avalonia.Threading;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
@@ -172,6 +176,122 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
     private static Border HitAreaOf(TimelineMinimapRail rail) =>
         (Border)typeof(TimelineMinimapRail).GetField("hitArea", BindingFlags.Instance | BindingFlags.NonPublic)!
             .GetValue(rail)!;
+
+    private static string? HoveredIdOf(TimelineMinimapRail rail) =>
+        (string?)typeof(TimelineMinimapRail).GetField("hoveredID", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(rail);
+
+    private static TimelineMinimapEntry[] ThreeEntries() =>
+    [
+        new TimelineMinimapEntry { Id = "first", Title = "first", Snippet = "", Weight = 0.15 },
+        new TimelineMinimapEntry { Id = "middle", Title = "middle", Snippet = "", Weight = 0.15 },
+        new TimelineMinimapEntry { Id = "last", Title = "last", Snippet = "", Weight = 0.15 },
+    ];
+
+    // Same rig as TimelineMinimapAnimationAuditTests: a real Window hosting the rail, laid out once so the hit
+    // area (built from the actual runtime size in UpdateHitArea, not from the centerHeight constructor argument)
+    // has real bounds to compute pointer coordinates from.
+    private static (Avalonia.Controls.Window Window, TimelineMinimapRail Rail, Rect HitAreaBounds) NewLaidOutRail(
+        IReadOnlyList<TimelineMinimapEntry> entries, Action<string, bool> onNavigate)
+    {
+        var rail = new TimelineMinimapRail(entries, 200, null, onNavigate);
+        var window = new Avalonia.Controls.Window { Content = rail, Width = 300, Height = 400 };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+
+        var hitArea = HitAreaOf(rail);
+        var bounds = new Rect(hitArea.TranslatePoint(new Point(0, 0), window)!.Value, hitArea.Bounds.Size);
+        return (window, rail, bounds);
+    }
+
+    // Source: TimelineMinimap.swift:212-221 (onContinuousHover): the .ended case (:218-219) is
+    // `hoveredID = nil` unconditionally - the switch has no other case that reads press state, and nothing
+    // else in :201-240 touches hoveredID on an exit. UI-CHAT-003 (:201-240) is the covering screen-contract
+    // record ("hover: previews the tick under the pointer"); this is the specific clause a plain mouse-leave
+    // exercises directly, with no press involved.
+    [Trait("Req", "UI-CHAT-003")] // TimelineMinimap.swift:212-221
+    [Fact]
+    public void A_plain_exit_with_no_press_clears_the_hovered_tick()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var frames = new Marrow.UI.Port.ManualFrameSource();
+            using var source = Marrow.UI.Port.FrameClock.Source.Override(frames);
+            var (window, rail, hitAreaBounds) = NewLaidOutRail(ThreeEntries(), (_, _) => { });
+            try
+            {
+                var inside = new Point(hitAreaBounds.X + 5, hitAreaBounds.Y + 2);
+                var outside = new Point(hitAreaBounds.X + 5, hitAreaBounds.Bottom + 100);
+
+                window.MouseMove(inside, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal("first", HoveredIdOf(rail)); // hovering alone previews the tick under the pointer
+
+                window.MouseMove(outside, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Null(HoveredIdOf(rail));
+            }
+            finally { window.Close(); }
+        });
+    }
+
+    // Source: TimelineMinimap.swift:212-221. The defect this proves: :383-386 (pre-fix) only cleared
+    // hoveredID on PointerExited "if (!isPressing)", where Swift's :218-219 `case .ended: hoveredID = nil`
+    // has no such guard - it clears every time the pointer leaves, press or no press. A real drag-out (press
+    // inside, then a genuine MouseMove past the hit area while the pointer is captured) delivers BOTH a real
+    // PointerExited AND, because Avalonia keeps routing Moved to the captured element regardless of where the
+    // cursor now is (unlike this, no Swift analogue needed), a real PointerMoved for the same simulated move -
+    // and PointerMoved's own UpdateScrub (:728-738, unrelated to this fix) always re-clamps hoveredID to the
+    // nearest tick immediately afterward, which would mask a look at the field only once both events have run.
+    // A second handler on the SAME PointerExited routed event (added after construction, so it runs after the
+    // production handler above it, and strictly before the pipeline goes on to raise the separate Moved event)
+    // reads hoveredID at the one moment that isolates the fix: right after the exit itself, before the
+    // unrelated scrub logic gets a chance to touch it again.
+    [Trait("Req", "UI-CHAT-003")] // TimelineMinimap.swift:212-221
+    [Fact]
+    public void Dragging_the_pointer_out_while_pressed_still_clears_the_hovered_tick_on_exit()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var frames = new Marrow.UI.Port.ManualFrameSource();
+            using var source = Marrow.UI.Port.FrameClock.Source.Override(frames);
+            var navigations = new List<(string Id, bool Final)>();
+            var (window, rail, hitAreaBounds) = NewLaidOutRail(ThreeEntries(), (id, final) => navigations.Add((id, final)));
+            try
+            {
+                var hitArea = HitAreaOf(rail);
+                string? hoveredIdAtExit = "not observed";
+                hitArea.AddHandler(InputElement.PointerExitedEvent, (_, _) => hoveredIdAtExit = HoveredIdOf(rail),
+                    RoutingStrategies.Direct);
+
+                var inside = new Point(hitAreaBounds.X + 5, hitAreaBounds.Y + 2);
+                var outside = new Point(hitAreaBounds.X + 5, hitAreaBounds.Bottom + 100);
+
+                window.MouseDown(inside, MouseButton.Left, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal("first", HoveredIdOf(rail)); // the press itself previews/jumps to the pressed tick
+
+                window.MouseMove(outside, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+
+                Assert.Null(hoveredIdAtExit); // the fix under test: cleared on exit, press or no press
+
+                window.MouseUp(outside, MouseButton.Left, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+
+                // The scrub itself (UpdateScrub, unrelated to this fix) is untouched: dragging out still tracks
+                // to the nearest tick and a release outside still commits a final navigation to it.
+                Assert.Equal("last", HoveredIdOf(rail));
+                Assert.Equal(("last", false), navigations[0]);
+                Assert.Equal(("last", true), navigations[^1]);
+            }
+            finally { window.Close(); }
+        });
+    }
 
     [Fact]
     [Trait("Req", "PR-CHAT-072")] // App/Views/Chat/TimelineMinimap.swift:211

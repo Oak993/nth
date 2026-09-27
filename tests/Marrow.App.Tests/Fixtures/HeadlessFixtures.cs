@@ -33,8 +33,16 @@ public sealed class HeadlessSession : IDisposable
     public void OnUiThread(Action body) => Session.Dispatch(() =>
     {
         MainActor.Bind(AvaloniaMainExecutor.Instance);
-        body();
+        inBody = true;
+        try { body(); }
+        finally { inBody = false; }
     }, CancellationToken.None).GetAwaiter().GetResult();
+
+    /// <summary>Whether the caller runs inside an <see cref="OnUiThread"/> body, where this test's dispatcher may be
+    /// pumped (the session makes a new one for the next test).</summary>
+    public static bool IsInBody => inBody;
+
+    [ThreadStatic] private static bool inBody;
 
     /// <summary>
     /// From inside an <see cref="OnUiThread"/> body: runs the headless dispatcher in a nested frame until
