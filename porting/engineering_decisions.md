@@ -1348,3 +1348,23 @@ it reaches each text inside, and each text scales independently. Tests:
 - each of the four sites carries its own factor.
 ENGINEERING DECISION; macOS's exact scale stepping stays UNVERIFIED under OD-0001.
 
+ED-215 [UI][FOUNDATION] Every asset-catalogue image the pinned Swift names is bundled. This extends ED-182's asset table, which
+held three names, droppy-logo, hydra-mark and badge-edit, plus the 25 hydra-head marks. SOURCE FACT: at B3,
+DroppyCode/Resources/Assets.xcassets holds 88 imagesets and the port bundles 28 of them. Still missing:
+- 13 provider-* images (ProviderKind.iconName; ProviderIcon, Components.swift:4-14);
+- 32 mcp-* images (the MCP catalogue marks; MCPGlyph);
+- UpdateBugFixesIcon, UpdateNewFeaturesIcon and UpdateRefinementsIcon (the AboutUpdateViews release-note cards);
+- 8 tour-* images (TourView.swift:256).
+SwiftImage.Named returns an empty image for an unknown name, so every one of those sites draws nothing and reports nothing (found
+2026-09-27 while reviewing sweep-A). PA-0012 already classes the provider and mcp marks as the app's own shipped artwork and
+reusable; UNK-0002 was resolved by OD-0002. DECISION: copy each imageset's files byte for byte into src/Marrow.UI/Assets/Images/ and
+register each under its imageset name in SwiftImage's table, following its Contents.json:
+- an SVG with preserves-vector-representation stays a vector image;
+- PNG scale variants map to Bitmap (1x) and Bitmap2x (2x);
+- template-rendering-intent "original" or "template" maps to ImageRenderingMode.Original or Template; an imageset without it
+  follows the rule ED-182 already applies.
+A test reads a manifest of every non-tour imageset name at B3, checked in beside the tests, and proves each one resolves to a
+non-empty image with the intent its Contents.json declares. The 8 tour-* screenshots are held back pending an owner ruling: they show
+macOS window controls and "DroppyCode" text, which touches OD-0012 F1. TourView keeps a visible STOP for them until the ruling.
+ENGINEERING DECISION.
+
