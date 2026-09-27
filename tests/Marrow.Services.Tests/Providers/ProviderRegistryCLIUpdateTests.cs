@@ -473,8 +473,10 @@ public sealed class ProviderRegistryCLIUpdateTests
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
         var task = runtime.Loop.Run(() => Task.FromResult(registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
-        var deadline = DateTime.UtcNow.AddSeconds(5);
-        while (!File.Exists(marker) && DateTime.UtcNow < deadline) await Task.Delay(10);
+        // ProviderRegistry.swift:30, :508-511: the @MainActor updater resumes from LoginEnvironment.load
+        // on main before inserting the observable in-flight set. Pump that actor while observing the
+        // stand-in, retaining the original five-second bound and all in-flight/removal assertions.
+        runtime.Loop.RunUntil(() => File.Exists(marker), TimeSpan.FromSeconds(5));
         Assert.True(File.Exists(marker), "the stand-in never started (or finished too fast to observe)");
         Assert.True(registry.UpdatingCLIs.Contains(ProviderKind.Claude));
 
