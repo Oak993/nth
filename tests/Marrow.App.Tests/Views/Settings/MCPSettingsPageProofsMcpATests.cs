@@ -14,6 +14,7 @@ using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
@@ -62,10 +63,20 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
     // Swift colour tokens, not sampled output: Chrome.swift:76-79; ED-062 secondary = primary * .7.
     private static void Colour(IBrush? actual, SwiftColor expected, Control owner)
     {
-        var colour = ((ISolidColorBrush)expected.Brush(owner)).Color;
-        var drawn = Assert.IsAssignableFrom<ISolidColorBrush>(actual).Color;
-        if (colour.A == 0) Assert.Equal(0, drawn.A); // Swift .clear/no fill: RGB is invisible at alpha zero
-        else Assert.Equal(colour, drawn);
+        var window = TopLevel.GetTopLevel(owner) as Avalonia.Controls.Window;
+        var previous = window?.RequestedThemeVariant;
+        try
+        {
+            foreach (var theme in new[] { ThemeVariant.Light, ThemeVariant.Dark })
+            {
+                if (window is not null) { window.RequestedThemeVariant=theme; Dispatcher.UIThread.RunJobs(); }
+                var colour = ((ISolidColorBrush)expected.Brush(owner)).Color;
+                var drawn = Assert.IsAssignableFrom<ISolidColorBrush>(actual).Color;
+                if (colour.A == 0) Assert.Equal(0, drawn.A);
+                else Assert.Equal(colour, drawn);
+            }
+        }
+        finally { if(window is not null) { window.RequestedThemeVariant=previous; Dispatcher.UIThread.RunJobs(); } }
     }
     // ED-059/091 + OD-0009: fixed nominal sizes, Inter and Cascadia Mono; no app zoom in the font.
     private static void Font(TextBlock block, double size, FontWeight weight = FontWeight.Normal, bool mono = false)
@@ -141,13 +152,13 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             try
             {
                 void Show(Control content) => inputWindows.Add(Attach(content, model));
-                var plain = Entry(); var card = new MCPServerCard(plain); Show(card); PointerClick(Button(card, "Connect")); Assert.IsType<MCPConnectionState.Connecting>(model.Mcp.State(plain.Id)); model.Mcp.Disconnect(plain);
+                var plain = Entry(); var card = new MCPServerCard(plain); Show(card); PointerClick(Button(card, "Connect")); Assert.IsType<MCPConnectionState.Connecting>(model.Mcp.State(plain.Id)); Assert.True(((System.Collections.IDictionary)Read<object>(model.Mcp,"probes")).Contains(plain.Id)); Assert.False((typeof(FloatingGuidePanel).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(MCPKeyPanel.Shared) as Avalonia.Controls.Window)?.IsVisible ?? false); model.Mcp.Disconnect(plain);
                 var keyed = Entry("keyed") with { KeysURL = "https://example.invalid/keys", Fields = new[] { new MCPField("TOKEN", "API Key", "Paste", MCPField.Kind.Secret) } };
                 Assert.True(keyed.NeedsInput); var keyCard = new MCPServerCard(keyed); Show(keyCard); PointerClick(Button(keyCard, "Connect"));
                 Assert.IsType<MCPConnectionState.NotConnected>(model.Mcp.State(keyed.Id)); Assert.Equal(new Uri("https://example.invalid/keys"), Assert.Single(launcher.Requests));
                 var panel = (Avalonia.Controls.Window)typeof(FloatingGuidePanel).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(MCPKeyPanel.Shared)!;
                 Assert.True(panel.IsVisible); Assert.Single(Nodes<MCPKeyPanelView>(Assert.IsAssignableFrom<Control>(panel.Content))); MCPKeyPanel.Shared.Close();
-                var custom = Custom(); var row = new MCPCustomRow(custom); Show(row); PointerClick(Button(row, "Connect")); Assert.IsType<MCPConnectionState.Connecting>(model.Mcp.State(custom.Id)); model.Mcp.Disconnect(custom.CatalogEntry());
+                var custom = Custom(); var row = new MCPCustomRow(custom); Show(row); PointerClick(Button(row, "Connect")); Assert.IsType<MCPConnectionState.Connecting>(model.Mcp.State(custom.Id)); Assert.True(((System.Collections.IDictionary)Read<object>(model.Mcp,"probes")).Contains(custom.Id)); Assert.False(panel.IsVisible); model.Mcp.Disconnect(custom.CatalogEntry());
                 var keyedCustom = Custom(1); Assert.True(keyedCustom.CatalogEntry().NeedsInput); var keyedRow = new MCPCustomRow(keyedCustom); Show(keyedRow); PointerClick(Button(keyedRow, "Connect"));
                 Assert.IsType<MCPConnectionState.NotConnected>(model.Mcp.State(keyedCustom.Id)); Assert.True(panel.IsVisible); Assert.Single(launcher.Requests); MCPKeyPanel.Shared.Close();
                 Dispatcher.UIThread.RunJobs();
@@ -196,10 +207,11 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             Field(editor, "KEY").Text = " TOKEN "; Field(editor, "value").Text = "fixture-secret";
             PointerClick(Nodes<Button>(editor).Single(b => ToolTip.GetTip(b) as string == "Stored in mcp.json; click to keep it in the Credential Manager instead"));
             PointerClick(Button(editor, "Add environment variable")); // blank key must be dropped, Swift :877-878
+            Nodes<TextBox>(editor).Last(b=>b.PlaceholderText=="value").Text="must-not-persist";
             PointerClick(Button(editor, "Add server")); Assert.Equal(0, closes); Assert.Contains("The Credential Manager could not save a value. Keep this editor open and try again.", Texts(editor));
             var saved = Assert.Single(model.Mcp.Customs); Assert.Equal("TOKEN", Assert.Single(saved.Env).Key); Assert.Equal(saved.Id, Read<string>(editor, "savedID"));
             backend.Refuse = false; Field(editor, "My server").Text = "Renamed"; PointerClick(Button(editor, "Add server"));
-            Assert.Equal(1, closes); saved = Assert.Single(model.Mcp.Customs); Assert.Equal("custom-example", saved.Id); Assert.Equal("Renamed", saved.Name); Assert.Equal("fixture-secret", MCPKeychain.Value(saved.Id, "TOKEN"));
+            Assert.Equal(1, closes); saved = Assert.Single(model.Mcp.Customs); Assert.Equal("custom-example", saved.Id); Assert.Equal("Renamed", saved.Name); Assert.Equal("fixture-secret", MCPKeychain.Value(saved.Id, "TOKEN")); Assert.False(model.Mcp.Connection(saved.Id)?.Values.ContainsKey("") ?? false);
             State(model, saved.Id, new MCPConnectionState.Connected(2));
             var edit = new MCPCustomEditor(saved); using var editWindow = Attach(edit, model); var closedAfterValues = false;
             Popovers.SetClosePopover(edit, () => { closedAfterValues = true; Assert.Equal("after-edit", model.Mcp.StoredValue(saved.Id, "MODE", false)); Assert.IsType<MCPConnectionState.Connecting>(model.Mcp.State(saved.Id)); });
@@ -224,7 +236,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             var toggle = Nodes<Button>(editor).Single(b => ToolTip.GetTip(b) as string == "Stored in mcp.json; click to keep it in the Credential Manager instead");
             var glyph = Assert.Single(Nodes<SwiftImage>(toggle)); Assert.Equal("lock.open", glyph.SymbolName); Colour(glyph.Foreground, Chrome.SecondaryText, glyph);
             var before = File.ReadAllBytes(MCPPaths.ConnectionsURL); PointerClick(toggle);
-            Assert.Same(row, Field(editor, "KEY").Parent!.Parent); Assert.NotEqual(default(char), Field(editor, "value").PasswordChar); Assert.Equal("fixture-value", Field(editor, "value").Text);
+            Assert.Same(row, Field(editor, "KEY").Parent!.Parent); Field(editor,"value").ApplyTemplate(); var masked = Field(editor,"value").GetVisualDescendants().OfType<Avalonia.Controls.Presenters.TextPresenter>().Single(); Assert.NotEqual(default(char),masked.PasswordChar); Assert.False(masked.RevealPassword); Assert.NotEqual(default(char), Field(editor, "value").PasswordChar); Assert.Equal("fixture-value", Field(editor, "value").Text);
             Assert.Equal(before, File.ReadAllBytes(MCPPaths.ConnectionsURL)); Assert.Null(MCPKeychain.Value(server.Id, "RENAMED"));
             glyph = Assert.Single(Nodes<SwiftImage>(toggle)); Assert.Equal("lock.fill", glyph.SymbolName); Colour(glyph.Foreground, Chrome.Accent, glyph); Assert.Equal("Kept in the Credential Manager", ToolTip.GetTip(toggle));
             PointerClick(Button(editor, "Save")); var saved = Assert.Single(model.Mcp.Customs); Assert.Equal("fixture-value", MCPKeychain.Value(saved.Id, "RENAMED")); Assert.Null(model.Mcp.StoredValue(saved.Id, "RENAMED", false)); Assert.Null(model.Mcp.StoredValue(saved.Id, "KEY0", false)); Assert.DoesNotContain("fixture-value", File.ReadAllText(MCPPaths.ConnectionsURL), StringComparison.Ordinal);
@@ -247,7 +259,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             Assert.Equal(HorizontalAlignment.Stretch, surface.HorizontalAlignment); Assert.Equal(12, row.ColumnSpacing);
             var shield = Nodes<SwiftImage>(lead).Single(i => i.SymbolName == "checkmark.shield.fill");
             Assert.Equal(VerticalAlignment.Top, shield.VerticalAlignment); // :90 HStack(alignment: .top)
-            var copy = Assert.IsType<StackPanel>(row.Children[1]); Assert.Equal(6, copy.Spacing);
+            var copy = Assert.IsType<StackPanel>(row.Children[1]); Assert.Equal(6, copy.Spacing); Assert.Equal(VerticalAlignment.Top,copy.VerticalAlignment); Assert.Equal(0,Grid.GetColumn(shield)); Assert.Equal(1,Grid.GetColumn(copy)); Assert.True(copy.Bounds.X>=shield.Bounds.Right+12);
             Assert.Equal(4, Assert.IsType<StackPanel>(copy.Children[0]).Spacing);
             var title = Text(lead, "Connected servers lead"); Font(title, 13, FontWeight.SemiBold);
             var body = Assert.IsType<TextBlock>(copy.Children[1]); Font(body, 12);
@@ -285,7 +297,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
                 runtime.OnMain(() => Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick()); // hit testing reads the composed scene, as ChromeTests.Show documents
                 Assert.NotNull(button.InputHitTest(new Point(1, 1))); Assert.NotNull(button.InputHitTest(new Point(21, 21))); // :932 .contentShape(.rect), including corners outside the glyph
                 Assert.Equal("info.circle", glyph.SymbolName); Assert.Equal(12, SwiftImage.GetFont(glyph)!.Resolve().FontSize);
-                Assert.Equal(FontWeight.Medium, SwiftImage.GetFont(glyph)!.Resolve().FontWeight);
+                Assert.Equal(FontWeight.Medium, SwiftImage.GetFont(glyph)!.Resolve().FontWeight); Assert.Equal(SwiftFont.System(12,SwiftFont.Weight.Medium).Resolve().FontFamily,SwiftImage.GetFont(glyph)!.Resolve().FontFamily);
                 Colour(glyph.Foreground, Chrome.SecondaryText.Opacity(0.55), glyph);
                 Assert.False(Read<bool>(info, "IsPresented"));
                 runtime.OnMain(() => PointerHover(button, true)); Colour(glyph.Foreground, Chrome.SecondaryText, glyph);

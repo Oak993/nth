@@ -39,7 +39,7 @@ public sealed class MCPSettingsPageProofsMcpARound2Tests(HeadlessSession headles
     {
         var window = (Avalonia.Controls.Window)TopLevel.GetTopLevel(control)!;
         window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); using var frame = window.CaptureRenderedFrame();
-        Assert.NotNull(frame); using var stream = new MemoryStream(); frame.Save(stream,new Avalonia.Media.Imaging.PngBitmapEncoderOptions()); return stream.ToArray();
+        Assert.NotNull(frame); var origin = control.TranslatePoint(default,window)!.Value; var width = control is TextBlock text ? text.TextLayout.Width : control.Bounds.Width; var height = control is TextBlock text2 ? text2.TextLayout.Height : control.Bounds.Height; if (height > 100) { origin += new Vector(width/2-2,height/2-2); width=height=4; } var rect = new PixelRect((int)Math.Floor(origin.X),(int)Math.Floor(origin.Y),Math.Max(1,(int)Math.Ceiling(width)),Math.Max(1,(int)Math.Ceiling(height))); var bytes=new byte[rect.Width*rect.Height*4]; var pinned=System.Runtime.InteropServices.GCHandle.Alloc(bytes,System.Runtime.InteropServices.GCHandleType.Pinned); try { frame.CopyPixels(rect,pinned.AddrOfPinnedObject(),bytes.Length,rect.Width*4); } finally { pinned.Free(); } return bytes;
     }
     private static void Static(Control control, TestRuntime runtime, ManualFrameSource frames)
     {
@@ -156,4 +156,121 @@ public sealed class MCPSettingsPageProofsMcpARound2Tests(HeadlessSession headles
             var reopened=new MCPCustomEditor(server); using var reopenedHost=Attach(reopened,model); Assert.Equal(default(char),Field(reopened,"value").PasswordChar); Assert.Equal("fixture-value",Field(reopened,"value").Text);
         }));
     }
+    [Fact]
+    [Trait("Req","UI-MCP-006")] // MCPSettingsPage.swift:38-47
+    [Trait("Req","UI-MCP-013")] // MCPSettingsPage.swift:189
+    [Trait("Req","UI-MCP-015")] // MCPSettingsPage.swift:207
+    [Trait("Req","UI-MCP-016")] // MCPSettingsPage.swift:209-211
+    [Trait("Req","UI-MCP-017")] // MCPSettingsPage.swift:212-227
+    [Trait("Req","UI-MCP-018")] // MCPSettingsPage.swift:249-303
+    [Trait("Req","UI-MCP-019")] // MCPSettingsPage.swift:305-319
+    [Trait("Req","UI-MCP-020")] // MCPSettingsPage.swift:257-261
+    [Trait("Req","UI-MCP-021")] // MCPSettingsPage.swift:262-268
+    [Trait("Req","UI-MCP-022")] // MCPSettingsPage.swift:269-274
+    [Trait("Req","UI-MCP-023")] // MCPSettingsPage.swift:275-280
+    [Trait("Req","UI-MCP-026")] // MCPSettingsPage.swift:331-338
+    [Trait("Req","UI-MCP-027")] // MCPSettingsPage.swift:334-335
+    [Trait("Req","UI-MCP-032")] // MCPSettingsPage.swift:360-375
+    [Trait("Req","UI-MCP-033")] // MCPSettingsPage.swift:394
+    [Trait("Req","UI-MCP-034")] // MCPSettingsPage.swift:396-403
+    [Trait("Req","UI-MCP-036")] // MCPSettingsPage.swift:463-499
+    [Trait("Req","UI-MCP-038")] // MCPSettingsPage.swift:508-515
+    public void Noninteractive_production_labels_rows_and_glyphs_ignore_real_hover_and_press()
+    {
+        Run((model,runtime,frames,presenter)=>runtime.OnMain(()=>
+        {
+            State(model,"github",new MCPConnectionState.Connected(3));
+            var page=new MCPSettingsPage(""); EnvironmentValues.SetAccessibilityReduceMotion(page,true);
+            using(var host=Attach(page,model)) Static(Nodes<TextBlock>(page).Single(t=>t.Text=="Connected"),runtime,frames);
+            var section=new MCPCustomSection(""); using(var host=Attach(section,model))
+            {
+                Static(Nodes<TextBlock>(section).Single(t=>t.Text=="Custom"),runtime,frames);
+                Static(Nodes<TextBlock>(section).Single(t=>t.Text!.StartsWith("Servers of your own",StringComparison.Ordinal)),runtime,frames);
+            }
+            var row=new MCPConnectedRow(Entry()); using(var host=Attach(row,model))
+            {
+                var tools=Invoke<Control>(row,"BuildTools"); using(var toolsHost=Attach(tools,model)) foreach(var label in Nodes<TextBlock>(tools)) Static(label,runtime,frames);
+                Connection(model,new MCPConnection("offline") { Tools=new[]{new MCPToolSummary("read","A description"),new MCPToolSummary("list")} });
+                tools=Invoke<Control>(row,"BuildTools"); using(var toolsHost=Attach(tools,model)) foreach(var label in Nodes<TextBlock>(tools)) { Assert.False(label is SelectableTextBlock); Static(label,runtime,frames); }
+                var menu=Invoke<Control>(row,"BuildMenu"); using(var menuHost=Attach(menu,model)) Static(Assert.Single(Nodes<PopoverDivider>(menu)).Child!,runtime,frames);
+            }
+            var guide=new MCPSetupGuide("Setup title","Reason",new[]{"Step"},"Open","",null);
+            foreach(var state in new MCPConnectionState[]{new MCPConnectionState.NotConnected(),new MCPConnectionState.Connecting(),new MCPConnectionState.Failed("Probe failure"),new MCPConnectionState.NeedsSetup(guide),new MCPConnectionState.Connected(3)})
+            {
+                State(model,"offline",state);
+                var card=new MCPServerCard(Entry()); using(var host=Attach(card,model))
+                {
+                    foreach(var label in Nodes<TextBlock>(card).Where(t=>t.Text is "Example" or "Vendor" or "Summary" or " " or "Probe failure" or "Setup title" or "Connecting")) Static(label,runtime,frames);
+                    var surface=Assert.IsType<Border>(Assert.IsType<Panel>(card.Child).Children[0]); Static(surface,runtime,frames);
+                }
+                State(model,"custom-example",state); var custom=new MCPCustomRow(Custom()); using(var host=Attach(custom,model))
+                {
+                    var grid=Assert.IsType<Grid>(Assert.IsType<Border>(custom.Child).Child); var copy=Assert.IsType<StackPanel>(grid.Children[1]);
+                    foreach(var label in copy.Children.Cast<TextBlock>()) Static(label,runtime,frames);
+                    if(state is MCPConnectionState.Connecting) Static(Nodes<TextBlock>(custom).Single(t=>t.Text=="Connecting"),runtime,frames);
+                    Static(Assert.IsType<Border>(custom.Child),runtime,frames);
+                }
+            }
+            State(model,"offline",new MCPConnectionState.Connecting()); var oauth=new MCPServerCard(Entry(transport:new MCPTransport.Oauth("https://example.invalid")));
+            using(var host=Attach(oauth,model)) Static(Nodes<TextBlock>(oauth).Single(t=>t.Text=="Waiting"),runtime,frames);
+            State(model,"offline",new MCPConnectionState.Connected(3)); var celebrating=new MCPServerCard(Entry(),true); EnvironmentValues.SetAccessibilityReduceMotion(celebrating,true);
+            using(var host=Attach(celebrating,model)) { Static(Assert.Single(Nodes<SwiftImage>(celebrating)),runtime,frames); Static(Assert.Single(Nodes<TextBlock>(celebrating)),runtime,frames); }
+            Assert.DoesNotContain(presenter.Calls,c=>c.Presented);
+        }));
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req","UI-MCP-032")] // MCPSettingsPage.swift:64-74,360-375; ED-218 allows the visual exit after the 900ms logical move.
+    public void Page_celebration_lasts_exactly_900ms_and_reduce_motion_suppresses_it(bool reduced)
+    {
+        Run((model,runtime,_,_)=>
+        {
+            using var sound=SoundOutput.Current.Override(new MCPSettingsSilentSound());
+            var page=new MCPSettingsPage(""); EnvironmentValues.SetAccessibilityReduceMotion(page,reduced); var host=runtime.OnMain(()=>Attach(page,model));
+            try
+            {
+                runtime.OnMain(()=>typeof(MCPStore).GetProperty(nameof(MCPStore.States))!.SetValue(model.Mcp,new Dictionary<string,MCPConnectionState>(model.Mcp.States){["github"]=new MCPConnectionState.Connected(3)}));
+                var state=Read<object>(page,"view");
+                Assert.Equal(!reduced,Read<ValueSet<string>>(state,"Celebrating").Contains("github"));
+                if(!reduced)
+                {
+                    runtime.AdvanceMilliseconds(899); Assert.True(Read<ValueSet<string>>(state,"Celebrating").Contains("github")); Assert.DoesNotContain(Nodes<MCPConnectedRow>(page),r=>Texts(r).Contains("GitHub"));
+                    runtime.AdvanceMilliseconds(1); Assert.False(Read<ValueSet<string>>(state,"Celebrating").Contains("github"));
+                }
+                Assert.Contains(Nodes<MCPConnectedRow>(page),r=>Texts(r).Contains("GitHub"));
+            } finally { runtime.OnMain(host.Dispose); }
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req","PR-MCP-073")] // MCPStore.swift:115-128,186-193; OD-0008 A12, OD-0012 E6
+    public void Delete_uses_latest_definition_cancels_probe_clears_drafts_and_all_configs_and_reports_failed_deletion(bool refuse)
+    {
+        Run((model,runtime,_,_)=>
+        {
+            var backend=new MCPSettingsRefusingCredentialBackend { Refuse=false,RefuseDeletes=refuse }; using var secrets=Marrow.Services.Port.SecretStore.Shared.Override(new Marrow.Services.Port.SecretStore(backend));
+            var stale=Custom(1) with { Env=new[]{new MCPCustomServer.Variable("TOKEN",IsSecret:true)} };
+            var current=stale with { Env=new[]{new MCPCustomServer.Variable("TOKEN",IsSecret:true),new MCPCustomServer.Variable("LATER",IsSecret:true),new MCPCustomServer.Variable("MODE")} };
+            var entry=current.CatalogEntry();
+            runtime.OnMain(()=> { Assert.Null(model.Mcp.SaveCustom(current)); Connection(model,new MCPConnection(current.Id){ConnectedAt=DateTimeOffset.UtcNow}); Assert.True(model.Mcp.SaveCustomValues(new[]{("TOKEN","first",true),("LATER","second",true),("MODE","plain",false)},current.Id,null)); State(model,current.Id,new MCPConnectionState.Connected(2)); model.Mcp.SetEnabled(true,entry); model.Mcp.SetDraft("unsaved",entry.Fields.Last(),entry); model.Settings.ConfirmBeforeDeleting=false; });
+            var paths=new[]{MCPPaths.ClaudeConfigURL,MCPPaths.CodexConfigURL,MCPPaths.CopilotConfigURL,Path.Combine(MCPPaths.Directory,"gemini-settings.json")}; Assert.All(paths,path=>Assert.True(File.Exists(path)));
+            var row=new MCPCustomRow(stale); var host=runtime.OnMain(()=>Attach(row,model)); TaskHandle pending=null!;
+            try
+            {
+                // Delete queues its real store action first; Refresh creates the genuine probe handle behind it.
+                // Deletion cancels that handle before its offline fixture process could start.
+                runtime.OnMain(()=> { PointerClick(Button(Invoke<Control>(row,"BuildMenu"),"Delete")); model.Mcp.Refresh(entry); pending=((Dictionary<string,TaskHandle>)Read<object>(model.Mcp,"probes"))[current.Id]; });
+                Assert.True(pending.IsCancelled); Assert.Empty((System.Collections.IDictionary)Read<object>(model.Mcp,"probes"));
+                Assert.Empty(model.Mcp.Customs); Assert.Null(model.Mcp.Connection(current.Id)); Assert.False(model.Mcp.States.ContainsKey(current.Id)); Assert.False(model.Mcp.Drafts.ContainsKey(current.Id));
+                Assert.DoesNotContain(current.Id,File.ReadAllText(MCPPaths.CustomsURL),StringComparison.Ordinal); Assert.DoesNotContain(current.Id,File.ReadAllText(MCPPaths.ConnectionsURL),StringComparison.Ordinal); Assert.All(paths,path=>Assert.False(File.Exists(path)));
+                Assert.Equal(refuse?"first":null,MCPKeychain.Value(current.Id,"TOKEN")); Assert.Equal(refuse?"second":null,MCPKeychain.Value(current.Id,"LATER"));
+                Assert.Equal(refuse?"Disconnected, but Credential Manager did not remove this server’s stored values.":null,model.Mcp.CredentialDeletionFailure);
+            } finally { runtime.OnMain(host.Dispose); }
+        });
+    }
+
 }
