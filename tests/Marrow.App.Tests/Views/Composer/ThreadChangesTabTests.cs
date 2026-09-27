@@ -24,6 +24,15 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
 {
     private const string MathMinus = "−"; // U+2212 mathematical minus sign
 
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-200")] // App/Views/Composer/ThreadChangesTab.swift:44 accessibility always says files
+    public void Review_one_file_accessibility_keeps_the_literal_plural() => headless.OnUiThread(() =>
+    {
+        using var defaults = UserDefaults.Standard.Override(new InMemorySettingsStore());
+        var tab = new ThreadChangesTab(new FileChangeSummary(new ValueList<FileChangeSummary.File>([new("a", 2, 3, false)]), 2, 3), _ => { }, () => { });
+        Assert.Equal("1 files changed, 2 added, 3 removed", AutomationProperties.GetName(tab));
+    });
+
     private static Avalonia.Controls.Window ShowInFrame(Control content, double width = 800, double height = 600)
     {
         var window = new Avalonia.Controls.Window { Width = width, Height = height, Content = content };
@@ -323,6 +332,10 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
         Assert.True(stats.Files.Count == 3);
         Assert.True(stats.Additions == 45);
         Assert.True(stats.Deletions == 23);
+        Assert.True(TextExistsInTree(tab, "3 files"));
+        Assert.True(TextExistsInTree(tab, "+45"));
+        Assert.True(TextExistsInTree(tab, MathMinus + "23"));
+        Assert.Equal("3 files changed, 45 added, 23 removed", AutomationProperties.GetName(tab));
 
         var window = ShowInFrame(tab);
         Dispatcher.UIThread.RunJobs();

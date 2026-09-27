@@ -8500,7 +8500,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:59"
       ],
       "notes": "Chrome.sectionSpacing is the page's own spacing token; ChromeSection does not apply it internally.",
-      "b2_change": "No shift. The stack and grid are unchanged; only the footer font changed (B1 :61 .font(.system(size: 11)) -> B2 :61 .font(.system(.subheadline)), recorded on UI-MCP-089)."
+      "b2_change": "No shift. The stack and grid are unchanged; only the footer font changed (B1 :61 .font(.system(size: 11)) -> B2 :61 .font(.system(.subheadline)), recorded on UI-MCP-089).",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "MCP",

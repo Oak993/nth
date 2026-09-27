@@ -4,7 +4,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Models;
 
-// Source: DroppyCode/Services/MCP/MCPSessionOverrides.swift (B2 1fbf81e), :1-107.
+// Source: DroppyCode/Services/MCP/MCPSessionOverrides.swift (B3 52bc792), :1-107.
 
 namespace Marrow.Services.MCP;
 
@@ -62,7 +62,7 @@ public static class MCPSessionOverrides
             return Array.Empty<string>();
         }
 
-        return servers.Keys.OrderBy(k => k, StringComparer.Ordinal).ToList();
+        return servers.Keys.OrderBy(k => k, SwiftStringComparer.Instance).ToList();
     }
 
     // :14-30. PR-MCP-173, PR-PROVCLI-136. Build copilot arguments with config inline, disable user servers by name.
@@ -82,7 +82,7 @@ public static class MCPSessionOverrides
         }
 
         // :16-21. Extract the ids (keys of mcpServers) from the JSON
-        var ids = new HashSet<string>(StringComparer.Ordinal);
+        var ids = new HashSet<string>(SwiftStringComparer.Instance);
         var parsed = JSONValue.Parse(json);
         if (parsed is not null)
         {
@@ -196,7 +196,9 @@ public static class MCPSessionOverrides
         var rootValue = new JSONValue.Object(
             new ValueMap<string, JSONValue>(rootObject, SwiftStringComparer.Instance));
 
-        var jsonBytes = rootValue.Data(pretty: false);
+        // :67 JSONSerialization.sortedKeys sorts recursively, including each server entry.
+        using var document = JsonDocument.Parse(rootValue.Data(pretty: false));
+        var jsonBytes = SwiftJson.Write(document.RootElement, SwiftJsonStyle.SerializationCompact with { SortedKeys = true });
         var json = Encoding.UTF8.GetString(jsonBytes);
 
         // :62. Return empty if building failed (all nulls become "null" string)

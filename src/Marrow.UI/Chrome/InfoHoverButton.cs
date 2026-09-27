@@ -10,7 +10,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.UI.Chrome;
 
-// Source: DroppyCode/UI/Chrome/InfoHoverButton.swift (B2 1fbf81e), :5-56.
+// Source: DroppyCode/UI/Chrome/InfoHoverButton.swift (B3 52bc792), :5-56.
 // A button displaying an info mark that opens an explanatory popover on hover, keeping it open while the
 // pointer is over either the button or popover, and closing 320ms after the pointer leaves both.
 // Port shape (R-VIEW-1, R-VIEW-2, R-VIEW-9): a SwiftUI View is a Decorator; the info mark is a SwiftImage;
@@ -88,7 +88,7 @@ public sealed class InfoHoverButton : Decorator
         image.Width = 20;
         image.Height = 20;
 
-        // :21 .focusable(false) — the image is not focusable; focus is handled by the wrapping Button
+        // :21 .focusable(false) applies to the interactive control as well as the image.
 
         // :22 .help(help)
         ToolTip.SetTip(image, help);
@@ -117,6 +117,8 @@ public sealed class InfoHoverButton : Decorator
 
         // :34 .onTapGesture { isPresented.toggle() }
         var button = PlainControls.Button(image, () => state.IsPresented = !state.IsPresented);
+        button.Focusable = false; // :21
+        Avalonia.Input.KeyboardNavigation.SetIsTabStop(button, false); // :21
 
         // :35-46 .popover(isPresented: $isPresented, arrowEdge: .bottom) { ... }
         var popover = PlainControls.Popover(

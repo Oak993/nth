@@ -6,6 +6,15 @@ namespace Marrow.Services.Tests.Git;
 // Source: DroppyCode/Services/Git/TouchedPaths.swift (B2 1fbf81e), :1-61.
 public sealed class TouchedPathsTests
 {
+    [Theory]
+    [InlineData("caf\u00e9.cs", "src/cafe\u0301.cs")]
+    [InlineData("src/cafe\u0301.cs", "caf\u00e9.cs")]
+    [Trait("Req", "PR-GIT-096")] // Services/Git/TouchedPaths.swift:54-59 hasSuffix compares canonical Characters in both directions
+    public void Review_suffix_matches_canonically_equivalent_file_names(string path, string entry)
+    {
+        var touched = new HashSet<string>([entry], SwiftStringComparer.Instance);
+        Assert.True(TouchedPaths.Matches(MakeFile(path), touched));
+    }
     // ---- Normalize (PR-GIT-093) ----------------------------------------------------------------------------------
 
     [Fact]

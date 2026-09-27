@@ -259,6 +259,9 @@ public sealed class ShellCommandKindTests
         Assert.False(ShellCommandKind.MayWriteFiles("git tag --list"));
         Assert.False(ShellCommandKind.MayWriteFiles("git tag -l 'v1.*'"));
         Assert.False(ShellCommandKind.MayWriteFiles("git tag -n"));
+        Assert.False(ShellCommandKind.MayWriteFiles("git tag -n5")); // Core/Support/Shell.swift:153-159; ED-060(5) tag listing annotations
+        Assert.False(ShellCommandKind.MayWriteFiles("git tag -n1 'v1.*'"));
+        Assert.True(ShellCommandKind.MayWriteFiles("git tag -nnot-a-count"));
         Assert.False(ShellCommandKind.MayWriteFiles("git tag --contains HEAD"));
         Assert.False(ShellCommandKind.MayWriteFiles("git tag --points-at HEAD"));
         Assert.False(ShellCommandKind.MayWriteFiles("git tag --merged main"));

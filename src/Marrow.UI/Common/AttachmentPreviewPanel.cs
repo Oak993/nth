@@ -8,6 +8,7 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Reactive;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -15,7 +16,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.UI.Common;
 
-// Source: DroppyCode/UI/Common/AttachmentPreviewPanel.swift (B2 1fbf81e), :1-393.
+// Source: DroppyCode/UI/Common/AttachmentPreviewPanel.swift (B3 52bc792), :1-393.
 // Records: PR-COMPOSER-069, PR-COMPOSER-070, PR-COMPOSER-071, PR-COMPOSER-072.
 // Forms (ED-095): NSPopover is an Avalonia Popup shown through the Marrow.UI.Port.Presentation seam
 // (R-VIEW-9); NSView is Control; NSRect/CGRect/CGSize are Rect/Size; the file's NSViewRepresentable
@@ -50,6 +51,9 @@ public sealed class AttachmentPreviewCoordinator
     private bool isShown; // Swift: popover.isShown, read at :65, :90, :154
     private bool monitorsActive; // :161 guard monitors.isEmpty else return
     private Window? monitorWindow;
+    private IDisposable? pointerMonitor;
+    private IDisposable? keyMonitor;
+    private RoutedEventArgs? lastMonitoredEvent;
 
     public AttachmentPreviewCoordinator()
     {
@@ -159,10 +163,8 @@ public sealed class AttachmentPreviewCoordinator
     }
 
     // :160-187 startMonitors(). A local mouse-down monitor, a local key-down monitor and window activation
-    // and move notifications. ENGINEERING DECISION (windows_path): an Avalonia Window-scoped input handler
-    // in place of the app-wide NSEvent local monitor -- the popup's own content is a separate top-level, so
-    // it never reaches this window's handler and needs no explicit pass-through, unlike :193 on macOS where
-    // the popover shares the anchor's application. NSWindow's three separate notifications (didResignKey,
+    // and move notifications. Static Raised streams observe every app top-level (as AppCurrentEvent does);
+    // the popup's own top-level is explicitly excluded (:193). NSWindow's three notifications (didResignKey,
     // willMoveNotification, didMoveNotification), which all only call close(), collapse to Avalonia's two
     // (Deactivated, PositionChanged) with the identical effect.
     private void StartMonitors(Control resolvedAnchor)
@@ -172,8 +174,18 @@ public sealed class AttachmentPreviewCoordinator
             ?? TopLevel.GetTopLevel(resolvedAnchor) as Window;
         if (window is null) return;
         monitorWindow = window;
-        window.AddHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true); // :162-166
-        window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true); // :167-171
+        pointerMonitor = InputElement.PointerPressedEvent.Raised.Subscribe(new AnonymousObserver<(object Sender, RoutedEventArgs Args)>(e =>
+        {
+            if (ReferenceEquals(lastMonitoredEvent, e.Args)) return;
+            lastMonitoredEvent = e.Args;
+            if (e.Args is PointerPressedEventArgs pointer) OnWindowPointerPressed(e.Sender, pointer);
+        })); // :162-166 app-wide, pointer remains unhandled
+        keyMonitor = InputElement.KeyDownEvent.Raised.Subscribe(new AnonymousObserver<(object Sender, RoutedEventArgs Args)>(e =>
+        {
+            if (ReferenceEquals(lastMonitoredEvent, e.Args)) return;
+            lastMonitoredEvent = e.Args;
+            if (e.Args is KeyEventArgs key) OnWindowKeyDown(e.Sender, key);
+        })); // :167-171 Escape is consumed before target routing
         window.Deactivated += OnWindowDeactivatedOrMoved; // :174-177 didResignKeyNotification
         window.PositionChanged += OnWindowDeactivatedOrMoved; // :178-185 willMove/didMoveNotification
         monitorsActive = true;
@@ -185,26 +197,33 @@ public sealed class AttachmentPreviewCoordinator
         if (!monitorsActive) return;
         if (monitorWindow is { } window)
         {
-            window.RemoveHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed);
-            window.RemoveHandler(InputElement.KeyDownEvent, OnWindowKeyDown);
             window.Deactivated -= OnWindowDeactivatedOrMoved;
             window.PositionChanged -= OnWindowDeactivatedOrMoved;
         }
         monitorWindow = null;
+        pointerMonitor?.Dispose(); pointerMonitor = null;
+        keyMonitor?.Dispose(); keyMonitor = null;
+        lastMonitoredEvent = null;
         monitorsActive = false;
     }
 
-    // :189-201 handleMouseDown(_:). Clicks inside the panel (a separate top-level here, so never seen by
-    // this handler) or anywhere on the strip pass through; any other click closes first and still reaches
-    // its target (Tunnel + handledEventsToo never marks the event handled here, so it keeps routing).
+    // :189-201 handleMouseDown(_:). Panel and strip clicks pass through; every other app-window
+    // left/right click closes first and still reaches its target. No pointer event is consumed.
     private void OnWindowPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (anchor?.Value is { } strip && strip.IsEffectivelyVisible) // :195 !view.isHiddenOrHasHiddenAncestor
+        if (e.GetCurrentPoint(null).Properties.PointerUpdateKind is not
+            (PointerUpdateKind.LeftButtonPressed or PointerUpdateKind.RightButtonPressed)) return; // :162 only left/right mouse down
+        var eventWindow = e.Source is Visual source ? TopLevel.GetTopLevel(source) : null;
+        if (popup.Child is Control content && TopLevel.GetTopLevel(content) is { } panelWindow &&
+            ReferenceEquals(eventWindow, panelWindow)) return; // :193 panel clicks pass through
+        if (anchor?.Value is { } strip && strip.IsEffectivelyVisible &&
+            ReferenceEquals(eventWindow, TopLevel.GetTopLevel(strip))) // :194-195 same window and visible
         {
             var point = e.GetPosition(strip);
             if (new Rect(strip.Bounds.Size).Contains(point)) return; // :196
         }
-        if (anchorRect is { } rect && WindowRectAnchor.Target(rect) is { } target) // :197
+        if (anchorRect is { } rect && WindowRectAnchor.Target(rect) is { } target &&
+            ReferenceEquals(eventWindow, TopLevel.GetTopLevel(target.View))) // :197 same window as rect anchor
         {
             var point = e.GetPosition(target.View);
             if (target.Rect.Contains(point)) return; // :198

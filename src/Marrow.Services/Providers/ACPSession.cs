@@ -4,7 +4,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
 
-// Source: DroppyCode/Services/Providers/ACPSession.swift (B2 1fbf81e), :1-921. Part 1 of 8: the launch gate,
+// Source: DroppyCode/Services/Providers/ACPSession.swift (B3 52bc792), :1-921. Part 1 of 8: the launch gate,
 // launchArguments, and start() through the initialize reply (PR-PROVACP-001..024). Part 2 of 8: openSession,
 // applySessionState, resolveModes, applyModels, applyConfigOptions and its static helpers (flatten,
 // isEffortScale, orderedEfforts, baseModelID, sameModel) (PR-PROVACP-025..047, 049). Part 3 of 8: applySelection,
@@ -137,6 +137,13 @@ public sealed class ACPSession : ProviderSession
         var initialized = await connection.Request("initialize", InitializeParams); // :124-128
         ApplyInitializeReply(initialized); // :129-132
 
+        var session = await OpenSessionWithAuthRetry(connection); // :134-140
+        return await SelectOpenedSession(session); // :141-151
+    }
+
+    // :134-140 factored verbatim so a scripted transport can verify the single auth retry.
+    private async Task<JSONValue> OpenSessionWithAuthRetry(JSONRPCConnection connection)
+    {
         JSONValue session; // :134
         try
         {
@@ -147,6 +154,12 @@ public sealed class ACPSession : ProviderSession
             _ = await connection.Request("authenticate", JSONValue.FromDictionaryLiteral(("methodId", authMethods[0]))); // :138
             session = await OpenSession(connection); // :139
         }
+        return session;
+    }
+
+    // :141-151 discovery must precede selection: discovered config IDs choose the request API.
+    private async Task<string> SelectOpenedSession(JSONValue session)
+    {
         ApplySessionState(session); // :141
         await ApplySelection( // :142-147
             configuration.Model, configuration.Effort, configuration.FastMode, configuration.InteractionMode);
