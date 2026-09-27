@@ -121,6 +121,7 @@ public sealed class ComposerViewComponentsTests(HeadlessSession headless)
                 var button = Assert.Single(slot.GetVisualDescendants().OfType<Button>());
                 button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();
                 var content = Assert.IsAssignableFrom<Control>(presenter.Calls[^1].Popup.Child);
+                presenter.Calls[^1].Popup.Child = null; // The recording presenter does not host the panel; transfer it to the headless window.
                 pickerWindow = Show(content, harness.App);
                 Assert.Single(content.GetVisualDescendants().OfType<Button>(), button => Equals(ToolTip.GetTip(button), "Choose a model"))
                     .RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();
