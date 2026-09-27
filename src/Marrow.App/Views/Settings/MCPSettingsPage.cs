@@ -171,7 +171,10 @@ public sealed class MCPSettingsPage : Decorator
     // :169-179,543-553
     internal static Button Options(Action action)
     {
-        var button = PlainControls.Button(Symbol("ellipsis.circle", 13, Chrome.SecondaryText), action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, "Server options"); return button;
+        // :175-176 .frame(22,22).contentShape(.rect), including corners outside the glyph.
+        var glyph = Symbol("ellipsis.circle", 13, Chrome.SecondaryText); glyph.HorizontalAlignment = HorizontalAlignment.Center; glyph.VerticalAlignment = VerticalAlignment.Center;
+        var hitArea = new Border { Width = 22, Height = 22, Background = Brushes.Transparent, Child = glyph };
+        var button = PlainControls.Button(hitArea, action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, "Server options"); return button;
     }
     // :180-198,554-573,941-948; environment and dismiss are injected by SwiftUI.
     internal static Popup Popover(Control anchor, Binding<bool> presented, Func<Control> content, Control environment) => PlainControls.Popover(anchor, presented, () =>
