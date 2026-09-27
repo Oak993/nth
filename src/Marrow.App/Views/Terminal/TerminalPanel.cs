@@ -158,13 +158,7 @@ public sealed class TerminalPanel : Decorator
             {
                 var current = AppEnvironment.GetAppModel(this);
                 var sessions = current.Terminals.Sessions(runtime.ThreadID).ToArray();
-                // :143-184 TerminalTab.body reads the observable session, so a title/exit change redraws the chip
-                // even when the session array and selection have not changed. Collect those reads in the tracker.
-                foreach (var session in sessions)
-                {
-                    _ = session.Title;
-                    _ = session.IsRunning;
-                }
+                // :24-27 Only store membership/selection belong to the panel; each tab tracks its own session.
                 return (current, sessions, current.Terminals.Selected(runtime.ThreadID));
             },
             state => RebuildBody(state.Item1, state.Item2, state.Item3));
@@ -348,6 +342,9 @@ internal sealed class TerminalTab : Border
     private readonly bool isSelected;
     private bool isHovering;
     private readonly Button closeButton;
+    private readonly Button restartButton;
+    private readonly StackPanel row;
+    private readonly TextBlock title;
     private readonly Action select;
 
     public TerminalTab(
@@ -361,7 +358,7 @@ internal sealed class TerminalTab : Border
         this.isSelected = isSelected;
         this.select = select; // :177-179 the whole capsule selects, including its automation button
 
-        var row = new StackPanel
+        row = new StackPanel
         {
             Orientation = Orientation.Horizontal,
             Spacing = 6,
@@ -372,7 +369,7 @@ internal sealed class TerminalTab : Border
         terminalIcon.ForegroundStyle(isSelected ? SwiftColor.Primary : SwiftColor.Secondary); // :175
         row.Children.Add(terminalIcon);
 
-        var title = new TextBlock
+        title = new TextBlock
         {
             Text = session.Title,
             MaxLines = 1, // :146 .lineLimit(1)
@@ -383,12 +380,7 @@ internal sealed class TerminalTab : Border
         title.Foreground = (isSelected ? SwiftColor.Primary : SwiftColor.Secondary).Brush(title); // :175
         row.Children.Add(title);
 
-        if (!session.IsRunning)
-        {
-            var restartButton = IconAction("arrow.clockwise", "Start a new shell in this tab", restart);
-            AutomationProperties.SetName(restartButton, "Restart " + session.Title);
-            row.Children.Add(restartButton);
-        }
+        restartButton = IconAction("arrow.clockwise", "Start a new shell in this tab", restart);
 
         closeButton = IconAction("xmark", "Close terminal", close);
         AutomationProperties.SetName(closeButton, "Close " + session.Title);
@@ -400,13 +392,10 @@ internal sealed class TerminalTab : Border
         Background = isSelected
             ? Chrome.PrimaryText.Opacity(0.08).Brush(this)
             : Brushes.Transparent;
-        Opacity = session.IsRunning ? 1 : 0.55;
-        ToolTip.SetTip(this, session.IsRunning
-            ? session.Title
-            : session.Title + " \U000000B7 the shell has exited"); // U+00B7 MIDDLE DOT
-        AutomationProperties.SetName(this, session.IsRunning
-            ? session.Title
-            : session.Title + ", the shell has exited");
+        // :140,143-184 Keep @State hover on this tab when only its observable session changes.
+        // Initial application also supports a chip constructed before it is attached to a window.
+        UpdateSession(session.Title, session.IsRunning);
+        this.Track(() => (session.Title, session.IsRunning), state => UpdateSession(state.Title, state.IsRunning));
 
         closeButton.Opacity = isSelected ? 1 : 0;
         closeButton.IsHitTestVisible = isSelected;
@@ -418,6 +407,21 @@ internal sealed class TerminalTab : Border
             if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
                 select();
         };
+    }
+
+    // :146,148-158,166,180-184 Session updates redraw only this chip, preserving hover and control identity.
+    private void UpdateSession(string sessionTitle, bool isRunning)
+    {
+        title.Text = sessionTitle;
+        AutomationProperties.SetName(closeButton, "Close " + sessionTitle);
+        AutomationProperties.SetName(restartButton, "Restart " + sessionTitle);
+        if (isRunning)
+            row.Children.Remove(restartButton);
+        else if (!row.Children.Contains(restartButton))
+            row.Children.Insert(2, restartButton);
+        Opacity = isRunning ? 1 : 0.55;
+        ToolTip.SetTip(this, isRunning ? sessionTitle : sessionTitle + " \U000000B7 the shell has exited");
+        AutomationProperties.SetName(this, isRunning ? sessionTitle : sessionTitle + ", the shell has exited");
     }
 
     // :182-184 .accessibilityElement(children: .contain), button and optional selected traits.
