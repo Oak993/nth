@@ -6,6 +6,7 @@ using Avalonia.Automation;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Shapes;
 using Avalonia.Input;
@@ -28,7 +29,7 @@ using Marrow.App.Port;
 
 // Source: DroppyCode/App/Views/Composer/EffortSlider.swift (B3 52bc792), :1-1347.
 // Forms: SwiftUI views are Decorators; bindings and state use the shared main-actor observation and frame seams.
-// Capture-only branches are excluded by ED-001. The exact remaining shared dependency sites are in the tests' STOP notes.
+// Capture-only branches are excluded by ED-001. Shared provider artwork and chip styling come from Components (ED-215).
 
 namespace Marrow.App.Views.Composer;
 
@@ -84,9 +85,11 @@ public sealed class ModelEffortButton : Decorator
         double? naturalWidth = null;
         double? lockedWidth = null;
         var popup = new Popup { Placement = PlacementMode.Bottom, IsLightDismissEnabled = true };
-        var button = PlainControls.Button(frame, () =>
+        Button button = null!;
+        button = PlainControls.Button(frame, () =>
         {
             presented = !presented;
+            button.Chip(presented); // :114 .buttonStyle(.chip(active: isPresented)).
             lockedWidth = presented ? naturalWidth : null; frame.Width = compact ? double.NaN : lockedWidth ?? double.NaN; // :108-117
             if (presented)
             {
@@ -95,12 +98,13 @@ public sealed class ModelEffortButton : Decorator
                 Popovers.SetClosePopover(content, () => Presentation.Presenter.Current.SetPresented(popup, false));
                 popup.Child = content;
             }
+            else popup.Child = null;
             Presentation.Presenter.Current.SetPresented(popup, presented);
         });
         button.Focusable = false; popup.PlacementTarget = button; // :115,120
-        // :114 .chip(active:) is unwritten: ChipButtonStyleHelper is empty (STOP #3).
+        button.Chip(); // :114 inactive until the popover opens.
         frame.SizeChanged += (_, _) => { if (lockedWidth is null) naturalWidth = frame.Bounds.Width; }; // :109-112
-        popup.Closed += (_, _) => { presented = false; lockedWidth = null; frame.Width = double.NaN; popup.Child = null; };
+        popup.Closed += (_, _) => { presented = false; button.Chip(); lockedWidth = null; frame.Width = double.NaN; popup.Child = null; }; // :114,116-117
         DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
         Child = button;
         this.Track(() =>
@@ -115,7 +119,7 @@ public sealed class ModelEffortButton : Decorator
             var (model, currentThread, current, pair) = snapshot;
             frame.Children.Clear();
             Control mark = pair is null
-                ? new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 } // :73-75 STOP #3: renderer
+                ? new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 } // :73-75 real provider artwork from Components.
                 : new HydraFusedPairIcon(pair.Provider, model.HydraHeadsProvider(pair), 15); // :70-72
             mark.Margin = new Thickness(0, 0, 5, 0); frame.Children.Add(mark);
             if (currentThread.FastMode && current?.SupportsFast == true)
@@ -347,8 +351,9 @@ public sealed class ModelListRow : Decorator
         var column = 0;
         if (showsIcon)
         {
-            // :436-439 ProviderIcon's artwork is still missing in UI.Common.Components (STOP #3).
-            row.Children.Add(new ProviderIcon { Provider = entry.Provider, Size = 14, Width = 18, Height = 14 });
+            var providerIcon = new ProviderIcon { Provider = entry.Provider, Size = 14, Width = 18, Height = 14 }; // :436-439
+            providerIcon.SetValue(TextElement.ForegroundProperty, Chrome.SecondaryText.Brush(providerIcon)); // :438 inherited by its template artwork.
+            row.Children.Add(providerIcon);
             column = 2;
         }
         var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
@@ -454,7 +459,7 @@ public sealed class EffortSliderCard : Decorator
             if (mark.Child is SwiftImage image) image.ForegroundStyle(Chrome.PrimaryText.Opacity(0.75));
             subtitle.Children.Add(mark); // :602-605
         }
-        else if (provider is { } kind) subtitle.Children.Add(new ProviderIcon { Provider = kind, Size = 12, Width = 12, Height = 12 }); // :606-608 STOP #3: artwork
+        else if (provider is { } kind) subtitle.Children.Add(new ProviderIcon { Provider = kind, Size = 12, Width = 12, Height = 12 }); // :606-608 real provider artwork from Components.
         var name = EffortView.Text(pair?.Title ?? modelName, SwiftFont.Body, Chrome.PrimaryText.Opacity(0.7)); // :609-614
         name.TextTrimming = TextTrimming.CharacterEllipsis;
         name.Margin = new Thickness(subtitle.Children.Count == 0 ? 0 : 5, 0, 0, 0); // :599 HStack spacing, leaving a finite text column.

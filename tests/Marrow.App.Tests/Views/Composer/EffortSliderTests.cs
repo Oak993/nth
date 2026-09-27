@@ -470,14 +470,6 @@ public sealed class EffortSliderTests(HeadlessSession headless)
     });
 }
 
-// STOP App.Views.Composer.EffortSlider #3
-// Kind: missing shared UI rendering and styling dependencies (checked on sweep-A base d62329d42).
-// Swift: App/Views/Composer/EffortSlider.swift:73-75,114,436-439,606-608; UI/Common/Components.swift:4-14,58-99.
-// Records: PR-COMPOSER-106,107,114,143; UI-COMPOSER-012,032,043 (only the provider artwork/chip-style sites).
-// Missing: UI.Common.Components.ProviderIcon has no renderer, and ChipButtonStyleHelper is an empty type.
-// Needed: port ProviderIcon's bundled provider artwork and the shared chip(active:) style in their owning unit.
-// Surrounding labels, actions, widths, popover, rows and subtitles are now implemented and tested in EffortSliderSweepTests.
-
 // PR-COMPOSER-125 windows_path explicitly drops haptics silently on Windows, without a sound substitute.
 // The shared Haptics.Perform no-op is the specified adaptation, not an unported dependency (port_impacts X6).
 // The source Alignment call remains once per index change; drag rounding, clamping, capture and springs are tested.
