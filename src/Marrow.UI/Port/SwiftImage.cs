@@ -3,6 +3,8 @@
 // files in Assets/Images (ED-179 (3)).
 using System.Collections.Concurrent;
 using System.Globalization;
+using System.Xml.Linq;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
@@ -94,10 +96,11 @@ public sealed class SwiftImage : Control
     public static readonly AttachedProperty<SwiftFont?> FontProperty =
         AvaloniaProperty.RegisterAttached<SwiftImage, Control, SwiftFont?>("Font", inherits: true);
 
-    private sealed record Asset(SvgIcon? Icon, Bitmap? Bitmap, Bitmap? Bitmap2x, ImageRenderingMode Intent);
+    private sealed record VectorPaint(IBrush? Fill, IBrush? Stroke, double FillOpacity, double StrokeOpacity);
+    private sealed record Asset(SvgIcon? Icon, Bitmap? Bitmap, Bitmap? Bitmap2x, ImageRenderingMode Intent, IReadOnlyList<VectorPaint>? Paints = null);
 
     // DroppyCode/Resources/Assets.xcassets: the images app code names (ED-179 (3)), with each imageset's
-    // "template-rendering-intent" (droppy-logo "original"; every other asset here "template"). The 25
+    // "template-rendering-intent"; without one, the original artwork is drawn (ED-182/ED-215). The 25
     // hydra-head-NN marks (UI/Common/HydraGlyph.swift, HydraPersona.asset, Core/Models/Hydra.swift:231-257) are
     // first-party app artwork, not SF Symbols (PA-0012): reusable, per platform_adaptations.md PA-0012.
     private static readonly Lazy<IReadOnlyDictionary<string, Asset>> Assets = new(() => new Dictionary<string, Asset>(StringComparer.Ordinal)
@@ -105,6 +108,55 @@ public sealed class SwiftImage : Control
         ["droppy-logo"] = new(null, LoadBitmap("droppy-logo.png"), LoadBitmap("droppy-logo@2x.png"), ImageRenderingMode.Original),
         ["hydra-mark"] = new(LoadSvg("hydra-mark.svg"), null, null, ImageRenderingMode.Template),
         ["badge-edit"] = new(LoadSvg("badge-edit.svg"), null, null, ImageRenderingMode.Template),
+        ["mcp-atlassian"] = LoadVectorAsset("mcp-atlassian.imageset/mcp-atlassian.svg", ImageRenderingMode.Template),
+        ["mcp-aws-docs"] = LoadVectorAsset("mcp-aws-docs.imageset/mcp-aws-docs.svg", ImageRenderingMode.Template),
+        ["mcp-brave-search"] = LoadVectorAsset("mcp-brave-search.imageset/mcp-brave-search.svg", ImageRenderingMode.Template),
+        ["mcp-chrome-devtools"] = LoadVectorAsset("mcp-chrome-devtools.imageset/mcp-chrome-devtools.svg", ImageRenderingMode.Template),
+        ["mcp-cloudflare"] = LoadVectorAsset("mcp-cloudflare.imageset/mcp-cloudflare.svg", ImageRenderingMode.Template),
+        ["mcp-context7"] = LoadVectorAsset("mcp-context7.imageset/mcp-context7.svg", ImageRenderingMode.Template),
+        ["mcp-deepwiki"] = LoadVectorAsset("mcp-deepwiki.imageset/mcp-deepwiki.svg", ImageRenderingMode.Template),
+        ["mcp-exa"] = LoadVectorAsset("mcp-exa.imageset/mcp-exa.svg", ImageRenderingMode.Template),
+        ["mcp-fetch"] = LoadVectorAsset("mcp-fetch.imageset/mcp-fetch.svg", ImageRenderingMode.Template),
+        ["mcp-figma"] = LoadVectorAsset("mcp-figma.imageset/mcp-figma.svg", ImageRenderingMode.Template),
+        ["mcp-filesystem"] = LoadVectorAsset("mcp-filesystem.imageset/mcp-filesystem.svg", ImageRenderingMode.Template),
+        ["mcp-firecrawl"] = LoadVectorAsset("mcp-firecrawl.imageset/mcp-firecrawl.svg", ImageRenderingMode.Template),
+        ["mcp-git"] = LoadVectorAsset("mcp-git.imageset/mcp-git.svg", ImageRenderingMode.Template),
+        ["mcp-github"] = LoadVectorAsset("mcp-github.imageset/mcp-github.svg", ImageRenderingMode.Template),
+        ["mcp-gitlab"] = LoadVectorAsset("mcp-gitlab.imageset/mcp-gitlab.svg", ImageRenderingMode.Template),
+        ["mcp-huggingface"] = LoadVectorAsset("mcp-huggingface.imageset/mcp-huggingface.svg", ImageRenderingMode.Template),
+        ["mcp-linear"] = LoadVectorAsset("mcp-linear.imageset/mcp-linear.svg", ImageRenderingMode.Template),
+        ["mcp-memory"] = LoadVectorAsset("mcp-memory.imageset/mcp-memory.svg", ImageRenderingMode.Template),
+        ["mcp-mongodb"] = LoadVectorAsset("mcp-mongodb.imageset/mcp-mongodb.svg", ImageRenderingMode.Template),
+        ["mcp-netlify"] = LoadVectorAsset("mcp-netlify.imageset/mcp-netlify.svg", ImageRenderingMode.Template),
+        ["mcp-notion"] = LoadVectorAsset("mcp-notion.imageset/mcp-notion.svg", ImageRenderingMode.Template),
+        ["mcp-perplexity"] = LoadVectorAsset("mcp-perplexity.imageset/mcp-perplexity.svg", ImageRenderingMode.Template),
+        ["mcp-playwright"] = LoadVectorAsset("mcp-playwright.imageset/mcp-playwright.svg", ImageRenderingMode.Template),
+        ["mcp-postgres"] = LoadVectorAsset("mcp-postgres.imageset/mcp-postgres.svg", ImageRenderingMode.Template),
+        ["mcp-resend"] = LoadVectorAsset("mcp-resend.imageset/mcp-resend.svg", ImageRenderingMode.Template),
+        ["mcp-sentry"] = LoadVectorAsset("mcp-sentry.imageset/mcp-sentry.svg", ImageRenderingMode.Template),
+        ["mcp-sequential-thinking"] = LoadVectorAsset("mcp-sequential-thinking.imageset/mcp-sequential-thinking.svg", ImageRenderingMode.Template),
+        ["mcp-slack"] = LoadVectorAsset("mcp-slack.imageset/mcp-slack.svg", ImageRenderingMode.Template),
+        ["mcp-sqlite"] = LoadVectorAsset("mcp-sqlite.imageset/mcp-sqlite.svg", ImageRenderingMode.Template),
+        ["mcp-stripe"] = LoadVectorAsset("mcp-stripe.imageset/mcp-stripe.svg", ImageRenderingMode.Template),
+        ["mcp-supabase"] = LoadVectorAsset("mcp-supabase.imageset/mcp-supabase.svg", ImageRenderingMode.Template),
+        ["mcp-tavily"] = LoadVectorAsset("mcp-tavily.imageset/mcp-tavily.svg", ImageRenderingMode.Template),
+        ["mcp-vercel"] = LoadVectorAsset("mcp-vercel.imageset/mcp-vercel.svg", ImageRenderingMode.Template),
+        ["provider-antigravity"] = LoadVectorAsset("provider-antigravity.imageset/antigravity.svg", ImageRenderingMode.Template),
+        ["provider-claude"] = LoadVectorAsset("provider-claude.imageset/claude.svg", ImageRenderingMode.Original),
+        ["provider-codex"] = LoadVectorAsset("provider-codex.imageset/codex.svg", ImageRenderingMode.Template),
+        ["provider-commandcode"] = LoadVectorAsset("provider-commandcode.imageset/commandcode.svg", ImageRenderingMode.Template),
+        ["provider-copilot"] = LoadVectorAsset("provider-copilot.imageset/copilot.svg", ImageRenderingMode.Template),
+        ["provider-cursor"] = LoadVectorAsset("provider-cursor.imageset/cursor.svg", ImageRenderingMode.Template),
+        ["provider-deepseek"] = LoadVectorAsset("provider-deepseek.imageset/deepseek.svg", ImageRenderingMode.Original),
+        ["provider-devin"] = LoadVectorAsset("provider-devin.imageset/devin.svg", ImageRenderingMode.Template),
+        ["provider-grok"] = LoadVectorAsset("provider-grok.imageset/grok.svg", ImageRenderingMode.Template),
+        ["provider-meta"] = LoadVectorAsset("provider-meta.imageset/meta.svg", ImageRenderingMode.Original),
+        ["provider-opencode"] = LoadVectorAsset("provider-opencode.imageset/opencode.svg", ImageRenderingMode.Template),
+        ["provider-pi"] = LoadVectorAsset("provider-pi.imageset/pi.svg", ImageRenderingMode.Template),
+        ["provider-zai"] = LoadVectorAsset("provider-zai.imageset/zai.svg", ImageRenderingMode.Template),
+        ["UpdateBugFixesIcon"] = new(null, LoadBitmap("UpdateBugFixesIcon.imageset/update-bug-fixes.png"), null, ImageRenderingMode.Original),
+        ["UpdateNewFeaturesIcon"] = new(null, LoadBitmap("UpdateNewFeaturesIcon.imageset/update-new-features.png"), null, ImageRenderingMode.Original),
+        ["UpdateRefinementsIcon"] = new(null, LoadBitmap("UpdateRefinementsIcon.imageset/update-refinements.png"), null, ImageRenderingMode.Original),
     }.Concat(Enumerable.Range(1, 25).Select(i => new KeyValuePair<string, Asset>(
         $"hydra-head-{i:D2}", new(LoadSvg($"hydra-head-{i:D2}.svg"), null, null, ImageRenderingMode.Template))))
         .ToDictionary(kv => kv.Key, kv => kv.Value, StringComparer.Ordinal));
@@ -116,6 +168,7 @@ public sealed class SwiftImage : Control
     private static readonly ConcurrentDictionary<(string Family, double Size, FontWeight Weight, FontStyle Style), double> CapHeights = new();
 
     private readonly ImageRenderingMode intent;
+    private readonly IReadOnlyList<VectorPaint>? vectorPaints;
     private ImageRenderingMode? renderingMode;
 
     static SwiftImage()
@@ -125,7 +178,7 @@ public sealed class SwiftImage : Control
     }
 
     private SwiftImage(string? symbolName, string? assetName, SymbolMapping? mapping, SvgIcon? icon, Bitmap? bitmap,
-        Bitmap? bitmap2x, ImageRenderingMode intent)
+        Bitmap? bitmap2x, ImageRenderingMode intent, IReadOnlyList<VectorPaint>? vectorPaints = null)
     {
         SymbolName = symbolName;
         AssetName = assetName;
@@ -134,6 +187,7 @@ public sealed class SwiftImage : Control
         Bitmap = bitmap;
         Bitmap2x = bitmap2x;
         this.intent = intent;
+        this.vectorPaints = vectorPaints;
     }
 
     /// <summary><c>Image(systemName:)</c>.</summary>
@@ -146,7 +200,7 @@ public sealed class SwiftImage : Control
 
     /// <summary><c>Image(_ name:)</c> for an asset-catalogue image.</summary>
     public static SwiftImage Named(string name) => Assets.Value.TryGetValue(name, out var asset)
-        ? new SwiftImage(null, name, null, asset.Icon, asset.Bitmap, asset.Bitmap2x, asset.Intent)
+        ? new SwiftImage(null, name, null, asset.Icon, asset.Bitmap, asset.Bitmap2x, asset.Intent, asset.Paints)
         : new SwiftImage(null, name, null, null, null, null, ImageRenderingMode.Original);
 
     /// <summary>The <c>.font</c> a control passes down to the symbols inside it.</summary>
@@ -430,13 +484,16 @@ public sealed class SwiftImage : Control
     {
         using (context.PushTransform(ViewBoxTransform(box, destination)))
         {
-            foreach (var shape in shapes)
+            for (var index = 0; index < shapes.Count; index++)
             {
-                var fill = Brush(shape.Fill, template);
-                var strokeBrush = Brush(shape.Stroke, template);
+                var shape = shapes[index];
+                var paints = vectorPaints is { } stored && index < stored.Count ? stored[index] : null;
+                var fill = !template && paints?.Fill is { } fillGradient ? fillGradient : Brush(shape.Fill, template);
+                var strokeBrush = !template && paints?.Stroke is { } strokeGradient ? strokeGradient : Brush(shape.Stroke, template);
                 var pen = strokeBrush is null ? null : new Pen(strokeBrush, shape.StrokeWidth, lineCap: shape.LineCap, lineJoin: shape.LineJoin);
                 if (fill is null && pen is null) continue;
-                context.DrawGeometry(fill, pen, shape.Geometry);
+                using (context.PushOpacity(paints?.FillOpacity ?? 1)) context.DrawGeometry(fill, null, shape.Geometry);
+                using (context.PushOpacity(paints?.StrokeOpacity ?? 1)) context.DrawGeometry(null, pen, shape.Geometry);
             }
         }
     }
@@ -478,6 +535,42 @@ public sealed class SwiftImage : Control
         using var stream = AssetLoader.Open(ImageUri(file));
         using var reader = new StreamReader(stream);
         return SvgIcon.Parse(reader.ReadToEnd());
+    }
+
+    // ED-215: preserve the catalogue's vectors, including Meta's linear gradient and OpenCode's fill opacity.
+    // The general SvgIcon parser remains unchanged; paint-server metadata belongs to these named assets.
+    private static Asset LoadVectorAsset(string file, ImageRenderingMode intent)
+    {
+        using var stream = AssetLoader.Open(ImageUri(file));
+        var root = XDocument.Load(stream).Root!;
+        static double Number(string? value, double fallback) => value is null ? fallback : double.Parse(value, CultureInfo.InvariantCulture);
+        var gradients = new Dictionary<string, IBrush>(StringComparer.Ordinal);
+        foreach (var gradient in root.Descendants().Where(e => e.Name.LocalName == "linearGradient"))
+        {
+            var absolute = (string?)gradient.Attribute("gradientUnits") == "userSpaceOnUse";
+            var brush = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(Number((string?)gradient.Attribute("x1"), 0), Number((string?)gradient.Attribute("y1"), 0), absolute ? RelativeUnit.Absolute : RelativeUnit.Relative),
+                EndPoint = new RelativePoint(Number((string?)gradient.Attribute("x2"), 1), Number((string?)gradient.Attribute("y2"), 0), absolute ? RelativeUnit.Absolute : RelativeUnit.Relative),
+            };
+            foreach (var stop in gradient.Elements())
+                brush.GradientStops.Add(new GradientStop(Color.Parse((string?)stop.Attribute("stop-color") ?? "#000000"), Number((string?)stop.Attribute("offset"), 0)));
+            gradients.Add((string)gradient.Attribute("id")!, brush);
+        }
+        root.Descendants().Where(e => e.Name.LocalName == "defs").ToArray().ToList().ForEach(e => e.Remove());
+        var paints = new List<VectorPaint>();
+        foreach (var element in root.Descendants().Where(e => e.Name.LocalName != "g"))
+        {
+            IBrush? Paint(string name)
+            {
+                if ((string?)element.Attribute(name) is not { } value || !value.StartsWith("url(#", StringComparison.Ordinal)) return null;
+                var brush = gradients[value[5..^1]];
+                element.SetAttributeValue(name, "#000000");
+                return brush;
+            }
+            paints.Add(new VectorPaint(Paint("fill"), Paint("stroke"), Number((string?)element.Attribute("fill-opacity"), 1), Number((string?)element.Attribute("stroke-opacity"), 1)));
+        }
+        return new(SvgIcon.Parse(root.ToString()), null, null, intent, paints);
     }
 
     /// <summary>
@@ -618,4 +711,145 @@ public sealed class SwiftImage : Control
         private static Geometry? Union(Geometry? a, Geometry? b) =>
             a is null ? b : b is null ? a : new CombinedGeometry(GeometryCombineMode.Union, a, b);
     }
+}
+
+
+// PORT-ONLY: ED-087/ED-089's injectable Windows boundary for Common/Components.swift:119-167.
+// Kept in this authorized Port foundation file because this redo may change no other production file.
+// Every native operation fails closed under a test host; fake backends replace delegates before first use.
+public class WorkspacePlatform
+{
+    public Func<string, bool, string?> AppPath { get; init; } = NativeAppPath;
+    public Func<string, string?> Which { get; init; } = NativeWhich;
+    public Func<string, bool> Exists { get; init; } = path => { Guard(); return File.Exists(path); };
+    public Func<string, IImage?> ReadIcon { get; init; } = NativeIcon;
+    public Action<string, IReadOnlyList<string>, string?, bool> Launch { get; init; } = NativeLaunch;
+    public Action<string> Reveal { get; init; } = path => { Guard(); ShellWorkspace.RevealInFileExplorer(path); };
+    private string? home;
+    private string? explorer;
+    public string Home { get => home ?? NativeHome(); init => home = value; }
+    public string Explorer { get => explorer ?? NativeExplorer(); init => explorer = value; }
+    public string WindowsPowerShell { get { Guard(); return Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.System), "WindowsPowerShell", "v1.0", "powershell.exe"); } }
+
+    private static void Guard()
+    {
+        if (AppDomain.CurrentDomain.GetAssemblies().Any(a => a.GetName().Name is { } name
+                && (name.StartsWith("xunit", StringComparison.OrdinalIgnoreCase) || name.StartsWith("testhost", StringComparison.OrdinalIgnoreCase) || name == "Marrow.Testing")))
+            throw new InvalidOperationException("Workspace native access is forbidden in tests; override Workspace.Platform first.");
+        if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Workspace requires Windows.");
+    }
+    private static string NativeHome() { Guard(); return System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile); }
+    private static string NativeExplorer() { Guard(); return Path.Combine(System.Environment.GetFolderPath(System.Environment.SpecialFolder.Windows), "explorer.exe"); }
+    private static string? NativeAppPath(string exe, bool machine)
+    {
+        Guard();
+        if (!OperatingSystem.IsWindows()) return null;
+        try
+        {
+            using var key = (machine ? Microsoft.Win32.Registry.LocalMachine : Microsoft.Win32.Registry.CurrentUser)
+                .OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\App Paths\" + exe);
+            return (key?.GetValue(null) as string)?.Trim('"');
+        }
+        catch (UnauthorizedAccessException) { return null; }
+        catch (System.Security.SecurityException) { return null; }
+    }
+    private static string? NativeWhich(string name)
+    {
+        Guard();
+        return Marrow.Core.Port.ProcessLauncher.Which(name, System.Environment.GetEnvironmentVariable("PATH") ?? "",
+            System.Environment.GetEnvironmentVariable("PATHEXT") ?? ".COM;.EXE;.BAT;.CMD", NativeHome());
+    }
+    private static void NativeLaunch(string executable, IReadOnlyList<string> arguments, string? directory, bool console)
+    {
+        Guard();
+        // ShellExecute opens console executables in their own window (ED-089), also honoring .cmd PATH shims.
+        var start = new System.Diagnostics.ProcessStartInfo(executable) { UseShellExecute = true, CreateNoWindow = false };
+        if (directory is not null) start.WorkingDirectory = directory;
+        foreach (var argument in arguments) start.ArgumentList.Add(argument);
+        // NSWorkspace.open reports failure asynchronously, never throwing back through the clicked view.
+        try { System.Diagnostics.Process.Start(start)?.Dispose(); }
+        catch (System.ComponentModel.Win32Exception) { }
+    }
+
+    // The executable's own shell icon (ED-087), drawn at 16 into an Avalonia bitmap, no System.Drawing package.
+    private static IImage? NativeIcon(string path)
+    {
+        Guard();
+        if (SHGetFileInfo(path, 0, out var info, (uint)Marshal.SizeOf<ShellInfo>(), 0x101) == IntPtr.Zero || info.Icon == IntPtr.Zero) return null;
+        try
+        {
+            var header = new BitmapInfo { Size = 40, Width = 16, Height = -16, Planes = 1, BitCount = 32, SizeImage = 16 * 16 * 4 };
+            var dc = CreateCompatibleDC(IntPtr.Zero);
+            if (dc == IntPtr.Zero) return null;
+            try
+            {
+                var dib = CreateDIBSection(dc, ref header, 0, out var bits, IntPtr.Zero, 0);
+                if (dib == IntPtr.Zero) return null;
+                var original = SelectObject(dc, dib);
+                try
+                {
+                    var black = new byte[16 * 16 * 4];
+                    Marshal.Copy(black, 0, bits, black.Length);
+                    if (!DrawIconEx(dc, 0, 0, info.Icon, 16, 16, 0, IntPtr.Zero, 3)) return null;
+                    Marshal.Copy(bits, black, 0, black.Length);
+                    var white = Enumerable.Repeat((byte)255, black.Length).ToArray();
+                    Marshal.Copy(white, 0, bits, white.Length);
+                    if (!DrawIconEx(dc, 0, 0, info.Icon, 16, 16, 0, IntPtr.Zero, 3)) return null;
+                    Marshal.Copy(bits, white, 0, white.Length);
+                    // Black/white compositing recovers coverage even for legacy HICONs with a one-bit mask.
+                    for (var i = 0; i < black.Length; i += 4) black[i + 3] = (byte)(255 - Math.Clamp(white[i] - black[i], 0, 255));
+                    var bitmap = new WriteableBitmap(new PixelSize(16, 16), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul);
+                    using var buffer = bitmap.Lock();
+                    for (var y = 0; y < 16; y++) Marshal.Copy(black, y * 64, buffer.Address + y * buffer.RowBytes, 64);
+                    return bitmap;
+                }
+                finally { SelectObject(dc, original); DeleteObject(dib); }
+            }
+            finally { DeleteDC(dc); }
+        }
+        finally { DestroyIcon(info.Icon); }
+    }
+    [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+    private struct ShellInfo
+    {
+        public IntPtr Icon;
+        public int IconIndex;
+        public uint Attributes;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string DisplayName;
+        [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 80)] public string TypeName;
+    }
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BitmapInfo
+    {
+        public uint Size;
+        public int Width, Height;
+        public ushort Planes, BitCount;
+        public uint Compression, SizeImage;
+        public int XPelsPerMeter, YPelsPerMeter;
+        public uint ClrUsed, ClrImportant;
+    }
+    [DllImport("shell32.dll", EntryPoint = "SHGetFileInfoW", CharSet = CharSet.Unicode)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr SHGetFileInfo(string path, uint attributes, out ShellInfo info, uint size, uint flags);
+    [DllImport("gdi32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr CreateCompatibleDC(IntPtr dc);
+    [DllImport("gdi32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr CreateDIBSection(IntPtr dc, ref BitmapInfo info, uint usage, out IntPtr bits, IntPtr section, uint offset);
+    [DllImport("gdi32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern IntPtr SelectObject(IntPtr dc, IntPtr item);
+    [DllImport("gdi32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool DeleteObject(IntPtr item);
+    [DllImport("gdi32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool DeleteDC(IntPtr dc);
+    [DllImport("user32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool DrawIconEx(IntPtr dc, int x, int y, IntPtr icon, int width, int height, uint step, IntPtr brush, uint flags);
+    [DllImport("user32.dll")]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool DestroyIcon(IntPtr icon);
 }
