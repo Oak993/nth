@@ -1,0 +1,931 @@
+[
+  {
+    "name": "badge-edit",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "badge-edit.svg",
+        "scale": null,
+        "sha256": "91CE10A554CB96C12C59A2F778B9541014483C9E70F9B84F5A3F4776EFD20E3E"
+      }
+    ],
+    "contentsSha256": "206A4E7976563E82744F5E3513420034C2E116328C7B32B64BA0039DFCC213BC"
+  },
+  {
+    "name": "droppy-logo",
+    "intent": "original",
+    "files": [
+      {
+        "filename": "droppy-logo.png",
+        "scale": "1x",
+        "sha256": "307ACA65B532FE56C1FAF38423E40812FCDD4969E105BD1E936224CB19E4DE95"
+      },
+      {
+        "filename": "droppy-logo@2x.png",
+        "scale": "2x",
+        "sha256": "467897A05E5B29238EE4DF44E38EB130FB7BDF93A9D0ACEC38F342AFDF1C242C"
+      }
+    ],
+    "contentsSha256": "9B7B5097BD58E2B64DF37D240EF98467168925737B702B653E5575E7E7497034"
+  },
+  {
+    "name": "hydra-head-01",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-01.svg",
+        "scale": null,
+        "sha256": "DDA00072E38F13B1DBF416EC6FE011E47CE87F1E6A32182098660991D781B0E6"
+      }
+    ],
+    "contentsSha256": "09824357DEC4FC1D8EA37767D12D10AEB1AD7E5634A1B7B7BE29438827CE791A"
+  },
+  {
+    "name": "hydra-head-02",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-02.svg",
+        "scale": null,
+        "sha256": "FED154187237B95E45B8845DFD98064BF3D2E7A16AC57EDB58F13DD73F09B6DD"
+      }
+    ],
+    "contentsSha256": "77CD351FE3849DDD3CD1EBC67CB1583EA2BBD6DCACCC04BD6C871E4441558319"
+  },
+  {
+    "name": "hydra-head-03",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-03.svg",
+        "scale": null,
+        "sha256": "7762D8A10DB7F12D1B0CCDA7C2A743F96D7841FFFAEF575264D53012D814D78C"
+      }
+    ],
+    "contentsSha256": "37CD58AEC0F3B1814A75C621F529B02649981E82426191B253614D8143873F5F"
+  },
+  {
+    "name": "hydra-head-04",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-04.svg",
+        "scale": null,
+        "sha256": "3783B8B906CBDA324E01F16A9F749D4E13072C5A45F5614A6A2AA928C8047F4D"
+      }
+    ],
+    "contentsSha256": "30F870EDE6AC2310083F1FF58971227261468E65A606367B304CAC4DF6AB0D38"
+  },
+  {
+    "name": "hydra-head-05",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-05.svg",
+        "scale": null,
+        "sha256": "2021936FCACECC7F7D629C59A04D86C7256EF5E5F19F6B1CAF827410E90286A5"
+      }
+    ],
+    "contentsSha256": "AD37757DC4EB174605F1457616013A767A09E63CB10F4E39E91C17FA7A72A6F5"
+  },
+  {
+    "name": "hydra-head-06",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-06.svg",
+        "scale": null,
+        "sha256": "689F5EEEF5E28E44C5CE900C0412BA01FCD00F54C690D5BE823CFF127E8E5016"
+      }
+    ],
+    "contentsSha256": "518B08AFFBBF232C7A220785DA8DF187CC22324D2F794B9A32CCE790F25C49F3"
+  },
+  {
+    "name": "hydra-head-07",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-07.svg",
+        "scale": null,
+        "sha256": "5AD6F3B7969CE3C933FA82F7A43B478D50E2287BB82F47819A8DE4C7DEE93463"
+      }
+    ],
+    "contentsSha256": "9D8CBC74CA6014A2903AA8E47CD8FD0BC163B6578C5BBDB4DBCA673532E79190"
+  },
+  {
+    "name": "hydra-head-08",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-08.svg",
+        "scale": null,
+        "sha256": "3A2B4009BD24147A12313760F013FD2D536D6F718DB85E25FA08BD36F18F8616"
+      }
+    ],
+    "contentsSha256": "ED3B960FC2EF4626AA074EAF814A2900C0A37C859F9955AF44D142E4BC49BB6D"
+  },
+  {
+    "name": "hydra-head-09",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-09.svg",
+        "scale": null,
+        "sha256": "53D0FC417F17DDF1ADF9BBF551857C08529876F773E523FED405141CDBF04BA4"
+      }
+    ],
+    "contentsSha256": "B932F14CD88D97AFA5B4CB0B894005AA4BD895533E7893FAF03423F75F5B8B84"
+  },
+  {
+    "name": "hydra-head-10",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-10.svg",
+        "scale": null,
+        "sha256": "F8BED9F6EC7D8FBEA043457222B2A53A1D9FF1C971D2569CBFCB5166845A4B06"
+      }
+    ],
+    "contentsSha256": "87BF95BA760CF5F84C4420686015BEE8806576A36245EA47A73CBB7FDB57E79F"
+  },
+  {
+    "name": "hydra-head-11",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-11.svg",
+        "scale": null,
+        "sha256": "E8C3602D16CEBD753BAA1D96B2F0CBD7976071F0C83D10FEC08A843CAAA569BB"
+      }
+    ],
+    "contentsSha256": "1E1754E19587D89B1D2D35AAEA76501C584BD0BBC284FCDF31800E5D32168805"
+  },
+  {
+    "name": "hydra-head-12",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-12.svg",
+        "scale": null,
+        "sha256": "6108D97A753485C0747432A0C0FF9A1B137E4F37D4174B0BB1604AD3DE245C37"
+      }
+    ],
+    "contentsSha256": "4419BAA0DF0FFF9F2BA45E872D0F7AC32F44CF99B93B2AA8F0A246DB2CB9F55A"
+  },
+  {
+    "name": "hydra-head-13",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-13.svg",
+        "scale": null,
+        "sha256": "DD627EDB1AC55589788CB16330B24B116A360FA9DEC7372EAF5A7412AA0A4732"
+      }
+    ],
+    "contentsSha256": "8FBF7DBFE344C96F71510B15C9C4F0E40827094AF784F6E5B2024A1E2C63B8B7"
+  },
+  {
+    "name": "hydra-head-14",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-14.svg",
+        "scale": null,
+        "sha256": "7A3F5F765D1F6C8D3D89533C9CEC4331E8EA989320CF49B51F646132E8FBB343"
+      }
+    ],
+    "contentsSha256": "35AB7BB1B1069645FB88F907444BF4317FC7ADA47D02DD62D2519336D75E4DE3"
+  },
+  {
+    "name": "hydra-head-15",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-15.svg",
+        "scale": null,
+        "sha256": "D1F0270A61A7AA707EE378F2BD1AFE5609D6B349455AEB816EB34A8E6C774773"
+      }
+    ],
+    "contentsSha256": "C919B65C9DD8F11900A0B50835AEBAA563F7FA4FF1CD7ED8056EDE02091856B5"
+  },
+  {
+    "name": "hydra-head-16",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-16.svg",
+        "scale": null,
+        "sha256": "3A194B461B16547632619D74E2DB31485F05721AD07FA9AFBA901DF49E7DAD9A"
+      }
+    ],
+    "contentsSha256": "4684D1A9E2D89C4DFE1B9481DF8866D7448B780CD5C3D6BE50EDE664DF853528"
+  },
+  {
+    "name": "hydra-head-17",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-17.svg",
+        "scale": null,
+        "sha256": "CA9600450B68FC8336B99CBC702C7E4300DDEBB9890D7025D461576EA8D777BC"
+      }
+    ],
+    "contentsSha256": "1BC73D1E9899B0F86A818932D3A0AE21C8767F9CF8AFF166BFEB42BBF57F7E1F"
+  },
+  {
+    "name": "hydra-head-18",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-18.svg",
+        "scale": null,
+        "sha256": "9FD2BEBF585C0E516B4DA0469F3FCD0DF8F1A289DB8EAE682AD068CDA25DA270"
+      }
+    ],
+    "contentsSha256": "15C3863D8B1608DBD339EA30B3C1503C3A8F6F82E3A5576B2A7E9FAFEBB29AF7"
+  },
+  {
+    "name": "hydra-head-19",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-19.svg",
+        "scale": null,
+        "sha256": "9149EDEA5C276388BE9DB32B5304FBF5EDD6E5B9671236EDC73C86FF6DCB7C2A"
+      }
+    ],
+    "contentsSha256": "EE3B0AA0AEE9695520DB6E584751B514D69F5DC7736C36973F4DD42C987C5355"
+  },
+  {
+    "name": "hydra-head-20",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-20.svg",
+        "scale": null,
+        "sha256": "7C464196C8CB534BB439084CAF7D312A280CCB32AF82F1372FE3A40E67280CAA"
+      }
+    ],
+    "contentsSha256": "A9FA9A63ADCEC258E537EB4DB178112E867D13CB960C344A2C594B0D07217268"
+  },
+  {
+    "name": "hydra-head-21",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-21.svg",
+        "scale": null,
+        "sha256": "269283EBD58617F648E1059D5E4C4258895EF87BD371012E9D9B2DD86BAF75DD"
+      }
+    ],
+    "contentsSha256": "BB60321E1EF4C63393A51772A0B23B2122759D32420AAF392DC7A3D5744E3EF6"
+  },
+  {
+    "name": "hydra-head-22",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-22.svg",
+        "scale": null,
+        "sha256": "3E3C1434363AAA55F6DBEFBF73BEC3403ADFBE69D50E698C284BEE463B4A5897"
+      }
+    ],
+    "contentsSha256": "E4BBD57CE4E5089832648AD824DE1C045AAC2491C1713099500A69B5EDB61032"
+  },
+  {
+    "name": "hydra-head-23",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-23.svg",
+        "scale": null,
+        "sha256": "A64F9848E3A3B3D533363CA6AEC916DABC9736F6990842F06F752478C1302841"
+      }
+    ],
+    "contentsSha256": "0DA740D62394259C3BE754511BAB82CA29F145F78B4238923B6B38249F155D2B"
+  },
+  {
+    "name": "hydra-head-24",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-24.svg",
+        "scale": null,
+        "sha256": "AAEBC0CBDB4DF44F463ECBD51108F016A1EB836186248F1C11C9BD660FD2FB63"
+      }
+    ],
+    "contentsSha256": "D8ACECA172DADBE6BB6633AC4A15BEE6C339409D70316DC2856487D25AEAA421"
+  },
+  {
+    "name": "hydra-head-25",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-head-25.svg",
+        "scale": null,
+        "sha256": "45E8BAC8D8E312FCAE642D63AAC130BC7E09FDEE59807C166FF36734F78F84FA"
+      }
+    ],
+    "contentsSha256": "AA21D278BA829C4E0FD03535ACB4D840679529B19BBB9E68DF4955B5A37F348F"
+  },
+  {
+    "name": "hydra-mark",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "hydra-mark.svg",
+        "scale": null,
+        "sha256": "26C998A5E343E9BC0E8110BE443FCB5B716DEC0C705F4A52A2B5066D5D3D8F72"
+      }
+    ],
+    "contentsSha256": "AB89F0F1C950B0BE8918537E3F96596B8190F9D3B732465CB8483C56F8B878D7"
+  },
+  {
+    "name": "mcp-atlassian",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-atlassian.svg",
+        "scale": null,
+        "sha256": "BFC96E09AC5B3C7553EA422E67FC00CE636A97B26DDB9A361D0AF780CB24C910"
+      }
+    ],
+    "contentsSha256": "A277466CBC97295ABCFFE8B6F2ACC2B1528E78CCDA761017B9DE1C69A7749C23"
+  },
+  {
+    "name": "mcp-aws-docs",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-aws-docs.svg",
+        "scale": null,
+        "sha256": "6765B58D698176B8D2BCE7BC4C520A7F36B95CB5A3F6AE531EC39A380028A5D9"
+      }
+    ],
+    "contentsSha256": "65024D8D31AFEAD603D84146A02F9563E8C9583A4A92ACB893224B998CE91CD7"
+  },
+  {
+    "name": "mcp-brave-search",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-brave-search.svg",
+        "scale": null,
+        "sha256": "7038D3D9A08E044F8575B7AFBD49762C3639265368E908F5BC64CD79BADAC6B7"
+      }
+    ],
+    "contentsSha256": "129C2A9DAC3C221D4866F6669103A59DC11D81556559E2D2A9C639F74A3D6835"
+  },
+  {
+    "name": "mcp-chrome-devtools",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-chrome-devtools.svg",
+        "scale": null,
+        "sha256": "55C2C0D61699CF71E9DDA8039C533BF29A3279F40D46C8A01AD3BB4E3698DAD1"
+      }
+    ],
+    "contentsSha256": "F9C87BE378CFFACA3DEC445FC9695E0E5D19546AC3180ED5EC5FCCE913205461"
+  },
+  {
+    "name": "mcp-cloudflare",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-cloudflare.svg",
+        "scale": null,
+        "sha256": "E03D51E40D6149BACFAAA77601E2D982A8C3E39435F984493B17144DF2E442B0"
+      }
+    ],
+    "contentsSha256": "3608770CEA3D7862CEA0D0385EEA2BBFFE9B4BDDC926DDF7EC099479BA80E54A"
+  },
+  {
+    "name": "mcp-context7",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-context7.svg",
+        "scale": null,
+        "sha256": "A1FB2AFA42FEA60D11A7B57CBDDA4A0016D36E72DC82CAF6AAF0DC651D3DEA08"
+      }
+    ],
+    "contentsSha256": "5635A3DB3C441B67B3D408C0BA1037106ABA4D7CD9C07558130853C58CFB18E5"
+  },
+  {
+    "name": "mcp-deepwiki",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-deepwiki.svg",
+        "scale": null,
+        "sha256": "BD9A7D251AF2E0C6F8FBAD8AF624B95A3FE3D36DD4DA5B937593FA9A51C1F141"
+      }
+    ],
+    "contentsSha256": "5F0804E8B605987A2230CEC0714E238320888B714534ADC16E38A3EA8D760ED4"
+  },
+  {
+    "name": "mcp-exa",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-exa.svg",
+        "scale": null,
+        "sha256": "C0B2C677808E660A38C579824E52F21BDED72D26EBCBA545B11341E7628A6505"
+      }
+    ],
+    "contentsSha256": "7E45994BBA7A8B33B650167C3A8F4A5202131ED4E213D27C830FD4B8C7B005A0"
+  },
+  {
+    "name": "mcp-fetch",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-fetch.svg",
+        "scale": null,
+        "sha256": "9185D8F63A64DD56C77318882C2E0E3D9E0476A1F2D3B1BAF7F30A3DB3F8A397"
+      }
+    ],
+    "contentsSha256": "7F13C363DDF791B500AAC5276AA10DF17601A5E0AB6FA3C767B6D9D952F05C9C"
+  },
+  {
+    "name": "mcp-figma",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-figma.svg",
+        "scale": null,
+        "sha256": "FE6B827450992549F7041F1BEB7DC8E32394B7010E6C4A8D5258E2EEC537C960"
+      }
+    ],
+    "contentsSha256": "6CDB5A2818052DD5B31A37120FC9F9A5707AD803750EB79AD01BB7CE796CA25B"
+  },
+  {
+    "name": "mcp-filesystem",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-filesystem.svg",
+        "scale": null,
+        "sha256": "F38056C9F99F483DA6C4B3285EA09DE54CEA42E5A560C58D5C948B37F4A222B9"
+      }
+    ],
+    "contentsSha256": "CCF832C5792C5EBAD0DBF630B0EC707FADA193A22518BE640BEF87CBC626239A"
+  },
+  {
+    "name": "mcp-firecrawl",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-firecrawl.svg",
+        "scale": null,
+        "sha256": "2ED412419856D3483BF80231BA4931785657258B93A0438ED040D9E4F095208D"
+      }
+    ],
+    "contentsSha256": "3BBB6711A2A281C45A262D4DE4B69CF7F9029D628F5F7A89370E1B3CF91667CE"
+  },
+  {
+    "name": "mcp-git",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-git.svg",
+        "scale": null,
+        "sha256": "92E8ED3DDA4BDC880D12E73543F1811E964519AD87D84CFF91187E7C2465E31D"
+      }
+    ],
+    "contentsSha256": "7D5851ED7D458E07833A3FB20B545CE80A7D373BD5E2CD47105AE337E5D8B0D8"
+  },
+  {
+    "name": "mcp-github",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-github.svg",
+        "scale": null,
+        "sha256": "3629791D9F13EF7A51C2B0A9706B366D264A2C1E9A06BB2B77C3598BC99BD6B6"
+      }
+    ],
+    "contentsSha256": "98EF40D34C3236F05DA8DC3B2C08F651B874D7F9058D1C55D83CFBB2891322BF"
+  },
+  {
+    "name": "mcp-gitlab",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-gitlab.svg",
+        "scale": null,
+        "sha256": "6C895649B78119E5167ECCAA36C2A4C45BCA20728DEEA4F0C2647828CE156A7A"
+      }
+    ],
+    "contentsSha256": "107269DD549E4CB0B102382E30CC3EAFF4A69F0A6618F2309515E059DBCDDFA8"
+  },
+  {
+    "name": "mcp-huggingface",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-huggingface.svg",
+        "scale": null,
+        "sha256": "5C9441068746B8212292A5E6DF93367AAB9ED15D98427FF011FFEC3DC89C5C39"
+      }
+    ],
+    "contentsSha256": "851166C970FD31F2D1E1E8082982019F34DFC6A841AB3B6FFD9CA2DE3F8613AF"
+  },
+  {
+    "name": "mcp-linear",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-linear.svg",
+        "scale": null,
+        "sha256": "54938D1EAB5B1C629D6C49BA20EE27C99554BFD3113B28AB4C0323508E5CCAC3"
+      }
+    ],
+    "contentsSha256": "CB08513DAD7734D2228F322AB94C987F87C0AF07369E4C28BAFEF5A3E8B5F313"
+  },
+  {
+    "name": "mcp-memory",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-memory.svg",
+        "scale": null,
+        "sha256": "C51A875465CF80CD3AF37BD092989AC07CD32CA9D8AC1C5A13A9DB5D3B7927EC"
+      }
+    ],
+    "contentsSha256": "B0FD20ADF8CDB3263A68693408F72A1970439E042AF64C83AF60D8582A1CD41F"
+  },
+  {
+    "name": "mcp-mongodb",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-mongodb.svg",
+        "scale": null,
+        "sha256": "9196DA9755289D0AFB9928FCEB4A304032060EE1214D181390EA7BB56C89AA82"
+      }
+    ],
+    "contentsSha256": "B9EE4F3A189089C932D080428AD9B6C1D292B9338017EB6EACCE770CF7FDFBF4"
+  },
+  {
+    "name": "mcp-netlify",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-netlify.svg",
+        "scale": null,
+        "sha256": "AD6D8FB1D1D463603B834ECF87F67082B05A27A6FD6104FB7B22B0AF60D4237B"
+      }
+    ],
+    "contentsSha256": "D4A228869466FBA85ADC11F3E582B5E8419BB6A21B9659AEBD7AD7A019C707A1"
+  },
+  {
+    "name": "mcp-notion",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-notion.svg",
+        "scale": null,
+        "sha256": "9653926EE5AC181204E2E352F2B09E79D0E6BA800F95458C30BBBE6348649B63"
+      }
+    ],
+    "contentsSha256": "68B1A50B4238D106EBF421C4B0B65DB4E8742CED49B332EE111560F83F03CB39"
+  },
+  {
+    "name": "mcp-perplexity",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-perplexity.svg",
+        "scale": null,
+        "sha256": "E05C84D7B222E6EE9EFD1DAB6FB005752D900841AEDF669B2DC672D04D479ABB"
+      }
+    ],
+    "contentsSha256": "65E1C1D135229710084CB0B71366FE38C8B0EF92A852374C2D5DDCF4503F24EB"
+  },
+  {
+    "name": "mcp-playwright",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-playwright.svg",
+        "scale": null,
+        "sha256": "7E9E889581CA63CD1328158B58D04C2F96077D5C58B88D0642912F5F122582EF"
+      }
+    ],
+    "contentsSha256": "EB5A33608859EFAB806C8511E94292A48C69F38A610524F6BD541F6866B8F761"
+  },
+  {
+    "name": "mcp-postgres",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-postgres.svg",
+        "scale": null,
+        "sha256": "BDB71861B6CEE8FD1F034EC3090DC83781F0D22BD7187A968E465F32982724FD"
+      }
+    ],
+    "contentsSha256": "55600735D65824D4C0D8DAD4B1F4CC95E9B408EA872AA54306D35385BC899C4E"
+  },
+  {
+    "name": "mcp-resend",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-resend.svg",
+        "scale": null,
+        "sha256": "EC72A1F953DBE08C9CB1B2D2045279850A2BA9EF6F008DCDB124D545B9D59A64"
+      }
+    ],
+    "contentsSha256": "E0941F9F2F7975FF3CFB7167B0B3CCBDF69B3F7F58BC0B834DD0367B3A2F2CD1"
+  },
+  {
+    "name": "mcp-sentry",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-sentry.svg",
+        "scale": null,
+        "sha256": "587D44DE6280D81709BF8AED9BBABFB3DA1E0EE60614C1D00CD6D561780A56F8"
+      }
+    ],
+    "contentsSha256": "0553D388B2651A8C245598DFB875D1C50840E4138B4323FF949D6ABCAC8DFC93"
+  },
+  {
+    "name": "mcp-sequential-thinking",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-sequential-thinking.svg",
+        "scale": null,
+        "sha256": "C4E7B29B5012CF499568BCC013DFC1705E7FAB319C24BE66C030F963F5A0AA33"
+      }
+    ],
+    "contentsSha256": "B0F9C18C1D362001ECC8AFE68C1D2A86DED1E786AF9E8DA9A265BF1FEDAAD51C"
+  },
+  {
+    "name": "mcp-slack",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-slack.svg",
+        "scale": null,
+        "sha256": "13044F91773C564315759D4AD91BF1A1F9CA93203457A810E218C54AE5C4301D"
+      }
+    ],
+    "contentsSha256": "65143A6673A1DAD52106539A4A5B7E32916E38AF53888ED4037DB1058BF340B6"
+  },
+  {
+    "name": "mcp-sqlite",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-sqlite.svg",
+        "scale": null,
+        "sha256": "0FB0506FC5ECF88A7B25FB1C1623AF9A23BCF888551F08D627A87DC918197C5D"
+      }
+    ],
+    "contentsSha256": "576F35AEF50F723C5DB1BB54BACA811B8315E721D9133FCF4F6B30E7B9AAE1F8"
+  },
+  {
+    "name": "mcp-stripe",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-stripe.svg",
+        "scale": null,
+        "sha256": "2DD8789371B4FB94F7F6C4CA367D17020A90E8530403DFBA0453196383B7EFB4"
+      }
+    ],
+    "contentsSha256": "B02D3286FAF322B2CCE7286727EB452AFFC50CE0DF15EC21840457A90EE028A2"
+  },
+  {
+    "name": "mcp-supabase",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-supabase.svg",
+        "scale": null,
+        "sha256": "4464B87A7785980037961233FE4D762ACB9836E8400282D47E367EF46601D447"
+      }
+    ],
+    "contentsSha256": "7C9F655CE9F3BBFD22404093D5B6A9F7E8A7BA2594AF0D8EA5CD573D9ABB8BD6"
+  },
+  {
+    "name": "mcp-tavily",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-tavily.svg",
+        "scale": null,
+        "sha256": "B0F159004467D54DD396A2736F8BC29F29A5C18CB7664B9633A36247E7A2CF8B"
+      }
+    ],
+    "contentsSha256": "D7D063C66BB99F6C9F685B6149D6D19F5B64E7606F1AD250A16A4442B06CC3E0"
+  },
+  {
+    "name": "mcp-vercel",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "mcp-vercel.svg",
+        "scale": null,
+        "sha256": "CC15BE5EDD5F241ECE94EB4F4CF7A9263583C2E7DE8193E9F7BAB3EAF1937F3F"
+      }
+    ],
+    "contentsSha256": "EE4925EC6F1425F633E08A079FDF69A4B6E296DA336384574E83A9D1FD1F58F7"
+  },
+  {
+    "name": "provider-antigravity",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "antigravity.svg",
+        "scale": null,
+        "sha256": "278EA4B5FEAC255A6919943E57056CF297F945A55CAD35F5B3A2EA28D9E12704"
+      }
+    ],
+    "contentsSha256": "CBCC22066D934CF246E867C45B9BEE3B3777872C797244D7D374EF9453273A94"
+  },
+  {
+    "name": "provider-claude",
+    "intent": "original",
+    "files": [
+      {
+        "filename": "claude.svg",
+        "scale": null,
+        "sha256": "FB21AC9BFCE821E7BADCFCEC81CC706BA8A5C73A690DA112D416855E0821CF72"
+      }
+    ],
+    "contentsSha256": "C0DFB9E451AC66CDF8815E9E9A1736C2C0B1EA8A674DFA49A6F1B3810DEC5BA4"
+  },
+  {
+    "name": "provider-codex",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "codex.svg",
+        "scale": null,
+        "sha256": "B78B0EB753B20027A4A5EB105B993D7AF9230A186F5FBCA5061024A7AA88461E"
+      }
+    ],
+    "contentsSha256": "277A3090C32D1CFFA064FCA2E8163B62E8759DE1F5A91344FC6855497399EAE2"
+  },
+  {
+    "name": "provider-commandcode",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "commandcode.svg",
+        "scale": null,
+        "sha256": "EB70177B06D7AD6D16BDA8F8277332923493F528D0696C258E7E963D0B766869"
+      }
+    ],
+    "contentsSha256": "F8BA5357E2A19EFC2B38A3279BB48DD1932643B796BE0C3CB9C1BF65943F0B3D"
+  },
+  {
+    "name": "provider-copilot",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "copilot.svg",
+        "scale": null,
+        "sha256": "2512F516D8BED535DA470D2DA42F2D7A3759FBC6AB6C96A342AB9C58D7920A29"
+      }
+    ],
+    "contentsSha256": "C0B0617BB67044E9BEF1536BC0B38D6E65AD8E7446A4978B7B5C33E40A87A135"
+  },
+  {
+    "name": "provider-cursor",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "cursor.svg",
+        "scale": null,
+        "sha256": "BE26226B74A1CD8C4568FC80AEA8877AA73B0E53CA910072DCF51CF5254C2663"
+      }
+    ],
+    "contentsSha256": "AAEDE2E12C2E70FB5779943F049ADA676A59172440AE9364A43F5E0015B6A27B"
+  },
+  {
+    "name": "provider-deepseek",
+    "intent": "original",
+    "files": [
+      {
+        "filename": "deepseek.svg",
+        "scale": null,
+        "sha256": "F3DA303C33D9EC378567D290660886CA5CDD835BB12DB8972741137BE0C33F39"
+      }
+    ],
+    "contentsSha256": "2DEAC8405817AB42B98710B07D608EC0F9453C9278AE0D4D6EDE490A070D536A"
+  },
+  {
+    "name": "provider-devin",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "devin.svg",
+        "scale": null,
+        "sha256": "67942743807CC606A77C23920237FC1737C6A7F85E13F21ADD9918CCE7D23F45"
+      }
+    ],
+    "contentsSha256": "A9072FFD4C08DFC433403886CFADD9F33BE5B09173B90B6A1AD2F7D74B5A6313"
+  },
+  {
+    "name": "provider-grok",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "grok.svg",
+        "scale": null,
+        "sha256": "0B9FA569F6F89CC86FE738E1F3DC5FA5B52DF339E96E36A1579B2B2436661A79"
+      }
+    ],
+    "contentsSha256": "310316DBC8ADDF86D9FD7E2377BB3177CFD7C47A876330F28D48A9A9E4AD8869"
+  },
+  {
+    "name": "provider-meta",
+    "intent": "original",
+    "files": [
+      {
+        "filename": "meta.svg",
+        "scale": null,
+        "sha256": "1CB5E3801B638FBC9BA5A4AEAC937825ADCE2D314690BF43FAFF49D902D349FB"
+      }
+    ],
+    "contentsSha256": "741C55BB6BD0B5D36E381E37BB0B3975CA546E330306C3020DC49664DB4270E1"
+  },
+  {
+    "name": "provider-opencode",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "opencode.svg",
+        "scale": null,
+        "sha256": "C6B7B5B6D93B8BA54064B490EC623910CFE3B4AF8FC4C3E484198EE7EB4665D2"
+      }
+    ],
+    "contentsSha256": "C082C4871976C16C5C715B81DA692FF7DEA51977699F852B2C281FD3B452B62B"
+  },
+  {
+    "name": "provider-pi",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "pi.svg",
+        "scale": null,
+        "sha256": "8986776DF2945964A397B29CE49EE7DD3E659E08B9C6E041380E73812301ACD4"
+      }
+    ],
+    "contentsSha256": "B27C039B15103B8CDB20F860BF3549708586F05F3184F33FCB03574FFD66B944"
+  },
+  {
+    "name": "provider-zai",
+    "intent": "template",
+    "files": [
+      {
+        "filename": "zai.svg",
+        "scale": null,
+        "sha256": "40D8B40FB7C9035A6744092C0EBF35EA8E2CDFD98F5D3C9D3C489ED79216D766"
+      }
+    ],
+    "contentsSha256": "778215C8508727288C1B4984AC50E5E8AFF5E2DF3E4B32DBE6CBDCF9A517D453"
+  },
+  {
+    "name": "UpdateBugFixesIcon",
+    "intent": "original",
+    "files": [
+      {
+        "filename": "update-bug-fixes.png",
+        "scale": "1x",
+        "sha256": "2025B1D5D7DBB84B4280ADE41BA4182554612DB3791EB5CA268E0BE8B8CC2159"
+      }
+    ],
+    "contentsSha256": "EC59376F2004FA4FBC24A9F6FA845E0E3FECC77196E0C2E183A2B69CBCD238E6"
+  },
+  {
+    "name": "UpdateNewFeaturesIcon",
+    "intent": "original",
+    "files": [
+      {
+        "filename": "update-new-features.png",
+        "scale": "1x",
+        "sha256": "C036BB8A900AAEC95B94F4643FD64BFD781F31A7B94CD6E4D965CC6BB28A2BB9"
+      }
+    ],
+    "contentsSha256": "051E0EC11CFC148537827AE14A980494693D746C57F1F694A4F62534B8097C83"
+  },
+  {
+    "name": "UpdateRefinementsIcon",
+    "intent": "original",
+    "files": [
+      {
+        "filename": "update-refinements.png",
+        "scale": "1x",
+        "sha256": "D2431478814ECD3E2E604CB560F66DD74D2BAEEC61CFBDDC8FA649671AC10239"
+      }
+    ],
+    "contentsSha256": "941B6C67D491F57B6DD6816B7421A16D427F2EDC55028F6E5714F2C399DB18BF"
+  }
+]
