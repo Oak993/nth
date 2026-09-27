@@ -1,24 +1,36 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Input;
+using Avalonia.Layout;
+using Avalonia.Media;
+using Marrow.App.Port;
 using Marrow.App.Runtime;
+using Marrow.App.Views.Sidebar;
+using Marrow.App.Views.Composer;
+using Marrow.App.Views.Terminal;
+using Marrow.App.Views.Usage;
 using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
+using Marrow.Core.Support;
 using Marrow.Services.Git;
+using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
+using Marrow.UI.Common;
+using Marrow.UI.Markdown;
 using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/ChatView.swift (B2 1fbf81e), :1-1730.
-// Skeleton (c100 group 2): every type the file declares, private and nested ones included, the views' inputs, the
-// records' shapes and the members the other cycle files use. Every view body and every member with behaviour is left to
-// the implementing unit (MARROW_STUB), as are ChatView's private members (:48-65, :326-710), PanelScene's private
-// flippedVertically (:1075-1082), GitStatusModel's private snapshot cache (:1286-1287) and apply (:1309-1314), and the
-// private views' private members.
+// Source: DroppyCode/App/Views/Chat/ChatView.swift (B3 52bc792), :1-1731.
+// The column, its measured pane and compositor state stay mounted; child inputs are applied only when changed.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; CGPoint/CGSize are Avalonia Point/Size; `URL` is SwiftURL; a Swift `Error` value is
 // an Exception. The `@Entry` environment values of `extension EnvironmentValues` (:727-735) are inherited attached
@@ -32,9 +44,524 @@ public sealed class ChatView : Decorator
 {
     private const double HydraMinimumPresence = 1.6; // :74
 
+    private readonly ThreadRuntime runtime; // :7
+    private AppModel? model; // :5 inherited on attach.
+    private readonly GitStatusModel git = new(); // :9
+    private ChromeScrollModel scrollChrome = new(); // :10
+    private TimelineScrollState scrollState = new(); // :11
+    private double columnHeight; // :14
+    private Size paneSize; // :17
+    private double composerAreaHeight; // :19
+    private PanelDragState subagentDrag = new(), hydraDrag = new(), poppedDrag = new(), usageDrag = new(), autoDrag = new(); // :22-28
+    private Dictionary<Guid, PanelDragState> autoDrags = []; // :30
+    private double? usageContentHeight; // :33
+    private PanelResizeState panelResize = new(); // :35
+    private DateTimeOffset? hydraShownSince; // :66
+    private bool hydraLingers; // :67
+    private TaskHandle? hydraLingerTask; // :68
+    private Guid? sceneThreadID; // :72
+    private HydraPresence? previousPresence;
+    private Guid[] previousAutoIDs = [];
+    private Tracked<bool>? dragObservation;
+    private readonly Grid column = new() { RowDefinitions = new RowDefinitions("*,Auto") };
+    private readonly Grid pane = new();
+    private readonly Border timelineHost = new();
+    private readonly Grid composerHost = new();
+    private readonly Panel floatingHost = new();
+    private readonly Panel terminalHost = new();
+    private readonly Dictionary<FloatingPanelID, (Control View, object Inputs)> mountedPanels = [];
+    private readonly Dictionary<Control, (Panel Host, Control Surface)> panelSurfaces = [];
+    private ThreadTimeline? timeline;
+    private ComposerArea? composer;
+    private ChatChromeRow? chrome;
+    private TerminalPanel? terminal;
+    private PanelMembers? members;
+    private PanelScene scene = null!;
+    private string? workingDirectory;
+    private string directory = "";
+    private Project? project;
+    private ReserveSlide timelineSlide = new(new PanelReserve(), false);
+    private ReserveSlide composerSlide = new(new PanelReserve(), false, AnimatesWidth: true);
+    private (string? Project, string? Directory, bool Rewind, double Height, bool Minimap)? timelineInputs;
+    private string? composerDirectory;
+    private bool? terminalWasVisible;
+    private string? terminalDirectory;
+    private long? seenDiffRevision;
+
     // :7 @Bindable var runtime: ThreadRuntime; :76-321 body
-    public ChatView(ThreadRuntime runtime) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:76");
+    public ChatView(ThreadRuntime runtime)
+    {
+        this.runtime = runtime;
+        var conversation = new Grid { RowDefinitions = new RowDefinitions("*,Auto") };
+        Grid.SetRow(composerHost, 1);
+        conversation.Children.Add(timelineHost);
+        conversation.Children.Add(composerHost); // :124-140 bottom safe-area inset consumes viewport height.
+        pane.Children.Add(conversation);
+        column.Children.Add(pane);
+        Grid.SetRow(terminalHost, 1);
+        column.Children.Add(terminalHost); // :98,275-280 zero gap, terminal outside the conversation pane.
+        Child = column.DetailSheet(); // :281-282
+        this.Transition(SwiftTransition.Identity); // :283-288, no column transition on a switch.
+
+        this.Track(() => AppEnvironment.GetAppModel(this), attachedModel =>
+        {
+            model = attachedModel;
+            RefreshInputs();
+        });
+        this.Track(() => new PanelMembers(this.runtime, AppEnvironment.GetAppModel(this)), value =>
+        {
+            members = value; // :85-90 membership observation separated from per-frame geometry.
+            RefreshInputs();
+        });
+        this.Track(() =>
+        {
+            var app = AppEnvironment.GetAppModel(this);
+            var thread = app.Thread(this.runtime.ThreadID);
+            return (thread, thread is null ? null : app.Project(thread.ProjectID));
+        }, _ => RefreshInputs()); // :77-84
+        this.Track(() =>
+        {
+            var app = AppEnvironment.GetAppModel(this);
+            var resize = AppEnvironment.GetWindowLiveResize(this);
+            return (app.Settings.PanelSize, app.Settings.UsagePanelHeight, app.Settings.UsagePanelDock,
+                app.Settings.HydraShowsHeadDetails, app.Settings.HydraAutoPopsHeads,
+                this.runtime.SubagentPanelDock, this.runtime.HydraPanelDock, this.runtime.HydraPoppedPanelDock,
+                this.runtime.HydraAutoPanelDocks, this.runtime.HydraAutoPopHeld, this.runtime.PanelStackOrder,
+                panelResize.IsActive, panelResize.LiveSize, panelResize.LiveUsageHeight,
+                app.Sidebar.IsDragging, app.Sidebar.IsSliding, this.runtime.IsTerminalResizing, resize.IsActive);
+        }, _ => RefreshScene()); // :59-64,89-95
+        this.Track(() =>
+        {
+            var app = AppEnvironment.GetAppModel(this);
+            return app.Sidebar.IsDragging || app.Sidebar.IsSliding || this.runtime.IsTerminalResizing;
+        }, value => AppEnvironment.GetWindowLiveResize(this).IsPaneResizing = value); // :252-254 initial:true.
+        bool? wasResizing = null;
+        this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsActive, active =>
+        {
+            if (wasResizing == true && !active) ReclampPanels(); // :257-264
+            wasResizing = active;
+        });
+        this.Track(() => this.runtime.IsTerminalVisible, _ => RefreshTerminal()); // :275-278,290
+        this.Track(() => this.runtime.IsHydraPanelHidden, hidden =>
+        {
+            if (!hidden || !hydraLingers) return;
+            hydraLingerTask?.Cancel();
+            Transaction.WithAnimation(Chrome.PanelSlide, () => { hydraLingers = false; RefreshScene(); });
+        }); // :223-227 a tap cancels a held panel's remaining beat.
+        this.Task(() => ResolveDirectory(), value => git.Refresh(value, force: false)); // :295-297
+        this.Track(() => this.runtime.DiffRevision, revision =>
+        {
+            if (seenDiffRevision is not null && seenDiffRevision != revision)
+                MainActor.Spawn(() => git.Refresh(ResolveDirectory())); // :298-300
+            seenDiffRevision = revision;
+        });
+        // ThreadRuntime.threadID is immutable in both ports. This observation retains the source switch reset
+        // for a bound input replacement; the owning RootView coordinator caches one column per thread id.
+        this.Track(() => this.runtime.ThreadID, id =>
+        {
+            if (sceneThreadID is { } previous && previous != id) ResetThreadScene(); // :306-319
+            sceneThreadID = id;
+        });
+        pane.SizeChanged += (_, _) => NotePaneSize(pane.Bounds.Size); // :241-249
+        composerHost.SizeChanged += (_, _) => NoteComposerAreaHeight(composerHost.Bounds.Height); // :129-138
+        SizeChanged += (_, _) =>
+        {
+            if (columnHeight == Bounds.Height) return;
+            columnHeight = Bounds.Height; RefreshScene(); // :289 full column, independent of composer/terminal height.
+        };
+        AttachedToVisualTree += (_, _) =>
+        {
+            sceneThreadID = this.runtime.ThreadID; // :320
+            ObserveDrags();
+        };
+        DetachedFromVisualTree += (_, _) => { dragObservation?.Dispose(); dragObservation = null; };
+    }
+
+    // :80-84 thread/project values supplied to the children once per input change.
+    private string ResolveDirectory()
+    {
+        var app = AppEnvironment.GetAppModel(this);
+        var thread = app.Thread(runtime.ThreadID);
+        return thread?.WorktreePath ?? (thread is null ? null : app.Project(thread.ProjectID)?.Path) ?? LoginEnvironment.HomeDirectory;
+    }
+
+    private void RefreshInputs() // :77-95,146-153
+    {
+        if (model is null) return;
+        var thread = model.Thread(runtime.ThreadID);
+        project = thread is null ? null : model.Project(thread.ProjectID);
+        workingDirectory = thread is null ? null : thread.WorktreePath ?? project?.Path;
+        directory = workingDirectory ?? LoginEnvironment.HomeDirectory;
+        members ??= new PanelMembers(runtime, model);
+        if (composer is null || composerDirectory != workingDirectory)
+        {
+            composerDirectory = workingDirectory;
+            composerHost.Children.Clear();
+            composer = new ComposerArea(runtime, workingDirectory);
+            composerHost.Children.Add(composer);
+            composerHost.Children.Add(new JumpToLatestButton(scrollState) { VerticalAlignment = VerticalAlignment.Top }); // :125-128
+            composerSlide = new(new PanelReserve(), false, AnimatesWidth: true);
+        }
+        if (chrome is null)
+        {
+            pane.Children.Add(new PaneTopVeil(scrollChrome) { VerticalAlignment = VerticalAlignment.Top }); // :143-145
+            chrome = new ChatChromeRow(model, runtime, scrollChrome, thread?.Title ?? "", project, directory, git) { VerticalAlignment = VerticalAlignment.Top };
+            pane.Children.Add(chrome);
+            pane.Children.Add(floatingHost); // :155-240 overlays above the chrome/conversation.
+        }
+        else chrome.UpdateInputs(thread?.Title ?? "", project, directory);
+        LinkParagraphView.SetMergeRequestTarget(this, new MergeRequestTarget(runtime.ThreadID,
+            link => model.SpawnSubagent(runtime.ThreadID, link.Title, link.Prompt))); // :292-294
+        RefreshScene();
+        RefreshTerminal();
+    }
+
+    private void RefreshScene() // :85-95,155-240
+    {
+        if (model is null || members is null || composer is null) return;
+        scene = new PanelScene(members, runtime, model, paneSize, composerAreaHeight, usageContentHeight,
+            hydraLingers, LivePreferredSize(panelResize), panelResize.LiveUsageHeight);
+        NoteHydraPresence(new HydraPresence { ThreadID = runtime.ThreadID, Present = members.Heads.Count != 0 && scene.IsMeasured });
+        var holds = panelResize.IsActive || model.Sidebar.IsDragging || model.Sidebar.IsSliding || runtime.IsTerminalResizing;
+        var switching = sceneThreadID != runtime.ThreadID;
+        var slides = scene.IsMeasured && !AppEnvironment.GetWindowLiveResize(this).IsActive && !holds && !switching;
+        var thread = model.Thread(runtime.ThreadID);
+        var minimap = !scene.DockedSides.Contains(PanelDockSide.Leading) &&
+            (paneSize == default || paneSize.Width - scene.Reserve.Leading - scene.Reserve.Trailing >= 900); // :108-110
+        var inputs = (project?.Name, workingDirectory, thread?.Provider.SupportsRewind ?? false, columnHeight, minimap);
+        if (timeline is null || timelineInputs != inputs)
+        {
+            timelineInputs = inputs;
+            timeline = new ThreadTimeline(runtime, scrollChrome, scrollState, inputs.Item1, inputs.Item2, inputs.Item3, inputs.Item4, inputs.Item5);
+            timelineHost.Child = timeline; // :116-119 .id(threadID); children receive the unchanged snapshot inputs.
+        }
+        timeline.IsHitTestVisible = !IsMovingAPanel(subagentDrag, hydraDrag, poppedDrag, usageDrag, autoDrags); // :112-115
+        timelineSlide = timelineSlide with { Reserve = scene.Reserve, Slides = slides };
+        timelineSlide.Body(timeline); // :122-123
+        composerSlide = composerSlide with { Reserve = scene.Reserve, Slides = slides };
+        composerSlide.Body(composer); // :140
+        var ids = scene.AutoPopped.Select(head => head.Id).ToArray();
+        if (!previousAutoIDs.SequenceEqual(ids)) { previousAutoIDs = ids; NoteAutoPanelIDs(ids); } // :266-269
+        DrawPanels(holds, switching);
+    }
+
+    private void ObserveDrags() // :48-52,112-115 only the timeline loses hit testing.
+    {
+        dragObservation?.Dispose();
+        if (VisualRoot is null) return;
+        dragObservation = new Tracked<bool>(() => IsMovingAPanel(subagentDrag, hydraDrag, poppedDrag, usageDrag, autoDrags), moving =>
+        {
+            if (timeline is not null) timeline.IsHitTestVisible = !moving;
+        });
+    }
+
+    private void NoteAutoPanelIDs(Guid[] ids) // :266-269 initial:true, one state per visible automatic head.
+    {
+        foreach (var id in ids) if (!autoDrags.ContainsKey(id)) autoDrags[id] = new PanelDragState();
+        foreach (var id in autoDrags.Keys.Where(id => !ids.Contains(id)).ToArray()) autoDrags.Remove(id);
+        ObserveDrags();
+    }
+
+    private void NoteComposerAreaHeight(double height) // :129-138
+    {
+        var old = composerAreaHeight;
+        if (old == height) return;
+        composerAreaHeight = height;
+        if (height > old + 0.5 && old > 0 && !AppEnvironment.GetWindowLiveResize(this).IsActive)
+            scrollState.NoteComposerAreaGrowth();
+        RefreshScene();
+    }
+
+    private void NotePaneSize(Size size) // :241-249
+    {
+        if (paneSize == size) return;
+        paneSize = size;
+        RefreshScene();
+        if (AppEnvironment.GetWindowLiveResize(this).IsActive) ReclampPanels();
+    }
+
+    private void ReclampPanels() // :248-249,260-264
+    {
+        if (scene is null) return;
+        subagentDrag.Reclamp(scene.Layout); hydraDrag.Reclamp(scene.Layout); poppedDrag.Reclamp(scene.Layout); usageDrag.Reclamp(scene.Layout);
+        foreach (var drag in autoDrags.Values) drag.Reclamp(scene.Layout);
+    }
+
+    private void NoteHydraPresence(HydraPresence presence) // :187-225
+    {
+        if (previousPresence == presence) return;
+        var old = previousPresence;
+        previousPresence = presence;
+        if (old is null) return; // onChange has no initial:true at this site.
+        hydraLingerTask?.Cancel();
+        if (old.ThreadID != presence.ThreadID || presence.Present)
+        {
+            hydraLingers = false;
+            hydraShownSince = presence.Present ? SwiftDate.Now : null;
+            return;
+        }
+        if (runtime.IsHydraPanelHidden) { hydraLingers = false; return; }
+        var shown = hydraShownSince is { } since ? SwiftDate.TimeIntervalSince(SwiftDate.Now, since) : double.PositiveInfinity;
+        var remaining = HydraMinimumPresence - shown;
+        if (remaining <= 0) return;
+        hydraLingers = true;
+        hydraLingerTask = MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(SwiftTask.Seconds(remaining));
+            if (SwiftTask.IsCancelled) return;
+            Transaction.WithAnimation(Chrome.PanelSlide, () => { hydraLingers = false; RefreshScene(); });
+        });
+        // This pass was calculated before the presence callback; re-evaluate the held empty panel on the next actor turn.
+        MainActor.Post(RefreshScene);
+    }
+
+    private void ResetThreadScene() // :306-319
+    {
+        hydraLingerTask?.Cancel(); hydraLingers = false;
+        scrollChrome = new(); scrollState = new();
+        subagentDrag = new(); hydraDrag = new(); poppedDrag = new(); usageDrag = new(); autoDrag = new(); autoDrags = [];
+        panelResize = new(); previousAutoIDs = []; previousPresence = null;
+        ObserveDrags();
+    }
+
+    private void RefreshTerminal() // :275-278,290
+    {
+        if (model is null) return;
+        var visible = runtime.IsTerminalVisible;
+        var changed = terminalWasVisible is { } was && was != visible;
+        void Apply()
+        {
+            if (terminal is not null && (!visible || terminalDirectory != directory))
+            {
+                SwiftTransition.Remove(terminalHost, terminal);
+                terminal = null;
+            }
+            if (visible && terminal is null)
+            {
+                terminalDirectory = directory;
+                terminal = new TerminalPanel(runtime, directory).Transition(SwiftTransition.Move(Edge.Bottom).Combined(SwiftTransition.Opacity));
+                SwiftTransition.Insert(terminalHost, terminalHost.Children.Count, terminal);
+            }
+        }
+        if (changed && sceneThreadID == runtime.ThreadID) Transaction.WithAnimation(Chrome.PanelSlide, Apply);
+        else Apply();
+        terminalWasVisible = visible;
+    }
+
+    private static SwiftTransition PanelTransition => SwiftTransition.Asymmetric(
+        SwiftTransition.Scale(0.92).Combined(SwiftTransition.Opacity),
+        SwiftTransition.Scale(0.96).Combined(SwiftTransition.Opacity)); // :601-607
+
+    // :354-356,395-397,451-453,483-485,528-530. Transition the surface inside its positioned wrapper.
+    private Control PlacePanel(PanelDragState drag, Point rest, Size size, Control surface, PanelResize resize, bool holds)
+    {
+        var host = new Panel();
+        var placed = new PlacedPanel(drag, rest, size, host, resize, holds);
+        panelSurfaces[placed] = (host, surface);
+        host.Children.CollectionChanged += (_, _) =>
+        {
+            if (host.Children.Count != 0) return;
+            floatingHost.Children.Remove(placed);
+            panelSurfaces.Remove(placed);
+        };
+        return placed;
+    }
+
+    private void RemovePanel(Control placed)
+    {
+        if (panelSurfaces.TryGetValue(placed, out var panel)) SwiftTransition.Remove(panel.Host, panel.Surface);
+    }
+
+    private void DrawPanels(bool holds, bool switching) // :155-240,326-530
+    {
+        if (model is null) return;
+        var wanted = new HashSet<FloatingPanelID>();
+        void Mount(FloatingPanelID id, object inputs, Func<Control> create)
+        {
+            wanted.Add(id);
+            if (mountedPanels.TryGetValue(id, out var prior) && Equals(prior.Inputs, inputs))
+            {
+                UpdatePanelPlacement(id, (PlacedPanel)prior.View, holds);
+                return;
+            }
+            var surface = create();
+            if (prior.View is not null)
+            {
+                // Membership owns placement/grip lifetime even when the conversation's inputs change.
+                var existing = panelSurfaces[prior.View];
+                Transaction.WithAnimation(null, () =>
+                {
+                    SwiftTransition.Insert(existing.Host, 0, surface);
+                    SwiftTransition.Remove(existing.Host, existing.Surface);
+                });
+                panelSurfaces[prior.View] = (existing.Host, surface);
+                mountedPanels[id] = (prior.View, inputs);
+                UpdatePanelPlacement(id, (PlacedPanel)prior.View, holds);
+                return;
+            }
+            var control = PlacePanel(CurrentDrag(id), CurrentOrigin(id), CurrentSize(id), surface, MountedResizer(id), holds);
+            control.HorizontalAlignment = HorizontalAlignment.Left;
+            control.VerticalAlignment = VerticalAlignment.Top;
+            mountedPanels[id] = (control, inputs);
+            floatingHost.Children.Add(control);
+            var panel = panelSurfaces[control];
+            Transaction.WithAnimation(!switching && prior.View is null ? Chrome.PanelSlide : null,
+                () => SwiftTransition.Insert(panel.Host, 0, panel.Surface));
+        }
+        if (scene.Subagent is { } helper && scene.IsMeasured)
+            Mount(new FloatingPanelID.Subagent(), (helper, project), () => MakeSubagentPanel(helper, holds));
+        if (scene.ShowsHydra)
+            Mount(new FloatingPanelID.Hydra(), (scene.Heads, workingDirectory, project), () => MakeHydraPanel(scene.Heads, new FloatingPanelID.Hydra(), hydraDrag, runtime.HydraPanelDock, holds, popped: false));
+        if (scene.Popped is { } head && scene.ShowsPopped)
+            Mount(new FloatingPanelID.Popped(), (head, workingDirectory, project), () => MakeHydraPanel([head], new FloatingPanelID.Popped(), poppedDrag, runtime.HydraPoppedPanelDock, holds, popped: true));
+        foreach (var autoHead in scene.AutoPopped)
+            Mount(new FloatingPanelID.Auto(autoHead.Id), (autoHead, workingDirectory, project), () => MakeHydraPanel([autoHead], new FloatingPanelID.Auto(autoHead.Id), autoDrags.GetValueOrDefault(autoHead.Id) ?? autoDrag, runtime.HydraPanelDock.AcrossTheColumn, holds, popped: true));
+        if (scene.Usage is { } usage && scene.ShowsUsage)
+            Mount(new FloatingPanelID.Usage(), usage, () => MakeUsagePanel(usage, holds));
+        foreach (var id in mountedPanels.Keys.Where(id => !wanted.Contains(id)).ToArray())
+        {
+            var leaving = mountedPanels[id].View; mountedPanels.Remove(id);
+            Transaction.WithAnimation(switching ? null : Chrome.PanelSlide, () => RemovePanel(leaving));
+        }
+    }
+
+    private PanelScene.PanelSlot Slot(FloatingPanelID id, PanelDockCorner fallback) =>
+        scene.Slots.GetValueOrDefault(id) ?? new PanelScene.PanelSlot { Corner = fallback, Below = 0, Lift = 0 }; // :327,360,421,457,491
+
+    // :327-530,533-590 / R-VIEW-1. Placement changes never detach the conversation or its captured grip.
+    private PanelScene.PanelSlot CurrentSlot(FloatingPanelID id) => Slot(id, id switch
+    {
+        FloatingPanelID.Subagent => runtime.SubagentPanelDock,
+        FloatingPanelID.Hydra => runtime.HydraPanelDock,
+        FloatingPanelID.Popped => runtime.HydraPoppedPanelDock,
+        FloatingPanelID.Usage => model!.Settings.UsagePanelDock,
+        FloatingPanelID.Auto auto => runtime.HydraAutoPanelDocks.GetValueOrDefault(auto.Value, runtime.HydraPanelDock.AcrossTheColumn),
+        _ => runtime.HydraPanelDock,
+    });
+
+    private Point CurrentOrigin(FloatingPanelID id) => id is FloatingPanelID.Usage
+        ? UsageOrigin(CurrentSlot(id), scene) : Rest(CurrentSlot(id), scene);
+
+    private PanelDragState CurrentDrag(FloatingPanelID id) => id switch
+    {
+        FloatingPanelID.Subagent => subagentDrag,
+        FloatingPanelID.Hydra => hydraDrag,
+        FloatingPanelID.Popped => poppedDrag,
+        FloatingPanelID.Usage => usageDrag,
+        FloatingPanelID.Auto auto => autoDrags.GetValueOrDefault(auto.Value) ?? autoDrag,
+        _ => autoDrag,
+    };
+
+    private Size CurrentSize(FloatingPanelID id) => id is FloatingPanelID.Usage
+        ? new Size(scene.Layout.PanelSize.Width, scene.UsageHeight ?? scene.Layout.PanelSize.Height) : scene.Layout.PanelSize;
+
+    private PanelResize CurrentResizer(FloatingPanelID id) => id is FloatingPanelID.Usage
+        ? UsageResizer(model!, panelResize, CurrentSlot(id).Corner, scene, CurrentSize(id), PanelScene.UsageMinimumHeight)
+        : Resizer(model!, panelResize, CurrentSlot(id).Corner, scene);
+
+    private PanelResize MountedResizer(FloatingPanelID id) => new()
+    {
+        Corner = CurrentSlot(id).Corner,
+        OnResize = (translation, axes) => CurrentResizer(id).OnResize(translation, axes),
+        OnResizeEnd = () => CurrentResizer(id).OnResizeEnd(),
+        OnReset = () => CurrentResizer(id).OnReset(),
+    };
+
+    private void UpdatePanelPlacement(FloatingPanelID id, PlacedPanel placed, bool holds)
+    {
+        var size = CurrentSize(id);
+        var panel = panelSurfaces[placed];
+        panel.Host.Width = panel.Surface.Width = size.Width;
+        panel.Host.Height = panel.Surface.Height = size.Height;
+        // SubagentPanel.swift:299,340-354 frames both borders explicitly; Hydra/Usage frames its root.
+        if (panel.Surface is SubagentPanel { Child: Border { Child: Border shape } scrim })
+        {
+            scrim.Width = shape.Width = size.Width;
+            scrim.Height = shape.Height = size.Height;
+        }
+        placed.UpdatePlacement(CurrentOrigin(id), size, holds);
+        // SubagentPanel.swift:599-615. Moving to a different dock updates the existing grips' free edges.
+        var dock = CurrentSlot(id).Corner;
+        foreach (var grips in Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(placed).OfType<PanelResizeGrips>())
+            foreach (var handle in Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(grips).OfType<PanelDragHandle>())
+            {
+                var width = !double.IsNaN(handle.Width);
+                var height = !double.IsNaN(handle.Height);
+                var horizontal = width ? (dock.Side == PanelDockSide.Leading ? HorizontalAlignment.Right : HorizontalAlignment.Left) : HorizontalAlignment.Stretch;
+                var vertical = height ? (dock.IsTop ? VerticalAlignment.Bottom : VerticalAlignment.Top) : VerticalAlignment.Stretch;
+                var changed = handle.HorizontalAlignment != horizontal || handle.VerticalAlignment != vertical;
+                handle.HorizontalAlignment = horizontal;
+                handle.VerticalAlignment = vertical;
+                if (changed && width && height && handle.Child is DragHandleView grip)
+                {
+                    var cursor = new Cursor(dock switch
+                    {
+                        PanelDockCorner.TopLeading => StandardCursorType.BottomRightCorner,
+                        PanelDockCorner.TopTrailing => StandardCursorType.BottomLeftCorner,
+                        PanelDockCorner.BottomLeading => StandardCursorType.TopRightCorner,
+                        _ => StandardCursorType.TopLeftCorner,
+                    });
+                    grip.Cursor = grip.HandleCursor = grip.DragCursor = cursor;
+                }
+            }
+    }
+
+    private void DragPanel(FloatingPanelID id, PanelDragState drag, Size translation, Point rest, bool release = false) // :336-346,368-378,434-444,469-479,510-520
+    {
+        var position = release ? drag.Release() : drag.Move(translation, rest, scene.Layout);
+        if (position is not { } point || model is null) return;
+        if (id is FloatingPanelID.Auto auto) DockAuto(runtime, auto.Value, point, scene);
+        else if (id is FloatingPanelID.Usage) DockUsage(model, point, scene);
+        else
+        {
+            var current = id is FloatingPanelID.Subagent ? runtime.SubagentPanelDock : id is FloatingPanelID.Hydra ? runtime.HydraPanelDock : runtime.HydraPoppedPanelDock;
+            Dock(id, new Binding<PanelDockCorner>(() => current, next => { current = next; SetCorner(model, runtime, id, next); }), point, scene);
+        }
+        var corner = Slot(id, runtime.HydraPanelDock.AcrossTheColumn).Corner;
+        if (id is FloatingPanelID.Auto a) corner = runtime.HydraAutoPanelDocks.GetValueOrDefault(a.Value, corner);
+        else if (id is FloatingPanelID.Subagent) corner = runtime.SubagentPanelDock;
+        else if (id is FloatingPanelID.Hydra) corner = runtime.HydraPanelDock;
+        else if (id is FloatingPanelID.Popped) corner = runtime.HydraPoppedPanelDock;
+        else if (id is FloatingPanelID.Usage) corner = model.Settings.UsagePanelDock;
+        Reorder(model, runtime, id, point, corner, scene);
+    }
+
+    private Control MakeSubagentPanel(ChatThread helper, bool holds) // :326-356
+    {
+        var id = new FloatingPanelID.Subagent();
+        var content = new SubagentPanel(helper, scene.Layout.PanelSize, helper.WorktreePath ?? project?.Path, project?.Name,
+            translation => DragPanel(id, subagentDrag, translation, CurrentOrigin(id)), () => DragPanel(id, subagentDrag, default, CurrentOrigin(id), release: true),
+            () => Transaction.WithAnimation(Chrome.PanelSlide, () => model!.CloseSubagent(helper.Id))).Transition(PanelTransition);
+        return content;
+    }
+
+    private Control MakeHydraPanel(IReadOnlyList<ChatThread> heads, FloatingPanelID id, PanelDragState drag, PanelDockCorner fallback, bool holds, bool popped) // :359-397,420-485
+    {
+        var content = new HydraPanel(runtime, heads, scene.Layout.PanelSize, workingDirectory, project?.Name,
+            translation => DragPanel(id, drag, translation, CurrentOrigin(id)), () => DragPanel(id, drag, default, CurrentOrigin(id), release: true),
+            () => Transaction.WithAnimation(Chrome.PanelSlide, () =>
+            {
+                if (id is FloatingPanelID.Auto a) { runtime.HydraAutoPopHeld = runtime.HydraAutoPopHeld.Mutating(values => values.Add(a.Value)); runtime.HydraSelectedHeadID = a.Value; }
+                else if (popped) { runtime.HydraSelectedHeadID = heads[0].Id; runtime.HydraPoppedHeadID = null; }
+                else model!.DismissHydraHeads(runtime.ThreadID);
+            }), isPoppedOut: popped, popOut: popped ? null : head => Transaction.WithAnimation(Chrome.PanelSlide, () =>
+            {
+                runtime.HydraPoppedHeadID = head; runtime.HydraPoppedPanelDock = runtime.HydraPanelDock.AcrossTheColumn;
+                if (runtime.HydraSelectedHeadID == head) runtime.HydraSelectedHeadID = null;
+            })).Transition(PanelTransition);
+        return content;
+    }
+
+    private Control MakeUsagePanel(PanelUsage usage, bool holds) // :490-530
+    {
+        var id = new FloatingPanelID.Usage();
+        var full = scene.Layout.PanelSize; var size = new Size(full.Width, scene.UsageHeight ?? full.Height);
+        var content = new UsageFloatingPanel(runtime, usage.Provider, usage.HeadsProvider, size,
+            height => { if (usageContentHeight != height) { usageContentHeight = height; MainActor.Post(RefreshScene); } },
+            translation => DragPanel(id, usageDrag, translation, CurrentOrigin(id)), () => DragPanel(id, usageDrag, default, CurrentOrigin(id), release: true),
+            () => Transaction.WithAnimation(Chrome.PanelSlide, () => model!.Settings.ShowsUsagePanel = false)).Transition(PanelTransition);
+        return content;
+    }
 
     // :731 @Entry var reserveSlideLeading: CGFloat = 0, an inherited environment value (R-VIEW-6).
     public static readonly AttachedProperty<double> ReserveSlideLeadingProperty =
@@ -52,13 +579,181 @@ public sealed class ChatView : Decorator
 
     public static void SetReserveSlideOffset(Control control, double value) => control.SetValue(ReserveSlideOffsetProperty, value);
 
+    // :36-52 private var isMovingAPanel: Bool. The mounted body reads its own drag fields through this helper.
+    internal static bool IsMovingAPanel(
+        PanelDragState subagentDrag,
+        PanelDragState hydraDrag,
+        PanelDragState poppedDrag,
+        PanelDragState usageDrag,
+        IReadOnlyDictionary<Guid, PanelDragState> autoDrags) => // :49-51
+        subagentDrag.Position is not null || hydraDrag.Position is not null
+            || poppedDrag.Position is not null || usageDrag.Position is not null
+            || autoDrags.Values.Any(drag => drag.Position is not null);
+
+    // :554-590. The mounted grips share the column's model and resize state.
+    internal static PanelResize UsageResizer(AppModel model, PanelResizeState resize, PanelDockCorner corner, PanelScene scene, Size size, double minimum) => new()
+    {
+        Corner = corner,
+        OnResize = (translation, axes) =>
+        {
+            var start = resize.Begin(size); // :559
+            var across = corner.Side == PanelDockSide.Trailing ? -1 : 1; // :562
+            var down = corner.IsTop ? 1 : -1; // :563
+            if (axes.Contains(PanelResizeAxes.Width)) // :564-568
+                resize.LiveSize = scene.Layout.Fitted(new Size(start.Width + translation.Width * across, scene.Layout.PanelHeight));
+            if (axes.Contains(PanelResizeAxes.Height)) // :569-571
+                resize.LiveUsageHeight = Math.Max(minimum, start.Height + translation.Height * down);
+        },
+        OnResizeEnd = () => CommitPanelResize(model, resize), // :573
+        OnReset = () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.UsagePanelHeight = null), // :574-577
+    };
+
+    // :533-551 shared panel grips.
+    internal static PanelResize Resizer(AppModel model, PanelResizeState resize, PanelDockCorner corner, PanelScene scene) => new()
+    {
+        Corner = corner,
+        OnResize = (translation, axes) =>
+        {
+            var start = resize.Begin(scene.Layout.PanelSize);
+            var across = corner.Side == PanelDockSide.Trailing ? -1 : 1;
+            var down = corner.IsTop ? 1 : -1;
+            resize.LiveSize = scene.Layout.Fitted(new Size(
+                start.Width + (axes.Contains(PanelResizeAxes.Width) ? translation.Width * across : 0),
+                start.Height + (axes.Contains(PanelResizeAxes.Height) ? translation.Height * down : 0)));
+        },
+        OnResizeEnd = () => CommitPanelResize(model, resize),
+        OnReset = () => Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.PanelSize = null),
+    };
+
+    // :595-598. Only the live timeline width is quantized; commit keeps the exact preference.
+    internal static Size? LivePreferredSize(PanelResizeState resize) => resize.IsActive && resize.LiveSize is { } live
+        ? new Size(Math.Round(live.Width / 12, MidpointRounding.AwayFromZero) * 12, live.Height) : null;
+
+    // :611-617 the key path is expressed as an explicit binding (R-VIEW-7).
+    internal static void Dock(FloatingPanelID id, Binding<PanelDockCorner> corner, Point position, PanelScene scene)
+    {
+        var wanted = scene.Layout.DockCorner(position, corner.Value, scene.Docks);
+        var next = scene.LockedSide(id) is { } side ? PanelDockCorner.Make(side, wanted.IsTop) : wanted;
+        if (next != corner.Value) corner.Value = next;
+    }
+
+    // :620-625 usage corner is shared by every chat.
+    internal static void DockUsage(AppModel model, Point position, PanelScene scene) =>
+        Dock(new FloatingPanelID.Usage(), new Binding<PanelDockCorner>(() => model.Settings.UsagePanelDock, value => model.Settings.UsagePanelDock = value), position, scene);
+
+    // :628-634.
+    internal static void DockAuto(ThreadRuntime runtime, Guid id, Point position, PanelScene scene)
+    {
+        var panel = new FloatingPanelID.Auto(id);
+        var current = runtime.HydraAutoPanelDocks.TryGetValue(id, out var stored) ? stored
+            : scene.Slots.TryGetValue(panel, out var slot) ? slot.Corner : runtime.HydraPanelDock.AcrossTheColumn;
+        var wanted = scene.Layout.DockCorner(position, current, scene.Docks);
+        var next = scene.LockedSide(panel) is { } side ? PanelDockCorner.Make(side, wanted.IsTop) : wanted;
+        if (!runtime.HydraAutoPanelDocks.TryGetValue(id, out var existing) || existing != next)
+            runtime.HydraAutoPanelDocks = runtime.HydraAutoPanelDocks.Mutating(values => values[id] = next);
+    }
+
+    // :641-690. Swap on a full side, otherwise displace through the first free slot and rewrite its order.
+    internal static void Reorder(AppModel model, ThreadRuntime runtime, FloatingPanelID id, Point position, PanelDockCorner corner, PanelScene scene)
+    {
+        var side = corner.Side;
+        var others = scene.Slots.Where(entry => entry.Value.Corner.Side == side && entry.Key != id).ToArray();
+        var slots = scene.SlotsOnSide.TryGetValue(side, out var count) ? count : 1;
+        var n = Math.Max(slots, others.Length + 1);
+        var target = scene.Layout.SlotIndex(position, n, scene.Docks);
+        var occupancy = new Dictionary<long, FloatingPanelID>();
+        foreach (var (panel, slot) in others) occupancy[slot.Corner.IsTop ? slot.Below : n - 1 - slot.Below] = panel;
+        long? previous = scene.Slots.TryGetValue(id, out var old) && old.Corner.Side == side
+            ? old.Corner.IsTop ? old.Below : n - 1 - old.Below : null;
+        var full = !(others.Length + 1 > slots);
+        if (occupancy.TryGetValue(target, out var other) && previous is { } before && full)
+        {
+            occupancy[before] = other;
+            occupancy[target] = id;
+        }
+        else if (occupancy.TryGetValue(target, out other))
+        {
+            occupancy.Remove(target);
+            occupancy[target] = id;
+            var forward = previous is null || previous < target;
+            var displaced = other;
+            var next = target + (forward ? 1 : -1);
+            while (true)
+            {
+                if (next < 0 || next >= n)
+                {
+                    var free = Enumerable.Range(0, checked((int)n)).Select(index => (long)index);
+                    if (!forward) free = free.Reverse();
+                    foreach (var index in free)
+                        if (!occupancy.ContainsKey(index)) { occupancy[index] = displaced; break; }
+                    break;
+                }
+                if (!occupancy.TryGetValue(next, out var occupant)) { occupancy[next] = displaced; break; }
+                occupancy[next] = displaced;
+                displaced = occupant;
+                next += forward ? 1 : -1;
+            }
+        }
+        else occupancy[target] = id;
+        foreach (var (index, panel) in occupancy) SetCorner(model, runtime, panel, PanelDocks.Corner(index, n, side).Corner);
+        var occupiedCorners = occupancy.ToDictionary(entry => entry.Value, entry => PanelDocks.Corner(entry.Key, n, side).Corner);
+        var top = occupancy.Where(entry => occupiedCorners[entry.Value].IsTop).OrderBy(entry => entry.Key).Select(entry => entry.Value);
+        var bottom = occupancy.Where(entry => !occupiedCorners[entry.Value].IsTop).OrderByDescending(entry => entry.Key).Select(entry => entry.Value);
+        var onSide = occupancy.Values.ToHashSet();
+        var kept = runtime.PanelStackOrder.Where(panel => !onSide.Contains(panel) && panel != id);
+        var order = new ValueList<FloatingPanelID>(kept.Concat(top).Concat(bottom));
+        if (order != runtime.PanelStackOrder) runtime.PanelStackOrder = order;
+    }
+
+    // :693-704.
+    internal static void SetCorner(AppModel model, ThreadRuntime runtime, FloatingPanelID id, PanelDockCorner corner)
+    {
+        switch (id)
+        {
+            case FloatingPanelID.Subagent: if (runtime.SubagentPanelDock != corner) runtime.SubagentPanelDock = corner; break;
+            case FloatingPanelID.Hydra: if (runtime.HydraPanelDock != corner) runtime.HydraPanelDock = corner; break;
+            case FloatingPanelID.Popped: if (runtime.HydraPoppedPanelDock != corner) runtime.HydraPoppedPanelDock = corner; break;
+            case FloatingPanelID.Usage: if (model.Settings.UsagePanelDock != corner) model.Settings.UsagePanelDock = corner; break;
+            case FloatingPanelID.Auto head:
+                if (!runtime.HydraAutoPanelDocks.TryGetValue(head.Value, out var old) || old != corner)
+                    runtime.HydraAutoPanelDocks = runtime.HydraAutoPanelDocks.Mutating(values => values[head.Value] = corner);
+                break;
+        }
+    }
+
+    // :581-590. Preferences are written once on release; clear the live state afterwards.
+    internal static void CommitPanelResize(AppModel model, PanelResizeState resize)
+    {
+        if (resize.LiveSize is { } size) model.Settings.PanelSize = size;
+        if (resize.LiveUsageHeight is { } height) model.Settings.UsagePanelHeight = height;
+        resize.LiveSize = null;
+        resize.LiveUsageHeight = null;
+        resize.End();
+    }
+
+    // :707-710.
+    internal static Point Rest(PanelScene.PanelSlot slot, PanelScene scene)
+    {
+        var count = scene.SlotsOnSide.TryGetValue(slot.Corner.Side, out var slots) ? slots : 1;
+        var stacked = scene.Docks.Stacked(slot.Corner, slot.Below, count, scene.Layout);
+        return new Point(stacked.X, slot.Corner.IsTop ? stacked.Y + slot.Lift : stacked.Y - slot.Lift);
+    }
+
+    // :496-503. A bottom-docked panel retains its full-height panel's bottom edge.
+    internal static Point UsageOrigin(PanelScene.PanelSlot slot, PanelScene scene)
+    {
+        var rest = Rest(slot, scene);
+        var full = scene.Layout.PanelSize;
+        var height = scene.UsageHeight ?? full.Height;
+        return slot.Corner.IsTop ? rest : new Point(rest.X, rest.Y + full.Height - height);
+    }
+
     /// <summary>:399-417 <c>private struct HydraCaptureFrame: ViewModifier</c>. The capture run it feeds is not ported
     /// (ED-001: WebsiteCaptures.isEnabled is always false, porting/dead_code.md entry 44).</summary>
     private sealed record HydraCaptureFrame(Guid ThreadID, WindowLiveResize LiveResize)
     {
         // :407-416 func body(content:)
-        public Control Body(Control content) =>
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:407");
+        public Control Body(Control content) => content; // :414-415 non-capture branch; ED-001 excludes the other branch.
     }
 }
 
@@ -72,11 +767,69 @@ internal sealed record HydraPresence
 /// <summary>:713-720, :737-771 <c>private struct ReserveSlide: ViewModifier</c>.</summary>
 internal sealed record ReserveSlide(PanelReserve Reserve, bool Slides, bool AnimatesWidth = false)
 {
-    // :747-770 func body(content:)
-    public Control Body(Control content) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:747");
-}
+    // :745 @State persists across copies of this modifier at the same view identity.
+    private sealed class SlideState
+    {
+        public readonly TranslateTransform Transform = new();
+        public double Offset;
+        public PanelReserve? Previous;
+        public ChatFrameAnimation? Animation;
+    }
 
+    private readonly SlideState state = new();
+    internal double Offset => state.Offset;
+
+    // :747-770. Padding snaps for the conversation, glides for the composer; offset glides only for the conversation.
+    public Control Body(Control content)
+    {
+        if (state.Animation is null)
+        {
+            state.Animation = new ChatFrameAnimation(content);
+            state.Animation.AttachLifetime();
+        }
+        var margin = new Thickness(Reserve.Leading, 0, Reserve.Trailing, 0);
+        var changed = state.Previous is { } old && old != Reserve;
+        ChatView.SetReserveSlideLeading(content, Reserve.Leading); // :749
+        content.RenderTransform = state.Transform; // :756
+        void OffsetTo(double value)
+        {
+            state.Offset = value;
+            state.Transform.X = value;
+            ChatView.SetReserveSlideOffset(content, value); // :750, per animation frame.
+        }
+        if (changed)
+        {
+            state.Animation.Stop();
+            var previous = state.Previous!;
+            var shift = ((Reserve.Leading - Reserve.Trailing) - (previous.Leading - previous.Trailing)) / 2; // :760
+            if (Slides && !AnimatesWidth && shift != 0) // :761
+            {
+                content.Margin = margin; // :751-752: one layout at the final width.
+                var from = state.Offset - shift; // :766
+                state.Animation.Start(Chrome.PanelSlide, progress => OffsetTo(from * (1 - progress))); // :768
+            }
+            else
+            {
+                OffsetTo(0); // :762
+                if (Slides && AnimatesWidth) // :754
+                {
+                    var from = content.Margin;
+                    state.Animation.Start(Chrome.PanelSlide, progress => content.Margin = new Thickness(
+                        from.Left + (margin.Left - from.Left) * progress, 0,
+                        from.Right + (margin.Right - from.Right) * progress, 0));
+                }
+                else content.Margin = margin;
+            }
+        }
+        else if (state.Previous is null)
+        {
+            content.Margin = margin; // :719-720: first measurement does not glide.
+            OffsetTo(0);
+        }
+        state.Previous = Reserve;
+        return content;
+    }
+}
 /// <summary>:773-808 <c>@MainActor private struct PanelMembers</c>: which threads sit in the chat's floating panels.</summary>
 internal sealed record PanelMembers
 {
@@ -88,8 +841,30 @@ internal sealed record PanelMembers
     public PanelUsage? Usage { get; init; } // :785
 
     // :787-807 init(runtime:model:)
-    public PanelMembers(ThreadRuntime runtime, AppModel model) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:787");
+    public PanelMembers(ThreadRuntime runtime, AppModel model)
+    {
+        Subagent = model.PanelSubagent(runtime.ThreadID); // :790
+        IsDocked = Subagent is not null; // :791
+        IsHydraHidden = runtime.IsHydraPanelHidden; // :792
+        var team = IsHydraHidden ? ValueList<ChatThread>.Empty : model.PanelHeads(runtime.ThreadID); // :793
+        var poppedHead = team.Count > 1 ? team.FirstOrDefault(t => t.Id == runtime.HydraPoppedHeadID) : null; // :794
+        Popped = poppedHead; // :795
+        Heads = new ValueList<ChatThread>(team.Where(t => t.Id != poppedHead?.Id)); // :796
+        if (model.Thread(runtime.ThreadID) is { } thread && model.Settings.ShowsUsagePanel) // :797
+        {
+            ProviderKind? headsProvider = null;
+            if (model.HydraIsOn(thread) && model.HydraPair(thread) is { } pair) // :799
+            {
+                var provider = model.HydraHeadsProvider(pair); // :800
+                headsProvider = provider == thread.Provider ? null : provider; // :801
+            }
+            Usage = new PanelUsage { Provider = thread.Provider, HeadsProvider = headsProvider }; // :803
+        }
+        else
+        {
+            Usage = null; // :805
+        }
+    }
 }
 
 /// <summary>:810-815 <c>struct PanelUsage: Equatable</c>: whose limits the usage panel shows.</summary>
@@ -121,8 +896,17 @@ internal sealed record PanelScene
     public ValueMap<PanelDockSide, long> SlotsOnSide { get; init; } // :843
 
     // :849-857 func lockedSide(excluding:) -> PanelDockSide?
-    public PanelDockSide? LockedSide(FloatingPanelID excluding) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:849");
+    public PanelDockSide? LockedSide(FloatingPanelID excluding)
+    {
+        if (Layout.FitsBothSides) return null; // :850
+        var others = Slots.Where(kv => !Equals(kv.Key, excluding)).ToList(); // :851
+        if (others.Count == 0) return null; // :852
+        var hydraSlot = others.Where(kv => kv.Key is FloatingPanelID.Hydra).Select(kv => kv.Value).FirstOrDefault();
+        if (hydraSlot is { } hydra) return hydra.Corner.Side; // :853
+        var leading = others.Count(kv => kv.Value.Corner.Side == PanelDockSide.Leading); // :854
+        var trailing = others.Count - leading; // :855
+        return leading >= trailing ? PanelDockSide.Leading : PanelDockSide.Trailing; // :856
+    }
 
     public double? UsageHeight { get; init; } // :861
     public PanelUsage? Usage { get; init; } // :863
@@ -136,8 +920,7 @@ internal sealed record PanelScene
     public PanelDocks Docks { get; init; } // :873
 
     // :875 var hasHeads: Bool
-    public bool HasHeads =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:875");
+    public bool HasHeads => Heads.Count > 0;
 
     // :879-899 init(members:runtime:model:paneSize:composerAreaHeight:usageContentHeight:holdsHydra:preferredSize:usageHeightOverride:)
     public PanelScene(
@@ -149,8 +932,28 @@ internal sealed record PanelScene
         double? usageContentHeight,
         bool holdsHydra = false,
         Size? preferredSize = null,
-        double? usageHeightOverride = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:879");
+        double? usageHeightOverride = null)
+    {
+        var geometry = PanelSceneGeometry(members, runtime, model, paneSize, composerAreaHeight, usageContentHeight, holdsHydra, preferredSize, usageHeightOverride); // :880
+        Subagent = members.Subagent; // :881
+        IsDocked = members.IsDocked; // :882
+        AutoPopped = geometry.AutoPopped; // :883
+        Slots = geometry.Slots; // :884
+        SlotsOnSide = geometry.SlotsOnSide; // :885
+        UsageHeight = geometry.UsageHeight; // :886
+        Heads = new ValueList<ChatThread>(members.Heads.Where(head => !geometry.AutoPopped.Any(a => a.Id == head.Id))); // :887
+        Popped = members.Popped; // :888
+        Usage = members.Usage; // :889
+        IsMeasured = geometry.IsMeasured; // :890
+        ShowsHydra = geometry.ShowsHydra; // :891
+        ShowsPopped = geometry.ShowsPopped; // :892
+        ShowsUsage = geometry.ShowsUsage; // :893
+        IsHydraDocked = geometry.IsHydraDocked; // :894
+        DockedSides = geometry.DockedSides; // :895
+        Layout = geometry.Layout; // :896
+        Reserve = geometry.Reserve; // :897
+        Docks = geometry.Docks; // :898
+    }
 
     /// <summary>:901-917 <c>struct Geometry</c>: the geometry alone, from the members and the measured pane.</summary>
     public sealed record Geometry
@@ -183,53 +986,479 @@ internal sealed record PanelScene
         double? usageContentHeight,
         bool holdsHydra = false,
         Size? preferredSize = null,
-        double? usageHeightOverride = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:925");
+        double? usageHeightOverride = null)
+    {
+        var isMeasured = paneSize != default; // :926 paneSize != .zero
+        var preferred = preferredSize ?? model.Settings.PanelSize; // :927
+        var showsHydra = (members.Heads.Count > 0 || holdsHydra) && isMeasured; // :928
+        var showsPopped = members.Popped is not null && showsHydra; // :929
+        var showsUsage = members.Usage is not null && isMeasured; // :930
+        var isHydraDocked = showsHydra; // :931
+        var helperShowsProgress = members.Subagent?.IsHydraHead ?? true; // :932
+        var compact = !model.Settings.HydraShowsHeadDetails && helperShowsProgress && (showsHydra || members.Subagent is not null); // :933
+        var single = new SubagentPanelLayout { Pane = paneSize, ComposerAreaHeight = composerAreaHeight, StackDepth = 1, Preferred = preferred, Compact = compact }; // :936
+        var slotHeight = single.PanelHeight; // :937
+        var gap = SubagentPanelLayout.Gap; // :938
+        var placed = new List<(FloatingPanelID Id, PanelDockCorner Corner)>();
+        if (members.IsDocked) placed.Add((new FloatingPanelID.Subagent(), runtime.SubagentPanelDock)); // :940
+        if (isHydraDocked) placed.Add((new FloatingPanelID.Hydra(), runtime.HydraPanelDock)); // :941
+        if (showsPopped) placed.Add((new FloatingPanelID.Popped(), runtime.HydraPoppedPanelDock)); // :942
+        if (showsUsage) placed.Add((new FloatingPanelID.Usage(), model.Settings.UsagePanelDock)); // :943
+        var usageCorner = model.Settings.UsagePanelDock; // :944
+        double? usageHeight = null;
+        if (showsUsage) // :946
+        {
+            var under = Order(placed, runtime.PanelStackOrder).TryGetValue(new FloatingPanelID.Usage(), out var u) ? u.Below : 0; // :947
+            var room = single.VerticalRoom - under * (slotHeight + gap); // :948
+            var wanted = usageHeightOverride ?? model.Settings.UsagePanelHeight ?? usageContentHeight ?? slotHeight; // :949
+            usageHeight = Math.Min(Math.Max(UsageMinimumHeight, room), Math.Max(UsageMinimumHeight, wanted)); // :950
+        }
+        var usageLift = Math.Max(0, (usageHeight ?? 0) - slotHeight); // :954
+        var autoPopped = new List<ChatThread>(); // :955
+        var layoutFitsBothSides = single.FitsBothSides; // :956
+        var smallest = compact ? SubagentPanelLayout.CompactHeight : SubagentPanelLayout.MinHeight; // :960
+        var natural = Math.Min(3, Math.Max(1, (long)((single.VerticalRoom + gap) / (smallest + gap)))); // :961
+        if (model.Settings.HydraAutoPopsHeads && showsHydra && members.Heads.Count > 1) // :962
+        {
+            var candidates = members.Heads.Skip(1).Where(h => !runtime.HydraAutoPopHeld.Contains(h.Id)).ToList(); // :963
+            foreach (var candidate in candidates.Where(c => runtime.HydraAutoPanelDocks.ContainsKey(c.Id)).ToList()) // :964
+            {
+                var corner = runtime.HydraAutoPanelDocks[candidate.Id]; // :965
+                placed.Add((new FloatingPanelID.Auto(candidate.Id), corner)); // :966
+                autoPopped.Add(candidate); // :967
+            }
+            candidates.RemoveAll(c => runtime.HydraAutoPanelDocks.ContainsKey(c.Id)); // :969
+            var usageExtra = usageLift > 0 ? (long)Math.Ceiling(usageLift / (slotHeight + gap)) : 0; // :971
+            var corners = layoutFitsBothSides
+                ? [runtime.HydraPanelDock.AcrossTheColumn, runtime.HydraPanelDock]
+                : new[] { runtime.HydraPanelDock }; // :973
+            foreach (var corner in corners)
+            {
+                var other = FlippedVertically(corner); // :974
+                var usageOnSide = showsUsage && (usageCorner == corner || usageCorner == other); // :975
+                var used = placed.Count(p => p.Corner == corner) + placed.Count(p => p.Corner == other) + (usageOnSide ? usageExtra : 0); // :976
+                var free = Math.Max(0, natural - used); // :977
+                var take = Math.Min(free, candidates.Count); // :978 Swift evaluates the range before removing any candidates.
+                for (var i = 0; i < take; i++)
+                {
+                    var head = candidates[0];
+                    candidates.RemoveAt(0); // :979
+                    placed.Add((new FloatingPanelID.Auto(head.Id), corner)); // :980
+                    autoPopped.Add(head); // :981
+                }
+            }
+        }
+        if (!layoutFitsBothSides) // :987
+        {
+            var sidesSeen = placed.Select(p => p.Corner.Side).Distinct().ToList(); // :988
+            if (sidesSeen.Count > 1) // :989
+            {
+                var hydraEntry = placed.FirstOrDefault(p => p.Id is FloatingPanelID.Hydra);
+                var home = hydraEntry.Id is FloatingPanelID.Hydra ? hydraEntry.Corner.Side
+                    : placed.Count(p => p.Corner.Side == PanelDockSide.Leading) >= placed.Count(p => p.Corner.Side == PanelDockSide.Trailing) ? PanelDockSide.Leading : PanelDockSide.Trailing; // :990-991
+                placed = [.. placed.Select(p => (p.Id, PanelDockCorner.Make(home, p.Corner.IsTop)))]; // :992
+            }
+        }
+        var slotsByID = new Dictionary<FloatingPanelID, PanelSlot>(); // :995
+        var ordered = Order(placed, runtime.PanelStackOrder); // :996
+        var usageBelow = ordered.TryGetValue(new FloatingPanelID.Usage(), out var ub) ? ub.Below : (long?)null; // :997
+        foreach (var (id, entry) in ordered) // :998
+        {
+            var lift = usageBelow is { } ubv && entry.Corner == usageCorner && showsUsage && id is not FloatingPanelID.Usage && entry.Below > ubv
+                ? usageLift // :1000-1001
+                : 0; // :1003
+            slotsByID[id] = new PanelSlot { Corner = entry.Corner, Below = entry.Below, Lift = lift }; // :1005
+        }
+        var placedCorners = placed.Select(p => p.Corner).ToList(); // :1007
+        var sides = placedCorners.Select(c => c.Side).Distinct().ToHashSet(); // :1008
+        var dockedSides = new[] { PanelDockSide.Leading, PanelDockSide.Trailing }.Where(sides.Contains).ToList(); // :1009
+        var slotsOnSide = new Dictionary<PanelDockSide, long>();
+        foreach (var side in new[] { PanelDockSide.Leading, PanelDockSide.Trailing }) // :1011
+            slotsOnSide[side] = Math.Max(natural, placed.Count(p => p.Corner.Side == side)); // :1012
+        var stackDepth = 1L; // :1019
+        foreach (var side in new[] { PanelDockSide.Leading, PanelDockSide.Trailing }) // :1020
+        {
+            var n = slotsOnSide.GetValueOrDefault(side, 1); // :1021
+            var indices = slotsByID.Values.Where(s => s.Corner.Side == side)
+                .Select(s => s.Corner.IsTop ? s.Below : n - 1 - s.Below).OrderBy(x => x).ToList(); // :1022-1025
+            if (indices.Count <= 1) continue; // :1026
+            var closest = indices.Zip(indices.Skip(1), (a, b) => b - a).DefaultIfEmpty(1).Min(); // :1027
+            var depth = (long)Math.Ceiling((double)(n - 1) / Math.Max(1, closest)) + 1; // :1028
+            stackDepth = Math.Max(stackDepth, depth); // :1029
+        }
+        var layout = new SubagentPanelLayout { Pane = paneSize, ComposerAreaHeight = composerAreaHeight, StackDepth = stackDepth, Preferred = preferred, Compact = compact }; // :1031
+        var reserve = new PanelReserve
+        {
+            Leading = sides.Contains(PanelDockSide.Leading) ? layout.ComposerReserve : 0, // :1033
+            Trailing = sides.Contains(PanelDockSide.Trailing) ? layout.ComposerReserve : 0, // :1034
+        };
+        return new Geometry
+        {
+            Layout = layout,
+            AutoPopped = new ValueList<ChatThread>(autoPopped),
+            Slots = new ValueMap<FloatingPanelID, PanelSlot>(slotsByID),
+            SlotsOnSide = new ValueMap<PanelDockSide, long>(slotsOnSide),
+            UsageHeight = usageHeight,
+            IsMeasured = isMeasured,
+            ShowsHydra = showsHydra,
+            ShowsPopped = showsPopped,
+            ShowsUsage = showsUsage,
+            IsHydraDocked = isHydraDocked,
+            DockedSides = new ValueList<PanelDockSide>(dockedSides),
+            Reserve = reserve,
+            Docks = new PanelDocks(layout, reserve), // :1049
+        };
+    }
 
     // :1053-1073 static func order(_:by:) -> [FloatingPanelID: (corner: PanelDockCorner, below: Int)]
     public static ValueMap<FloatingPanelID, (PanelDockCorner Corner, long Below)> Order(
         IReadOnlyList<(FloatingPanelID Id, PanelDockCorner Corner)> placed,
-        IReadOnlyList<FloatingPanelID> by) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1053");
+        IReadOnlyList<FloatingPanelID> by)
+    {
+        var rank = new Dictionary<FloatingPanelID, long>();
+        foreach (var id in by) // :1055
+            if (!rank.ContainsKey(id)) rank[id] = rank.Count;
+        var result = new Dictionary<FloatingPanelID, (PanelDockCorner Corner, long Below)>();
+        var corners = placed.Select(p => p.Corner).Distinct().ToList(); // :1059
+        foreach (var corner in corners)
+        {
+            var inCorner = placed
+                .Select((entry, offset) => (entry, offset))
+                .Where(x => x.entry.Corner == corner) // :1061
+                .OrderBy(x => rank.TryGetValue(x.entry.Id, out var r) ? r : long.MaxValue) // :1063-1065
+                .ThenBy(x => x.offset)
+                .Select(x => x.entry)
+                .ToList(); // :1067
+            for (var below = 0; below < inCorner.Count; below++)
+                result[inCorner[below].Id] = (inCorner[below].Corner, below); // :1068-1069
+        }
+        return new ValueMap<FloatingPanelID, (PanelDockCorner Corner, long Below)>(result);
+    }
+
+    // :1075-1082 private static func flippedVertically(_:) -> PanelDockCorner
+    private static PanelDockCorner FlippedVertically(PanelDockCorner corner) => corner switch
+    {
+        PanelDockCorner.TopLeading => PanelDockCorner.BottomLeading, // :1077
+        PanelDockCorner.BottomLeading => PanelDockCorner.TopLeading, // :1078
+        PanelDockCorner.TopTrailing => PanelDockCorner.BottomTrailing, // :1079
+        PanelDockCorner.BottomTrailing => PanelDockCorner.TopTrailing, // :1080
+        _ => throw new System.Diagnostics.UnreachableException(),
+    };
 }
 
 /// <summary>:1085-1104 <c>struct JumpToLatestButton: View</c>.</summary>
 public sealed class JumpToLatestButton : Decorator
 {
     // :1087 let scrollState; :1089-1103 body
-    public JumpToLatestButton(TimelineScrollState scrollState) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1089");
+    public JumpToLatestButton(TimelineScrollState scrollState)
+    {
+        var host = new Panel();
+        Height = 0; // :1095 zero flow height, above the composer.
+        Child = new ChatBottomOverlay(host, 10); // :1094 bottom padding.
+        ChromeCircleButton? button = null;
+        this.Track(() => scrollState.ShowsJumpButton, shown =>
+        {
+            if (shown && button is null)
+            {
+                button = new ChromeCircleButton("arrow.down", "Jump to latest", scrollState.JumpToLatest)
+                { HorizontalAlignment = HorizontalAlignment.Center }
+                    .Transition(SwiftTransition.Asymmetric(
+                        SwiftTransition.Scale(0.6).Combined(SwiftTransition.Opacity).Combined(SwiftTransition.Offset(y: 10)),
+                        SwiftTransition.Scale(0.85).Combined(SwiftTransition.Opacity).Combined(SwiftTransition.Offset(y: 6)))); // :1096-1101
+                SwiftTransition.Insert(host, host.Children.Count, button);
+            }
+            else if (!shown && button is { } leaving)
+            {
+                button = null;
+                SwiftTransition.Remove(host, leaving);
+            }
+        });
+    }
+}
+
+/// <summary>PORT-ONLY. <c>GlassEffectContainer(spacing:)</c> (ChatView.swift:1123): on macOS 26 it groups nearby
+/// glass shapes so they sample and morph as one compositor pass instead of each drawing its own. Each control
+/// inside already carries its own glass (Chrome.ChromeGlassCapsule/ChromeGlassCircle), so grouping changes only
+/// the compositor's cost, never what is drawn. MARROW_DEFERRED ED-180: this container does not merge sampling
+/// passes; it lays out its content unchanged. Visual parity is UNVERIFIED without macOS (OD-0001).</summary>
+internal sealed class GlassEffectContainer : Decorator
+{
+    public double Spacing { get; }
+    public GlassEffectContainer(double spacing, Func<Control> content)
+    {
+        Spacing = spacing; // :1123 retained for ED-180's deferred grouped pass.
+        Child = content();
+    }
 }
 
 /// <summary>:1106-1182 <c>private struct ChatChromeRow: View</c>: the sticky glass controls across the top.</summary>
 internal sealed class ChatChromeRow : Decorator
 {
-    // :1109-1114 the view's inputs; :1116-1181 body
+    private Action<string, Project?, string>? updateInputs;
+    internal void UpdateInputs(string title, Project? project, string directory) => updateInputs?.Invoke(title, project, directory); // :1112-1115,1147-1151
+    // :1109-1114 the view's inputs, plus AppModel explicitly (no Avalonia @Environment). scrollChrome is not read
+    // here (the row has no member citing it); it stays a parameter so the caller's signature matches the Swift
+    // view's own inputs and PR-CHAT-159 (a different member) can use it once ChatView's own body is built.
     public ChatChromeRow(
+        AppModel model,
         ThreadRuntime runtime,
         ChromeScrollModel scrollChrome,
         string title,
         Project? project,
         string directory,
-        GitStatusModel git) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1116");
+        GitStatusModel git)
+    {
+        _ = scrollChrome;
+        var host = new Panel();
+        Child = host;
+        var titleView = new ChatChromeTitle(model, runtime, title); // :1194-1196 title state survives other row changes.
+        StackPanel? titleParent = null;
+
+        var clearanceAnimation = new ChatFrameAnimation(this);
+        clearanceAnimation.AttachLifetime();
+        double? clearance = null;
+        bool? previousSidebarVisible = null;
+        updateInputs = (nextTitle, nextProject, nextDirectory) =>
+        {
+            title = nextTitle; project = nextProject; directory = nextDirectory;
+            titleView.UpdateTitle(title); // :1147-1151 no title animation.
+            Build();
+        };
+        void Build()
+        {
+            titleParent?.Children.Remove(titleView);
+            host.Children.Clear();
+            var sidebarVisible = model.Sidebar.HoldsTrafficLights; // :1119
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center }; // :1124
+
+            if (!sidebarVisible && !(model.Settings.SidebarFloats && model.Settings.SidebarOnlyFloats)) // :1128
+            {
+                row.Children.Add(new ThreadsButton(model)); // :1129-1131
+            }
+            row.Children.Add(new ChromeCircleButton(
+                "square.and.pencil",
+                "New thread" + ShortcutStore.Hint(AppShortcut.NewThread), // :1132
+                () => model.NewThread(project))); // :1133
+
+            if (model.Thread(runtime.ThreadID) is { } thread) // :1135
+            {
+                if (model.Settings.HydraEnabled && !thread.IsHelper) // :1138
+                {
+                    row.Children.Add(new HydraButton(thread, runtime)); // :1139-1140
+                }
+                row.Children.Add(new PermissionMenu(model, thread)); // :1142
+            }
+            if (git.IsRepository) // :1144
+            {
+                row.Children.Add(new BranchMenu(model, runtime, directory, git)); // :1145
+            }
+            row.Children.Add(titleView); // :1147-1151: no title animation; its popover state is retained.
+            titleParent = row;
+
+            var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :1152
+            trailing.Children.Add(new ChromeCapsule(() =>
+            {
+                var capsule = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 };
+                capsule.Children.Add(new OpenInMenu(directory)); // :1154
+                if (project is not null) // :1155
+                {
+                    capsule.Children.Add(new ChromeDivider()); // :1156
+                    capsule.Children.Add(new ScriptsMenu(model, project, runtime)); // :1157
+                }
+                if (git.IsRepository) // :1159
+                {
+                    capsule.Children.Add(new ChromeDivider()); // :1160
+                    capsule.Children.Add(new GitActionsMenu(model, runtime, directory, git)); // :1161
+                }
+                return capsule;
+            })); // :1153-1163
+            trailing.Children.Add(new ChromeCapsule(() =>
+            {
+                var capsule = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 };
+                capsule.Children.Add(new ChromeIconButton(
+                    "terminal",
+                    "Terminal" + ShortcutStore.Hint(AppShortcut.ToggleTerminal), // :1165
+                    () => runtime.IsTerminalVisible = !runtime.IsTerminalVisible, // :1166
+                    isActive: runtime.IsTerminalVisible));
+                capsule.Children.Add(new ChromeDivider()); // :1168
+                capsule.Children.Add(new ChromeIconButton(
+                    "plusminus",
+                    "Changes" + ShortcutStore.Hint(AppShortcut.ToggleChanges), // :1169
+                    runtime.ToggleDiff, // :1170
+                    isActive: runtime.IsDiffVisible));
+                return capsule;
+            })); // :1164-1172
+            row.Children.Add(trailing);
+
+            var container = new GlassEffectContainer(2, () => row); // :1123
+            // :1177-1180 padding follows ownership of the caption buttons through panelSlide frames.
+            var target = Chrome.ChromeHorizontalPadding + (sidebarVisible ? 0 : Chrome.TrafficLightsWidth + Chrome.TrafficLightClearance);
+            void ApplyClearance(double leading)
+            {
+                clearance = leading;
+                foreach (var group in host.Children.OfType<GlassEffectContainer>())
+                    group.Margin = new Thickness(leading, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0);
+                container.Margin = new Thickness(leading, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0);
+            }
+            if (previousSidebarVisible is { } previous && previous != sidebarVisible)
+            {
+                var from = clearance ?? target;
+                clearanceAnimation.Start(Chrome.PanelSlide, progress => ApplyClearance(from + (target - from) * progress));
+            }
+            else ApplyClearance(clearance ?? target);
+            previousSidebarVisible = sidebarVisible;
+            host.Children.Add(container);
+        }
+
+        // :1165-1170 the terminal and changes buttons read runtime.isTerminalVisible/isDiffVisible directly inside
+        // the SwiftUI body, so a toggle re-renders the whole row there; tracked here too so isActive (PR-TERM-072)
+        // stays live rather than frozen at the value captured when this row was last built.
+        this.Track(() => (model.Sidebar.HoldsTrafficLights, model.Settings.SidebarFloats, model.Settings.SidebarOnlyFloats, model.Settings.HydraEnabled, model.Thread(runtime.ThreadID), git.IsRepository, git.Activity, git.Status, git.Branches, git.RemoteURL, runtime.IsTerminalVisible, runtime.IsDiffVisible, ShortcutStore.Hint(AppShortcut.NewThread), ShortcutStore.Hint(AppShortcut.ToggleTerminal), ShortcutStore.Hint(AppShortcut.ToggleChanges)), _ => Build());
+        Build();
+    }
 }
 
-/// <summary>:1184-1240 <c>private struct ChatChromeTitle: View</c>.</summary>
+/// <summary>:1184-1240 <c>private struct ChatChromeTitle: View</c>. A real Button so the extended title bar
+/// (which drags the window from this row's gaps) never swallows the click.</summary>
 internal sealed class ChatChromeTitle : Decorator
 {
+    private readonly TextBlock titleText = new();
+    private string currentTitle;
+
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isPresented;
+
+        public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+    }
+
     // :1191-1192 the view's inputs; :1198-1239 body
-    public ChatChromeTitle(ThreadRuntime runtime, string title) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1198");
+    public ChatChromeTitle(ThreadRuntime runtime, string title)
+    {
+        currentTitle = title;
+        ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new ChatChromeTitle(model, runtime, currentTitle));
+    }
+
+    // :1185 @Environment(AppModel.self); explicit model overload for callers already holding the environment.
+    public ChatChromeTitle(AppModel model, ThreadRuntime runtime, string title)
+    {
+        currentTitle = title;
+        var state = new ViewState();
+        var text = new TextBlock
+        {
+            Text = title.Length == 0 ? "New thread" : title, // :1203
+            MaxLines = 1, // :1206
+            TextTrimming = TextTrimming.CharacterEllipsis, // :1207 .truncationMode(.tail)
+        };
+        titleText = text;
+        SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold).Apply(text); // :1204
+        text.Foreground = (title.Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(text); // :1205
+        var padded = new Border
+        {
+            Padding = new Thickness(0, 6), // :1208
+            Background = Brushes.Transparent, // :1209 .contentShape(.rect)
+            Child = text,
+        };
+        var button = PlainControls.Button(padded, () => state.IsPresented = !state.IsPresented); // :1199-1202
+        button.HorizontalContentAlignment = HorizontalAlignment.Left;
+        // :1212 U+2014 em dash kept verbatim (deviation OD-0012 G3, as OD-0008 B14 keeps the other eight).
+        ToolTip.SetTip(button, "Thread title — click to copy or rename");
+        AutomationProperties.SetName(button, "Thread title"); // :1213
+        // :1214 .accessibilityAddTraits(.isButton): a real Button already reports AutomationControlType.Button.
+        var popover = PlainControls.Popover(
+            button,
+            new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
+            () => new PopoverMenu(() => BuildMenu(model, runtime, button, currentTitle))); // :1215-1230
+        Child = PlainControls.Background(new Panel { Children = { button, popover } }, new NoWindowDragArea());
+        HorizontalAlignment = HorizontalAlignment.Stretch; // :1238 .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // :1147-1151,1203-1205 title input changes cut directly; the button/popover state keeps its identity.
+    internal void UpdateTitle(string title)
+    {
+        currentTitle = title;
+        if (Child is ChatChromeTitle body) body.UpdateTitle(title);
+        titleText.Text = title.Length == 0 ? "New thread" : title;
+        titleText.Foreground = (title.Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(titleText);
+    }
+
+    // :1219-1229, extracted so a test can inspect the menu without a real popup (headless cannot open one).
+    internal static Control BuildMenu(AppModel model, ThreadRuntime runtime, Control anchor, string title)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+        stack.Children.Add(new PopoverSectionHeader("Thread title")); // :1220
+        stack.Children.Add(new PopoverItem("Copy title", () => CopyTitle(anchor, title), symbol: "doc.on.doc")); // :1221-1224
+        stack.Children.Add(new PopoverItem("Rename…", () => ShowRenameAlert(model, runtime, title), symbol: "pencil")); // :1225-1228
+        return stack;
+    }
+
+    // :1222-1223 clear then set (observable: a prior clipboard flavour does not survive).
+    private static void CopyTitle(Control anchor, string title) => MainActor.Spawn(async () =>
+    {
+        var clipboard = TopLevel.GetTopLevel(anchor)?.Clipboard;
+        if (clipboard is null) return;
+        await clipboard.ClearAsync();
+        var data = new DataTransfer();
+        data.Add(DataTransferItem.CreateText(title));
+        await clipboard.SetDataAsync(data);
+    });
+
+    // :1231-1237. Reseed renameText from title (:1200, :1226); ED-216 supplies the shared field/roles/keyboard seam.
+    private static void ShowRenameAlert(AppModel model, ThreadRuntime runtime, string title) => MainActor.Spawn(() =>
+    {
+        var renameText = title;
+        return AlertPresentation.Show(new AlertRequest("Rename thread", null,
+            [
+                new AlertButton("Rename", () => model.Rename(runtime.ThreadID, renameText)), // :1233-1235
+                new AlertButton("Cancel", () => { }) { Role = AlertButtonRole.Cancel }, // :1236
+            ], TextFields: [new AlertTextField("Title", new Binding<string>(() => renameText, text => renameText = text))])); // :1232
+    });
 }
 
 /// <summary>:1242-1265 <c>private struct ThreadsButton: View</c>. Its capture-frame hook (:1261-1263) is not ported
 /// (ED-001: WebsiteCaptures.isEnabled is always false, porting/dead_code.md entry 44).</summary>
 internal sealed class ThreadsButton : Decorator
 {
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isPresented;
+
+        public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+    }
+
     // :1248-1264 body
-    public ThreadsButton() =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1248");
+    public ThreadsButton() => ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new ThreadsButton(model));
+
+    // :1243 @Environment(AppModel.self).
+    public ThreadsButton(AppModel model)
+    {
+        var state = new ViewState();
+        // :1251 let floats = model.settings.sidebarFloats
+        var floats = model.Settings.SidebarFloats;
+        var button = new ChromeCircleButton(
+            "list.bullet",
+            floats ? "Show the sidebar" : "Threads", // :1252
+            () =>
+            {
+                if (floats) model.Sidebar.Toggle(); // :1253
+                else state.IsPresented = !state.IsPresented;
+            });
+        var popover = PlainControls.Popover(
+            button,
+            new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value),
+            () => BuildSidebarPopover(model, () => state.IsPresented = false)); // :1255-1259
+        Child = new Panel { Children = { button, popover } };
+        // :1260-1263 the capture-frame publish (WebsiteCaptures.threadsButtonFrame) is not ported (ED-001).
+    }
+
+    // :1255-1259 lazy popover content, also independently testable without presenting the sidebar's window.
+    internal static Control BuildSidebarPopover(AppModel model, Action dismiss)
+    {
+        var sidebar = new SidebarView(inPopover: true, dismiss: dismiss); // :1256
+        sidebar.Width = model.Sidebar.Width; // :1257
+        sidebar.Height = 560;
+        return sidebar.PresentedChrome(); // :1258
+    }
 }
 
 /// <summary>:1267-1326 <c>@MainActor @Observable final class GitStatusModel</c> (R-OBS-6).</summary>
@@ -268,67 +1497,722 @@ public sealed class GitStatusModel : MainActorModel
 
     private const double Freshness = 30; // :1287
 
+    // :1284-1286 The last read per directory, shared by every chat (a MainActor-isolated static: every caller
+    // runs on main, so no lock). Switching threads shows the branch at once and only runs git again when the
+    // read is stale, a turn changed files, or forced.
+    private static readonly Dictionary<string, Snapshot> Snapshots = new(SwiftStringComparer.Instance);
+
     // :1289-1307 func refresh(_:force:) async
-    public Task Refresh(string directory, bool force = true) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1289");
+    public async Task Refresh(string directory, bool force = true)
+    {
+        if (Snapshots.TryGetValue(directory, out var cached)) // :1290
+        {
+            Apply(cached); // :1291
+            if (!force && (SwiftDate.Now - cached.FetchedAt).TotalSeconds < Freshness) return; // :1292
+        }
+        var git = new Git(directory); // :1294
+        var isRepository = await git.IsRepository(); // :1295
+        var snapshot = new Snapshot { IsRepository = isRepository };
+        if (snapshot.IsRepository) // :1296
+        {
+            // :1297-1299 async let status/branches/remoteURL: three concurrent children (R-TASK-5).
+            await using var scope = new AsyncLetScope();
+            var statusTask = scope.Start(git.Status);
+            var branchesTask = scope.Start(git.Branches);
+            var remoteURLTask = scope.Start(git.RemoteWebURL);
+            snapshot = snapshot with
+            {
+                Status = await statusTask, // :1300
+                Branches = new ValueList<GitBranch>(await branchesTask), // :1301
+                RemoteURL = await remoteURLTask, // :1302
+            };
+        }
+        snapshot = snapshot with { FetchedAt = SwiftDate.Now }; // :1304
+        Snapshots[directory] = snapshot; // :1305
+        Apply(snapshot); // :1306
+    }
+
+    // :1309-1314
+    private void Apply(Snapshot snapshot)
+    {
+        IsRepository = snapshot.IsRepository;
+        Status = snapshot.Status;
+        Branches = snapshot.Branches;
+        RemoteURL = snapshot.RemoteURL;
+    }
 
     // :1316-1325 func perform(_:_:) async -> Error?
-    public Task<Exception?> Perform(string activity, Func<Task> work) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1316");
+    public async Task<Exception?> Perform(string activity, Func<Task> work)
+    {
+        Activity = activity; // :1317
+        try
+        {
+            await work(); // :1320
+            return null; // :1321
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error)) // :1322-1323
+        {
+            return error;
+        }
+        finally
+        {
+            Activity = null; // :1318 defer
+        }
+    }
 }
 
 /// <summary>:1328-1343 <c>private struct PermissionMenu: View</c>.</summary>
 internal sealed class PermissionMenu : Decorator
 {
-    // :1331 let thread; :1333-1342 body
-    public PermissionMenu(ChatThread thread) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1333");
+    // :1331 let thread; :1329 @Environment(AppModel.self), resolved when the original view input is attached.
+    public PermissionMenu(ChatThread thread) => ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new PermissionMenu(model, thread));
+
+    // :1333-1342 explicit environment overload.
+    public PermissionMenu(AppModel model, ChatThread thread)
+    {
+        var mode = thread.RuntimeMode;
+        Child = new ChromeCircleMenu(mode.Symbol, $"{mode.Title} · {mode.Summary}", () => BuildMenu(model, thread)); // :1334
+    }
+
+    // :1335-1341, extracted so a test can inspect the menu without a real popup (headless cannot open one).
+    internal static Control BuildMenu(AppModel model, ChatThread thread)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+        stack.Children.Add(new PopoverSectionHeader("Permissions")); // :1335
+        foreach (var item in Enum.GetValues<RuntimeMode>()) // :1336 RuntimeMode.allCases, declaration order
+        {
+            var chosen = item;
+            stack.Children.Add(new PopoverItem(
+                chosen.Title,
+                () => model.UpdateThread(thread.Id, current => current with { RuntimeMode = chosen }), // :1339-1340
+                symbol: chosen.Symbol,
+                isChecked: thread.RuntimeMode == chosen)); // :1337-1338
+        }
+        return stack;
+    }
 }
 
 /// <summary>:1345-1409 <c>private struct BranchMenu: View</c>.</summary>
 internal sealed class BranchMenu : Decorator
 {
-    // :1347-1349 the view's inputs; :1354-1386 body
+    // :1347-1349 original view inputs; :1346 inherited AppModel.
     public BranchMenu(ThreadRuntime runtime, string directory, GitStatusModel git) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1354");
+        ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new BranchMenu(model, runtime, directory, git));
+
+    // :1354-1386 explicit environment overload.
+    public BranchMenu(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git)
+    {
+        var title = git.Activity ?? git.Status?.Branch ?? "Detached"; // :1357
+        Child = new ChromeTextMenu("arrow.triangle.branch", title, "Branch", () => BuildMenu(model, runtime, directory, git)); // :1355-1359
+    }
+
+    // :1360-1379, extracted so a test can inspect the menu without a real popup (headless cannot open one).
+    internal static Control BuildMenu(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+        stack.Children.Add(new PopoverSectionHeader("Switch branch")); // :1360
+        foreach (var branch in git.Branches.Take(25)) // :1361 .prefix(25)
+        {
+            var name = branch.Name;
+            stack.Children.Add(new PopoverItem(
+                name,
+                () => SwitchBranch(model, git, directory, name), // :1367
+                isChecked: branch.IsCurrent,
+                isEnabled: !branch.IsCurrent && !runtime.IsRunning)); // :1362-1369
+        }
+        stack.Children.Add(new PopoverDivider()); // :1370
+        stack.Children.Add(new PopoverItem("New branch…", () => // :1371-1374
+            ShowNewBranchAlert(model, git, directory), symbol: "plus"));
+        if (runtime.Thread?.WorktreePath is null && runtime.Turns.Count == 0) // :1375
+        {
+            stack.Children.Add(new PopoverItem("Use a new worktree for this thread", () => // :1376-1378
+                MainActor.Spawn(() => model.CreateWorktree(runtime.ThreadID)), symbol: "square.stack.3d.up"));
+        }
+        return stack;
+    }
+
+    // :1381-1385
+    private static void ShowNewBranchAlert(AppModel model, GitStatusModel git, string directory) => MainActor.Spawn(() =>
+    {
+        var branchName = ""; // :1372 reset before presenting.
+        return AlertPresentation.Show(new AlertRequest("New branch", null,
+            [
+                new AlertButton("Create", () => CreateBranch(model, git, directory, branchName)), // :1383
+                new AlertButton("Cancel", () => { }) { Role = AlertButtonRole.Cancel }, // :1384
+            ], TextFields: [new AlertTextField("Branch name", new Binding<string>(() => branchName, text => branchName = text))])); // :1382
+    });
+
+    // :1388-1396
+    private static void SwitchBranch(AppModel model, GitStatusModel git, string directory, string name) => MainActor.Spawn(async () =>
+    {
+        var repository = new Git(directory);
+        var error = await git.Perform("Switching", () => repository.SwitchBranch(name));
+        if (error is not null) model.Alert = new AppAlert { Title = "Could not switch branch", Message = SwiftErrors.LocalizedDescription(error) };
+        await git.Refresh(directory);
+    });
+
+    // :1398-1408
+    private static void CreateBranch(AppModel model, GitStatusModel git, string directory, string branchName)
+    {
+        var name = branchName.Trimmed().Replace(" ", "-", StringComparison.Ordinal); // :1399
+        if (name.Length == 0) return; // :1400
+        MainActor.Spawn(async () =>
+        {
+            var repository = new Git(directory);
+            var error = await git.Perform("Creating", () => repository.CreateBranch(name));
+            if (error is not null) model.Alert = new AppAlert { Title = "Could not create branch", Message = SwiftErrors.LocalizedDescription(error) };
+            await git.Refresh(directory);
+        });
+    }
 }
 
 /// <summary>:1411-1432 <c>private struct OpenInMenu: View</c>.</summary>
 internal sealed class OpenInMenu : Decorator
 {
     // :1412 let directory; :1414-1431 body
-    public OpenInMenu(string directory) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1414");
+    public OpenInMenu(string directory)
+    {
+        Child = new ChromeMenuButton("arrow.up.forward.app", "Open in another app", () => BuildMenu(directory)); // :1415
+    }
+
+    // :1416-1429, extracted so a test can inspect the menu without a real popup (headless cannot open one).
+    internal static Control BuildMenu(string directory)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+        stack.Children.Add(new PopoverSectionHeader("Open in")); // :1416
+        // :1417-1419 deviation OD-0012 G4: "Finder" -> "File Explorer", using Components' workspace seam.
+        stack.Children.Add(new PopoverItem("File Explorer", () => Workspace.RevealInFileExplorer(directory), image: Workspace.FileExplorerIcon as IImage));
+        foreach (var editor in Workspace.InstalledEditors) // :1420-1424
+            stack.Children.Add(new PopoverItem(editor.Name, () => Workspace.Open(directory, editor),
+                symbol: "chevron.left.forwardslash.chevron.right", image: Workspace.Icon(editor) as IImage));
+        stack.Children.Add(new PopoverDivider()); // :1425
+        stack.Children.Add(new PopoverItem("Copy path", () => CopyPath(directory), symbol: "doc.on.doc")); // :1426-1429
+        return stack;
+    }
+
+    // :1427-1428 clear then set.
+    private static void CopyPath(string directory) => MainActor.Spawn(async () =>
+    {
+        var clipboard = Avalonia.Application.Current?.ApplicationLifetime is Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime lifetime
+            ? TopLevel.GetTopLevel(lifetime.MainWindow)?.Clipboard
+            : null;
+        if (clipboard is null) return;
+        await clipboard.ClearAsync();
+        var data = new DataTransfer();
+        data.Add(DataTransferItem.CreateText(directory));
+        await clipboard.SetDataAsync(data);
+    });
 }
 
 /// <summary>:1434-1466 <c>private struct ScriptsMenu: View</c>.</summary>
 internal sealed class ScriptsMenu : Decorator
 {
-    // :1436-1437 the view's inputs; :1441-1465 body
+    // :1436-1437 original view inputs; :1435 inherited AppModel.
     public ScriptsMenu(Project project, ThreadRuntime runtime) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1441");
+        ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new ScriptsMenu(model, project, runtime));
+
+    // :1441-1465 explicit environment overload.
+    public ScriptsMenu(AppModel model, Project project, ThreadRuntime runtime)
+    {
+        Child = new ChromeMenuButton("play", "Run a project script", () => BuildMenuCore(model, project, runtime, this)); // :1442
+    }
+
+    // :1443-1455, extracted so a test can inspect the menu without a real popup (headless cannot open one).
+    internal static Control BuildMenu(AppModel model, Project project, ThreadRuntime runtime)
+        => BuildMenuCore(model, project, runtime, null);
+
+    private static Control BuildMenuCore(AppModel model, Project project, ThreadRuntime runtime, Control? anchor)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+        if (project.Scripts.Count > 0) // :1443
+        {
+            stack.Children.Add(new PopoverSectionHeader("Scripts")); // :1444
+            foreach (var script in project.Scripts) // :1445
+            {
+                var chosen = script;
+                stack.Children.Add(new PopoverItem(chosen.Name, () => model.RunScript(chosen, runtime.ThreadID), symbol: chosen.Symbol)); // :1446-1448
+            }
+            stack.Children.Add(new PopoverDivider()); // :1450
+        }
+        // :1452-1454,1456-1463 editor presentation through R-VIEW-9.
+        stack.Children.Add(new PopoverItem(
+            project.Scripts.Count == 0 ? "Add a script…" : "Edit scripts…",
+            () => MainActor.Post(() => PresentScriptsEditor(model, project.Id, anchor ?? stack)),
+            symbol: project.Scripts.Count == 0 ? "plus" : "pencil"));
+        return stack;
+    }
+
+    private static void ShowScriptsEditor(AppModel model, Guid projectID) => MainActor.Post(() =>
+        PresentScriptsEditor(model, projectID, null));
+
+    // :1456-1463.
+    private static void PresentScriptsEditor(AppModel model, Guid projectID, Control? anchor) => ChatSheetPresentation.Show(anchor, dismiss =>
+    {
+        var editor = new ScriptsEditor(model, projectID, dismiss).PresentedChrome();
+        var backdrop = new WindowBackdrop(model.Settings.BackdropOpacity);
+        backdrop.Track(() => model.Settings.BackdropOpacity, opacity => backdrop.Update(opacity, null));
+        return new Border { Child = new Panel { Children = { backdrop, editor } }, ClipToBounds = true }
+            .RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
+    });
 }
 
 /// <summary>:1468-1528 <c>private struct GitActionsMenu: View</c>.</summary>
 internal sealed class GitActionsMenu : Decorator
 {
-    // :1470-1472 the view's inputs; :1476-1493 body
+    // :1470-1472 original view inputs; :1469 inherited AppModel.
     public GitActionsMenu(ThreadRuntime runtime, string directory, GitStatusModel git) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1476");
+        ChatSheetPresentation.BuildWhenAttached(this, (model, _) => new GitActionsMenu(model, runtime, directory, git));
+
+    // :1476-1493 explicit environment overload.
+    public GitActionsMenu(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git)
+    {
+        var changed = git.Status?.ChangedFiles ?? 0; // :1477
+        Child = new ChromeMenuButton(
+            "arrow.triangle.pull",
+            changed == 0 ? "Commit, push and open pull requests" : $"{changed} changed files", // :1478
+            () => BuildMenuCore(model, runtime, directory, git, changed, this));
+    }
+
+    // :1479-1487, extracted so a test can inspect the menu without a real popup (headless cannot open one).
+    internal static Control BuildMenu(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git, long changed)
+        => BuildMenuCore(model, runtime, directory, git, changed, null);
+
+    private static Control BuildMenuCore(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git, long changed, Control? anchor)
+    {
+        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
+        stack.Children.Add(new PopoverNote(changed == 1 ? "1 changed file" : $"{changed} changed files")); // :1479
+        stack.Children.Add(new PopoverDivider()); // :1480
+        stack.Children.Add(new PopoverItem("Commit…", () => MainActor.Post(() => PresentCommitSheet(model, runtime, directory, git, anchor ?? stack)), symbol: "checkmark.circle", isEnabled: changed > 0)); // :1481
+        stack.Children.Add(new PopoverItem("Push", () => Push(model, git, directory), symbol: "arrow.up.circle")); // :1482
+        stack.Children.Add(new PopoverItem("Create pull request", () => OpenPullRequest(model, git, directory), symbol: "arrow.triangle.pull")); // :1483
+        if (git.RemoteURL is { } url) // :1484
+        {
+            stack.Children.Add(new PopoverDivider()); // :1485
+            stack.Children.Add(new PopoverItem("Open repository", () => InlineText.OpenUrl?.Invoke(url), symbol: "safari")); // :1486
+        }
+        return stack;
+    }
+
+    // :1489-1492 sheet through R-VIEW-9's shared presentation seam.
+    private static void ShowCommitSheet(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git) => MainActor.Post(() =>
+        PresentCommitSheet(model, runtime, directory, git, null));
+
+    private static void PresentCommitSheet(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git, Control? anchor) =>
+        ChatSheetPresentation.Show(anchor, dismiss => new CommitSheet(model, runtime, directory, git, dismiss).PresentedChrome());
+
+    // :1495-1503
+    private static void Push(AppModel model, GitStatusModel git, string directory) => MainActor.Spawn(async () =>
+    {
+        var repository = new Git(directory);
+        var error = await git.Perform("Pushing", repository.Push);
+        if (error is not null) model.Alert = new AppAlert { Title = "Push failed", Message = SwiftErrors.LocalizedDescription(error) };
+        await git.Refresh(directory);
+    });
+
+    // :1505-1527
+    private static void OpenPullRequest(AppModel model, GitStatusModel git, string directory) => MainActor.Spawn(async () =>
+    {
+        var repository = new Git(directory);
+        SwiftURL? url = null;
+        var error = await git.Perform("Opening pull request", async () =>
+        {
+            await repository.Push(); // :1510
+            var subject = await TryOutput(repository, ["log", "-1", "--pretty=%s"]); // :1511-1512
+            var body = await TryOutput(repository, ["log", "-1", "--pretty=%b"]); // :1513-1514
+            url = await repository.CreatePullRequest(
+                title: subject.Length == 0 ? "Update" : subject,
+                body: body.Length == 0 ? "Opened from Marrow." : body); // :1515-1518 deviation OD-0012 F1
+        });
+        if (error is not null) model.Alert = new AppAlert { Title = "Could not open a pull request", Message = SwiftErrors.LocalizedDescription(error) }; // :1520-1521
+        else if (url is not null) InlineText.OpenUrl?.Invoke(url); // :1522-1523
+        await git.Refresh(directory); // :1525
+    });
+
+    // :1511-1514 `(try? await ...)?.trimmed ?? ""`
+    private static async Task<string> TryOutput(Git repository, IReadOnlyList<string> arguments)
+    {
+        try { return (await repository.Output(arguments)).Trimmed(); }
+        catch (Exception error) when (SwiftTry.IsThrownError(error)) { return ""; }
+    }
 }
 
 /// <summary>:1530-1650 <c>private struct CommitSheet: View</c>.</summary>
 internal sealed class CommitSheet : Decorator
 {
-    // :1533-1535 the view's inputs; :1543-1610 body
-    public CommitSheet(ThreadRuntime runtime, string directory, GitStatusModel git) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1543");
+    private readonly AppModel model = null!;
+    private readonly ThreadRuntime runtime;
+    private readonly TextBox messageField = null!;
+    private readonly Border messageFrame = null!;
+    private readonly TextBlock messagePlaceholder = null!;
+    private readonly TextBlock summaryBlock = null!;
+    private readonly Border summaryFrame = null!;
+    private readonly Button writeForMeButton = null!;
+    private readonly SwiftImage writeForMeIcon = null!; // :1584-1587 sparkles, swapped for a spinner while generating
+    private readonly ProgressBar writeForMeSpinner = null!; // :1582-1584 ProgressView().controlSize(.small)
+    private readonly Button commitButton = null!;
+    private readonly CheckBox pushToggle = null!;
+    private bool isGenerating;
+    private bool isCommitting;
+    private string initialMessage = "";
+    private bool initialPushes;
+    private CommitSheet? InheritedBody => Child as CommitSheet;
+
+    /// <summary>For tests: the field xUnit reads without needing a headless layout pass.</summary>
+    public string Message
+    {
+        get => InheritedBody?.Message ?? messageField?.Text ?? initialMessage;
+        set { if (InheritedBody is { } body) body.Message = value; else if (messageField is not null) messageField.Text = value; else initialMessage = value; }
+    }
+
+    public string Summary => InheritedBody?.Summary ?? summaryBlock?.Text ?? "";
+
+    public bool IsGenerating => InheritedBody?.IsGenerating ?? isGenerating;
+
+    public bool IsCommitting => InheritedBody?.IsCommitting ?? isCommitting;
+
+    public bool PushesAfterCommit
+    {
+        get => InheritedBody?.PushesAfterCommit ?? (pushToggle?.IsChecked ?? initialPushes);
+        set { if (InheritedBody is { } body) body.PushesAfterCommit = value; else if (pushToggle is not null) pushToggle.IsChecked = value; else initialPushes = value; }
+    }
+
+    public Button WriteForMeButton => InheritedBody?.WriteForMeButton ?? writeForMeButton;
+
+    public Button CommitButton => InheritedBody?.CommitButton ?? commitButton;
+
+    public Border SummaryFrame => InheritedBody?.SummaryFrame ?? summaryFrame;
+
+    public Border MessageFrame => InheritedBody?.MessageFrame ?? messageFrame;
+
+    // :1533-1535 original view inputs; :1531-1532 model/dismiss environments inherited on attachment.
+    public CommitSheet(ThreadRuntime runtime, string directory, GitStatusModel git)
+    {
+        this.runtime = runtime;
+        Width = 560; // :1604
+        ChatSheetPresentation.BuildWhenAttached(this, (model, dismiss) =>
+            new CommitSheet(model, runtime, directory, git, dismiss) { Message = initialMessage, PushesAfterCommit = initialPushes });
+    }
+
+    // :1543-1610 explicit environment overload.
+    public CommitSheet(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git, Action dismiss)
+    {
+        this.model = model;
+        this.runtime = runtime;
+
+        var heading = new TextBlock { Text = "Commit changes" }; // :1545
+        SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1546
+
+        summaryBlock = new TextBlock { HorizontalAlignment = HorizontalAlignment.Stretch, TextAlignment = TextAlignment.Left }; // :1549-1552
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline, design: SwiftFont.Design.Monospaced).Apply(summaryBlock); // :1550
+        summaryFrame = new Border // :1547-1556
+        {
+            Child = new ScrollViewer { Content = summaryBlock, MaxHeight = 110 }, // :1548,1553
+            Padding = new Thickness(10), // :1554
+            IsVisible = false, // shown only once Load finds a non-empty summary
+        }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1555
+        summaryFrame.Background = Chrome.Overlay(0.05).Brush(summaryFrame);
+
+        messageField = new TextBox { AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, PlaceholderText = "Commit message", BorderThickness = new Thickness(0), Background = Brushes.Transparent, Margin = new Thickness(8) }; // :1558-1563,1567
+        ChatDialogControls.TextEditor(messageField, showsPrompt: false);
+        SwiftFont.Body.Apply(messageField); // :1559
+        messagePlaceholder = new TextBlock { Text = "Commit message", IsHitTestVisible = false,
+            HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(13, 8) }; // :1562-1567.
+        messagePlaceholder.Foreground = Chrome.SecondaryText.Brush(messagePlaceholder);
+        messageFrame = new Border // :1557-1571
+        {
+            Child = new Panel { Children = { messageField, messagePlaceholder } },
+            MinHeight = 130, // :1570
+        }.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :1571
+        messageFrame.Background = Chrome.Overlay(0.05).Brush(messageFrame);
+
+        writeForMeIcon = SwiftImage.SystemName("sparkles"); // :1586
+        writeForMeSpinner = new ProgressBar { IsIndeterminate = true, IsVisible = false }; // :1582-1584; native metrics STOP #5.
+        writeForMeSpinner.SetValue(ChatDialogControls.InputStyleProperty, "SmallProgressView"); // :1584 .controlSize(.small)
+        writeForMeButton = new Button { Content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { writeForMeSpinner, writeForMeIcon, new TextBlock { Text = "Write for me" } } } }; // :1578-1589
+        pushToggle = new CheckBox { Content = "Push after committing" }; // :1593
+        var cancelButton = new Button { Content = "Cancel" }; // :1596
+        commitButton = new Button { Content = "Commit", IsEnabled = false }; // :1598-1600
+        ChatDialogControls.Glass(writeForMeButton);
+        ChatDialogControls.Checkbox(pushToggle);
+        ChatDialogControls.Glass(cancelButton);
+        cancelButton.IsCancel = true; // :1596 cancel role.
+        ChatDialogControls.Glass(commitButton, prominent: true);
+
+        writeForMeButton.Click += (_, _) => MainActor.Spawn(() => Generate(model, runtime, directory, null));
+        cancelButton.Click += (_, _) => dismiss(); // :1596
+        commitButton.Click += (_, _) => MainActor.Spawn(() => Commit(model, directory, git, dismiss));
+        messageField.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == TextBox.TextProperty) UpdateMessageState(); // :1562,1600
+        };
+
+        UpdateWriteForMeState();
+
+        Child = new Border { Padding = new Thickness(20), Child = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :1544 .leading applies to content, not the width of the stack.
+            Spacing = 14, // :1544
+            Children =
+            {
+                heading,
+                summaryFrame,
+                messageFrame,
+                ChatDialogControls.Footer(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12, Children = { writeForMeButton, pushToggle } }, cancelButton, commitButton, spacing: 12),
+            },
+        } }; // :1603 .padding(20).
+        Width = 560; // :1604
+
+        // :1575,1591-1592. Refresh's observable Statuses write re-evaluates the engine and the help/disabled state.
+        this.Track(() => (CanGenerate, model.Providers.Statuses), _ => UpdateWriteForMeState());
+        this.Task(() => directory, value => Load(model, runtime, value)); // :1605-1609 .task, cancelled on disappearance.
+        KeyDown += (_, e) => { if (e.Key == Key.Escape) { dismiss(); e.Handled = true; } }; // :1596 cancel role, including popup presentation.
+    }
+
+    // :1605-1609
+    private async Task Load(AppModel model, ThreadRuntime runtime, string directory)
+    {
+        var changes = await new Git(directory).WorkingChanges(); // :1606
+        summaryBlock.Text = changes.Summary; // :1607
+        summaryFrame.IsVisible = changes.Summary.Length > 0; // :1547 `if !summary.isEmpty`
+        if (Message.Length == 0) await Generate(model, runtime, directory, changes); // :1608
+    }
+
+    // :1575 `let canGenerate = model.textEngine(preferring: runtime.thread?.provider) != nil`
+    private bool CanGenerate => model.TextEngine(runtime.Thread?.Provider) is not null;
+
+    // :1582-1592
+    private void UpdateWriteForMeState()
+    {
+        writeForMeSpinner.IsVisible = isGenerating; // :1582-1584
+        writeForMeIcon.IsVisible = !isGenerating; // :1585-1587
+        writeForMeButton.IsEnabled = !isGenerating && CanGenerate; // :1591
+        var canGenerate = CanGenerate;
+        ToolTip.SetTip(writeForMeButton, canGenerate
+            ? "Write a commit message from these changes"
+            : "Turn on text generation in Settings > Source control"); // :1592
+        messageField.PlaceholderText = isGenerating ? "Writing a message…" : "Commit message"; // :1563
+        messagePlaceholder.Text = messageField.PlaceholderText;
+    }
+
+    // :1562,1600 SwiftUI re-evaluates both reads on any @State change.
+    private void UpdateMessageState()
+    {
+        messagePlaceholder.IsVisible = Message.Length == 0;
+        commitButton.IsEnabled = Message.Trimmed().Length > 0 && !isCommitting;
+    }
+
+    // :1612-1631
+    private async Task Generate(AppModel model, ThreadRuntime runtime, string directory, (string Summary, string Patch)? changes)
+    {
+        if (model.TextEngine(runtime.Thread?.Provider) is not { } engine) return; // :1613
+        isGenerating = true;
+        UpdateWriteForMeState();
+        try
+        {
+            var resolved = changes ?? await new Git(directory).WorkingChanges(); // :1616-1621
+            if (await TextGeneration.CommitMessage(resolved.Summary, resolved.Patch, model.Settings.CommitInstructions, engine, directory) is { } text) // :1622-1628
+            {
+                Message = text; // :1629
+            }
+        }
+        finally
+        {
+            isGenerating = false; // :1615 defer
+            UpdateWriteForMeState();
+        }
+    }
+
+    // :1633-1649
+    private async Task Commit(AppModel model, string directory, GitStatusModel git, Action dismiss)
+    {
+        isCommitting = true;
+        UpdateMessageState();
+        try
+        {
+            var repository = new Git(directory);
+            var text = Message.Trimmed(); // :1637
+            var pushes = PushesAfterCommit; // :1638
+            var error = await git.Perform("Committing", async () =>
+            {
+                await repository.CommitAll(text); // :1640
+                if (pushes) await repository.Push(); // :1641
+            });
+            await git.Refresh(directory); // :1643
+            if (error is not null) model.Alert = new AppAlert { Title = "Commit failed", Message = SwiftErrors.LocalizedDescription(error) }; // :1645
+            else dismiss(); // :1647
+        }
+        finally
+        {
+            isCommitting = false; // :1635 defer
+            UpdateMessageState();
+        }
+    }
 }
 
 /// <summary>:1652-1730 <c>private struct ScriptsEditor: View</c>.</summary>
 internal sealed class ScriptsEditor : Decorator
 {
-    // :1655 let projectID; :1659-1724 body
-    public ScriptsEditor(Guid projectID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/ChatView.swift:1659");
+    private readonly AppModel model = null!;
+    private readonly Guid projectID;
+    private readonly Action dismiss = null!;
+    private readonly StackPanel rows = new() { Orientation = Orientation.Vertical, Spacing = 10 }; // :1667
+    private readonly ForEach<ProjectScript, Guid> cards = null!;
+    private readonly Dictionary<Guid, (TextBox Name, TextBox Command, CheckBox Worktree)> fields = [];
+    private readonly Button saveButton = null!;
+    private List<ProjectScript> scripts = [];
+
+    // :1655 original view input; :1653-1654 inherited model/dismiss environments.
+    public ScriptsEditor(Guid projectID)
+    {
+        this.projectID = projectID;
+        Width = 580; Height = 460; // :1722
+        ChatSheetPresentation.BuildWhenAttached(this, (model, dismiss) => new ScriptsEditor(model, projectID, dismiss));
+    }
+
+    // :1659-1724 explicit environment overload.
+    public ScriptsEditor(AppModel model, Guid projectID, Action dismiss)
+    {
+        this.model = model;
+        this.projectID = projectID;
+        this.dismiss = dismiss;
+        cards = new ForEach<ProjectScript, Guid>(rows, script => script.Id, BuildCard, (_, script) =>
+        {
+            var field = fields[script.Id];
+            field.Name.Text = script.Name;
+            field.Command.Text = script.Command;
+            field.Worktree.IsChecked = script.RunOnWorktreeCreate;
+        }); // :1668 ForEach($scripts), identity survives array changes and appearance.
+        this.Font(SwiftFont.Body); // SwiftUI's inherited default body style, ED-059.
+
+        var heading = new TextBlock { Text = "Project scripts" }; // :1661
+        SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1662
+        var explanation = new TextBlock
+        {
+            // :1663 DEVIATION OD-0012 F1: "Droppy Code" -> "Marrow"; "droppy-code.json" kept verbatim (OD-0008 B13).
+            Text = "Scripts run in a terminal at the project root. Marrow also picks up scripts from droppy-code.json.",
+        };
+        SwiftFont.Callout.Apply(explanation); // :1664
+        explanation.Foreground = Chrome.SecondaryText.Brush(explanation); // :1665
+
+        var scroll = new ScrollViewer { Content = rows, MinHeight = 220 }; // :1666,1700
+
+        var addButton = new Button { Content = "Add script" }; // :1701-1707
+        ChatDialogControls.SetSymbol(addButton, "plus"); // :1705.
+        ChatDialogControls.Glass(addButton);
+        addButton.Click += (_, _) =>
+        {
+            scripts = [.. scripts, new ProjectScript("New script", "")]; // :1703
+            Rebuild();
+        };
+        var cancelButton = new Button { Content = "Cancel" }; // :1709
+        ChatDialogControls.Glass(cancelButton);
+        cancelButton.IsCancel = true;
+        cancelButton.Click += (_, _) => dismiss();
+        saveButton = new Button { Content = "Save" }; // :1712-1717
+        ChatDialogControls.Glass(saveButton, prominent: true);
+        saveButton.Click += (_, _) =>
+        {
+            model.UpdateProject(projectID, p => p with { Scripts = new ValueList<ProjectScript>(scripts) }); // :1713
+            dismiss(); // :1714
+        };
+        var footer = ChatDialogControls.Footer(addButton, cancelButton, saveButton); // :1708 Spacer().
+
+        Child = new Border { Padding = new Thickness(20), Child = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch, // :1660 leading content; the stack fills the fixed frame.
+            Spacing = 14, // :1660
+            Children = { heading, explanation, scroll, footer },
+        } }; // :1721 .padding(20), inside the fixed frame.
+        Width = 580; // :1722
+        Height = 460;
+
+        Load(); // :1723 .onAppear
+        AttachedToVisualTree += (_, _) => Load(); // :1723 reset the local copy on every appearance.
+        KeyDown += (_, e) => { if (e.Key == Key.Escape) { dismiss(); e.Handled = true; } }; // :1709 cancel role.
+    }
+
+    /// <summary>For tests: the editor's current local copy (never the project's own array).</summary>
+    internal IReadOnlyList<ProjectScript> Scripts => scripts;
+
+    internal Button SaveButton => saveButton;
+
+    // :1723 .onAppear { scripts = model.project(projectID)?.scripts ?? [] }
+    private void Load()
+    {
+        scripts = model.Project(projectID) is { } project ? [.. project.Scripts] : [];
+        Rebuild();
+    }
+
+    private void Rebuild()
+    {
+        cards.Apply(scripts.ToArray());
+        foreach (var id in fields.Keys.Where(id => !scripts.Any(script => script.Id == id)).ToArray()) fields.Remove(id);
+        UpdateSaveState();
+    }
+
+    // :1726-1729. Literally trimmingCharacters(in: .whitespaces), the already-verified FoundationText.Trim with
+    // includeNewlines: false (T-M2-023): tabs and Unicode space separators are stripped, newlines are not.
+    private static bool IsIncomplete(ProjectScript script) => FoundationText.Trim(script.Command).Length == 0;
+
+    private void UpdateSaveState()
+    {
+        var incomplete = scripts.Any(IsIncomplete); // :1711
+        saveButton.IsEnabled = !incomplete; // :1717
+        ToolTip.SetTip(saveButton, incomplete ? "Every script needs a command." : "Save these scripts"); // :1718
+    }
+
+    // :1669-1696
+    private Control BuildCard(ProjectScript script)
+    {
+        var nameField = new TextBox { Text = script.Name, PlaceholderText = "Name" }; // :1672-1673
+        ChatDialogControls.TextEditor(nameField, style: "RoundedBorder"); // :1673, STOP #5 native bezel metrics.
+        nameField.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == TextBox.TextProperty) Update(script.Id, s => s with { Name = nameField.Text ?? "" });
+        };
+        var trashIcon = SwiftImage.SystemName("trash");
+        TextElement.SetForeground(trashIcon, Chrome.Danger.Brush(trashIcon)); // :1674 destructive role.
+        var trash = PlainControls.Button(trashIcon, () => { }); // :1674-1679 borderless template.
+        trash.Click += (_, _) =>
+        {
+            scripts = [.. scripts.Where(s => s.Id != script.Id)]; // :1675
+            Rebuild();
+        };
+        var top = new StackPanel { Orientation = Orientation.Horizontal, Children = { nameField, trash } }; // :1671
+
+        var commandField = new TextBox { Text = script.Command, PlaceholderText = "Command" }; // :1681-1682
+        ChatDialogControls.TextEditor(commandField, style: "RoundedBorder"); // :1682, STOP #5.
+        SwiftFont.System(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced).Apply(commandField); // :1683 (Cascadia Mono, OD-0009)
+        // :1686-1691 the outline overlay, as a Border wrapping the field (no adorner layer needed for this shape).
+        var commandFrame = new Border { Child = commandField }.RoundedRectangle(6, RoundedCornerStyle.Continuous); // :1688
+        void UpdateOutline() =>
+            commandFrame.BorderBrush = IsIncomplete(scripts.FirstOrDefault(s => s.Id == script.Id) ?? script)
+                ? Chrome.Danger.Opacity(0.65).Brush(commandFrame) : null; // :1687,1689
+        UpdateOutline();
+        commandFrame.BorderThickness = new Thickness(1);
+        commandField.PropertyChanged += (_, e) =>
+        {
+            if (e.Property != TextBox.TextProperty) return;
+            Update(script.Id, s => s with { Command = commandField.Text ?? "" }); // :1681 updates only this field of the binding.
+            UpdateOutline();
+            UpdateSaveState();
+        };
+
+        var worktreeToggle = new CheckBox { Content = "Run when a worktree is created", IsChecked = script.RunOnWorktreeCreate }; // :1692-1693
+        ChatDialogControls.Checkbox(worktreeToggle);
+        fields[script.Id] = (nameField, commandField, worktreeToggle);
+        worktreeToggle.IsCheckedChanged += (_, _) => Update(script.Id, s => s with { RunOnWorktreeCreate = worktreeToggle.IsChecked == true });
+
+        var body = new StackPanel
+        {
+            HorizontalAlignment = HorizontalAlignment.Left, // :1670 .leading
+            Spacing = 8, // :1670
+            Children = { top, commandFrame, worktreeToggle },
+            Margin = new Thickness(14), // :1695
+        };
+        return new ChromeCard(() => body); // :1669
+    }
+
+    private void Update(Guid id, Func<ProjectScript, ProjectScript> change) =>
+        scripts = [.. scripts.Select(s => s.Id == id ? change(s) : s)];
 }

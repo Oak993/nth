@@ -3,7 +3,7 @@ using Marrow.Core.Support;
 
 namespace Marrow.Services.Providers;
 
-// Source: DroppyCode/Services/Providers/NativeFileTools.swift (B2 1fbf81e), :1-161.
+// Source: DroppyCode/Services/Providers/NativeFileTools.swift (B3 52bc792), :1-161.
 
 // :3-160. `struct NativeFileTools: Sendable` -> immutable sealed record (R-VAL-1).
 public sealed record NativeFileTools(string WorkingDirectory) // :3-4
@@ -29,9 +29,9 @@ public sealed record NativeFileTools(string WorkingDirectory) // :3-4
 
     /// <summary>
     /// :16-31 resolveURL(_:). The absolute path a model-supplied path refers to, refused when it leaves the
-    /// project. ED-137/ED-039(2)/ED-138: the root-containment test at :27 is the same case-insensitive,
-    /// forward-slashed comparison TouchedPaths.Normalize/Relative apply (SwiftPath.TailUnder), replacing the
-    /// exact-equal and byte-exact prefix test the macOS Swift performs; ED-138 replaces the "/" absoluteness
+    /// project. ED-137 expressly leaves this sandbox gate undecided; preserve the Swift's case-sensitive
+    /// equality and prefix here. Only separator normalization is a Windows path accommodation.
+    /// ED-138 replaces the "/" absoluteness
     /// test at :23 with SwiftPath.IsAbsolute (the "~" clause stays verbatim, as it does at those other sites).
     /// This is the confinement boundary for read, list, write, edit and search (PR-PROVAPI-176).
     /// </summary>
@@ -45,7 +45,10 @@ public sealed record NativeFileTools(string WorkingDirectory) // :3-4
             ? SwiftPath.ExpandingTildeInPath(trimmed) // :24
             : SwiftPath.FileURLAppendingPathComponentPath(root, trimmed); // :25
         var standardized = SwiftPath.StandardizedFileURLPath(candidate, null); // :26
-        if (!SwiftPath.SamePath(standardized, root) && SwiftPath.TailUnder(standardized, root) is null) // :27
+        var normalizedPath = SwiftPath.Normalize(standardized);
+        var normalizedRoot = SwiftPath.Normalize(root);
+        if (!SwiftString.Equal(normalizedPath, normalizedRoot)
+            && !SwiftString.HasPrefix(normalizedPath, normalizedRoot + "/")) // :27
         {
             throw new ProviderError(new ProviderError.Case.Failed(
                 $"That path is outside the project. Stay inside {WorkingDirectory}.")); // :28
@@ -166,19 +169,19 @@ public sealed record NativeFileTools(string WorkingDirectory) // :3-4
             // not valid UTF-8 text; the record notes only that this fails "with the system's own error", no
             // exact wording, so a natural decode failure is let through rather than a fabricated message.
             var currentBytes = File.ReadAllBytes(url);
-            var current = SwiftText.DecodeUtf8OrNil(currentBytes)
-                ?? throw new IOException($"The file could not be read as text: {DisplayPath(path)}.");
+            var current = StrictUtf8.GetString(currentBytes); // :98 propagate the decoder's own failure
             var searchStart = 0; // :99-100 NSRange(location: 0, length: current.length)
             var firstMatchIndex = -1; // :101 NSNotFound
+            var firstMatchLength = 0;
             var occurrences = 0; // :102
             while (searchStart < current.Length) // :102 remaining.length > 0
             {
                 SwiftTask.CheckCancellation(); // :103
-                var match = current.IndexOf(old, searchStart, StringComparison.Ordinal); // :104
+                var (match, length) = FindCanonicalMatch(current, old, searchStart); // :104 NSString options: []
                 if (match < 0) break; // :105
-                if (occurrences == 0) firstMatchIndex = match; // :106
+                if (occurrences == 0) { firstMatchIndex = match; firstMatchLength = length; } // :106
                 occurrences++; // :107
-                searchStart = match + old.Length; // :108-109
+                searchStart = match + length; // :108-109 NSMaxRange uses the actual original range
             }
             SwiftTask.CheckCancellation(); // :111
             if (occurrences != 1) // :112
@@ -191,10 +194,33 @@ public sealed record NativeFileTools(string WorkingDirectory) // :3-4
                 throw new ProviderError(new ProviderError.Case.Failed(
                     $"That text appears {occurrences} times in {DisplayPath(path)}. Include more context so it matches once.")); // :114
             }
-            var replacement = current[..firstMatchIndex] + @new + current[(firstMatchIndex + old.Length)..]; // :116
+            var replacement = current[..firstMatchIndex] + @new + current[(firstMatchIndex + firstMatchLength)..]; // :116
             SwiftTask.CheckCancellation(); // :117
             FileOps.WriteAtomic(url, System.Text.Encoding.UTF8.GetBytes(replacement)); // :118
         });
+    }
+
+    // :104,116 Nonliteral NSString search: compare canonical forms but return the ORIGINAL UTF-16 range.
+    // Never normalize the file itself: its unmatched bytes/combining sequences must stay unchanged.
+    private static (int Index, int Length) FindCanonicalMatch(string text, string value, int from)
+    {
+        var needle = value.Normalize(System.Text.NormalizationForm.FormD);
+        for (var start = from; start < text.Length; start++)
+        {
+            SwiftTask.CheckCancellation();
+            if (char.IsLowSurrogate(text[start])) continue;
+            var scalarLength = char.IsHighSurrogate(text[start]) ? 2 : 1;
+            var first = text.Substring(start, scalarLength).Normalize(System.Text.NormalizationForm.FormD);
+            if (first[0] != needle[0]) continue;
+            for (var end = start + scalarLength; end <= Math.Min(text.Length, start + needle.Length); end++)
+            {
+                if (end < text.Length && char.IsLowSurrogate(text[end])) continue;
+                var candidate = text[start..end].Normalize(System.Text.NormalizationForm.FormD);
+                if (string.Equals(candidate, needle, StringComparison.Ordinal)) return (start, end - start);
+                if (candidate.Length > needle.Length) break;
+            }
+        }
+        return (-1, 0);
     }
 
     /// <summary>:122-159 listFiles(_:recursive:). PR-PROVAPI-184, PR-PROVAPI-185, PR-PROVAPI-186.</summary>
@@ -248,9 +274,9 @@ public sealed record NativeFileTools(string WorkingDirectory) // :3-4
                 SwiftTask.CheckCancellation(); // :138
                 var name = SwiftPath.LastPathComponent(entry);
                 if (IsHiddenEntry(entry, name)) continue; // :134 .skipsHiddenFiles
+                if (SkippedDirectories.Contains(name)) continue; // :139 every entry, including plain files
                 if (Directory.Exists(entry))
                 {
-                    if (SkippedDirectories.Contains(name)) continue; // :139 enumerator.skipDescendants()
                     stack.Push(entry);
                     continue; // :140 directories themselves are never listed.
                 }

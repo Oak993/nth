@@ -10,7 +10,7 @@ using PortAnimation = Marrow.UI.Port.Animation;
 
 namespace Marrow.UI.Chrome;
 
-// Source: DroppyCode/UI/Chrome/WindowChrome.swift (B2 1fbf81e), :1-572.
+// Source: DroppyCode/UI/Chrome/WindowChrome.swift (B3 52bc792), :1-572.
 //
 // PLATFORM ADAPTATION (ED-063, porting/probes/p7/RESULT.md; porting/critiques/stack_decision.json P7):
 // AppKit gives this file real native window-chrome objects to reposition (NSWindow.standardWindowButton) and a
@@ -30,13 +30,8 @@ namespace Marrow.UI.Chrome;
 // Win32 message dispatch by the layering rule, section 2.1); this file positions, sizes, orders and hit-test-
 // declares the three controls, which is everything PR-WIN-022 through PR-WIN-045 specify as an observable result.
 //
-// UNRESOLVED (O-.. not yet assigned): PR-WIN-037's own guard on `!window.inLiveResize` has no ported signal to
-// read (no live-resize notification exists anywhere in the C# tree at the time of this unit). In this design that
-// guard is structurally vacuous rather than unimplemented: button position here is driven only by sidebarVisible
-// and the sidebar's laid-out width (SidebarLayout.NoteLaidOutWidth), never by the window's frame, so a live
-// resize cannot itself trigger a placement call the way AppKit's container frameDidChange did, and so there is no
-// per-frame animation restart for a resize to suppress. `animated: false` is still honoured literally (first
-// placement, sidebar-edge drag) via the `animated` parameter placeTrafficLights already carries in the source.
+// ED-224: App publishes native live-resize start/end through WindowLiveResizeSignal. The probe observes the
+// current window only, follows sidebar changes without animation during the drag, and places once when it ends.
 
 /// <summary>
 /// :7-19 <c>WindowChromeConfigurator: NSViewRepresentable</c>. In SwiftUI this is the `.background` modifier
@@ -83,14 +78,14 @@ public sealed class WindowChromeProbe : Control
             sidebarVisible = value;
             if (value == oldValue) return; // :25 guard sidebarVisible != oldValue
             if (window is null) return; // :25 guard let window
-            // :26-28. This design has no per-frame resize coupling (top-of-file note), so the source's
-            // `!window.inLiveResize` half of the guard is vacuous here; `!sidebarDragging` is honoured.
-            WindowChrome.PlaceTrafficLights(window, sidebarVisible, animated: !sidebarDragging);
+            // :26-28; ED-224: a restarted animation each live-resize frame made the buttons lag.
+            WindowChrome.PlaceTrafficLights(window, sidebarVisible,
+                animated: !WindowLiveResizeSignal.GetIsActive(window) && !sidebarDragging);
         }
     }
 
-    // :40-67 viewDidMoveToWindow(). The container-fit / didEndLiveResize observers (:42-49, :58-66) are not
-    // registered: this design has no titlebar container to observe (top-of-file note).
+    // :40-67 viewDidMoveToWindow(). There is no titlebar container to fit (top-of-file note), but ED-224
+    // preserves the independent didEndLiveResize observer (:46-57).
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnAttachedToVisualTree(e);
@@ -98,12 +93,22 @@ public sealed class WindowChromeProbe : Control
         if (window is null) return; // :50 guard let window
         WindowChrome.Configure(window); // :51
         WindowChrome.PlaceTrafficLights(window, sidebarVisible, animated: false); // :52
+        window.PropertyChanged += WindowPropertyChanged; // :54-57
     }
 
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        window = null; // the probe's previous window keeps nothing to unregister in this design (see above)
+        if (window is { } previous) previous.PropertyChanged -= WindowPropertyChanged; // :46-49
+        window = null;
+    }
+
+    // :91-94 windowDidEndLiveResize(_:); ED-224. A property transition is one window-scoped notification.
+    private void WindowPropertyChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == WindowLiveResizeSignal.IsActiveProperty && e.GetOldValue<bool>() && !e.GetNewValue<bool>()
+            && window is { } current && ReferenceEquals(sender, current))
+            WindowChrome.PlaceTrafficLights(current, sidebarVisible, animated: false); // :93
     }
 }
 
@@ -190,7 +195,7 @@ public static class WindowChrome
         if (!changed) return; // :214 guard changed else { return }
 
         PortAnimation? animation = null;
-        if (animated) // :216 guard animated, !window.inLiveResize else { ...; return } (see top-of-file note)
+        if (animated && !WindowLiveResizeSignal.GetIsActive(window)) // :216; ED-224
         {
             // :223-227
             var reduceMotion = Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;

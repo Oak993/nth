@@ -17,7 +17,8 @@ using Marrow.UI.Port;
 // are drawn by nothing, so they have no entries. Chords are named in Windows notation (OD-0008 B7, ED-050, ED-099).
 // Sweep B: :12-15 and :21-25 now call the landed WindowManager (STOP #1 resolved).
 // :17-19 replaces the save placement with nothing; secondary windows close themselves on Ctrl+W.
-// Outside this file the runtime install still has no caller: STOP #6 names the remaining install-site decision.
+// Outside this file the runtime install (DroppyCodeApp.swift:24) is WindowManager.MakeWindow's and
+// TourWindowController.Present's attach of the dispatch to each window they build (STOP #6, resolved by fix/shortcuts).
 // AltGr handling is still unsettled (STOP #7); the Welcome tour palette row needs its own decision (STOP #4).
 // The zoom items (:53-62) carry literal key equivalents, "+", "-", "0" and "=". Port/MenuKeyEquivalents.cs reads a key
 // event as a US key position (ED-099), which gives "=", "-" and "0" but never "+": how a key press reaches the "+" key

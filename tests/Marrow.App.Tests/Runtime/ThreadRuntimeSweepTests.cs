@@ -11,6 +11,42 @@ namespace Marrow.App.Tests.Runtime;
 
 public sealed class ThreadRuntimeSweepTests
 {
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-253")] // App/Runtime/ThreadRuntime.swift:556-560
+    public void Two_stored_spent_turns_total_350_for_a_Droppy_head_and_leave_a_lead_count_unchanged()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Stored tokens", h.NewFolder("stored-tokens"));
+        var head = AppModelSamples.Thread(project) with { Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Completed) };
+        var lead = AppModelSamples.Thread(project) with { HydraEnabled = true };
+        h.WriteLibrary([project], [head, lead]);
+        var model = h.MakeModel();
+        var document = new ThreadDocument(head.Id)
+        {
+            Turns = new ValueList<TurnRecord>([
+                new TurnRecord { Index = 1, Status = TurnStatus.Completed,
+                    TokenSpends = new ValueList<TokenSpend>([new TokenSpend(ProviderKind.Codex, 100)]) },
+                new TurnRecord { Index = 2, Status = TurnStatus.Completed,
+                    TokenSpends = new ValueList<TokenSpend>([new TokenSpend(ProviderKind.Claude, 250)]) },
+            ]),
+        };
+        h.Main.OnMain(() =>
+        {
+            var headRuntime = model.Runtime(head.Id);
+            var leadRuntime = model.Runtime(lead.Id);
+            headRuntime.HydraTokens = leadRuntime.HydraTokens = 17;
+            var install = typeof(ThreadRuntime).GetMethod("Install", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            install.Invoke(headRuntime, [document]);
+            install.Invoke(leadRuntime, [document]);
+            Assert.Equal(350, headRuntime.HydraTokens);
+            Assert.Equal(17, leadRuntime.HydraTokens);
+            Assert.Equal(document.Turns.Select(turn => turn.Id), headRuntime.Turns.Select(turn => turn.Id));
+            Assert.Equal(document.Turns.Select(turn => turn.Id), leadRuntime.Turns.Select(turn => turn.Id));
+            headRuntime.CancelPersistence();
+            leadRuntime.CancelPersistence();
+        });
+    }
+
     [Theory]
     [InlineData("droppy", 375L)]
     [InlineData("native", 17L)]
@@ -110,12 +146,10 @@ public sealed class ThreadRuntimeSweepTests
     // Kind: outside unit scope. Swift: App/Views/Chat/TimelineRows.swift:2385-2431.
     // Records: UI-RUNTIME-001, UI-RUNTIME-003. These own notice ROW geometry, type and colors in TimelineRows.cs,
     // which this prompt explicitly excludes. Runtime CLI notice messages already have dedicated passing tests.
-    // Needed: the TimelineRows chat's rendering implementation and verification; no row change made here.
+    // TimelineRows rendering has since landed in impl/b2. Needed: its owning unit's verification of these
+    // UI records; this runtime sweep supplies no row-geometry proof and claims no completion credit for them.
 
-    // STOP App.Runtime.ThreadRuntime #2
-    // Kind: missing dependency. Swift: App/Runtime/ThreadRuntime.swift:3696-3706; Core/Models/Timeline.swift:306,329.
-    // Records: PR-RUNTIME-160, PR-RUNTIME-251. The snapshot carries spends and the event marks dirty without
-    // scheduling, but TurnRecordConverter still explicitly omits tokenSpends on encode/decode. TokenSpend itself
-    // now has Codable; wiring it into Timeline.cs belongs to Core.Models.Timeline, outside this prompt's units.
-    // Needed: that unit's converter implementation. Keep the disk regression assertion above intact and red.
+    // Former STOP #2 resolved by the merged Core.Models.Timeline converter, included from impl/b2.
+    // Swift: App/Runtime/ThreadRuntime.swift:3696-3706; Core/Models/Timeline.swift:306,329.
+    // PR-RUNTIME-160/251 retain the unchanged snapshot/disk regression above; no converter edit in this unit.
 }

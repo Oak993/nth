@@ -385,8 +385,9 @@ public sealed record SwiftTransition
             Action<TimeSpan>? frame = null;
             frame = _ =>
             {
-                var seconds = (SwiftClock.Now - start).TotalSeconds;
-                var complete = seconds >= animation.Duration;
+                var elapsed = SwiftClock.Now - start;
+                var seconds = elapsed.TotalSeconds;
+                var complete = elapsed.Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(animation.Duration).Ticks; // ED-117 (2).
                 apply(complete ? 1 : animation.Progress(seconds), complete);
                 if (complete) callback = null;
                 else source.RequestFrame(frame!);

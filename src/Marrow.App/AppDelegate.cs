@@ -14,9 +14,8 @@ using Marrow.UI.Markdown;
 // adds applicationDidFinishLaunching(_:) (:9-34) and applicationShouldHandleReopen(_:hasVisibleWindows:) (:36-39), now
 // that App.Window.WindowManager is in the tree; Port/AppShell.cs calls them where AppKit does (finishLaunching, and a
 // second launch under ED-002). The App.AppDelegate unit adds the URLCache reconfiguration (:13, lane 1c landed
-// Core/Port/Http.cs's public URLCache constructor and settable Shared). Still NOT PORTED, each a STOP note at the end
-// of tests/Marrow.App.Tests/AppDelegateTests.cs: userNotificationCenter(_:didReceive:) (:77-92) and :15 of the launch
-// (see the member).
+// Core/Port/Http.cs's public URLCache constructor and settable Shared). OD-0028 / ED-220 now close the historical
+// notification STOP sites: delegate registration (:15) and userNotificationCenter(_:didReceive:) (:77-92).
 // Forms: `@MainActor final class` that is not @Observable -> a plain class whose members run on main (R-ISO-1);
 // NSApplication, NSApplication.TerminateReply, NSApp.isActive and the UserNotifications values are the port-only
 // stand-ins in Port/ApplicationLifecycle.cs and Port/UserNotifications.cs. The unused `Notification`,
@@ -49,9 +48,7 @@ public sealed class AppDelegate
         // team ran. Memory only.
         URLCache.Shared = new URLCache(8 * 1024 * 1024, 0); // :13
         MarkdownDelegationCard.Render = (json, sent) => new HydraDelegationBlock(json, sent); // :14
-        // :15 UNUserNotificationCenter.current().delegate = self. NOT PORTED (STOP App.AppDelegate #1, PR-LAUNCH-025):
-        // no unit has built the Windows toast activation handler this line maps to (Port/UpdateNotificationCenter.cs
-        // binds a no-op, AppModel.Notify delivers nothing), so no notification can arrive to be routed.
+        ToastNotifications.Center.Current.InstallDelegate(this); // :15, ED-220 (5)-(6), before any window
         var windows = WindowManager.Shared; // :16
         Model = windows.Model; // :17
         // :18-21 the capture-run branch: not ported (ED-001; PR-LAUNCH-027 NOT_APPLICABLE_WITH_EVIDENCE).
@@ -130,5 +127,23 @@ public sealed class AppDelegate
             if (isOpenChat) return UNNotificationPresentationOptions.None; // :72
         }
         return UNNotificationPresentationOptions.Banner | UNNotificationPresentationOptions.Sound; // :74
+    }
+
+    // :77-92 nonisolated userNotificationCenter(_:didReceive:). Windows protocol and second-launch activations
+    // both call this method; all four actions stay on the main actor, in source order.
+    public Task UserNotificationCenter(UNNotificationResponse didReceive)
+    {
+        var userInfo = didReceive.Notification.UserInfo; // :81
+        var identifier = userInfo.TryGetValue("threadID", out var threadID) ? threadID as string : null; // :82
+        var isUpdate = userInfo.TryGetValue("update", out var update) && update is not null; // :83
+        var windows = ToastActivationWindows.Current.Current;
+        return MainActor.Run(() =>
+        {
+            if (!isUpdate) windows.ShowMain(); // :85
+            if (identifier is not null && SwiftUUID.Parse(identifier) is { } selected && Model is { } model)
+                model.SelectedThreadID = selected; // :86-87
+            windows.Activate(); // :89
+            if (isUpdate) windows.ShowAbout(); // :90
+        });
     }
 }
