@@ -152,7 +152,7 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
             Assert.Equal(scene.Reserve.Leading, timeline.Margin.Left); // final width snaps once.
             Assert.True(ChatView.GetReserveSlideOffset(timeline) < 0);
             Assert.Same(composer, Assert.Single(LogicalQuery.SelfAndDescendants<ComposerArea>(view)));
-            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001));
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration));
             frames.Advance(TimeSpan.Zero);
             window.UpdateLayout();
             Assert.Equal(0, ChatView.GetReserveSlideOffset(Timeline(view)));
@@ -194,13 +194,13 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
             var terminal = Assert.Single(LogicalQuery.SelfAndDescendants<TerminalPanel>(view));
             Assert.Equal(0, terminal.Opacity);
             Assert.True(terminal.RenderTransform!.Value.M32 > 0); // move(bottom), its measured height.
-            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
             Assert.Equal(1, terminal.Opacity);
             Assert.Equal(0, terminal.RenderTransform!.Value.M32);
             h.Main.OnMain(() => runtime.IsTerminalVisible = false);
             Drain(h);
             Assert.Contains(terminal, LogicalQuery.SelfAndDescendants<TerminalPanel>(view)); // remains through removal frames.
-            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
             Assert.Empty(LogicalQuery.SelfAndDescendants<TerminalPanel>(view));
             Assert.Equal(0, terminal.Opacity);
             Assert.True(terminal.RenderTransform!.Value.M32 > 0);
@@ -222,10 +222,10 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
                 Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Insert(host, 0, content));
                 Assert.Equal(0.92, content.RenderTransform!.Value.M11, 8);
                 Assert.Equal(0, content.Opacity);
-                h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
+                h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
                 Assert.Equal(1, content.RenderTransform!.Value.M11);
                 Transaction.WithAnimation(Chrome.PanelSlide, () => SwiftTransition.Remove(host, content));
-                h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
+                h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
                 Assert.Equal(0.96, content.RenderTransform!.Value.M11, 8);
                 Assert.Equal(0, content.Opacity);
                 Assert.Empty(host.Children);
@@ -260,12 +260,12 @@ public sealed class ChatViewFollowupTests(HeadlessSession headless)
             Assert.Equal(0, circle.Opacity);
             Assert.Equal(0.6, circle.RenderTransform!.Value.M11, 8);
             Assert.Equal(10, circle.RenderTransform!.Value.M32, 8);
-            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
             h.Main.OnMain(() => ChatGitFixtures.Click(button));
             Assert.Equal(1, state.JumpRequest);
             h.Main.OnMain(() => Transaction.WithAnimation(Chrome.PanelSlide, () => state.ShowsJumpButton = false));
             Drain(h);
-            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration + 0.001)); frames.Advance(TimeSpan.Zero);
+            h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
             Assert.Equal(0, circle.Opacity);
             Assert.Equal(0.85, circle.RenderTransform!.Value.M11, 8);
             Assert.Equal(6, circle.RenderTransform!.Value.M32, 8);
