@@ -2740,7 +2740,7 @@ public sealed class PlanCard : Decorator
         var copy = new CopyButton(plan.Markdown) { HorizontalAlignment = HorizontalAlignment.Right };
         DockPanel.SetDock(copy, Dock.Right);
         header.Children.Add(copy);
-        header.Children.Add(TimelineRows.ChatText("Plan", SwiftFont.TextStyle.Headline));
+        header.Children.Add(TimelineRows.ChatText("Plan", SwiftFont.TextStyle.Headline, SwiftFont.Weight.Semibold)); // :2282; ChatFont.swift:7.
         column.Children.Add(header);
         column.Children.Add(new PopoverScroll(() => new MarkdownView(plan.Markdown, plan.ProposedPlanState == ProposedPlan.State.Drafting)
             { Margin = new Thickness(16, 0) }, maxHeight: 420));
