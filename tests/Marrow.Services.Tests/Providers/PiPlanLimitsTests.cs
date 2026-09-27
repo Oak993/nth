@@ -460,6 +460,74 @@ public sealed class PiPlanLimitsTests
         return base64.Replace('+', '-').Replace('/', '_').TrimEnd('=');
     }
 
+    [Theory]
+    [Trait("Req", "PR-PROVCLI-315")] // Services/Providers/PiPlanLimits.swift:106-112: Data(base64Encoded:) has no ignoreUnknownCharacters option.
+    [InlineData(" ")]
+    [InlineData("\t")]
+    [InlineData("\r")]
+    [InlineData("\n")]
+    public void CodexAccountID_rejects_whitespace_in_the_base64_payload(string whitespace)
+    {
+        var payload = Base64Url("{\"https://api.openai.com/auth\":{\"chatgpt_account_id\":\"acct_fixture\"}}");
+        // Four inserted Characters leave :107-110's padding unchanged. .NET wrongly ignores all four.
+        var invalid = payload.Insert(4, string.Concat(Enumerable.Repeat(whitespace, 4)));
+        Assert.Equal("acct_fixture", JSONValue.Parse(Convert.FromBase64String(
+            invalid + new string('=', (4 - invalid.Length % 4) % 4)))!["https://api.openai.com/auth"]!["chatgpt_account_id"]!.JSONValueString);
+        Assert.Null(PiPlanLimits.CodexAccountID("h." + invalid + ".s"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-313")] // Services/Providers/PiPlanLimits.swift:18,28-40: a nil provider does not discard subsequent windows.
+    public async Task Read_keeps_both_openai_logins_in_sorted_order_after_anthropic_fails()
+    {
+        using var runtime = new TestRuntime();
+        var configDir = NewConfigDirectory();
+        WriteAuthJson(configDir, "{\"openai-codex\":{\"type\":\"oauth\",\"access\":\"fixture-second\"},\"openai\":{\"type\":\"oauth\",\"access\":\"fixture-first\"},\"anthropic\":{\"type\":\"oauth\",\"access\":\"fixture-failed\"}}");
+        await using var server = new LoopbackHttpServer();
+        var pending = PiPlanLimits.Read(EnvironmentFor(configDir), server.Url("/anthropic"), server.Url("/codex"));
+        var failed = await server.NextExchange();
+        Assert.Equal("/anthropic", failed.Target);
+        await failed.Respond(503, "Unavailable", []);
+        foreach (var token in new[] { "fixture-first", "fixture-second" })
+        {
+            var exchange = await server.NextExchange();
+            Assert.Equal("/codex", exchange.Target);
+            Assert.Equal(["Bearer " + token], exchange.HeaderValues("Authorization"));
+            await exchange.Respond(200, "OK", "{\"primary_window\":{\"used_percent\":12,\"limit_window_seconds\":300}}"u8.ToArray());
+        }
+        var result = await pending.WaitAsync(Guard);
+        Assert.NotNull(result);
+        Assert.Equal("Codex \U000000B7 Codex", result.PlanName); // U+00B7 MIDDLE DOT
+        Assert.Equal(new[] { "codex-primary", "codex-primary" }, result.Windows.Select(w => w.Id));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-314")] // Services/Providers/PiPlanLimits.swift:52-56: no mapped subscription still uses the bare Claude literal.
+    public async Task Read_uses_bare_claude_for_an_empty_subscription()
+    {
+        using var runtime = new TestRuntime();
+        var configDir = NewConfigDirectory();
+        WriteAuthJson(configDir, "{\"anthropic\":{\"type\":\"oauth\",\"access\":\"fixture\"}}");
+        await using var server = new LoopbackHttpServer();
+        var pending = PiPlanLimits.Read(EnvironmentFor(configDir), server.Url("/anthropic"), null);
+        var exchange = await server.NextExchange();
+        await exchange.Respond(200, "OK", "{\"limits\":[{\"kind\":\"session\",\"percent\":7}],\"subscription_type\":\"\"}"u8.ToArray());
+        Assert.Equal("Claude", (await pending.WaitAsync(Guard))!.PlanName);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-316")] // Services/Providers/PiPlanLimits.swift:86-90,97: reset_at wins, and percent has no clamp.
+    public void CodexWindow_prefers_absolute_reset_and_keeps_a_negative_percent()
+    {
+        using var runtime = new TestRuntime();
+        var window = PiPlanLimits.CodexWindow("codex-secondary", JSONValue.Parse(
+            "{\"used_percent\":-5,\"limit_window_seconds\":59,\"reset_at\":1893456000,\"reset_after_seconds\":3600}"));
+        Assert.NotNull(window);
+        Assert.Equal(SwiftDate.From1970Seconds(1893456000), window.ResetsAt);
+        Assert.Equal(-5, window.Percent);
+        Assert.Equal("codex-secondary", window.Id);
+    }
+
     [Fact]
     [Trait("Req", "PR-PROVCLI-315")] // PiPlanLimits.swift:105 - fewer than two dot-separated parts yields no id
     public void CodexAccountID_returns_null_for_a_token_with_fewer_than_two_parts()

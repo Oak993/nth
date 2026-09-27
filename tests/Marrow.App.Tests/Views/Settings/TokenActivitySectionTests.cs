@@ -1,5 +1,7 @@
 using System;
 using System.Linq;
+using System.Reflection;
+using Marrow.Testing;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Automation.Peers;
@@ -21,7 +23,7 @@ using Xunit;
 namespace Marrow.App.Tests.Views.Settings;
 
 // Tests for src/Marrow.App/Views/Settings/TokenActivitySection.cs, the port of
-// DroppyCode/App/Views/Settings/TokenActivitySection.swift (B2 1fbf81e), :1-272.
+// DroppyCode/App/Views/Settings/TokenActivitySection.swift (B3 52bc792), :1-272.
 //
 // Records PR-SETTINGS-130..135, 137..139, UI-SETTINGS-021..025, UI-USAGE-045.
 //
@@ -41,6 +43,127 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class TokenActivitySectionTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-138")] // App/Views/Settings/TokenActivitySection.swift:143; App/Views/Usage/UsagePanel.swift:110-118
+    [Trait("Req", "PR-SETTINGS-139")] // App/Views/Settings/TokenActivitySection.swift:145
+    public void Legend_reuses_the_shared_usage_formatter_without_a_local_copy()
+    {
+        var source = System.IO.File.ReadAllText(TokenActivitySourcePath());
+        Assert.DoesNotContain("FormatTokens(", source, StringComparison.Ordinal);
+        Assert.Contains("UsagePanel.Tokens(total)", source, StringComparison.Ordinal);
+        Assert.Contains("UsagePanel.Tokens(uncertainTokens)", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("UsagePanel is not yet ported", source, StringComparison.Ordinal);
+    }
+
+    private static string TokenActivitySourcePath([System.Runtime.CompilerServices.CallerFilePath] string path = "") =>
+        System.IO.Path.GetFullPath(System.IO.Path.Combine(System.IO.Path.GetDirectoryName(path)!, "..", "..", "..", "..",
+            "src", "Marrow.App", "Views", "Settings", "TokenActivitySection.cs"));
+
+    private static object Field(object owner, string name) => owner.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(owner)!;
+    private static object StateValue(object state, string name) => state.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(state)!;
+    private static Button Chip(TokenActivitySection section, string name) => section.GetVisualDescendants().OfType<Button>().Single(b => AutomationProperties.GetName(b) == name);
+    private static void Click(Button button) { button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs(); }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-131")] // App/Views/Settings/TokenActivitySection.swift:69,87; Components.swift:84-91
+    public void HeaderFillUsesOwnQuarterSecondCurve()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var scope = BindTestScope();
+            var time = new ManualTimeProvider();
+            using var clock = SwiftClock.Provider.Override(time);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var section = new TokenActivitySection();
+            var window = Show(section);
+            try
+            {
+                var weekly = Chip(section, "Weekly");
+                var border = Assert.IsType<Border>(weekly.Content);
+                Click(weekly);
+                time.Advance(TimeSpan.FromTicks(1_250_000)); frames.Advance(TimeSpan.FromTicks(1_250_000));
+                var expected = TokenActivityHeatmapCanvas.Mix(Chrome.PrimaryText.Opacity(0).Resolve(ThemeVariant.Light),
+                    Chrome.Accent.Opacity(.16).Resolve(ThemeVariant.Light), Marrow.UI.Port.Animation.Smooth(.25).Progress(.125));
+                Assert.Equal(expected, Assert.IsType<SolidColorBrush>(border.Background).Color);
+            }
+            finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-025")] // App/Views/Settings/TokenActivitySection.swift:148-166
+    public void LegendLadderTracksRightEdgeWhenSectionResizes()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var scope = BindTestScope();
+            var section = new TokenActivitySection(); var window = Show(section);
+            try
+            {
+                foreach (var width in new[] {600d, 900d})
+                {
+                    window.Width = width; window.UpdateLayout();
+                    var more = section.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "More");
+                    Assert.Equal(section.Bounds.Width, more.TranslatePoint(new Point(more.Bounds.Width, 0), section)!.Value.X, 1);
+                }
+            }
+            finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-135")] // App/Views/Settings/TokenActivitySection.swift:43-50,93-98
+    public void AppearanceRefreshesMemoizesAndDisappearanceCancelsAndUnsubscribes()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var scope = BindTestScope();
+            var ledger = (TokenLedger)Activator.CreateInstance(typeof(TokenLedger), nonPublic: true)!;
+            var section = new TokenActivitySection(ledger); var window = Show(section);
+            try
+            {
+                Assert.True((bool)Field(ledger, "didStartLoad"));
+                var state = Field(section, "state"); var grid = StateValue(state, "Grid");
+                typeof(TokenLedger).GetProperty("LegacyDaily")!.SetValue(ledger, ValueMap<string, long>.Empty.Mutating(d => d["2026-01-01"] = 9));
+                Dispatcher.UIThread.RunJobs(); Assert.Same(grid, StateValue(state, "Grid"));
+                var task = (ViewTask<int>)Field(section, "refreshTask"); var running = Assert.IsType<TaskHandle>(task.Running);
+                window.Content = null; Dispatcher.UIThread.RunJobs();
+                Assert.True(running.IsCancelled); Assert.Null(task.Running);
+                Assert.Null(Field(section, "gridWatch"));
+                Assert.Empty((System.Collections.IEnumerable)Field(section, "tracks"));
+                ledger.Record(77); Dispatcher.UIThread.RunJobs(); Assert.Same(grid, StateValue(state, "Grid"));
+            }
+            finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-132")] // App/Views/Settings/TokenActivitySection.swift:62-74
+    public void RapidSwitchRetainsPreviousGridUntilNewestBlendSettles()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var scope = BindTestScope(); var time = new ManualTimeProvider();
+            using var clock = SwiftClock.Provider.Override(time); var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var section = new TokenActivitySection(); var window = Show(section);
+            try
+            {
+                var state = Field(section, "state"); Click(Chip(section, "Weekly"));
+                var weeklyGrid = StateValue(state, "Grid");
+                time.Advance(TimeSpan.FromTicks(1_000_000)); frames.Advance(TimeSpan.FromTicks(1_000_000));
+                Click(Chip(section, "Cumulative"));
+                Assert.Equal(2, StateValue(state, "SwitchCount")); Assert.Same(weeklyGrid, StateValue(state, "PreviousGrid"));
+                var firstDeadline = TimeSpan.FromTicks((long)Math.Ceiling(Marrow.UI.Port.Animation.Smooth(.45).Duration * TimeSpan.TicksPerSecond) - 1_000_000);
+                time.Advance(firstDeadline); frames.Advance(firstDeadline); Dispatcher.UIThread.RunJobs();
+                Assert.Same(weeklyGrid, StateValue(state, "PreviousGrid"));
+                time.Advance(TimeSpan.FromTicks(1_000_001)); frames.Advance(TimeSpan.FromTicks(1_000_001)); Dispatcher.UIThread.RunJobs();
+                Assert.Null(StateValue(state, "PreviousGrid"));
+            }
+            finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+        });
+    }
     private readonly HeadlessSession headless = headless;
 
     /// Binds UserDefaults.Standard and Storage.Locations to throwaway, in-memory / scratch-folder stand-ins for

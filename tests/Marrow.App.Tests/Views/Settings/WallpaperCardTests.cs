@@ -19,6 +19,44 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class WallpaperCardTests(HeadlessSession headless)
 {
+    private static void Frame(WallpaperCardScope scope, double seconds)
+    {
+        var span=TimeSpan.FromTicks((long)Math.Round(seconds*TimeSpan.TicksPerSecond));
+        scope.Time.Advance(span); scope.Frames.Advance(span); scope.Pump();
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-142")] // App/Views/Settings/WallpaperCard.swift:80-90
+    public void Drag_wash_fades_in_and_out_along_snappy_point_two() => headless.OnUiThread(() => {
+        using var scope=new WallpaperCardScope();
+        var button=CardQuery.All<Button>(scope.Card).First(); var content=(Panel)button.Content!;
+        var data=scope.Drag(PictureFiles.Text(PictureFiles.Folder(),"n.txt"));
+        button.RaiseEvent(new DragEventArgs(DragDrop.DragEnterEvent,data,button,new Point(10,10),KeyModifiers.None)); scope.Pump();
+        var wash=content.Children.OfType<Border>().Single(b=> b.Background is SolidColorBrush brush && brush.Color==Chrome.Accent.Opacity(.18).Resolve(b.ActualThemeVariant));
+        Assert.Equal(0,wash.Opacity); Frame(scope,.05);
+        Assert.Equal(Animation.Snappy(.2).Progress(.05),wash.Opacity,5);
+        scope.Settle(); Assert.Equal(1,wash.Opacity);
+        button.RaiseEvent(new DragEventArgs(DragDrop.DragLeaveEvent,data,button,new Point(10,10),KeyModifiers.None)); scope.Pump();
+        Assert.Contains(wash,content.Children); Frame(scope,.05);
+        Assert.Equal(1-Animation.Snappy(.2).Progress(.05),wash.Opacity,5);
+        scope.Settle(); Assert.DoesNotContain(wash,content.Children);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-141")] // App/Views/Settings/WallpaperCard.swift:59,74,91
+    public void Picture_arrival_and_removal_use_the_cards_own_spring() => headless.OnUiThread(() => {
+        using var scope=new WallpaperCardScope();
+        var button=CardQuery.All<Button>(scope.Card).First(); var content=(Panel)button.Content!; var swap=(Panel)content.Children[0];
+        scope.Store.Install(PictureFiles.Png(PictureFiles.Folder(),"a.png")); scope.WaitFor(()=>!scope.Store.IsInstalling);
+        var picture=swap.Children[0]; Assert.Equal(0,picture.Opacity); Frame(scope,.05);
+        var progress=Animation.Spring(.45,.2).Progress(.05); Assert.Equal(progress,picture.Opacity,5);
+        Assert.Equal(.96+.04*progress,CardQuery.ScaleTo(picture,swap),5);
+        scope.Settle(); scope.Store.Remove(); scope.Pump();
+        var empty=swap.Children[0]; Assert.Equal(0,empty.Opacity); Frame(scope,.05);
+        Assert.Equal(progress,empty.Opacity,5); Assert.Equal(1-progress,picture.Opacity,5);
+        Assert.Equal(.96+.04*progress,CardQuery.ScaleTo(empty,swap),5);
+        scope.Settle(); Assert.DoesNotContain(picture,swap.Children); Assert.Equal(1,empty.Opacity);
+    });
     // PR-SETTINGS-140: card structure, softness row only while a wallpaper is set.
 
     [Fact]
@@ -124,7 +162,7 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
         var folder = PictureFiles.Folder();
         var text = PictureFiles.Text(folder, "notes.txt");
         var picture = PictureFiles.Png(folder, "a.png");
-        var picture2 = PictureFiles.Png(folder, "b.png");
+        var picture2 = PictureFiles.Png(folder, "b.png", side: 13);
         var button = CardQuery.All<Button>(scope.Card).First();
 
         var data = scope.Drag(text, picture, picture2);
@@ -132,6 +170,7 @@ public sealed class WallpaperCardTests(HeadlessSession headless)
         scope.WaitFor(() => !scope.Store.IsInstalling && scope.Store.HasWallpaper);
 
         Assert.True(scope.Store.HasWallpaper);
+        Assert.Equal(new Size(8,8),scope.Store.Image!.Size); // :96 first acceptable a.png, not the 13px b.png.
     });
 
     [Fact]

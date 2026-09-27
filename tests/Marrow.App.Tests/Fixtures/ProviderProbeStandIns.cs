@@ -79,6 +79,19 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
         return this;
     }
 
+    /// <summary>Hold Claude's -p listing result until Release; independent --help probes stay unblocked.</summary>
+    public ProviderProbeScript WaitForRelease()
+    {
+        File.WriteAllBytes(Path.Combine(Folder, "wait-for-release.txt"), []);
+        return this;
+    }
+
+    public void Release() => File.WriteAllBytes(Path.Combine(Folder, "release-listings.txt"), []);
+
+    // ClaudeSession.swift:190: handshake listing starts with -p; profile warmup's --help is a separate call.
+    public IReadOnlyList<IReadOnlyList<string>> CommandListings() =>
+        RecordedCalls().Where(arguments => arguments.Count > 0 && arguments[0] == "-p").ToArray();
+
     /// <summary>What a later "--version" call reports once this stand-in has been called with exactly
     /// ["update"] (ProviderProbeStandIn.cs's post-update-stdout.txt): simulates the CLI's own updater having
     /// installed a newer build, for ResendAfterCLIUpdate's before/after version comparison.</summary>

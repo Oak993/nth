@@ -2,7 +2,7 @@ using Marrow.Core.Port;
 
 namespace Marrow.Core.Support;
 
-// Source: DroppyCode/Core/Support/StdioFramer.swift (B2 1fbf81e), :1-81.
+// Source: DroppyCode/Core/Support/StdioFramer.swift (B3 52bc792), :1-81.
 
 /// <summary>
 /// :3 <c>struct StdioFramer</c>: incremental byte framing for a child's stdout, split on 0x0A (PR-PROVACP-149) or

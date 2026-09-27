@@ -96,8 +96,8 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
                      ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Devin,
                  })
         {
-            registry.RefreshPlanLimits(provider);
-            registry.RefreshPlanLimits(provider, force: true);
+            runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshPlanLimits(provider)));
+            runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshPlanLimits(provider, force: true)));
         }
         Assert.Empty(registry.LoadingLimits);
         Assert.Empty(registry.PlanLimits);
@@ -113,12 +113,12 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         using var runtime = new TestRuntime();
         var settings = Settings(); // no key for Zai
         var registry = MakeRegistry(runtime, settings);
-        registry.RefreshPlanLimits(ProviderKind.Zai);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshPlanLimits(ProviderKind.Zai)));
         // The guard for an empty key returns before loadingLimits.insert(provider) (:612-615), so no task
         // is ever spawned and the loop needs no pumping.
         Assert.Empty(registry.LoadingLimits);
         Assert.DoesNotContain(ProviderKind.Zai, registry.PlanLimits.Keys);
-        registry.RefreshPlanLimits(ProviderKind.Zai, force: true);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshPlanLimits(ProviderKind.Zai, force: true)));
         Assert.Empty(registry.LoadingLimits);
     }
 
@@ -136,7 +136,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         settings.Paths[ProviderKind.Codex] = Path.Combine(TempDir(), "missing-codex.exe");
         var registry = MakeRegistry(runtime, settings);
 
-        registry.RefreshPlanLimits(ProviderKind.Codex);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshPlanLimits(ProviderKind.Codex)));
         Assert.Contains(ProviderKind.Codex, registry.LoadingLimits); // the flag is set synchronously before the task runs
         runtime.Loop.RunUntil(() => registry.LoadingLimits.Count == 0, TimeSpan.FromSeconds(10));
 
@@ -158,7 +158,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         var registry = MakeRegistry(runtime, settings);
 
         Assert.Null(registry.RedeemingReset);
-        var error = await Assert.ThrowsAsync<ResetCreditError>(() => registry.ConsumeResetCredit(ProviderKind.Codex, "credit-1"));
+        var error = await Assert.ThrowsAsync<ResetCreditError>(() => Task.Run(() => runtime.Loop.Run(() => registry.ConsumeResetCredit(ProviderKind.Codex, "credit-1"))));
         Assert.Equal("Codex CLI not found.", error.ErrorDescription); // ResetCreditError.Case.CodexUnavailable
         // The defer (:652) clears redeemingReset even on the throwing path.
         Assert.Null(registry.RedeemingReset);
@@ -175,11 +175,11 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         var settings = Settings(); // no key
         var registry = MakeRegistry(runtime, settings);
 
-        var noKey = await Assert.ThrowsAsync<ResetCreditError>(() => registry.ConsumeResetCredit(ProviderKind.Zai, "credit-1"));
+        var noKey = await Assert.ThrowsAsync<ResetCreditError>(() => Task.Run(() => runtime.Loop.Run(() => registry.ConsumeResetCredit(ProviderKind.Zai, "credit-1"))));
         Assert.Equal("Codex returned an unknown reset result.", noKey.ErrorDescription); // named Codex even for Z.ai
 
         settings.Keys[ProviderKind.Zai] = "zai-key";
-        var noCredit = await Assert.ThrowsAsync<ResetCreditError>(() => registry.ConsumeResetCredit(ProviderKind.Zai, null));
+        var noCredit = await Assert.ThrowsAsync<ResetCreditError>(() => Task.Run(() => runtime.Loop.Run(() => registry.ConsumeResetCredit(ProviderKind.Zai, null))));
         Assert.Equal("Codex returned an unknown reset result.", noCredit.ErrorDescription);
     }
 
@@ -194,7 +194,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         var registry = MakeRegistry(runtime, Settings());
         foreach (var provider in new[] { ProviderKind.Cursor, ProviderKind.Opencode, ProviderKind.Grok, ProviderKind.Deepseek })
         {
-            var error = await Assert.ThrowsAsync<ResetCreditError>(() => registry.ConsumeResetCredit(provider, "some-id"));
+            var error = await Assert.ThrowsAsync<ResetCreditError>(() => Task.Run(() => runtime.Loop.Run(() => registry.ConsumeResetCredit(provider, "some-id"))));
             Assert.Equal("Codex returned an unknown reset result.", error.ErrorDescription);
         }
     }
@@ -212,9 +212,9 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         // redeemingReset is set to the provider's own rawValue while the call is out (unobservable mid-call
         // here without a hook into the throwing call itself, so this asserts the post-condition: cleared by
         // the defer on every exit, throwing included, for both a named id and a nil one).
-        await Assert.ThrowsAsync<ResetCreditError>(() => registry.ConsumeResetCredit(ProviderKind.Cursor, "credit-9"));
+        await Assert.ThrowsAsync<ResetCreditError>(() => Task.Run(() => runtime.Loop.Run(() => registry.ConsumeResetCredit(ProviderKind.Cursor, "credit-9"))));
         Assert.Null(registry.RedeemingReset);
-        await Assert.ThrowsAsync<ResetCreditError>(() => registry.ConsumeResetCredit(ProviderKind.Cursor, null));
+        await Assert.ThrowsAsync<ResetCreditError>(() => Task.Run(() => runtime.Loop.Run(() => registry.ConsumeResetCredit(ProviderKind.Cursor, null))));
         Assert.Null(registry.RedeemingReset);
     }
 
@@ -253,17 +253,17 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         for (var i = 0; i < 32; i++)
         {
             runtime.Advance(TimeSpan.FromSeconds(1)); // distinct, increasing fetch times
-            registry.UpdateCommands(
+            runtime.Loop.Run(() => MainActor.Run(() => registry.UpdateCommands(
                 new ValueList<SlashCommand>([new SlashCommand { Name = "c" + i, Detail = "" }]),
-                ProviderKind.Codex, "C:\\dir" + i);
+                ProviderKind.Codex, "C:\\dir" + i)));
         }
         Assert.Equal(32, registry.Commands.Count);
 
         // A NEW key at 32 entries evicts exactly one entry: the one with the oldest fetch time.
         runtime.Advance(TimeSpan.FromSeconds(1));
-        registry.UpdateCommands(
+        runtime.Loop.Run(() => MainActor.Run(() => registry.UpdateCommands(
             new ValueList<SlashCommand>([new SlashCommand { Name = "new", Detail = "" }]),
-            ProviderKind.Codex, "C:\\fresh");
+            ProviderKind.Codex, "C:\\fresh")));
         Assert.Equal(32, registry.Commands.Count);
         var evicted = ProviderRegistry.CommandKey(ProviderKind.Codex, "C:\\dir0");
         var survivor = ProviderRegistry.CommandKey(ProviderKind.Codex, "C:\\dir1");
@@ -276,9 +276,9 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
 
         // Updating an EXISTING key never evicts, however full the cache is.
         var dir5 = ProviderRegistry.CommandKey(ProviderKind.Codex, "C:\\dir5");
-        registry.UpdateCommands(
+        runtime.Loop.Run(() => MainActor.Run(() => registry.UpdateCommands(
             new ValueList<SlashCommand>([new SlashCommand { Name = "again", Detail = "" }]),
-            ProviderKind.Codex, "C:\\dir5");
+            ProviderKind.Codex, "C:\\dir5")));
         Assert.Equal(32, registry.Commands.Count);
         Assert.True(registry.Commands.ContainsKey(survivor));
         Assert.True(registry.Commands.ContainsKey(fresh));
@@ -316,7 +316,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
     private static async Task<ProviderCredits> RunOneCreditsRoundTrip(
         TestRuntime runtime, ProviderRegistry registry, LoopbackHttpServer server, int monthly, int purchased, int free, bool force = false)
     {
-        registry.RefreshCredits(ProviderKind.Commandcode, force);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshCredits(ProviderKind.Commandcode, force)));
         var pump = Task.Run(() => runtime.Loop.RunUntil(() => registry.LoadingCredits.Count == 0, TimeSpan.FromSeconds(10)));
         var exchange = await server.NextExchange();
         await exchange.Respond(200, "OK", CreditsBody(monthly, purchased, free));
@@ -337,7 +337,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         settings.Keys[ProviderKind.Commandcode] = "cc-key-1"; // Environment(for:) couples this into COMMAND_CODE_API_KEY
         var registry = MakeRegistry(runtime, settings);
 
-        registry.RefreshCredits(ProviderKind.Commandcode);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshCredits(ProviderKind.Commandcode)));
         Assert.Contains(ProviderKind.Commandcode, registry.LoadingCredits); // set synchronously (:692) before the task runs
         var pump = Task.Run(() => runtime.Loop.RunUntil(() => registry.LoadingCredits.Count == 0, TimeSpan.FromSeconds(10)));
         var exchange = await server.NextExchange();
@@ -357,7 +357,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
     {
         using var runtime = new TestRuntime();
         var registry = MakeRegistry(runtime, Settings()); // no Deepseek key in Settings
-        registry.RefreshCredits(ProviderKind.Deepseek);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshCredits(ProviderKind.Deepseek)));
         // The empty-key guard (:687-689) returns before loadingCredits.insert, so no task is ever spawned;
         // DeepSeekAPI.Balance (MARROW_STUB) is never reached.
         Assert.Empty(registry.LoadingCredits);
@@ -385,7 +385,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
 
         // The key is cleared: the balance is dropped, synchronously, with no network call.
         settings.Keys.Remove(ProviderKind.Commandcode);
-        registry.RefreshCredits(ProviderKind.Commandcode);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshCredits(ProviderKind.Commandcode)));
         Assert.Empty(registry.LoadingCredits);
         Assert.DoesNotContain(ProviderKind.Commandcode, registry.Credits.Keys);
 
@@ -396,7 +396,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         // PR-PROVREG-166 test above shows leaves limitsFetchedAt untouched too, but plan limits has nothing
         // to leave stale there since it was never set on that path either).
         settings.Keys[ProviderKind.Commandcode] = "cc-key-2";
-        registry.RefreshCredits(ProviderKind.Commandcode);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshCredits(ProviderKind.Commandcode)));
         Assert.Empty(registry.LoadingCredits); // suppressed synchronously by the gate (:691)
         Assert.DoesNotContain(ProviderKind.Commandcode, registry.Credits.Keys);
         Assert.Equal(1, server.ConnectionCount); // only the first round trip ever opened a connection
@@ -422,13 +422,13 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         var first = await RunOneCreditsRoundTrip(runtime, registry, server, 1, 0, 0);
 
         // Unforced, same key, still within the gate: no second connection, the cached value is unchanged.
-        registry.RefreshCredits(ProviderKind.Commandcode);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshCredits(ProviderKind.Commandcode)));
         Assert.Empty(registry.LoadingCredits);
         Assert.Equal(first, registry.Credits[ProviderKind.Commandcode]);
         Assert.Equal(1, server.ConnectionCount);
 
         // force bypasses the gate.
-        registry.RefreshCredits(ProviderKind.Commandcode, force: true);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshCredits(ProviderKind.Commandcode, force: true)));
         var pump = Task.Run(() => runtime.Loop.RunUntil(() => registry.LoadingCredits.Count == 0, TimeSpan.FromSeconds(10)));
         var exchange = await server.NextExchange();
         await exchange.Respond(200, "OK", CreditsBody(9, 0, 0));
@@ -451,7 +451,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         settings.Keys[ProviderKind.Commandcode] = "cc-key";
         var registry = MakeRegistry(runtime, settings);
 
-        registry.RefreshCredits(ProviderKind.Commandcode);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshCredits(ProviderKind.Commandcode)));
         Assert.Contains(ProviderKind.Commandcode, registry.LoadingCredits);
         var pump = Task.Run(() => runtime.Loop.RunUntil(() => server.ConnectionCount >= 1, TimeSpan.FromSeconds(10)));
         var exchange = await server.NextExchange(); // the request arrived; the server deliberately never answers it
@@ -460,7 +460,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         // A forced call arriving while the first is still out finds no queue (contrast PR-PROVREG-164's
         // forcedLimitReads): it is dropped at the very first guard, synchronously, opening no second
         // connection and leaving loadingCredits exactly as it was.
-        registry.RefreshCredits(ProviderKind.Commandcode, force: true);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshCredits(ProviderKind.Commandcode, force: true)));
         Assert.Equal(1, server.ConnectionCount);
         Assert.Contains(ProviderKind.Commandcode, registry.LoadingCredits);
 
@@ -488,7 +488,7 @@ public sealed class ProviderRegistryLimitsAndCommandsTests
         await RunOneCreditsRoundTrip(runtime, registry, server, 1, 0, 0);
 
         // Still gated: an unforced call right after a success reads nothing new.
-        registry.RefreshCredits(ProviderKind.Commandcode);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RefreshCredits(ProviderKind.Commandcode)));
         Assert.Equal(1, server.ConnectionCount);
 
         // invalidateCredits (:704-706) clears the timestamp, reopening the gate for the NEXT unforced ask:
