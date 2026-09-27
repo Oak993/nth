@@ -7150,15 +7150,51 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
     });
 
-    // STOP opencode-App.Views.Sidebar.SidebarView #10 (successor review of uncommitted predecessor draft)
-    // Records: UI-SIDEBAR-009, UI-SIDEBAR-010 (App/Views/Sidebar/SidebarView.swift:1115-1133). A draft test
-    // ("Project_count_is_tabular_and_hover_accessories_keep_source_frames_order_font_and_hit_rectangles") was
-    // found uncommitted in this worktree and reverted: it asserted
-    // `cluster.Children.OfType<Button>().Count() == 2`, but the ellipsis accessory is
-    // UI/Chrome/Popovers.cs:569 RowActionsButton, an Avalonia Decorator, not a Button, so the predicate never
-    // matched any StackPanel ("Sequence contains no matching element") independent of whether production is
-    // correct. Not fixed blind in this pass; a correct oracle must query RowActionsButton and the plus Button
-    // separately (or descend for SwiftImage/SymbolName the way the surviving line below it already did).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-009")] // App/Views/Sidebar/SidebarView.swift:1127-1132
+    [Trait("Req", "UI-SIDEBAR-010")] // App/Views/Sidebar/SidebarView.swift:1115-1125; UI/Chrome/Chrome.swift:766-772
+    public void Project_count_is_tabular_and_hover_accessories_keep_source_frames_order_font_and_hit_rectangles() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presenter = Presentation.Presenter.Override(new RecordingPresenter());
+        var project = NewProject(harness, "Alpha") with { IsExpanded = false };
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 3));
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var count = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "3"); // :1128
+                Assert.Equal(11d, count.FontSize); Assert.Equal(FontWeight.Normal, count.FontWeight); // :1129 SwiftFont.Subheadline
+                Assert.Equal(SwiftFont.Subheadline.MonospacedDigit().Resolve().FontFeatures, count.FontFeatures); // :1129 .monospacedDigit()
+                var window = WindowOf(row);
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // :1116 hovering true
+            });
+            harness.Main.OnMain(() =>
+            {
+                WindowOf(row).UpdateLayout(); // the accessory rebuild (applied by the Track posted above) needs a real layout pass before the Bounds reads below
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "3"); // :1116 count branch no longer drawn
+                // The cluster is the Horizontal, zero-spacing StackPanel (:1117) whose two children together
+                // contain exactly two real Buttons: the ellipsis (Popovers.cs:569 RowActionsButton, a
+                // Decorator wrapping a Button) and the plus button (a Button directly).
+                var cluster = LogicalQuery.SelfAndDescendants<StackPanel>(row)
+                    .Single(p => p.Orientation == Orientation.Horizontal && p.Spacing == 0
+                        && p.Children.Count == 2 && LogicalQuery.SelfAndDescendants<Button>(p).Count() == 2);
+                Assert.Equal(new[] { "ellipsis", "plus" }, cluster.Children.Select(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Single().SymbolName)); // :1118,:1119 source order
+                var plus = Assert.IsType<Button>(cluster.Children[1]);
+                var glyph = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(plus));
+                Assert.Equal(11d, SwiftImage.GetFont(glyph)!.Resolve().FontSize); // UI/Chrome/Chrome.cs RowAccessoryIcon :766-772
+                Assert.Equal(FontWeight.SemiBold, SwiftImage.GetFont(glyph)!.Resolve().FontWeight);
+                Assert.Equal(Chrome.SecondaryText.Resolve(glyph.ActualThemeVariant), ((ISolidColorBrush)glyph.Foreground!).Color);
+                Assert.Equal(new Size(20, 20), plus.Bounds.Size); // RowAccessoryIcon's fixed hit rectangle
+                var at = plus.TranslatePoint(new Point(1, 1), WindowOf(row))!.Value; // off the glyph, inside the rectangular hit box
+                WindowOf(row).MouseMove(at); WindowOf(row).MouseDown(at, MouseButton.Left); WindowOf(row).MouseUp(at, MouseButton.Left);
+                Assert.Single(model.ThreadsIn(project)); // :1119-1123 Model.NewThread(current)
+            });
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
 
     // STOP opencode-App.Views.Sidebar.SidebarView #11 (successor review of uncommitted predecessor draft)
     // Record: UI-SIDEBAR-059 (App/Views/Sidebar/SidebarView.swift:317-325,1064-1076, ED-218 ForEach
