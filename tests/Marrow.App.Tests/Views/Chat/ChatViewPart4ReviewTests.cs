@@ -201,15 +201,6 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
         });
     }
 
-    // STOP App.Views.Chat.ChatView #6
-    // Kind: missing dependency (observable producer).
-    // Swift: App/Views/Chat/ChatView.swift:1575,1591-1592; Services/Providers/ProviderRegistry.swift:33,358-380.
-    // Records: UI-GIT-035.
-    // This checkout's ProviderRegistry.Refresh still assigns its private statuses field directly.
-    // The consumer below observes the public Statuses getter, and the test supplies an observable setter write.
-    // Needed: integration of the already prepared Services.Providers.ProviderRegistry-notify producer fix.
-    // Do not edit that other unit from the ChatView branch or claim its actual Refresh notifications are proven here.
-
     [Fact]
     [Trait("Req", "UI-GIT-035")] // App/Views/Chat/ChatView.swift:1575,1591-1592
     public void Write_for_me_reacts_to_observable_provider_auth_changes()

@@ -22,7 +22,7 @@ public sealed class ChatViewFollowup2Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-180")] // App/Views/Chat/ChatView.swift:1416-1429
-    [Trait("Req", "UI-CHAT-080")] // App/Views/Chat/ChatView.swift:1416-1429; OD-0012 G4 (Windows editor catalogue).
+    [Trait("Req", "UI-CHAT-080")] // App/Views/Chat/ChatView.swift:1416-1429; UI/Common/Components.swift:109-117,143-163; OD-0012 G4 / ED-087.
     public void Installed_editor_rows_keep_catalogue_order_icons_and_open_the_exact_directory_through_the_workspace()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -105,7 +105,7 @@ public sealed class ChatViewFollowup2Tests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-GIT-035")] // App/Views/Chat/ChatView.swift:1575,1591-1592; Services/Providers/ProviderRegistry.swift:358-377,806-809
+    [Trait("Req", "UI-GIT-035")] // App/Views/Chat/ChatView.swift:1575,1591-1592; Services/Providers/ProviderRegistry.swift:358-377,788-790,806-809
     public void Real_provider_refresh_disables_on_sign_out_and_reenables_on_sign_in_without_replacing_the_sheet()
     {
         ChatHeadlessFixtures.Run(headless, () =>
