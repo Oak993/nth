@@ -24,7 +24,7 @@ using Marrow.UI.Port;
 
 // Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B3 52bc792), :1-2859.
 // All six parts, including the inherited cloud bodies, audited against the pinned 1.7.0 source.
-// Six exact external dependency sites are documented in TimelineRowsTests; only those sites remain unwritten.
+// Only the small control-size modifier remains unwritten, deferred by ED-180 (TimelineRowsTests STOP #5).
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; a Shape is a record whose Path(in:) returns an Avalonia Geometry; NSView is Control;
 // a parameter without a default that follows one with a default moves before it and callers name their arguments.
@@ -301,14 +301,22 @@ public sealed class UserMessageRow : Decorator
             editingWatch?.Dispose();
             editingWatch = null;
         };
-        // :191-196 .confirmationDialog("Edit from this message?", isPresented: $isConfirmingRevert) with
-        // Button("Revert and keep file changes") { revert(restoreFiles: false) }, Button("Revert files too",
-        // role: .destructive) { revert(restoreFiles: true) } and the message "This message and everything after it leave
-        // the thread, and your prompt returns to the composer." The port has no confirmationDialog seam (STOP #2 in
-        // TimelineRowsTests.cs), so the presentation is not written.
+        // :191-196, ED-216. Dismissal resets the source's isPresented binding, so this row may ask again.
         row.Track(() => state.IsConfirmingRevert, presented =>
         {
-            if (presented) throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:191 confirmationDialog (no port seam; STOP #2)");
+            if (!presented) return;
+            _ = MainActor.Spawn(async () =>
+            {
+                try
+                {
+                    await AlertPresentation.Show(new AlertRequest("Edit from this message?",
+                        "This message and everything after it leave the thread, and your prompt returns to the composer.",
+                        [new AlertButton("Revert and keep file changes", () => Revert(false)),
+                         new AlertButton("Revert files too", () => Revert(true)) { Role = AlertButtonRole.Destructive }],
+                        AlertKind.ConfirmationDialog, Owner: TopLevel.GetTopLevel(row) as Avalonia.Controls.Window));
+                }
+                finally { state.IsConfirmingRevert = false; }
+            });
         });
         return row;
     }
@@ -402,8 +410,7 @@ public sealed class UserMessageRow : Decorator
         return line;
     }
 
-    // :202-206 private func revert(restoreFiles:): the confirmation dialog's two buttons (:192-193), whose presentation
-    // is not written yet (STOP #2).
+    // :202-206 private func revert(restoreFiles:), used by the confirmation dialog's two buttons (:192-193).
     private void Revert(bool restoreFiles)
     {
         if (entry.TurnID is not { } turnID) return; // :203

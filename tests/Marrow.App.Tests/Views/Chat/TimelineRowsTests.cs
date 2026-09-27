@@ -58,6 +58,11 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         {
             h.Runtime.RehearseTurn("prompt");
             h.Runtime.Rehearse(new ProviderEvent.TurnCompleted(TurnStatus.Failed, null));
+        });
+        // FinishTurn awaits its checkpoint boundary before becoming idle (ThreadRuntime.swift:1254-1281).
+        h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return h.Runtime.Phase == RuntimePhase.Idle; }, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
             var entry = h.Runtime.Entries.First(item => item.Item.TimelineItemContent is TimelineItem.Content.User);
             var row = new UserMessageRow(entry, h.Runtime, true);
             window = Show(row);
@@ -4285,22 +4290,6 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 }
 
-// STOP App.Views.Chat.TimelineRows #2 (part 1, 2026-09-26)
-// Kind: platform gap
-// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:191-196 (B3 52bc792) `.confirmationDialog("Edit from this
-// message?", isPresented: $isConfirmingRevert) { Button("Revert and keep file changes") ...; Button("Revert files too",
-// role: .destructive) ... } message: { Text(...) }`
-// Requirements: PR-CHAT-082; PR-GIT-123; UI-CHAT-014; UI-GIT-051.
-// What is unclear or missing: the port has no seam for a SwiftUI confirmationDialog. Presentation.Presenter carries
-// popovers (R-VIEW-9) and App/Port/AlertPresenter.cs carries NSAlert.runModal with plain buttons only: neither has a
-// destructive role or the system Cancel a confirmation dialog adds, and no ED or PA says how a confirmation dialog
-// presents on Windows. The intent path is written (menu -> MessageMenuRequests -> isConfirmingRevert, :184-190) and so
-// is revert(restoreFiles:) (:202-206); the presentation itself stays MARROW_STUB and throws when Edit from here is chosen.
-// Readings or options: (a) a modal Avalonia window like WindowsAlertPresenter with the title, the message, the two
-// buttons (the second in Chrome.danger) and Cancel; (b) a popover on the row through Presentation.Presenter.
-// Needed to proceed: a decision (ED or PA) on the confirmationDialog seam.
-// Done so far: the menu offers Edit from here with its divider (tested above); nothing is presented.
-//
 // STOP App.Views.Chat.TimelineRows #5 (part 5, 2026-09-27)
 // deferred by ED-180 (the glass material is built after the app runs)
 // Kind: platform gap
