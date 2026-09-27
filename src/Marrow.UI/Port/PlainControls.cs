@@ -125,6 +125,7 @@ public static class PlainControls
         {
             if (presented == shown) return;
             shown = presented;
+            if (presented) popup.Child ??= content(); // Build before native Popup.Open captures its child; lazy per presentation.
             Presentation.Presenter.Current.SetPresented(popup, presented);
         });
         return popup;
