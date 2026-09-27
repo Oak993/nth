@@ -118,7 +118,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
             model.TurnFinished(thread.Id, TurnStatus.Completed, continues: false); // AppModel.swift:1224
             typeof(AppModel).GetMethod("Note", BindingFlags.Instance | BindingFlags.NonPublic)!
                 .Invoke(model, [thread.Id, "Hydra has no files left to merge.", "Details"]); // HydraMerge.swift:928
-            typeof(Marrow.App.Runtime.AutoContinue).GetMethod("Notify", BindingFlags.Instance | BindingFlags.NonPublic)!
+            typeof(Marrow.App.Runtime.AutoContinue).GetMethod("Notify", BindingFlags.Instance | BindingFlags.NonPublic, [typeof(Guid), typeof(string)])!
                 .Invoke(model.AutoContinue, [thread.Id, "Usage limit reached. Send a message to continue."]); // AutoContinue.swift:154
         });
         h.Main.Loop.RunUntilIdle();
@@ -273,7 +273,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
         Task<bool>? routed = null;
         using var listener = transport.Listen("isolated-instance", p => routed = ToastSecondLaunch.Route(appDelegate, ReleaseIdentity, p));
         var uri = ToastActivation.Encode(ReleaseIdentity, info);
-        Assert.True(ToastSecondLaunch.Forward(transport, "isolated-instance", ReleaseIdentity, [uri]));
+        h.Main.OnMain(() => Assert.True(ToastSecondLaunch.Forward(transport, "isolated-instance", ReleaseIdentity, [uri])));
         Assert.Equal("isolated-instance", Assert.Single(transport.Sent).Name);
         Assert.NotNull(routed);
         h.Main.Loop.RunUntil(() => routed.IsCompleted, AppModelHarness.Bound);

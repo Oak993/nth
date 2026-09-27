@@ -69,3 +69,11 @@ public sealed class RecordingToastTransport : IToastLaunchTransport, IDisposable
     public IDisposable Listen(string name, Action<string> received) { Received = received; return this; }
     public void Dispose() => Received = null;
 }
+
+public sealed class RecordingToastIconFiles : IToastIconFiles
+{
+    public Dictionary<string, byte[]> Files { get; } = new(StringComparer.Ordinal);
+    public int Writes { get; private set; }
+    public byte[]? Read(string path) => Files.GetValueOrDefault(path);
+    public void Write(string path, byte[] bytes) { Writes++; Files[path] = bytes.ToArray(); }
+}
