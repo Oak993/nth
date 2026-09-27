@@ -662,7 +662,7 @@ public sealed class PlacedPanel : Decorator
             placedContent.Height = size.Height;
         }
 
-        placement = new PanelPlacementView(drag, rest, size, placedContent, isResizing);
+        placement = new PanelPlacementView(drag, rest, size, placedContent, isResizing, content);
         Child = placement;
     }
 
@@ -682,6 +682,7 @@ internal sealed record PanelPlacement(PanelDragState Drag, Point Rest, Size Size
 internal sealed class PanelPlacementView : Border
 {
     private readonly PanelDragState drag;
+    private readonly Control frameContent;
     private readonly IGeniePlatform motionPlatform = Chrome.ReduceMotionPlatform.Current;
     private readonly TimeProvider clock = SwiftClock.Provider.Current;
     private Point rest;
@@ -694,9 +695,10 @@ internal sealed class PanelPlacementView : Border
     private IFrameSource? frames;
     private Action<TimeSpan>? pending;
 
-    public PanelPlacementView(PanelDragState drag, Point rest, Size size, Control content, bool isResizing)
+    public PanelPlacementView(PanelDragState drag, Point rest, Size size, Control content, bool isResizing, Control? frameContent = null)
     {
         this.drag = drag;
+        this.frameContent = frameContent ?? content;
         this.rest = rest;
         this.size = size;
         this.isResizing = isResizing;
@@ -754,6 +756,7 @@ internal sealed class PanelPlacementView : Border
         frames.RequestFrame(tick);
     }
 
+    // :329, :516-523, :541-545. The conversation's frame follows the placement, including under its grip overlay.
     private void Present(Point origin, Size value)
     {
         presented = origin;
@@ -761,6 +764,8 @@ internal sealed class PanelPlacementView : Border
         RenderTransform = new TranslateTransform(origin.X, origin.Y);
         Width = Child!.Width = value.Width;
         Height = Child.Height = value.Height;
+        frameContent.Width = value.Width;
+        frameContent.Height = value.Height;
     }
 
     private void Stop()
