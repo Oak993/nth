@@ -131,6 +131,9 @@ public sealed class EffortSliderComponentsTests(HeadlessSession headless)
 
     private static AppModel CatalogModel(AppModelHarness harness, ChatThread thread)
     {
+        // ProviderRegistry.LoadCatalog awaits the process-global pool read on first use. Complete that
+        // prerequisite before showing the chip; RunJobs alone cannot drain it. No retry or timeout change.
+        Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
         harness.WriteLibrary([], [thread]); var model = new AppModel();
         foreach (var provider in SwiftEnum<ProviderKind>.AllCases) // fail closed: no provider CLI can resolve
             if (!provider.IsAPIKeyBased) model.Settings.SetBinaryPath(Path.Combine(harness.Scratch, "missing.exe"), provider);
