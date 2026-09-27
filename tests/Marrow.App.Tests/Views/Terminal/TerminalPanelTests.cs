@@ -26,6 +26,16 @@ namespace Marrow.App.Tests.Views.Terminal;
 [Collection("Headless")]
 public sealed class TerminalPanelTests(HeadlessSession headless)
 {
+    private readonly List<AvaloniaWindow> windows = [];
+
+    // Close attached windows before the headless session disposes its font manager. Otherwise queued layout after
+    // session teardown tries to resolve Inter from the disposed collection (the earlier font STOP described this).
+    private void HideTestWindows()
+    {
+        foreach (var window in windows) window.Hide();
+        windows.Clear();
+        Dispatcher.UIThread.RunJobs();
+    }
     private static string AllText(Control control) =>
         string.Join("\n", LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(block => block.Text ?? ""));
 
@@ -195,6 +205,41 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-TERM-021")] // App/Views/Terminal/TerminalPanel.swift:146; TerminalStore.swift:11
+    [Trait("Req", "PR-TERM-022")] // App/Views/Terminal/TerminalPanel.swift:148-158
+    [Trait("Req", "PR-TERM-026")] // App/Views/Terminal/TerminalPanel.swift:180
+    [Trait("Req", "PR-TERM-027")] // App/Views/Terminal/TerminalPanel.swift:181-184
+    public void A_live_panel_updates_the_tab_title_restart_control_dimming_and_exit_labels_when_its_session_changes() => headless.OnUiThread(() =>
+    {
+        var fixture = MakeFixture();
+        using var h = fixture.Store;
+        try
+        {
+            var host = h.Main.OnMain(() => Build(fixture.App, fixture.Runtime, TerminalTestFolders.Create("live tab sweep")));
+            var session = h.Main.OnMain(() => fixture.App.Terminals.Sessions(fixture.Thread.Id).Single());
+            h.Main.OnMain(() =>
+            {
+                session.Title = "Renamed shell";
+                session.Terminate(); // sets the same observable isRunning false as the process-exit callback
+            });
+            h.Main.OnMain(() =>
+            {
+                var tab = LogicalQuery.SelfAndDescendants<TerminalTab>(host).Single();
+                Assert.Contains("Renamed shell", AllText(tab), StringComparison.Ordinal);
+                Assert.Equal(0.55, tab.Opacity);
+                Assert.Equal("Renamed shell \U000000B7 the shell has exited", ToolTip.GetTip(tab));
+                Assert.Equal("Renamed shell, the shell has exited", AutomationProperties.GetName(tab));
+                Assert.Equal("Restart Renamed shell", AutomationProperties.GetName(TabButton(tab, "Start a new shell in this tab")));
+            });
+        }
+        finally
+        {
+            h.Main.OnMain(() => { HideTestWindows(); fixture.App.Terminals.TerminateAll(); });
+            Dispatcher.UIThread.RunJobs();
+        }
+    });
+
+    [Fact]
     [Trait("Req", "PR-TERM-027")] // App/Views/Terminal/TerminalPanel.swift:181-184
     public void Tab_tooltips_and_accessibility_names_keep_the_distinct_exit_punctuation_and_button_selection_traits() => WithTabSession(session =>
     {
@@ -219,12 +264,13 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
     // Same idiom as FollowUpQueueTabTests.cs's own Center/Settle: a real attached, explicitly sized window, so
     // the resize strip's real hit area and window-space coordinates exist for MouseDown/MouseMove/MouseUp to
     // land on, unlike Build's auto-sized window (which the non-interaction tests below never need to click into).
-    private static (Control Host, AvaloniaWindow Window) BuildForDrag(AppModel model, ThreadRuntime runtime, string directory)
+    private (Control Host, AvaloniaWindow Window) BuildForDrag(AppModel model, ThreadRuntime runtime, string directory)
     {
         var host = new Border();
         AppEnvironment.SetAppModel(host, model);
         host.Child = new TerminalPanel(runtime, directory);
         var window = new AvaloniaWindow { Content = host, Width = 500, Height = 400 };
+        windows.Add(window);
         window.Show();
         Settle(window);
         return (host, window);
@@ -259,12 +305,13 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
     // TerminalPanel.EnsureTerminal really spawns a shell (TerminalStoreTests's own convention: :17-41 always
     // starts a real PowerShell in a throwaway folder), so every test needs a real directory and TerminateAll
     // cleanup, matching TerminalStoreTests.cs's WithStore pattern.
-    private static Control Build(AppModel model, ThreadRuntime runtime, string directory)
+    private Control Build(AppModel model, ThreadRuntime runtime, string directory)
     {
         var host = new Border();
         AppEnvironment.SetAppModel(host, model);
         host.Child = new TerminalPanel(runtime, directory);
         var window = new AvaloniaWindow { Content = host };
+        windows.Add(window);
         window.Show();
         return host;
     }
@@ -300,7 +347,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -334,7 +382,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -359,7 +408,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -389,7 +439,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -418,7 +469,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -443,7 +495,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -479,7 +532,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
@@ -522,7 +576,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             }
             finally
             {
-                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+                harness.Store.Main.OnMain(() => { HideTestWindows(); harness.App.Terminals.TerminateAll(); });
+                Dispatcher.UIThread.RunJobs();
             }
         });
     }
