@@ -23,8 +23,8 @@ using Marrow.UI.Markdown;
 using Marrow.UI.Port;
 
 // Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B3 52bc792), :1-2859.
-// Inherited part-1 bodies and the partial part-2 test draft are being audited against the pinned 1.7.0 source.
-// External dependency sites are documented in TimelineRowsTests; later-part bodies retain their exact stubs.
+// All six parts, including the inherited cloud bodies, audited against the pinned 1.7.0 source.
+// Six exact external dependency sites are documented in TimelineRowsTests; only those sites remain unwritten.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; a Shape is a record whose Path(in:) returns an Avalonia Geometry; NSView is Control;
 // a parameter without a default that follows one with a default moves before it and callers name their arguments.
@@ -33,15 +33,9 @@ using Marrow.UI.Port;
 // file, so they are internal. An enum with associated values is an abstract record (R-ENUM-2); `[T]` in a value is
 // ValueList<T>; a Swift tuple result keeps its labels as C# tuple element names, first letter upper-cased. A Swift
 // argument label that is a C# keyword is written with `@` (MCPProxy.Url(string @for) precedent).
-// NEEDS DECISION (group report): `@Environment(AppModel.self)` is read by the bodies, not passed in, so it is no
-// constructor parameter. `[ObjectIdentifier]` (:2519) has no port type: DerivedKey keeps the entries themselves, to
-// be compared by identity. HydraMergeTrackBody is a View that is Animatable (:844-916); ED-095's IAnimatableModifier
-// covers modifiers, so its animatableData is left to the implementing unit.
-// Not declared yet, private in Swift and read by no other file: every view's @State/@Environment storage and private
-// instance methods (UserMessageRow :202-212, HydraDelegationBlock.headRow :711-741, HydraMergeRow :954-1161,
-// AttachmentThumbnail.togglePanel :1276-1282, ToolRow.line/helpText :1760-1853, HydraHeadStepsPopover :1934-2006,
-// TurnFileCard.filesPopover :2829-2858), which the implementing unit adds with the bodies. The Swift-private view
-// types are public, as the App views ported so far do (ShortcutsSettingsPage.cs).
+// `[ObjectIdentifier]` (:2519) is represented by entry identity in DerivedKey. Environment/state storage and
+// private Swift helpers live on their owning views. The Swift-private view types remain public, as the App views
+// ported so far do (ShortcutsSettingsPage.cs).
 
 namespace Marrow.App.Views.Chat;
 
@@ -61,6 +55,14 @@ public static class TimelineMetrics
 /// <summary>The file's free functions (:31-54) and its <c>extension View</c> (:1415-1429), R-NAME-4.</summary>
 public static class TimelineRows
 {
+    // :2023, :2449; UI/Common/Components.swift:37-40. ED-197 / O-65: shared Components.Duration is still B2.
+    internal static string Duration(double interval)
+    {
+        var seconds = Math.Max(0, SwiftNumber.TruncatingToInt(SwiftNumber.Rounded(interval)));
+        return SwiftFormatters.DurationUnits(seconds,
+            [SwiftFormatters.DurationUnit.Seconds, SwiftFormatters.DurationUnit.Minutes, SwiftFormatters.DurationUnit.Hours], SwiftFormatters.CurrentLocale.Current);
+    }
+
     // :30-34 private func copyMessageText(_:): the pasteboard half of CopyButton (MarkdownView.swift), for the message
     // menus. PR-CHAT-081.
     internal static void CopyMessageText(string text)
@@ -589,23 +591,23 @@ public sealed class HydraHeadsWorkingRow : Decorator
         var column = headsColumn;
         var heads = requestedHeads;
         var shown = shownHeads;
-            var infos = team.Where(thread => thread.IsHydraHead).Select(thread => thread.Hydra).OfType<HydraHeadInfo>()
-                .GroupBy(info => info.Index).ToDictionary(group => group.Key, group => group.First());
-            var finished = heads.Where(index => infos.ContainsKey(index)).Select(index => infos[index]).ToList();
-            Transaction.WithAnimation(Animation.Smooth(duration: 0.3), () =>
+        var infos = team.Where(thread => thread.IsHydraHead).Select(thread => thread.Hydra).OfType<HydraHeadInfo>()
+            .GroupBy(info => info.Index).ToDictionary(group => group.Key, group => group.First());
+        var finished = heads.Where(index => infos.ContainsKey(index)).Select(index => infos[index]).ToList();
+        Transaction.WithAnimation(Animation.Smooth(duration: 0.3), () =>
+        {
+            foreach (var index in shown.Keys.Where(index => finished.All(head => head.Index != index)).ToArray())
+            { SwiftTransition.Remove(column, shown[index].View); shown.Remove(index); }
+            for (var i = 0; i < finished.Count; i++)
             {
-                foreach (var index in shown.Keys.Where(index => finished.All(head => head.Index != index)).ToArray())
-                { SwiftTransition.Remove(column, shown[index].View); shown.Remove(index); }
-                for (var i = 0; i < finished.Count; i++)
-                {
-                    var head = finished[i];
-                    if (shown.TryGetValue(head.Index, out var prior) && prior.Head == head) continue;
-                    if (prior.View is not null) SwiftTransition.Remove(column, prior.View);
-                    var pill = new FinishedHeadPill(head).Transition(SwiftTransition.SettleGlide);
-                    shown[head.Index] = (head, pill);
-                    SwiftTransition.Insert(column, Math.Min(i, column.Children.Count), pill);
-                }
-            });
+                var head = finished[i];
+                if (shown.TryGetValue(head.Index, out var prior) && prior.Head == head) continue;
+                if (prior.View is not null) SwiftTransition.Remove(column, prior.View);
+                var pill = new FinishedHeadPill(head).Transition(SwiftTransition.SettleGlide);
+                shown[head.Index] = (head, pill);
+                SwiftTransition.Insert(column, Math.Min(i, column.Children.Count), pill);
+            }
+        });
     }
 
     // :420-433 static func finishedHeads(in:) -> [HydraHeadInfo]: the finished heads whose report has not reached the
@@ -920,6 +922,10 @@ public sealed class HydraMergeTrack : Decorator
         done = mode == Mode.Running ? 0 : 1; rest = mode == Mode.Resting ? 1 : 0;
         body = new HydraMergeTrackBody(step, done, rest, count, !EnvironmentValues.GetAccessibilityReduceMotion(this));
         Child = body;
+        AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw); // :971 accessibilityHidden(true).
+        void Motion() => body.SetHops(!EnvironmentValues.GetAccessibilityReduceMotion(this));
+        AttachedToVisualTree += (_, _) => Motion();
+        PropertyChanged += (_, args) => { if (args.Property == EnvironmentValues.AccessibilityReduceMotionProperty) Motion(); };
         DetachedFromVisualTree += (_, _) => animation?.Cancel();
     }
 
@@ -962,7 +968,7 @@ public sealed class HydraMergeTrackBody : Decorator
 {
     private double position, done, rest;
     private int count;
-    private readonly bool hops;
+    private bool hops;
     private readonly Canvas canvas = new();
     private readonly Canvas dots = new();
     private readonly HydraMarkImage head;
@@ -1010,6 +1016,9 @@ public sealed class HydraMergeTrackBody : Decorator
         set { position = value.Position; done = value.Outcome.Done; rest = value.Outcome.Resting; Draw(); }
     }
 
+    // :836 the environment can arrive through a parent after construction or change while the track is attached.
+    internal void SetHops(bool enabled) { if (hops == enabled) return; hops = enabled; Draw(); }
+
     // :872-874 private static func dotCentre(_:) -> CGFloat
     private static double DotCentre(double i) => i * (Dot + Gap) + Dot / 2;
 
@@ -1053,6 +1062,7 @@ public sealed class HydraMergeRow : Decorator
     private Border? pill;
     private HydraMergeTrack? track;
     private MorphSlot? slot;
+    private MorphSlot? stageSlot;
     private HydraMergeOutcome? outcome;
     private string? shownStage;
     private bool? wasMerging;
@@ -1069,11 +1079,11 @@ public sealed class HydraMergeRow : Decorator
         Padding = new Thickness(0, 0, 96, 0);
         Build();
         this.Track(() => (state.Phase, runtime.IsHydraMerging, runtime.HydraMergeStage, runtime.HydraMergeStep, state.Flourish), _ => Build());
-        this.Task(() => state.Phase, async _ =>
+        this.Task(() => state.Phase is HydraMergePhase.Outcome message ? new HydraMergeOutcome(message.Value).Body : null, async body =>
         {
-            if (state.Phase is not HydraMergePhase.Outcome message) return;
+            if (body is null || state.Phase is not HydraMergePhase.Outcome message) return;
             var note = new HydraMergeOutcome(message.Value);
-            if (note.Details.Length != 0) await SwiftTry.IgnoreAsync(() => MarkdownView.Warm([note.Body]));
+            if (note.Details.Length != 0) await SwiftTry.IgnoreAsync(() => MarkdownView.Warm([body]));
         });
     }
 
@@ -1089,7 +1099,7 @@ public sealed class HydraMergeRow : Decorator
         {
             if (pill is { } old)
                 Transaction.WithAnimation(Animation.Spring(Chrome.GlideSpring), () => SwiftTransition.Remove(host, old));
-            pill = null; track = null; slot = null; wasMerging = null;
+            pill = null; track = null; slot = null; stageSlot = null; wasMerging = null;
             return;
         }
         if (wasMerging == true && !merging && next is not null && next.Title.Contains("Hydra merged", StringComparison.Ordinal))
@@ -1122,11 +1132,19 @@ public sealed class HydraMergeRow : Decorator
         }
         else track!.Update(step, count, mode);
         AutomationProperties.SetName(pill, next?.Title ?? "Merging the team's work: " + stage);
-        if (changed || outcomeChanged || merging && shownStage != stage)
+        if (changed || outcomeChanged)
         {
             var still = next is null ? MergingLabel(stage) : OutcomeLabel(next);
-            var live = next is null ? MergingContent(stage) : OutcomeControls(next);
+            stageSlot = next is null ? (MorphSlot)MergingContent(stage) : null;
+            var live = next is null ? stageSlot! : OutcomeControls(next);
             slot!.Replace(still, live, Change);
+            shownStage = stage;
+        }
+        else if (merging && shownStage != stage && stageSlot is not null)
+        {
+            // :1056-1079 the stage's sizing slot survives; only its id(stage) shimmer leaves and arrives.
+            stageSlot.Replace(MergingLabel(stage), StageVisual(stage), Change);
+            slot!.Resize(MergingLabel(stage), Change);
             shownStage = stage;
         }
     }
@@ -1136,12 +1154,18 @@ public sealed class HydraMergeRow : Decorator
 
     private static Control MergingContent(string stage)
     {
+        var slot = new MorphSlot(horizontalPadding: 0);
+        slot.Replace(MergingLabel(stage), StageVisual(stage), Change);
+        return slot;
+    }
+
+    // :1061-1073 a fresh shimmer for each new text identity; its parent slot is never recreated by a stage change.
+    private static Control StageVisual(string stage)
+    {
         var text = TimelineRows.ChatText(stage, weight: SwiftFont.Weight.Medium, color: Chrome.PrimaryText.Opacity(0.9));
         var visible = new HydraShimmer().Body(text).Transition(SwiftTransition.Asymmetric(
             SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 5)), SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: -5))));
-        var slot = new MorphSlot();
-        slot.Replace(MergingLabel(stage), visible, Change);
-        return slot;
+        return visible;
     }
 
     // :1099-1137
@@ -1188,18 +1212,26 @@ public sealed class HydraMergeRow : Decorator
         private double presentedWidth;
         private bool measured;
         private Animation? resize;
+        private double horizontalPadding = 2;
         public MorphSlot()
         {
             ClipToBounds = true; Margin = new Thickness(-2, -6);
             Children.Add(visible);
             width = new AnimatedDouble(value => { presentedWidth = value; InvalidateMeasure(); });
         }
-        public void Replace(Control size, Control drawn, Animation animation)
+        public MorphSlot(double horizontalPadding) : this()
+        { this.horizontalPadding = horizontalPadding; Margin = new Thickness(-horizontalPadding, -6); }
+        public void Resize(Control size, Animation animation)
         {
             if (still is not null) Children.Remove(still);
             still = size; still.Opacity = 0; still.IsHitTestVisible = false;
             Children.Insert(0, still);
             resize = measured ? animation : null;
+            InvalidateMeasure();
+        }
+        public void Replace(Control size, Control drawn, Animation animation)
+        {
+            Resize(size, animation);
             Transaction.WithAnimation(measured ? animation : null, () =>
             {
                 if (live is not null) SwiftTransition.Remove(visible, live);
@@ -1216,13 +1248,13 @@ public sealed class HydraMergeRow : Decorator
                 targetWidth = desired.Width; width.Set(targetWidth, resize); measured = true; resize = null;
             }
             foreach (var child in visible.Children) child.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-            return new Size(presentedWidth + 4, desired.Height + 12);
+            return new Size(presentedWidth + 2 * horizontalPadding, desired.Height + 12);
         }
         private double targetWidth;
         protected override Size ArrangeOverride(Size finalSize)
         {
-            still?.Arrange(new Rect(2, 6, still.DesiredSize.Width, still.DesiredSize.Height));
-            visible.Arrange(new Rect(2, 6, Math.Max(0, finalSize.Width - 4), Math.Max(0, finalSize.Height - 12)));
+            still?.Arrange(new Rect(horizontalPadding, 6, still.DesiredSize.Width, still.DesiredSize.Height));
+            visible.Arrange(new Rect(horizontalPadding, 6, Math.Max(0, finalSize.Width - 2 * horizontalPadding), Math.Max(0, finalSize.Height - 12)));
             foreach (var child in visible.Children) child.Arrange(new Rect(new Point(), child.DesiredSize));
             return finalSize;
         }
@@ -2373,18 +2405,20 @@ public sealed class HydraHeadStepsPopover : Decorator
             case TimelineItem.Content.Tool tool:
                 var call = tool.Value;
                 var mcp = ToolPresentation.McpParts(call);
-                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+                var row = new TimelineBaselineRow { Spacing = TimelineMetrics.IconSpacing };
                 row.Children.Add(new Border { Width = TimelineMetrics.IconWidth, Child = mcp is { } badge
                     ? new MCPGlyph(badge.Entry, 14, call.ToolCallStatus == ToolCall.Status.Running, call.ToolCallStatus) : new ToolStatusIcon(call) });
                 var words = mcp is { } server ? ToolPresentation.McpLabel(server.Entry, server.Tool, call.ToolCallStatus == ToolCall.Status.Running) : ToolPresentation.Label(call);
-                var label = new MiddleTruncatingTextBlock { Text = words, FullText = words, MaxLines = 2 };
+                // STOP #6: the shared middle-truncation helper supports one line only. Keep the source's two
+                // wrapping lines; only .truncationMode(.middle) remains unwritten pending a multiline adapter.
+                var label = new TextBlock { Text = words, MaxLines = 2, TextWrapping = TextWrapping.Wrap };
                 ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(label); label.Foreground = Chrome.SecondaryText.Brush(label); row.Children.Add(label);
                 if (ToolPresentation.Stats(call) is { } stats) row.Children.Add(new DiffStatLabel { Additions = stats.Additions, Deletions = stats.Deletions });
                 return row;
             case TimelineItem.Content.Assistant reply: return Selectable(reply.Value.Text, Chrome.PrimaryText);
             case TimelineItem.Content.User user: return Selectable(user.Value.Text, Chrome.SecondaryText);
             case TimelineItem.Content.Notice notice:
-                var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+                var line = new TimelineBaselineRow { Spacing = TimelineMetrics.IconSpacing };
                 line.Children.Add(new Border { Width = TimelineMetrics.IconWidth, Child = SwiftImage.SystemName(NoticeSymbol(notice.Value.NoticeLevel))
                     .Font(ChatFont.Chat(SwiftFont.TextStyle.Caption)).ForegroundStyle(NoticeColor(notice.Value.NoticeLevel)) });
                 line.Children.Add(Selectable(notice.Value.Message, NoticeColor(notice.Value.NoticeLevel))); return line;
@@ -2399,7 +2433,7 @@ public sealed class HydraHeadStepsPopover : Decorator
             HydraHeadInfo.Status.Running => "Working\u2026", HydraHeadInfo.Status.Completed => "Done",
             HydraHeadInfo.Status.Failed => "Failed", HydraHeadInfo.Status.Stopped => "Stopped" } };
         if (@for.ToolCalls > 0) parts.Add(@for.ToolCalls == 1 ? "1 tool" : $"{@for.ToolCalls} tools");
-        if (@for.FinishedAt is { } end) parts.Add(RelativeTime.Duration(end - @for.StartedAt));
+        if (@for.FinishedAt is { } end) parts.Add(TimelineRows.Duration((end - @for.StartedAt).TotalSeconds));
         return string.Join(" \u00b7 ", parts);
     }
 
@@ -2797,7 +2831,7 @@ public sealed class TodoListRow : Decorator
         header.Children.Add(count);
         column.Children.Add(header);
         var card = TimelineRows.Pill(column, SwiftColor.Quaternary.Opacity(0.32), new Thickness(14));
-        var rows = new List<(StackPanel Row, SwiftImage Icon, TextBlock Text)>();
+        var rows = new List<(TimelineBaselineRow Row, SwiftImage Icon, TextBlock Text)>();
         void Build(TimelineItem.Content content)
         {
             if (content is not TimelineItem.Content.Todos todos || todos.Value.Count == 0) { Child = null; return; }
@@ -2806,7 +2840,7 @@ public sealed class TodoListRow : Decorator
             while (rows.Count > steps.Count) { column.Children.Remove(rows[^1].Row); rows.RemoveAt(rows.Count - 1); }
             while (rows.Count < steps.Count)
             {
-                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                var row = new TimelineBaselineRow { Spacing = 8 };
                 var icon = SwiftImage.SystemName("circle").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout));
                 var text = TimelineRows.ChatText("");
                 row.Children.Add(icon); row.Children.Add(text);
@@ -2835,6 +2869,47 @@ public sealed class TodoListRow : Decorator
     { TodoStep.Status.Pending => "circle", TodoStep.Status.Active => "circle.dotted.circle", TodoStep.Status.Done => "checkmark.circle.fill", _ => throw new UnreachableException() };
 }
 
+// PORT-ONLY: source HStack(alignment: .firstTextBaseline) at :2356, :1959, :1991 and :2389. Give the
+// text the remaining proposed width, and align native text metrics with SwiftImage's ED-182 baseline.
+internal sealed class TimelineBaselineRow : Panel
+{
+    public TimelineBaselineRow() => UseLayoutRounding = false; // Preserve the font's fractional first baseline.
+    public double Spacing { get; init; }
+    private double baseline;
+    private static double Baseline(Control child)
+    {
+        if (child is TextBlock text && text.TextLayout.TextLines.Count != 0) return text.TextLayout.TextLines[0].Baseline;
+        if (child is Decorator { Child: { } inner } wrapper) return wrapper.Padding.Top + Baseline(inner);
+        var offset = TextBlock.GetBaselineOffset(child);
+        return offset > 0 ? offset : child.DesiredSize.Height;
+    }
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var flexible = Children.OfType<TextBlock>().FirstOrDefault();
+        var fixedWidth = Spacing * Math.Max(0, Children.Count - 1);
+        foreach (var child in Children.Where(child => !ReferenceEquals(child, flexible)))
+        { child.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity)); fixedWidth += child.DesiredSize.Width; }
+        flexible?.Measure(new Size(Math.Max(0, availableSize.Width - fixedWidth), double.PositiveInfinity));
+        baseline = Children.Count == 0 ? 0 : Children.Max(Baseline);
+        var height = Children.Count == 0 ? 0 : Children.Max(child => baseline - Baseline(child) + child.DesiredSize.Height);
+        return new Size(fixedWidth + (flexible?.DesiredSize.Width ?? 0), height);
+    }
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var flexible = Children.OfType<TextBlock>().FirstOrDefault();
+        var fixedWidth = Children.Where(child => !ReferenceEquals(child, flexible)).Sum(child => child.DesiredSize.Width)
+            + Spacing * Math.Max(0, Children.Count - 1);
+        var x = 0.0;
+        foreach (var child in Children)
+        {
+            var width = ReferenceEquals(child, flexible) ? Math.Max(0, finalSize.Width - fixedWidth) : child.DesiredSize.Width;
+            child.Arrange(new Rect(x, baseline - Baseline(child), width, child.DesiredSize.Height));
+            x += width + Spacing;
+        }
+        return finalSize;
+    }
+}
+
 /// <summary>:2385-2431 <c>struct NoticeRow: View</c>.</summary>
 public sealed class NoticeRow : Decorator
 {
@@ -2846,7 +2921,7 @@ public sealed class NoticeRow : Decorator
         {
             if (content is not TimelineItem.Content.Notice item) { Child = null; return; }
             var notice = item.Value;
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            var row = new TimelineBaselineRow { Spacing = 8 };
             row.Children.Add(SwiftImage.SystemName(Symbol(notice.NoticeLevel)).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout)).ForegroundStyle(Color(notice.NoticeLevel)));
             var message = new SelectableTextBlock { Text = notice.Message, TextWrapping = TextWrapping.Wrap };
             ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(message);
@@ -2888,10 +2963,7 @@ public sealed class TurnEndRow : Decorator
     // (:2610), both part 1.
     public static string Label(TurnSummary @for)
     {
-        // ED-197 / O-65: Components.Duration is still B2 in this checkout. Call its approved B3 formatter directly.
-        var seconds = Math.Max(0, SwiftNumber.TruncatingToInt(SwiftNumber.Rounded(@for.Duration)));
-        var duration = SwiftFormatters.DurationUnits(seconds,
-            [SwiftFormatters.DurationUnit.Seconds, SwiftFormatters.DurationUnit.Minutes, SwiftFormatters.DurationUnit.Hours], SwiftFormatters.CurrentLocale.Current); // :2449; Components.swift:37-40
+        var duration = TimelineRows.Duration(@for.Duration); // :2449; Components.swift:37-40
         return @for.Status switch // :2450-2454
         {
             TurnStatus.Completed or TurnStatus.Running => "Worked for " + duration,

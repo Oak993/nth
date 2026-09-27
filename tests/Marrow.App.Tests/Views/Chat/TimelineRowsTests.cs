@@ -34,9 +34,8 @@ namespace Marrow.App.Tests.Views.Chat;
 
 // Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B3 52bc792), :1-2859; the file is unchanged from B2 1fbf81e,
 // so B2 and B3 line numbers are the same.
-// Part 1 of 6 (PR-CHAT-020, 036, 077-082, 088-102, 104) plus the AttachmentStrip and AttachmentThumbnail tests
-// (UI-CHAT-009) an earlier merge brought; part 2 of 6 (PR-CHAT-105 to 116, 123, 143 to 153). Sites these parts cannot
-// verify yet are listed in the STOP notes at the end.
+// All six packet parts (134 assigned records), plus the inherited UI-CHAT-009 attachment regressions.
+// Exact sites that cannot yet be implemented or verified are listed in the STOP notes at the end.
 [Collection("Headless")]
 public sealed class TimelineRowsTests(HeadlessSession headless)
 {
@@ -716,8 +715,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
     }
 
-    // Code-only markdown: renders through MarkdownBlockView, so these tests do not depend on the sibling
-    // ProseRunView unit, which is still MARROW_STUB.
+    // Code-only fixture isolates the row from the sibling prose renderer; the report states this coverage boundary.
     private const string CodeOnlyReply = "```\nlet x = 1\n```";
 
     // ---------------------------------------------------------------- AttachmentStrip / AttachmentThumbnail
@@ -4139,7 +4137,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // STOP App.Views.Chat.TimelineRows #1 (part 1, 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:110 (B3 52bc792) `.modifier(ChipChrome())`
-// Requirements: PR-CHAT-078
+// Requirements: PR-CHAT-078; UI-CHAT-008.
 // What is unclear or missing: the quote chips wear ChipChrome (App/Views/Composer/ComposerView.swift:962-970), whose
 // C# Body is still MARROW_STUB in src/Marrow.App/Views/Composer/ComposerView.cs (App.Views.Composer.ComposerView unit).
 // UserMessageRow calls it as written, so a sent message that leads with a quote throws that unit's MARROW_STUB until it
@@ -4153,7 +4151,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:191-196 (B3 52bc792) `.confirmationDialog("Edit from this
 // message?", isPresented: $isConfirmingRevert) { Button("Revert and keep file changes") ...; Button("Revert files too",
 // role: .destructive) ... } message: { Text(...) }`
-// Requirements: PR-CHAT-082 (and PR-GIT-123 in part 3)
+// Requirements: PR-CHAT-082; PR-GIT-123; UI-CHAT-014; UI-GIT-051.
 // What is unclear or missing: the port has no seam for a SwiftUI confirmationDialog. Presentation.Presenter carries
 // popovers (R-VIEW-9) and App/Port/AlertPresenter.cs carries NSAlert.runModal with plain buttons only: neither has a
 // destructive role or the system Cancel a confirmation dialog adds, and no ED or PA says how a confirmation dialog
@@ -4168,11 +4166,11 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Kind: missing dependency
 // Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:2580-2585 (B3 52bc792) `TimelineGroup.build(content,
 // showReasoning: false)`, read when the finished turn is expanded (:2631-2663)
-// Requirements: PR-CHAT-104 (the expanded half)
+// Requirements: PR-CHAT-104 (the expanded half); PR-CHAT-155 (expanded exclusion); UI-CHAT-036; UI-CHAT-059.
 // What is unclear or missing: TimelineGroup.Build is still MARROW_STUB in src/Marrow.App/Views/Chat/ThreadTimeline.cs
 // (App.Views.Chat.ThreadTimeline unit). The expanded card is written as the Swift writes it, but opening a finished
-// turn throws that unit's MARROW_STUB until it lands, so the chevron's opening, the filled 14-point card and its
-// bottom gap are untested.
+// turn throws that unit's MARROW_STUB until it lands, so the chevron's opening and the expanded group contents are
+// untested. A real folded Derived tests the owned 14-point frame and 20-point bottom gap independently.
 // Needed to proceed: unit App.Views.Chat.ThreadTimeline (TimelineGroup.Build).
 // Done so far: the folded turn (header, tooltip, rule, answer selection) is tested above and passes.
 //
