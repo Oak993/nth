@@ -35,8 +35,10 @@ internal sealed class AlertSession(AlertRequest request, Action close)
 {
     private readonly TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool responded;
+    private CancellationTokenRegistration lifetime;
     public Task Completion => completion.Task;
-    public void BindLifetime(CancellationToken token) { _ = token; throw new NotImplementedException("ED-216 lifetime declaration only"); }
+    public bool HasResponded => responded;
+    public void BindLifetime(CancellationToken token) => lifetime = token.Register(() => MainActor.Post(() => Cancel()));
     public void Press(string title) => Press(request.Buttons.First(button => button.Title == title));
     public void Press(AlertButton button)
     {
@@ -52,8 +54,8 @@ internal sealed class AlertSession(AlertRequest request, Action close)
         try { request.Buttons.FirstOrDefault(button => button.Role == AlertButtonRole.Cancel)?.Perform(); }
         finally { if (closeWindow) close(); }
     }
-    public void Closed() => completion.TrySetResult();
-    public void Failed(Exception error) => completion.TrySetException(error);
+    public void Closed() { lifetime.Dispose(); completion.TrySetResult(); }
+    public void Failed(Exception error) { lifetime.Dispose(); completion.TrySetException(error); }
 }
 
 /// <summary>NSAlert.Style's one case this app ever sets (AppUpdater.swift:278).</summary>
@@ -134,10 +136,12 @@ public sealed class WindowsAlertPresenter : IAlertPresenter
         request = AlertPresentation.Prepare(request);
         Avalonia.Controls.Window? window = null;
         var session = new AlertSession(request, () => window?.Close());
+        session.BindLifetime(SwiftTask.CancellationToken);
         MainActor.Post(() =>
         {
             try
             {
+                if (session.HasResponded) { session.Closed(); return; }
                 var desktop = Avalonia.Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime;
                 var owner = request.Owner ?? desktop?.Windows.FirstOrDefault(candidate => candidate.IsActive) ?? desktop?.MainWindow
                     ?? throw new InvalidOperationException("A modal alert requires an owner window.");
