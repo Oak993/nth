@@ -1364,7 +1364,7 @@ register each under its imageset name in SwiftImage's table, following its Conte
 - template-rendering-intent "original" or "template" maps to ImageRenderingMode.Original or Template; an imageset without it
   follows the rule ED-182 already applies.
 A test reads a manifest of every non-tour imageset name at B3, checked in beside the tests, and proves each one resolves to a
-non-empty image with the intent its Contents.json declares. The 8 tour-* screenshots are held back pending an owner ruling: they show
-macOS window controls and "DroppyCode" text, which touches OD-0012 F1. TourView keeps a visible STOP for them until the ruling.
+non-empty image with the intent its Contents.json declares. The 8 tour-* screenshots are held back by OD-0027 (retaken in Marrow on Windows once it runs): they show
+macOS window controls and "DroppyCode" text (OD-0012 F1). TourView keeps a visible STOP naming OD-0027 until the captures exist.
 ENGINEERING DECISION.
 
