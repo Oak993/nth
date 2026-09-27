@@ -84,6 +84,20 @@ public sealed record SwiftTransition
 
     private static readonly ConditionalWeakTable<Control, Attachment> attachments = new();
 
+    // ED-218: collection reconciliation uses the transition's actual panel child (modifier wrapper, if any).
+    internal static bool HasTransition(Control child) => attachments.TryGetValue(child, out _);
+    internal static Control Container(Control child) => attachments.TryGetValue(child, out var state) ? state.Wrapper ?? child : child;
+    internal static void FinishRemoval(Panel panel, Control child)
+    {
+        if (!attachments.TryGetValue(child, out var state)) return;
+        state.Stop(); panel.Children.Remove(state.Wrapper ?? child); state.RemovingFrom = null; state.CompleteRemoval();
+    }
+    internal static void CancelInsertion(Control child)
+    {
+        if (!attachments.TryGetValue(child, out var state)) return;
+        state.Stop(); state.Present(child, 1, inserting: true);
+    }
+
     internal static T Attach<T>(T child, SwiftTransition transition) where T : Control
     {
         attachments.Remove(child);
@@ -103,6 +117,7 @@ public sealed record SwiftTransition
         {
             lingering.Children.Remove(state.Wrapper ?? child);
             state.RemovingFrom = null;
+            state.CompleteRemoval();
         }
         state.Wrapper ??= state.Transition.CreateBody(child, state.Bodies);
         panel.Children.Insert(index, state.Wrapper);
@@ -116,11 +131,15 @@ public sealed record SwiftTransition
         state.Run(animation, (p, _) => state.Present(child, p, inserting: true));
     }
 
-    public static void Remove(Panel panel, Control child)
+    public static void Remove(Panel panel, Control child) => Remove(panel, child, null);
+
+    // ED-218: disposal belongs after removal finishes, including immediate/identity removals.
+    internal static void Remove(Panel panel, Control child, Action? completed)
     {
         // The same `.opacity` default (UNVERIFIED under OD-0001, ED-092) for a child that carries no transition.
         var state = attachments.GetValue(child, _ => new Attachment(Opacity));
         state.Stop();
+        state.RemovalCompleted = completed;
         var wrapper = state.Wrapper ?? child;
         var animation = state.Transition.ForRemove().OwnAnimation() ?? Transaction.Current;
         // A removal half that touches nothing (`.identity`, alone or as the removal half of `.asymmetric`) leaves at
@@ -131,6 +150,7 @@ public sealed record SwiftTransition
         {
             panel.Children.Remove(wrapper);
             state.RemovingFrom = null;
+            state.CompleteRemoval();
             return;
         }
         if (state.Wrapper is null && state.Transition.ModifierCount() > 0)
@@ -144,6 +164,7 @@ public sealed record SwiftTransition
             if (!complete) return;
             if (panel.Children.Contains(wrapper)) panel.Children.Remove(wrapper);
             state.RemovingFrom = null;
+            state.CompleteRemoval();
         });
     }
 
@@ -325,6 +346,8 @@ public sealed record SwiftTransition
         public Control? Wrapper { get; set; }
         public List<Control> Bodies { get; } = [];
         public Panel? RemovingFrom { get; set; }
+        public Action? RemovalCompleted { get; set; }
+        public void CompleteRemoval() { var done = RemovalCompleted; RemovalCompleted = null; done?.Invoke(); }
         private Action<TimeSpan>? callback;
         private IFrameSource? source;
         private double lastProgress;
