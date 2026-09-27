@@ -7200,11 +7200,20 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // Record: UI-SIDEBAR-059 (App/Views/Sidebar/SidebarView.swift:317-325,1064-1076, ED-218 ForEach
     // transitions). A draft test ("Mounted_project_rows_fade_after_the_insertion_delay_and_leave_after_the_short_removal")
     // was found uncommitted in this worktree and reverted: RowNamed(view, "Beta") threw "Sequence contains no
-    // matching element" immediately after model.RemoveProject(beta) at Tick(0), before any fade-out assertion
-    // ran, so the leaving row was not present (or not addressable by that automation-name query) in the visual
-    // tree at that instant. Not established whether ApplyLayout/ApplyRows removes the row synchronously
-    // (a genuine ED-218 gap) or the query itself is wrong; needs production tracing in ViewLifetime.cs
-    // ApplyRows/ApplyLayout against Swift's :317-325 before either a fix or a firm STOP is written.
+    // matching element" immediately after model.RemoveProject(beta) at Tick(0), before any fade-out assertion ran.
+    // A throwaway diagnostic (built, run, then discarded; not committed) isolated the cause: it is NOT that the
+    // row is gone from the tree. Re-querying every SidebarRow's automation name right after
+    // harness.Main.OnMain(() => model.RemoveProject(beta)); Tick(0); still showed "Alpha,Beta,Add project,Settings"
+    // with the ListPanel's three children all at Opacity 1 — i.e. the row list did not react to the removal at
+    // all within that pump (no fade, no removal, no re-render), so RowNamed's failure in the real draft test must
+    // have come from a different scheduling order than this isolated probe used, not from the row being absent.
+    // Two real candidates remain open: (a) SidebarView's Track over Model.Projects/ThreadPlacements does not
+    // register Projects as a dependency the way Model.Threads does (a genuine reactivity gap distinct from
+    // ED-218's transition mechanics), so ApplyList/ApplyEntries never runs on a project-only removal; or (b) it
+    // does react, but only on a later pump this probe did not reach (e.g. requires the same DiskWriter/save
+    // round trip PR-SIDEBAR-126 depends on). Needs tracing ListPassNow/ThreadPlacements/HelpersByParent's actual
+    // reads against Swift's :317-325,1064-1076 dependency set before a fix or a firm STOP is written; not
+    // resolved in this pass.
 
     [Fact]
     [Trait("Req", "UI-SIDEBAR-026")] // App/Views/Sidebar/SidebarView.swift:965-983; UI/Chrome/Popovers.swift:102-157
