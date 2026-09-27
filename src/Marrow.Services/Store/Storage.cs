@@ -126,9 +126,12 @@ public sealed class StorageLocations : IStorageLocations
     /// Core.Support.StoragePathsLocations.CreateProduction.
     /// </summary>
     public static StorageLocations CreateProduction() => new(
-        root: () => SwiftPath.AppendingPathComponent(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Marrow Code"),
-        homeDirectory: () => LoginEnvironment.HomeDirectory,
+        // ED-212: a Debug launch honours MARROW_DEV_DATA_ROOT when it names an existing directory; Release and an
+        // unset/absent variable resolve exactly the special folder, unchanged.
+        root: () => SwiftPath.AppendingPathComponent(DevDataRoot.LocalApplicationData(), "Marrow Code"),
+        // ED-212: the redirect also moves the .marrow-dev/.marrow state directory (worktrees, patches) under the
+        // dev root instead of the real %USERPROFILE%, so a dev launch never touches the user's own home folder.
+        homeDirectory: () => DevDataRoot.IsRedirected ? DevDataRoot.LocalApplicationData() : LoginEnvironment.HomeDirectory,
         isDevelopment: AppInfo.Current.IsDevelopment);
 
     /// <summary>A test's own throwaway roots (R-TEST-9): real folders under MARROW_PORT_DATA_DIR, never production.</summary>

@@ -18,7 +18,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Layout only. A centered stack with MaxWidth 820 and the same paddings in device-independent pixels.",
       "verification_method": "interaction test measuring the composer's content box at several window widths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -83,7 +83,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Conditional slot with the same precedence.",
       "verification_method": "interaction test queueing and draining follow-ups while change stats exist",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -104,7 +104,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Bottom-aligned overlay with matched opacity transitions of 0.32 in and 0.12 out.",
       "verification_method": "capture comparison at three frames of the swap",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -129,7 +129,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared constant of 14, used as a negative stack gap and as extra bottom padding on both tabs. Z-order must put the pill above the tab.",
       "verification_method": "capture comparison of the tab/pill seam",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -154,7 +154,7 @@
       "cancellation": "A new diffRevision cancels the running refresh.",
       "windows_path": "A revision-keyed effect that cancels the previous run. Git invocation per porting/extracts/git-command-vectors.md.",
       "verification_method": "unit test that a revision bump cancels and restarts exactly one refresh",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -230,7 +230,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ordering, same guards.",
       "verification_method": "unit test asserting the write order and the two guards",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -254,7 +254,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Flex row, bottom cross-axis alignment, same paddings.",
       "verification_method": "capture comparison of the empty pill's height",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -274,7 +274,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and radius; the flat panel branch ports exactly. Glass: OD-0005 applies (Acrylic where the window shows the desktop, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, `.interactive()` and container spacing); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so over the desktop the Acrylic branch with the app-drawn scrim applies until the user sets a wallpaper.",
       "verification_method": "capture comparison in the chat and in a head panel, both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -294,7 +294,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Animate the container, not the children, on width change.",
       "verification_method": "capture comparison mid-animation while toggling a panel",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -317,7 +317,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Zero-gap stack with per-child bottom margins.",
       "verification_method": "capture comparison with each combination of chips, attachments and notice",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -446,7 +446,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim string, same precedence.",
       "verification_method": "unit test of the placeholder resolver",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -466,7 +466,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim interpolation of the provider display name.",
       "verification_method": "unit test of the placeholder resolver",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -486,7 +486,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim.",
       "verification_method": "unit test of the placeholder resolver",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -509,7 +509,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim.",
       "verification_method": "unit test of the placeholder resolver",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -557,7 +557,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same ladder. VK_ESCAPE.",
       "verification_method": "interaction test of each rung",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -609,7 +609,7 @@
       "cancellation": "not cancellable",
       "windows_path": "VK_UP / VK_DOWN with the same guards and index arithmetic.",
       "verification_method": "unit test of recall over a scripted prompt list, plus an interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -651,7 +651,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Note that with the list open Tab commits the highlighted item instead (see PR-COMPOSER-045).",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -677,7 +677,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way decision, in the same order.",
       "verification_method": "integration test per branch with the offline agent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -703,7 +703,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compare the stored chord against the Windows equivalent of Command-Return (Ctrl+Enter per the chord mapping); the identity comparison must be against the stored chord, not against the key event.",
       "verification_method": "unit test with the chord at default and rebound",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -804,7 +804,7 @@
       "cancellation": "Each refresh is cancellable and is cancelled by the next keystroke and by losing focus.",
       "windows_path": "One cancellable task at a time, cancelled from both the text-changed and selection-changed notifications.",
       "verification_method": "unit test asserting one surviving refresh per keystroke",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -830,7 +830,7 @@
       "cancellation": "not cancellable by the user",
       "windows_path": "Same guards. Process launch per porting/extracts/provider-argv-and-handshakes.md, with the Windows executable resolution of UNK-0006 for the cmd provider. Executable identity is validated per PA-0016: PATH resolution honours PATHEXT, and a candidate whose Windows version resource identifies it as the command interpreter (CompanyName Microsoft Corporation with OriginalFilename Cmd.Exe/Cmd.Exe.MUI, or FileDescription Windows Command Processor), or which is %SystemRoot%\\System32\\cmd.exe or %SystemRoot%\\SysWOW64\\cmd.exe, is rejected and the provider reports not installed.",
       "verification_method": "integration test with the offline agent counting process launches",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null
     },
@@ -851,7 +851,7 @@
       "cancellation": "The refresh task is cancellable.",
       "windows_path": "UTF-16 code-unit indexing exactly as NSString does, because the replacement range is applied to the same storage.",
       "verification_method": "unit test over words containing emoji and combining marks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -875,7 +875,7 @@
       "cancellation": "The search is cancelled with its task; it also stops scanning early.",
       "windows_path": "Same limit and row shape. Paths are the relative paths the index stores; Windows separators follow porting/port_impacts.md's path handling.",
       "verification_method": "interaction test in a fixture project",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1281,7 +1281,7 @@
       "cancellation": "prepare is cancellable and checks both cancellation and the directory identity before storing.",
       "windows_path": "Same shared cache, same limits. RecentCache is the generational cache of port_impacts entry 117, not an LRU.",
       "verification_method": "unit test with two composers on one directory counting builds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1308,7 +1308,7 @@
       "cancellation": "The build runs in a task that the caller may abandon.",
       "windows_path": "Same skip list and caps. Git invocation per porting/extracts/git-command-vectors.md; hidden-file skipping uses the Windows hidden attribute, and there is no package-descendant concept, so that option has no Windows analogue and is dropped.",
       "verification_method": "unit test over a fixture tree with a node_modules directory and depth 20",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1332,7 +1332,7 @@
       "cancellation": "Every 2048 entries the scan checks cancellation and returns an empty list if cancelled (ComposerView.swift:1194).",
       "windows_path": "Same scoring table and the same tie behavior. The ASCII fast paths (memmem, byte subsequence) are an optimization; the observable result must match the general path, including the carriage-return case that forces the slow path.",
       "verification_method": "unit test of the scorer over a fixture path list",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1358,7 +1358,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Interpolate the same single constant; verbatim strings otherwise.",
       "verification_method": "interaction test dropping nine files onto an empty draft",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1379,7 +1379,7 @@
       "cancellation": "A new notice cancels the pending dismissal.",
       "windows_path": "A keyed, cancellable timer. Note that two identical notices in a row do not restart the timer, because the task key is the string itself.",
       "verification_method": "interaction test with two drops four seconds apart",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1455,7 +1455,7 @@
       "cancellation": "The dialog is cancellable; cancelling is a no-op.",
       "windows_path": "IFileOpenDialog with FOS_ALLOWMULTISELECT, without FOS_PICKFOLDERS, and SetOkButtonLabel(\"Attach\").",
       "verification_method": "interaction test opening and cancelling the dialog",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1552,7 +1552,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same geometry. Icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table).",
       "verification_method": "capture comparison of a four-attachment strip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1574,7 +1574,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same. Do not delete the file on removal; that would diverge from the sweep contract.",
       "verification_method": "interaction test removing an attachment with its preview open",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2021,7 +2021,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "capture comparison and an interaction test of the remove button",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2045,7 +2045,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same excerpt algorithm, counting characters (not UTF-16 units) for the 72 cut, and the same 260 point cap. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "unit test of excerpt over multi-line and long quotes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2088,7 +2088,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same asymmetric padding. The fill resolves per theme from the label colour.",
       "verification_method": "capture comparison in both themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2130,7 +2130,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way condition.",
       "verification_method": "interaction test toggling the usage panel",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2152,7 +2152,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same geometry and threshold.",
       "verification_method": "capture comparison at 0, 0.5, 0.86 and 1.0",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2173,7 +2173,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; the percentage truncates toward zero, it does not round.",
       "verification_method": "unit test of both helpers across the three states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2196,7 +2196,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table). Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test opening the popover and popping it out, plus a restart test for the setting",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2217,7 +2217,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same nil-when-equal rule.",
       "verification_method": "interaction test with a cross-provider pair",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2241,7 +2241,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same size, fills and enablement. Icons follow OD-0010 (SF Symbols map to Lucide through the published symbol-by-symbol table); the replace transition becomes a cross-fade.",
       "verification_method": "capture comparison of the three states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2265,7 +2265,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep all three actions distinct.",
       "verification_method": "integration test comparing the three stop paths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2289,7 +2289,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings; the chord labels render in Windows notation (OD-0008 B7). The chord labels are cached once per process, so a remap within a launch does not change these tooltips; reproduce that.",
       "verification_method": "unit test of helpText across the four states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2315,7 +2315,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings, including the literal \"(Return)\" even where the Windows chord label differs; the source hard-codes this word rather than reading the shortcut store. The queue chord label renders in Windows notation (OD-0008 B7).",
       "verification_method": "unit test across the four combinations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2340,7 +2340,7 @@
       "cancellation": "not cancellable",
       "windows_path": "UI Automation Name property with the same three strings.",
       "verification_method": "accessibility inspection test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2361,7 +2361,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same fraction, clip and fade. One replicated dot-field control per port_impacts X8(c).",
       "verification_method": "capture comparison during a running turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

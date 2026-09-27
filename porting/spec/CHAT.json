@@ -509,7 +509,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Quantize the layout width the same way during a live resize; the exact width must land when the drag ends. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test measuring re-layout count during a simulated drag",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -530,7 +530,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Subtract the equivalent of safe-area insets (the composer inset and any top chrome inset) before quantizing.",
       "verification_method": "unit over the quantization plus an interaction test counting re-renders during a resize",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -550,7 +550,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three-state empty handling (port_impacts.md 136): loading renders nothing, empty renders the prompt, otherwise the timeline.",
       "verification_method": "interaction test with a delayed history load",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -616,7 +616,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the composite id exactly, including both hyphens and the uppercase-hyphenated UUID spelling, because the minimap, the scroll outline and the lazy list all key on it.",
       "verification_method": "unit over a fixture entry list containing a mid-turn note",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -636,7 +636,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same split; a null-turn run never folds.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -657,7 +657,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compute the reply index list from entry kinds only, never from message text: the source records that reading streaming content here made the whole timeline regroup on every token.",
       "verification_method": "unit over fixture sequences",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -679,7 +679,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same extraction and same trailing placement; the heads list stays in view under the turn's response whether the steps are folded or not.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -702,7 +702,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same exclusivity test on the last block.",
       "verification_method": "unit plus interaction test over a full turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -722,7 +722,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact literal, including the trailing hyphen in the null case.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -806,7 +806,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The shared id is what makes the pill morph into the outcome report in place; a different id per state would swap the row and lose the morph.",
       "verification_method": "interaction test across the merge's last frame",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -826,7 +826,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Case-sensitive prefix including the space. Split the first line on newline with maxSplits 1 and omitting empty subsequences, as the source does.",
       "verification_method": "unit with a head note, a Hydra note and a Hydra-prefixed head name",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -868,7 +868,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows needs a stable per-entry identity object (entries are reference types upstream). Key on that identity, never on text, or every streamed token rebuilds the whole conversation.",
       "verification_method": "unit counting builds across a simulated stream",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -892,7 +892,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the fast path and the nil-on-fold bail-out. The invariant to hold is that the tail build equals the full build for every input.",
       "verification_method": "unit: property test asserting tail build equals full build over generated entry sequences",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -935,7 +935,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same limit and same move-to-end-on-hit policy.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -956,7 +956,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Build the table once per timeline pass and hand rows plain values (see PR-CHAT-061).",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1032,7 +1032,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows needs an equivalent scroll anchoring mode that can be switched between bottom-held and top-held per growth event.",
       "verification_method": "interaction test: scroll to the top of a long thread and assert the viewport does not move when history lands",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1054,7 +1054,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows scroll anchoring must be switchable at runtime between these two modes; a fixed CSS overflow-anchor is not sufficient.",
       "verification_method": "interaction test expanding a mid-thread work group while scrolled up",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1076,7 +1076,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows must defer the scroll one frame after growing the window, exactly as the source defers to the main queue, or the scroll resolves against a layout that does not yet contain the target.",
       "verification_method": "interaction test scrubbing to the first tick of a long thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1099,7 +1099,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Use plain opacity and translate only; the source comment forbids a blur here because it would give every timeline row and markdown block its own filter and an offscreen pass each.",
       "verification_method": "capture comparison of a fixture insert, plus a static check that no blur is applied",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1120,7 +1120,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An intersection observer over a one-pixel sentinel is the direct equivalent. The guard that only flips when the two already agree is deliberate and must be kept.",
       "verification_method": "interaction test plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1143,7 +1143,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared constant, used at all five sites.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1163,7 +1163,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Every scroll issued from inside a scroll-geometry callback must be deferred one turn. This is a correctness requirement, not a nicety: the source records an app-killing feedback loop without it.",
       "verification_method": "interaction test folding a long turn while scrolled to its top",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1183,7 +1183,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Snap, do not animate. An animated correction here reads as the timeline fighting the reader. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1203,7 +1203,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the anchor-compensated comparison. The source records that counting wheel ticks only in frames where the content stood still meant a reader's scroll went unrecognised while a turn streamed, the end stayed pinned, and the timeline snapped back under them.",
       "verification_method": "interaction test: wheel-scroll up during a streaming turn and assert the view stays put",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1225,7 +1225,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Only needed where the list virtualizes against a remembered viewport. If the Windows list recomputes visible range from the live scroll offset every frame, this becomes a no-op; say so explicitly rather than porting a dead mechanism.",
       "verification_method": "unit over the drift accumulator plus an interaction test folding a turn under an animation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1249,7 +1249,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Only required where the list virtualizes. The escalation order and the three-attempt cap are part of the contract; an unbounded retry loop is not acceptable.",
       "verification_method": "interaction test forcing a blank viewport",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1269,7 +1269,7 @@
       "cancellation": "Cancelled by a row reporting itself visible, by re-arming, or by the view going away.",
       "windows_path": "A single cancellable timer per timeline.",
       "verification_method": "unit with a fake clock",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1291,7 +1291,7 @@
       "cancellation": "A new phase report cancels the watch.",
       "windows_path": "Windows scroll events differ, but the watchdog is mandatory: any scroll-phase state the port keeps must have an equivalent timeout, with the same 2.0 / 0.4 / 3.0 seconds.",
       "verification_method": "unit with a fake clock plus an interaction test that drops the end event",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1314,7 +1314,7 @@
       "cancellation": "The watch is cancelled when the view disappears (endActivity).",
       "windows_path": "Windows equivalent is disabling pointer events on the list during scroll. The source measures this as a fifth of the main thread's scroll-time work, so it is a performance requirement, not cosmetic.",
       "verification_method": "interaction test: hover a row, wheel-scroll, assert no hover state change until 150 ms after the last tick",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1336,7 +1336,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pass an immutable context object down; do not let rows subscribe to global state.",
       "verification_method": "unit counting row renders when unrelated state changes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1359,7 +1359,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compute once per body (port_impacts.md 276). A per-row lookup into the live turn list would re-render every row on every turn-record write.",
       "verification_method": "interaction test: start a turn and assert every pencil and revert control vanishes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1381,7 +1381,7 @@
       "cancellation": "not cancellable",
       "windows_path": "An intersection observer per block at the same threshold, plus an explicit removal on unmount.",
       "verification_method": "unit over the tracking object",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1403,7 +1403,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Integer division for the middle index, so an even count takes the later of the two middle blocks.",
       "verification_method": "unit over fixture visibility sets",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1425,7 +1425,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the zero-size first-frame case (port_impacts.md 270): show by default, hide only on a real measurement below the threshold, and subtract both reserves before comparing.",
       "verification_method": "interaction test across window widths and docked panels",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2743,7 +2743,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All three conditions, or-ed, in this order.",
       "verification_method": "interaction test opening a mid-thread group while scrolled well up",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2790,7 +2790,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A stable identity object whose callbacks are swapped, not a value re-created per render (port_impacts.md 292).",
       "verification_method": "unit counting row invalidations across timeline updates",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2838,7 +2838,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reasoning is never a row of its own anywhere in the timeline; it exists only behind this chevron.",
       "verification_method": "unit over fixture entries plus an interaction test with the setting off",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2860,7 +2860,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the second mode (port_impacts.md 278); an implementation that only handles the live case leaves split segments rendering as a running turn that never finishes.",
       "verification_method": "interaction test on a thread with a mid-turn Hydra note",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2883,7 +2883,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The id prefix question- is load-bearing for the arrival rule; keep it exactly.",
       "verification_method": "interaction test: scroll up, have a question arrive, assert the timeline jumps to it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2907,7 +2907,7 @@
       "cancellation": "The warm pass is part of the thread task and is cancelled on a thread switch.",
       "windows_path": "Windows must parse off the UI thread and hand back an immutable block list; parsing on the layout pass is what this exists to avoid.",
       "verification_method": "interaction test measuring first-scroll frame times on a long thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2928,7 +2928,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The token comparison is the only way to tell a send from an unattended start; a port without it will yank readers down on every auto-continue.",
       "verification_method": "interaction test for both cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2948,7 +2948,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Defer the scroll one turn; it is issued from a change handler that runs during an update.",
       "verification_method": "interaction test ending a long turn while at the end",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2968,7 +2968,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The last-id watch must include the question badges, which are outside the block list.",
       "verification_method": "interaction test for each of the guards, and for the drop back to 24 blocks past 96",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2990,7 +2990,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The request is a monotonically increasing counter, so two presses in a row both take effect.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3012,7 +3012,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the two request counters separate; merging them would move readers who scrolled up.",
       "verification_method": "interaction test opening the queue tab while scrolled up and while at the end",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3034,7 +3034,7 @@
       "cancellation": "The old thread's tasks are cancelled by their thread-id keys.",
       "windows_path": "The swap must replace in place, never slide or fade: any transition displaces every row, the composer and the chrome mid-flight, clips leading text, unseats the traffic lights and doubles the title against itself.",
       "verification_method": "interaction test switching threads rapidly",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3059,7 +3059,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reading arrival-time settling as a scroll unpins the end and leaves a thread opened at its bottom sitting some way up it; the hold is required.",
       "verification_method": "interaction test switching away mid-flick",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3679,7 +3679,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A single reshaping flag covering window resize, sidebar drag, sidebar slide and terminal divider drag, read by the timeline, the rail and the composer alike. OD-0013: the live-resize edge strip measured by probe P4 (while the pointer moves, the growing edges show the window's own backdrop without the app layer for about a frame and the shrinking edges clip) must be fixed; the main window chrome is not accepted until it is gone, and it is not downgraded to a deviation without the owner.",
       "verification_method": "interaction test resizing the window on a long thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3702,7 +3702,7 @@
       "cancellation": "endActivity withdraws the report unconditionally.",
       "windows_path": "One global scroll-activity signal keyed by timeline, with a reporter identity so a stale report can be withdrawn.",
       "verification_method": "interaction test asserting the shimmer timer stops while scrolling",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3724,7 +3724,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not nest a virtualized list inside a virtualized row.",
       "verification_method": "unit counting partitions and row renders across a simulated stream",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3745,7 +3745,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The chronological flag, always false at B2 (PR-CHAT-125), would change only how the card opens, never where prose belongs.",
       "verification_method": "interaction test on a turn with a mid-turn notice",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3794,7 +3794,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Available as a last resort only; it is destructive to row state, which is why it is the second and not the first repair.",
       "verification_method": "interaction test forcing the short-conversation blank case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3819,7 +3819,7 @@
       "cancellation": "A refresh requested mid-scroll is remembered and run when the scroll ends.",
       "windows_path": "Only needed where the list virtualizes against a remembered viewport; if the Windows list derives its range from the live offset, state that this requirement collapses to a no-op rather than porting the nudge.",
       "verification_method": "interaction test forcing a stale viewport",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4257,7 +4257,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not hard-code \"Earlier steps\" as the finished label without the preceding tool test; the branch order is observable. The appended character is one ellipsis, not three periods.",
       "verification_method": "unit test over the four combinations of hasTools and isRunning, asserting the exact label including the ellipsis character",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4279,7 +4279,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The bar must not be laid out and then hidden in the badge form, because the badge sizes itself to its content and a zero-width bar would still claim a row.",
       "verification_method": "capture comparison with the setting on and off, plus a structural test that no bar is constructed when it is off",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4302,7 +4302,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The empty tooltip and empty hint in the inert state are the source's values, not omissions. Reserving the chevron's slot is the specific mistake the comment records.",
       "verification_method": "capture comparison with and without steps; interaction test asserting the four tooltip and hint values",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4387,7 +4387,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Store the window start as the oldest block's id, not a count or a suffix length, and derive its index from the current block list on every pass.",
       "verification_method": "interaction test: open a long thread, wait for the 24-block window, stream three more blocks and assert the first rendered block id and the pill's hidden count are unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4411,7 +4411,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Compute the fallback on every pass rather than storing it, and leave a stale anchor id in place, exactly as the source does.",
       "verification_method": "unit over the window-start function with a nil anchor, a present anchor and a removed anchor; interaction test opening a two-block thread and streaming two more blocks, asserting the pill appears with 1 hidden",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
