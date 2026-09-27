@@ -255,7 +255,8 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         var header = Assert.Single(Nodes<CollapsibleProviderHeader>(view)); var disclosure = Assert.Single(Nodes<Button>(header)); Assert.Equal(22, disclosure.Height); Assert.Equal("Hide the provider settings", ToolTip.GetTip(disclosure)); Assert.Equal("Expanded", AutomationProperties.GetItemStatus(disclosure)); Assert.Equal("Shows or hides the provider settings", AutomationProperties.GetHelpText(disclosure)); Assert.Equal("Command Code", AutomationProperties.GetName(disclosure));
         Seed(model, ProviderKind.Commandcode, new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/command-code"), ProviderStatusAuth = new ProviderStatus.Auth.SignedOut(), IsChecking = true }); Sync(); Assert.DoesNotContain("Sign in", Text(view)); Assert.DoesNotContain("Install", Text(view));
         Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { IsChecking = false }); Sync(); var login = Row(view, "Sign in"); Assert.Contains("Click here to login again.", Text(login)); Assert.Equal(16, Nodes<TextBlock>(Button(login, "Login")).Single().Height); Assert.True(Button(login, "Login").IsEffectivelyEnabled);
-        // STOP #2: do not invoke the unported terminal launcher.
+        // The Login callback is covered separately through Workspace.Platform by
+        // Provider_login_calls_the_workspace_boundary_with_the_literal_command; no launcher dependency remains.
         Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Assert.DoesNotContain("Sign in", Text(view));
     });
 
