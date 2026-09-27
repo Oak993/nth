@@ -18,6 +18,50 @@ namespace Marrow.App.Tests.Views.Tour;
 public sealed class TourWindowControllerReviewTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Req", "PR-UPDATE-095")] // App/Views/Tour/TourWindowController.swift:117-137,152-179
+    public void Offscreen_sizing_view_uses_real_fonts_spacer_floors_padding_and_custom_button_text() => headless.OnUiThread(() =>
+    {
+        var type = typeof(TourWindowController).Assembly.GetType("Marrow.App.Views.Tour.TourBottomPanelSizingView");
+        Assert.NotNull(type);
+        var page = new TourPage("missing", "A wide title WWWW", "A description that really wraps across several lines at a narrow window width.");
+        var sizing = Assert.IsAssignableFrom<Border>(Activator.CreateInstance(type, page, "Finish the introduction"));
+        Assert.Equal(new Thickness(32,12,32,24), sizing.Padding);
+        var stack = Assert.IsType<StackPanel>(sizing.Child);
+        Assert.Equal(0, stack.Spacing);
+        Assert.Equal(12, Assert.IsType<Border>(stack.Children[0]).Height);
+        Assert.Equal(12, Assert.IsType<Border>(stack.Children[3]).Height);
+        var title = Assert.IsType<TextBlock>(stack.Children[1]);
+        Assert.Equal(page.Title, title.Text); Assert.Equal(28, title.FontSize); Assert.Equal(FontWeight.Bold, title.FontWeight);
+        Assert.Contains("Inter", title.FontFamily.Name, StringComparison.Ordinal);
+        Assert.Equal(TextWrapping.Wrap, title.TextWrapping); Assert.Equal(TextAlignment.Center, title.TextAlignment);
+        var description = Assert.IsType<TextBlock>(stack.Children[2]);
+        Assert.Equal(page.Description, description.Text); Assert.Equal(13, description.FontSize);
+        Assert.Equal(TextWrapping.Wrap, description.TextWrapping); Assert.Equal(new Thickness(0,6,0,0), description.Margin);
+        var frame = Assert.IsType<Border>(stack.Children[4]);
+        Assert.Equal(220,frame.Width); Assert.Equal(42,frame.Height);
+        var button = Assert.IsType<TextBlock>(frame.Child);
+        Assert.Equal("Finish the introduction",button.Text); Assert.Equal(15,button.FontSize); Assert.Equal(FontWeight.SemiBold,button.FontWeight);
+        sizing.Measure(new Size(300,double.PositiveInfinity)); var narrow = sizing.DesiredSize.Height;
+        sizing.Measure(new Size(660,double.PositiveInfinity));
+        Assert.True(narrow > sizing.DesiredSize.Height);
+    });
+
+    [Theory]
+    [InlineData(360)]
+    [InlineData(660)]
+    [InlineData(820)]
+    [Trait("Req", "PR-UPDATE-095")] // App/Views/Tour/TourWindowController.swift:117-137,152-179
+    public void Window_measures_all_pages_at_its_actual_width_with_custom_action_titles(double width) => headless.OnUiThread(() =>
+    {
+        var pages = new[] { new TourPage("missing","Short","Brief."), new TourPage("missing","A title with much wider glyphs WWWWWWWWWWWWWWW",string.Join(" ",Enumerable.Repeat("A long wrapping description",20))) };
+        var expected = Math.Max(Measure(pages[0],"Go onward",width),Measure(pages[1],"Finish this tour",width));
+        var controller = TourWindowController.Shared; controller.Close();
+        var window = controller.Present(pages,width,"Go onward","Finish this tour");
+        try { Assert.Equal(Math.Round(width/TourView.ImageAspectRatio,MidpointRounding.AwayFromZero)+expected,window.Height); }
+        finally { controller.Close(); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-UPDATE-095")] // App/Views/Tour/TourWindowController.swift:37-46,117-137,152-186
     public void Height_measures_real_wrapped_glyphs_and_takes_the_tallest_page() => headless.OnUiThread(() =>
     {

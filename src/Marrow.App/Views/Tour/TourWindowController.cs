@@ -215,26 +215,13 @@ public sealed class TourWindowController
     /// </summary>
     private static double MeasurePanelHeight(TourPage page, string buttonTitle, double width)
     {
-        // :152-186 ED-052: measure the real sizing view, including only the source's
-        // 220x42 text frame (no native button chrome) and the two 12 DIP spacer floors.
-        var title = new TextBlock { Text = page.Title, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
-        SwiftFont.System(28, SwiftFont.Weight.Bold).Apply(title);
-        var description = new TextBlock { Text = page.Description, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 6, 0, 0) };
-        SwiftFont.Body.Apply(description);
-        var label = new TextBlock { Text = buttonTitle };
-        SwiftFont.Title3.FontWeight(SwiftFont.Weight.Semibold).Apply(label);
-        var stack = new StackPanel
-        {
-            Spacing = 0,
-            Children = { new Border { Height = 12 }, title, description, new Border { Height = 12 }, new Border { Width = 220, Height = 42, Child = label } },
-        };
-        var panel = new Border { Padding = new Thickness(32, 12, 32, 24), Child = stack };
+        var panel = new TourBottomPanelSizingView(page, buttonTitle);
         panel.Measure(new Size(width, double.PositiveInfinity));
         return panel.DesiredSize.Height;
     }
 
     /// <summary>
-    /// close() (:167-171): Closes the window and clears references so present() builds fresh next time.
+    /// close() (:139-143): Closes the window and clears references so present() builds fresh next time.
     /// </summary>
     public void Close()
     {
@@ -244,5 +231,28 @@ public sealed class TourWindowController
         }
         window = null;
         windowDelegate = null;
+    }
+}
+
+/// <summary>:152-186. The literal off-screen sizing tree, measured at each requested window width.</summary>
+internal sealed class TourBottomPanelSizingView : Border
+{
+    public TourBottomPanelSizingView(TourPage page, string buttonTitle)
+    {
+        // :152-186 ED-052: measure the real sizing view, including only the source's
+        // 220x42 text frame (no native button chrome) and the two 12 DIP spacer floors.
+        var title = new TextBlock { Text = page.Title, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center };
+        SwiftFont.System(28, SwiftFont.Weight.Bold).Apply(title);
+        var description = new TextBlock { Text = page.Description, TextWrapping = TextWrapping.Wrap, TextAlignment = TextAlignment.Center, Margin = new Thickness(0, 6, 0, 0) };
+        SwiftFont.Body.Apply(description);
+        var label = new TextBlock { Text = buttonTitle, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
+        SwiftFont.Title3.FontWeight(SwiftFont.Weight.Semibold).Apply(label);
+        var stack = new StackPanel
+        {
+            Spacing = 0,
+            Children = { new Border { Height = 12 }, title, description, new Border { Height = 12 }, new Border { Width = 220, Height = 42, Child = label } },
+        };
+        Padding = new Thickness(32, 12, 32, 24);
+        Child = stack;
     }
 }
