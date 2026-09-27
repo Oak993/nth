@@ -146,7 +146,8 @@ public sealed class ThreadRuntimeSweepTests
     // Kind: outside unit scope. Swift: App/Views/Chat/TimelineRows.swift:2385-2431.
     // Records: UI-RUNTIME-001, UI-RUNTIME-003. These own notice ROW geometry, type and colors in TimelineRows.cs,
     // which this prompt explicitly excludes. Runtime CLI notice messages already have dedicated passing tests.
-    // Needed: the TimelineRows chat's rendering implementation and verification; no row change made here.
+    // TimelineRows rendering has since landed in impl/b2. Needed: its owning unit's verification of these
+    // UI records; this runtime sweep supplies no row-geometry proof and claims no completion credit for them.
 
     // Former STOP #2 resolved by the merged Core.Models.Timeline converter, included from impl/b2.
     // Swift: App/Runtime/ThreadRuntime.swift:3696-3706; Core/Models/Timeline.swift:306,329.
