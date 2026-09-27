@@ -358,8 +358,7 @@ public sealed class HydraHeadPopoversTests(HeadlessSession headless)
 
         // 90s -> "1m 30s" (SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours(90L,
         // "1m 30s")): the {seconds, minutes, hours} ICU register Components.swift:37-40 RelativeTime.duration
-        // resolves to (ED-197), not the pre-B3 hand-built "Nm Ss" RelativeTime.Duration in Components.cs still
-        // produces (that migration is tracked separately; this call site bypasses it, see Duration below).
+        // resolves to (ED-197). Components RelativeTime.Duration now uses this same Swift register.
         Assert.Equal(baseText + " \U000000B7 1m 30s", HydraHeadReportPopover.Caption(head));
     }
 
@@ -376,8 +375,7 @@ public sealed class HydraHeadPopoversTests(HeadlessSession headless)
     {
         // Swift: duration(from:to:) reads UI/Common/Components.swift:37-40 RelativeTime.duration, whose register is
         // {seconds, minutes, hours} (ED-197; SwiftFormattersSecondTests.RelativeTime_duration_allows_seconds_minutes_and_hours
-        // is this exact table). RelativeTime.Duration in Components.cs has not itself been migrated onto that
-        // register yet, so this asserts the literal ICU output directly rather than delegating to it.
+        // is this exact table). Assert the literal ICU output independently of the shared formatter.
         using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
 
         var from = new DateTimeOffset(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
@@ -391,18 +389,17 @@ public sealed class HydraHeadPopoversTests(HeadlessSession headless)
     [Trait("Decision", "ED-197")]
     public void Duration_no_longer_matches_the_unmigrated_RelativeTime_Duration_register()
     {
-        // Guards against silently reverting to the pre-B3 hand-built "Nm Ss" register (RelativeTime.Duration,
-        // Components.cs, not yet migrated under ED-197): for an elapsed span whose two registers disagree - 60s is
-        // "1m 0s" in the old register, "1m" (zero unit dropped) in the ICU one - this site must produce the
-        // ICU-backed string, not RelativeTime.Duration's.
+        // Historical test name retained: Components has now closed the formatter migration gap.
+        // Swift HydraHeadPopovers.swift:124-126 delegates to Components.swift:37-40 RelativeTime.duration.
+        // Its narrow units omit the zero seconds unit at 60s, so both paths must produce "1m" (ED-197).
         using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
 
         var from = new DateTimeOffset(2026, 3, 1, 12, 0, 0, TimeSpan.Zero);
         var to = from.AddSeconds(60);
 
         Assert.Equal("1m", HydraHeadReportPopover.Duration(from, to));
-        Assert.Equal("1m 0s", RelativeTime.Duration(to - from)); // the old register, for contrast
-        Assert.NotEqual(RelativeTime.Duration(to - from), HydraHeadReportPopover.Duration(from, to));
+        Assert.Equal("1m", RelativeTime.Duration(to - from));
+        Assert.Equal(RelativeTime.Duration(to - from), HydraHeadReportPopover.Duration(from, to));
     }
 
     [Theory]
