@@ -77,7 +77,7 @@ public sealed class MCPSettingsPageThirdTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-MCP-039")] // App/Views/Settings/MCPSettingsPage.swift:508-515
+    [Trait("Rule", "R-VIEW-11")] // App/Views/Settings/MCPSettingsPage.swift:508-515; UI-MCP-038 font subset
     public void Custom_connecting_label_applies_the_shared_subheadline_font()
     {
         Ui((model, _) =>
@@ -91,6 +91,13 @@ public sealed class MCPSettingsPageThirdTests(HeadlessSession headless)
             Assert.Single(Nodes<WorkingSpinner>(row));
         });
     }
+
+    // STOP App.Views.Settings.MCPSettingsPage #13
+    // Kind: partial record verification. Swift: MCPSettingsPage.swift:508-515. Records: UI-MCP-038.
+    // This regression proves the Connecting label's font, fixed no-wrap text and spinner presence only.
+    // Needed for whole-record acceptance: spacing 6, spinner cellSize 3, source color/fixed sizing and
+    // all state-gating checks in one complete verification. UI-MCP-039 instead names the connected enable
+    // switch (:516-520); its separate existing coverage is retained unchanged below.
 
     [Fact]
     [Trait("Req", "UI-MCP-033")] // App/Views/Settings/MCPSettingsPage.swift:394
