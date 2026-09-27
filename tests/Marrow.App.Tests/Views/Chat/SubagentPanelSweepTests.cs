@@ -220,7 +220,17 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
                 Assert.Single(Descendants<ThreadTimeline>(helper));
                 Assert.Single(Descendants<ComposerArea>(helper));
             }
-            finally { window.Close(); runtime.CancelPersistence(); }
+            finally
+            {
+                window.Close();
+                runtime.CancelPersistence();
+                // ComposerView.swift:216-218,1140-1154: closing cancels the view's prepare, but its
+                // shared build survives. Join it before the fixture deletes this directory so a later
+                // test's two-build limit cannot wait on work left behind by this panel.
+                var preparation = new FileIndex().Prepare(project.Path);
+                HeadlessSession.RunDispatcherUntil(preparation, AppModelHarness.Bound);
+                preparation.GetAwaiter().GetResult();
+            }
         });
     }
 

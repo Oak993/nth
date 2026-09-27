@@ -47,8 +47,25 @@ internal static class ProviderProbeStandIn
         string recorded = Path.Combine(dir, "call-" + call + ".args");
         if (File.Exists(Path.Combine(dir, "wait-for-release.txt")))
         {
-            File.WriteAllBytes(recorded + ".tmp", argv.ToArray());
-            File.Move(recorded + ".tmp", recorded); // The controlled listing publishes only complete argv.
+            // PORT-ONLY fixture synchronization (R-TEST-8): the listing and session warmup are separate
+            // processes. Allocate their call numbers and publish complete argv under one per-folder lock.
+            var identity = Encoding.UTF8.GetBytes(Path.GetFullPath(dir).TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar));
+            string lockName;
+            using (var hash = System.Security.Cryptography.SHA256.Create())
+                lockName = "Local\\MarrowProviderProbe-" + BitConverter.ToString(hash.ComputeHash(identity)).Replace("-", "");
+            using (var recording = new Mutex(false, lockName))
+            {
+                recording.WaitOne();
+                try
+                {
+                    call = 0;
+                    while (File.Exists(Path.Combine(dir, "call-" + call + ".args"))) call++;
+                    recorded = Path.Combine(dir, "call-" + call + ".args");
+                    File.WriteAllBytes(recorded + ".tmp", argv.ToArray());
+                    File.Move(recorded + ".tmp", recorded);
+                }
+                finally { recording.ReleaseMutex(); }
+            }
         }
         else File.WriteAllBytes(recorded, argv.ToArray()); // Existing probe mode stays unchanged.
 
