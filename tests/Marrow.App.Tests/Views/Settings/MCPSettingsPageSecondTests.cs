@@ -21,7 +21,7 @@ namespace Marrow.App.Tests.Views.Settings;
 public sealed class MCPSettingsPageSecondTests(HeadlessSession headless)
 {
     private void Ui(Action<AppModel, TestRuntime> test) => headless.OnUiThread(() => {
-        using var runtime = new TestRuntime(); using var harness = new AppModelHarness(withRuntime: false);
+        using var runtime = new TestRuntime(); using var frames = FrameClock.Source.Override(new ManualFrameSource()); using var harness = new AppModelHarness(withRuntime: false);
         using var scope = Presentation.Presenter.Override(new RecordingPresenter()); var model = new AppModel();
         runtime.OnMain(() => test(model, runtime)); Dispatcher.UIThread.RunJobs();
     });
@@ -95,8 +95,8 @@ public sealed class MCPSettingsPageSecondTests(HeadlessSession headless)
     [Trait("Req", "UI-MCP-019")] // App/Views/Settings/MCPSettingsPage.swift:305-319
     public void Card_has_source_surface_padding_and_header_icon_name_vendor_geometry()
     {
-        Ui((model, _) => { var card = new MCPServerCard(Entry()); using var window = Attach(card, model); var surface = Nodes<Border>(card).Single(x => x.CornerRadius == new CornerRadius(14)); Assert.Equal(new Thickness(14), surface.Padding);
-            var header = Nodes<Grid>(card).Single(); Assert.Equal(10, header.ColumnSpacing); Assert.Equal(26, Assert.Single(Nodes<MCPIcon>(card)).Child!.Width);
+        Ui((model, _) => { var card = new MCPServerCard(Entry()); using var window = Attach(card, model); var surface = Assert.IsType<Border>(Assert.IsType<Panel>(card.Child).Children[0]); Assert.Equal(new Thickness(14), surface.Padding);
+            var header = Nodes<Grid>(card).Single(x => x.Children.OfType<MCPIcon>().Any()); Assert.Equal(10, header.ColumnSpacing); Assert.Equal(26, Assert.Single(Nodes<MCPIcon>(card)).Child!.Width);
             Assert.Equal(FontWeight.SemiBold, Nodes<TextBlock>(card).Single(x => x.Text == "Example").FontWeight);
         });
     }
@@ -133,3 +133,4 @@ public sealed class MCPSettingsPageSecondTests(HeadlessSession headless)
         Ui((model, _) => { State(model,"offline",new MCPConnectionState.Connecting()); foreach(var oauth in new[]{false,true}) { var card=new MCPServerCard(Entry(transport:oauth?new MCPTransport.Oauth("https://example.invalid"):null)); using var window=Attach(card,model); Assert.Single(Nodes<WorkingSpinner>(card)); var text=Nodes<TextBlock>(card).Single(x=>x.Text==(oauth?"Waiting":"Connecting")); Assert.Equal(11,text.FontSize); Assert.Equal(TextWrapping.NoWrap,text.TextWrapping); Assert.DoesNotContain(Nodes<Button>(card), b=>AutomationProperties.GetName(b)=="Cancel"); } });
     }
 }
+
