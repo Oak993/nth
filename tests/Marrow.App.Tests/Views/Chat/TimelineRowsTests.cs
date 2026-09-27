@@ -41,6 +41,130 @@ namespace Marrow.App.Tests.Views.Chat;
 public sealed class TimelineRowsTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Req", "UI-GIT-047")] // App/Views/Chat/TimelineRows.swift:2777-2798
+    public void Git_confirmation_UI_is_close_first_with_default_Revert_pending_only_small_size_STOP_5() => The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts();
+    [Fact]
+    [Trait("Req", "UI-GIT-048")] // App/Views/Chat/TimelineRows.swift:2800-2816
+    public void Git_review_UI_captures_the_clicked_button_only_after_hover() => The_review_control_hands_its_own_anchor_to_the_review_once_the_pointer_has_been_there_and_does_nothing_before();
+    [Fact]
+    [Trait("Req", "UI-GIT-049")] // App/Views/Chat/TimelineRows.swift:130-156
+    public void Git_pencil_UI_prefetches_and_toggles_without_moving_the_message() { Settling_the_pointer_on_the_pencil_starts_the_revert_preview(); The_pencil_opens_the_edit_on_the_runtime_and_a_second_tap_closes_it(); }
+    [Fact]
+    [Trait("Req", "UI-GIT-050")] // App/Views/Chat/TimelineRows.swift:216-228, :172-190
+    public void Git_edit_item_UI_is_third_in_a_new_group_and_posts_only_an_intent() => Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it();
+    [Fact]
+    [Trait("Req", "UI-GIT-051")] // App/Views/Chat/TimelineRows.swift:191-196
+    public void Git_dialog_UI_intent_preserves_the_two_way_revert_site_at_STOP_2() => Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it();
+
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-002")] // App/Views/Chat/TimelineRows.swift:1044-1079
+    public void A_new_merge_stage_keeps_the_sizing_slot_and_replaces_only_the_shimmer_identity()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var motion = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+            HydraMergeRow row = null!; AvaloniaWindow window = null!; Control oldSlot = null!;
+            Control StageSlot(string text)
+            {
+                var shown = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(label => label.Text == text && BrushColor(label.Foreground) == Resolved(ChromeTokens.PrimaryText.Opacity(0.9), label));
+                return shown.GetLogicalAncestors().OfType<Control>().First(parent => parent.GetType().Name == "MorphSlot");
+            }
+            h.Main.OnMain(() => { h.Runtime.IsHydraMerging = true; h.Runtime.HydraMergeStage = HydraMergeStage.Pushing.Words; row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging()); window = Show(row); oldSlot = StageSlot("Pushing the branch\u2026"); });
+            h.Main.OnMain(() => h.Runtime.HydraMergeStage = HydraMergeStage.Opening.Words);
+            h.Main.OnMain(() => { Settle(window); Assert.Same(oldSlot, StageSlot("Opening the merge request\u2026")); Close(window); });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-004")] // App/Views/Chat/TimelineRows.swift:821-841, :844-915, :966-971
+    public void The_track_inherits_Reduce_Motion_and_is_hidden_from_accessibility()
+    {
+        headless.OnUiThread(() => { using var actor = new TestRuntime(); actor.OnMain(() => {
+            var track = new HydraMergeTrack(0, 7, HydraMergeTrack.Mode.Running);
+            var host = new Border { Child = track };
+            EnvironmentValues.SetAccessibilityReduceMotion(host, true);
+            var window = Show(host);
+            var body = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(track));
+            body.AnimatableData = (0.5, (0.5, 0));
+            var mark = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMarkImage>(body));
+            Assert.Equal(0, Canvas.GetTop(mark));
+            Assert.Equal(1, Assert.IsType<ScaleTransform>(mark.RenderTransform).ScaleX);
+            Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(track));
+            Close(window);
+        }); });
+    }
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-005")] // App/Views/Chat/TimelineRows.swift:1099-1120, :1142-1155
+    public void Outcome_title_UI_is_verbatim_one_line_with_a_conditional_secondary_chevron() => An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled();
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-006")] // App/Views/Chat/TimelineRows.swift:1121-1126, :1157-1161
+    public void Merge_Open_UI_is_a_separate_caption_semibold_browser_control() => A_note_that_leads_with_an_address_gets_an_Open_link_beside_the_pill_that_opens_it_in_the_browser();
+
+    [Theory]
+    [InlineData("https://gitlab.com/g/p/-/merge_requests/7\nNo files line.", false)]
+    [InlineData("https://gitlab.com/g/p/-/merge_requests/7\n1 file (+2 \u22121) landed on `main` from `head`.", true)]
+    [InlineData("1 file (+2 \u22121) landed on `main` from `head`.", false)]
+    [Trait("Req", "UI-HYDRAMERGE-007")] // App/Views/Chat/TimelineRows.swift:1111-1120, :607-640
+    public void Outcome_popover_requires_a_leading_request_URL_and_a_parseable_files_line(string body, bool merge)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var presenter = new RecordingPresenter(); using var seam = Presentation.Presenter.Override(presenter);
+            HydraMergeRow row = null!; AvaloniaWindow window = null!;
+            h.Main.OnMain(() => { row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Outcome(new UserMessage { Text = "Hydra opened !7 but could not merge it.\n" + body })); window = Show(row); Click(LogicalQuery.SelfAndDescendants<Button>(row).Single(button => ToolTip.GetTip(button) as string == "Show the message")); });
+            h.Main.OnMain(() =>
+            {
+                var popup = Assert.Single(presenter.Calls, call => call.Presented).Popup;
+                Assert.Equal(PlacementMode.Bottom, popup.Placement);
+                // RecordingPresenter never opens a native popup. Deliver the framework Opened notification so
+                // PlainControls.Popover's real lazy content builder runs, without creating a native window.
+                var opened = Assert.IsAssignableFrom<System.Delegate>(typeof(Popup).GetField("Opened", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(popup));
+                opened.DynamicInvoke(popup, System.EventArgs.Empty);
+                var content = Assert.IsAssignableFrom<Control>(popup.Child);
+                Assert.True(Popovers.GetIsCapsuleButtonBorderShape(content));
+                if (merge) Assert.IsType<HydraMergePopover>(content);
+                else { var report = Assert.IsType<HydraReportPopover>(content); Assert.Equal(460, report.Width); }
+                Close(window);
+            });
+        });
+    }
+
+    [Theory]
+    [InlineData(Notice.Level.Info)]
+    [InlineData(Notice.Level.Warning)]
+    [InlineData(Notice.Level.Error)]
+    [Trait("Req", "UI-RUNTIME-001")] // App/Views/Chat/TimelineRows.swift:2388-2404
+    public void Long_notice_text_wraps_inside_the_row_and_its_symbol_uses_the_first_text_baseline(Notice.Level level)
+    {
+        headless.OnUiThread(() => { using var actor = new TestRuntime(); actor.OnMain(() => {
+            var text = string.Join(" ", Enumerable.Repeat("The source notice stays within its row.", 12));
+            var row = new NoticeRow(NoticeEntry(level, text)) { Width = 300 };
+            var window = Show(row);
+            var label = Assert.Single(LogicalQuery.SelfAndDescendants<SelectableTextBlock>(row));
+            var glyph = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(row));
+            var left = label.TranslatePoint(default, row)!.Value.X;
+            Assert.True(left + label.Bounds.Width <= row.Bounds.Width - (level == Notice.Level.Info ? 0 : 14) + 0.001);
+            Assert.True(label.TextLayout.TextLines.Count > 1);
+            var y1 = glyph.TranslatePoint(default, row)!.Value.Y + TextBlock.GetBaselineOffset(glyph);
+            var y2 = label.TranslatePoint(default, row)!.Value.Y + label.TextLayout.TextLines[0].Baseline;
+            Assert.Equal(y2, y1, 5);
+            Assert.Equal(FontWeight.Normal, label.FontWeight);
+            Close(window);
+        }); });
+    }
+    [Fact]
+    [Trait("Req", "UI-RUNTIME-002")] // App/Views/Chat/TimelineRows.swift:2385-2431
+    public void Runtime_warning_UI_is_a_selectable_theme_warning_pill() => A_warning_or_error_notice_sits_in_a_full_width_pill_tinted_at_ten_percent_of_its_theme_status_colour();
+    [Fact]
+    [Trait("Req", "UI-RUNTIME-003")] // App/Views/Chat/TimelineRows.swift:2385-2431
+    public void Runtime_error_UI_has_the_same_geometry_but_theme_danger() => A_warning_or_error_notice_sits_in_a_full_width_pill_tinted_at_ten_percent_of_its_theme_status_colour();
+    [Fact]
+    [Trait("Req", "UI-RUNTIME-004")] // App/Views/Chat/TimelineRows.swift:2433-2456
+    public void Runtime_end_UI_is_caption_secondary_only_without_a_reply() => The_standalone_turn_end_line_shows_only_when_the_turn_produced_no_reply();
+
+    [Fact]
     [Trait("Req", "UI-CHAT-039")] // App/Views/Chat/TimelineRows.swift:2777-2798
     public void Revert_panel_UI_keeps_300_point_width_16_insets_and_default_Revert() => The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts();
     [Fact]
