@@ -19,6 +19,96 @@ namespace Marrow.UI.Tests.Common;
 
 public sealed class RenderBudgetTests
 {
+    [Theory]
+    [Trait("Req", "PR-WIN-214")] // UI/Common/RenderBudget.swift:93-98
+    [InlineData(true, true, 0.24, 0.55)]
+    [InlineData(true, false, 0.12, 0.55)]
+    [InlineData(false, true, 0.12, 0.42)]
+    [InlineData(false, false, 0.04, 0.42)]
+    public void Review_panel_fill_resolves_the_exact_lift_and_opacity(bool dark, bool hovered, double lift, double opacity)
+    {
+        var theme = dark ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
+        var tint = Marrow.UI.Chrome.Chrome.GlassTint.Resolve(theme);
+        var actual = Marrow.UI.Chrome.Chrome.PanelControlFill(dark, hovered).Resolve(theme);
+        var target = dark ? 255 : 0;
+        Assert.Equal((byte)Math.Round(tint.A * opacity), actual.A);
+        Assert.InRange(actual.R, tint.R * (1 - lift) + target * lift - 1, tint.R * (1 - lift) + target * lift + 1);
+        Assert.InRange(actual.G, tint.G * (1 - lift) + target * lift - 1, tint.G * (1 - lift) + target * lift + 1);
+        Assert.InRange(actual.B, tint.B * (1 - lift) + target * lift - 1, tint.B * (1 - lift) + target * lift + 1);
+    }
+
+    private static object? Watch(ScrollActivity activity) => typeof(ScrollActivity)
+        .GetField("watch", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(activity);
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-263")] // UI/Common/RenderBudget.swift:44-63
+    [Trait("Req", "PR-CHAT-184")] // UI/Common/RenderBudget.swift:44-63
+    public void Review_watchdog_sleeps_then_evicts_resting_reporters_and_restarts()
+    {
+        using var runtime = new TestRuntime();
+        var reporter = new CountingReporter();
+        var activity = runtime.OnMain(() => new ScrollActivity());
+        var id = Guid.NewGuid();
+        runtime.OnMain(() => activity.SetScrolling(true, id, reporter));
+        reporter.Active = false;
+        runtime.AdvanceMilliseconds(1999);
+        runtime.OnMain(() => Assert.True(activity.IsScrolling));
+        Assert.Equal(0, reporter.Reads);
+        runtime.AdvanceMilliseconds(1);
+        runtime.OnMain(() => Assert.False(activity.IsScrolling));
+        Assert.Equal(1, reporter.Reads);
+        Assert.Null(Watch(activity));
+        reporter.Active = true;
+        runtime.OnMain(() => activity.SetScrolling(true, id, reporter));
+        runtime.AdvanceMilliseconds(2000);
+        runtime.OnMain(() => Assert.True(activity.IsScrolling));
+        Assert.Equal(2, reporter.Reads);
+        runtime.OnMain(() => activity.SetScrolling(false, id));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-264")] // UI/Common/RenderBudget.swift:64-67
+    public void Review_explicit_stop_cancels_the_pending_watch()
+    {
+        using var runtime = new TestRuntime();
+        var reporter = new CountingReporter();
+        var activity = runtime.OnMain(() => new ScrollActivity());
+        var id = Guid.NewGuid();
+        runtime.OnMain(() => activity.SetScrolling(true, id, reporter));
+        var watch = Assert.IsType<TaskHandle>(Watch(activity));
+        runtime.OnMain(() => activity.SetScrolling(false, id));
+        Assert.True(watch.IsCancelled);
+        Assert.Null(Watch(activity));
+        runtime.AdvanceMilliseconds(6000);
+        Assert.Equal(0, reporter.Reads);
+        runtime.OnMain(() => Assert.False(activity.IsScrolling));
+    }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static WeakReference<ScrollActivityReporter> ReportTemporary(ScrollActivity activity, Guid id)
+    {
+        var reporter = new CountingReporter();
+        activity.SetScrolling(true, id, reporter);
+        return new WeakReference<ScrollActivityReporter>(reporter);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-262")] // UI/Common/RenderBudget.swift:18-27,49-61
+    [Trait("Req", "PR-CHAT-185")] // UI/Common/RenderBudget.swift:18-27,49-61
+    public void Review_collected_reporter_is_evicted_on_the_next_pass()
+    {
+        using var runtime = new TestRuntime();
+        var activity = runtime.OnMain(() => new ScrollActivity());
+        var weak = runtime.OnMain(() => ReportTemporary(activity, Guid.NewGuid()));
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        Assert.False(weak.TryGetTarget(out _));
+        runtime.AdvanceMilliseconds(2000);
+        runtime.OnMain(() => Assert.False(activity.IsScrolling));
+        Assert.Null(Watch(activity));
+    }
+
     [Fact]
     [Trait("Req", "PR-CHAT-184")] // Union of timelines
     [Trait("Req", "PR-SETTINGS-260")] // Scrolling is the union over reporting timelines

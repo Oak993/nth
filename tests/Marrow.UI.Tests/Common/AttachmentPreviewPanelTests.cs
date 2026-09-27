@@ -34,6 +34,31 @@ namespace Marrow.UI.Tests.Common;
 [Collection("Headless")]
 public sealed class AttachmentPreviewPanelTests(HeadlessSession headless)
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-COMPOSER-071")] // UI/Common/AttachmentPreviewPanel.swift:160-201 application-wide monitors, pointer passes through, Escape consumed
+    public void Review_other_application_window_dismisses_the_panel(bool escape) => headless.OnUiThread(() =>
+    {
+        var recorder = new PopoverRecorder(); using var seam = Presentation.Presenter.Override(recorder);
+        var strip = new Border { Width = 100, Height = 40 };
+        var window = Show(strip); var other = Show(new Border { Width = 100, Height = 100 });
+        var panel = new AttachmentPreviewCoordinator(); panel.SetAnchor(strip); panel.Toggle(Sample()); Dispatcher.UIThread.RunJobs();
+        Assert.True(Assert.Single(recorder.Calls).Presented);
+        if (escape)
+        {
+            var key = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape };
+            other.RaiseEvent(key); Assert.True(key.Handled);
+        }
+        else
+        {
+            var presses = 0;
+            other.AddHandler(InputElement.PointerPressedEvent, (_, e) => { Assert.False(e.Handled); presses++; });
+            Click(other, new Point(10, 10)); Assert.Equal(1, presses);
+        }
+        Assert.False(recorder.Calls[^1].Presented);
+        panel.Close(); window.Close(); other.Close(); Dispatcher.UIThread.RunJobs();
+    });
     private static Window Show(Control content, double width = 400, double height = 300)
     {
         content.HorizontalAlignment = HorizontalAlignment.Left;

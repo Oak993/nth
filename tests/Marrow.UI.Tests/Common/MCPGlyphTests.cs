@@ -1,5 +1,9 @@
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Shapes;
+using Avalonia.Media;
+using Avalonia.Styling;
+using Avalonia.VisualTree;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
@@ -14,6 +18,55 @@ namespace Marrow.UI.Tests.Common;
 [Collection("Headless")]
 public sealed class MCPGlyphTests(HeadlessSession headlessSession)
 {
+    [Theory]
+    [InlineData(false, 12.0, null, false)]
+    [InlineData(true, 20.0, ToolCall.Status.Failed, false)]
+    [InlineData(true, 40.0, ToolCall.Status.Declined, false)]
+    [InlineData(false, 20.0, ToolCall.Status.Completed, false)]
+    [InlineData(true, 12.0, ToolCall.Status.Failed, true)]
+    [InlineData(false, 40.0, ToolCall.Status.Declined, true)]
+    [Trait("Req", "UI-MCP-092")] // UI/Common/MCPGlyph.swift:12-32,36-58 ring uses unconditional brand color
+    public void Review_actual_glyph_ring_badge_geometry_colors_and_transition(bool mono, double size, ToolCall.Status? status, bool dark) => headlessSession.OnUiThread(() =>
+    {
+        var entry = new MCPCatalogEntry("review", "Review", "Vendor", "", MCPCategory.Developer, "xcode", 0x125AC7,
+            new MCPTransport.Stdio("echo", ValueList<string>.Empty), "https://example.com") { IsMonochrome = mono };
+        var glyph = new MCPGlyph(entry, size, isRunning: true, status);
+        var scope = new ThemeVariantScope { RequestedThemeVariant = dark ? ThemeVariant.Dark : ThemeVariant.Light, Child = glyph };
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var root = Assert.IsType<Panel>(glyph.Child); Assert.Equal(size, root.Width); Assert.Equal(size, root.Height);
+        var ring = Assert.Single(glyph.GetVisualDescendants().OfType<HydraBreathRingView>());
+        Assert.Equal(SwiftColor.Rgb(0x125AC7).Opacity(0.55).Resolve(ring.ActualThemeVariant), ring.StrokeColor.Resolve(ring.ActualThemeVariant));
+        Assert.Equal(1.5, ring.StrokeWidth); Assert.False(ring.IsHitTestVisible);
+        var image = glyph.GetVisualDescendants().OfType<SwiftImage>().Single(i => i.AssetName is not null);
+        Assert.Equal(size, image.Width); Assert.Equal(size, image.Height);
+        Assert.Equal(ImageRenderingMode.Template, image.EffectiveRenderingMode); Assert.Equal(ContentMode.Fit, image.AspectContentMode);
+        var expectedGlyph = mono ? Marrow.UI.Chrome.Chrome.PrimaryText : SwiftColor.Rgb(0x125AC7);
+        Assert.Equal(expectedGlyph.Resolve(image.ActualThemeVariant), ((ISolidColorBrush)image.Foreground!).Color);
+        var ellipses = glyph.GetVisualDescendants().OfType<Ellipse>().ToArray();
+        if (status is not (ToolCall.Status.Failed or ToolCall.Status.Declined)) { Assert.Empty(ellipses); return; }
+        var diameter = Math.Max(8, size * 0.5);
+        var disc = Assert.Single(ellipses, e => e.StrokeThickness == 0);
+        Assert.Equal(diameter, disc.Width); Assert.Equal(diameter, disc.Height);
+        var expectedDisc = status == ToolCall.Status.Failed ? Marrow.UI.Chrome.Chrome.Danger : Marrow.UI.Chrome.Chrome.Warning;
+        Assert.Equal(expectedDisc.Resolve(disc.ActualThemeVariant), ((ISolidColorBrush)disc.Fill!).Color);
+        var outline = Assert.Single(ellipses, e => e.StrokeThickness > 0);
+        Assert.Equal(Math.Max(1, diameter * 0.12), outline.StrokeThickness);
+        var expectedBorder = dark ? SwiftColor.Black.Opacity(0.55) : SwiftColor.White.Opacity(0.95); // :54 colorScheme
+        Assert.Equal(expectedBorder.Resolve(outline.ActualThemeVariant), ((ISolidColorBrush)outline.Stroke!).Color);
+        var badge = Assert.IsAssignableFrom<Control>(disc.GetVisualParent()!.GetVisualParent());
+        var translate = Assert.IsType<TranslateTransform>(badge.RenderTransform);
+        Assert.Equal(diameter * 0.3, translate.X); Assert.Equal(diameter * 0.3, translate.Y);
+        var symbol = glyph.GetVisualDescendants().OfType<SwiftImage>().Single(i => i.SymbolName is not null);
+        Assert.Equal(status == ToolCall.Status.Failed ? "xmark" : "hand.raised.slash", symbol.SymbolName);
+        Assert.Equal(diameter * 0.55, SwiftImage.GetFont(symbol)!.PointSize);
+        Assert.Equal(800, (int)SwiftImage.GetFont(symbol)!.Resolve().FontWeight);
+        var table = typeof(SwiftTransition).GetField("attachments", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.GetValue(null)!;
+        var args = new object?[] { badge, null };
+        Assert.True((bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table, args)!);
+        Assert.Equal(SwiftTransition.Scale().Combined(SwiftTransition.Opacity), args[1]!.GetType().GetProperty("Transition")!.GetValue(args[1]));
+        Assert.Equal("Review tool", AutomationProperties.GetName(glyph));
+        Assert.Empty(new MCPGlyph(entry).GetVisualDescendants().OfType<HydraBreathRingView>());
+    });
     /// <summary>
     /// An MCP catalog entry is displayed as a square icon at the requested size (default 20 points),
     /// resized as a template with the entry's brand colour (or Chrome.primaryText if monochrome).

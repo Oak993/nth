@@ -12,7 +12,7 @@ using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Settings/HydraCookbookPanel.swift (B3 52bc7926), :1-134.
+// Source: DroppyCode/App/Views/Settings/HydraCookbookPanel.swift (B3 52bc792), :1-134.
 // The resolve logic itself (isReady/provider(for:)/missingProvider/resolve/model(named:)/version(of:)) is
 // DroppyCode/App/HydraCookbook+Resolve.swift:1-69, not yet its own unit; ported here as a private static class
 // since nothing else in the tree calls it yet (R-FILE-1 would give it its own twin once another caller exists).
@@ -260,8 +260,8 @@ public sealed class HydraCookbookRow : Decorator
     }
 }
 
-// PORT-ONLY: DroppyCode/App/HydraCookbook+Resolve.swift:1-69, the resolve logic HydraCookbookPanel needs. Not its
-// own unit yet, since no other caller is in the tree; ports here until one is.
+// DroppyCode/App/HydraCookbook+Resolve.swift:1-69. Compatibility helpers used by this panel;
+// equal-version models retain their original registry order (:55-58).
 internal static class HydraCookbookResolve
 {
     // :8-10 static func isReady(_ provider:registry:settings:) -> Bool
@@ -328,7 +328,7 @@ internal static class HydraCookbookResolve
                 if (lhsVersion != rhsVersion) return lhsVersion > rhsVersion ? lhs : rhs;
                 var lhsIndex = options.ToList().FindIndex(option => option.Id == lhs.Id);
                 var rhsIndex = options.ToList().FindIndex(option => option.Id == rhs.Id);
-                return lhsIndex > rhsIndex ? lhs : rhs;
+                return lhsIndex < rhsIndex ? lhs : rhs;
             });
         }
         return null;
