@@ -1,10 +1,11 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
 
 namespace Marrow.Core.Models;
 
-// Source: DroppyCode/Core/Models/TokenSpend.swift (B2 1fbf81e), :1-66.
+// Source: DroppyCode/Core/Models/TokenSpend.swift (B3 52bc792), :1-66.
 //
 // PR-USAGE-087: totalTokens is the only authoritative amount an event is responsible for (one request or one
 // turn's consumption), never a context window's occupancy (ContextUsage carries that separately, :3-9).
@@ -14,6 +15,7 @@ namespace Marrow.Core.Models;
 // callers that aggregate TokenSpend values must honor them.
 
 // :15-66
+[JsonConverter(typeof(TokenSpend.Converter))]
 public sealed record TokenSpend
 {
     public ProviderKind Provider { get; init; }     // :16
@@ -50,6 +52,31 @@ public sealed record TokenSpend
 
     // :49-52 private static func sum(_:_:). Nil-propagating: either side missing gives nil, never treated as 0.
     private static long? Sum(long? lhs, long? rhs) => lhs is { } l && rhs is { } r ? l + r : null;
+
+    // :15-22 synthesized encode(to:): declaration order, encodeIfPresent for every Optional.
+    public static void Write(Utf8JsonWriter writer, TokenSpend value)
+    {
+        writer.WriteStartObject();
+        writer.WriteString("provider", SwiftEnum<ProviderKind>.RawValue(value.Provider));
+        writer.WriteNumber("totalTokens", value.TotalTokens);
+        if (value.InputTokens is { } input) writer.WriteNumber("inputTokens", input);
+        if (value.OutputTokens is { } output) writer.WriteNumber("outputTokens", output);
+        if (value.CachedInputTokens is { } cached) writer.WriteNumber("cachedInputTokens", cached);
+        if (value.Model is { } model) writer.WriteString("model", model);
+        if (value.AgentID is { } agent) writer.WriteString("agentID", agent);
+        writer.WriteEndObject();
+    }
+
+    // :15 Codable routes ordinary persistence through the same writer and lenient custom decoder.
+    public sealed class Converter : JsonConverter<TokenSpend>
+    {
+        public override TokenSpend Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            using var document = JsonDocument.ParseValue(ref reader);
+            return Decode(document.RootElement);
+        }
+        public override void Write(Utf8JsonWriter writer, TokenSpend value, JsonSerializerOptions options) => TokenSpend.Write(writer, value);
+    }
 
     // :56-65 init(from decoder:). Read field by field, so a record written by a build that knew fewer of
     // these fields still reads as the observation it was (PR-USAGE-086). provider is required and strictly

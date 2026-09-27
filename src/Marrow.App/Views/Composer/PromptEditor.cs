@@ -22,7 +22,7 @@ namespace Marrow.App.Views.Composer;
 
 using Chrome = Marrow.UI.Chrome.Chrome;
 
-// Source: DroppyCode/App/Views/Composer/PromptEditor.swift (B2 1fbf81e), :1-280.
+// Source: DroppyCode/App/Views/Composer/PromptEditor.swift (B3 52bc792), :1-280.
 
 /// <summary>:8-129 <c>struct PromptEditor&lt;Extra: View, Actions: View&gt;: View</c>.</summary>
 public sealed class PromptEditor : Decorator
@@ -158,8 +158,6 @@ public sealed class PromptEditor : Decorator
         ToolTip.SetTip(addButtonControl, "Add files"); // :85
         AutomationProperties.SetName(addButtonControl, "Add files"); // :86
         addButtonControl.IsEnabled = attachments.Value.Count < Storage.AttachmentLimit; // :87
-        if (ThemeManager.Spec.Accent is { } tint) // :210 raw optional accent
-            addButtonControl.Foreground = tint.Brush(addButtonControl);
         addButtonControl.Click += (_, _) => ToggleFilesPopover(attachments); // :79-80
         Grid.SetColumn(addButtonControl, 0);
         row.Children.Add(Chrome.ChromeGlassCircle(addButtonControl)); // :84
@@ -229,24 +227,13 @@ public sealed class PromptEditor : Decorator
     // :117-124 private func chooseFiles()
     private void ChooseFiles(Binding<ValueList<Attachment>> attachments)
     {
-        var topLevel = TopLevel.GetTopLevel(this);
-        if (topLevel?.StorageProvider is not { } storageProvider) return;
-
         MainActor.Spawn(async () =>
         {
-            var files = await storageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
-            {
-                AllowMultiple = true,
-                Title = "Attach",
-            });
-            var sources = new List<AttachmentSource>();
-            foreach (var file in files)
-            {
-                if (file.TryGetLocalPath() is { } path)
-                    sources.Add(new AttachmentSource.File(path));
-            }
-
-            AttachAndRefresh(sources, attachments);
+            // :118-123 The shared native OpenPanel adapter maps prompt to IFileDialog.SetOkButtonLabel.
+            var paths = await Marrow.App.Port.ComposerFileDialog.Current.Current.Choose(
+                TopLevel.GetTopLevel(this) as Avalonia.Controls.Window, true, false, "Attach");
+            if (paths is null) return;
+            AttachAndRefresh(paths.Select(path => (AttachmentSource)new AttachmentSource.File(path)).ToList(), attachments);
         });
     }
 
@@ -339,6 +326,7 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
     private Avalonia.Controls.Window? monitorWindow;
     private int generation;
     private bool popupSized;
+    private bool presented; // :176-216 shown state across the R-VIEW-9 presenter
 
     // :165-167 func setAnchor(_ view: NSView)
     public void SetAnchor(Control view)
@@ -363,7 +351,7 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
         }
 
         var hasAnchor = anchor?.Value is { } view && TopLevel.GetTopLevel(view) is not null || anchorRect is not null;
-        if (shownPopup?.IsOpen == true || !hasAnchor) return;
+        if (presented || shownPopup?.IsOpen == true || !hasAnchor) return;
 
         var currentGeneration = generation;
         MainActor.Spawn(() =>
@@ -378,14 +366,17 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
     public void Close()
     {
         StopMonitors();
-        if (shownPopup is { IsOpen: true } popup)
+        if (shownPopup is { } popup && (presented || popup.IsOpen))
+        {
+            presented = false;
             Presentation.Presenter.Current.SetPresented(popup, false);
+        }
     }
 
     // :193-216 private func show(_:dismiss:content:)
     private void Show(PromptEdit edit, Action dismiss, Func<PromptEdit, TContent> content)
     {
-        if (shownPopup?.IsOpen == true) return;
+        if (presented || shownPopup?.IsOpen == true) return;
 
         Control target;
         Rect targetRect;
@@ -406,10 +397,12 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
 
         this.dismiss = dismiss;
         var host = content(edit);
+        Marrow.UI.Chrome.Popovers.PresentedChrome(host); // :209-210 capsule button shape and raw optional accent on the whole hosted tree
         var popup = shownPopup;
         if (popup is null)
         {
             popup = new Popup { IsLightDismissEnabled = false };
+            popup.Closed += (_, _) => presented = false;
             popup.LayoutUpdated += (_, _) =>
             {
                 if (popup.Child is { } currentContent)
@@ -423,6 +416,7 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
         popup.Placement = PlacementMode.Bottom;
         popup.Child = host;
         ResizeToContent(popup, host, initial: true);
+        presented = true;
         Presentation.Presenter.Current.SetPresented(popup, true);
         StartMonitors(target);
     }
@@ -444,6 +438,7 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
         }
 
         if (Math.Abs(popup.Height - size.Height) <= 0.5) return;
+        popup.Width = size.Width; // :226 contentSize follows both dimensions after a qualifying height change
         popup.Height = size.Height;
     }
 

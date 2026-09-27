@@ -7,12 +7,101 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
+using Marrow.App.Runtime;
+using Marrow.App.Port;
+using Marrow.Testing;
+using Marrow.UI.Chrome;
+using Marrow.UI.Theme;
+using Avalonia.Input;
+using Avalonia.Headless;
+using Avalonia.Threading;
+using System.Reflection;
 
 namespace Marrow.App.Tests.Views.Composer;
 
 [Collection("Headless")]
 public sealed class PromptEditorTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "PR-THEME-042")] // App/Views/Composer/PromptEditor.swift:209-210
+    [Trait("Req", "PR-COMPOSER-181")] // App/Views/Composer/PromptEditor.swift:176-216
+    [Trait("Req", "PR-COMPOSER-182")] // App/Views/Composer/PromptEditor.swift:218-279
+    public void Review_popover_applies_chrome_resizes_and_dismisses_with_pass_through() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var previousTheme = ThemeManager.Current;
+        ThemeManager.Current = AppTheme.Dracula;
+        try
+        {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var anchor = new Border { Width = 40, Height = 30, Background = Brushes.Transparent, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var window = new Avalonia.Controls.Window { Width = 600, Height = 300, Content = anchor };
+        window.Show(); Dispatcher.UIThread.RunJobs();
+        var popover = new PromptEditorPopover<Border>();
+        popover.SetAnchor(anchor);
+        var host = new Border { Width = 400, Height = 100, UseLayoutRounding = false };
+        var edit = runtime.OnMain(() => new PromptEdit(Guid.NewGuid(), "hello", ValueList<Attachment>.Empty));
+        var dismissed = 0;
+        runtime.OnMain(() => popover.Sync(edit, () => dismissed++, _ => host));
+        var popup = Assert.Single(presenter.Calls).Popup;
+        Assert.True(Popovers.GetIsCapsuleButtonBorderShape(host));
+        Assert.Equal(ThemeManager.Spec.Accent?.Resolve(Avalonia.Styling.ThemeVariant.Light), Popovers.GetTint(host)?.Resolve(Avalonia.Styling.ThemeVariant.Light));
+        Assert.False(popup.IsLightDismissEnabled);
+        Assert.Equal(400, popup.Width); Assert.Equal(100, popup.Height);
+        var resize = typeof(PromptEditorPopover<Border>).GetMethod("ResizeToContent", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        host.Height = 100.4;
+        resize.Invoke(popover, [popup, host, false]); Assert.Equal(100, popup.Height);
+        host.Height = 102; host.Width = 410;
+        resize.Invoke(popover, [popup, host, false]); Assert.Equal(102, popup.Height); Assert.Equal(410, popup.Width);
+        window.MouseDown(new Point(10, 10), MouseButton.Left); window.MouseUp(new Point(10, 10), MouseButton.Left);
+        Assert.Equal(0, dismissed);
+        window.MouseDown(new Point(100, 100), MouseButton.Left); window.MouseUp(new Point(100, 100), MouseButton.Left);
+        Assert.Equal(1, dismissed);
+        var other = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.A };
+        window.RaiseEvent(other); Assert.False(other.Handled);
+        var escape = new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Escape };
+        window.RaiseEvent(escape); Assert.True(escape.Handled); Assert.Equal(2, dismissed);
+        runtime.OnMain(popover.Close);
+        Assert.False(presenter.Calls[^1].Presented);
+        window.Close(); Dispatcher.UIThread.RunJobs();
+        }
+        finally { ThemeManager.Current = previousTheme; }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-181")] // App/Views/Composer/PromptEditor.swift:177-190 generation invalidates deferred show
+    public void Review_cancelled_deferred_show_never_presents() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var anchor = new Border(); var window = new Avalonia.Controls.Window { Content = anchor }; window.Show();
+        var popover = new PromptEditorPopover<Border>(); popover.SetAnchor(anchor);
+        runtime.OnMain(() =>
+        {
+            var edit = new PromptEdit(Guid.NewGuid(), "hello", ValueList<Attachment>.Empty);
+            popover.Sync(edit, () => { }, _ => new Border { Width = 400, Height = 100 });
+            popover.Sync(null, () => { }, _ => new Border());
+        });
+        Assert.Empty(presenter.Calls);
+        window.Close(); Dispatcher.UIThread.RunJobs();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-179")] // App/Views/Composer/PromptEditor.swift:117-124 prompt is the approve-button label
+    public void Review_file_dialog_receives_Attach_as_its_approve_caption() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var probe = new ComposerDialogProbe();
+        using var seam = ComposerFileDialog.Current.Override(probe);
+        var editor = MakeEditor("Edit message", "hello", []);
+        runtime.OnMain(() => typeof(PromptEditor).GetMethod("ChooseFiles", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .Invoke(editor, [Binding<ValueList<Attachment>>.Constant(ValueList<Attachment>.Empty)]));
+        Assert.Equal((true, false, "Attach"), probe.Options);
+        Dispatcher.UIThread.RunJobs();
+    });
+
     [Fact]
     [Trait("Req", "PR-COMPOSER-176")] // App/Views/Composer/PromptEditor.swift:56-61,99-100
     [Trait("Req", "UI-COMPOSER-057")] // App/Views/Composer/PromptEditor.swift:56-61,99-100

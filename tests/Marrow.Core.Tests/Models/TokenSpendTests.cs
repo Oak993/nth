@@ -13,6 +13,33 @@ namespace Marrow.Core.Tests.Models;
 // totalTokens unconditionally and sums each optional breakdown only when both sides carry a value).
 public sealed class TokenSpendTests
 {
+    // STOP Core.Models.TokenSpend #1
+    // Kind: caller outside assigned units
+    // Swift: Core/Models/Timeline.swift:306 synthesized TurnRecord Codable; TokenSpend.swift:15-22
+    // Records: PR-USAGE-086
+    // Missing: Timeline.cs's TurnRecord converter still omits tokenSpends, independently of TokenSpend's writer.
+    // Needed: Timeline unit must wire its property to this now-tested Codable writer/decoder; it is outside GROUP2.
+    // Done: standalone TokenSpend serialization and Write round trips; no claim about thread-document round trips.
+    [Theory]
+    [InlineData(false, "{\"provider\":\"claude\",\"totalTokens\":1200}")]
+    [InlineData(true, "{\"provider\":\"claude\",\"totalTokens\":1200,\"inputTokens\":800,\"outputTokens\":300,\"cachedInputTokens\":100,\"model\":\"opus\",\"agentID\":\"head-1\"}")]
+    [Trait("Req", "PR-USAGE-086")] // Core/Models/TokenSpend.swift:15-22 synthesized Codable writes seven names in declaration order, omitting nil
+    public void Review_encoder_round_trips_exact_fields_and_omits_nil(bool populated, string expected)
+    {
+        var spend = populated ? new TokenSpend(ProviderKind.Claude, 1200, 800, 300, 100, "opus", "head-1") : new TokenSpend(ProviderKind.Claude, 1200);
+        var method = typeof(TokenSpend).GetMethod("Write", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static);
+        Assert.NotNull(method);
+        using var stream = new MemoryStream();
+        using (var writer = new Utf8JsonWriter(stream)) { method.Invoke(null, [writer, spend]); }
+        using var encoded = JsonDocument.Parse(stream.ToArray());
+        var bytes = SwiftJson.Write(encoded.RootElement, SwiftJsonStyle.PlainEncoder);
+        Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(bytes));
+        using var json = JsonDocument.Parse(bytes);
+        Assert.Equal(spend, TokenSpend.Decode(json.RootElement));
+        var persisted = SwiftJson.Write(JsonSerializer.SerializeToElement(spend), SwiftJsonStyle.PlainEncoder);
+        Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(persisted));
+        Assert.Equal(spend, JsonSerializer.Deserialize<TokenSpend>(persisted));
+    }
     [Trait("Req", "PR-USAGE-086")] // Core/Models/TokenSpend.swift:15-22,:56-65
     [Fact]
     public void Decode_reads_all_seven_fields_by_their_exact_names_when_present()
