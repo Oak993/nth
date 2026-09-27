@@ -43,9 +43,8 @@ using Marrow.UI.Theme;
 // View mechanics without an Avalonia counterpart of the same shape (a plain Button and TextField, `.background`,
 // `.onHover`, `.popover`, `.fixedSize`, a font on any view, an animated colour) are in Port/PlainControls.cs.
 // Settled by the orchestrator's run4 ruling on this unit's stops: Image(systemName:) and Image(_:) are SwiftImage
-// (ED-179, ED-182; OD-0010 Lucide icons); every glass site records its source-defined material as data on the layer it
-// draws (SwiftGlass, ED-180; `// MARROW_DEFERRED ED-180` at each site: the app-drawn material and the .interactive()
-// press response); every `.continuous` shape goes through SwiftShapes (ED-181; its curve is MARROW_DEFERRED there).
+// (ED-179, ED-182; OD-0010 Lucide icons); SwiftGlass draws the app-owned material with the source's shape, tint and
+// interaction data; `.continuous` border geometry remains under SwiftShapes/ED-181.
 
 namespace Marrow.UI.Chrome
 {
@@ -281,10 +280,7 @@ namespace Marrow.UI.Chrome
                 else
                 {
                     // :179-182 `.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3))[.interactive()], in: shape)`.
-                    // The tint is drawn here over whatever material lies below: over the desktop that is the window's
-                    // Acrylic (OD-0005, ADR-0002 Glass (a)); the material itself is recorded as data (ED-180).
-                    // MARROW_DEFERRED ED-180: the app-drawn material over a wallpaper or the solid base, and the
-                    // .interactive() press response.
+                    // SwiftGlass draws the material before this source tint layer (OD-0005).
                     var glass = GlassEffect.Regular(glassShape).Tint(Chrome.GlassTint, 0.3);
                     SwiftGlass.SetEffect(fill, IsInteractive ? glass.Interactive() : glass); // :180 interactive, :182 not
                     paint.Set(Chrome.GlassTint.Opacity(0.3), animation);
@@ -383,8 +379,7 @@ namespace Marrow.UI.Chrome
         private static Border Shape() => new Border().RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);
 
         // `shape.fill(.clear).glassEffect(in: shape)` (:243-245, :252-254): the default glass, no tint, no .interactive()
-        // and no container, recorded as data on a clear layer of the shape (ED-180).
-        // MARROW_DEFERRED ED-180: the app-drawn material where the app draws its own backdrop (OD-0005, ADR-0002 Glass (b)).
+        // and no container, drawn over the app-owned backdrop (OD-0005, ADR-0002 Glass (b)).
         private static Border GlassLayer()
         {
             var layer = Shape();
@@ -419,7 +414,7 @@ namespace Marrow.UI.Chrome
             if (wallpaperOverlay is { } overlay)
             {
                 // :241-247 `.overlay { if !isSolid { ... } }`
-                if (!isSolid && overlay.Children.Count == 0) overlay.Children.Add(GlassLayer()); // MARROW_DEFERRED ED-180
+                if (!isSolid && overlay.Children.Count == 0) overlay.Children.Add(GlassLayer());
                 else if (isSolid && overlay.Children.Count != 0) overlay.Children.Clear();
             }
         }
@@ -435,7 +430,7 @@ namespace Marrow.UI.Chrome
             clip.Child = picture; // :233 .overlay
             // :241-247 `.overlay { if !isSolid { shape.fill(.clear).glassEffect(in: shape) } }`: over the picture the app
             // draws its own backdrop, where OD-0005 calls for the app-drawn material (ADR-0002 Glass (b)); Draw lays the
-            // glass layer (GlassLayer, MARROW_DEFERRED ED-180) in this overlay while the setting is below 0.98.
+            // glass layer (GlassLayer) in this overlay while the setting is below 0.98.
             wallpaperOverlay = new Panel();
             return new Panel { Children = { clip, wallpaperOverlay } }.Transition(SwiftTransition.Opacity); // :248 .transition(.opacity)
         }
@@ -458,10 +453,12 @@ namespace Marrow.UI.Chrome
             wallpaperOverlay = null;
             // :252-254 `shape.fill(.clear).glassEffect(in: shape)`: with no wallpaper the window shows the desktop, and
             // there the glass is the window's own Acrylic (OD-0005, ADR-0002 Glass (a), OD-0014), so the app paints
-            // nothing under the scrim; the glass is recorded as data on a clear layer (GlassLayer, ED-180).
+            // the source scrim over native Acrylic, with no desktop sampling or app frost on the window base.
             scrim = Shape();
             scrim.Background = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Brush(scrim); // :256-257
-            return new Panel { Children = { GlassLayer(), scrim } }; // :255 .overlay; MARROW_DEFERRED ED-180 (GlassLayer)
+            var desktopGlass = GlassLayer();
+            SwiftGlass.SetUsesDesktopBackdrop(desktopGlass, true); // OD-0014 keeps upstream's clear default.
+            return new Panel { Children = { desktopGlass, scrim } }; // :255 .overlay
         }
     }
 

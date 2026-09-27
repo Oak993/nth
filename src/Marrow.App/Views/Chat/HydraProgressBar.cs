@@ -103,8 +103,16 @@ public sealed class HydraProgressBar : Decorator
             IsHitTestVisible = false,
             IsVisible = false,
         };
-        card.Background = Chrome.PanelControlFill(
-            ActualThemeVariant == ThemeVariant.Dark).Brush(card);
+        // :571-577 A second glass inside a panel is a flat control fill; otherwise this card samples app content.
+        void DrawCardSurface()
+        {
+            var onGlass = RenderBudget.GetIsOnGlassPanel(this);
+            card.Background = onGlass ? Chrome.PanelControlFill(ActualThemeVariant == ThemeVariant.Dark).Brush(card) : null;
+            SwiftGlass.SetEffect(card, onGlass ? null : GlassEffect.Regular(GlassShape.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous)));
+        }
+        DrawCardSurface();
+        ActualThemeVariantChanged += (_, _) => DrawCardSurface();
+        PropertyChanged += (_, e) => { if (e.Property == RenderBudget.IsOnGlassPanelProperty) DrawCardSurface(); };
 
         overlay = new Grid();
         overlay.Children.Add(bar);
@@ -733,13 +741,17 @@ public sealed class HydraElapsedTime : Decorator
 internal sealed record ProgressCardSurface(bool IsOnGlassPanel, bool IsDark)
 {
     // :571-578
-    public Control Body(Control content) =>
-        new Border
+    public Control Body(Control content)
+    {
+        var surface = new Border
         {
             CornerRadius = new CornerRadius(Chrome.CardCornerRadius),
             Child = content,
-            Background = Chrome.PanelControlFill(IsDark).Brush(content),
+            Background = IsOnGlassPanel ? Chrome.PanelControlFill(IsDark).Brush(content) : null,
         };
+        if (!IsOnGlassPanel) SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous)));
+        return surface;
+    }
 }
 
 /// <summary>:581-603 <c>@MainActor @Observable final class SweepBudget</c> (R-OBS-6).</summary>

@@ -102,10 +102,10 @@ public sealed class ComposerArea : Decorator
         stack.Children.Add(layers);
         approvalStack = stack;
 
-        // :23 GlassEffectContainer(spacing: 8). MARROW_DEFERRED ED-180: the container's glass merging at spacing 8 has
-        // no drawn material yet; its children record their own glass (SwiftGlass).
+        // :23 GlassEffectContainer(spacing: 8), independent of the VStack's layout spacing.
         // :52 .frame(maxWidth: 820): at most 820 wide, centred in the room the padding leaves.
         var container = new Decorator { Child = stack, MaxWidth = 820 };
+        SwiftGlass.SetContainerSpacing(container, 8);
         // :53-55 .padding(.horizontal, 20).padding(.bottom, 14).frame(maxWidth: .infinity)
         Child = new Border { Child = container, Padding = new Thickness(20, 0, 20, 14) };
 
@@ -2151,9 +2151,7 @@ internal sealed record ComposerSurface
             }
             else
             {
-                // :1304 content.glassEffect(.regular, in: shape). The material is recorded as data on the layer (ED-180);
-                // over the desktop the window's Acrylic lies under it (OD-0005, OD-0014).
-                // MARROW_DEFERRED ED-180: the app-drawn glass material.
+                // :1304 content.glassEffect(.regular, in: shape), sampling app-owned content (OD-0005).
                 shape.Background = null;
                 shape.ClipToBounds = false;
                 SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous)));

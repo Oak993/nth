@@ -511,12 +511,13 @@ public sealed class TimelineMinimapRail : Decorator
             content.Children.Add(snippet);
         }
 
-        var card = new ChromeCard(() => new Border
+        var card = new Border
         {
             Width = CardWidth,
             Padding = new Thickness(12, 10),
             Child = content,
-        });
+        }.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous);
+        SwiftGlass.SetEffect(card, GlassEffect.Regular(GlassShape.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous))); // :324
         card.Width = CardWidth;
         card.Margin = new Thickness(34, 0, 0, 0);
         card.HorizontalAlignment = HorizontalAlignment.Left;
