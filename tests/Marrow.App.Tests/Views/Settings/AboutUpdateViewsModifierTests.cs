@@ -103,9 +103,9 @@ public sealed class AboutUpdateViewsModifierTests(HeadlessSession headless)
             else
             {
                 Assert.Equal((byte)0, brush.Color.A);
-                frames.Advance(TimeSpan.FromMilliseconds(90)); Dispatcher.UIThread.RunJobs();
+                runtime.Time.Advance(TimeSpan.FromMilliseconds(90)); frames.Advance(TimeSpan.FromMilliseconds(90)); Dispatcher.UIThread.RunJobs();
                 Assert.InRange(brush.Color.A, (byte)24, (byte)27); // symmetric easeInOut is halfway at .09/.18 => .1 alpha.
-                frames.Advance(TimeSpan.FromMilliseconds(90)); Dispatcher.UIThread.RunJobs();
+                runtime.Time.Advance(TimeSpan.FromMilliseconds(90)); frames.Advance(TimeSpan.FromMilliseconds(90)); Dispatcher.UIThread.RunJobs();
                 Assert.InRange(brush.Color.A, (byte)50, (byte)52);
             }
             window.Close();
