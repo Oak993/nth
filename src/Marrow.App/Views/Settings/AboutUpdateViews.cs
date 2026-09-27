@@ -319,7 +319,7 @@ public sealed class UpdateReleaseSectionCards : Decorator
             var button = BuildCard(category, section);
             var popover = new Popup
             {
-                Placement = PlacementMode.Bottom,
+                Placement = PlacementMode.Top, // :244 arrowEdge: .top, the arrow on the card's top edge (popover above it)
                 PlacementTarget = button,
                 IsLightDismissEnabled = true,
             };
@@ -415,6 +415,7 @@ public sealed class UpdateReleaseSectionCards : Decorator
         ToolTip.SetTip(button, section is null
             ? "Nothing here"
             : $"Every change in {category.SectionTitle.ToLowerInvariant()}");
+        ToolTip.SetShowOnDisabled(button, true); // :237-239 the .disabled absent card still shows its .help("Nothing here")
         AutomationProperties.SetName(button, category.SectionTitle);
         return button;
     }
@@ -1120,22 +1121,28 @@ internal sealed class AboutVersionPill : Decorator
         };
         button.Click += (_, _) =>
         {
-            if (snapshot.UpdateAvailable && snapshot.Update is { } update &&
-                snapshot.Phase is UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed)
+            // :639 `guard let update = checker.update, isReady` reads the live checker and progress when the click
+            // lands (:581-583 isReady), not the snapshot this face was built from.
+            if (checker.Update is { } update && checker.UpdateAvailable && !progress.ShowsProgressUI)
                 AppUpdater.Shared.Install(update);
         };
         button.IsHitTestVisible = isReady;
         button.Focusable = isReady;
         button.HorizontalAlignment = HorizontalAlignment.Stretch;
-        ToolTip.SetTip(button, isReady
-            ? $"Installs Marrow {snapshot.Update?.Version ?? string.Empty} and relaunches"
-            : StandingHelp(snapshot, standing));
         AutomationProperties.SetName(button, isReady
             ? "Update & restart"
             : $"Marrow {AppInfo.Current.Version}, {Title(standing).ToLowerInvariant()}");
         // STOP opencode-proofs-aboutupdate #3 UI-UPDATE-005: glass press response awaits F.GlassMaterial;
         // ED-180 currently stores the interactive flag and material metadata, without rendering the response.
-        return button.ChromeGlassCapsule();
+        var glass = button.ChromeGlassCapsule();
+        // :674-680 `.help` is applied after `.allowsHitTesting(isReady)` and `.chromeGlassCapsule()`, and :676-677 says
+        // the seal still says what it means: the tooltip belongs to the whole capsule, which takes the hover even while
+        // the button takes no hits. It does nothing with a press, so a standing stays inert.
+        var tipHost = new Border { Background = Brushes.Transparent, Child = glass };
+        ToolTip.SetTip(tipHost, isReady
+            ? $"Installs Marrow {snapshot.Update?.Version ?? string.Empty} and relaunches"
+            : StandingHelp(snapshot, standing));
+        return tipHost;
     }
 
     private sealed class PillButton(bool ready) : Button

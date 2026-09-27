@@ -74,7 +74,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
                 var button = Assert.Single(pill.GetVisualDescendants().OfType<Button>());
                 Assert.False(button.IsHitTestVisible);
                 Assert.False(button.Focusable);
-                Assert.Equal(help, ToolTip.GetTip(button));
+                Assert.Equal(help, ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680 .help outside .allowsHitTesting
                 Assert.Equal("Marrow 1.7.0, " + label.ToLowerInvariant(), AutomationProperties.GetName(button));
                 var title = Assert.Single(pill.GetVisualDescendants().OfType<TextBlock>());
                 Assert.Equal(label, title.Text); Assert.Equal(12, title.FontSize); Assert.Equal(FontWeight.SemiBold, title.FontWeight);
@@ -105,7 +105,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
                 var button = Assert.Single(pill.GetVisualDescendants().OfType<Button>());
                 Assert.True(button.IsHitTestVisible); Assert.True(button.Focusable);
                 Assert.Equal("Update & restart", AutomationProperties.GetName(button));
-                Assert.Equal("Installs Marrow 9.0.0 and relaunches", ToolTip.GetTip(button));
+                Assert.Equal("Installs Marrow 9.0.0 and relaunches", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680
                 Assert.Contains(pill.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "Update & restart");
                 Assert.Contains(pill.GetVisualDescendants().OfType<SwiftImage>(), image => image.SymbolName == "arrow.down.circle.fill");
                 Assert.Contains(pill.GetVisualDescendants().OfType<Border>(), border => border.Background is ISolidColorBrush brush && brush.Color.A is >= 50 and <= 52);

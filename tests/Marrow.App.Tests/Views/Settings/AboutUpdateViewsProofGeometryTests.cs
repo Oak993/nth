@@ -136,7 +136,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
             Assert.Equal((ready ? new SwiftColor(0.040, 0.478, 1.000) : Chrome.PrimaryText).Resolve(title.ActualThemeVariant), ColorOf(title.Foreground));
             Assert.Equal(new SwiftColor(0.040, 0.478, 1.000).Opacity(ready ? 0.2 : 0).Resolve(face.ActualThemeVariant), ColorOf(face.Background));
             Assert.Equal(ready, button.IsHitTestVisible); Assert.Equal(ready, button.Focusable);
-            Assert.Equal(help, ToolTip.GetTip(button));
+            Assert.Equal(help, ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680 .help outside .allowsHitTesting: the capsule owns the tip
             Assert.Equal(ready ? "Update & restart" : "Marrow 1.7.0, " + text.ToLowerInvariant(), AutomationProperties.GetName(button));
             var peer = ControlAutomationPeer.CreatePeerForElement(button)!;
             Assert.Equal(ready ? AutomationControlType.Button : AutomationControlType.Text, peer.GetAutomationControlType());

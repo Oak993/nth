@@ -289,15 +289,13 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
     private const double QuarterProgress = 0.129162;
     private const double ThreeQuarterProgress = 0.870838;
 
-    private static void AssertMix(SwiftColor from, SwiftColor to, double progress, IBrush? brush, ThemeVariantHost host)
+    private static void AssertMix(SwiftColor from, SwiftColor to, double progress, IBrush? brush, Avalonia.Styling.ThemeVariant theme)
     {
-        var a = from.Resolve(host.Theme); var b = to.Resolve(host.Theme);
+        var a = from.Resolve(theme); var b = to.Resolve(theme);
         var actual = Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color;
         static void Channel(byte x, byte y, double p, byte got) => Assert.InRange(got, (int)Math.Round(x + (y - x) * p) - 1, (int)Math.Round(x + (y - x) * p) + 1);
         Channel(a.A, b.A, progress, actual.A); Channel(a.R, b.R, progress, actual.R); Channel(a.G, b.G, progress, actual.G); Channel(a.B, b.B, progress, actual.B);
     }
-
-    private readonly record struct ThemeVariantHost(Avalonia.Styling.ThemeVariant Theme);
 
     // Swift :643-671: while ready the symbol and the title take Chrome.blue and the capsule a Chrome.blue.opacity(0.2) wash;
     // otherwise the standing tint, the primary title and no wash. :671 animates every one of these on an isReady change
@@ -332,7 +330,7 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
         runtime.OnMain(() =>
         {
             Dispatcher.UIThread.RunJobs();
-            var (face, icon, title) = Parts(); var theme = new ThemeVariantHost(face.ActualThemeVariant);
+            var (face, icon, title) = Parts(); var theme = face.ActualThemeVariant;
             Assert.Equal("Update & restart", title.Text);
             Advance(45); // a quarter of 0.18 s
             AssertMix(blue.Opacity(0), blue.Opacity(0.2), QuarterProgress, face.Background, theme);
@@ -350,7 +348,7 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
         runtime.OnMain(() =>
         {
             Dispatcher.UIThread.RunJobs();
-            var (face, icon, title) = Parts(); var theme = new ThemeVariantHost(face.ActualThemeVariant);
+            var (face, icon, title) = Parts(); var theme = face.ActualThemeVariant;
             Assert.Equal("Not checked yet", title.Text);
             Advance(45);
             AssertMix(blue.Opacity(0.2), blue.Opacity(0), QuarterProgress, face.Background, theme);

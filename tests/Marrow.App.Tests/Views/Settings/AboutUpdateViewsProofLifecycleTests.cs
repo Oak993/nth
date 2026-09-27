@@ -75,7 +75,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
             Assert.Contains(row.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "No update feed is set. " + stamp);
             Assert.Contains(pill.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Check failed");
             var button = Assert.Single(pill.GetVisualDescendants().OfType<Button>());
-            Assert.Equal("No update feed is set.", ToolTip.GetTip(button)); Assert.Equal("Marrow 1.7.0, check failed", AutomationProperties.GetName(button));
+            Assert.Equal("No update feed is set.", ToolTip.GetTip(Assert.Single(pill.GetVisualDescendants().OfType<Control>(), c => ToolTip.GetTip(c) is not null))); // :674-680 Assert.Equal("Marrow 1.7.0, check failed", AutomationProperties.GetName(button));
             window.Close();
         });
         // Positive control: same production checker does reach the HTTP observer for a real loopback request.
