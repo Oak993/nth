@@ -21,8 +21,10 @@ namespace Marrow.App.Port;
 //   equivalent Shortcuts.swift:80-101 gives that code (6), and the modifiers held, Win masked out (3). AltGr reaches
 //   Avalonia as Ctrl+Alt and reads as those two here; no decision says otherwise yet: STOP App.AppCommands #7 in
 //   tests/Marrow.App.Tests/AppCommandsTests.cs.
-// - Nothing in the app calls Attach yet. Its call site replaces DroppyCodeApp.swift:24, the menu bar's install, on each
-//   window WindowManager builds (WindowManager.cs, still a stub): STOP App.AppCommands #6.
+// - Its call sites replace DroppyCodeApp.swift:24, the menu bar's install, on each window of the app that can be key:
+//   WindowManager.MakeWindow (the main and Settings windows) and TourWindowController.Present (the tour window). The
+//   floating guide panels never take activation (FloatingGuidePanel.cs, ED-063), so a key pressed while one is up goes
+//   to the app window that is active and meets the dispatch there. STOP App.AppCommands #6 (resolved by fix/shortcuts).
 
 /// <summary>
 /// One item of a SwiftUI <c>Commands</c> body: <c>Button(Title) { Action() }.keyboardShortcut(Shortcut)

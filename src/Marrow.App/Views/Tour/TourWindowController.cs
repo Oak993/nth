@@ -9,6 +9,8 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using AvaloniaWindow = Avalonia.Controls.Window;
+using Marrow.App.Port;
+using Marrow.App.Window;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 
@@ -170,6 +172,12 @@ public sealed class TourWindowController
         });
         windowDelegate = del;
         createdWindow.Closed += (s, e) => del.OnClose();
+
+        // PORT-ONLY (OD-0008 C3): this window can become key (:8-11, :110), and while it is key the menu bar of
+        // DroppyCodeApp.swift:21-25, `AppCommands(model: WindowManager.shared.model)`, answers its key equivalents. With no
+        // menu bar the window carries the port's dispatch of those chords (Port/MenuKeyEquivalents.cs), the command table
+        // read afresh at each key-down, as WindowManager.MakeWindow does for the main and Settings windows.
+        _ = MenuKeyEquivalents.Attach(createdWindow, shortcut => new AppCommands(WindowManager.Shared.Model).PerformKeyEquivalent(shortcut));
 
         createdWindow.Show();
         createdWindow.Activate();

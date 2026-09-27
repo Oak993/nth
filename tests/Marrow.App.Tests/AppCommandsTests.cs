@@ -184,7 +184,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
                 var rebound = new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Alt);
                 ShortcutStore.Shared.Current.Set(rebound, AppShortcut.ShowMainWindow);
                 var commands = new AppCommands(launch.Manager.Model);
-                // Test-owned attachment only: production installation is still STOP #6.
+                // Test-owned attachment on top of the one WindowManager.MakeWindow installs (STOP #6, resolved); the
+                // later registration runs first in the tunnel, and either one runs the same command.
                 using var attached = MenuKeyEquivalents.Attach(settings, commands.PerformKeyEquivalent);
                 Press(settings, Key.Y, PhysicalKey.Y, RawInputModifiers.Control | RawInputModifiers.Alt);
                 Assert.Same(main, LaunchHarness.WindowOf(launch.MainContent));
@@ -2741,6 +2742,12 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // tests' own windows (green); nothing attaches them to a window of the running app.
 // Fixes: PR-WIN-090 now also has a real palette-row action test; PR-WIN-092 has a Settings-focused
 // window test with test-owned dispatch. Both were writable; production attachment remains missing.
+// Resolved (fix/shortcuts, 2026-09-27, base 6afbddb9f), reading (a) with the tour window added: WindowManager.MakeWindow
+// attaches the dispatch to the main and Settings windows it makes, and TourWindowController.Present to the tour window
+// (TourWindowController.swift:8-11 canBecomeKey, :110 makeKeyAndOrderFront). The floating guide panels never take
+// activation in the port (FloatingGuidePanel.cs, ED-063), so they are never key and need no attach. Tested above
+// through the production windows with a real key-down (the three tests under "STOP #6"), green. No ED records the
+// install site yet; the orchestrator is asked to record one.
 
 // STOP App.AppCommands #7 (repair agent, 2026-09-26)
 // Kind: platform gap
