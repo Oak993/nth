@@ -44,8 +44,26 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
         AppEnvironment.SetWindowLiveResize(host, new WindowLiveResize(new AvaloniaWindow()));
         var window = new AvaloniaWindow { Content = host };
         if (theme is { } variant) window.RequestedThemeVariant = variant;
-        window.Show();
+        ShowOnMain(harness, window);
         return (host, window);
+    }
+
+    // UsagePanel.swift:9 reads AppModel from @Environment and :71-78 refreshes plan limits and credits in .onAppear,
+    // on the main actor. Marrow.App binds the main actor to the Avalonia UI thread (MainActor.cs:5); the harness runs
+    // it on its own loop instead, so the window is shown inside harness.Main.OnMain, after every CLI provider is
+    // pointed at a missing no-cli.exe so no refresh can find a real CLI: the UsagePanelTests.Show convention. The
+    // refresh re-renders the limits view, so the dispatcher is then drained (as ComponentsCallerTests.Show does) and
+    // the layout it queued runs now, not in the headless session's teardown after the app's fonts are gone.
+    private static void ShowOnMain(AppModelHarness harness, AvaloniaWindow window)
+    {
+        var model = AppEnvironment.GetAppModel((Control)window.Content!);
+        harness.Main.OnMain(() =>
+        {
+            foreach (var kind in Marrow.Core.Port.SwiftEnum<ProviderKind>.AllCases)
+                if (!kind.IsAPIKeyBased) model.Settings.SetBinaryPath(System.IO.Path.Combine(harness.Scratch, "no-cli.exe"), kind);
+        });
+        harness.Main.OnMain(() => window.Show());
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
     }
 
     private static string AllText(Control control)
@@ -452,7 +470,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             var liveResize = new WindowLiveResize(new AvaloniaWindow());
             AppEnvironment.SetWindowLiveResize(host, liveResize);
             var window = new AvaloniaWindow { Content = host };
-            window.Show();
+            ShowOnMain(harness, window); // Showing attaches UsagePanel, whose refresh needs the main actor (see ShowOnMain).
 
             Assert.Same(liveResize, AppEnvironment.GetWindowLiveResize(panel));
         });

@@ -7674,7 +7674,7 @@
       "cancellation": "Each request has its own 15 second timeout.",
       "windows_path": "PLATFORM BOUNDARY. The key sort must be ordinal. The file is read directly from the CLI's own config directory and the app never writes it. The read, and the requests that carry Pi's tokens to the Anthropic and Codex usage endpoints (PR-PROVCLI-314, PR-PROVCLI-315), are reproduced as upstream: BLK-0007 is RESOLVED by OD-0008 (decision batch A7, \"Keep as upstream (it is how the plan-limit feature works)\"), ruling: \"REPRODUCE UPSTREAM: plan limits read each CLI's own credential file and query that provider's usage endpoint exactly as the source does. Parity, owner-approved.\" Treated identically to PR-PROVREG-177, PR-PROVREG-121 and PR-PROVCLI-255.",
       "verification_method": "unit test over an expired token, a non-oauth entry, an unknown provider key and two live ones",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null
@@ -7699,7 +7699,7 @@
       "cancellation": "The 15 second timeout.",
       "windows_path": "Network only.",
       "verification_method": "unit test against a recorded response with and without a subscription_type",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null
@@ -7725,7 +7725,7 @@
       "cancellation": "The 15 second timeout.",
       "windows_path": "Base64 decoding must be strict about the padding rule described; a decoder that rejects unpadded input would break the header. No credential is ever written anywhere.",
       "verification_method": "unit test over a token with and without the claim, plus a recorded usage response",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null,
       "blocked_by": null
@@ -7747,7 +7747,7 @@
       "cancellation": "not cancellable",
       "windows_path": "None.",
       "verification_method": "unit test over both reset shapes, a sub-minute window and a missing percent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },

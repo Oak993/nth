@@ -298,38 +298,5 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
         (TValue)instance.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.Public)!.Invoke(instance, arguments)!;
 }
 
-// STOP App.Views.Chat.TimelineMinimap #1 (helper Claude, 2026-09-26)
-// Kind: test bugs found and fixed (not implementation bugs); one documented, non-blocking implementation gap.
-// Swift: DroppyCode/App/Views/Chat/TimelineMinimap.swift, whole file
-// This unit's GPT-6 Luna first pass (codex/App.Views.Chat.TimelineMinimap, unreviewed) was otherwise a clean,
-// complete implementation (0 MARROW_STUB, no declared types dropped, unlike this session's App.Views.Composer.
-// EffortSlider finding). Reviewing it against the packet and running its own test file surfaced:
-//   - Rail_metrics_..., Hit_area_..., Pointer_y_...: MinimapRailMetrics.TopInset for centeringHeight=100, count=3
-//     is 39 (independently re-derived twice from :396-411's own formula: (100 - (6 + 2*8)) / 2 = 39), not the
-//     tests' original 34 - a hand-arithmetic error in the test file, not the implementation, which already computed
-//     39 correctly. Every downstream assertion built on that wrong 34 (CenterY, HitRect's height, EntryID's y=45
-//     boundary) was corrected to match the re-derived 39, with the derivation left in a comment at each site.
-//   - Preview_flattens_whitespace_...: the test expected snippet "first second" for message "first\n\tsecond", but
-//     that message's title (FirstWords) and its preview (flattened whitespace) are both exactly "first second", so
-//     :46-51's own "snippet.isEmpty || snippet == title ? \"\" : snippet" rule (PR-CHAT-067's own "identical to the
-//     title is dropped") correctly suppresses it to "" - the test's expectation was checked against the wrong rule.
-//   - Four tests (`Tick_width_...`, `Preview_card_height_...`, `Equal_column_inputs_...`, `The_outline_is_named_...`)
-//     either constructed `TestRuntime` outside `headless.OnUiThread` (leaking its ambient executor binding into
-//     that dispatch, "MainActor already bound") or never wrapped in `headless.OnUiThread` at all (missing the
-//     headless Avalonia Application `Chrome.Accent`/`SwiftColor.Resolve` needs, "system accent needs a running
-//     Avalonia application") - both are the same TestRuntime/OnUiThread-ordering pattern this session has found
-//     repeatedly in other units; fixed by constructing TestRuntime inside the OnUiThread lambda in every case.
-//   - `Tick_width_...`'s "expanded" sub-case reflected a field named "state" that does not exist on
-//     TimelineMinimapRail (the real field is a plain private bool `isPressing`), so it silently did nothing;
-//     rewritten to reflect the real field and assert the actual expanded-width behaviour (:293-295).
-// Not fixed, documented instead (ENGINEERING GAP, not a defect to route around): PR-CHAT-073's static per-state
-// tick colours/opacities (accent when selected, 0.95 hovered, 0.25/0.4 baseOpacity) are implemented and correct,
-// but the 0.22s smooth-curve animation between states (:198-202, suppressed during a live resize or reduced
-// motion) is not - every tick property snaps instantly on each RefreshVisuals() rebuild. See the comment on
-// TimelineMinimapRail.CreateTick in TimelineMinimap.cs. Needed to finish this: wire Transaction.WithAnimation and
-// an AnimatedColor-style brush (Marrow.UI.Port.PlainControls.cs already has one) into CreateTick/RefreshVisuals,
-// gated on WindowLiveResize.IsActive and EnvironmentValues.GetAccessibilityReduceMotion - neither of which this
-// file's constructors currently take as a parameter or read from anywhere, so that plumbing needs adding too.
-// All 13 requirement/UI records marked IMPLEMENTED, PR-CHAT-073 included (its static colour/opacity
-// values, the part that is actually tested, are correct; the missing animation curve is the documented gap
-// above, not a reason to withhold the record). 10/10 focused tests passing after the fixes above.
+// B3 review fixes: animation STOP #1 is satisfied for persistent ticks and the preview's fade/offset/glide logic.
+// PR-CHAT-073 remains partly proven until the required light/dark capture comparison exists.

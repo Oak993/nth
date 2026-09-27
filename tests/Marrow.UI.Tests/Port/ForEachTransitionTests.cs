@@ -11,7 +11,7 @@ public sealed class ForEachTransitionTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "UI-MCP-018")] // App/Views/Settings/MCPSettingsPage.swift:54-58
+    [Trait("Rule", "R-VIEW-8")] // App/Views/Settings/MCPSettingsPage.swift:54-58; collection mechanics only
     public void Scale_opacity_insertion_and_removal_use_frames_and_dispose_only_after_the_exit() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
@@ -31,7 +31,7 @@ public sealed class ForEachTransitionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "UI-MCP-018")] // App/Views/Settings/MCPSettingsPage.swift:54-58
+    [Trait("Rule", "R-VIEW-8")] // App/Views/Settings/MCPSettingsPage.swift:54-58; collection mechanics only
     public void A_transition_with_its_own_animation_runs_without_a_transaction() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
@@ -113,7 +113,7 @@ public sealed class ForEachTransitionTests(HeadlessSession headless)
     [InlineData(false)]
     [InlineData(true)]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "PR-WIN-017")] // App/Window/WindowManager.swift:113-140
+    [Trait("Rule", "R-VIEW-6")] // App/Window/WindowManager.swift:113-140; injected environment gate only
     public void Reduce_motion_or_live_resize_suppresses_glides(bool liveResize) => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks(); using var host = new ForEachHost();
@@ -143,7 +143,7 @@ public sealed class ForEachTransitionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "UI-MCP-018")] // App/Views/Settings/MCPSettingsPage.swift:54-58
+    [Trait("Rule", "R-VIEW-8")] // App/Views/Settings/MCPSettingsPage.swift:54-58; collection mechanics only
     public void A_grid_spring_glide_uses_the_critical_spring_curve_on_the_shared_clock() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks(); using var host = new ForEachHost();
@@ -171,7 +171,7 @@ public sealed class ForEachTransitionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "PR-WIN-017")] // App/Window/WindowManager.swift:113-140
+    [Trait("Rule", "R-VIEW-6")] // App/Window/WindowManager.swift:113-140; injected environment gate only
     public void Live_resize_beginning_during_a_glide_stops_it_on_the_next_frame() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks(); using var host = new ForEachHost(); var resizing = false;
@@ -194,4 +194,55 @@ public sealed class ForEachTransitionTests(HeadlessSession headless)
         host.Window.Close(); Assert.Equal(["a"], host.Disposed); Assert.Equal(0, clocks.Frames.Pending);
         clocks.Frame(0.4); Assert.Equal(["a"], host.Disposed);
     });
+
+    [Theory]
+    [InlineData(false, 0.1)]
+    [InlineData(false, 1.0)]
+    [InlineData(true, 0.1)]
+    [InlineData(true, 1.0)]
+    [Trait("Decision", "ED-218")]
+    [Trait("Rule", "R-VIEW-8")] // App/Views/Settings/MCPSettingsPage.swift:54-58; concurrent transition and keyed layout
+    public void Reordering_during_scale_or_move_insertion_composes_both_animations_and_finishes_at_identity(bool move, double glideSeconds) => headless.OnUiThread(() =>
+    {
+        using var clocks = new AnimationClocks();
+        // :54 supplies scale 0.9 + opacity. Move uses ED-092's own-height offset. Linear durations and
+        // 100x40 rows are mechanics fixtures; ED-218 requires both effects regardless of which finishes first.
+        using var host = new ForEachHost(row => row.Transition(
+            (move ? SwiftTransition.Move(Edge.Top) : SwiftTransition.Scale(0.9)).Combined(SwiftTransition.Opacity)));
+        Transaction.WithAnimation(Animation.Linear(0.4), () => host.Rows.Apply(["a", "b"])); host.Layout();
+        var a = host.Made[0]; var b = host.Made[1];
+        clocks.Frame(0.1);
+        var insertionY = move ? -30 : 1.5; // 25% insertion: -40*0.75 or (1-0.925)*40/2.
+        Assert.Equal(insertionY, host.Origin(a).Y, 8);
+        Assert.Equal(40 + insertionY, host.Origin(b).Y, 8);
+        Assert.Equal(0.25, host.Opacity(a), 8);
+        Transaction.WithAnimation(Animation.Linear(glideSeconds), () => host.Rows.Apply(["b", "a"])); host.Layout();
+        Assert.Same(a, host.Panel.Children[1]); Assert.Same(b, host.Panel.Children[0]);
+        Assert.Equal(insertionY, host.Origin(a).Y, 8); Assert.Equal(40 + insertionY, host.Origin(b).Y, 8);
+
+        clocks.Frame(0.1);
+        var glide = Math.Min(0.1 / glideSeconds, 1); // elapsed since reorder, independent of insertion progress.
+        insertionY = move ? -20 : 1; // 50% insertion: -40*0.5 or (1-0.95)*40/2.
+        Assert.Equal(40 * glide + insertionY, host.Origin(a).Y, 8);
+        Assert.Equal(40 * (1 - glide) + insertionY, host.Origin(b).Y, 8);
+        Assert.Equal(move ? 0 : 2.5, host.Origin(a).X, 8);
+        Assert.Equal(0.5, host.Opacity(a), 8);
+
+        clocks.Frame(0.2); // Insertion finishes at 0.4 s; the long glide has advanced only 0.3 s.
+        glide = Math.Min(0.3 / glideSeconds, 1);
+        Assert.Equal(40 * glide, host.Origin(a).Y, 8); Assert.Equal(40 * (1 - glide), host.Origin(b).Y, 8);
+        Assert.Equal(0, host.Origin(a).X, 8); Assert.Equal(1, host.Opacity(a));
+        clocks.Frame(0.7); // Even the 1 s glide finishes at 1.1 s; no partial insertion transform may return.
+        Assert.Equal(40, host.Origin(a).Y, 8); Assert.Equal(0, host.Origin(b).Y, 8);
+        Assert.Equal(Avalonia.Matrix.Identity, a.RenderTransform?.Value ?? Avalonia.Matrix.Identity);
+        Assert.Equal(Avalonia.Matrix.Identity, b.RenderTransform?.Value ?? Avalonia.Matrix.Identity);
+        Assert.Equal(1, host.Opacity(b)); Assert.Equal(0, clocks.Frames.Pending); Assert.Empty(host.Disposed);
+    });
+
+    // STOP ForEach transitions #1
+    // Kind: partial record verification. Swift: MCPSettingsPage.swift:249-303,54-58; WindowManager.swift:118-140.
+    // Records: UI-MCP-018, PR-WIN-017. These foundation fixtures prove ED-218 mechanics and environment gating,
+    // not the full MCP card geometry/material/states or native two-window resize and move-only behavior.
+    // Needed: the owning MCP card integration/visual checks and WindowManager native hook verification.
+    // Whole-record Req traits are deliberately absent here; existing assertions and Decision traits remain.
 }

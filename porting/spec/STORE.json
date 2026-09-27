@@ -1887,7 +1887,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same substring pre-test, same minimal decode shape, same lastPathComponent extraction. The path in the continuation is an absolute stored path, so lastPathComponent must use the Windows separator.",
       "verification_method": "contract fixture with a forwarded-continuation thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

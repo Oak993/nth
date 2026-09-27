@@ -2178,7 +2178,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same field names on the wire; lenient per-field reads with the same defaults.",
       "verification_method": "contract fixture decoding a minimal record and a full record",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null

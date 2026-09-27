@@ -3,6 +3,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -183,7 +184,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
                 var rebound = new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Alt);
                 ShortcutStore.Shared.Current.Set(rebound, AppShortcut.ShowMainWindow);
                 var commands = new AppCommands(launch.Manager.Model);
-                // Test-owned attachment only: production installation is still STOP #6.
+                // Test-owned attachment on top of the one WindowManager.MakeWindow installs (STOP #6, resolved); the
+                // later registration runs first in the tunnel, and either one runs the same command.
                 using var attached = MenuKeyEquivalents.Attach(settings, commands.PerformKeyEquivalent);
                 Press(settings, Key.Y, PhysicalKey.Y, RawInputModifiers.Control | RawInputModifiers.Alt);
                 Assert.Same(main, LaunchHarness.WindowOf(launch.MainContent));
@@ -1044,6 +1046,88 @@ public sealed class AppCommandsTests(HeadlessSession headless)
         window.Close();
     });
 
+    // ===== STOP #6: the chords on the app's own windows, as built by the app =====
+    // DroppyCode/App/DroppyCodeApp.swift:21-25 (B3 52bc792) installs `AppCommands(model: WindowManager.shared.model)` as
+    // the menu bar, which answers the key equivalents of the window that is key. These tests attach nothing themselves:
+    // each window is made by the production path (WindowManager.showMain/showSettings, TourWindowController.present)
+    // and a real key-down goes through Avalonia's keyboard device to that window.
+
+    [Fact]
+    [Trait("Req", "PR-WIN-089")] // App/DroppyCodeApp.swift:21-25; App/AppCommands.swift:40-41; App/Window/WindowManager.swift:26-30
+    [Trait("Decision", "ED-099")]
+    public void A_chord_pressed_in_the_main_window_the_app_shows_runs_its_command_with_no_menu_present() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var store = ShortcutStore.Shared.Override(FreshStore());
+        launch.Harness.Main.OnMain(() =>
+        {
+            launch.Manager.ShowMain();
+            var main = LaunchHarness.WindowOf(launch.MainContent)!;
+            try
+            {
+                Assert.False(launch.Manager.Model.IsCommandPalettePresented);
+                // commandPalette's default, 40 (K) with command (Shortcuts.swift:228), is Ctrl+K (ED-050 (a), ED-099).
+                Press(main, Key.K, PhysicalKey.K, RawInputModifiers.Control);
+                Assert.True(launch.Manager.Model.IsCommandPalettePresented); // :40 model.isCommandPalettePresented.toggle()
+                Assert.Null(NativeMenu.GetMenu(main)); // OD-0008 C3: no menu is drawn
+            }
+            finally { main.Hide(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-110")] // App/DroppyCodeApp.swift:21-25; App/AppCommands.swift:95-98; App/Window/WindowManager.swift:32-38
+    [Trait("Decision", "ED-099")]
+    public void While_the_Settings_window_the_app_shows_is_key_ctrl_and_a_digit_select_that_sidebar_thread() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness(h =>
+        {
+            var project = AppModelSamples.Project("P", h.NewFolder("p"));
+            h.WriteLibrary([project], [AppModelSamples.Thread(project), AppModelSamples.Thread(project)]);
+        });
+        using var store = ShortcutStore.Shared.Override(FreshStore());
+        launch.Harness.Main.OnMain(() =>
+        {
+            var model = launch.Manager.Model;
+            var order = model.SidebarThreads.Select(thread => thread.Id).ToList();
+            launch.Manager.ShowMain();
+            launch.Manager.ShowSettings();
+            var main = LaunchHarness.WindowOf(launch.MainContent)!;
+            var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
+            try
+            {
+                Assert.Equal(2, order.Count);
+                Assert.Null(model.SelectedThreadID);
+                // :97 KeyEquivalent("2") with .command: Ctrl+2 (ED-050 (a), ED-099).
+                Press(settings, Key.D2, PhysicalKey.Digit2, RawInputModifiers.Control);
+                Assert.Equal(order[1], model.SelectedThreadID); // :96; AppModel.swift:1119-1123 order[number - 1]
+            }
+            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-089")] // App/DroppyCodeApp.swift:21-25; App/AppCommands.swift:40-41; App/Views/Tour/TourWindowController.swift:8-11,110
+    [Trait("Decision", "ED-099")]
+    public void While_the_tour_window_is_key_a_chord_pressed_in_it_runs_its_command() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var store = ShortcutStore.Shared.Override(FreshStore());
+        launch.Harness.Main.OnMain(() =>
+        {
+            // TourWindowController.swift:8-11 HostWindow can become key; :110 makeKeyAndOrderFront(nil).
+            var tour = TourWindowController.Shared.Present(TourPages.Pages);
+            try
+            {
+                Assert.False(launch.Manager.Model.IsCommandPalettePresented);
+                Press(tour, Key.K, PhysicalKey.K, RawInputModifiers.Control); // Shortcuts.swift:228 through ED-050 (a), ED-099
+                Assert.True(launch.Manager.Model.IsCommandPalettePresented); // AppCommands.swift:40
+            }
+            finally { TourWindowController.Shared.Close(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
     // ===== PR-UPDATE-092: Welcome tour =====
 
     [Fact]
@@ -1063,7 +1147,15 @@ public sealed class AppCommandsTests(HeadlessSession headless)
         h.Main.OnMain(tour.Action);
         // Only a tour presented for this model marks it seen again when it closes (TourPages.swift:26-28).
         h.Main.OnMain(() => model.Settings.HasSeenTour = false);
-        h.Main.OnMain(() => TourWindowController.Shared.Close());
+        h.Main.OnMain(() =>
+        {
+            // TourWindowController.swift:52-63 runs the caller's onClose only through TourView's onClose (the checkmark control); :139-143 close() only clears the retained window/delegate, so controller Close() is not the user-close path.
+            var window = TourWindowController.Shared.Present(TourPages.Pages);
+            var view = Assert.IsType<TourView>(window.Content);
+            var checkmark = view.GetVisualDescendants().OfType<Button>().Single(button =>
+                button.GetVisualDescendants().OfType<SwiftImage>().Any(image => image.SymbolName == "checkmark"));
+            checkmark.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        });
 
         Assert.True(h.Main.OnMain(() => model.Settings.HasSeenTour));
     });
@@ -2398,7 +2490,15 @@ public sealed class AppCommandsTests(HeadlessSession headless)
         h.Main.OnMain(() => model.Settings.HasSeenTour = true);
         h.Main.OnMain(() => commands.Body[^1].Action());
         h.Main.OnMain(() => model.Settings.HasSeenTour = false);
-        h.Main.OnMain(() => TourWindowController.Shared.Close());
+        h.Main.OnMain(() =>
+        {
+            // TourWindowController.swift:52-63 runs the caller's onClose only through TourView's onClose (the checkmark control); :139-143 close() only clears the retained window/delegate, so controller Close() is not the user-close path.
+            var window = TourWindowController.Shared.Present(TourPages.Pages);
+            var view = Assert.IsType<TourView>(window.Content);
+            var checkmark = view.GetVisualDescendants().OfType<Button>().Single(button =>
+                button.GetVisualDescendants().OfType<SwiftImage>().Any(image => image.SymbolName == "checkmark"));
+            checkmark.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        });
         Assert.True(h.Main.OnMain(() => model.Settings.HasSeenTour));
     });
 
@@ -2642,6 +2742,12 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // tests' own windows (green); nothing attaches them to a window of the running app.
 // Fixes: PR-WIN-090 now also has a real palette-row action test; PR-WIN-092 has a Settings-focused
 // window test with test-owned dispatch. Both were writable; production attachment remains missing.
+// Resolved (fix/shortcuts, 2026-09-27, base 6afbddb9f), reading (a) with the tour window added: WindowManager.MakeWindow
+// attaches the dispatch to the main and Settings windows it makes, and TourWindowController.Present to the tour window
+// (TourWindowController.swift:8-11 canBecomeKey, :110 makeKeyAndOrderFront). The floating guide panels never take
+// activation in the port (FloatingGuidePanel.cs, ED-063), so they are never key and need no attach. Tested above
+// through the production windows with a real key-down (the three tests under "STOP #6"), green. No ED records the
+// install site yet; the orchestrator is asked to record one.
 
 // STOP App.AppCommands #7 (repair agent, 2026-09-26)
 // Kind: platform gap
