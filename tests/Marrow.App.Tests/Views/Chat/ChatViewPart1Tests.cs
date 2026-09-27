@@ -269,6 +269,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-062")] // ChatView.swift:1442
+    [Trait("Req", "UI-TERM-016")] // App/Views/Chat/ChatView.swift:1153-1158,1442
     public void The_scripts_button_carries_the_run_a_project_script_tooltip()
     {
         headless.OnUiThread(() =>
@@ -288,6 +289,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-063")] // ChatView.swift:1444-1450
+    [Trait("Req", "UI-TERM-017")] // ChatView.swift:1444-1450
     public void The_menu_lists_every_script_under_a_Scripts_header_then_a_divider_then_Edit_scripts()
     {
         headless.OnUiThread(() =>
@@ -310,6 +312,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-TERM-063")] // ChatView.swift:1443,1452
+    [Trait("Req", "UI-TERM-017")] // ChatView.swift:1443,1452
     public void With_no_scripts_the_header_and_divider_are_omitted_and_the_add_item_reads_Add_a_script()
     {
         headless.OnUiThread(() =>
