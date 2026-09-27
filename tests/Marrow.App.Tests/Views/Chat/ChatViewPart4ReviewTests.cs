@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
@@ -19,6 +20,55 @@ namespace Marrow.App.Tests.Views.Chat;
 public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
 {
     private static ThreadRuntime Runtime(AppModel model, Project project) => model.Runtime(model.NewThread(project)!.Id);
+
+    [Fact]
+    [Trait("Rule", "R-FILE-1")] // App/Views/Chat/ChatView.swift:1191-1192,1248,1331,1347-1349,1436-1437,1470-1472,1533-1535,1655 (original view inputs).
+    public void The_original_view_input_constructor_signatures_remain_available()
+    {
+        (Type View, Type[] Inputs)[] signatures = [
+            (typeof(ChatChromeTitle), [typeof(ThreadRuntime), typeof(string)]),
+            (typeof(ThreadsButton), []),
+            (typeof(PermissionMenu), [typeof(ChatThread)]),
+            (typeof(BranchMenu), [typeof(ThreadRuntime), typeof(string), typeof(GitStatusModel)]),
+            (typeof(ScriptsMenu), [typeof(Project), typeof(ThreadRuntime)]),
+            (typeof(GitActionsMenu), [typeof(ThreadRuntime), typeof(string), typeof(GitStatusModel)]),
+            (typeof(CommitSheet), [typeof(ThreadRuntime), typeof(string), typeof(GitStatusModel)]),
+            (typeof(ScriptsEditor), [typeof(Guid)]),
+        ];
+        Assert.All(signatures, signature => Assert.NotNull(signature.View.GetConstructor(signature.Inputs)));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-080")] // App/Views/Chat/ChatView.swift:1653-1655,1709,1723
+    [Trait("Req", "UI-TERM-030")] // App/Views/Chat/ChatView.swift:1709,1723
+    public void The_original_editor_inputs_use_the_inherited_model_and_dismiss_action()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                var project = model.AddProject(new Project("P", h.NewFolder("project")).Url) with { Scripts = new ValueList<ProjectScript>([new ProjectScript("Build", "make")]) };
+                model.UpdateProject(project.Id, _ => project);
+                var constructor = typeof(ScriptsEditor).GetConstructor([typeof(Guid)]);
+                Assert.NotNull(constructor);
+                var editor = (Control)constructor.Invoke([project.Id]);
+                editor.IsVisible = false;
+                var window = new Avalonia.Controls.Window { Content = editor };
+                AppEnvironment.SetAppModel(window, model);
+                var property = typeof(Marrow.App.Port.ChatSheetPresentation).GetField("DismissProperty", BindingFlags.Public | BindingFlags.Static);
+                Assert.NotNull(property);
+                var dismissed = false;
+                window.SetValue((AttachedProperty<Action?>)property.GetValue(null)!, () => dismissed = true);
+                ChatHeadlessFixtures.Track(window); window.Show();
+                Assert.Equal("Build", LogicalQuery.SelfAndDescendants<TextBox>(editor).Single(field => field.PlaceholderText == "Name").Text);
+                ChatGitFixtures.Click(ChatGitFixtures.Button(editor, "Cancel"));
+                Assert.True(dismissed);
+                Assert.Equal("Build", model.Project(project.Id)!.Scripts[0].Name);
+            });
+        });
+    }
 
     [Fact]
     [Trait("Req", "PR-CHAT-174")] // App/Views/Chat/ChatView.swift:1255-1259

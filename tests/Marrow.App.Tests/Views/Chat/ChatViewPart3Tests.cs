@@ -68,7 +68,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     // ---- Terminal/Changes capsule: UI-CHAT-081, UI-GIT-024, UI-TERM-015 ------------------------------------------
 
     [Fact]
-    [Trait("Req", "UI-GIT-024")] // ChatView.swift:1164-1172
+    [Trait("Req", "UI-GIT-024")] // App/Views/Chat/ChatView.swift:1164-1172
     public void The_changes_button_reflects_the_diffs_visibility_live_and_flips_it_on_click()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -108,7 +108,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     // ---- GitActionsMenu: UI-GIT-026, UI-GIT-027, UI-GIT-028, UI-GIT-029, UI-GIT-030, UI-GIT-031 --------------------
 
     [Fact]
-    [Trait("Req", "UI-GIT-026")] // ChatView.swift:1478
+    [Trait("Req", "UI-GIT-026")] // App/Views/Chat/ChatView.swift:1478
     public void The_menu_buttons_tooltip_is_the_sentence_at_zero_and_the_unsingularised_count_otherwise()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -134,7 +134,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-GIT-027")] // ChatView.swift:1479
+    [Trait("Req", "UI-GIT-027")] // App/Views/Chat/ChatView.swift:1479
     public void The_note_is_singular_at_one_changed_file_and_plural_otherwise()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -160,7 +160,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-GIT-028")] // ChatView.swift:1481
+    [Trait("Req", "UI-GIT-028")] // App/Views/Chat/ChatView.swift:1481
     public void The_commit_row_is_disabled_at_zero_changed_files_and_carries_the_single_ellipsis()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -185,7 +185,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-GIT-029")] // ChatView.swift:1482
+    [Trait("Req", "UI-GIT-029")] // App/Views/Chat/ChatView.swift:1482
     public void The_push_row_is_always_enabled_even_with_nothing_to_push()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -206,7 +206,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-GIT-030")] // ChatView.swift:1483
+    [Trait("Req", "UI-GIT-030")] // App/Views/Chat/ChatView.swift:1483
     public void The_create_pull_request_row_is_always_present_and_enabled()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -227,7 +227,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-GIT-031")] // ChatView.swift:1484-1487
+    [Trait("Req", "UI-GIT-031")] // App/Views/Chat/ChatView.swift:1484-1487
     public void The_open_repository_row_and_its_divider_are_absent_when_there_is_no_remote()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -254,7 +254,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     // ---- BranchMenu: UI-GIT-039, UI-GIT-043 (UI-GIT-040/041/042 covered by part 1) --------------------------------
 
     [Fact]
-    [Trait("Req", "UI-GIT-039")] // ChatView.swift:1357, 1316-1325
+    [Trait("Req", "UI-GIT-039")] // App/Views/Chat/ChatView.swift:1357, 1316-1325
     public void The_title_is_the_running_activity_verb_else_the_branch_else_Detached()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -289,7 +289,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-GIT-040")] // ChatView.swift:1360-1369
+    [Trait("Req", "UI-GIT-040")] // App/Views/Chat/ChatView.swift:1360-1369
     public void The_current_branch_is_checked_and_disabled_and_every_row_disables_while_the_thread_runs()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -325,7 +325,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-GIT-043")] // ChatView.swift:1381-1385
+    [Trait("Req", "UI-GIT-043")] // App/Views/Chat/ChatView.swift:1381-1385
     public void The_new_branch_alert_carries_the_exact_title_placeholder_and_buttons()
     {
         ChatHeadlessFixtures.Run(headless, () =>

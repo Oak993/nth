@@ -37,7 +37,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
     // ---- PR-TERM-074 (title/explanation/580x460) and PR-TERM-076 (the card's own field layout) tests) ------------
 
     [Fact]
-    [Trait("Req", "UI-TERM-023")] // ChatView.swift:1666-1667,1669,1700
+    [Trait("Req", "UI-TERM-023")] // App/Views/Chat/ChatView.swift:1666-1667,1669,1700
     public void Cards_sit_10_points_apart_inside_a_scroll_area_at_least_220_points_tall_each_padded_14()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -67,7 +67,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-TERM-020")] // ChatView.swift:1721-1722
+    [Trait("Req", "UI-TERM-020")] // App/Views/Chat/ChatView.swift:1721-1722
     public void The_sheet_is_a_fixed_size_that_does_not_grow_with_the_number_of_scripts()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -90,7 +90,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
     // ---- Name field: UI-TERM-024 (the part not already covered by part 2's PR-TERM-076 placeholder/text test) -----
 
     [Fact]
-    [Trait("Req", "UI-TERM-024")] // ChatView.swift:1672-1674
+    [Trait("Req", "UI-TERM-024")] // App/Views/Chat/ChatView.swift:1672-1674
     public void A_blank_name_is_allowed_and_does_not_block_saving()
     {
         ChatHeadlessFixtures.Run(headless, () =>
@@ -121,7 +121,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
     // ---- the restraint already established for CommitSheet/GitActionsMenu's own real-process actions) -------------
 
     [Fact]
-    [Trait("Req", "UI-TERM-018")] // ChatView.swift:1445-1448
+    [Trait("Req", "UI-TERM-018")] // App/Views/Chat/ChatView.swift:1445-1448
     public void Every_script_appears_as_its_own_row_in_the_projects_stored_order_with_no_disabled_state()
     {
         ChatHeadlessFixtures.Run(headless, () =>
