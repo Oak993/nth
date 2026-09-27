@@ -1349,6 +1349,55 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         });
     }
 
+    // An idle lead with a head at work can queue: canQueue is `isRunning || hasWorkingHeads` (ThreadRuntime.swift:
+    // 771-773), so the default chord queues the draft behind the heads' report rather than sending it. The head is put
+    // to work after the model is made, since a loaded library stops a running head (AppModel.swift:132-136).
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-031")] // App/Views/Composer/ComposerView.swift:392-394; App/Runtime/ThreadRuntime.swift:664-666, :771-773
+    public void Command_Return_on_an_idle_lead_with_a_head_at_work_queues_the_draft_behind_the_heads()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new AppModelHarness();
+            using var shared = ShortcutStore.Shared.Override(FreshStore());
+            var project = AppModelSamples.Project("Thread runtime", h.NewFolder("thread-runtime"));
+            var lead = AppModelSamples.Thread(project);
+            var head = new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised)
+            {
+                Title = "head",
+                ParentThreadID = lead.Id,
+                IsInPanel = true,
+                Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Stopped),
+            };
+            h.WriteLibrary([project], [lead, head]);
+            AppModelHarness.WriteDocument(lead.Id);
+            AppModelHarness.WriteDocument(head.Id);
+            var model = h.MakeModel();
+            h.PrepareBootstrap(model); // R-TEST-10: no real CLI, should anything start a turn
+            var runtime = h.Main.OnMain(() => new ThreadRuntime(lead.Id, model));
+            h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+            var view = h.Main.OnMain(() =>
+            {
+                model.UpdateThread(head.Id, thread => thread with { Hydra = thread.Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running } });
+                var pill = new ComposerView(runtime, workingDirectory: null);
+                AppEnvironment.SetAppModel(pill, model);
+                Drain();
+                runtime.Draft = new ComposerDraft { Text = "after the heads report" };
+                return pill;
+            });
+            Assert.False(runtime.IsRunning);
+            Assert.True(h.Main.OnMain(() => runtime.HasWorkingHeads));
+
+            Assert.True(h.Main.OnMain(() => Press(view, Key.Enter, KeyModifiers.Control)));
+
+            Assert.True(runtime.Draft.IsEmpty);
+            Assert.Equal(["after the heads report"], runtime.FollowUps.Select(prompt => prompt.Text).ToArray());
+            Assert.Empty(runtime.SentPrompts);
+            Assert.False(runtime.IsRunning);
+        });
+    }
+
     // ---- caret moves and the warm-up (:426-437) ----
 
     [Fact]

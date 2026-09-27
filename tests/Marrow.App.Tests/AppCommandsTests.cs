@@ -770,6 +770,42 @@ public sealed class AppCommandsTests(HeadlessSession headless)
         window.Close();
     });
 
+    // The case STOP #5 left unwritten: the chord on an idle thread with no heads at work. canQueue is
+    // `isRunning || hasWorkingHeads` (ThreadRuntime.swift:771-773), so queueDraftAsFollowUp sends the draft
+    // (:782-785), and send() handles "/plan" locally (:746-749, :1159-1162).
+    [Fact]
+    [Trait("Req", "PR-WIN-105")] // App/AppCommands.swift:69-77; App/Runtime/ThreadRuntime.swift:743-749, :771-785, :1157-1162
+    [Trait("Req", "UI-WIN-018")] // App/AppCommands.swift:71-74; App/Runtime/ThreadRuntime.swift:778-785
+    public void Queue_a_chat_with_nothing_to_queue_behind_sends_the_draft_so_a_plan_command_flips_the_thread_to_plan()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project);
+        var model = Model(h, [project], [thread]);
+        h.PrepareBootstrap(model); // R-TEST-10: no real CLI, should anything start a turn
+        var runtime = h.Main.OnMain(() => model.Runtime(thread.Id));
+        h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+
+        h.Main.OnMain(() =>
+        {
+            model.SelectedThreadID = thread.Id;
+            runtime.Draft = new ComposerDraft { Text = "/plan" };
+            var commands = new AppCommands(model);
+            Assert.False(runtime.IsRunning);
+            Assert.False(runtime.HasWorkingHeads);
+            Assert.Equal(InteractionMode.Build, model.Thread(thread.Id)!.InteractionMode);
+            Assert.False(Named(commands, "Queue a chat").IsDisabled); // :76-77
+
+            Assert.True(commands.PerformKeyEquivalent(CtrlReturn));
+
+            Assert.Equal(InteractionMode.Plan, model.Thread(thread.Id)!.InteractionMode); // ThreadRuntime.swift:1161
+            Assert.True(runtime.DraftIsEmpty); // ThreadRuntime.swift:748
+            Assert.Empty(runtime.FollowUps);
+            Assert.Empty(runtime.SentPrompts); // a local command starts no turn
+        });
+    }
+
     // ===== PR-WIN-106: Toggle plan mode =====
 
     [Fact]
