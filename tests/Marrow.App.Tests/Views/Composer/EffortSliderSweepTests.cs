@@ -23,6 +23,81 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class EffortSliderSweepTests(HeadlessSession headless)
 {
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:59-103 (provider artwork remains STOP)
+    [Trait("Req", "PR-COMPOSER-107")] // App/Views/Composer/EffortSlider.swift:82-103,142-149
+    [Trait("Req", "PR-COMPOSER-108")] // App/Views/Composer/EffortSlider.swift:108-117
+    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123 (chip style remains STOP)
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Chip_keeps_full_help_in_compact_mode_and_locks_only_the_full_chip(bool compact)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness(withRuntime: false);
+            var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "custom-model-id", null, RuntimeMode.Supervised);
+            harness.WriteLibrary([], [thread]);
+            var model = new AppModel();
+            foreach (var provider in SwiftEnum<ProviderKind>.AllCases)
+                if (!provider.IsAPIKeyBased) model.Settings.SetBinaryPath(System.IO.Path.Combine(harness.Scratch, "missing.exe"), provider);
+            var chip = new ModelEffortButton(thread, false, compact);
+            var window = Host(chip, model);
+            var button = Assert.Single(chip.GetVisualDescendants().OfType<Button>());
+            Assert.Equal("custom-model-id", ToolTip.GetTip(button));
+            Assert.Equal("custom-model-id", AutomationProperties.GetName(button));
+            Assert.False(button.Focusable);
+            var labels = chip.GetVisualDescendants().OfType<TextBlock>().ToArray();
+            if (compact) Assert.Empty(labels);
+            else Assert.Contains(labels, text => text.Text == "custom-model-id");
+            var frame = Assert.IsType<Grid>(button.Content);
+            var natural = frame.Bounds.Width;
+            button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            if (compact) Assert.True(double.IsNaN(frame.Width));
+            else Assert.Equal(natural, frame.Width);
+            button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(double.IsNaN(frame.Width));
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-146")] // App/Views/Composer/EffortSlider.swift:277-325
+    [Trait("Req", "PR-COMPOSER-150")] // App/Views/Composer/EffortSlider.swift:169-175
+    [Trait("Req", "UI-COMPOSER-040")] // App/Views/Composer/EffortSlider.swift:310-311
+    [Trait("Req", "UI-COMPOSER-041")] // App/Views/Composer/EffortSlider.swift:325
+    public void Pair_sections_exist_only_with_hydra_and_choosing_a_pair_enters_it_and_dismisses()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness(withRuntime: false);
+            var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, null, null, RuntimeMode.Supervised) { HydraEnabled = true };
+            harness.WriteLibrary([], [thread]);
+            var model = new AppModel();
+            model.Settings.HydraEnabled = true;
+            var pair = new HydraPair(ProviderKind.Codex);
+            model.Settings.AddHydraPair(pair);
+            var panel = new ModelEffortPanel(thread.Id, false);
+            var dismissed = 0;
+            Marrow.UI.Chrome.Popovers.SetClosePopover(panel, () => dismissed++);
+            var window = Host(panel, model);
+            Assert.Single(panel.GetVisualDescendants().OfType<Button>(), b => Equals(ToolTip.GetTip(b), "Choose a model"))
+                .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Contains(panel.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "Pairs");
+            Assert.Contains(panel.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "Models");
+            var row = Assert.Single(panel.GetVisualDescendants().OfType<HydraPairListRow>());
+            Assert.Single(row.GetVisualDescendants().OfType<Button>()).RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(pair.Id, model.Thread(thread.Id)!.HydraPairID);
+            Assert.Equal(1, dismissed);
+            window.Close();
+        });
+    }
+
     private static Avalonia.Controls.Window Host(Control content, AppModel model)
     {
         var host = new Border { Child = content };
@@ -38,6 +113,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             using var harness = new AppModelHarness(withRuntime: false);
             var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "test-model", "high", RuntimeMode.Supervised, true);
             harness.WriteLibrary([], [thread]);
@@ -63,6 +139,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             using var harness = new AppModelHarness(withRuntime: false);
             var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Claude, "old", null, RuntimeMode.Supervised) { ProviderSessionID = "session", HydraPairID = Guid.NewGuid() };
             harness.WriteLibrary([], [thread]);
@@ -98,9 +175,11 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             using var harness = new AppModelHarness(withRuntime: false);
             var model = new AppModel();
             var backs = 0;
+            model.Settings.AddToModelList(new ModelPin(ProviderKind.Codex, "not-in-catalogue"));
             var list = new ModelList(new ChatThread(Guid.NewGuid(), ProviderKind.Codex, null, null, RuntimeMode.Supervised), false, _ => { }, () => backs++);
             var window = Host(list, model);
             Assert.Contains(list.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "Select model" && b.FontSize == 13);
@@ -122,6 +201,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var calls = 0;
             var row = new HydraPairListRow(new HydraPair(ProviderKind.Codex), "Lead + Heads", "Codex · High", 46, true, true, () => calls++);
             var window = Show(row);
@@ -140,6 +220,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var drawing = new DrawingGroup();
             using (var context = drawing.Open())
                 typeof(TrackEffect).GetMethod("DrawParticles", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
@@ -157,6 +238,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var drawing = new DrawingGroup();
             using (var context = drawing.Open())
                 typeof(TrackEffect).GetMethod("DrawStreaks", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
@@ -176,6 +258,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             foreach (var time in new[] { 0.0, 2.8 })
             {
                 var drawing = new DrawingGroup();
@@ -216,6 +299,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var window = Show(Card(["low", "medium", "high"], chosen, defaultLevel));
             Assert.Contains(window.GetVisualDescendants().OfType<TextBlock>(), block => block.Text == title);
             window.Close();
@@ -229,6 +313,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var window = Show(Card([], null, null));
             var texts = window.GetVisualDescendants().OfType<TextBlock>().ToArray();
             Assert.Contains(texts, text => text.Text == "Standard");
@@ -248,6 +333,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var tapped = 0;
             var resets = 0;
             var window = Show(Card([], null, null, () => tapped++, () => resets++));
@@ -277,6 +363,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var card = Card([], null, null);
             var window = Show(card);
             var border = Assert.IsType<Border>(card.Child);
@@ -297,6 +384,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var selected = 0;
             var slider = new EffortSlider(3, new Binding<int>(() => selected, value => selected = value), "Low");
             var window = Show(slider);
@@ -321,6 +409,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var selected = 0;
             var slider = new EffortSlider(3, new Binding<int>(() => selected, value => selected = value), "Medium");
             var window = Show(slider);
@@ -349,6 +438,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var slider = new EffortSlider(3, new Binding<int>(() => index, _ => { }), "Medium", fast);
             var window = Show(slider);
             var fill = Assert.Single(slider.GetVisualDescendants().OfType<Border>(), b => b.Name == "EffortFill");
@@ -369,6 +459,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var calls = 0;
             var entry = new ModelCatalog.Entry(ProviderKind.Codex, new ModelOption("test", "Test model", null, null, null));
             var row = new ModelListRow(entry, "New chats only", false, 46, false, false, () => calls++);
