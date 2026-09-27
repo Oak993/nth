@@ -462,7 +462,8 @@ public sealed partial class AppModel : MainActorModel
 
     // AppModel.swift:396-400. Swift: helpers(of:).
     public ValueList<ChatThread> Helpers(Guid parentID) =>
-        new(Children(parentID).Where(thread => !thread.IsArchived && !thread.IsHydraHead).OrderBy(thread => thread.CreatedAt)); // AppModel.swift:392-400
+        new(Children(parentID).Where(thread => !thread.IsArchived && (!thread.IsInPanel || thread.IsHydraHead))
+            .OrderByDescending(thread => thread.CreatedAt)); // AppModel.swift:396-400 (helpers(of:)); B3 checkout :405-409
 
     // AppModel.swift:405-413. Swift: panelHeads(of:).
     public ValueList<ChatThread> PanelHeads(Guid parentID) =>
