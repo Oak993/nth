@@ -36,6 +36,7 @@ internal sealed class AlertSession(AlertRequest request, Action close)
     private readonly TaskCompletionSource completion = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private bool responded;
     public Task Completion => completion.Task;
+    public void BindLifetime(CancellationToken token) { _ = token; throw new NotImplementedException("ED-216 lifetime declaration only"); }
     public void Press(string title) => Press(request.Buttons.First(button => button.Title == title));
     public void Press(AlertButton button)
     {

@@ -12,6 +12,28 @@ namespace Marrow.App.Tests.Port;
 public sealed class AlertPresenterTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Decision", "ED-216")] // App/Views/Settings/SettingsView.swift:920-934; cancellation is dialog close
+    public void A_presenting_lifetime_ending_cancels_without_running_the_destructive_action() => headless.OnUiThread(() =>
+    {
+        using var lifetime = new CancellationTokenSource();
+        var deleted = 0;
+        var canceled = 0;
+        var closed = 0;
+        var request = AlertPresentation.Prepare(new AlertRequest("Delete?", null,
+            [new AlertButton("Delete", () => deleted++) { Role = AlertButtonRole.Destructive },
+             new AlertButton("Cancel", () => canceled++) { Role = AlertButtonRole.Cancel }], AlertKind.ConfirmationDialog));
+        var session = new AlertSession(request, () => closed++);
+        session.BindLifetime(lifetime.Token);
+        lifetime.Cancel();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Equal(0, deleted);
+        Assert.Equal(1, canceled);
+        Assert.Equal(1, closed);
+        session.Closed();
+        Assert.True(session.Completion.IsCompletedSuccessfully);
+    });
+
+    [Fact]
     [Trait("Decision", "ED-216")] // App/Views/Chat/TimelineRows.swift:191-196
     public void Confirmation_adds_Cancel_preserves_declared_order_and_defaults_to_the_first_roleless_action()
     {
