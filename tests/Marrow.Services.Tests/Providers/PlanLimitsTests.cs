@@ -13,6 +13,70 @@ namespace Marrow.Services.Tests.Providers;
 [Collection(PlanLimitsProcessCollection.Name)]
 public sealed class PlanLimitsTests
 {
+    [Fact]
+    [Trait("Req", "PR-PROVREG-176")] // Services/Providers/PlanLimits.swift:134-139
+    public async Task Review_readClaude_short_circuits_a_successful_endpoint_without_spawning_cli()
+    {
+        var home = TempDataDir("review-endpoint");
+        WriteLogin(home, "synthetic-token");
+        var script = new ClaudeScript("review-short-circuit");
+        script.SetResponse(UsageResponseTemplate);
+        var environment = new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
+        await using var server = new LoopbackHttpServer();
+        var pending = PlanLimitsReader.ReadClaude(FileUrl(script.ExecutablePath), environment, home, server.Url("/usage"));
+        var exchange = await server.NextExchange();
+        await exchange.Respond(200, "OK", System.Text.Encoding.UTF8.GetBytes("{\"limits\":[{\"kind\":\"session\",\"percent\":10.0}]}"));
+        var result = await pending.WaitAsync(Guard);
+        Assert.NotNull(result);
+        Assert.Equal(10, result.Windows[0].Percent);
+        Assert.Empty(script.Calls());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-176")] // Services/Providers/PlanLimits.swift:138-139
+    public async Task Review_readClaude_spawns_cli_when_endpoint_has_no_login()
+    {
+        using var runtime = new TestRuntime();
+        var script = new ClaudeScript("review-fallback");
+        script.SetResponse(UsageResponseTemplate);
+        var environment = new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
+        var result = await PlanLimitsReader.ReadClaude(FileUrl(script.ExecutablePath), environment, TempDataDir("review-no-login"));
+        Assert.NotNull(result);
+        Assert.Equal(42.5, result.Windows[0].Percent);
+        Assert.NotEmpty(script.Calls());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-185")] // Services/Providers/PlanLimits.swift:297-309
+    public void Review_missing_kind_uses_the_empty_kind_and_original_row_index()
+    {
+        var result = PlanLimitsReader.ParseClaudeUsage(JSONValue.Parse("{}")!, [JSONValue.Parse("{\"percent\":5.0}")!], null);
+        Assert.NotNull(result);
+        var window = Assert.Single(result.Windows);
+        Assert.Equal("-0", window.Id);
+        Assert.Equal("Usage", window.Title);
+        Assert.Equal(5, window.Percent);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-172")] // Services/Providers/PlanLimits.swift:4-18
+    [Trait("Req", "PR-PROVREG-190")] // Services/Providers/PlanLimits.swift:27-31
+    public void Review_shapes_preserve_windows_credits_and_optional_defaults()
+    {
+        var window = new PlanLimits.Window { Id = "id", Title = "Title", Percent = 5 };
+        var limits = new PlanLimits { Windows = new ValueList<PlanLimits.Window>([window]) };
+        Assert.Null(limits.PlanName);
+        Assert.Null(limits.Problem);
+        Assert.Null(limits.PlanLimitsResetCredits);
+        Assert.Null(window.ResetsAt);
+        Assert.Null(window.Detail);
+        Assert.Equal(limits, limits with { Windows = new ValueList<PlanLimits.Window>([window with { }]) });
+        var credits = new PlanLimits.ResetCredits { AvailableCount = 2, Credits = ValueList<PlanLimits.ResetCredit>.Empty };
+        Assert.Equal(2, credits.AvailableCount);
+        Assert.Empty(credits.Credits); // :27 credits can be shorter than availableCount
+        Assert.NotEqual(limits, limits with { PlanLimitsResetCredits = credits });
+    }
+
     private const string MiddleDot = "·"; // U+00B7 MIDDLE DOT
     private static readonly TimeSpan Guard = LoopbackHttpServer.Guard;
 
@@ -81,11 +145,9 @@ public sealed class PlanLimitsTests
     [InlineData(ProviderKind.Copilot)]
     public async Task Read_executable_swallows_the_unimplemented_stub_for_codex_antigravity_and_copilot(ProviderKind provider)
     {
-        // CodexSession.ReadPlanLimits, AntigravitySession.ReadPlanLimits and CopilotSession.ReadPlanLimits are
-        // MARROW_STUB in this dependency cycle (see the work packet's cyclic-unit note); each throws
-        // NotImplementedException, which SwiftTry.IsThrownError treats as a thrown Swift error (not a trap), so
-        // the try?-wrapped dispatch swallows it to null exactly as PlanLimits.swift:74/76/77 do for a real
-        // thrown error. This proves the wrapping; it cannot prove the exact callee until that unit lands.
+        // All three provider implementations have landed. The nonexistent executable causes a real
+        // connection/process failure, swallowed by the try?-wrapped dispatch (:74,76-77).
+        // The historical test name is retained; this checks error wrapping rather than the successful callee.
         // Copilot's own unit has since landed: ReadPlanLimits now really connects (CopilotSession.swift:481-483
         // reads the MCP overrides), so Storage.Locations must be bound before this reaches it, same as every
         // other Copilot test that starts the stand-in.

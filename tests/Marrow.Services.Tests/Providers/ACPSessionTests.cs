@@ -17,6 +17,63 @@ namespace Marrow.Services.Tests.Providers;
 // parameters with a working scripted agent, mirroring JSONRPCTests' technique.
 public sealed class ACPSessionTests
 {
+    [Theory]
+    [InlineData("AUTH required", true, false, true)]
+    [InlineData("AUTH required", true, true, false)]
+    [InlineData("network error", true, false, false)]
+    [InlineData("auth required", false, false, false)]
+    [Trait("Req", "PR-PROVACP-027")] // Services/Providers/ACPSession.swift:134-140 exactly one retry with authMethods[0]
+    public void Review_auth_retry_uses_first_method_once_and_propagates_other_failures(string message, bool methods, bool failRetry, bool succeeds)
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        Assert.NotNull(typeof(ACPSession).GetMethod("OpenSessionWithAuthRetry", BindingFlags.NonPublic | BindingFlags.Instance));
+        var script = Pipes + "$ProgressPreference='SilentlyContinue'; $n=0; while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); $q=$l|ConvertFrom-Json; " +
+            "if($q.method -eq 'session/new'){ $n++; if($n -eq 1" + (failRetry ? " -or $n -eq 2" : "") +
+            "){ $o.WriteLine(('{\"jsonrpc\":\"2.0\",\"id\":'+$q.id+',\"error\":{\"code\":-32000,\"message\":\"" + message + "\"}}')) } " +
+            "else { $o.WriteLine(('{\"jsonrpc\":\"2.0\",\"id\":'+$q.id+',\"result\":{\"sessionId\":\"review\"}}')) }; $o.Flush() } " +
+            "if($q.method -eq 'authenticate'){ $o.WriteLine(('{\"jsonrpc\":\"2.0\",\"id\":'+$q.id+',\"result\":{}}')); $o.Flush() } " + EndOnBye;
+        var (session, connection, process) = ConnectedSession(runtime, ProviderKind.Grok, script);
+        SetField(session, "authMethods", methods ? new ValueList<string>(["first", "preferred-but-second"]) : ValueList<string>.Empty);
+        var handle = runtime.OnMain(() => MainActor.SpawnThrowing(() => InvokePrivateAsync<JSONValue>(session, "OpenSessionWithAuthRetry", connection)));
+        runtime.Loop.RunUntil(() => handle.Value.IsCompleted, Bound);
+        if (succeeds) Assert.Equal("review", Resolved(handle.Value)["sessionId"]!.JSONValueString);
+        else Assert.IsType<RPCError>(handle.Value.Exception!.InnerException);
+        var frames = Lines(process.ErrorTail).Select(line => JSONValue.Parse(line)!).ToArray();
+        var retries = methods && message.Contains("auth", StringComparison.OrdinalIgnoreCase);
+        Assert.Equal(retries ? 3 : 1, frames.Length);
+        if (retries)
+        {
+            Assert.Equal("authenticate", frames[1]["method"]!.JSONValueString);
+            Assert.Equal("first", frames[1]["params"]!["methodId"]!.JSONValueString);
+            Assert.Equal("session/new", frames[2]["method"]!.JSONValueString);
+        }
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVACP-032")] // Services/Providers/ACPSession.swift:141-151 apply state before configured selection and returned id
+    public void Review_opened_session_discovers_config_before_applying_selection()
+    {
+        using var runtime = new TestRuntime();
+        Assert.NotNull(typeof(ACPSession).GetMethod("SelectOpenedSession", BindingFlags.NonPublic | BindingFlags.Instance));
+        var process = LiveAgent(Pipes + "$ProgressPreference='SilentlyContinue'; while(($l=$i.ReadLine()) -ne $null){ $e.WriteLine($l); $e.Flush(); $q=$l|ConvertFrom-Json; " +
+            "if($q.id){ $o.WriteLine(('{\"jsonrpc\":\"2.0\",\"id\":'+$q.id+',\"result\":{}}')); $o.Flush() } " + EndOnBye);
+        var connection = new JSONRPCConnection(process, sendsVersion: true);
+        var session = new ACPSession(Config(ProviderKind.Grok, RuntimeMode.Supervised, null) with { Model = "chosen" });
+        SetField(session, "connection", connection); SetField(session, "sessionID", "review-id");
+        runtime.OnMain(connection.Start);
+        var state = JSONValue.Parse("""{"configOptions":[{"id":"discovered-model","category":"model","currentValue":"old","options":[{"value":"chosen","name":"Chosen"}]}]}""")!;
+        var handle = runtime.OnMain(() => MainActor.SpawnThrowing(() => InvokePrivateAsync<string>(session, "SelectOpenedSession", state)));
+        runtime.Loop.RunUntil(() => handle.Value.IsCompleted, Bound);
+        Assert.Equal("review-id", Resolved(handle.Value));
+        var frame = JSONValue.Parse(Assert.Single(Lines(process.ErrorTail)))!;
+        Assert.Equal("session/set_config_option", frame["method"]!.JSONValueString);
+        Assert.Equal("discovered-model", frame["params"]!["configId"]!.JSONValueString);
+        Assert.Equal("chosen", frame["params"]!["value"]!.JSONValueString);
+        runtime.OnMain(() => connection.Notify("bye"));
+    }
+
     private static readonly TimeSpan Bound = TimeSpan.FromSeconds(90);
 
     private static SessionConfiguration Config(ProviderKind provider, RuntimeMode mode, SwiftURL? executable, IReadOnlyDictionary<string, string>? env = null) => new()
@@ -375,7 +432,8 @@ public sealed class ACPSessionTests
     // live scripted stand-in agent (this file's part 1 header; empirically `powershell.exe acp` exits without
     // reading stdin, confirmed with `powershell.exe acp < NUL`), and reaching applySelection would throw its
     // part 1 stub regardless. They are reported as untestable in this part; part 3 covers them once
-    // applySelection and setConfigOption are implemented.
+    // applySelection and setConfigOption are implemented. RESOLVED: Review_auth_retry and
+    // Review_opened_session now exercise the exact helpers called by Start via offline scripted transport.
 
     [Fact]
     [Trait("Req", "PR-PROVACP-025")] // ACPSession.swift:132

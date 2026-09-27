@@ -53,6 +53,30 @@ using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not th
 [Collection("Headless")]
 public sealed class ChromeSegmentedPickerTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "UI-THEME-055")] // UI/Chrome/ChromeSegmentedPicker.swift:51,63,67-69
+    public void Review_selection_changes_preserve_hover_until_pointer_exit() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new ManualTimeProvider();
+        using var clockSource = SwiftClock.Provider.Override(clock);
+        var cell = new CellSample<int?>(1);
+        var picker = new ChromeSegmentedPicker<int?>(HydraOptions(), new Binding<int?>(() => cell.Value, v => cell.Value = v));
+        var window = Show(picker);
+        var two = Segment(picker, "2");
+        window.MouseMove(Centre(two, window));
+        Dispatcher.UIThread.RunJobs();
+        Frames(frames, 20, clock: clock);
+        cell.Value = 2;
+        Dispatcher.UIThread.RunJobs();
+        cell.Value = 1;
+        Dispatcher.UIThread.RunJobs();
+        Frames(frames, 20, clock: clock);
+        AssertColor(Chrome.PrimaryText.Opacity(0.08).Resolve(window.ActualThemeVariant), Fill(two));
+        window.Close();
+    });
+
     private const double StripHeight = 28;       // Chrome.swift:33 capsuleContentHeight
     private const double StripPadding = 3;       // ChromeSegmentedPicker.swift:37
     private const double SegmentSpacing = 2;     // :30
@@ -330,6 +354,7 @@ public sealed class ChromeSegmentedPickerTests(HeadlessSession headless)
         Assert.Equal(SegmentHeight, narrow.Bounds.Height);
         Assert.True(narrowLabel.Width + 2 * SegmentPadding < SegmentMinWidth); // the minimum, not the padding, sets this one
         Assert.Equal(SegmentMinWidth, narrow.Bounds.Width);
+        Assert.Equal((narrow.Bounds.Width - narrowLabel.Width) / 2, narrowLabel.X, LayoutRounding);
         window.Close();
     });
 

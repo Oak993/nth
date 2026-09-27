@@ -273,4 +273,20 @@ public sealed class WorkingIndicatorsHeadlessTests(HeadlessSession headless)
         Assert.Equal(6.72, still.DesiredSize.Width, 9);
         Assert.Equal(11.04, still.DesiredSize.Height, 9);
     });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-171")] // UI/Common/WorkingIndicators.swift:101-107,129-132 tints resolved from current accent at build time
+    public void Review_still_grid_uses_all_current_theme_row_tints() => headless.OnUiThread(() =>
+    {
+        var previous = ThemeManager.Current; ThemeManager.Current = AppTheme.Dracula;
+        try
+        {
+            var spinner = new MiniSpinner(isStill: true);
+            var grid = Assert.IsAssignableFrom<Control>(spinner.Child);
+            var tints = Assert.IsType<Color[]>(grid.GetType().GetField("tints", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(grid));
+            Assert.Equal(GradientSpin.RowTints(Marrow.UI.Chrome.Chrome.AccentNSColor.Resolve(spinner.ActualThemeVariant)), tints);
+            Assert.NotEmpty(tints);
+        }
+        finally { ThemeManager.Current = previous; }
+    });
 }
