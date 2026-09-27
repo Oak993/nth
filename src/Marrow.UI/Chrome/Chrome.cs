@@ -1085,7 +1085,7 @@ namespace Marrow.UI.Chrome
             iconSlot.Width = Chrome.IconSize; // :713 .frame(width:, alignment: .center)
             iconSlot.HorizontalAlignment = HorizontalAlignment.Center;
 
-            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap }; // :714, :718-719
+            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :714, :718-719 .lineLimit(1).truncationMode(.tail)
             void ApplyText()
             {
                 SwiftFont.System(SwiftFont.TextStyle.Body, weight: isSelected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
