@@ -249,6 +249,8 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
                 Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(surface)); Assert.Equal(default, surface.BorderThickness);
                 Assert.Equal(tints[i].Opacity(0.09).Resolve(surface.ActualThemeVariant), ColorOf(surface.Background));
                 var labels = Assert.Single(surface.GetVisualDescendants().OfType<StackPanel>()); Assert.Equal(6, labels.Spacing);
+                var cardIcon = Assert.IsType<SwiftImage>(labels.Children[0]); Assert.Equal(26, cardIcon.Bounds.Width); Assert.Equal(26, cardIcon.Bounds.Height);
+                Assert.Equal(BitmapInterpolationMode.HighQuality, RenderOptions.GetBitmapInterpolationMode(cardIcon)); // :216 .interpolation(.high)
                 var texts = button.GetVisualDescendants().OfType<TextBlock>().ToArray(); Assert.Equal(2, texts.Length);
                 Assert.Equal(titles[i], texts[0].Text); Assert.Equal(count == 0 ? "Nothing here" : summaries[i], texts[1].Text);
                 Assert.Equal(12.5, texts[0].FontSize); Assert.Equal(FontWeight.Medium, texts[0].FontWeight);

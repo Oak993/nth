@@ -316,6 +316,64 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
         });
     });
 
+    // Swift :222 the count line is countSummary(section.changeCount), and :76 changeCount = bullets.count + rollupCount:
+    // a section with one bullet and an "... 3 extra ..." rollup stands for four changes.
+    [Fact]
+    [Trait("Req", "UI-UPDATE-012")] // App/Views/Settings/AboutUpdateViews.swift:44-50,76,222 ("<n> additions")
+    [Trait("Req", "UI-UPDATE-013")] // App/Views/Settings/AboutUpdateViews.swift:47,76,222 ("<n> fixed")
+    [Trait("Req", "UI-UPDATE-014")] // App/Views/Settings/AboutUpdateViews.swift:48,76,222 ("<n> improved")
+    [Trait("Req", "UI-SETTINGS-057")] // App/Views/Settings/AboutUpdateViews.swift:76,222
+    public void The_count_line_counts_a_rollup_as_the_changes_it_stands_for() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var presentation = Presentation.Presenter.Override(new RecordingPresenter());
+        runtime.OnMain(() =>
+        {
+            var sections = ReleaseNoteCategoryExtensions.AllCases.Select(c => new UpdateReleaseNotesDigest.Section
+                { Category = c, Bullets = new ValueList<string>(["Change"]), Rollup = "Fixed 3 extra issues", RollupCount = 3 }).ToArray();
+            var cards = new UpdateReleaseSectionCards(new UpdateReleaseNotesDigest { Sections = new ValueList<UpdateReleaseNotesDigest.Section>(sections) }, "9.0.0");
+            var window = Show(cards);
+            var counts = cards.GetVisualDescendants().OfType<Button>().Select(b => b.GetVisualDescendants().OfType<TextBlock>().ToArray()[1].Text).ToArray();
+            Assert.Equal(new[] { "4 additions", "4 fixed", "4 improved" }, counts);
+            window.Close();
+        });
+    });
+
+    // Swift :728-733: the task consumes the celebration and starts the sweep, and only then awaits the check. With a feed
+    // whose answer is still outstanding, the head is already mounted at 0.86 and sweeps to 100% at 550 ms while the check
+    // is in flight; the check then answers normally.
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-243")] // App/Views/Settings/AboutUpdateViews.swift:728-733,800-802
+    [Trait("Req", "PR-UPDATE-060")] // App/Views/Settings/AboutUpdateViews.swift:728-733; App/AppUpdater.swift:158-166
+    public void The_sweep_starts_before_the_open_time_check_answers() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); var frames = new ManualFrameSource(); using var frameScope = FrameClock.Source.Override(frames);
+        using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.7.0"));
+        var progress = UpdateInstallProgressFixtures.NewProgress(); using var running = UpdateInstallProgress.Running.Override(progress);
+        var answer = new TaskCompletionSource<CannedResponse?>(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var server = System.Threading.Tasks.Task.Run(() => new LoopbackFeedServer(_ => answer.Task)).GetAwaiter().GetResult();
+        var checker = runtime.OnMain(() => new UpdateChecker(AppInfo.Current, [], server.Url("/releases"))); using var shared = UpdateChecker.OverrideShared(checker);
+        var pill = new AboutVersionPill(); var page = new AboutSoftwareUpdateSection(); Avalonia.Controls.Window window = null!;
+        runtime.OnMain(() => { progress.ArmCelebration(); window = Show(new StackPanel { Children = { pill, page } }); });
+        runtime.OnMain(() =>
+        {
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(checker.IsChecking); // the check has started and not answered
+            Assert.False(progress.HasPendingCelebration); Assert.Equal(UpdateInstallProgress.Phase.Celebrating, progress.UpdateInstallProgressPhase);
+            Assert.Equal(0.86, Assert.Single(pill.GetVisualDescendants().OfType<UpdateProgressSlider>()).Fraction);
+        });
+        runtime.AdvanceMilliseconds(550);
+        runtime.OnMain(() => { Assert.True(checker.IsChecking); Assert.Equal(1, progress.Fraction); });
+        answer.SetResult(CannedResponse.Json("[]"));
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        while (runtime.OnMain(() => checker.IsChecking) && stopwatch.Elapsed < TimeSpan.FromSeconds(20))
+        {
+            System.Threading.Thread.Sleep(10); runtime.RunUntilIdle(); Dispatcher.UIThread.RunJobs();
+        }
+        runtime.OnMain(() => { Assert.False(checker.IsChecking); Assert.NotNull(checker.LastCheckedAt); });
+        runtime.AdvanceMilliseconds(3000);
+        runtime.OnMain(() => { Assert.Equal(UpdateInstallProgress.Phase.Idle, progress.UpdateInstallProgressPhase); window.Close(); });
+    });
+
     // ED-092: SwiftUI .easeInOut is the cubic Bezier (0.42, 0, 0.58, 1). Its progress at a quarter and three quarters of
     // the duration (0.129162 and 0.870838, solved from those control points) differs from linear (0.25/0.75), easeIn
     // (0.093465/0.621862) and easeOut (0.378138/0.906535), so these samples pin the curve, unlike the midpoint.

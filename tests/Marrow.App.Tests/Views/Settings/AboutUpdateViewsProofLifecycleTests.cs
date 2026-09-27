@@ -191,6 +191,8 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
             Dispatcher.UIThread.RunJobs(); Assert.Equal(UpdateInstallProgress.Phase.Idle, progress.UpdateInstallProgressPhase); Assert.Equal(0, progress.Fraction);
             Assert.Empty(pill.GetVisualDescendants().OfType<UpdateProgressSlider>());
             Assert.Contains(pill.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Check failed");
+            // PR-SETTINGS-243 failure case: the page's own check failed, so the row's detail prefixes the error (:839, OD-0012 I1).
+            Assert.Contains(row.GetVisualDescendants().OfType<TextBlock>(), t => t.Text!.StartsWith("No update feed is set. Checked ", StringComparison.Ordinal) && t.Text.EndsWith('.')); // the date was rendered at check time
             window.Close();
         });
         var checkedAt = runtime.OnMain(() => checker.LastCheckedAt); runtime.AdvanceMilliseconds(1000);
@@ -245,6 +247,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
 
     [Fact]
     [Trait("Decision", "ED-084")] // PR-UPDATE-061 partial: the phase guard at Swift :801, not system-setting integration
+    [Trait("Req", "PR-SETTINGS-243")] // App/Views/Settings/AboutUpdateViews.swift:800-801 ("only if the progress is still in the celebrating phase")
     public void A_phase_change_before_the_550_millisecond_guard_ends_the_real_sweep() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
