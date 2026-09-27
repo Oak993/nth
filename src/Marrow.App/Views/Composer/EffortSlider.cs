@@ -12,7 +12,10 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Avalonia.Rendering.SceneGraph;
+using Avalonia.Skia;
 using Avalonia.VisualTree;
+using SkiaSharp;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
@@ -444,7 +447,7 @@ public sealed class EffortSliderCard : Decorator
         titleButton.OnHover(hovering => titleFill.Set(hovering && onTitleTap is not null ? Chrome.Overlay(0.08) : SwiftColor.Clear, Chrome.Hover));
         ToolTip.SetTip(titleButton, onTitleTap is null ? "" : "Choose a model");
         centre.Children.Add(titleButton);
-        var subtitle = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, HorizontalAlignment = HorizontalAlignment.Center };
+        var subtitle = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), HorizontalAlignment = HorizontalAlignment.Center };
         if (pair is not null)
         {
             var mark = new HydraMarkImage { Width = 12, Height = 12 };
@@ -454,7 +457,9 @@ public sealed class EffortSliderCard : Decorator
         else if (provider is { } kind) subtitle.Children.Add(new ProviderIcon { Provider = kind, Size = 12, Width = 12, Height = 12 }); // :606-608 STOP #3: artwork
         var name = EffortView.Text(pair?.Title ?? modelName, SwiftFont.Body, Chrome.PrimaryText.Opacity(0.7)); // :609-614
         name.TextTrimming = TextTrimming.CharacterEllipsis;
-        subtitle.Children.Add(name);
+        name.Margin = new Thickness(subtitle.Children.Count == 0 ? 0 : 5, 0, 0, 0); // :599 HStack spacing, leaving a finite text column.
+        var scaledName = TextScaling.Apply(name, 0.85); // :614 minimumScaleFactor, ED-214.
+        Grid.SetColumn(scaledName, 1); subtitle.Children.Add(scaledName);
         centre.Children.Add(subtitle); header.Children.Add(centre); rows.Children.Add(header);
         var sliderSlot = new Panel(); rows.Children.Add(sliderSlot);
         if (efforts.Count == 0)
@@ -466,7 +471,15 @@ public sealed class EffortSliderCard : Decorator
         {
             var caption = EffortView.Text(pair.Caption, SwiftFont.System(SwiftFont.TextStyle.Subheadline), Chrome.SecondaryText);
             caption.Margin = new Thickness(0, -6, 0, 0); caption.TextTrimming = TextTrimming.CharacterEllipsis;
-            rows.Children.Add(caption); // :641-650
+            var scaledCaption = TextScaling.Apply(caption, 0.9); // :648 (ED-214).
+            rows.Children.Add(scaledCaption);
+            // :650, UI/Chrome/Chrome.swift:940-944,960: animate the modifier's layer properties
+            // with its shared timing; the Bool modifier itself carries no interpolated animatable data.
+            EffortView.Animate(scaledCaption, Animation.SoftAppear, progress =>
+            {
+                scaledCaption.Opacity = Math.Clamp(progress, 0, 1);
+                scaledCaption.RenderTransform = new TranslateTransform(0, 4 * (1 - progress));
+            });
         }
         Child = new Border { Padding = new Thickness(16, 14, 16, 16), Child = rows }; // :653-655
         string? previousTitle = null;
@@ -791,8 +804,9 @@ internal static class EffortView
         Action<TimeSpan>? tick = null;
         tick = _ =>
         {
-            var elapsed = (SwiftClock.Now - start).TotalSeconds;
-            var complete = elapsed >= animation.Duration;
+            var now = SwiftClock.Now;
+            var elapsed = (now - start).TotalSeconds;
+            var complete = now - start >= TimeSpan.FromSeconds(animation.Duration);
             apply(complete ? 1 : animation.Progress(elapsed));
             if (complete) playback.Tick = null;
             else frames.RequestFrame(tick!);
@@ -1092,8 +1106,7 @@ public sealed class TrackEffect : Decorator
             var size = Bounds.Size;
             if (size.Width <= 8) return; // :1053
             var look = owner.look; var kind = look.TrackLookKind; var time = owner.time;
-            // STOP #5: drawFusion requires GraphicsContext's plusLighter blend; no port primitive exists yet.
-            // Leave only this draw site unwritten. Its original declared method remains below.
+            if (look.Pair is { } pair) DrawFusion(context, size, time, look.Brand.FillColor, pair.Colors); // :1054-1056, ED-213.
             var traits = owner.traits.Traits(size.Width); // :1057
             if (kind is TrackLook.Kind.Supercharged or TrackLook.Kind.Fusion) DrawParticles(context, size, time, look.Spark, traits.Particles);
             if (kind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion) { DrawStreaks(context, size, time, traits.Streaks); DrawBolts(context, size, time); }
@@ -1251,7 +1264,157 @@ public sealed class TrackEffect : Decorator
 
     // :1232-1335 private static func drawFusion(_:size:time:lead:heads:)
     private static void DrawFusion(DrawingContext context, Size size, double time, SwiftColor lead, IReadOnlyList<SwiftColor> heads) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Composer/EffortSlider.swift:1232");
+        context.Custom(new FusionOperation(size, time, lead, heads.ToArray())); // ED-213: additive paths on the Skia lease.
+
+    // ED-213: private to this sole plusLighter site. All frame values are captured before the render-thread lease.
+    private sealed class FusionOperation(Size size, double time, SwiftColor lead, SwiftColor[] heads) : ICustomDrawOperation
+    {
+        public Rect Bounds { get; } = new Rect(size).Inflate(28); // :1321 sigma 7, retaining the glow's four-sigma reach.
+        public bool HitTest(Point p) => false;
+        public bool Equals(ICustomDrawOperation? other) => false;
+        public void Dispose() { }
+
+        public void Render(ImmediateDrawingContext context)
+        {
+            var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>()
+                ?? throw new InvalidOperationException("The fusion drawing needs the Skia renderer (ISkiaSharpApiLeaseFeature).");
+            using var lease = feature.Lease();
+            // The lease bypasses Avalonia's opacity paint, so apply the inherited opacity to the whole frame once.
+            using var opacity = new SKPaint { Color = SKColors.White.WithAlpha((byte)Math.Round(Math.Clamp(lease.CurrentOpacity, 0, 1) * 255)) };
+            var save = lease.SkCanvas.SaveLayer(opacity);
+            try { DrawFrame(lease.SkCanvas, size, time, lead, heads); }
+            finally { lease.SkCanvas.RestoreToCount(save); }
+        }
+
+        private static SKColor Color(SwiftColor value)
+        {
+            var color = value.Resolve(ThemeVariant.Light); // The source's lead/head colours are fixed sRGB literals.
+            return new SKColor(color.R, color.G, color.B, color.A);
+        }
+
+        // :1278-1282,1320-1328. A GraphicsContext copy with a filter is an isolated save layer; the additive
+        // blend applies on restore. Clip before the layer so its filtered result also stays inside the side path.
+        private static void PaintLayer(SKCanvas canvas, SKPath path, SKPaint paint, double sigma, bool additive, SKPath? clip)
+        {
+            var save = canvas.Save();
+            try
+            {
+                if (clip is not null) canvas.ClipPath(clip, SKClipOperation.Intersect, antialias: true);
+                using var blur = sigma > 0 ? SKImageFilter.CreateBlur((float)sigma, (float)sigma, SKShaderTileMode.Decal) : null;
+                using var layer = new SKPaint { BlendMode = additive ? SKBlendMode.Plus : SKBlendMode.SrcOver, ImageFilter = blur };
+                canvas.SaveLayer(layer);
+                canvas.DrawPath(path, paint);
+            }
+            finally { canvas.RestoreToCount(save); }
+        }
+
+        // :1232-1335. Gradients, plasma paths, deterministic sparks, glow, core, then the white sheen.
+        private static void DrawFrame(SKCanvas canvas, Size size, double time, SwiftColor lead, IReadOnlyList<SwiftColor> heads)
+        {
+            var width = size.Width; var height = size.Height;
+            var seam = width * (0.5 + 0.13 * Math.Sin(time * 0.7) + 0.05 * Math.Sin(time * 1.9 + 1));
+            var pulse = 0.5 + 0.5 * Math.Sin(time * 2.4);
+            var headsNear = heads.Count > 0 ? heads[0] : lead;
+
+            var colors = new System.Collections.Generic.List<SKColor> { Color(lead), Color(lead), Color(SwiftColor.White.Opacity(0.92)) };
+            var positions = new System.Collections.Generic.List<float> { 0, (float)Math.Max(0, seam / width - 0.22), (float)(seam / width) };
+            var farStart = Math.Min(1, seam / width + 0.16);
+            if (heads.Count == 1)
+            {
+                colors.Add(Color(headsNear)); positions.Add((float)farStart);
+                colors.Add(Color(headsNear)); positions.Add(1);
+            }
+            else
+            {
+                for (var index = 0; index < heads.Count; index++)
+                {
+                    colors.Add(Color(heads[index]));
+                    positions.Add((float)Math.Min(1, farStart + (1 - farStart) * index / (heads.Count - 1)));
+                }
+            }
+            using (var gradient = SKShader.CreateLinearGradient(new SKPoint(0, (float)(height / 2)), new SKPoint((float)width, (float)(height / 2)), colors.ToArray(), positions.ToArray(), SKShaderTileMode.Clamp))
+            using (var fill = new SKPaint { Shader = gradient, IsAntialias = true })
+                canvas.DrawRect(new SKRect(0, 0, (float)width, (float)height), fill); // :1240-1256
+
+            for (var band = 0; band < 3; band++) // :1261-1295
+            {
+                var seed = band + 300.0;
+                var amplitude = height * (0.12 + 0.16 * Random(seed, 1));
+                var wavelength = 30 + 34 * Random(seed, 2);
+                var speed = 22 + 34 * Random(seed, 3);
+                var thickness = 1.8 + 2.2 * Random(seed, 4);
+                var phase = time * speed / wavelength * 2 * Math.PI;
+                for (var stream = 0; stream < 2; stream++)
+                {
+                    var toNear = stream == 0;
+                    using var path = new SKPath();
+                    var steps = (int)(width / 3) + 1;
+                    for (var step = 0; step <= steps; step++)
+                    {
+                        var x = Math.Min(width, step * 3.0);
+                        var y = height / 2 + amplitude * Math.Sin(x / wavelength * 2 * Math.PI + (toNear ? phase : -phase) + seed * (toNear ? 1 : 1.7));
+                        if (step == 0) path.MoveTo((float)x, (float)y); else path.LineTo((float)x, (float)y);
+                    }
+                    var reach = width * 0.55;
+                    using var side = new SKPath();
+                    side.AddRect(toNear ? new SKRect(0, 0, (float)seam, (float)height) : new SKRect((float)seam, 0, (float)width, (float)height));
+                    var color = toNear ? headsNear : lead;
+                    var brightness = 0.32 + 0.16 * Random(seed, 5);
+                    var streamColors = toNear
+                        ? new[] { Color(color.Opacity(0)), Color(color.Opacity(brightness)) }
+                        : new[] { Color(color.Opacity(brightness)), Color(color.Opacity(0)) };
+                    using var shader = SKShader.CreateLinearGradient(new SKPoint((float)(toNear ? seam - reach : seam), 0),
+                        new SKPoint((float)(toNear ? seam : seam + reach), 0), streamColors, null, SKShaderTileMode.Clamp);
+                    using var stroke = new SKPaint { Shader = shader, IsAntialias = true, Style = SKPaintStyle.Stroke,
+                        StrokeWidth = (float)thickness, StrokeCap = SKStrokeCap.Round, StrokeJoin = SKStrokeJoin.Round };
+                    PaintLayer(canvas, path, stroke, 2.5, true, side);
+                }
+            }
+
+            for (var index = 0; index < 22; index++) // :1297-1316
+            {
+                var seed = index + 400.0;
+                var life = 0.7 + 0.8 * Random(seed, 1);
+                var age = (time + Random(seed, 2) * life) % life;
+                var progress = age / life;
+                var toNear = Random(seed, 3) < 0.5;
+                var speed = 28 + 74 * Random(seed, 4);
+                var x = seam + (toNear ? -1 : 1) * speed * age;
+                var y = height * (0.18 + 0.64 * Random(seed, 5)) + 5 * Math.Sin(age * 8 + seed);
+                var radius = 0.7 + 1.5 * (1 - progress);
+                var opacity = (1 - progress) * (0.5 + 0.5 * Random(seed, 6)) * EdgeFade(x, width);
+                if (opacity <= 0.01) continue;
+                var color = SwiftColor.White.Mix(toNear ? lead : headsNear, progress * 0.8);
+                using var spark = new SKPaint { Color = Color(color.Opacity(opacity)), IsAntialias = true };
+                canvas.DrawOval(new SKRect((float)(x - radius), (float)(y - radius), (float)(x + radius), (float)(y + radius)), spark);
+            }
+
+            var coreWidth = 9 + 8 * pulse; // :1318-1333
+            using (var glowPath = new SKPath())
+            using (var glow = new SKPaint { Color = Color(SwiftColor.White.Opacity(0.32 + 0.3 * pulse)), IsAntialias = true })
+            {
+                glowPath.AddOval(new SKRect((float)(seam - coreWidth), (float)(-height * 0.2), (float)(seam + coreWidth), (float)(height * 1.2)));
+                PaintLayer(canvas, glowPath, glow, 7, true, null);
+            }
+            using (var corePath = new SKPath())
+            using (var core = new SKPaint { Color = Color(SwiftColor.White.Opacity(0.5 + 0.4 * pulse)), IsAntialias = true })
+            {
+                corePath.AddRoundRect(new SKRect((float)(seam - 1.1), 2, (float)(seam + 1.1), (float)(height - 2)), 1.1f, 1.1f);
+                PaintLayer(canvas, corePath, core, 0.8, false, null);
+            }
+
+            // :1335 drawSheen(.white), transcribed from :1204-1225 on this same Skia canvas.
+            const double sheenBand = 46; const double period = 2.8;
+            var sheenX = -sheenBand + (width + sheenBand * 2) * ((time / period) % 1);
+            using var sheenPath = new SKPath();
+            sheenPath.MoveTo((float)(sheenX + 10), 0); sheenPath.LineTo((float)(sheenX + sheenBand + 10), 0);
+            sheenPath.LineTo((float)(sheenX + sheenBand), (float)height); sheenPath.LineTo((float)sheenX, (float)height); sheenPath.Close();
+            using var sheenShader = SKShader.CreateLinearGradient(new SKPoint((float)sheenX, 0), new SKPoint((float)(sheenX + sheenBand + 10), 0),
+                new[] { Color(SwiftColor.White.Opacity(0)), Color(SwiftColor.White.Opacity(0.22)), Color(SwiftColor.White.Opacity(0)) }, null, SKShaderTileMode.Clamp);
+            using var sheen = new SKPaint { Shader = sheenShader, IsAntialias = true };
+            canvas.DrawPath(sheenPath, sheen);
+        }
+    }
 
     // :1338-1340 private static func edgeFade(_:width:). PR-COMPOSER-135: an edge fade over the last 14 points.
     private static double EdgeFade(double x, double width) =>

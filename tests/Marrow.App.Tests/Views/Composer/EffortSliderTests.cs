@@ -482,17 +482,7 @@ public sealed class EffortSliderTests(HeadlessSession headless)
 // The shared Haptics.Perform no-op is the specified adaptation, not an unported dependency (port_impacts X6).
 // The source Alignment call remains once per index change; drag rounding, clamping, capture and springs are tested.
 
-// STOP App.Views.Composer.EffortSlider #5
-// Kind: missing 2D drawing primitive for additive path compositing.
-// Swift: App/Views/Composer/EffortSlider.swift:1232-1335; record PR-COMPOSER-138.
-// Missing: no GraphicsContext wrapper implements plusLighter for blurred/clipped path strokes/fills. Avalonia's
-// RenderOptions.BitmapBlendingMode.Plus is bitmap-only, not GraphicsContext's per-path additive blend mode.
-// Needed: a shared drawing adapter supporting additive path layers, blur and clipping; then fill DrawFusion and
-// enable its single canvas call. All other effect draw methods and the 30/60 Hz timeline are now implemented.
-
-// STOP App.Views.Composer.EffortSlider #6
-// Kind: missing shared text modifier.
-// Swift: App/Views/Composer/EffortSlider.swift:614,648; records PR-COMPOSER-114,116; UI-COMPOSER-032,037.
-// Missing: the F.Text/View modifier surface has no minimumScaleFactor implementation (0.85 subtitle; 0.9 caption).
-// Needed: source-compatible text shrinking before tail ellipsis in that owning primitive. The text, colour,
-// one-line tail truncation, caption font and negative six-point margin are implemented and tested here.
+// Former STOP #5 resolved by ED-213: DrawFusion uses a private Skia-lease operation with Plus save layers,
+// Gaussian sigma equal to the source radius, and anti-aliased side clips. EffortSliderFusionTests covers PR-COMPOSER-138.
+// Former STOP #6 resolved by ED-214: TextScaling measures before trimming, with 0.85 subtitle and 0.9 caption.
+// TextScalingTests and TextScalingSitesTests exercise the primitive and both finite-width sites.
