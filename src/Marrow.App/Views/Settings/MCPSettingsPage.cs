@@ -7,6 +7,9 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Templates;
+using Avalonia.Input.GestureRecognizers;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
@@ -374,9 +377,30 @@ internal sealed class MCPCustomEditor : Decorator
     private const double OuterPadding = 16; // :626
     private const double VariableRowHeight = 34; // :627
     private readonly MCPCustomServer? server; // :585
-    private string name, command, argsText, url; // :587,589-591
-    private MCPCustomServer.Kind kind; // :588
-    private readonly List<VariableDraft> variables; // :592
+    // :587-594. R-VIEW-2 / R-MODEL-3: state read by the form is observable and lists have value semantics.
+    private sealed class ViewState : MainActorModel
+    {
+        private string name = "", command = "", argsText = "", url = "";
+        private MCPCustomServer.Kind kind;
+        private ValueList<VariableDraft> variables = ValueList<VariableDraft>.Empty;
+        public string Name { get => Read(name); set => Set(ref name, value); }
+        public string Command { get => Read(command); set => Set(ref command, value); }
+        public string ArgsText { get => Read(argsText); set => Set(ref argsText, value); }
+        public string Url { get => Read(url); set => Set(ref url, value); }
+        public MCPCustomServer.Kind Kind { get => Read(kind); set => Set(ref kind, value); }
+        public ValueList<VariableDraft> Variables { get => Read(variables); set => Set(ref variables, value); }
+    }
+    private readonly ViewState state = new();
+    private string name { get => state.Name; set => state.Name = value; } // :587
+    private string command { get => state.Command; set => state.Command = value; } // :589
+    private string argsText { get => state.ArgsText; set => state.ArgsText = value; } // :590
+    private string url { get => state.Url; set => state.Url = value; } // :591
+    private MCPCustomServer.Kind kind { get => state.Kind; set => state.Kind = value; } // :588
+    private ValueList<VariableDraft> variables { get => state.Variables; set => state.Variables = value; } // :592
+    private readonly Dictionary<Guid, Grid> variableRows = new(); // :796 ForEach identity
+    private StackPanel? variablesHost;
+    private ForEach<VariableDraft, Guid>? variableForEach;
+    private Control? nameSection, kindSection;
     private string? savedID; // :594
     private readonly Grid root = new() { RowDefinitions = new RowDefinitions("Auto,*,Auto"), RowSpacing = SectionSpacing }; // :630-656
     private readonly StackPanel form = new() { Spacing = SectionSpacing }; // :633
@@ -387,8 +411,8 @@ internal sealed class MCPCustomEditor : Decorator
     {
         this.server = server; name = server?.Name ?? ""; kind = server?.ServerKind ?? MCPCustomServer.Kind.Stdio;
         command = server?.Command ?? ""; argsText = string.Join("\n", server?.Args ?? ValueList<string>.Empty); url = server?.Url ?? "";
-        variables = (server?.Variables ?? ValueList<MCPCustomServer.Variable>.Empty).Select(v => new VariableDraft(v)).ToList(); Width = MCPCustomEditorWidth;
-        var scroll = new ScrollViewer { Content = form, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }; Grid.SetRow(scroll, 1); root.Children.Add(scroll); Grid.SetRow(footer, 2); root.Children.Add(footer);
+        variables = new ValueList<VariableDraft>((server?.Variables ?? ValueList<MCPCustomServer.Variable>.Empty).Select(v => new VariableDraft(v))); Width = MCPCustomEditorWidth;
+        var scroll = new ScrollViewer { Content = form, Template = EditorScrollTemplate, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }; Grid.SetRow(scroll, 1); root.Children.Add(scroll); Grid.SetRow(footer, 2); root.Children.Add(footer);
         Child = new Border { Padding = new Thickness(OuterPadding), Child = root }; RebuildForm(); BuildFooter(null);
         AttachedToVisualTree += (_, _) =>
         {
@@ -396,8 +420,7 @@ internal sealed class MCPCustomEditor : Decorator
             else
             {
                 var model = AppEnvironment.GetAppModel(this);
-                for (var i = 0; i < variables.Count; i++) if (model.Mcp.StoredValue(server.Id, variables[i].Key, variables[i].IsSecret) is { } stored) variables[i] = variables[i] with { Value = stored }; // :666-674
-                RebuildForm();
+                for (var i = 0; i < variables.Count; i++) if (model.Mcp.StoredValue(server.Id, variables[i].Key, variables[i].IsSecret) is { } stored) variables = variables.SetItem(i, variables[i] with { Value = stored }); // :666-674
             }
         };
     }
@@ -418,19 +441,24 @@ internal sealed class MCPCustomEditor : Decorator
     // :629-658,706-839
     private void RebuildForm()
     {
-        ResizeForm(); if (root.Children.Count > 2) root.Children.RemoveAt(2); var header = BuildHeader(); Grid.SetRow(header, 0); root.Children.Add(header); form.Children.Clear();
-        nameField = EditorField("My server", () => name, v => name = v, name: true); form.Children.Add(Field("Name", MCPSettingsPage.McpFieldSurface(nameField)));
-        form.Children.Add(Field("Kind", new GlassPickerButton<MCPCustomServer.Kind>(new[] { (MCPCustomServer.Kind.Stdio, "stdio \U00002014 a command on this PC"), (MCPCustomServer.Kind.Http, "http \U00002014 a remote server") }, new Binding<MCPCustomServer.Kind>(() => kind, SetKind), symbol: v => v == MCPCustomServer.Kind.Stdio ? "terminal" : "network"))); // U+2014 EM DASH
+        ResizeForm(); if (root.Children.Count > 2) root.Children.RemoveAt(2); var header = BuildHeader(); Grid.SetRow(header, 0); root.Children.Add(header);
+        variablesHost?.Children.Clear(); form.Children.Clear(); // :796 retain each variable's controls by its ID
+        if (nameSection is null) { nameField = EditorField("My server", () => name, v => name = v, name: true); nameSection = Field("Name", MCPSettingsPage.McpFieldSurface(nameField)); }
+        form.Children.Add(nameSection);
+        kindSection ??= Field("Kind", new GlassPickerButton<MCPCustomServer.Kind>(new[] { (MCPCustomServer.Kind.Stdio, "stdio \U00002014 a command on this PC"), (MCPCustomServer.Kind.Http, "http \U00002014 a remote server") }, new Binding<MCPCustomServer.Kind>(() => kind, SetKind), symbol: v => v == MCPCustomServer.Kind.Stdio ? "terminal" : "network")); form.Children.Add(kindSection); // U+2014 EM DASH
         if (kind == MCPCustomServer.Kind.Stdio)
         {
             form.Children.Add(Field("Command", MCPSettingsPage.McpFieldSurface(EditorField("npx", () => command, v => command = v))));
-            var args = EditorField("", () => argsText, v => argsText = v); args.AcceptsReturn = true; args.Height = 66;
+            var args = EditorField("", () => argsText, v => argsText = v); args.AcceptsReturn = true; args.TextWrapping = TextWrapping.Wrap; args.Height = 66; args.Padding = new Thickness(6, 4);
             form.Children.Add(Field("Arguments", new StackPanel { Children = { MCPSettingsPage.McpFieldSurface(args), MCPSettingsPage.Text("One argument per line; empty lines are dropped.", 10.5, Chrome.SecondaryText) } }));
         }
         else form.Children.Add(Field("URL", MCPSettingsPage.McpFieldSurface(EditorField("https://\U00002026", () => url, v => url = v)))); // U+2026 HORIZONTAL ELLIPSIS
-        var rows = new StackPanel { Spacing = 5 }; foreach (var variable in variables.ToArray()) rows.Children.Add(VariableRow(variable));
+        var rows = new StackPanel { Spacing = 5 }; variablesHost = rows;
+        // :796 all row inputs read the state binding by ID; ForEach preserves attached controls on append/remove.
+        variableForEach = new ForEach<VariableDraft, Guid>(rows, v => v.Id, VariableRow, (_, _) => { }); variableForEach.Apply(variables);
         var addText = kind == MCPCustomServer.Kind.Stdio ? "Add environment variable" : "Add header";
-        rows.Children.Add(PlainControls.Button(MCPSettingsPage.Text(addText, 12, Chrome.Accent, SwiftFont.Weight.Medium), () => { variables.Add(new VariableDraft()); RebuildForm(); }));
+        var add = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { MCPSettingsPage.Symbol("plus", 12, Chrome.Accent).Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), MCPSettingsPage.Text(addText, 12, Chrome.Accent, SwiftFont.Weight.Medium) } };
+        rows.Children.Add(PlainControls.Button(add, () => { variables = variables.Appending(new VariableDraft()); variableForEach.Apply(variables); ResizeForm(); }));
         rows.Children.Add(MCPSettingsPage.Text("Locked values are kept in the Credential Manager.", 10.5, Chrome.SecondaryText)); form.Children.Add(Field(kind == MCPCustomServer.Kind.Stdio ? "Environment" : "Headers", rows));
     }
     // :706-729
@@ -446,19 +474,67 @@ internal sealed class MCPCustomEditor : Decorator
     private static TextBox EditorField(string prompt, Func<string> read, Action<string> write, bool secret = false, bool name = false)
     {
         var box = PlainControls.TextField(prompt, new Binding<string>(read, write)); if (secret) box.PasswordChar = '\u2022'; // U+2022 BULLET
-        SwiftFont.System(name ? 15 : 12, name ? SwiftFont.Weight.Semibold : SwiftFont.Weight.Regular, name ? SwiftFont.Design.Default : SwiftFont.Design.Monospaced).Apply(box); box.Foreground = Chrome.PrimaryText.Brush(box); if (name) box.Padding = new Thickness(10, 7); return box;
+        box.Template = EditorFieldTemplate; box.FocusAdorner = null; box.Padding = new Thickness(10, 7);
+        SwiftFont.System(name ? 15 : 12, name ? SwiftFont.Weight.Semibold : SwiftFont.Weight.Regular, name ? SwiftFont.Design.Default : SwiftFont.Design.Monospaced).Apply(box); box.Foreground = Chrome.PrimaryText.Brush(box); return box;
     }
+    // :756-774. Local plain template carries padding and SecureField masking to the actual presenter.
+    // Mirrors PlainControls' plain field; the shared template currently omits these properties.
+    private static readonly FuncControlTemplate<TextBox> EditorFieldTemplate = new((box, scope) =>
+    {
+        var prompt = new TextBlock
+        {
+            IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center,
+            [!TextBlock.TextProperty] = box[!TextBox.PlaceholderTextProperty],
+            [!TextBlock.ForegroundProperty] = box[!TextBox.PlaceholderForegroundProperty],
+        };
+        var presenter = new TextPresenter
+        {
+            Name = "PART_TextPresenter", VerticalAlignment = VerticalAlignment.Center,
+            [!TextPresenter.TextProperty] = box[!TextBox.TextProperty],
+            [!TextPresenter.PasswordCharProperty] = box[!TextBox.PasswordCharProperty],
+            [!TextPresenter.RevealPasswordProperty] = box[!TextBox.RevealPasswordProperty],
+            [!TextPresenter.TextWrappingProperty] = box[!TextBox.TextWrappingProperty],
+        }.RegisterInNameScope(scope);
+        void ShowPrompt() => prompt.IsVisible = string.IsNullOrEmpty(box.Text);
+        box.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) ShowPrompt(); };
+        ShowPrompt();
+        Control text = new Panel { Children = { prompt, presenter } };
+        if (box.AcceptsReturn) text = new ScrollViewer { Name = "PART_ScrollViewer", Template = EditorScrollTemplate, Content = text, HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled }.RegisterInNameScope(scope); // :781-787 TextEditor
+        return new Border { [!Border.PaddingProperty] = box[!TextBox.PaddingProperty], Child = text };
+    });
+    // :632-655,659-662,781-787. Same content-presenter / gesture recipe as SidebarView's ListScrollTemplate.
+    // The app deliberately has no theme to supply templates. Native scroll-indicator appearance is UNVERIFIED OD-0001.
+    private static readonly FuncControlTemplate<ScrollViewer> EditorScrollTemplate = new((viewer, scope) =>
+    {
+        var presenter = new ScrollContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty] };
+        presenter.GestureRecognizers.Add(new ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
+        return presenter.RegisterInNameScope(scope);
+    });
     // :794-840
     private Control VariableRow(VariableDraft variable)
     {
-        int Index() => variables.FindIndex(v => v.Id == variable.Id);
-        void Edit(Func<VariableDraft, VariableDraft> update) { var index = Index(); if (index >= 0) variables[index] = update(variables[index]); }
+        if (variableRows.TryGetValue(variable.Id, out var existing)) return existing;
+        int Index() => Array.FindIndex(variables.ToArray(), v => v.Id == variable.Id);
+        void Edit(Func<VariableDraft, VariableDraft> update) { var index = Index(); if (index >= 0) variables = variables.SetItem(index, update(variables[index])); }
         var key = EditorField("KEY", () => variables[Index()].Key, v => Edit(old => old with { Key = v }));
         var value = EditorField("value", () => variables[Index()].Value, v => Edit(old => old with { Value = v }), variable.IsSecret);
-        var toggle = PlainControls.Button(MCPSettingsPage.Symbol(variable.IsSecret ? "lock.fill" : "lock.open", 12, variable.IsSecret ? Chrome.Accent : Chrome.SecondaryText), () => { Edit(old => old with { IsSecret = !old.IsSecret }); RebuildForm(); }); ToolTip.SetTip(toggle, variable.IsSecret ? "Kept in the Credential Manager" : "Stored in mcp.json; click to keep it in the Credential Manager instead");
-        var remove = PlainControls.Button(MCPSettingsPage.Symbol("minus.circle", 12, Chrome.SecondaryText), () => { variables.RemoveAll(v => v.Id == variable.Id); RebuildForm(); }); ToolTip.SetTip(remove, "Remove this variable"); toggle.Width = toggle.Height = remove.Width = remove.Height = 24;
+        var toggle = PlainControls.Button(MCPSettingsPage.Symbol(variable.IsSecret ? "lock.fill" : "lock.open", 12, variable.IsSecret ? Chrome.Accent : Chrome.SecondaryText).Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), () => Edit(old => old with { IsSecret = !old.IsSecret })); ToolTip.SetTip(toggle, variable.IsSecret ? "Kept in the Credential Manager" : "Stored in mcp.json; click to keep it in the Credential Manager instead");
+        var remove = PlainControls.Button(MCPSettingsPage.Symbol("minus.circle", 12, Chrome.SecondaryText).Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), () => { variables = variables.Mutating(list => list.RemoveAll(v => v.Id == variable.Id)); variableForEach!.Apply(variables); ResizeForm(); variableRows.Remove(variable.Id); }); ToolTip.SetTip(remove, "Remove this variable"); toggle.Width = toggle.Height = remove.Width = remove.Height = 24;
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*,Auto,Auto"), ColumnSpacing = 6 };
-        foreach (var (control, column) in new[] { (MCPSettingsPage.McpFieldSurface(key), 0), (MCPSettingsPage.McpFieldSurface(value), 1), ((Control)toggle, 2), ((Control)remove, 3) }) { Grid.SetColumn(control, column); row.Children.Add(control); } return row;
+        foreach (var (control, column) in new[] { (MCPSettingsPage.McpFieldSurface(key), 0), (MCPSettingsPage.McpFieldSurface(value), 1), ((Control)toggle, 2), ((Control)remove, 3) }) { Grid.SetColumn(control, column); row.Children.Add(control); }
+        var locked = variable.IsSecret;
+        void RenderSecret(bool isSecret)
+        {
+            if (locked == isSecret) return;
+            locked = isSecret;
+            var replacement = MCPSettingsPage.McpFieldSurface(EditorField("value", () => variables[Index()].Value, v => Edit(old => old with { Value = v }), isSecret));
+            Grid.SetColumn(replacement, 1); row.Children.RemoveAt(1); row.Children.Insert(1, replacement);
+            toggle.Content = MCPSettingsPage.Symbol(isSecret ? "lock.fill" : "lock.open", 12, isSecret ? Chrome.Accent : Chrome.SecondaryText).Font(SwiftFont.System(12, SwiftFont.Weight.Medium));
+            ToolTip.SetTip(toggle, isSecret ? "Kept in the Credential Manager" : "Stored in mcp.json; click to keep it in the Credential Manager instead");
+        }
+        row.Track(() => variables[Index()].IsSecret, RenderSecret);
+        toggle.Click += (_, _) => RenderSecret(variables[Index()].IsSecret); // :804-814 immediate branch swap on activation
+        variableRows.Add(variable.Id, row); return row;
     }
     // :845-862
     private MCPCustomServer Draft
@@ -549,11 +625,16 @@ internal sealed class MCPInfoPopover : Decorator
         stack.Children.Add(new StackPanel { Spacing = 8, Children = { Detail("Connects", connection), Detail("Needs", needs) } });
         if (entry.SampleTools.Count > 0) stack.Children.Add(new StackPanel { Spacing = 6, Children = { MCPSettingsPage.Text("Tools", 11, Chrome.SecondaryText, SwiftFont.Weight.Semibold), new FlowChips(entry.SampleTools) } });
         if (entry.Fields.FirstOrDefault(f => !f.IsRequired) is { } field) stack.Children.Add(PlainControls.Button(MCPSettingsPage.Text("Change the " + SwiftString.Lowercased(field.Label) + "\U00002026", 12, Chrome.Accent, SwiftFont.Weight.Medium), () => MCPKeyPanel.Shared.Present(entry, AppEnvironment.GetAppModel(this)))); // U+2026 HORIZONTAL ELLIPSIS
-        if (entry.DocsURL.Length > 0 && SwiftURL.Create(entry.DocsURL) is { } docs) stack.Children.Add(PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Children = { MCPSettingsPage.Text("Read the docs", 12, Chrome.Accent, SwiftFont.Weight.Medium), MCPSettingsPage.Symbol("arrow.up.right", 10, Chrome.Accent) } }, () => MCPSettingsPage.OpenURL(this, docs)));
+        if (entry.DocsURL.Length > 0 && SwiftURL.Create(entry.DocsURL) is { } docs) stack.Children.Add(PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Children = { MCPSettingsPage.Text("Read the docs", 12, Chrome.Accent, SwiftFont.Weight.Medium), MCPSettingsPage.Symbol("arrow.up.right", 10, Chrome.Accent).Font(SwiftFont.System(10, SwiftFont.Weight.Bold)) } }, () => MCPSettingsPage.OpenURL(this, docs)));
         Child = new Border { Padding = new Thickness(16), Width = MCPInfoPopoverWidth, Child = stack };
     }
     // :1026-1036
-    private static Control Detail(string label, string value) => new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { MCPSettingsPage.Text(label, 11, Chrome.SecondaryText, SwiftFont.Weight.Semibold), MCPSettingsPage.Text(value, 11.5, Chrome.PrimaryText.Opacity(0.9)) } };
+    private static Control Detail(string label, string value)
+    {
+        var title = MCPSettingsPage.Text(label, 11, Chrome.SecondaryText, SwiftFont.Weight.Semibold); title.Width = 58;
+        var detail = MCPSettingsPage.Text(value, 11.5, Chrome.PrimaryText.Opacity(0.9));
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 8 }; row.Children.Add(title); Grid.SetColumn(detail, 1); row.Children.Add(detail); return row;
+    }
     // :1062-1064
     private static string Host(string of) => SwiftURL.Create(of)?.Host ?? of;
 }
