@@ -10,6 +10,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Marrow.App.Window;
+using Marrow.App.Port;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -24,6 +25,7 @@ namespace Marrow.App.Views.Chat;
 // partial: only PanelDragHandle below (B3 :640-666) has been re-pinned and re-cited against the B3 tree (unit
 // App.Views.Chat.SubagentPanel, plan section 2.B row L9/20, B3_PLAN.md:696); every other member's citations
 // still point at the B2 tree pending its own re-verification pass.
+// Source: DroppyCode/App/Views/Chat/SubagentPanel.swift (B3 52bc792), :268-327, :504-547 (sweep C).
 
 /// <summary>:4-7 <c>enum FloatingPanelID: Hashable</c>. An enum with an associated value is a record union.</summary>
 public abstract record FloatingPanelID
@@ -297,6 +299,13 @@ public sealed class SubagentPanel : Decorator
         Action<Size> onDrag,
         Action onDragEnd,
         Action close)
+        : this(thread, size, workingDirectory, projectName, onDrag, onDragEnd, close,
+            state => new JumpToLatestButton(state)) { }
+
+    // :268-327. Test-only dependency injection keeps this unit testable while ChatView's jump control is a stub.
+    internal SubagentPanel(
+        ChatThread thread, Size size, string? workingDirectory, string? projectName,
+        Action<Size> onDrag, Action onDragEnd, Action close, Func<TimelineScrollState, Control> jumpButton)
     {
         var model = WindowManager.Shared.Model;
         var runtime = model.Runtime(thread.Id);
@@ -313,9 +322,11 @@ public sealed class SubagentPanel : Decorator
 
         var scrollChrome = new ChromeScrollModel();
         var scrollState = new TimelineScrollState();
-        Control transcript = thread.IsHydraHead && !model.Settings.HydraShowsHeadDetails
-            ? new HydraHeadProgress(thread, runtime)
-            : new ThreadTimeline(
+        Control MakeTranscript(bool compact)
+        {
+            Control transcript = compact
+                ? new HydraHeadProgress(thread, runtime)
+                : new ThreadTimeline(
                 runtime,
                 scrollChrome,
                 scrollState,
@@ -324,9 +335,20 @@ public sealed class SubagentPanel : Decorator
                 supportsRewind: false,
                 columnHeight: size.Height,
                 showsMinimap: false);
-        transcript.Margin = new Thickness(16, HandleHeight + 8, 16, 12);
-        Grid.SetRow(transcript, 0);
-        content.Children.Add(transcript);
+            transcript.Margin = new Thickness(16, HandleHeight + 8, 16, 12);
+            return transcript;
+        }
+        var compactBody = thread.IsHydraHead && !model.Settings.HydraShowsHeadDetails;
+        var transcriptHost = new Border { Child = MakeTranscript(compactBody) };
+        // :271-291. Observe just this conditional body; pointer placement never rebuilds its content.
+        transcriptHost.Track(() => thread.IsHydraHead && !model.Settings.HydraShowsHeadDetails, compact =>
+        {
+            if (compact == compactBody) return;
+            compactBody = compact;
+            transcriptHost.Child = MakeTranscript(compact);
+        });
+        Grid.SetRow(transcriptHost, 0);
+        content.Children.Add(transcriptHost);
 
         var composer = new ComposerArea(
             runtime,
@@ -336,7 +358,7 @@ public sealed class SubagentPanel : Decorator
             showsChanges: false);
         var composerContainer = new Grid();
         composerContainer.Children.Add(composer);
-        composerContainer.Children.Add(new JumpToLatestButton(scrollState));
+        composerContainer.Children.Add(jumpButton(scrollState));
         Grid.SetRow(composerContainer, 0);
         composerContainer.VerticalAlignment = VerticalAlignment.Bottom;
         content.Children.Add(composerContainer);
@@ -373,7 +395,17 @@ public sealed class SubagentPanel : Decorator
         };
         closeButton.Track(
             () => runtime.IsRunning,
-            running => ToolTip.SetTip(closeButton, running ? "Close this chat and stop its turn" : "Close this chat"));
+            running =>
+            {
+                var help = running ? "Close this chat and stop its turn" : "Close this chat";
+                ToolTip.SetTip(closeButton, help);
+                // ChromeCircleButton puts its initial help on the actual button (:433-434).
+                foreach (var button in Avalonia.LogicalTree.LogicalExtensions.GetSelfAndLogicalDescendants(closeButton).OfType<Button>())
+                {
+                    ToolTip.SetTip(button, help);
+                    AutomationProperties.SetName(button, help);
+                }
+            });
         Grid.SetColumn(closeButton, 2);
         strip.Children.Add(closeButton);
 
@@ -601,6 +633,8 @@ public sealed class PanelDragState : MainActorModel
 /// <summary>:498-525 <c>struct PlacedPanel&lt;Content: View&gt;: View</c>.</summary>
 public sealed class PlacedPanel : Decorator
 {
+    private readonly PanelPlacementView placement;
+
     // :505-514, :516-524
     public PlacedPanel(
         PanelDragState drag,
@@ -628,27 +662,12 @@ public sealed class PlacedPanel : Decorator
             placedContent.Height = size.Height;
         }
 
-        var placement = new Border
-        {
-            Width = size.Width,
-            Height = size.Height,
-            Child = placedContent,
-        };
-
-        void Place(bool settle)
-        {
-            var origin = drag.Position ?? rest;
-            void Apply() => placement.RenderTransform = new TranslateTransform(origin.X, origin.Y);
-            if (settle && !isResizing)
-                Transaction.WithAnimation(Chrome.PanelSlide, Apply);
-            else
-                Apply();
-        }
-
-        Place(settle: false);
-        placement.Track(() => drag.Position, position => Place(settle: position is null));
+        placement = new PanelPlacementView(drag, rest, size, placedContent, isResizing);
         Child = placement;
     }
+
+    // :535-546. Re-evaluate the Swift view's immutable placement inputs without replacing its conversation.
+    public void UpdatePlacement(Point rest, Size size, bool isResizing = false) => placement.Update(rest, size, isResizing);
 }
 
 /// <summary>:527-547 <c>private struct PanelPlacement: ViewModifier</c>.</summary>
@@ -656,23 +675,98 @@ internal sealed record PanelPlacement(PanelDragState Drag, Point Rest, Size Size
 {
     // :537-546
     public Control Body(Control content)
+        => new PanelPlacementView(Drag, Rest, Size, content, IsResizing);
+}
+
+// :530-547. A placement modifier owns only offset and size; content survives every pointer/frame update.
+internal sealed class PanelPlacementView : Border
+{
+    private readonly PanelDragState drag;
+    private readonly IGeniePlatform motionPlatform = Chrome.ReduceMotionPlatform.Current;
+    private readonly TimeProvider clock = SwiftClock.Provider.Current;
+    private Point rest;
+    private Size size;
+    private bool isResizing;
+    private Point presented;
+    private Size presentedSize;
+    private Point target;
+    private Size targetSize;
+    private IFrameSource? frames;
+    private Action<TimeSpan>? pending;
+
+    public PanelPlacementView(PanelDragState drag, Point rest, Size size, Control content, bool isResizing)
     {
-        content.Width = Size.Width;
-        content.Height = Size.Height;
+        this.drag = drag;
+        this.rest = rest;
+        this.size = size;
+        this.isResizing = isResizing;
+        Child = content;
+        target = drag.Position ?? rest;
+        targetSize = size;
+        Present(target, size);
+        this.Track(() => (drag.Position, AppEnvironment.GetWindowLiveResize(this).IsActive), state => Place(state.IsActive));
+        DetachedFromVisualTree += (_, _) => Stop();
+    }
 
-        void Place(bool settle)
+    // :535-546. Both origin and size settle; a grip or WINDOW live resize follows immediately.
+    public void Update(Point newRest, Size newSize, bool resizing)
+    {
+        rest = newRest;
+        size = newSize;
+        isResizing = resizing;
+        Place(TopLevel.GetTopLevel(this) is not null && AppEnvironment.GetWindowLiveResize(this).IsActive);
+    }
+
+    private void Place(bool liveResize)
+    {
+        var origin = drag.Position ?? rest;
+        var settles = drag.Position is null && !isResizing && !liveResize;
+        if (settles && origin == target && size == targetSize) return;
+        target = origin;
+        targetSize = size;
+        Stop();
+        if (!settles || TopLevel.GetTopLevel(this) is null || (presented == origin && presentedSize == size))
         {
-            var origin = Drag.Position ?? Rest;
-            void Apply() => content.RenderTransform = new TranslateTransform(origin.X, origin.Y);
-            if (settle && !IsResizing)
-                Transaction.WithAnimation(Chrome.PanelSlide, Apply);
-            else
-                Apply();
+            Present(origin, size);
+            return;
         }
+        var from = presented;
+        var fromSize = presentedSize;
+        var toSize = size;
+        var start = clock.GetTimestamp();
+        // Chrome.swift:99-104. Reuse Chrome's curves and read the platform's live setting at each settle.
+        // Retain the injected platform object across posted observation callbacks, whose context can differ.
+        using var motion = Chrome.ReduceMotionPlatform.Override(motionPlatform);
+        var animation = Chrome.PanelSlide;
+        frames = FrameClock.Source.Current;
+        Action<TimeSpan>? tick = null;
+        tick = _ =>
+        {
+            var seconds = clock.GetElapsedTime(start).TotalSeconds;
+            var complete = seconds >= animation.Duration;
+            var p = complete ? 1 : animation.Progress(seconds);
+            Present(new Point(from.X + (origin.X - from.X) * p, from.Y + (origin.Y - from.Y) * p),
+                new Size(fromSize.Width + (toSize.Width - fromSize.Width) * p, fromSize.Height + (toSize.Height - fromSize.Height) * p));
+            if (complete) pending = null;
+            else frames.RequestFrame(tick!);
+        };
+        pending = tick;
+        frames.RequestFrame(tick);
+    }
 
-        Place(settle: false);
-        content.Track(() => Drag.Position, position => Place(settle: position is null));
-        return content;
+    private void Present(Point origin, Size value)
+    {
+        presented = origin;
+        presentedSize = value;
+        RenderTransform = new TranslateTransform(origin.X, origin.Y);
+        Width = Child!.Width = value.Width;
+        Height = Child.Height = value.Height;
+    }
+
+    private void Stop()
+    {
+        if (pending is { } frame) frames!.CancelFrame(frame);
+        pending = null;
     }
 }
 
