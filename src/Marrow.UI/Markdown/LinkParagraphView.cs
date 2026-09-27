@@ -480,6 +480,11 @@ public sealed class LinkTextView : Decorator
         // selection and marks it handled, which a bubbling instance handler never sees (fix/links), as Render's
         // presenter path already does.
         textBlock.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+        // Tunnel: vetoes the right release that pairs with a press PresentLinkPopover already handled. Otherwise
+        // SelectableTextBlock.OnPointerReleased, which still holds the press's implicit capture, moves the selection to
+        // the click point when the point is outside it (:430-435 "so the click never moves the selection";
+        // :453-456), as Render's presenter path already does.
+        textBlock.AddHandler(PointerReleasedEvent, OnPointerReleasedOverLink, RoutingStrategies.Tunnel);
         textBlock.PointerMoved += OnPointerMoved;
         textBlock.PointerExited += OnPointerExited;
         ActualThemeVariantChanged += (_, _) => ReapplyLinkAttributes();
@@ -594,6 +599,7 @@ public sealed class LinkTextView : Decorator
             if (textBlock is { } old)
             {
                 old.RemoveHandler(PointerPressedEvent, OnPointerPressed);
+                old.RemoveHandler(PointerReleasedEvent, OnPointerReleasedOverLink);
                 old.PointerMoved -= OnPointerMoved;
                 old.PointerExited -= OnPointerExited;
             }
@@ -705,7 +711,10 @@ public sealed class LinkTextView : Decorator
     {
         if (TextHost is not { } block) return;
         var point = e.GetPosition(block);
-        if (HeadMention(point) is { } head)
+        // :444-451 only mouseDown (the left button) opens a head; rightMouseDown (:453-456) never does and
+        // otherMouseDown is not overridden. A Ctrl+left press is still a left press (MessagePopoverMenu.swift:63-65,
+        // :73-79: a control-click is a .leftMouseDown with the control flag, handled in mouseDown(with:)).
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && HeadMention(point) is { } head)
         {
             OnOpenHead?.Invoke(head.Url);
             e.Handled = true;
@@ -731,7 +740,9 @@ public sealed class LinkTextView : Decorator
 
     // See the wiring comment at the AddHandler call in Render(_:): a right-button release over a link would
     // otherwise still open the presenter's own ContextMenu (Avalonia's Control.OnPointerReleased opens it from any
-    // released, unhandled right button, independently of the press PresentLinkPopover already handled). Checked at
+    // released, unhandled right button, independently of the press PresentLinkPopover already handled). On the
+    // paragraph's SelectableTextBlock (wired in the constructor) the same release would also move the selection to
+    // the click point (SelectableTextBlock.OnPointerReleased on a right release outside the selection). Checked at
     // the release point, not carried over from the press, the same way LinkAndRange itself is always a fresh
     // lookup; the two agree except across a drag, which :453-461 has no counterpart for either.
     private void OnPointerReleasedOverLink(object? sender, PointerReleasedEventArgs e)
