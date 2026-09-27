@@ -1,9 +1,13 @@
 using System.Linq;
 using Avalonia;
+using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.App;
 using Marrow.App.Port;
@@ -24,6 +28,193 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
 {
     private static string AllText(Control control) =>
         string.Join("\n", LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(block => block.Text ?? ""));
+
+    // The tab chip does not require an ANSI render surface. Use a real, isolated shell session, and terminate it
+    // on every path; ProcessEnded/Terminate supply the dead-shell state without waiting on a real process.
+    private void WithTabSession(Action<TerminalSession> body) => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness();
+        h.Main.OnMain(() =>
+        {
+            var session = new TerminalSession(Guid.NewGuid(), TerminalTestFolders.Create("tab sweep"), "PowerShell", null);
+            try { body(session); }
+            finally { session.Terminate(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
+    private static Button TabButton(TerminalTab tab, string tooltip) =>
+        LogicalQuery.SelfAndDescendants<Button>(tab).Single(button => Equals(ToolTip.GetTip(button), tooltip));
+
+    private static Color BrushColor(IBrush? brush) => Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color;
+
+    [Fact]
+    [Trait("Req", "PR-TERM-021")] // App/Views/Terminal/TerminalPanel.swift:143-146,172-177
+    public void The_tab_uses_the_source_spacing_font_single_line_truncation_padding_and_capsule() => WithTabSession(session =>
+    {
+        session.Title = "A long terminal title";
+        var tab = new TerminalTab(session, true, () => { }, () => { }, () => { });
+        var row = Assert.IsType<StackPanel>(tab.Child);
+        Assert.Equal(6, row.Spacing);
+        var icon = Assert.IsType<SwiftImage>(row.Children[0]);
+        Assert.Equal(SwiftFont.Caption, SwiftImage.GetFont(icon)); // :145
+        var text = Assert.IsType<TextBlock>(row.Children[1]);
+        Assert.Equal("A long terminal title", text.Text);
+        Assert.Equal(1, text.MaxLines); // :146 .lineLimit(1)
+        Assert.Equal(TextTrimming.CharacterEllipsis, text.TextTrimming);
+        Assert.Equal(12, text.FontSize); // :172 .callout; ED-059, B1 ChatZoom.swift:52
+        Assert.Equal(new Thickness(10, 5), tab.Padding); // :173-174
+        Assert.True(tab.CornerRadius.TopLeft >= tab.Padding.Top); // :176 .capsule, grows with content
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-022")] // App/Views/Terminal/TerminalPanel.swift:148-158; TerminalStore.swift:139-155
+    public void Only_an_exited_shell_has_the_plain_secondary_restart_control_and_it_replaces_the_session_in_place() => headless.OnUiThread(() =>
+    {
+        var fixture = MakeFixture();
+        using var h = fixture.Store;
+        h.Main.OnMain(() =>
+        {
+            try
+            {
+                var directory = TerminalTestFolders.Create("restart tab sweep");
+                var session = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
+                var running = new TerminalTab(session, true, () => { }, () => fixture.App.Terminals.Restart(session), () => { });
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(running), button => Equals(ToolTip.GetTip(button), "Start a new shell in this tab"));
+                session.Terminate();
+                var exited = new TerminalTab(session, true, () => { }, () => fixture.App.Terminals.Restart(session), () => { });
+                var restart = TabButton(exited, "Start a new shell in this tab");
+                Assert.Equal("Restart " + session.Title, AutomationProperties.GetName(restart));
+                Assert.Equal(new Thickness(0), restart.BorderThickness);
+                var icon = Assert.IsType<SwiftImage>(restart.Content);
+                Assert.Equal(SwiftFont.Caption2.FontWeight(SwiftFont.Weight.Bold), SwiftImage.GetFont(icon));
+                Assert.Equal(BrushColor(Chrome.SecondaryText.Brush(icon)), BrushColor(icon.Foreground));
+                restart.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                var fresh = Assert.Single(fixture.App.Terminals.Sessions(fixture.Thread.Id));
+                Assert.NotEqual(session.Id, fresh.Id);
+                Assert.Equal(session.Directory, fresh.Directory);
+                Assert.Equal(session.Title, fresh.Title);
+                Assert.Equal(fresh.Id, fixture.App.Terminals.Selected(fixture.Thread.Id)?.Id);
+            }
+            finally { fixture.App.Terminals.TerminateAll(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-023")] // App/Views/Terminal/TerminalPanel.swift:159-170
+    public void The_close_control_keeps_its_slot_but_only_hovered_or_selected_tabs_accept_a_close() => WithTabSession(session =>
+    {
+        var tab = new TerminalTab(session, false, () => { }, () => { }, () => { });
+        var close = TabButton(tab, "Close terminal");
+        Assert.Equal("Close " + session.Title, AutomationProperties.GetName(close));
+        Assert.True(close.IsVisible); // opacity, not layout removal
+        Assert.Equal(0, close.Opacity);
+        Assert.False(close.IsHitTestVisible);
+        var icon = Assert.IsType<SwiftImage>(close.Content);
+        Assert.Equal(SwiftFont.Caption2.FontWeight(SwiftFont.Weight.Bold), SwiftImage.GetFont(icon));
+        Assert.Equal(BrushColor(Chrome.SecondaryText.Brush(icon)), BrushColor(icon.Foreground));
+        tab.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, tab, new Pointer(1, PointerType.Mouse, true), tab, new Point(), 0, new PointerPointProperties(), KeyModifiers.None));
+        Assert.Equal(1, close.Opacity);
+        Assert.True(close.IsHitTestVisible);
+        tab.RaiseEvent(new PointerEventArgs(InputElement.PointerExitedEvent, tab, new Pointer(1, PointerType.Mouse, true), tab, new Point(), 0, new PointerPointProperties(), KeyModifiers.None));
+        Assert.Equal(0, close.Opacity);
+        Assert.False(close.IsHitTestVisible);
+        var selected = new TerminalTab(session, true, () => { }, () => { }, () => { });
+        Assert.Equal(1, TabButton(selected, "Close terminal").Opacity);
+        Assert.True(TabButton(selected, "Close terminal").IsHitTestVisible);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-024")] // App/Views/Terminal/TerminalPanel.swift:27,177-179
+    public void Clicking_the_capsule_padding_selects_the_session_and_the_hidden_cross_falls_through_to_selection() => headless.OnUiThread(() =>
+    {
+        var fixture = MakeFixture();
+        using var h = fixture.Store;
+        h.Main.OnMain(() =>
+        {
+            AvaloniaWindow? window = null;
+            try
+            {
+                var directory = TerminalTestFolders.Create("select tab sweep");
+                var first = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
+                var second = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
+                var selected = false;
+                var tab = new TerminalTab(first, false, () =>
+                {
+                    selected = true;
+                    fixture.App.Terminals.Selection = fixture.App.Terminals.Selection.Mutating(map => map[first.ThreadID] = first.Id);
+                }, () => { }, () => fixture.App.Terminals.Close(first));
+                window = new AvaloniaWindow { Width = 400, Height = 100, Content = new StackPanel { Children = { tab } } };
+                window.Show();
+                Settle(window);
+                var padding = tab.TranslatePoint(new Point(5, tab.Bounds.Height / 2), window)!.Value; // :173 horizontal padding 10
+                window.MouseDown(padding, MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(padding, MouseButton.Left, RawInputModifiers.None);
+                Assert.True(selected);
+                Assert.Equal(first.Id, fixture.App.Terminals.Selected(first.ThreadID)?.Id);
+
+                selected = false;
+                var close = TabButton(tab, "Close terminal");
+                tab.RaiseEvent(new PointerEventArgs(InputElement.PointerExitedEvent, tab, new Pointer(1, PointerType.Mouse, true), tab, new Point(), 0, new PointerPointProperties(), KeyModifiers.None));
+                Assert.False(close.IsHitTestVisible);
+                var cross = Center(close, window);
+                window.MouseDown(cross, MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(cross, MouseButton.Left, RawInputModifiers.None);
+                Assert.True(selected);
+                Assert.Equal(2, fixture.App.Terminals.Sessions(first.ThreadID).Count);
+                Assert.NotEqual(first.Id, second.Id);
+            }
+            finally { window?.Close(); fixture.App.Terminals.TerminateAll(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-025")] // App/Views/Terminal/TerminalPanel.swift:175-176
+    public void Selection_uses_primary_text_and_an_eight_percent_capsule_while_unselected_text_is_secondary_on_clear() => WithTabSession(session =>
+    {
+        foreach (var selected in new[] { false, true })
+        {
+            var tab = new TerminalTab(session, selected, () => { }, () => { }, () => { });
+            var row = Assert.IsType<StackPanel>(tab.Child);
+            var text = Assert.IsType<TextBlock>(row.Children[1]);
+            var icon = Assert.IsType<SwiftImage>(row.Children[0]);
+            var foreground = selected ? SwiftColor.Primary : SwiftColor.Secondary;
+            Assert.Equal(BrushColor(foreground.Brush(text)), BrushColor(text.Foreground));
+            Assert.Equal(BrushColor(foreground.Brush(icon)), BrushColor(icon.Foreground));
+            Assert.Equal(selected ? BrushColor(SwiftColor.Primary.Opacity(0.08).Brush(tab)) : Colors.Transparent, BrushColor(tab.Background));
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-026")] // App/Views/Terminal/TerminalPanel.swift:180
+    public void Dead_tabs_dim_the_entire_chip_to_55_percent_even_while_selected() => WithTabSession(session =>
+    {
+        Assert.Equal(1, new TerminalTab(session, true, () => { }, () => { }, () => { }).Opacity);
+        session.Terminate();
+        foreach (var selected in new[] { false, true })
+            Assert.Equal(0.55, new TerminalTab(session, selected, () => { }, () => { }, () => { }).Opacity);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-027")] // App/Views/Terminal/TerminalPanel.swift:181-184
+    public void Tab_tooltips_and_accessibility_names_keep_the_distinct_exit_punctuation_and_button_selection_traits() => WithTabSession(session =>
+    {
+        var running = new TerminalTab(session, false, () => { }, () => { }, () => { });
+        Assert.Equal(session.Title, ToolTip.GetTip(running));
+        Assert.Equal(session.Title, AutomationProperties.GetName(running));
+        session.Terminate();
+        foreach (var selected in new[] { false, true })
+        {
+            var tab = new TerminalTab(session, selected, () => { }, () => { }, () => { });
+            Assert.Equal("PowerShell \U000000B7 the shell has exited", ToolTip.GetTip(tab));
+            Assert.Equal("PowerShell, the shell has exited", AutomationProperties.GetName(tab));
+            var peer = ControlAutomationPeer.CreatePeerForElement(tab);
+            Assert.NotNull(peer);
+            Assert.Equal(AutomationControlType.Button, peer.GetAutomationControlType());
+            Assert.Equal(selected, Assert.IsAssignableFrom<ISelectionItemProvider>(peer).IsSelected);
+            Assert.Contains(peer.GetChildren()!, child => child.GetName() == "Restart " + session.Title); // :182 .contain
+            Assert.Contains(peer.GetChildren()!, child => child.GetName() == "Close " + session.Title);
+        }
+    });
 
     // Same idiom as FollowUpQueueTabTests.cs's own Center/Settle: a real attached, explicitly sized window, so
     // the resize strip's real hit area and window-space coordinates exist for MouseDown/MouseMove/MouseUp to
