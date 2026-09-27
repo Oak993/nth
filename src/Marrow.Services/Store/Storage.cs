@@ -1,6 +1,8 @@
-// Source: DroppyCode/Services/Store/Storage.swift (B2 1fbf81e), :1-390.
+// Source: DroppyCode/Services/Store/Storage.swift (B3 52bc7926), :1-387.
 // R-FILE-1: every type this Swift file declares lives here (StoredContinuation, Storage, AttachmentSource,
-// MimeType, DocumentPrefetch, DiskWriter).
+// MimeType, DocumentPrefetch, DiskWriter). root, wallpaperDirectory and directory(_:) moved out to
+// Core/Support/StoragePaths.cs at B3 (N2, ED-195); wallpaperDirectory's own forwarding member left this file at
+// lane A10/ED-195, once UI.Theme.Wallpaper moved to reading Core.Support.StoragePaths.WallpaperDirectory directly.
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Text.Json;
@@ -49,81 +51,79 @@ public interface IStorageLocations
     string LibraryURL { get; }
     string ThreadsDirectory { get; }
     string AttachmentsDirectory { get; }
-    string WallpaperDirectory { get; }
     string WorktreesDirectory { get; }
     string PatchesDirectory { get; }
 }
 
 /// <summary>
-/// The production shape of Storage.swift's seven roots (:19-48). Each of <see cref="Root"/>,
-/// <see cref="ThreadsDirectory"/>, <see cref="AttachmentsDirectory"/>, <see cref="WallpaperDirectory"/>,
-/// <see cref="WorktreesDirectory"/> and <see cref="PatchesDirectory"/> is created with intermediates on first
-/// access and cached for the life of the instance (PR-STORE-001, -003, -004, -005, -006, -007); a creation
-/// failure is swallowed (<c>try?</c>) exactly as the source swallows it, and the resolved path is still returned
-/// and cached. <see cref="LibraryURL"/> (:27) is a pure derivation with no side effect.
+/// The production shape of Storage.swift's four remaining roots (:19-39; two more, root and wallpaperDirectory,
+/// moved to Core.Support.StoragePaths in B3 - see <see cref="paths"/>; wallpaperDirectory's own forwarding member
+/// left this type at lane A10/ED-195, once UI.Theme.Wallpaper moved to reading
+/// Core.Support.StoragePaths.WallpaperDirectory directly). Each of <see cref="Root"/>,
+/// <see cref="ThreadsDirectory"/>, <see cref="AttachmentsDirectory"/>, <see cref="WorktreesDirectory"/> and
+/// <see cref="PatchesDirectory"/> is created with intermediates on first access and cached for the life of the
+/// instance (PR-STORE-001, -003, -004, -006, -007); a creation failure is swallowed (<c>try?</c>) exactly as the
+/// source swallows it, and the resolved path is still returned and cached. <see cref="LibraryURL"/> (:21) is a
+/// pure derivation with no side effect.
 /// </summary>
 public sealed class StorageLocations : IStorageLocations
 {
-    private readonly Lazy<string> root;
+    // N2 (porting/work/b3/B3_PLAN.md section 3): root, wallpaperDirectory and directory(_:) moved out of this
+    // file into Core/Support/StoragePaths.cs. This instance is constructed directly from the same `root`
+    // factory this type already receives (never through the StoragePaths.Locations Ambient), so
+    // StorageLocations.Create/.CreateProduction and every existing test fixture that calls them keep their
+    // exact signature; ENGINEERING DECISION, reported for the ledger to record.
+    private readonly StoragePathsLocations paths;
     private readonly Lazy<string> threadsDirectory;
     private readonly Lazy<string> attachmentsDirectory;
-    private readonly Lazy<string> wallpaperDirectory;
     private readonly Lazy<string> worktreesDirectory;
     private readonly Lazy<string> patchesDirectory;
 
     private StorageLocations(Func<string> root, Func<string> homeDirectory, bool isDevelopment)
     {
-        this.root = CreateOnce(() =>
-        {
-            var url = root(); // :20-22
-            SwiftTry.Ignore(() => Directory.CreateDirectory(url)); // :23 try? createDirectory(withIntermediateDirectories: true)
-            return url;
-        });
-        threadsDirectory = SubDirectory("threads"); // :31, :54-58 directory(_:)
-        attachmentsDirectory = SubDirectory("attachments"); // :33
-        wallpaperDirectory = SubDirectory("wallpaper"); // :36
+        paths = StoragePathsLocations.Create(root); // :19 static let root: URL = StoragePaths.root
 
-        // :43-48 stateDirectory(_:). DEVIATION OD-0012 F1: the folder name shown in Settings and handed to git is
+        // :23-27. static let threadsDirectory / attachmentsDirectory: the underlying StoragePaths.Directory(_:)
+        // helper is deliberately uncached (Core/Support/StoragePaths.cs), but Storage's own `static let` around
+        // it in the Swift source runs that call exactly once and keeps the URL for the process's life ("a stat
+        // plus mkdir per call was pure waste", :24). CreateOnce reproduces that one-time evaluation here.
+        threadsDirectory = CreateOnce(() => paths.Directory("threads")); // :25
+        attachmentsDirectory = CreateOnce(() => paths.Directory("attachments")); // :27
+
+        // :34-39 stateDirectory(_:). DEVIATION OD-0012 F1: the folder name shown in Settings and handed to git is
         // ".marrow" / ".marrow-dev", not upstream AppInfo.stateDirectoryName (".droppy-code" / ".droppy-code-dev",
         // Text.swift:6): this path is a named exception to keeping AppInfo's own literal.
         var stateDirectoryName = isDevelopment ? ".marrow-dev" : ".marrow"; // DEVIATION OD-0012 F1
-        worktreesDirectory = StateSubDirectory(homeDirectory, stateDirectoryName, "worktrees"); // :38
-        patchesDirectory = StateSubDirectory(homeDirectory, stateDirectoryName, "patches"); // :41
-
-        Lazy<string> SubDirectory(string name) => CreateOnce(() =>
-        {
-            var url = SwiftPath.AppendingPathComponent(this.root.Value, name); // :55
-            SwiftTry.Ignore(() => Directory.CreateDirectory(url)); // :56
-            return url;
-        });
+        worktreesDirectory = StateSubDirectory(homeDirectory, stateDirectoryName, "worktrees"); // :29
+        patchesDirectory = StateSubDirectory(homeDirectory, stateDirectoryName, "patches"); // :32
     }
 
     private static Lazy<string> StateSubDirectory(Func<string> homeDirectory, string stateDirectoryName, string name) =>
         CreateOnce(() =>
         {
-            // :44-45: one appendingPathComponent call handed "name/subname" creates both levels at once.
+            // :35-36: one appendingPathComponent call handed "name/subname" creates both levels at once.
             var url = SwiftPath.AppendingPathComponent(
                 SwiftPath.AppendingPathComponent(homeDirectory(), stateDirectoryName), name);
-            SwiftTry.Ignore(() => Directory.CreateDirectory(url)); // :46
+            SwiftTry.Ignore(() => Directory.CreateDirectory(url)); // :36
             return url;
         });
 
     private static Lazy<string> CreateOnce(Func<string> factory) => new(factory, LazyThreadSafetyMode.ExecutionAndPublication);
 
-    public string Root => root.Value; // :19-25
-    public string LibraryURL => SwiftPath.AppendingPathComponent(Root, "library.json"); // :27, no side effect
-    public string ThreadsDirectory => threadsDirectory.Value; // :31
-    public string AttachmentsDirectory => attachmentsDirectory.Value; // :33
-    public string WallpaperDirectory => wallpaperDirectory.Value; // :36
-    public string WorktreesDirectory => worktreesDirectory.Value; // :38
-    public string PatchesDirectory => patchesDirectory.Value; // :41
+    public string Root => paths.Root; // :19
+    public string LibraryURL => SwiftPath.AppendingPathComponent(Root, "library.json"); // :21, no side effect
+    public string ThreadsDirectory => threadsDirectory.Value; // :25, via directory(_:) (now Core.Support.StoragePaths)
+    public string AttachmentsDirectory => attachmentsDirectory.Value; // :27
+    public string WorktreesDirectory => worktreesDirectory.Value; // :29
+    public string PatchesDirectory => patchesDirectory.Value; // :32
 
     /// <summary>
     /// DEVIATION OD-0008 C7: %LOCALAPPDATA%\Marrow Code, a fixed literal rather than AppInfo.Name (upstream
     /// appends the display name, falling back to "Droppy Code", Text.swift:4), so the port never shares a folder
     /// with the owner's separate Electron "Marrow" (%LOCALAPPDATA%\Marrow). dead_code.md #44: CaptureRun.storageRoot
-    /// (:20) is reachable only via --website-captures / --tour-captures, never a normal launch, so the redirect is
-    /// not reproduced here.
+    /// (now StoragePaths.swift:7, moved from this file's B2 :20) is reachable only via --website-captures /
+    /// --tour-captures, never a normal launch, so the redirect is not reproduced here, matching
+    /// Core.Support.StoragePathsLocations.CreateProduction.
     /// </summary>
     public static StorageLocations CreateProduction() => new(
         root: () => SwiftPath.AppendingPathComponent(
@@ -143,7 +143,6 @@ file sealed class UnboundStorageLocations : IStorageLocations
     public string LibraryURL => throw new SwiftTrapException(Message);
     public string ThreadsDirectory => throw new SwiftTrapException(Message);
     public string AttachmentsDirectory => throw new SwiftTrapException(Message);
-    public string WallpaperDirectory => throw new SwiftTrapException(Message);
     public string WorktreesDirectory => throw new SwiftTrapException(Message);
     public string PatchesDirectory => throw new SwiftTrapException(Message);
 }
@@ -344,11 +343,19 @@ public sealed class DiskWriter
 
     private readonly SerialQueue queue = new("droppycode.storage.write"); // :339
     private readonly Mutex<Dictionary<string, object>> pending = new(new Dictionary<string, object>(SwiftStringComparer.Instance)); // :343
+    // :333-334. The size of the last write per file, so a caller can space its saves by it (PR-STORE-174). Only
+    // encodeAndWrite's queued hop records a size (:349-350 below); writeSynchronously and removeSynchronously
+    // never touch this map, even though they write or remove the same files.
+    private readonly Mutex<Dictionary<string, int>> sizes = new(new Dictionary<string, int>(SwiftStringComparer.Instance));
 
     private DiskWriter() { }
 
     // Test-only (PR-STORE-035); internal per R-NAME-6, visible to Marrow.Services.Tests.
     internal string QueueLabel => queue.Label; // :339
+
+    // :336-338 lastWrittenSize(of:)
+    public int? LastWrittenSize(string url) =>
+        sizes.WithLock((ref Dictionary<string, int> map) => map.TryGetValue(url, out var size) ? size : (int?)null);
 
     // :345-356
     public void EncodeAndWrite(object value, string url)
@@ -369,7 +376,8 @@ public sealed class DiskWriter
                 return v;
             });
             if (latest is null) return; // :353
-            Write(latest, url); // :354
+            // :349 if let size = Self.write(value, to: url) { sizes.withLock { $0[url] = size } }
+            if (Write(latest, url) is { } size) sizes.WithLock((ref Dictionary<string, int> map) => map[url] = size);
         });
     }
 
@@ -377,7 +385,7 @@ public sealed class DiskWriter
     public void WriteSynchronously(object value, string url)
     {
         pending.WithLock((ref Dictionary<string, object> map) => map.Remove(url)); // :359
-        queue.Sync(() => { Write(value, url); return true; }); // :360
+        queue.Sync(() => Write(value, url)); // :360. The returned size is discarded: only encodeAndWrite records one.
     }
 
     // :363-365
@@ -401,9 +409,10 @@ public sealed class DiskWriter
     // :377-379
     public void WaitForQueuedWrites() => queue.Sync(() => true);
 
-    // :381-388. DEVIATION OD-0012 F1: the diagnostic text renames "Droppy Code" to "Marrow"; no record fixes its
-    // exact wording (NSLog has no other caller in the tree).
-    private static void Write(object value, string url)
+    // :376-386. DEVIATION OD-0012 F1: the diagnostic text renames "Droppy Code" to "Marrow"; no record fixes its
+    // exact wording (NSLog has no other caller in the tree). Returns the written byte count on success (:381,
+    // data.count), or null on an encode failure (:378) or a write failure (:383-385) - PR-STORE-174.
+    private static int? Write(object value, string url)
     {
         byte[] data;
         try
@@ -413,11 +422,12 @@ public sealed class DiskWriter
         }
         catch (Exception e) when (SwiftTry.IsThrownError(e))
         {
-            return;
+            return null;
         }
         try
         {
             FileOps.WriteAtomic(url, data); // :384
+            return data.Length; // :381
         }
         catch (Exception error)
         {
@@ -428,6 +438,7 @@ public sealed class DiskWriter
                 _ => SwiftErrors.LocalizedDescription(error),
             };
             FailureLog.Error($"Marrow could not save {SwiftPath.LastPathComponent(url)}: {description}"); // :386
+            return null;
         }
     }
 }
@@ -441,7 +452,6 @@ public static partial class Storage
     public static string LibraryURL => Locations.Current.LibraryURL; // :27
     public static string ThreadsDirectory => Locations.Current.ThreadsDirectory; // :31
     public static string AttachmentsDirectory => Locations.Current.AttachmentsDirectory; // :33
-    public static string WallpaperDirectory => Locations.Current.WallpaperDirectory; // :36
     public static string WorktreesDirectory => Locations.Current.WorktreesDirectory; // :38
     public static string PatchesDirectory => Locations.Current.PatchesDirectory; // :41
 

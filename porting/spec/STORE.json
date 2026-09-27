@@ -22,16 +22,18 @@
       "depends_on_unknown": null,
       "title": "The store root is <Application Support>/<AppInfo.name>, created once at first touch",
       "source_evidence": [
-        "DroppyCode/Services/Store/Storage.swift:19-25 - static let root: URL = { if let captures = CaptureRun.storageRoot { return captures }; let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]; let url = base.appendingPathComponent(AppInfo.name, isDirectory: true); try? createDirectory(at: url, withIntermediateDirectories: true) }()",
+        "DroppyCode/Core/Support/StoragePaths.swift:6-12 - nonisolated static let root: URL = { if let captures = CaptureRun.storageRoot { return captures }; let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]; let url = base.appendingPathComponent(AppInfo.name, isDirectory: true); try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true); return url }()",
+        "DroppyCode/Services/Store/Storage.swift:19 - static let root: URL = StoragePaths.root (forwards; Storage itself no longer holds the closure)",
         "DroppyCode/Core/Support/CaptureRun.swift:30-32 - nonisolated static var storageRoot: URL? { outputDirectory?.appendingPathComponent(\"storage\", isDirectory: true) }",
         "DroppyCode/Core/Support/Text.swift:4 - AppInfo.name = Bundle.main.object(forInfoDictionaryKey: \"CFBundleDisplayName\") as? String ?? \"Droppy Code\"",
         "porting/owner_decisions.md OD-0008 - \"C7 gives the port the install and data identity \\\"Marrow Code\\\" (`%LOCALAPPDATA%\\Marrow Code`, Start menu \\\"Marrow Code\\\")\""
       ],
       "deviation": {
         "decision": "OD-0008 C7",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:19-25 - 'let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]' then 'base.appendingPathComponent(AppInfo.name, isDirectory: true)', with AppInfo.name falling back to \"Droppy Code\" (Text.swift:4)",
+        "upstream": "DroppyCode/Core/Support/StoragePaths.swift:6-12 root - 'let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]' then 'base.appendingPathComponent(AppInfo.name, isDirectory: true)', with AppInfo.name falling back to \"Droppy Code\" (Text.swift:4); Storage.root (Storage.swift:19) only forwards to it",
         "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
-      }
+      },
+      "b3_note": "Upstream commit d70cff8fe moved the root closure, and wallpaperDirectory and directory(_:), from Services/Store/Storage.swift into a new Core file, Core/Support/StoragePaths.swift, so UI/Theme/Wallpaper.swift (a UI-layer file) can reach it without crossing into Services. Storage.root, Storage.wallpaperDirectory (removed) and Storage's private directory(_:) now forward to StoragePaths. No observable behaviour change."
     },
     {
       "id": "PR-STORE-002",
@@ -54,7 +56,7 @@
       ],
       "deviation": {
         "decision": "OD-0008 C7",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:21 - 'static let libraryURL: URL = root.appendingPathComponent(\"library.json\")' under the Application Support root named by AppInfo.name (Storage.swift:19-25)",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:21 - 'static let libraryURL: URL = root.appendingPathComponent(\"library.json\")' under the Application Support root named by AppInfo.name, now resolved by StoragePaths.root (Core/Support/StoragePaths.swift:6-12), which Storage.root (Storage.swift:19) forwards to",
         "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
       }
     },
@@ -79,13 +81,15 @@
       "title": "Thread histories live in a threads/ directory created on first use and cached",
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:23-25 - comment \"Each directory is created on first use and its URL kept: the thread URL is taken on every save, prefetch and delete, and a stat plus mkdir per call was pure waste.\" followed by static let threadsDirectory: URL = directory(\"threads\")",
-        "DroppyCode/Services/Store/Storage.swift:45-47 - private static func directory(_ name:) appends the name as a directory to root, calls try? createDirectory(withIntermediateDirectories: true) and returns the URL"
+        "DroppyCode/Services/Store/Storage.swift:45-47 - private static func directory(_ name: String) -> URL { StoragePaths.directory(name) } (forwards)",
+        "DroppyCode/Core/Support/StoragePaths.swift:18-22 - nonisolated static func directory(_ name: String) -> URL { let url = root.appendingPathComponent(name, isDirectory: true); try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true); return url } (the actual mkdir logic)"
       ],
       "deviation": {
         "decision": "OD-0008 C7",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:25 - 'static let threadsDirectory: URL = directory(\"threads\")', where directory(_:) (Storage.swift:45-47) appends the name to the Application Support root named by AppInfo.name (Storage.swift:19-25)",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:25 - 'static let threadsDirectory: URL = directory(\"threads\")', where directory(_:) (Storage.swift:45-47) forwards to StoragePaths.directory(_:) (StoragePaths.swift:18-22), which appends the name to the Application Support root named by AppInfo.name (StoragePaths.swift:6-12)",
         "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
-      }
+      },
+      "b3_note": "directory(_:) itself moved to StoragePaths.swift (Core layer); Storage's private directory(_:) is now a one-line forward. No observable change to threadsDirectory."
     },
     {
       "id": "PR-STORE-004",
@@ -108,11 +112,11 @@
       "title": "Attachment files live in an attachments/ directory created on first use",
       "source_evidence": [
         "DroppyCode/Services/Store/Storage.swift:27 - static let attachmentsDirectory: URL = directory(\"attachments\")",
-        "DroppyCode/Services/Store/Storage.swift:45-47 - directory(_:)"
+        "DroppyCode/Services/Store/Storage.swift:45-47 - directory(_:) forwards to StoragePaths.directory(_:) (StoragePaths.swift:18-22)"
       ],
       "deviation": {
         "decision": "OD-0008 C7",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:27 - 'static let attachmentsDirectory: URL = directory(\"attachments\")', where directory(_:) (Storage.swift:45-47) appends the name to the Application Support root named by AppInfo.name (Storage.swift:19-25)",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:27 - 'static let attachmentsDirectory: URL = directory(\"attachments\")', where directory(_:) (Storage.swift:45-47) forwards to StoragePaths.directory(_:) (StoragePaths.swift:18-22), which appends the name to the Application Support root named by AppInfo.name (StoragePaths.swift:6-12)",
         "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
       }
     },
@@ -137,15 +141,17 @@
       "depends_on_unknown": null,
       "title": "The window wallpaper lives in a wallpaper/ directory, one file at a time",
       "source_evidence": [
-        "DroppyCode/Services/Store/Storage.swift:35-36 - doc comment \"The user’s window wallpaper, one file at a time.\" and static let wallpaperDirectory: URL = directory(\"wallpaper\")",
-        "DroppyCode/UI/Theme/Wallpaper.swift:128 - the installed copy is named \"wallpaper-\\(UUID().uuidString).\\(ext)\" inside that directory",
-        "DroppyCode/UI/Theme/Wallpaper.swift:89 - at launch the stored bare file name is resolved against Storage.wallpaperDirectory and used only when the file exists"
+        "DroppyCode/Core/Support/StoragePaths.swift:14-15 - doc comment \"The user's window wallpaper, one file at a time.\" and nonisolated static let wallpaperDirectory: URL = directory(\"wallpaper\") (moved out of Storage; Storage no longer has this member)",
+        "DroppyCode/UI/Theme/Wallpaper.swift:128 - the installed copy is named \"wallpaper-\\(UUID().uuidString).\\(ext)\" inside StoragePaths.wallpaperDirectory",
+        "DroppyCode/UI/Theme/Wallpaper.swift:89 - at launch the stored bare file name is resolved against StoragePaths.wallpaperDirectory and used only when the file exists",
+        "DroppyCode/UI/Theme/Wallpaper.swift:130 - try FileManager.default.createDirectory(at: StoragePaths.wallpaperDirectory, withIntermediateDirectories: true) re-creates the directory before copying"
       ],
       "deviation": {
         "decision": "OD-0008 C7",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:36 - 'static let wallpaperDirectory: URL = directory(\"wallpaper\")', where directory(_:) (Storage.swift:45-47) appends the name to the Application Support root named by AppInfo.name (Storage.swift:19-25)",
+        "upstream": "DroppyCode/Core/Support/StoragePaths.swift:15 - 'nonisolated static let wallpaperDirectory: URL = directory(\"wallpaper\")', where directory(_:) (StoragePaths.swift:18-22) appends the name to the Application Support root named by AppInfo.name (StoragePaths.swift:6-12); Storage itself no longer declares wallpaperDirectory",
         "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other"
-      }
+      },
+      "b3_note": "wallpaperDirectory moved from Services/Store/Storage.swift to Core/Support/StoragePaths.swift along with root and directory(_:), so the UI-layer Wallpaper.swift can reach it without depending on Services. The folder name, creation-on-first-use and file-naming behaviour are unchanged."
     },
     {
       "id": "PR-STORE-006",
@@ -175,7 +181,7 @@
       ],
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"; Storage.swift:29 and :43-48 put worktrees in <home>/.droppy-code/worktrees, the path the Settings Worktrees row prints (SettingsView.swift:838)",
+        "upstream": "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"; Storage.swift:29 and :34-39 put worktrees in <home>/.droppy-code/worktrees, the path the Settings Worktrees row prints (SettingsView.swift:838)",
         "port": "%USERPROFILE%\\.marrow\\worktrees (%USERPROFILE%\\.marrow-dev\\worktrees for a development build): every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions"
       }
     },
@@ -206,7 +212,7 @@
       ],
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:32 and :43-48 - patchesDirectory = stateDirectory(\"patches\") under <home>/.droppy-code (Text.swift:6)",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:32 and :34-39 - patchesDirectory = stateDirectory(\"patches\") under <home>/.droppy-code (Text.swift:6)",
         "port": "%USERPROFILE%\\.marrow\\patches (%USERPROFILE%\\.marrow-dev\\patches for a development build): every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions"
       }
     },
@@ -307,15 +313,16 @@
       "depends_on_unknown": null,
       "title": "Other files that share the store root, and therefore move with it",
       "source_evidence": [
-        "DroppyCode/Core/Models/MCP.swift:244 - static let connectionsURL = Storage.root.appendingPathComponent(\"mcp.json\")",
-        "DroppyCode/Core/Models/MCP.swift:246 - static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")",
-        "DroppyCode/Core/Models/MCP.swift:238 - Storage.root.appendingPathComponent(\"mcp\", isDirectory: true)",
+        "DroppyCode/Services/MCP/MCPPaths.swift:6-10 - static let directory: URL = { let url = Storage.root.appendingPathComponent(\"mcp\", isDirectory: true); try? FileManager.default.createDirectory(at: url, withIntermediateDirectories: true); return url }()",
+        "DroppyCode/Services/MCP/MCPPaths.swift:13 - static let connectionsURL = Storage.root.appendingPathComponent(\"mcp.json\")",
+        "DroppyCode/Services/MCP/MCPPaths.swift:15 - static let customsURL = Storage.root.appendingPathComponent(\"custom-mcp.json\")",
         "DroppyCode/Services/Store/TokenLedger.swift:274 - \"token-activity-codex-v3.json\"",
         "DroppyCode/Services/Store/TokenLedger.swift:281 - \"token-activity-codex.json\"",
         "DroppyCode/Services/Store/TokenLedger.swift:292 - \"token-activity-codex-v2.json\"",
         "DroppyCode/Services/Store/TokenLedger.swift:356 - \"token-activity-live-v2.json\"",
         "porting/port_impacts.md entry 119 - \"The four token-activity JSON files sit under Storage.root and move with it.\""
-      ]
+      ],
+      "b3_note": "connectionsURL, customsURL and the mcp/ directory constant moved out of Core/Models/MCP.swift into a new file, Services/MCP/MCPPaths.swift (which also gains claudeConfigURL, codexConfigURL and copilotConfigURL for files inside mcp/, not new top-level entries). The eleven first-level names and their locations under the store root are unchanged."
     },
     {
       "id": "PR-STORE-012",
@@ -340,7 +347,7 @@
       ],
       "deviation": {
         "decision": "OD-0008 A10",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1316-1324), reached through the 400 ms debounce (:1289-1297) or called directly on settle (:806), reopen (:825) and thread delete (:956), or the synchronous write in saveBeforeQuit (:1317)",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1316-1324), reached through the 400 ms debounce (:1304-1314) or called directly on settle (:815), reopen (:834) and thread delete (:965), or the synchronous write in saveBeforeQuit (:1335)",
         "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
       }
     },
@@ -348,7 +355,7 @@
       "id": "PR-STORE-013",
       "preconditions": "library.json exists but cannot be read or is not decodable as a Library (truncated write, not valid JSON, or a non-object at the top level).",
       "action": "App launch, and every write of library.json that follows in the same run: the debounced save, the immediate saves on settle, reopen and thread delete, and the quit-time save.",
-      "expected_result": "Deviation, OD-0008 A10 (BLK-0010 FIX): the failed load is not swallowed. It is surfaced to the user, and library.json is not overwritten after the failed load: no writer of library.json writes over it in that run. That covers the 400 ms debounced save after a mutation (AppModel.swift:1304-1314), the immediate saveLibrary() calls on settle (AppModel.swift:814-815), reopen (:825) and thread delete (:956), and the synchronous quit-time save (:1317). The thread JSON files under threads/ are not touched by the failed load. Consequence of the ruling: every project or thread change made in that run is never written to library.json, while thread histories are still written to threads/ as usual, so those library changes are gone at the next launch. Upstream instead starts with no projects and no threads, reports nothing, and the first save of any kind writes the empty library over library.json. Place and wording, OD-0012 E4: the failure is shown in the main window at launch with exactly this text: \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"",
+      "expected_result": "Deviation, OD-0008 A10 (BLK-0010 FIX): the failed load is not swallowed. It is surfaced to the user, and library.json is not overwritten after the failed load: no writer of library.json writes over it in that run. That covers the 400 ms debounced save after a mutation (AppModel.swift:1304-1314), the immediate saveLibrary() calls on settle (AppModel.swift:814-815), reopen (:834) and thread delete (:965), and the synchronous quit-time save (:1335). The thread JSON files under threads/ are not touched by the failed load. Consequence of the ruling: every project or thread change made in that run is never written to library.json, while thread histories are still written to threads/ as usual, so those library changes are gone at the next launch. Upstream instead starts with no projects and no threads, reports nothing, and the first save of any kind writes the empty library over library.json. Place and wording, OD-0012 E4: the failure is shown in the main window at launch with exactly this text: \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\"",
       "side_effects": [
         "The load failure is shown in the main window at launch with the OD-0012 E4 text",
         "library.json keeps its bytes on disk; no write in that run replaces it, so project and thread changes made in that run are not persisted to it"
@@ -382,7 +389,7 @@
       "blocked_by": null,
       "deviation": {
         "decision": "OD-0008 A10; OD-0012 E4",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1316-1324), reached through the 400 ms debounce (:1289-1297) or called directly on settle (:806), reopen (:825) and thread delete (:956), or the synchronous write in saveBeforeQuit (:1317). Upstream has no text for this error, because it never shows one.",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1316-1324), reached through the 400 ms debounce (:1304-1314) or called directly on settle (:815), reopen (:834) and thread delete (:965), or the synchronous write in saveBeforeQuit (:1335). Upstream has no text for this error, because it never shows one.",
         "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save. OD-0012 E4: the error is shown in the main window at launch as \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\""
       },
       "resolved_unknown": "UNK-0020 resolved by OD-0008 A10 (BLK-0010): an undecodable library.json is surfaced and never overwritten. Its place and wording are given by OD-0012 E4."
@@ -416,33 +423,36 @@
       "id": "PR-STORE-015",
       "preconditions": "persistenceEnabled is true.",
       "action": "Any library mutation (project added, thread renamed, thread pinned, order changed).",
-      "expected_result": "A save is scheduled 400 ms out. A further mutation inside that window cancels the pending task and restarts the 400 ms. When it fires, a fresh Library value is built from the current projects and threads and handed to the disk writer, which coalesces it against any snapshot already waiting for library.json.",
+      "expected_result": "A mutation while persistenceEnabled is true and no save is pending schedules one: wait max(400 ms, 4 s minus the time since the last save), where 'time since the last save' is assumed to be 60 s when there has been none this run. That 60 s assumption always loses to the 400 ms floor in the max, so with no prior save the wait is 400 ms, never up to 60 s. A mutation while a save is already pending does nothing extra; that pending save carries it. When the wait ends, a fresh Library value is built from the current projects and threads and handed to the disk writer, which coalesces it against any snapshot already waiting for library.json. Every saveLibrary() call, whether reached through this scheduler or called directly, stamps lastLibrarySave.",
       "side_effects": [
-        "Background write of library.json"
+        "Background write of library.json",
+        "Updates the lastLibrarySave timestamp that throttles the next scheduled save"
       ],
       "persistence": "library.json, written by the background writer after the debounce.",
       "failure_cases": [
         "persistenceEnabled false (set by saveBeforeQuit) makes both scheduleSave and saveLibrary return without writing.",
-        "After a failed load of library.json in the same run (PR-STORE-013, OD-0008 A10), the save writes nothing to library.json; upstream writes the empty library over it."
+        "After a failed load of library.json in the same run (PR-STORE-013, OD-0008 A10), the save writes nothing to library.json; upstream writes the empty library over it.",
+        "A call to scheduleSave while saveTask is already non-nil is a complete no-op: it neither cancels nor restarts anything."
       ],
-      "cancellation": "The scheduled task is cancelled by the next mutation and by saveBeforeQuit; a cancelled task writes nothing.",
-      "windows_path": "Same 400 ms debounce and the same per-file coalescing. The literal must stay 400 ms. After a failed load of library.json (PR-STORE-013, OD-0008 A10) no save writes library.json in that run. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
-      "verification_method": "interaction test counting writes under a burst of mutations",
+      "cancellation": "The scheduled task is cancelled only by saveBeforeQuit; a later scheduleSave call while one is pending does not cancel it. A cancelled task writes nothing.",
+      "windows_path": "Same 400 ms floor, same 4 s minimum spacing measured from lastLibrarySave, and the same per-file coalescing. The literals (400 ms, 4 s, 60 s fallback) must stay exact. After a failed load of library.json (PR-STORE-013, OD-0008 A10) no save writes library.json in that run. Windows: PA-0015 applies - file replace, delete and rename can fail transiently with a sharing violation, so the operation retries with backoff, clears the read-only attribute before a delete, uses an atomic replace primitive and surfaces a real error after a bounded number of attempts rather than dropping the write.",
+      "verification_method": "unit with an injected clock: a mutation right after a direct saveLibrary() call (settle/reopen/delete) waits nearly 4 s before its own write; a burst of mutations with no prior save writes once, 400 ms after the first of the burst; a mutation while a save is already pending produces no second write and no restarted timer",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Library saves are debounced 400 ms and coalesced per file",
+      "title": "Library saves wait 400 ms, never go out within four seconds of the last one, and a mutation inside the wait changes nothing",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1304-1314 - scheduleSave cancels the previous saveTask, sleeps for .milliseconds(400), checks Task.isCancelled and calls saveLibrary()",
-        "DroppyCode/App/AppModel.swift:1316-1324 - saveLibrary guards on persistenceEnabled, builds a Library from projects and threads and calls DiskWriter.shared.encodeAndWrite",
+        "DroppyCode/App/AppModel.swift:1304-1314 - scheduleSave() - guard persistenceEnabled, saveTask == nil else { return }; let sinceLast = lastLibrarySave.map { ContinuousClock.now - $0 } ?? .seconds(60); let wait = max(.milliseconds(400), .seconds(4) - sinceLast); saveTask = Task { sleep(wait); saveTask = nil; saveLibrary() }",
+        "DroppyCode/App/AppModel.swift:1316-1324 - saveLibrary() - guard persistenceEnabled else { return }; lastLibrarySave = .now; build Library from projects and threads; DiskWriter.shared.encodeAndWrite(library, to: Storage.libraryURL)",
         "DroppyCode/Services/Store/Storage.swift:340-351 - encodeAndWrite replaces the pending snapshot for that URL rather than queueing a second write"
       ],
       "deviation": {
         "decision": "OD-0008 A10",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1316-1324), reached through the 400 ms debounce (:1289-1297) or called directly on settle (:806), reopen (:825) and thread delete (:956), or the synchronous write in saveBeforeQuit (:1317)",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1316-1324), reached through the 400 ms debounce (:1304-1314) or called directly on settle (:815), reopen (:834) and thread delete (:965), or the synchronous write in saveBeforeQuit (:1335)",
         "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
-      }
+      },
+      "b3_note": "scheduleSave is no longer a cancel-and-restart 400 ms debounce. It now returns early while a save is already pending (no cancellation, no restart), and the wait is max(400 ms, 4 s minus the time since the last save, where that time-since is assumed to be 60 s when there has been none) - which always resolves to the 400 ms floor when there has been no prior save, not to 60 s - so a burst of changes writes once 400 ms after the FIRST change of the burst rather than 400 ms after the last, and a steady stream of changes is no longer starved (no write at all, as the old cancel-and-restart could produce). Every saveLibrary() call, including the direct ones from settle/reopen/delete, stamps lastLibrarySave, so a scheduled save that follows one of those waits up to 4 s from it. saveBeforeQuit does NOT call saveLibrary and does NOT stamp lastLibrarySave; it writes library.json synchronously through its own separate path (AppModel.swift:1327-1345). Upstream commit (bootstrap CLI self-update change) fixed a September 22 incident where a busy Hydra team rewrote library.json over two gigabytes in an hour and a quarter. Review fix (finding #5, MEDIUM): the 60 s figure and the saveBeforeQuit/scheduled-save stamping claims were previously misstated in this file's sibling record, PR-LAUNCH-076; both were corrected there and the same correction is reflected here and in E:/Droppy/work/b3/B3_PLAN.md section A32."
     },
     {
       "id": "PR-STORE-016",
@@ -474,7 +484,7 @@
       ],
       "deviation": {
         "decision": "OD-0008 A10",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1316-1324), reached through the 400 ms debounce (:1289-1297) or called directly on settle (:806), reopen (:825) and thread delete (:956), or the synchronous write in saveBeforeQuit (:1317)",
+        "upstream": "DroppyCode/Services/Store/Storage.swift:49-52 loadLibrary() - 'guard let data = try? Data(contentsOf: libraryURL) else { return Library() }' then 'return (try? JSONDecoder.storage.decode(Library.self, from: data)) ?? Library()': an undecodable library.json opens the app empty with no message, and the next write of library.json puts the empty library over it: saveLibrary (AppModel.swift:1316-1324), reached through the 400 ms debounce (:1304-1314) or called directly on settle (:815), reopen (:834) and thread delete (:965), or the synchronous write in saveBeforeQuit (:1335)",
         "port": "Do not overwrite after a failed load; show the error. FIX: an undecodable library.json is surfaced to the user and never overwritten by the next save."
       }
     },
@@ -1790,8 +1800,8 @@
       "depends_on_unknown": null,
       "title": "Orphaned attachment files are swept once at launch, last in the warm-up order",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:274-287 - comment \"Last, once nothing the first click needs is waiting on the disk: the attachment files no thread refers to any more go, a day after they were written.\" then guard !WebsiteCaptures.isEnabled else { return }; await Storage.sweepOrphanedAttachments()",
-        "DroppyCode/Services/Store/Storage.swift:101-106 - doc comment \"Removes attachment files no thread refers to any more: the photos of a deleted thread, a draft’s that was never sent, a follow-up’s that was dropped. A file is only an orphan once it is a day old, so a draft still open when the app relaunches keeps its files, and only files named the way `importAttachment` names them go. Runs off the main actor; the thread files are scanned as text, never decoded.\""
+        "DroppyCode/App/AppModel.swift:283-286 - comment \"Last, once nothing the first click needs is waiting on the disk: the attachment files no thread refers to any more go, a day after they were written.\" then guard !CaptureRun.isEnabled else { return }; await Storage.sweepOrphanedAttachments()",
+        "DroppyCode/Services/Store/Storage.swift:106-139 - doc comment \"Removes attachment files no thread refers to any more: the photos of a deleted thread, a draft's that was never sent, a follow-up's that was dropped. A file is only an orphan once it is a day old, so a draft still open when the app relaunches keeps its files, and only files named the way `importAttachment` names them go. Runs off the main actor; the thread files are scanned as text, never decoded.\""
       ]
     },
     {
@@ -2518,10 +2528,11 @@
       "title": "The former store folder is moved only when the current one does not exist, and the target name is hard-coded",
       "source_evidence": [
         "DroppyCode/App/LegacyMigration.swift:18-24 - let support = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]; let formerLibrary = support.appendingPathComponent(formerSupportFolder, isDirectory: true); let library = support.appendingPathComponent(\"Droppy Code\", isDirectory: true); if fileManager.fileExists(atPath: formerLibrary.path), !fileManager.fileExists(atPath: library.path) { try? fileManager.moveItem(at: formerLibrary, to: library) }",
-        "DroppyCode/Services/Store/Storage.swift:22 - Storage.root uses AppInfo.name, not a literal",
+        "DroppyCode/Core/Support/StoragePaths.swift:9 - base.appendingPathComponent(AppInfo.name, isDirectory: true) - StoragePaths.root uses AppInfo.name, not a literal (Storage.root forwards to it, Storage.swift:19)",
         "porting/upstream_defects.md entry 46 - \"LegacyMigration.swift:21 hardcodes support.appendingPathComponent(\\\"Droppy Code\\\") instead of AppInfo.name, unlike Storage.root. The guard !AppInfo.isDevelopment at :10 currently masks the divergence, but a display-name change would migrate the old library into a folder Storage never reads.\""
       ],
-      "not_applicable": "OD-0008 A5 resolves BLK-0005 (quarantined path 'any Windows implementation of the legacy name migration'): NOT_APPLICABLE_WITH_EVIDENCE: Droppy Code never shipped on Windows, so no Cody or Droppy Code support folder can exist to migrate; the owner confirmed no migration from the separate Electron Marrow app is wanted. The migration reads the former macOS identity only (DroppyCode/App/LegacyMigration.swift:6 'formerBundleIdentifier = \"iordv.cody\"', :7 'formerSupportFolder = \"Cody\"', :19 'fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]'), none of which can exist on a Windows PC."
+      "not_applicable": "OD-0008 A5 resolves BLK-0005 (quarantined path 'any Windows implementation of the legacy name migration'): NOT_APPLICABLE_WITH_EVIDENCE: Droppy Code never shipped on Windows, so no Cody or Droppy Code support folder can exist to migrate; the owner confirmed no migration from the separate Electron Marrow app is wanted. The migration reads the former macOS identity only (DroppyCode/App/LegacyMigration.swift:6 'formerBundleIdentifier = \"iordv.cody\"', :7 'formerSupportFolder = \"Cody\"', :19 'fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]'), none of which can exist on a Windows PC.",
+      "b3_note": "The AppInfo.name-based root construction cited here moved from Storage.swift:22 to StoragePaths.swift:9 as part of the StoragePaths.swift extraction (see PR-STORE-001); Storage.swift:22 is now a blank line. The defect itself (LegacyMigration's hardcoded literal versus AppInfo.name) is unchanged and still NOT_APPLICABLE on Windows under OD-0008 A5."
     },
     {
       "id": "PR-STORE-105",
@@ -2655,11 +2666,12 @@
       "depends_on_unknown": null,
       "title": "A reported edit larger than 200000 bytes keeps its line counts and drops the hunk",
       "source_evidence": [
-        "DroppyCode/Core/Support/Text.swift:77-81 - doc comment \"Past this much text a reported edit keeps its line counts and drops the hunk: the diff of a whole generated file would otherwise sit in the thread document forever and be encoded with every save. The same cap bounds command diffs (`ThreadRuntime.fileEdits`).\" then static let diffLimit = 200_000",
-        "DroppyCode/Core/Support/Text.swift:101-103 - guard old.utf8.count + new.utf8.count <= diffLimit else { return FileEdit.Stats(diff: nil, additions: added.count, deletions: removed.count) }",
+        "DroppyCode/Core/Support/Text.swift:78-81 - doc comment \"Past this much text a reported edit keeps its line counts and drops the hunk: the diff of a whole generated file would otherwise sit in the thread document forever and be encoded with every save. The same cap bounds command diffs (`ThreadRuntime.fileEdits`).\" then static let diffLimit = 200_000",
+        "DroppyCode/Core/Support/Text.swift:91-102 - guard old.utf8.count + new.utf8.count <= diffLimit else { compute the common prefix and suffix over oldLines/newLines; return FileEdit.Stats(diff: nil, additions: newLines.count - prefix - suffix, deletions: oldLines.count - prefix - suffix) }",
         "porting/upstream_defects.md entry 42 - the two 200_000 constants bound different operands (input sum here, produced hunk in ThreadRuntime); the comments claiming they are \"the same cap\" are misleading but the value really is the same"
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "b3_note": "The guard and the over-cap prefix/suffix trim are now one guard-else block (Text.swift:91-102) instead of a separate guard followed later by the trim; upstream defect 47 (the guard evaluated after the scans) is fixed by this restructuring - see the retirement of PR-STORE-111. The 200000 threshold, the operand it bounds and the reported counts are unchanged."
     },
     {
       "id": "PR-STORE-111",
@@ -2674,7 +2686,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the ordering. It is an ordinary quirk under AM-0001: slow, not harmful.",
       "verification_method": "unit asserting the counts are still correct for an over-cap pair",
-      "status": "IMPLEMENTED",
+      "status": "RETIRED",
       "upstream_defect": "47",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2683,31 +2695,43 @@
         "DroppyCode/Core/Support/Text.swift:87-101 - the prefix scan, the suffix scan and the four slice constructions all run before the guard at :101",
         "porting/upstream_defects.md entry 47 - \"the input-size guard in SimpleDiff.unified is evaluated AFTER the prefix/suffix scans and slice construction at :87-100, so a multi-megabyte pair is fully line-split and walked before being rejected. A cost defect, not a correctness one.\""
       ],
-      "implemented_by_task": "T-M2-075"
+      "implemented_by_task": "T-M2-075",
+      "retired": {
+        "reason": "Upstream restructured SimpleDiff.unified so the 200000-byte guard (Text.swift:91) is evaluated first, and the prefix/suffix scans and slice construction run only inside the over-cap branch (Text.swift:93-101), where they are needed to compute the counts. The guard-evaluated-after-the-scans defect (upstream_defects.md entry 47) no longer exists in the pinned source: a multi-megabyte pair over the cap is no longer fully line-split and walked before being rejected.",
+        "evidence": "DroppyCode/Core/Support/Text.swift:87-103 at commit 52bc7926097cd622d08d6294e0d8b08a48c7516e (B3, v1.7.0) - oldLines/newLines are built at :88-89, the guard is the very next statement at :91, and the prefix loop (:93-96), suffix loop (:97-101) and the FileEdit.Stats construction (:102) are all inside the guard's else block, so none of them run when the input is within the cap."
+      },
+      "b3_note": "Upstream fixed defect 47 in this baseline: the size guard now runs before any line-splitting or scanning, not after. Retired rather than deleted, per AM-0002; porting/upstream_defects.md entry 47 should be marked retired to match (outside this area file)."
     },
     {
       "id": "PR-STORE-112",
       "preconditions": "Two texts within the size cap.",
       "action": "Recording a file edit.",
-      "expected_result": "Texts are split on \"\\n\"; an empty string yields an empty line array, not one empty line. The common prefix and suffix are counted line by line. Up to three context lines are taken before the change and up to three after, both from the OLD text. One header line is emitted in the exact form \"@@ -<oldStart>,<leading+removed+trailing> +<oldStart>,<leading+added+trailing> @@\" where oldStart = prefix - leading.count + 1. The body then lists context lines prefixed with a single space, then all removed lines prefixed with \"-\", then all added lines prefixed with \"+\", then trailing context prefixed with a space. Removals always come before additions. Lines are joined with \"\\n\".",
+      "expected_result": "Both texts are split on \"\\n\"; an empty string yields an empty line array, not one empty line. newLines.difference(from: oldLines) gives the removed old-line offsets and inserted new-line offsets. When neither set has a member the result is diff nil, additions 0, deletions 0 (identical inputs, including two empty texts). Otherwise both texts are walked together into one merged stream of context/deletion/addition ops, numbered from one on whichever side they belong to (a deletion has only an old number, an addition only a new number, context has both). The change ops (deletions and additions) are grouped into hunks: a change starts a new hunk unless its position in the op stream is at most 2*contextLines+1 = 7 past the previous change in the same group, in which case it extends the current group. Each hunk takes 3 ops of context before its first change and 3 after its last, clamped to the stream, and its header is \"@@ -<oldStart>,<oldCount> +<newStart>,<newCount> @@\" where oldStart/newStart are the first old/new number in the hunk's slice (0 when the slice has no op on that side) and oldCount/newCount are how many ops in the slice carry that side's number; the count is always printed, even for 1 or 0. The hunk's body lines are the slice's ops rendered as \" \" (context), \"-\" (deletion) or \"+\" (addition) followed by the line text. Multiple hunks are joined with \"\\n\", and there are no \"---\"/\"+++\" file header lines.",
       "side_effects": [],
       "persistence": "The hunk string is stored in the thread document’s FileEdit.",
       "failure_cases": [
-        "The header prints the same start number on both sides, oldStart = prefix - leading.count + 1 (Text.swift:104-105). That is also the correct new-side start, because the prefix is common to both texts, so the sides cannot diverge earlier. The hunk departs from diff -u elsewhere: an empty range still prints the computed start (old \"\" and new \"a\" give \"@@ -1,0 +1,1 @@\" then \"+a\", where diff -u writes \"@@ -0,0 +1 @@\"), and the \",count\" part is always printed, even for a count of 1. Reproduce it."
+        "Old and new start numbers are computed independently from the slice, so a later hunk's new start differs from its old start by the net lines added or removed above it; they are no longer forced to share one number as the old head/tail-trim algorithm did.",
+        "Examples: \"\" -> \"a\" gives \"@@ -0,0 +1,1 @@\\n+a\" (old side has no op, so oldStart is 0); \"a\" -> \"\" gives \"@@ -1,1 +0,0 @@\\n-a\".",
+        "Where CollectionDifference.difference(from:) has more than one minimal edit script for the same pair of texts, the ops chosen follow Swift stdlib tie-breaking, which needs pinned evidence (fixtures captured from the reference build, or the stdlib source at the toolchain tag) rather than assumption - UNRESOLVED."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Byte-identical hunk text, including the single header, the three-line context on both sides and the removals-before-additions order. The line split is on \"\\n\" only, so a CRLF file keeps its carriage returns inside the line content.",
-      "verification_method": "contract fixture comparing produced hunks against macOS output for the same inputs",
+      "windows_path": "Byte-identical output: the exact difference(from:), the 7-op grouping threshold, 3 lines of context on each side, independent old/new starts (0 when a side has no op in the slice), the always-printed \",count\", and hunks joined by a bare \"\\n\" with no --- / +++ headers. .NET's LCS-based diff will not automatically match Swift's CollectionDifference tie-breaking when several minimal scripts exist; that case needs its own fixtures before this can be marked VERIFIED.",
+      "verification_method": "contract fixture comparing produced hunk text against macOS output for: identical inputs (nil diff), a single-line insert into an empty text, a single-line delete to empty, a multi-hunk edit with two change runs more than 7 ops apart, and a multi-hunk edit with two change runs within 7 ops that must merge into one hunk",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "A unified hunk trims the common head and tail and keeps three lines of context on each side",
+      "title": "A unified diff is cut into one or more hunks from an exact line difference, each with three lines of context and its own start numbers",
       "source_evidence": [
-        "DroppyCode/Core/Support/Text.swift:83-111 - doc comment \"A compact unified hunk between two texts, trimming the unchanged head and tail.\" then the prefix and suffix loops, leading = oldLines[max(0, prefix - 3)..<prefix], trailingEnd = min(oldLines.count, oldLines.count - suffix + 3), trailing = oldLines[(oldLines.count - suffix)..<trailingEnd], lines = [\"@@ -\\(oldStart),\\(leading.count + removed.count + trailing.count) +\\(oldStart),\\(leading.count + added.count + trailing.count) @@\"] with oldStart = prefix - leading.count + 1, then leading mapped with \" \", removed with \"-\", added with \"+\", trailing with \" \", joined with \"\\n\""
+        "DroppyCode/Core/Support/Text.swift:77-81 SimpleDiff.diffLimit doc comment and declaration",
+        "DroppyCode/Core/Support/Text.swift:86-89 unified(old:new:) - oldLines/newLines built by splitting on \"\\n\", empty string -> empty array",
+        "DroppyCode/Core/Support/Text.swift:105-115 - newLines.difference(from: oldLines) into removed/inserted offset sets; guard !removed.isEmpty || !inserted.isEmpty else { return FileEdit.Stats(diff: nil, additions: 0, deletions: 0) }",
+        "DroppyCode/Core/Support/Text.swift:118-136 - the merged ops walk: .deletion(text:old:) when removed.contains(i), .addition(text:new:) when inserted.contains(j), else .context(text:old:new:)",
+        "DroppyCode/Core/Support/Text.swift:138-164 appendHunk() and the grouping loop - groupEnd extends while change - groupEnd <= 2 * contextLines + 1 (7), otherwise a new hunk starts; each hunk's slice is ops[max(0, groupStart-3)...min(ops.count-1, groupEnd+3)]; oldStart/newStart from slice.compactMap(\\.oldNumber/\\.newNumber).first ?? 0; oldCount/newCount from slice.count { $0.oldNumber/newNumber != nil }; header \"@@ -\\(oldStart),\\(oldCount) +\\(newStart),\\(newCount) @@\"; hunks joined with \"\\n\"",
+        "DroppyCode/Core/Support/Text.swift:168-204 private enum DiffOp - .context/.deletion/.addition with oldNumber, newNumber, isChange and the rendered line prefix (\" \", \"-\", \"+\")"
       ],
       "implemented_by_task": "T-M2-075",
-      "spec_fix": "Failure case said the shared start number is wrong when the two sides diverge earlier -> the prefix is common to both texts, so prefix - leading.count + 1 (Text.swift:104) is the right start on both sides; the real departures from diff -u are the start printed for an empty range and the always-printed \",count\" (Text.swift:105)"
+      "b3_note": "Upstream replaced the head/tail common-prefix-and-suffix trim (which produced exactly one hunk with a shared old/new start) with an exact line diff via CollectionDifference (newLines.difference(from: oldLines)), grouped into one or more hunks whenever two change runs are more than 7 op-positions apart, each with its own independent old and new start. Identical inputs now short-circuit to diff nil before any hunk work (Text.swift:113-115); see the new record for that case and its downstream consumers. The 200000-byte cap and its guard-first ordering are unchanged from PR-STORE-110/111."
     },
     {
       "id": "PR-STORE-113",
@@ -2747,7 +2771,7 @@
       "depends_on_unknown": null,
       "title": "An empty string reads as nil through nilIfEmpty",
       "source_evidence": [
-        "DroppyCode/Core/Support/Text.swift:220 - var nilIfEmpty: String? { isEmpty ? nil : self }, declared in extension String (:127-133), which at B2 also holds `var trimmed` (:130-132, PR-STORE-167)"
+        "DroppyCode/Core/Support/Text.swift:220 - var nilIfEmpty: String? { isEmpty ? nil : self }, declared in extension String (:219-225), which at B3 also holds `var trimmed` (:222-224, PR-STORE-167)"
       ],
       "implemented_by_task": "T-M2-076"
     },
@@ -3060,7 +3084,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "spec_fix": "expected_result said the box 'is created once per item' and 'Cells are built inside AppModel.init because property observers do not fire there', citing AppModel.swift:139-141 -> those are AppModel facts (AppModel.swift:138-141 builds the cells in init; :165-168 reuses an existing cell and creates one only for a new id), so they move to PR-STORE-171, owned by App.AppModel; this record keeps ObservedValue.swift:4-13 (ruling on STOP Core.Support.ObservedValue #1)",
+      "spec_fix": "expected_result said the box 'is created once per item' and 'Cells are built inside AppModel.init because property observers do not fire there', citing AppModel.swift:139-141 -> those are AppModel facts (AppModel.swift:138-141 builds the cells in init; :166-169 reuses an existing cell and creates one only for a new id), so they move to PR-STORE-171, owned by App.AppModel; this record keeps ObservedValue.swift:4-13 (ruling on STOP Core.Support.ObservedValue #1)",
       "title": "A single model item is observed through its own box so siblings never re-render it",
       "source_evidence": [
         "DroppyCode/Core/Support/ObservedValue.swift:4-13 - doc comment \"One value under its own observation. A view that reads a thread or project through its cell depends on that item alone, so a change to any other item never re-renders it.\" then @MainActor @Observable final class ObservedValue<Value> { var value: Value; init(_ value: Value) }"
@@ -3070,7 +3094,7 @@
       "id": "PR-STORE-129",
       "preconditions": "The anti-slop setting is on.",
       "action": "A provider session is launched, or, for a provider that keeps no session-level instructions, the first ordinary message of a session epoch is sent; the anti-slop setting is on.",
-      "expected_result": "This exact text is delivered, five lines joined by single newlines, with no leading or trailing blank line:\n[Marrow anti-slop guidance]\nGive the shortest complete answer, leading with the result. Use plain, natural language. Skip filler, hype, stock openings, repeated summaries and unsolicited closers. Preserve requested detail, facts, uncertainty, blockers and required validation.\nMake focused edits using existing patterns. Add comments only for non-obvious reasons, constraints or pitfalls; omit banners, obvious narration and speculative TODOs. Preserve useful documentation. Avoid unrelated cleanup, dependencies and abstractions.\nFor UI work, follow the product’s components, typography and colors. Prefer purposeful structure and real content; preserve accessibility, responsive layouts and visible loading, empty and error states.\nReuse evidence, read relevant sections and batch independent lookups. Avoid repeated scans, polling and echoed logs. Perform required checks; brevity never excuses incomplete work. Apply this guidance to delegated work too. Report changes, affected files and material limits once. User requests and project requirements take precedence.\nNote the apostrophe in \"product’s\" is U+2019 RIGHT SINGLE QUOTATION MARK, not an ASCII apostrophe, and \"colors\" is the American spelling. Delivery at B2, the same for both texts: for Claude, Codex and Copilot (AppModel.hydraIsNative, AppModel+Hydra.swift:141-143) and every API-key provider (keepsHydraPolicyInSystemPrompt, ThreadRuntime.swift:1388-1390) the text goes into the session-level instructions when the session is launched, after any Hydra policy and joined to it by a blank line: Claude as the single --append-system-prompt segment (ClaudeSession.swift:121-128), Codex appended to developerInstructions (CodexSession.swift:251-259), Copilot in the appended systemMessage (CopilotSession.swift:147-156), OpenAI-compatible sessions in the system prompt (OpenAICompatibleSession.swift:1186-1193). Every other provider gets it as a prefix of the user prompt, text + \"\\n\\n\" + prompt (ThreadRuntime.swift:1322-1333), once per session epoch: never on a message that starts with a slash command, marked sent only after a successful send in the same epoch (:1365-1367), and sent again after a compaction (:1751) or with a new session (:2090). The flag read is the session signature's antiSlopEnabled, falling back to the app setting (:1329). Claude's --agents head prompts and Copilot's customAgents end with the same text after a blank line (Hydra.swift:808-816, :843). Deviation, OD-0012 F1: the first line is \"[Marrow anti-slop guidance]\"; upstream writes \"[Droppy Code anti-slop guidance]\".",
+      "expected_result": "This exact text is delivered, five lines joined by single newlines, with no leading or trailing blank line:\n[Marrow anti-slop guidance]\nGive the shortest complete answer, leading with the result. Use plain, natural language. Skip filler, hype, stock openings, repeated summaries and unsolicited closers. Preserve requested detail, facts, uncertainty, blockers and required validation.\nMake focused edits using existing patterns. Add comments only for non-obvious reasons, constraints or pitfalls; omit banners, obvious narration and speculative TODOs. Preserve useful documentation. Avoid unrelated cleanup, dependencies and abstractions.\nFor UI work, follow the product’s components, typography and colors. Prefer purposeful structure and real content; preserve accessibility, responsive layouts and visible loading, empty and error states.\nReuse evidence, read relevant sections and batch independent lookups. Avoid repeated scans, polling and echoed logs. Perform required checks; brevity never excuses incomplete work. Apply this guidance to delegated work too. Report changes, affected files and material limits once. User requests and project requirements take precedence.\nNote the apostrophe in \"product’s\" is U+2019 RIGHT SINGLE QUOTATION MARK, not an ASCII apostrophe, and \"colors\" is the American spelling. Delivery at B2, the same for both texts: for Claude, Codex and Copilot (AppModel.hydraIsNative, AppModel+Hydra.swift:141-143) and every API-key provider (keepsHydraPolicyInSystemPrompt, ThreadRuntime.swift:1388-1390) the text goes into the session-level instructions when the session is launched, after any Hydra policy and joined to it by a blank line: Claude as the single --append-system-prompt segment (ClaudeSession.swift:121-128), Codex appended to developerInstructions (CodexSession.swift:251-259), Copilot in the appended systemMessage (CopilotSession.swift:147-156), OpenAI-compatible sessions in the system prompt (OpenAICompatibleSession.swift:1186-1193). Every other provider gets it as a prefix of the user prompt, text + \"\\n\\n\" + prompt (ThreadRuntime.swift:1322-1333), once per session epoch: never on a message that starts with a slash command, marked sent only after a successful send in the same epoch (:1364-1366), and sent again after a compaction (:1751) or with a new session (:2090). The flag read is the session signature's antiSlopEnabled, falling back to the app setting (:1328). Claude's --agents head prompts and Copilot's customAgents end with the same text after a blank line (Hydra.swift:808-816, :843). Deviation, OD-0012 F1: the first line is \"[Marrow anti-slop guidance]\"; upstream writes \"[Droppy Code anti-slop guidance]\".",
       "side_effects": [
         "The text is sent to the provider as part of the prompt"
       ],
@@ -3160,7 +3184,7 @@
       "id": "PR-STORE-132",
       "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
       "action": "The user opens the ready-made pair list.",
-      "expected_result": "The row shows the title exactly as \"Fable 5.1 leads Opus 5\" and the tagline exactly as \"The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself.\". Its stable id is \"claude-fable-opus\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort nil. Heads: providers [.claude, .commandcode], models [\"Opus\"], effort nil. maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 1.",
+      "expected_result": "The row shows the title exactly as \"Fable 5.1 leads Opus 5.5\" and the tagline exactly as \"The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself.\". Its stable id is \"claude-fable-opus\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort nil. Heads: providers [.claude, .commandcode], models [\"Opus\"], effort nil. maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 1.",
       "side_effects": [],
       "persistence": "Recipe id \"claude-fable-opus\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
       "failure_cases": [
@@ -3173,16 +3197,17 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Ready-made Hydra pair 1 of 10: \"Fable 5.1 leads Opus 5\"",
+      "title": "Ready-made Hydra pair 1 of 12: \"Fable 5.1 leads Opus 5.5\"",
       "source_evidence": [
         "DroppyCode/Core/Models/HydraCookbook.swift:30 - HydraPairRecipe(id: \"claude-fable-opus\", title: \"Fable 5.1 leads Opus 5\", tagline: \"The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself.\", lead: .init(providers [.claude, .commandcode], models [\"Fable\"], effort nil), heads: .init(providers [.claude, .commandcode], models [\"Opus\"], effort nil), maxHeads: nil)"
-      ]
+      ],
+      "b3_note": "HydraCookbook.recipes grows from 10 to 12 entries: two new pairs (astra-sol, sol-luna; see new records) are inserted at positions 8 and 9, pushing astra-astra, claude-opus-opus and claude-fable-fable down two places each. This recipe's own title also changes from \"Opus 5\" to \"Opus 5.5\"; its position (1) and cite line (:30) are unchanged."
     },
     {
       "id": "PR-STORE-133",
       "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
       "action": "The user opens the ready-made pair list.",
-      "expected_result": "The row shows the title exactly as \"Opus 5 leads Gemini 3.8 Flash\" and the tagline exactly as \"A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them.\". Its stable id is \"claude-opus-gemini-flash\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.antigravity, .commandcode], models [\"Gemini 3.8 Flash\", \"Gemini\", \"Flash\"], effort \"medium\". maxHeads: 6 - the only capped recipe in the table. The table order is fixed, strongest first, and this recipe is at position 2.",
+      "expected_result": "The row shows the title exactly as \"Opus 5.5 leads Gemini 3.8 Flash\" and the tagline exactly as \"A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them.\". Its stable id is \"claude-opus-gemini-flash\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.antigravity, .commandcode], models [\"Gemini 3.8 Flash\", \"Gemini\", \"Flash\"], effort \"medium\". maxHeads: 6 - the only capped recipe in the table. The table order is fixed, strongest first, and this recipe is at position 2.",
       "side_effects": [],
       "persistence": "Recipe id \"claude-opus-gemini-flash\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
       "failure_cases": [
@@ -3195,16 +3220,17 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Ready-made Hydra pair 2 of 10: \"Opus 5 leads Gemini 3.8 Flash\"",
+      "title": "Ready-made Hydra pair 2 of 12: \"Opus 5.5 leads Gemini 3.8 Flash\"",
       "source_evidence": [
         "DroppyCode/Core/Models/HydraCookbook.swift:31 - HydraPairRecipe(id: \"claude-opus-gemini-flash\", title: \"Opus 5 leads Gemini 3.8 Flash\", tagline: \"A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them.\", lead: .init(providers [.claude, .commandcode], models [\"Opus\"], effort \"high\"), heads: .init(providers [.antigravity, .commandcode], models [\"Gemini 3.8 Flash\", \"Gemini\", \"Flash\"], effort \"medium\"), maxHeads: 6)"
-      ]
+      ],
+      "b3_note": "The table grows from 10 to 12 recipes (see PR-STORE-132's b3_note). This recipe's title changes from \"Opus 5\" to \"Opus 5.5\"; its position (2) and cite line (:31) are unchanged."
     },
     {
       "id": "PR-STORE-134",
       "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
       "action": "The user opens the ready-made pair list.",
-      "expected_result": "The row shows the title exactly as \"Opus 5 leads DeepSeek V4.1\" and the tagline exactly as \"Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts.\". Its stable id is \"claude-opus-deepseek\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.deepseek, .commandcode], models [\"V4.1 Flash\", \"V4.1\", \"DeepSeek\"], effort \"high\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 3.",
+      "expected_result": "The row shows the title exactly as \"Opus 5.5 leads DeepSeek V4.1\" and the tagline exactly as \"Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts.\". Its stable id is \"claude-opus-deepseek\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.deepseek, .commandcode], models [\"V4.1 Flash\", \"V4.1\", \"DeepSeek\"], effort \"high\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 3.",
       "side_effects": [],
       "persistence": "Recipe id \"claude-opus-deepseek\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
       "failure_cases": [
@@ -3217,16 +3243,17 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Ready-made Hydra pair 3 of 10: \"Opus 5 leads DeepSeek V4.1\"",
+      "title": "Ready-made Hydra pair 3 of 12: \"Opus 5.5 leads DeepSeek V4.1\"",
       "source_evidence": [
         "DroppyCode/Core/Models/HydraCookbook.swift:32 - HydraPairRecipe(id: \"claude-opus-deepseek\", title: \"Opus 5 leads DeepSeek V4.1\", tagline: \"Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts.\", lead: .init(providers [.claude, .commandcode], models [\"Opus\"], effort \"high\"), heads: .init(providers [.deepseek, .commandcode], models [\"V4.1 Flash\", \"V4.1\", \"DeepSeek\"], effort \"high\"), maxHeads: nil)"
-      ]
+      ],
+      "b3_note": "The table grows from 10 to 12 recipes (see PR-STORE-132's b3_note). This recipe's title changes from \"Opus 5\" to \"Opus 5.5\"; its position (3) and cite line (:32) are unchanged."
     },
     {
       "id": "PR-STORE-135",
       "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
       "action": "The user opens the ready-made pair list.",
-      "expected_result": "The row shows the title exactly as \"Opus 5 leads GLM-5.3 Flash\" and the tagline exactly as \"Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat.\". Its stable id is \"claude-opus-glm\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.zai, .commandcode], models [\"5.3 Flash\", \"GLM\"], effort \"high\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 4.",
+      "expected_result": "The row shows the title exactly as \"Opus 5.5 leads GLM-5.3 Flash\" and the tagline exactly as \"Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat.\". Its stable id is \"claude-opus-glm\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.zai, .commandcode], models [\"5.3 Flash\", \"GLM\"], effort \"high\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 4.",
       "side_effects": [],
       "persistence": "Recipe id \"claude-opus-glm\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
       "failure_cases": [
@@ -3239,16 +3266,17 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Ready-made Hydra pair 4 of 10: \"Opus 5 leads GLM-5.3 Flash\"",
+      "title": "Ready-made Hydra pair 4 of 12: \"Opus 5.5 leads GLM-5.3 Flash\"",
       "source_evidence": [
         "DroppyCode/Core/Models/HydraCookbook.swift:33 - HydraPairRecipe(id: \"claude-opus-glm\", title: \"Opus 5 leads GLM-5.3 Flash\", tagline: \"Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat.\", lead: .init(providers [.claude, .commandcode], models [\"Opus\"], effort \"high\"), heads: .init(providers [.zai, .commandcode], models [\"5.3 Flash\", \"GLM\"], effort \"high\"), maxHeads: nil)"
-      ]
+      ],
+      "b3_note": "The table grows from 10 to 12 recipes (see PR-STORE-132's b3_note). This recipe's title changes from \"Opus 5\" to \"Opus 5.5\"; its position (4) and cite line (:33) are unchanged."
     },
     {
       "id": "PR-STORE-136",
       "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
       "action": "The user opens the ready-made pair list.",
-      "expected_result": "The row shows the title exactly as \"Fable 5.1 leads Composer 2.5\" and the tagline exactly as \"Fable thinks; Cursor's Composer heads type at the speed Composer is known for.\". Its stable id is \"claude-fable-composer\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.cursor], models [\"Composer\"], effort nil - the only single-provider side in the table. maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 5.",
+      "expected_result": "The row shows the title exactly as \"Fable 5.1 leads Composer 2.5\" and the tagline exactly as \"Fable thinks; Cursor's Composer heads type at the speed Composer is known for.\". Its stable id is \"claude-fable-composer\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.cursor], models [\"Composer\"], effort nil - the only single-provider side in the table. maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 5 of 12.",
       "side_effects": [],
       "persistence": "Recipe id \"claude-fable-composer\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
       "failure_cases": [
@@ -3261,16 +3289,17 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Ready-made Hydra pair 5 of 10: \"Fable 5.1 leads Composer 2.5\"",
+      "title": "Ready-made Hydra pair 5 of 12: \"Fable 5.1 leads Composer 2.5\"",
       "source_evidence": [
         "DroppyCode/Core/Models/HydraCookbook.swift:34 - HydraPairRecipe(id: \"claude-fable-composer\", title: \"Fable 5.1 leads Composer 2.5\", tagline: \"Fable thinks; Cursor's Composer heads type at the speed Composer is known for.\", lead: .init(providers [.claude, .commandcode], models [\"Fable\"], effort \"high\"), heads: .init(providers [.cursor], models [\"Composer\"], effort nil), maxHeads: nil)"
-      ]
+      ],
+      "b3_note": "The table grows from 10 to 12 recipes (see PR-STORE-132's b3_note). This recipe's text is unchanged; only the stated count changes, 5 of 10 to 5 of 12. Cite line :34 unchanged."
     },
     {
       "id": "PR-STORE-137",
       "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
       "action": "The user opens the ready-made pair list.",
-      "expected_result": "The row shows the title exactly as \"Astra 6 leads Spark 1.3 Contributor\" and the tagline exactly as \"GPT-6 Astra orchestrates at high; Muse Spark Contributor heads build at medium.\". Its stable id is \"astra-spark\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.meta, .commandcode], models [\"Contributor\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 6.",
+      "expected_result": "The row shows the title exactly as \"Astra 6 leads Spark 1.3 Contributor\" and the tagline exactly as \"GPT-6 Astra orchestrates at high; Muse Spark Contributor heads build at medium.\". Its stable id is \"astra-spark\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.meta, .commandcode], models [\"Contributor\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 6 of 12.",
       "side_effects": [],
       "persistence": "Recipe id \"astra-spark\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
       "failure_cases": [
@@ -3283,16 +3312,17 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Ready-made Hydra pair 6 of 10: \"Astra 6 leads Spark 1.3 Contributor\"",
+      "title": "Ready-made Hydra pair 6 of 12: \"Astra 6 leads Spark 1.3 Contributor\"",
       "source_evidence": [
         "DroppyCode/Core/Models/HydraCookbook.swift:35 - HydraPairRecipe(id: \"astra-spark\", title: \"Astra 6 leads Spark 1.3 Contributor\", tagline: \"GPT-6 Astra orchestrates at high; Muse Spark Contributor heads build at medium.\", lead: .init(providers [.codex, .commandcode], models [\"Astra\"], effort \"high\"), heads: .init(providers [.meta, .commandcode], models [\"Contributor\"], effort \"medium\"), maxHeads: nil)"
-      ]
+      ],
+      "b3_note": "The table grows from 10 to 12 recipes (see PR-STORE-132's b3_note). This recipe's text is unchanged; only the stated count changes, 6 of 10 to 6 of 12. Cite line :35 unchanged."
     },
     {
       "id": "PR-STORE-138",
       "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
       "action": "The user opens the ready-made pair list.",
-      "expected_result": "The row shows the title exactly as \"Astra 6 leads Terra 5.6\" and the tagline exactly as \"OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium.\". Its stable id is \"astra-terra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Terra\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 7.",
+      "expected_result": "The row shows the title exactly as \"Astra 6 leads Terra 5.6\" and the tagline exactly as \"OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium.\". Its stable id is \"astra-terra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Terra\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 7 of 12.",
       "side_effects": [],
       "persistence": "Recipe id \"astra-terra\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
       "failure_cases": [
@@ -3305,16 +3335,17 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Ready-made Hydra pair 7 of 10: \"Astra 6 leads Terra 5.6\"",
+      "title": "Ready-made Hydra pair 7 of 12: \"Astra 6 leads Terra 5.6\"",
       "source_evidence": [
         "DroppyCode/Core/Models/HydraCookbook.swift:36 - HydraPairRecipe(id: \"astra-terra\", title: \"Astra 6 leads Terra 5.6\", tagline: \"OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium.\", lead: .init(providers [.codex, .commandcode], models [\"Astra\"], effort \"high\"), heads: .init(providers [.codex, .commandcode], models [\"Terra\"], effort \"medium\"), maxHeads: nil)"
-      ]
+      ],
+      "b3_note": "The table grows from 10 to 12 recipes (see PR-STORE-132's b3_note). This recipe's text is unchanged; only the stated count changes, 7 of 10 to 7 of 12. Cite line :36 unchanged."
     },
     {
       "id": "PR-STORE-139",
       "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
       "action": "The user opens the ready-made pair list.",
-      "expected_result": "The row shows the title exactly as \"Astra 6 high, Astra 6 medium\" and the tagline exactly as \"One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort.\". Its stable id is \"astra-astra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Astra\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 8.",
+      "expected_result": "The row shows the title exactly as \"Astra 6 high, Astra 6 medium\" and the tagline exactly as \"One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort.\". Its stable id is \"astra-astra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Astra\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 10 of 12.",
       "side_effects": [],
       "persistence": "Recipe id \"astra-astra\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
       "failure_cases": [
@@ -3327,16 +3358,17 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Ready-made Hydra pair 8 of 10: \"Astra 6 high, Astra 6 medium\"",
+      "title": "Ready-made Hydra pair 10 of 12: \"Astra 6 high, Astra 6 medium\"",
       "source_evidence": [
         "DroppyCode/Core/Models/HydraCookbook.swift:39 - HydraPairRecipe(id: \"astra-astra\", title: \"Astra 6 high, Astra 6 medium\", tagline: \"One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort.\", lead: .init(providers [.codex, .commandcode], models [\"Astra\"], effort \"high\"), heads: .init(providers [.codex, .commandcode], models [\"Astra\"], effort \"medium\"), maxHeads: nil)"
-      ]
+      ],
+      "b3_note": "The table grows from 10 to 12 recipes: two new pairs (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this recipe from position 8 to position 10. Its text is unchanged. Cite line moves :37 -> :39 (already re-cited)."
     },
     {
       "id": "PR-STORE-140",
       "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
       "action": "The user opens the ready-made pair list.",
-      "expected_result": "The row shows the title exactly as \"Opus 5 max, Opus 5 medium\" and the tagline exactly as \"Opus thinks as hard as it can where it counts; Opus heads at medium do the building.\". Its stable id is \"claude-opus-opus\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"max\". Heads: providers [.claude, .commandcode], models [\"Opus\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 9.",
+      "expected_result": "The row shows the title exactly as \"Opus 5.5 max, Opus 5.5 medium\" and the tagline exactly as \"Opus thinks as hard as it can where it counts; Opus heads at medium do the building.\". Its stable id is \"claude-opus-opus\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"max\". Heads: providers [.claude, .commandcode], models [\"Opus\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 11 of 12.",
       "side_effects": [],
       "persistence": "Recipe id \"claude-opus-opus\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
       "failure_cases": [
@@ -3349,16 +3381,17 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Ready-made Hydra pair 9 of 10: \"Opus 5 max, Opus 5 medium\"",
+      "title": "Ready-made Hydra pair 11 of 12: \"Opus 5.5 max, Opus 5.5 medium\"",
       "source_evidence": [
-        "DroppyCode/Core/Models/HydraCookbook.swift:38 - HydraPairRecipe(id: \"claude-opus-opus\", title: \"Opus 5 max, Opus 5 medium\", tagline: \"Opus thinks as hard as it can where it counts; Opus heads at medium do the building.\", lead: .init(providers [.claude, .commandcode], models [\"Opus\"], effort \"max\"), heads: .init(providers [.claude, .commandcode], models [\"Opus\"], effort \"medium\"), maxHeads: nil)"
-      ]
+        "DroppyCode/Core/Models/HydraCookbook.swift:40 - HydraPairRecipe(id: \"claude-opus-opus\", title: \"Opus 5.5 max, Opus 5.5 medium\", tagline: \"Opus thinks as hard as it can where it counts; Opus heads at medium do the building.\", lead: .init(providers [.claude, .commandcode], models [\"Opus\"], effort \"max\"), heads: .init(providers [.claude, .commandcode], models [\"Opus\"], effort \"medium\"), maxHeads: nil)"
+      ],
+      "b3_note": "The table grows from 10 to 12 recipes: two new pairs (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this recipe from position 9 to position 11. Its title also changes from \"Opus 5\" to \"Opus 5.5\" on both sides. Cite line moves :38 -> :40."
     },
     {
       "id": "PR-STORE-141",
       "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
       "action": "The user opens the ready-made pair list.",
-      "expected_result": "The row shows the title exactly as \"Fable 5.1 high, Fable 5.1 medium\" and the tagline exactly as \"For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.\". Its stable id is \"claude-fable-fable\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.claude, .commandcode], models [\"Fable\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 10.",
+      "expected_result": "The row shows the title exactly as \"Fable 5.1 high, Fable 5.1 medium\" and the tagline exactly as \"For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.\". Its stable id is \"claude-fable-fable\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.claude, .commandcode], models [\"Fable\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 12 of 12.",
       "side_effects": [],
       "persistence": "Recipe id \"claude-fable-fable\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
       "failure_cases": [
@@ -3371,10 +3404,11 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "title": "Ready-made Hydra pair 10 of 10: \"Fable 5.1 high, Fable 5.1 medium\"",
+      "title": "Ready-made Hydra pair 12 of 12: \"Fable 5.1 high, Fable 5.1 medium\"",
       "source_evidence": [
         "DroppyCode/Core/Models/HydraCookbook.swift:41 - HydraPairRecipe(id: \"claude-fable-fable\", title: \"Fable 5.1 high, Fable 5.1 medium\", tagline: \"For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.\", lead: .init(providers [.claude, .commandcode], models [\"Fable\"], effort \"high\"), heads: .init(providers [.claude, .commandcode], models [\"Fable\"], effort \"medium\"), maxHeads: nil)"
-      ]
+      ],
+      "b3_note": "The table grows from 10 to 12 recipes: two new pairs (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this recipe from position 10 to position 12. Its text is unchanged. Cite line moves :39 -> :41 (already re-cited)."
     },
     {
       "id": "PR-STORE-142",
@@ -3722,7 +3756,7 @@
       "failure_cases": [
         "A missing key, an explicit null and a value of the wrong type are indistinguishable here: all three land on true and none of them fails the surrounding thread or the surrounding library.",
         "A thread whose flag is unreadable but whose title really was generated keeps that title; it is not retitled again. This is the accepted cost of the ruling.",
-        "At launch, openThreadOnLaunch reuses an unused \"New thread\" only when !hasCustomTitle (AppModel.swift:587-588). An untouched \"New thread\" whose flag is missing, null or of the wrong type now reads as custom, so it is not reused: launch picks another qualifying unused thread if there is one, otherwise calls newThread(in: project) (:599-600), and the old row stays behind.",
+        "At launch, openThreadOnLaunch reuses an unused \"New thread\" only when !hasCustomTitle (AppModel.swift:587-588). An untouched \"New thread\" whose flag is missing, null or of the wrong type now reads as custom, so it is not reused: launch picks another qualifying unused thread if there is one, otherwise calls newThread(in: project) (:608-609), and the old row stays behind.",
         "A provider-sent title is skipped for such a thread too, because that fallback also requires !thread.hasCustomTitle (ThreadRuntime.swift:2201)."
       ],
       "cancellation": "not cancellable",
@@ -4083,7 +4117,7 @@
       "source_evidence": [
         "DroppyCode/App/AppModel.swift:138-141 - comment \"Property observers stay quiet inside an initializer, so the cells are built here once.\" then Self.write(Self.sync(&projectCells, with: projects)), Self.write(Self.sync(&threadCells, with: threads)), syncChildCells()",
         "DroppyCode/App/AppModel.swift:149-151 - doc comment \"Mirrors a list into its cells: values that changed are written to their cell (and only those, so an untouched item's observers never fire), new items get a cell, and a removed item's cell is emptied as it goes, so whoever was showing it re-renders to nothing.\"",
-        "DroppyCode/App/AppModel.swift:158-178 - sync(_:with:): if let cell = cells[value.id] reuses the cell and writes only if cell.value != value (:165-166); cells[value.id] = ObservedValue(value) is the only creation (:168); an unseen id gets a nil write and is dropped (:171-175)",
+        "DroppyCode/App/AppModel.swift:158-178 - sync(_:with:): if let cell = cells[value.id] reuses the cell and writes only if cell.value != value (:166-167); cells[value.id] = ObservedValue(value) is the only creation (:169); an unseen id gets a nil write and is dropped (:172-176)",
         "DroppyCode/App/AppModel.swift:30-32 - projects didSet { Self.write(Self.sync(&projectCells, with: projects)) }"
       ],
       "preconditions": "The library holds projects and threads.",
@@ -4099,6 +4133,108 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-STORE-172",
+      "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
+      "action": "The user opens the ready-made pair list.",
+      "expected_result": "The row shows the title exactly as \"Astra 6 leads Sol 5.6\" and the tagline exactly as \"Astra plans and reviews; Sol heads take the complex building at medium.\". Its stable id is \"astra-sol\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Sol\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 8 of 12.",
+      "side_effects": [],
+      "persistence": "Recipe id \"astra-sol\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
+      "failure_cases": [
+        "If no installed provider on either side carries one of the model names, the row is not shown."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
+      "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "title": "Ready-made Hydra pair 8 of 12: \"Astra 6 leads Sol 5.6\"",
+      "source_evidence": [
+        "DroppyCode/Core/Models/HydraCookbook.swift:37 - HydraPairRecipe(id: \"astra-sol\", title: \"Astra 6 leads Sol 5.6\", tagline: \"Astra plans and reviews; Sol heads take the complex building at medium.\", lead: .init(providers [.codex, .commandcode], models [\"Astra\"], effort \"high\"), heads: .init(providers [.codex, .commandcode], models [\"Sol\"], effort \"medium\"), maxHeads: nil)"
+      ],
+      "b3_note": "New ready-made pair added in B3, filling the gap between astra-terra (position 7 of 12) and the repositioned astra-astra (position 10 of 12, formerly 8 of 10). See impacts.json bundle R3-40 (HydraCookbook.swift) new_records_needed."
+    },
+    {
+      "id": "PR-STORE-173",
+      "preconditions": "At least one listed provider on each side is installed and its catalog contains one of that side’s model names.",
+      "action": "The user opens the ready-made pair list.",
+      "expected_result": "The row shows the title exactly as \"Sol 5.6 leads Luna 5.6\" and the tagline exactly as \"Sol keeps the plan; quick Luna heads get through the routine parts.\". Its stable id is \"sol-luna\". Lead: providers [.codex, .commandcode], models [\"Sol\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Luna\"], effort \"medium\". maxHeads: nil (uncapped). The table order is fixed, strongest first, and this recipe is at position 9 of 12.",
+      "side_effects": [],
+      "persistence": "Recipe id \"sol-luna\" is a stable identifier; adding the pair persists a HydraPair through the Hydra area.",
+      "failure_cases": [
+        "If no installed provider on either side carries one of the model names, the row is not shown."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Static data, reproduced byte for byte including the colons, semicolons and the apostrophe in any possessive. The model and provider names are literals, not computed.",
+      "verification_method": "contract fixture over the table plus a capture comparison of the pair list",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "title": "Ready-made Hydra pair 9 of 12: \"Sol 5.6 leads Luna 5.6\"",
+      "source_evidence": [
+        "DroppyCode/Core/Models/HydraCookbook.swift:38 - HydraPairRecipe(id: \"sol-luna\", title: \"Sol 5.6 leads Luna 5.6\", tagline: \"Sol keeps the plan; quick Luna heads get through the routine parts.\", lead: .init(providers [.codex, .commandcode], models [\"Sol\"], effort \"high\"), heads: .init(providers [.codex, .commandcode], models [\"Luna\"], effort \"medium\"), maxHeads: nil)"
+      ],
+      "b3_note": "New ready-made pair added in B3, filling the gap between the new astra-sol (position 8 of 12) and the repositioned astra-astra (position 10 of 12, formerly 8 of 10). See impacts.json bundle R3-40 (HydraCookbook.swift) new_records_needed."
+    },
+    {
+      "id": "PR-STORE-174",
+      "preconditions": "A value has been handed to DiskWriter.shared.encodeAndWrite(_:to:) and its queued hop has run.",
+      "action": "A caller asks lastWrittenSize(of:) for that URL.",
+      "expected_result": "lastWrittenSize(of:) returns the byte count of the value's last successful write made through encodeAndWrite for that URL, or nil for a file never written that way. Only encodeAndWrite's queued hop records a size, and only on success (write(_:to:) returning non-nil). writeSynchronously, removeSynchronously, a failed encode and a failed write all leave the stored size exactly as it was.",
+      "side_effects": [
+        "Records the write's byte size in an in-memory map, keyed by URL"
+      ],
+      "persistence": "In-memory only, under a Mutex; not written to disk and not read back across launches.",
+      "failure_cases": [
+        "A failed encode or a failed write leaves the previously recorded size (or the absence of one) unchanged.",
+        "writeSynchronously and removeSynchronously never update or clear the recorded size for that URL, even though they touch the same file."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port: the same per-URL map (Mutex<[URL: Int]>), updated only from the asynchronous encodeAndWrite path, read by lastWrittenSize(of:).",
+      "verification_method": "unit: encodeAndWrite a value, wait for the queued hop to run, assert lastWrittenSize(of:) equals the encoded byte count; assert a subsequent writeSynchronously or removeSynchronously for the same URL does not change the recorded size; assert an unencodable value leaves lastWrittenSize as it was",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "title": "DiskWriter remembers the byte size of its last successful asynchronous write, per file",
+      "source_evidence": [
+        "DroppyCode/Services/Store/Storage.swift:333-338 - private let sizes = Mutex<[URL: Int]>([:]); func lastWrittenSize(of url: URL) -> Int? { sizes.withLock { $0[url] } }",
+        "DroppyCode/Services/Store/Storage.swift:347-350 - encodeAndWrite's queued hop: if let size = Self.write(value, to: url) { sizes.withLock { $0[url] = size } }",
+        "DroppyCode/Services/Store/Storage.swift:376-386 write(_:to:) - returns data.count on a successful atomic write, nil on an encode or write failure"
+      ],
+      "b3_note": "New in B3 (upstream commit that also reworks ThreadRuntime's save coalescing). Added so a runtime can space its own saves by the thread file's last known size; see PR-RUNTIME-158, which reads lastWrittenSize(of: Storage.threadURL(threadID)) at ThreadRuntime.swift:3641. See impacts.json bundle R3-50 (Storage.swift) new_records_needed."
+    },
+    {
+      "id": "PR-STORE-175",
+      "preconditions": "Two texts that compare equal line by line under Swift String ==, including the case where both are empty.",
+      "action": "SimpleDiff.unified(old:new:) is called.",
+      "expected_result": "newLines.difference(from: oldLines) has no removed and no inserted offsets, so unified returns FileEdit.Stats(diff: nil, additions: 0, deletions: 0) immediately, before the merged-ops walk or any hunk work runs. Lines are compared as produced by splitting each text on \"\\n\" (an empty string gives an empty line array). Downstream, the nil diff is not uniformly invisible: the tool row's own inline rendering shows no diff block for it (TimelineRows.swift:2128), and DiffInspector's focusedFiles fallback contributes nothing for it (DiffInspector.swift:165, which requires a non-nil, non-empty patch); but on a tool row that is part of the selected turn, TurnDiff.merge (TurnDiff.swift:39-48) still appends this edit as a hunk-less DiffFile (it filters only on an empty path, not a nil diff, and only records reportedAdditions/reportedDeletions when file.hunks.isEmpty), so DiffInspector's file card still appears for it, reading \"Diff details unavailable\" rather than showing a diff (DiffInspector.swift:215-221), and the tool row still opens the changes popover because TimelineRows.swift's opensDiff (:1664-1665) is true whenever the call has any edit with a non-empty path, independent of whether that edit's own diff is nil.",
+      "side_effects": [],
+      "persistence": "Nothing is stored for such an edit: no diff text, and the recorded additions and deletions are both 0.",
+      "failure_cases": [
+        "A reported edit with a nil diff renders no diff block in the tool row's own inline rendering (TimelineRows.swift:2128) and DiffInspector's focusedFiles fallback adds nothing for it (DiffInspector.swift:165).",
+        "But when that same edit's path is part of the selected turn's own diff, TurnDiff.merge (TurnDiff.swift:39-48) still adds a hunk-less file for it, so the inspector shows a \"Diff details unavailable\" card (DiffInspector.swift:215-221) rather than no card, and the tool row still opens the changes popover (TimelineRows.swift:1664-1665) rather than staying collapsed.",
+        "ThreadRuntime.swift:3447 settleCommand treats such an edit as unreported, so the git-snapshot edits replace it rather than leaving a phantom empty diff."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Reproduce the short-circuit and its two downstream effects: a nil diff must render no diff block at all (not an empty one), and must not stop the git-snapshot edits from replacing the report.",
+      "verification_method": "unit: two identical multi-line texts and two empty texts both give diff nil, additions 0, deletions 0; integration test that a tool row carrying such an edit shows no diff block and that DiffInspector shows none",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "title": "Identical texts produce no diff hunk and zero additions and deletions",
+      "source_evidence": [
+        "DroppyCode/Core/Support/Text.swift:105-115 - removed/inserted offset sets built from newLines.difference(from: oldLines); guard !removed.isEmpty || !inserted.isEmpty else { return FileEdit.Stats(diff: nil, additions: 0, deletions: 0) }",
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:2128 - no diff block in the tool row when diff is nil",
+        "DroppyCode/App/Views/Diff/DiffInspector.swift:165 - no diff shown when diff is nil",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:3447 settleCommand - treats a nil-diff edit as unreported, so the git-snapshot edits replace it"
+      ],
+      "b3_note": "Split out as its own record from the B3 exact-diff rewrite of SimpleDiff.unified (PR-STORE-112): B2's head/tail trim reached the same nil result for identical inputs, but at a different line, and no record pinned the downstream consumers. See impacts.json bundle R3-15 (Text.swift) new_records_needed, proposal #3. B3 batch 2 merge (claude/gracious-tesla-add68a's PR-STORE-175 integration tests): reworded expected_result/failure_cases, checked against the pristine B3 Swift, to stop implying a nil diff is invisible everywhere downstream. It is invisible only through the tool row's own inline diff block (TimelineRows.swift:2128) and DiffInspector's focusedFiles fallback (DiffInspector.swift:165); once the edit's path is part of the selected turn's own diff, TurnDiff.merge (TurnDiff.swift:39-48) still merges it in as a hunk-less file, so DiffInspector still shows a \"Diff details unavailable\" card for it (DiffInspector.swift:215-221) and the tool row still opens the changes popover (TimelineRows.swift:1664-1665)."
     }
   ],
   "ui": [
@@ -4331,8 +4467,8 @@
     },
     {
       "id": "UI-STORE-010",
-      "exact_text": "Fable 5.1 leads Opus 5",
-      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 1",
+      "exact_text": "Fable 5.1 leads Opus 5.5",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 1 of 12",
       "typography": "owned by the Hydra settings area",
       "colors": "owned by the Hydra settings area",
       "states": [
@@ -4348,14 +4484,15 @@
       ],
       "notes": "Tagline, verbatim: \"The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself.\". Stable id \"claude-fable-opus\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort nil. Heads: providers [.claude, .commandcode], models [\"Opus\"], effort nil. maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
-      "element": "Ready-made pair row 1 of 10",
+      "element": "Ready-made pair row 1 of 12",
       "role": "row",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (1) and cite line (:30) are unchanged."
     },
     {
       "id": "UI-STORE-011",
-      "exact_text": "Opus 5 leads Gemini 3.8 Flash",
-      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 2",
+      "exact_text": "Opus 5.5 leads Gemini 3.8 Flash",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 2 of 12",
       "typography": "owned by the Hydra settings area",
       "colors": "owned by the Hydra settings area",
       "states": [
@@ -4371,14 +4508,15 @@
       ],
       "notes": "Tagline, verbatim: \"A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them.\". Stable id \"claude-opus-gemini-flash\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.antigravity, .commandcode], models [\"Gemini 3.8 Flash\", \"Gemini\", \"Flash\"], effort \"medium\". maxHeads: 6 - the only capped recipe in the table. The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
-      "element": "Ready-made pair row 2 of 10",
+      "element": "Ready-made pair row 2 of 12",
       "role": "row",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (2) and cite line (:31) are unchanged."
     },
     {
       "id": "UI-STORE-012",
-      "exact_text": "Opus 5 leads DeepSeek V4.1",
-      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 3",
+      "exact_text": "Opus 5.5 leads DeepSeek V4.1",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 3 of 12",
       "typography": "owned by the Hydra settings area",
       "colors": "owned by the Hydra settings area",
       "states": [
@@ -4394,14 +4532,15 @@
       ],
       "notes": "Tagline, verbatim: \"Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts.\". Stable id \"claude-opus-deepseek\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.deepseek, .commandcode], models [\"V4.1 Flash\", \"V4.1\", \"DeepSeek\"], effort \"high\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
-      "element": "Ready-made pair row 3 of 10",
+      "element": "Ready-made pair row 3 of 12",
       "role": "row",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (3) and cite line (:32) are unchanged."
     },
     {
       "id": "UI-STORE-013",
-      "exact_text": "Opus 5 leads GLM-5.3 Flash",
-      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 4",
+      "exact_text": "Opus 5.5 leads GLM-5.3 Flash",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 4 of 12",
       "typography": "owned by the Hydra settings area",
       "colors": "owned by the Hydra settings area",
       "states": [
@@ -4417,14 +4556,15 @@
       ],
       "notes": "Tagline, verbatim: \"Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat.\". Stable id \"claude-opus-glm\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"high\". Heads: providers [.zai, .commandcode], models [\"5.3 Flash\", \"GLM\"], effort \"high\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
-      "element": "Ready-made pair row 4 of 10",
+      "element": "Ready-made pair row 4 of 12",
       "role": "row",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text changes from \"Opus 5\" to \"Opus 5.5\"; its position (4) and cite line (:33) are unchanged."
     },
     {
       "id": "UI-STORE-014",
       "exact_text": "Fable 5.1 leads Composer 2.5",
-      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 5",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 5 of 12",
       "typography": "owned by the Hydra settings area",
       "colors": "owned by the Hydra settings area",
       "states": [
@@ -4440,14 +4580,15 @@
       ],
       "notes": "Tagline, verbatim: \"Fable thinks; Cursor's Composer heads type at the speed Composer is known for.\". Stable id \"claude-fable-composer\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.cursor], models [\"Composer\"], effort nil - the only single-provider side in the table. maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
-      "element": "Ready-made pair row 5 of 10",
+      "element": "Ready-made pair row 5 of 12",
       "role": "row",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
       "id": "UI-STORE-015",
       "exact_text": "Astra 6 leads Spark 1.3 Contributor",
-      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 6",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 6 of 12",
       "typography": "owned by the Hydra settings area",
       "colors": "owned by the Hydra settings area",
       "states": [
@@ -4463,14 +4604,15 @@
       ],
       "notes": "Tagline, verbatim: \"GPT-6 Astra orchestrates at high; Muse Spark Contributor heads build at medium.\". Stable id \"astra-spark\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.meta, .commandcode], models [\"Contributor\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
-      "element": "Ready-made pair row 6 of 10",
+      "element": "Ready-made pair row 6 of 12",
       "role": "row",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
       "id": "UI-STORE-016",
       "exact_text": "Astra 6 leads Terra 5.6",
-      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 7",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 7 of 12",
       "typography": "owned by the Hydra settings area",
       "colors": "owned by the Hydra settings area",
       "states": [
@@ -4486,14 +4628,15 @@
       ],
       "notes": "Tagline, verbatim: \"OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium.\". Stable id \"astra-terra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Terra\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
-      "element": "Ready-made pair row 7 of 10",
+      "element": "Ready-made pair row 7 of 12",
       "role": "row",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "The table grows from 10 to 12 rows (see PR-STORE-132's b3_note). This row's text is unchanged; only the stated count changes."
     },
     {
       "id": "UI-STORE-017",
       "exact_text": "Astra 6 high, Astra 6 medium",
-      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 8",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 10 of 12",
       "typography": "owned by the Hydra settings area",
       "colors": "owned by the Hydra settings area",
       "states": [
@@ -4509,14 +4652,15 @@
       ],
       "notes": "Tagline, verbatim: \"One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort.\". Stable id \"astra-astra\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Astra\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
-      "element": "Ready-made pair row 8 of 10",
+      "element": "Ready-made pair row 10 of 12",
       "role": "row",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 8 to position 10. Cite line moves :37 -> :39 (already re-cited)."
     },
     {
       "id": "UI-STORE-018",
-      "exact_text": "Opus 5 max, Opus 5 medium",
-      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 9",
+      "exact_text": "Opus 5.5 max, Opus 5.5 medium",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 11 of 12",
       "typography": "owned by the Hydra settings area",
       "colors": "owned by the Hydra settings area",
       "states": [
@@ -4527,19 +4671,20 @@
         "adding the pair creates a HydraPair from the recipe; that flow belongs to the Hydra area"
       ],
       "source_evidence": [
-        "DroppyCode/Core/Models/HydraCookbook.swift:38",
+        "DroppyCode/Core/Models/HydraCookbook.swift:40",
         "DroppyCode/Core/Models/HydraCookbook.swift:50-53"
       ],
       "notes": "Tagline, verbatim: \"Opus thinks as hard as it can where it counts; Opus heads at medium do the building.\". Stable id \"claude-opus-opus\". Lead: providers [.claude, .commandcode], models [\"Opus\"], effort \"max\". Heads: providers [.claude, .commandcode], models [\"Opus\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
-      "element": "Ready-made pair row 9 of 10",
+      "element": "Ready-made pair row 11 of 12",
       "role": "row",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 9 to position 11. Its text also changes from \"Opus 5\" to \"Opus 5.5\". Cite line moves :38 -> :40."
     },
     {
       "id": "UI-STORE-019",
       "exact_text": "Fable 5.1 high, Fable 5.1 medium",
-      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 10",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 12 of 12",
       "typography": "owned by the Hydra settings area",
       "colors": "owned by the Hydra settings area",
       "states": [
@@ -4555,9 +4700,58 @@
       ],
       "notes": "Tagline, verbatim: \"For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.\". Stable id \"claude-fable-fable\". Lead: providers [.claude, .commandcode], models [\"Fable\"], effort \"high\". Heads: providers [.claude, .commandcode], models [\"Fable\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
       "screen": "Settings > Hydra page, ready-made pair list",
-      "element": "Ready-made pair row 10 of 10",
+      "element": "Ready-made pair row 12 of 12",
       "role": "row",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "Two new rows (astra-sol, sol-luna) are inserted at positions 8 and 9, pushing this row from position 10 to position 12. Cite line moves :39 -> :41 (already re-cited)."
+    },
+    {
+      "id": "UI-STORE-020",
+      "exact_text": "Astra 6 leads Sol 5.6",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 8 of 12",
+      "typography": "owned by the Hydra settings area",
+      "colors": "owned by the Hydra settings area",
+      "states": [
+        "shown only when an installed provider on each side carries one of that side’s model names; otherwise the row is absent entirely",
+        "marked as already added when a configured pair matches on provider, headsProvider, orchestratorModel and workerModel, ignoring effort"
+      ],
+      "interactions": [
+        "adding the pair creates a HydraPair from the recipe; that flow belongs to the Hydra area"
+      ],
+      "source_evidence": [
+        "DroppyCode/Core/Models/HydraCookbook.swift:37",
+        "DroppyCode/Core/Models/HydraCookbook.swift:50-53"
+      ],
+      "notes": "Tagline, verbatim: \"Astra plans and reviews; Sol heads take the complex building at medium.\". Stable id \"astra-sol\". Lead: providers [.codex, .commandcode], models [\"Astra\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Sol\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
+      "screen": "Settings > Hydra page, ready-made pair list",
+      "element": "Ready-made pair row 8 of 12",
+      "role": "row",
+      "status": "IMPLEMENTED",
+      "b3_note": "New row added in B3; see PR-STORE-172."
+    },
+    {
+      "id": "UI-STORE-021",
+      "exact_text": "Sol 5.6 leads Luna 5.6",
+      "geometry": "owned by the Hydra settings area; the row order is fixed by the table, strongest first, and this row is at position 9 of 12",
+      "typography": "owned by the Hydra settings area",
+      "colors": "owned by the Hydra settings area",
+      "states": [
+        "shown only when an installed provider on each side carries one of that side’s model names; otherwise the row is absent entirely",
+        "marked as already added when a configured pair matches on provider, headsProvider, orchestratorModel and workerModel, ignoring effort"
+      ],
+      "interactions": [
+        "adding the pair creates a HydraPair from the recipe; that flow belongs to the Hydra area"
+      ],
+      "source_evidence": [
+        "DroppyCode/Core/Models/HydraCookbook.swift:38",
+        "DroppyCode/Core/Models/HydraCookbook.swift:50-53"
+      ],
+      "notes": "Tagline, verbatim: \"Sol keeps the plan; quick Luna heads get through the routine parts.\". Stable id \"sol-luna\". Lead: providers [.codex, .commandcode], models [\"Sol\"], effort \"high\". Heads: providers [.codex, .commandcode], models [\"Luna\"], effort \"medium\". maxHeads: nil (uncapped). The title and tagline are literals in the cookbook table and must not be reworded, re-punctuated or localised.",
+      "screen": "Settings > Hydra page, ready-made pair list",
+      "element": "Ready-made pair row 9 of 12",
+      "role": "row",
+      "status": "IMPLEMENTED",
+      "b3_note": "New row added in B3; see PR-STORE-173."
     }
   ]
 }

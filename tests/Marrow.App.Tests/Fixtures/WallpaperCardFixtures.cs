@@ -1,3 +1,4 @@
+using System.Reflection;
 using Avalonia;
 using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
@@ -13,12 +14,12 @@ using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
-using Marrow.App.Theme;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Port;
-using Marrow.Services.Store;
+using Marrow.Core.Support;
 using Marrow.Testing;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 
 namespace Marrow.App.Tests.Fixtures;
 
@@ -51,13 +52,15 @@ public sealed class WallpaperCardScope : IDisposable
         // Every animation reads SwiftClock.Now for its elapsed time (ED-098 (1), AnimatedColor.Set), so the clock
         // advances in lockstep with the frame source or a transition never completes.
         overrides.Add(SwiftClock.Provider.Override(Time));
-        // Install (Wallpaper.swift:113-144) copies into Storage.WallpaperDirectory (R-TEST-9): a throwaway root.
+        // Install (Wallpaper.swift:113-144) copies into StoragePaths.WallpaperDirectory (R-TEST-9, ED-195): a
+        // throwaway root. The store reads Core.Support.StoragePaths directly (it no longer touches
+        // Marrow.Services.Store.Storage at all), so only StoragePaths.Locations needs binding here.
         var dataDirectory = Marrow.Testing.TestDataDirectory.Read();
         if (string.IsNullOrEmpty(dataDirectory)) dataDirectory = System.IO.Path.GetTempPath();
         baseFolder = System.IO.Path.Combine(dataDirectory, "WallpaperCardTests", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(baseFolder);
-        var locations = StorageLocations.Create(System.IO.Path.Combine(baseFolder, "root"), System.IO.Path.Combine(baseFolder, "home"));
-        overrides.Add(Storage.Locations.Override(locations));
+        var locations = StoragePathsLocations.Create(System.IO.Path.Combine(baseFolder, "root"));
+        overrides.Add(StoragePaths.Locations.Override(locations));
         Store = (WallpaperStore)Activator.CreateInstance(typeof(WallpaperStore), nonPublic: true)!;
         overrides.Add(WallpaperStore.Shared.Override(Store));
         overrides.Add(WallpaperFileDialog.Current.Override(Dialog));
@@ -148,10 +151,30 @@ public sealed class WallpaperCardScope : IDisposable
     {
         Window.Close();
         Dispatcher.UIThread.RunJobs();
+        CancelPendingRenders();
         for (var i = overrides.Count - 1; i >= 0; i--) overrides[i].Dispose();
         try { Directory.Delete(baseFolder, recursive: true); }
         catch (IOException) { }
         catch (UnauthorizedAccessException) { }
+    }
+
+    // Test-only cleanup, no Swift twin: WallpaperStore has no public "cancel everything" method (production never
+    // needs one; the real app just exits). A test that installs a picture or drags the softness slider leaves a
+    // renderTask or liveTask (Wallpaper.cs:66,69) running in the background; without this, that task can still be
+    // mid-flight when this scope disposes, and its MainActor.Run(() => ... Image = ToImage(rendered) ...) callback
+    // (Wallpaper.cs:236-242, :273-277) then fires later, after a DIFFERENT concurrently running xUnit collection
+    // has moved the shared Avalonia headless session on - observed crashing the whole test host with "Unable to
+    // locate IPlatformRenderInterface" blamed on unrelated tests (AppUpdaterInstallTests, this class itself) under
+    // the parallel suite. Cancelling both tasks here, the same way UpdateCheckerSecondTests.StopBackgroundChecksForTest
+    // reaches into a field production exposes no stop method for, makes each test own the background work it
+    // started instead of leaving it to finish on its own schedule. This narrows the crash window (SwiftTask.IsCancelled
+    // is checked before Image is ever set) but is cooperative, like every other TaskHandle.Cancel in this tree: it
+    // cannot interrupt a callback already past that check at the moment of disposal.
+    private void CancelPendingRenders()
+    {
+        var type = typeof(WallpaperStore);
+        (type.GetField("renderTask", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(Store) as TaskHandle)?.Cancel();
+        (type.GetField("liveTask", BindingFlags.NonPublic | BindingFlags.Instance)?.GetValue(Store) as TaskHandle)?.Cancel();
     }
 }
 

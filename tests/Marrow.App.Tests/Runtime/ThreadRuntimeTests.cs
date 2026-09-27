@@ -115,6 +115,36 @@ public sealed class ThreadRuntimeTests
     }
 
     [Fact]
+    [Trait("Req", "PR-RUNTIME-161")] // App/Runtime/ThreadRuntime.swift:563: continuation = document.continuation
+                                      // ?? continuation - the document's continuation wins over an in-memory one.
+    // Calls the private Install(ThreadDocument) directly (matching InvokePrivate's pattern elsewhere in this
+    // suite): ThreadDocument.Continuation decodes to null and is omitted on encode (Models/Timeline.cs:938,
+    // BLOCKED, unrelated STOP note), so a round trip through the real save/load path could not carry a
+    // non-null stored continuation and would not exercise this merge at all.
+    public void Loading_history_prefers_the_stored_documents_continuation_over_an_in_memory_one()
+    {
+        using var harness = new AppModelHarness();
+        var fixture = ThreadRuntimePart8Fixtures.Create(harness);
+        var storedContinuation = new ThreadContinuation(Guid.NewGuid(), "Stored source", "Stored context");
+        var inMemoryContinuation = new ThreadContinuation(Guid.NewGuid(), "In-memory source", "In-memory context");
+        var document = new ThreadDocument(fixture.Thread.Id) { Continuation = storedContinuation };
+
+        harness.Main.OnMain(() =>
+        {
+            var continuationField = typeof(ThreadRuntime).GetField("continuation", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.NotNull(continuationField);
+            continuationField.SetValue(fixture.Runtime, inMemoryContinuation);
+
+            var install = typeof(ThreadRuntime).GetMethod("Install", BindingFlags.Instance | BindingFlags.NonPublic);
+            Assert.NotNull(install);
+            install.Invoke(fixture.Runtime, [document]);
+
+            Assert.Equal(storedContinuation, fixture.Runtime.Continuation);
+            fixture.Runtime.CancelPersistence();
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-RUNTIME-163")] // App/Runtime/ThreadRuntime.swift:3622-3627
     public void Unsaved_snapshot_is_null_when_clean_and_stays_available_until_written()
     {

@@ -8,8 +8,8 @@ using Xunit;
 
 namespace Marrow.Services.Tests.Providers;
 
-// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B2 1fbf81e), :230-446, :854-900,
-// :1046-1332.
+// Source: DroppyCode/Services/Providers/OpenAICompatibleSession.swift (B3 52bc792), :230-446, :854-900,
+// :1046-1330.
 //
 // Part 1 of 5 (PR-PROVAPI-089 to 112): lifecycle, turn orchestration, tool-loop scheduling,
 // cancellation. StreamOneRound and ExecuteTool are protected virtual seams in this part (the

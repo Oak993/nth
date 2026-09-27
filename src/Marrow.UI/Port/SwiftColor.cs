@@ -179,6 +179,20 @@ public sealed class SwiftColor
         dark: new SwiftColor(red: 1, green: 1, blue: 1, opacity: 0.25));
 
     /// <summary>
+    /// <c>NSColor.selectedTextBackgroundColor</c>: NSTextView's own default of <c>selectedTextAttributes</c>
+    /// (LinkParagraphView.swift:275-332 sets neither <c>isEditable</c> nor <c>selectedTextAttributes</c>, so the
+    /// system default paints every selection the port's LinkTextView draws, prose included). It is a
+    /// preference-driven system colour (System Settings' "Highlight color") with no literal RGB obtainable
+    /// without macOS access (OD-0001; unlike Yellow/ED-104, Apple does not document a fixed HIG value for it).
+    /// ENGINEERING DECISION, pending an assigned ED number: the accent at the same opacity this port already uses
+    /// for the same semantic role, a text selection's background, at Marrow.App.Views.Terminal.TerminalStore.cs:109
+    /// (<c>accent.Opacity(0.3)</c>), so the two selection highlights in the app read the same rather than picking
+    /// an independent, equally-unverifiable number. UNVERIFIED under OD-0001; flag for an ED number and an oracle
+    /// measurement in the verification wave, same as Quaternary and Tertiary above.
+    /// </summary>
+    public static SwiftColor SelectedTextBackgroundColor { get; } = AccentColor.Opacity(0.3);
+
+    /// <summary>
     /// <c>Color.opacity(_:)</c>: multiplies alpha and returns a new value; the receiver is unchanged. A pair fades
     /// both members (Chrome.swift:71-73, :79); the accent keeps following the system accent, faded.
     /// </summary>

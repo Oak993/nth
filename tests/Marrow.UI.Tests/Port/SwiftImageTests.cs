@@ -292,13 +292,16 @@ public sealed class SwiftImageTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Decision", "ED-179")]
-    [InlineData("Images/droppy-logo.png", "0f5d9663a0d23c458ab8e2783237596e5618d482f4ac23f00ead91eccef04388")]
-    [InlineData("Images/droppy-logo@2x.png", "8007b4c58a34c96525245976b4d715930a24b4a8fac1614811c058720d98943d")]
+    [InlineData("Images/droppy-logo.png", "307aca65b532fe56c1faf38423e40812fcdd4969e105bd1e936224cb19e4de95")]
+    [InlineData("Images/droppy-logo@2x.png", "467897a05e5b29238ee4df44e38eb130fb7bdf93a9d0acec38f342afdf1c242c")]
     [InlineData("Images/hydra-mark.svg", "26c998a5e343e9bc0e8110be443fcb5b716dec0c705f4a52a2b5066d5d3d8f72")]
     [InlineData("Images/badge-edit.svg", "91ce10a554cb96c12c59a2f778b9541014483c9e70f9b84f5a3f4776efd20e3e")]
     public void The_asset_images_are_the_pinned_catalogue_files_unchanged(string path, string sha256) => headless.OnUiThread(() =>
     {
-        // SHA-256 of DroppyCode/Resources/Assets.xcassets/<name>.imageset/<file> at the pinned commit.
+        // SHA-256 of DroppyCode/Resources/Assets.xcassets/<name>.imageset/<file> at the pinned commit. The two
+        // droppy-logo hashes moved at B3 52bc792 (Contents.json is byte-identical, only the two PNGs' bytes changed;
+        // both stay 256x256 and 512x512, RGBA, so the sibling PixelSize test below needs no change); hydra-mark.svg
+        // and badge-edit.svg are untouched by B3.
         Assert.Equal(sha256, Convert.ToHexStringLower(SHA256.HashData(Asset(path))));
     });
 

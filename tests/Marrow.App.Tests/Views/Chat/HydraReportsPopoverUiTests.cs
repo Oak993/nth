@@ -47,6 +47,26 @@ public sealed class HydraReportsPopoverUiTests(HeadlessSession headless)
         return root;
     }
 
+    /// <summary>
+    /// Shows a multi-head popover the way it appears: in a window, which is when its <c>.task(id: text)</c> runs
+    /// (HydraReportsPopover.swift:253-265; AttachedToVisualTree in the port). A bare Measure/Arrange never attaches,
+    /// so that task never starts. The task parses the collapsed heads' reports off main and publishes them
+    /// (<c>blocks = warmed</c>, :264), which rebuilds the popover's content. The dispatcher runs until that happens,
+    /// so opening a card then finds its blocks ready (:254-255) instead of the spinner it shows before (:649-653).
+    /// </summary>
+    private static Avalonia.Controls.Window Present(HydraReportsPopover popover)
+    {
+        var warmed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        popover.PropertyChanged += (_, change) =>
+        {
+            if (change.Property == Decorator.ChildProperty) warmed.TrySetResult();
+        };
+        var window = new Avalonia.Controls.Window { Width = 600, Height = 900, Content = popover };
+        window.Show();
+        HeadlessSession.RunDispatcherUntil(warmed.Task, TimeSpan.FromSeconds(10));
+        return window;
+    }
+
     private static IEnumerable<Control> Controls(Control root) =>
         LogicalQuery.SelfAndDescendants<Control>(root);
 
@@ -112,15 +132,19 @@ public sealed class HydraReportsPopoverUiTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            var root = Attach(new HydraReportsPopover(
+            var root = new HydraReportsPopover(
                 "Batch report",
                 MultiHeadReport(),
-                [Persona("Juno"), Persona("Hank")]));
-
-            Assert.DoesNotContain("Juno's report body.", CombinedText(root), StringComparison.Ordinal);
-            var toggle = Assert.IsAssignableFrom<Button>(ButtonContaining(root, "Juno"));
-            toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.Contains("Juno's report body.", CombinedText(root), StringComparison.Ordinal);
+                [Persona("Juno"), Persona("Hank")]);
+            var window = Present(root);
+            try
+            {
+                Assert.DoesNotContain("Juno's report body.", CombinedText(root), StringComparison.Ordinal);
+                var toggle = Assert.IsAssignableFrom<Button>(ButtonContaining(root, "Juno"));
+                toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.Contains("Juno's report body.", CombinedText(root), StringComparison.Ordinal);
+            }
+            finally { window.Close(); }
         });
     }
 
@@ -240,20 +264,24 @@ public sealed class HydraReportsPopoverUiTests(HeadlessSession headless)
             var report =
                 "## Juno: task (failed)\nJuno report body.\n\n" +
                 "## Hank: other task\nNo report.";
-            var root = Attach(new HydraReportsPopover(
-                "Batch report", report, [Persona("Juno"), Persona("Hank")]));
+            var root = new HydraReportsPopover(
+                "Batch report", report, [Persona("Juno"), Persona("Hank")]);
+            var window = Present(root);
+            try
+            {
+                Assert.DoesNotContain("Juno report body.", CombinedText(root), StringComparison.Ordinal);
+                var junoToggle = Assert.IsAssignableFrom<Button>(ButtonContaining(root, "Juno"));
+                Assert.Null(ButtonContaining(root, "Hank"));
 
-            Assert.DoesNotContain("Juno report body.", CombinedText(root), StringComparison.Ordinal);
-            var junoToggle = Assert.IsAssignableFrom<Button>(ButtonContaining(root, "Juno"));
-            Assert.Null(ButtonContaining(root, "Hank"));
+                junoToggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.Contains("Juno report body.", CombinedText(root), StringComparison.Ordinal);
+                junoToggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.DoesNotContain("Juno report body.", CombinedText(root), StringComparison.Ordinal);
 
-            junoToggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.Contains("Juno report body.", CombinedText(root), StringComparison.Ordinal);
-            junoToggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.DoesNotContain("Juno report body.", CombinedText(root), StringComparison.Ordinal);
-
-            Assert.Contains("Failed", CombinedText(root), StringComparison.Ordinal);
-            Assert.Contains(20, LogicalQuery.SelfAndDescendants<HydraGlyph>(root).Select(glyph => glyph.Size));
+                Assert.Contains("Failed", CombinedText(root), StringComparison.Ordinal);
+                Assert.Contains(20, LogicalQuery.SelfAndDescendants<HydraGlyph>(root).Select(glyph => glyph.Size));
+            }
+            finally { window.Close(); }
         });
     }
 
@@ -316,20 +344,27 @@ public sealed class HydraReportsPopoverUiTests(HeadlessSession headless)
             var report =
                 "## Juno: task\n# Report heading\n\nReport paragraph.\n\n" +
                 "## Hank: task\nNo report.";
-            var root = Attach(new HydraReportsPopover(
-                "Batch report", report, [Persona("Juno"), Persona("Hank")]));
+            var root = new HydraReportsPopover(
+                "Batch report", report, [Persona("Juno"), Persona("Hank")]);
+            var window = Present(root);
+            try
+            {
+                Assert.DoesNotContain("Report paragraph.", CombinedText(root), StringComparison.Ordinal);
+                var toggle = Assert.IsAssignableFrom<Button>(ButtonContaining(root, "Juno"));
+                toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
-            Assert.DoesNotContain("Report paragraph.", CombinedText(root), StringComparison.Ordinal);
-            var toggle = Assert.IsAssignableFrom<Button>(ButtonContaining(root, "Juno"));
-            toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.Contains("Report heading", CombinedText(root), StringComparison.Ordinal);
+                Assert.Contains("Report paragraph.", CombinedText(root), StringComparison.Ordinal);
 
-            Assert.Contains("Report heading", CombinedText(root), StringComparison.Ordinal);
-            Assert.Contains("Report paragraph.", CombinedText(root), StringComparison.Ordinal);
-
-            toggle.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            var hank = Assert.IsAssignableFrom<Button>(ButtonContaining(root, "Hank"));
-            hank.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-            Assert.Contains("No report.", CombinedText(root), StringComparison.Ordinal);
+                // "No report." (:631-634) shows only where reportBody runs for a head without a report: a card that is
+                // not collapsible (:506), the single-head popover's. With several heads such a head gets no toggle
+                // (:468-492, PR-HYDRA-209's failure case), so its card never opens and never shows the line.
+                Assert.Null(ButtonContaining(root, "Hank"));
+                Assert.DoesNotContain("No report.", CombinedText(root), StringComparison.Ordinal);
+                var single = Attach(new HydraReportsPopover("Hank task", "## Hank: task\nNo report.", [Persona("Hank")]));
+                Assert.Contains("No report.", CombinedText(single), StringComparison.Ordinal);
+            }
+            finally { window.Close(); }
         });
     }
 
@@ -358,28 +393,3 @@ public sealed class HydraReportsPopoverUiTests(HeadlessSession headless)
     }
 }
 
-// STOP App.Views.Chat.HydraReportsPopover #1 (helper Claude, 2026-09-25)
-// Kind: test-infrastructure limitation
-// Swift: DroppyCode/App/Views/Chat/HydraReportsPopover.swift:253-265,629-654
-// Requirements: PR-HYDRA-209 (partial), UI-HYDRA-040 (partial), UI-HYDRA-042 (partial)
-// What is unclear or missing: 3 tests (Popover_MultiHeadReportsAreHiddenUntilTheirNameRowIsOpened,
-// MultiHeadNameRowTogglesAReportAndAHeadWithoutAReportHasNoToggle, ExpandedReportShowsNoReportOrItsMarkdownBody)
-// click a multi-head card's name row to expand it, then expect the real markdown report body (not the
-// ProgressBar spinner BuildReportBody shows while blocks[head.Name] is unpopulated). For a multi-head digest,
-// blocks are populated only by StartWarming's MainActor.Spawn task (HydraReportsPopover.cs:349-373), which
-// awaits MarkdownView.Warm -> ParseWarm (MarkdownView.cs:358-360), a genuine Task.Run on a real thread-pool
-// thread - not a SwiftClock timer. TestRuntime's ManualMainLoop/ManualTimeProvider virtualize timers and the
-// MainActor queue, not arbitrary background Task.Run continuations, so runtime.RunUntilIdle() cannot force
-// this to complete synchronously, and no synchronous-wait-for-a-real-background-task pattern exists elsewhere
-// in this test infrastructure. Confirmed via MarkdownView.cs:314-331,358-360.
-// Readings or options: (a) block on the real Task.Run from the test (e.g. poll CombinedText(root) with a real
-// Thread.Sleep loop until the spinner is replaced) -> reintroduces exactly the real-wall-clock-wait flakiness
-// TestRuntime exists to avoid, contradicting this codebase's established testing discipline; (b) change
-// StartWarming to run parsing inline/synchronously in tests -> would diverge production behavior from the
-// Swift source's genuinely async warm(), an invented deviation; (c) leave the gap documented here, as done for
-// App.DroppyCodeApp #1's cross-unit dependency and App.Views.Chat.HydraProgressBar #1's TimelineRows stub.
-// Needed to proceed: a general synchronous test primitive for awaiting a real Task.Run-based Swift task from
-// inside a headless test body, which does not exist yet anywhere in this codebase's test infrastructure.
-// Done so far: HydraReportsPopover.cs has 0 MARROW_STUB. 22/25 tests pass, including every single-head path
-// (eagerly-rendered blocks, no warming needed), every collapsed/hidden-state assertion, and the toggle's own
-// visibility/no-toggle-for-headless-report behavior up to the point of reading the warmed markdown content.

@@ -1,3 +1,5 @@
+using System.Collections.Concurrent;
+using Marrow.Core.Port;
 using Marrow.Services.MCP;
 using Marrow.Services.Port;
 
@@ -6,11 +8,15 @@ using Marrow.Services.Port;
 // keeps that scratch folder alive for the whole test class (R-TEST-9).
 //
 // R-TEST-9 (no test touches a real credential): MCPProxy.Shared's accept loop and every connection it hands off
-// run in the ExecutionContext captured at Start() (SecretStore.Shared is Ambient<T>/AsyncLocal, Port/Ambient.cs),
-// which is this constructor's own flow. Starting it inside SecretStore.Shared.Override(Store) bakes an in-memory
-// backend into that captured flow for the whole test class; MCPProxyTests.Override(fixture.Store) (its own
-// constructor) then reaches the same instance from each test method's flow, so a test's MCPKeychain.Set/Delete
-// and the proxy's own MCPOAuth.AccessToken read agree, and nothing reaches the real Windows Credential Manager.
+// run in the ExecutionContext captured at Start() (SecretStore.Shared and Logger.Sink are both Ambient<T>/
+// AsyncLocal, Port/Ambient.cs), which is this constructor's own flow. Starting it inside both Override scopes
+// bakes an in-memory credential backend, and this fixture's own log sink, into that captured flow for the whole
+// test class: MCPProxyTests.Override(fixture.Store) (its own constructor) then reaches the same SecretStore
+// instance from each test method's flow, so a test's MCPKeychain.Set/Delete and the proxy's own
+// MCPOAuth.AccessToken read agree, and nothing reaches the real Windows Credential Manager; LoggedLines
+// (B3 52bc792, ED-163's Logger(subsystem:"iordv.droppycode", category:"mcp-proxy")) is reachable from every test
+// method the same way, because a per-test Logger.Sink.Override would only be visible to that test's own async
+// flow, never to the proxy's background accept loop or the connections it hands off.
 namespace Marrow.Services.Tests.Fixtures;
 
 public sealed class MCPProxySingletonFixture : IDisposable
@@ -19,12 +25,16 @@ public sealed class MCPProxySingletonFixture : IDisposable
     public int Port { get; }
     public SecretStore Store { get; } = new(new InMemoryCredentialBackend());
 
+    /// <summary>Every (message, channel) MCPProxy has logged since the process's one Start() call, this fixture's own.</summary>
+    public ConcurrentQueue<(string Message, string Channel)> LoggedLines { get; } = new();
+
     public MCPProxySingletonFixture()
     {
-        Port = MCPProxy.Port; // DroppyCode/Services/MCP/MCPProxy.swift:12-25, first access in the process
+        Port = MCPProxy.Port; // DroppyCode/Services/MCP/MCPProxy.swift:14-27, first access in the process
         using (SecretStore.Shared.Override(Store))
+        using (Logger.Sink.Override((message, channel) => LoggedLines.Enqueue((message, channel))))
         {
-            MCPProxy.Shared.Current.Start(); // DroppyCode/Services/MCP/MCPProxy.swift:84-92
+            MCPProxy.Shared.Current.Start(); // DroppyCode/Services/MCP/MCPProxy.swift:86-94
         }
     }
 

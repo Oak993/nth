@@ -57,13 +57,13 @@
       "title": "Timeouts belong to the call site: 120 s default, 300 s at exactly thirteen git sites and all six forge-CLI sites",
       "source_evidence": [
         "DroppyCode/Services/Git/Git.swift:35 - timeout: TimeInterval = 120 default parameter",
-        "DroppyCode/Services/Git/Git.swift:169,253,286,290,404,448,459,484,558,566,679,707 - the git sites passing timeout: 300",
-        "DroppyCode/Services/Git/Git.swift:181,186,191,216,217,218 - the six forge-CLI sites passing timeout: 300",
+        "DroppyCode/Services/Git/Git.swift:169,274,302,391,395,509,553,564,589,663,671,784,812 - the git sites passing timeout: 300",
+        "DroppyCode/Services/Git/Git.swift:181,186,191,237,238,239 - the six forge-CLI sites passing timeout: 300",
         "porting/extracts/git-command-vectors.md section 2 - 'A timeout belongs to the call site, never to the git subcommand.'"
       ],
       "preconditions": "None.",
       "action": "A git or forge process runs.",
-      "expected_result": "The budget is 120 s unless the call site is one of the enumerated ones, which use 300 s. Specifically: commitAll's add -A and commit -F - run at 120 s; addWorktree runs at 120 s while addDetachedWorktree runs at 300 s; the three-way apply at Git.swift:813 runs at 120 s while the add -A that prepares its index runs at 300 s.",
+      "expected_result": "The budget is 120 s unless the call site is one of the enumerated ones, which use 300 s. Specifically: commitAll's add -A and commit -F - run at 120 s; addWorktree runs at 120 s while addDetachedWorktree runs at 300 s; the three-way apply at Git.swift:813 runs at 120 s while the add -A that prepares its index runs at 300 s. B3 adds a thirteenth 300 s site, captureTree(paths:onto:from:)'s clean add at :302; the rest of that new function (read-tree :295, diff --name-only :298, rm --cached :317, merge-file :332, hash-object :335, update-index :338, write-tree :342, blobData's cat-file :349, fileMode's ls-tree :355) runs at the 120 s default.",
       "side_effects": [
         "A watchdog task per invocation"
       ],
@@ -73,11 +73,12 @@
       ],
       "cancellation": "The watchdog is cancelled when the process ends first.",
       "windows_path": "One watchdog per spawn with the same per-site constants. Do not normalise the budgets.",
-      "verification_method": "unit: a table test asserting the timeout constant of every one of the 72 invocation sites",
+      "verification_method": "unit: a table test asserting the timeout constant of every one of the 82 invocation sites (72 at B2 plus the 10 that captureTree(paths:onto:from:) adds)",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 adds captureTree(paths:onto:from:) (Git.swift:289-345), a thirteenth 300 s git site (:302) alongside 9 new 120 s sites; the forge-CLI merge sites shift from B2 :216-218 to B3 :237-239. Re-derive the timeout table test."
     },
     {
       "id": "PR-GIT-004",
@@ -761,29 +762,31 @@
     },
     {
       "id": "PR-GIT-031",
-      "title": "pushBranch publishes one named branch by explicit refspec at 300 s",
+      "title": "pushBranch(_:force:) publishes one named branch by explicit refspec at 300 s, force-pushing a job's own branch",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:285-287 pushBranch(_:) - run([\"push\", \"-u\", \"origin\", \"refs/heads/\\(name):refs/heads/\\(name)\"], timeout: 300)",
-        "DroppyCode/App/AppModel+HydraMerge.swift:300 - try await git.pushBranch(branch)"
+        "DroppyCode/Services/Git/Git.swift:387-391 pushBranch(_:force:) - run([\"push\", \"-u\"] + (force ? [\"--force\"] : []) + [\"origin\", \"refs/heads/\\(name):refs/heads/\\(name)\"], timeout: 300)",
+        "DroppyCode/App/AppModel+HydraMerge.swift:348 - try await git.pushBranch(branch, force: ownBranch)"
       ],
       "preconditions": "The named local branch exists.",
       "action": "A landing path publishes a branch without moving HEAD.",
-      "expected_result": "argv [\"push\", \"-u\", \"origin\", \"refs/heads/<name>:refs/heads/<name>\"] at 300 s, a single argument carrying the colon. A non-zero exit throws ShellError(failureMessage).",
+      "expected_result": "argv [\"push\", \"-u\"], then \"--force\" only when force is true, then [\"origin\", \"refs/heads/<name>:refs/heads/<name>\"], at 300 s, with the refspec a single argument carrying the colon. force is true only for a Hydra job's own stable branch, so a retry that rebuilds that branch on a newer base still updates the merge request it already opened instead of being rejected as a non-fast-forward push and opening a second one. A non-zero exit throws ShellError(failureMessage).",
       "side_effects": [
         "Network write to origin",
-        "Upstream tracking set for that branch"
+        "Upstream tracking set for that branch",
+        "force true overwrites whatever the remote branch currently points at"
       ],
       "persistence": "Git config gains the tracking pair.",
       "failure_cases": [
         "Rejection throws; the caller reports it"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The refspec is one argv element; never split it on the colon, which a naive Windows path helper might do.",
-      "verification_method": "contract fixture asserting the single colon-bearing argument",
+      "windows_path": "The refspec is one argv element; never split it on the colon, which a naive Windows path helper might do. \"--force\" is inserted after \"-u\" and before \"origin\", never reordered.",
+      "verification_method": "contract fixture asserting the argv with force false (no --force) and with force true (--force after -u)",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 adds a force parameter (default false): AppModel+HydraMerge.swift:348 passes force: ownBranch, so a Hydra job's own branch is force-pushed on every retry while a checkout's shared branch still pushes plain."
     },
     {
       "id": "PR-GIT-032",
@@ -891,13 +894,14 @@
     },
     {
       "id": "PR-GIT-036",
-      "title": "updateRef(_:to:) moves a ref unconditionally",
+      "title": "updateRef(_:to:) moves a ref unconditionally; called on every own-branch Hydra merge",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:376-378 updateRef(_:to:) - run([\"update-ref\", ref, commit])"
+        "DroppyCode/Services/Git/Git.swift:376-378 updateRef(_:to:) - run([\"update-ref\", ref, commit])",
+        "DroppyCode/App/AppModel+HydraMerge.swift:337-339 - ownBranch is true: `try await git.updateRef(\"refs/heads/\\(branch)\", to: prepared.commit)`, rebuilding the job's own stable branch on every retry so it stays a fast-forward of prepared.commit regardless of where it pointed before"
       ],
       "preconditions": "The commit exists.",
       "action": "A caller points a ref at a commit.",
-      "expected_result": "argv [\"update-ref\", <ref>, <commit>] at 120 s, checked; a non-zero exit throws.",
+      "expected_result": "argv [\"update-ref\", <ref>, <commit>] at 120 s, checked; a non-zero exit throws. On a Hydra job's own branch (ownBranch true) this is the call used instead of the compare-and-swap overload (PR-GIT-037), because the branch is rebuilt fresh on every retry and there is nothing to protect it against.",
       "side_effects": [
         "A ref is written in the user's repository"
       ],
@@ -907,12 +911,12 @@
       ],
       "cancellation": "not cancellable",
       "windows_path": "Direct port.",
-      "verification_method": "unit",
-      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+      "verification_method": "unit asserting the argv, plus a contract fixture that AppModel+HydraMerge calls this overload (not the compare-and-swap one) when ownBranch is true",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: porting/dead_code.md entry 48 - the two-argument updateRef(_:to:) at DroppyCode/Services/Git/Git.swift:376-378 has no caller; the only updateRef call (DroppyCode/App/AppModel+HydraMerge.swift:293; dead_code.md gives its B1 line :248) resolves to the three-argument overload at Git.swift:383 (PR-GIT-037), and captureCheckpoint runs update-ref directly (Git.swift:533, PR-GIT-058). Upstream never executes it, so it is neither implemented nor counted as missing."
+      "b3_note": "No longer dead code at B3. ED-061/dead_code.md entry 48 (NOT_APPLICABLE_WITH_EVIDENCE: no caller at B2) is retired by this reclassification: AppModel+HydraMerge.swift:339 now calls this two-argument overload for a job's own branch on every own-branch merge, while the checkout's shared branch still uses the three-argument compare-and-swap overload at :342 (PR-GIT-037). The overload must actually be implemented, not stubbed."
     },
     {
       "id": "PR-GIT-037",
@@ -1065,28 +1069,30 @@
     },
     {
       "id": "PR-GIT-043",
-      "title": "createPullRequest on GitLab runs glab with --yes at index 6, before the optional branch flags",
+      "title": "createPullRequest on GitLab runs glab with --yes at index 6, before the optional branch flags; a non-zero exit falls back to the existing request's URL before throwing",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:176-181 - arguments [\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\"], then [\"--source-branch\", source] when non-nil, then [\"--target-branch\", target] when non-nil; Shell.run(tool: \"glab\", …, timeout: 300)"
+        "DroppyCode/Services/Git/Git.swift:176-181 - arguments [\"mr\", \"create\", \"--title\", title, \"--description\", body, \"--yes\"], then [\"--source-branch\", source] when non-nil, then [\"--target-branch\", target] when non-nil; Shell.run(tool: \"glab\", …, timeout: 300)",
+        "DroppyCode/Services/Git/Git.swift:193-195 - `if !result.succeeded, let existing = Self.existingRequestURL(in: result, web: await remoteWebURL()) { return existing }` runs before `try Self.check(result)` at :196, for every forge"
       ],
       "preconditions": "forge() resolved to GitLab and glab is on PATH.",
       "action": "A pull request is opened.",
-      "expected_result": "The executable name is the literal \"glab\", resolved per call from PATH. argv is exactly [\"mr\", \"create\", \"--title\", <title>, \"--description\", <body>, \"--yes\"] with [\"--source-branch\", <source>] appended when a source is given and [\"--target-branch\", <target>] appended after that when a target is given. No -c prefix is prepended. Timeout 300 s. stdin is the null device.",
+      "expected_result": "The executable name is the literal \"glab\", resolved per call from PATH. argv is exactly [\"mr\", \"create\", \"--title\", <title>, \"--description\", <body>, \"--yes\"] with [\"--source-branch\", <source>] appended when a source is given and [\"--target-branch\", <target>] appended after that when a target is given. No -c prefix is prepended. Timeout 300 s. stdin is the null device. When glab exits non-zero, the call no longer throws immediately: existingRequestURL(in:web:) (PR-GIT-161) is tried first against glab's combined stdout+stderr, and its result is returned as the pull request's URL when it finds one; only when that also returns nil does the non-zero exit throw ShellError(failureMessage) carrying glab's stderr.",
       "side_effects": [
         "Network: a merge request is created on the remote"
       ],
       "persistence": "None locally.",
       "failure_cases": [
         "glab not on PATH throws the literal \"glab was not found on your PATH.\"",
-        "Non-zero exit throws ShellError(failureMessage) carrying glab's stderr"
+        "Non-zero exit whose output does not parse as an existing-request notice throws ShellError(failureMessage) carrying glab's stderr"
       ],
       "cancellation": "not cancellable; only the 300 s budget ends it",
       "windows_path": "Resolve glab against PATH split on \";\" with PATHEXT applied. Do not tidy the flag order: --yes must stay before the optional flags.",
-      "verification_method": "contract fixture asserting the exact ordered vector",
+      "verification_method": "contract fixture asserting the exact ordered vector, plus a case where a scripted glab exits non-zero with an \"already exists\" message and the call returns the parsed URL instead of throwing",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 adds the existing-request fallback (Git.swift:193-195, new static existingRequestURL at :205-218, PR-GIT-161): a forge that refuses to open a second request for the same branch no longer fails the operation outright when the retried request can be identified from its own refusal text."
     },
     {
       "id": "PR-GIT-044",
@@ -1190,7 +1196,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "GitLab vector [\"mr\", \"merge\", number, \"--yes\"] (B1 DroppyCode/Services/Git/Git.swift:237) -> [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"] (B2 Git.swift:237). B1 DroppyCode/App/AppModel+HydraMerge.swift:374-375 said squash and remove-source-branch \"are left to the project's defaults, as before\"; B2 AppModel+HydraMerge.swift:431-432 says they \"are explicit for GitLab team merges\". The GitHub and Gitea vectors, the number's argv position and the 300 s timeout are unchanged. The precondition and action now name the one caller, AppModel+HydraMerge.swift:369 (B1 :275), instead of a chat link."
+      "b2_change": "GitLab vector [\"mr\", \"merge\", number, \"--yes\"] (B1 DroppyCode/Services/Git/Git.swift:216) -> [\"mr\", \"merge\", number, \"--yes\", \"--squash\", \"--remove-source-branch\"] (B2 Git.swift:216). B1 DroppyCode/App/AppModel+HydraMerge.swift:327-328 said squash and remove-source-branch \"are left to the project's defaults, as before\"; B2 AppModel+HydraMerge.swift:372-373 says they \"are explicit for GitLab team merges\". The GitHub and Gitea vectors, the number's argv position and the 300 s timeout are unchanged. The precondition and action now name the one caller, AppModel+HydraMerge.swift:320 (B1 :275), instead of a chat link."
     },
     {
       "id": "PR-GIT-048",
@@ -1776,29 +1782,31 @@
     },
     {
       "id": "PR-GIT-070",
-      "title": "Temporary index and apply files are named droppy-code-index-<UUID> and droppy-code-apply-<UUID> under the system temporary directory",
+      "title": "Temporary index, rebase and apply scratch are named droppy-code-index-<UUID>, droppy-code-rebase-<UUID> and droppy-code-apply-<UUID> under the system temporary directory",
       "source_evidence": [
-        "DroppyCode/Services/Git/Git.swift:270 and :474 - droppy-code-index-<UUID().uuidString>, each removed in a defer at :250 and :475",
+        "DroppyCode/Services/Git/Git.swift:270 and :579 - droppy-code-index-<UUID().uuidString>, each removed in a defer at :271 and :580",
+        "DroppyCode/Services/Git/Git.swift:291-293 - droppy-code-rebase-<UUID().uuidString>, a directory created with intermediates holding index/current/common/other, removed whole in a defer at :293",
         "DroppyCode/Services/Git/Git.swift:804-805 - droppy-code-apply-<UUID().uuidString>, removed in a defer",
         "DroppyCode/Services/Git/WorkingTreeWatch.swift:120 - the shared scratch, droppy-code-index-<UUID>, removed only in tearDown"
       ],
       "preconditions": "None.",
       "action": "A private index is needed.",
-      "expected_result": "Three name shapes exist, all under the system temporary directory: droppy-code-index-<UUID> for the two one-shot captures and for the watch's shared scratch, and droppy-code-apply-<UUID> for the three-way apply. The one-shot files are removed in a deferred cleanup on every exit path; the watch's scratch is removed only in its teardown.",
+      "expected_result": "Four name shapes exist, all under the system temporary directory: droppy-code-index-<UUID> for the two one-shot captures and for the watch's shared scratch; droppy-code-rebase-<UUID>, a directory (not a file) that holds an index plus current/common/other blob scratch files for the three-way merge, for captureTree(paths:onto:from:); and droppy-code-apply-<UUID> for the three-way apply. The one-shot file and the rebase directory are removed in a deferred cleanup on every exit path (the directory removed whole, with anything created inside it); the watch's scratch is removed only in its teardown.",
       "side_effects": [
-        "Temporary files"
+        "Temporary files and, for the rebase scratch, a temporary directory"
       ],
       "persistence": "None; these files are not part of the app's store.",
       "failure_cases": [
-        "A crash leaves a droppy-code-index-* file behind; nothing sweeps them"
+        "A crash leaves a droppy-code-index-*, droppy-code-rebase-* or droppy-code-apply-* item behind; nothing sweeps them"
       ],
       "cancellation": "The deferred cleanup runs even when the capture throws.",
-      "windows_path": "Use the Windows temporary directory. The product-name segment stays \"droppy-code\" in these file names, matching the ref namespace decision.",
-      "verification_method": "unit asserting the file is gone after a successful and a failed capture",
+      "windows_path": "Use the Windows temporary directory. The product-name segment stays \"droppy-code\" in these file and directory names, matching the ref namespace decision.",
+      "verification_method": "unit asserting the file or directory is gone after a successful and a failed capture, including a captureTree(paths:onto:from:) call",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 adds a fourth scratch shape, the droppy-code-rebase-<UUID> directory (Git.swift:291-293) for captureTree(paths:onto:from:)'s three-way merge scratch (index, current, common, other). The two pre-existing droppy-code-index-<UUID> one-shot sites move from B2 :249/:250 and :474/:475 to B3 :270/:271 and :579/:580; droppy-code-apply-<UUID> moves from B2 :699-700 to B3 :804-805."
     },
     {
       "id": "PR-GIT-071",
@@ -3272,7 +3280,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port of the provider set and the running condition.",
       "verification_method": "interaction test across a Claude thread, a Gemini-class thread and a running thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3953,7 +3961,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/App/Runtime/ThreadRuntime.swift:2341-2342 (`touched.formUnion(hydraTouched)`, `hydraTouched.removeAll()`) unioned every head path pending since the last finished turn; the same lines run at B2 :2369-2370, but revert now empties hydraTouched first (B2 :1924), so paths pending before a revert no longer reach the next turn. B2 also adds `hydraCurrentTurnTouchedPaths.formUnion(touched)` (:2381) after the record is written; B1 had no such set. Side effects changed from none to that in-memory fold."
+      "b2_change": "B1 DroppyCode/App/Runtime/ThreadRuntime.swift:2299-2300 (`touched.formUnion(hydraTouched)`, `hydraTouched.removeAll()`) unioned every head path pending since the last finished turn; the same lines run at B2 :2369-2370, but revert now empties hydraTouched first (B2 :1924), so paths pending before a revert no longer reach the next turn. B2 also adds `hydraCurrentTurnTouchedPaths.formUnion(touched)` (:2381) after the record is written; B1 had no such set. Side effects changed from none to that in-memory fold."
     },
     {
       "id": "PR-GIT-148",
@@ -4135,6 +4143,172 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-GIT-161",
+      "title": "createPullRequest falls back to the existing request's URL, for every forge, before throwing on a non-zero exit",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:192-196 - `if !result.succeeded, let existing = Self.existingRequestURL(in: result, web: await remoteWebURL()) { return existing }`, then `try Self.check(result)`",
+        "DroppyCode/Services/Git/Git.swift:174-200 createPullRequest(title:body:source:target:) - the fallback runs after the per-forge switch (:176-192) and before the https-URL scrape of a successful result (:197-199)"
+      ],
+      "preconditions": "The forge CLI (glab, gh or tea) has been run and returned a non-zero result.",
+      "action": "createPullRequest's forge CLI call fails.",
+      "expected_result": "remoteWebURL() is awaited (a network-free read of the configured origin remote, not a request), and its result plus the failed ShellResult are passed to the static existingRequestURL(in:web:) (PR-GIT-162). When that returns a non-nil URL, createPullRequest returns it directly and never throws. Only when it returns nil does the non-zero result go to Self.check(result), which throws ShellError(failureMessage). This runs identically for GitLab, GitHub and Gitea.",
+      "side_effects": [
+        "None beyond the already-failed forge CLI call"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "existingRequestURL finds nothing: the original non-zero exit throws exactly as before B3"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port; no platform-specific behavior.",
+      "verification_method": "contract fixture: a scripted forge CLI shim exits non-zero with an \"already exists\"-shaped message and the call returns the parsed URL instead of throwing; a shim that exits non-zero with an unrelated message still throws",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New at B3 (Git.swift:192-196). Before B3 any non-zero forge exit threw unconditionally."
+    },
+    {
+      "id": "PR-GIT-162",
+      "title": "existingRequestURL(in:web:) reads a forge's \"request already exists\" refusal and recovers that request's URL",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:205-218 static existingRequestURL(in:web:) - `let text = result.output + \"\\n\" + result.errorOutput; guard text.lowercased().contains(\"already exist\") else { return nil }`",
+        "DroppyCode/Services/Git/Git.swift:208-210 - `if let match = text.firstMatch(of: #/https://\\S+/#), let url = URL(string: String(match.output)) { return url }`",
+        "DroppyCode/Services/Git/Git.swift:211-217 - `guard let match = text.firstMatch(of: #/!(\\d+)/#), var web else { return nil }`, then credentials are stripped via URLComponents when web.user is non-nil, and the result is `web.appending(path: \"-/merge_requests/\\(match.1)\")`"
+      ],
+      "preconditions": "None; a pure function of the ShellResult and an optional web URL.",
+      "action": "A forge CLI call that opens a request fails.",
+      "expected_result": "The combined stdout+\"\\n\"+stderr is tested case-insensitively for the substring \"already exist\"; anything else returns nil regardless of exit code content. When that gate passes: first, the first substring matching `https://\\S+` (a plain regex scan, not anchored to the whole text) is parsed as a URL and returned if it parses (this is GitHub's and Gitea's shape, which print the existing request's address). Otherwise, the first substring matching `!(\\d+)` is read as a GitLab request number; if no such match exists, or no web URL was supplied, the function returns nil. Otherwise, when the web URL carries a user component, its user and password are stripped via URLComponents (falling back to the original web URL if that reconstruction fails), and the function returns that URL with path component \"-/merge_requests/<n>\" appended, `<n>` being the captured digits with no leading \"!\".",
+      "side_effects": [
+        "None; pure"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "Text with no \"already exist\" substring: nil",
+        "\"already exist\" present but neither an https URL nor a \"!<n>\" pattern: nil",
+        "A \"!<n>\" match with no web URL argument: nil"
+      ],
+      "cancellation": "not cancellable; pure function",
+      "windows_path": "Direct port of the regex matches and URLComponents credential stripping; SwiftURL.appending(path:) must keep the leading \"-/\" segment of \"-/merge_requests/<n>\" intact.",
+      "verification_method": "unit: table test over (text, web) pairs covering the https-URL case, the GitLab \"!<n>\" case with and without embedded credentials, and the three nil cases",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New static helper at B3 (Git.swift:205-218). Used by createPullRequest (PR-GIT-161) and, per R3-01, by AppModel+HydraMerge's merge-request error handling (B3 AppModel+HydraMerge.swift:460-462, HYDRAMERGE area)."
+    },
+    {
+      "id": "PR-GIT-163",
+      "title": "captureTree(paths:onto:from:) builds a tree of the team's paths rebased onto the remote's current state, in a scratch index",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:289-304 captureTree(paths:onto:from:) - a droppy-code-rebase-<UUID> scratch directory (removed whole in a defer), GIT_INDEX_FILE set to scratch/index, `run([\"read-tree\", base], environment:)`",
+        "DroppyCode/Services/Git/Git.swift:298-303 - upstream = the set of paths `git diff --name-only --no-renames -z <head> <base>` names; paths split into clean (not in upstream) and contested (in upstream); clean paths staged with the pathspec-file add at 300 s only when clean is non-empty",
+        "DroppyCode/Services/Git/Git.swift:342-345 - `write-tree`, checked, returns (tree, merged)"
+      ],
+      "preconditions": "head is an ancestor of, or equal to, the checkout's own history; base is the commit to rebase onto (the remote's current target branch tip).",
+      "action": "A Hydra team merge prepares the tree it will push, on top of what the remote has done since the checkout last read it.",
+      "expected_result": "A fresh scratch directory holds a private index at <scratch>/index; the whole directory is removed in a defer regardless of how the function returns. The index starts from base's tree via read-tree. Renames between head and base are treated as a delete plus an add (--no-renames), so a file the remote moved counts as changed. paths not touched between head and base (\"clean\") are staged directly with the same pathspec-file add used by captureTree(paths:) (PR-GIT-005/persisted id), at 300 s, and only when the clean list is non-empty. paths the remote also touched (\"contested\") go through the per-path resolution in PR-GIT-164. The final write-tree yields the tree hash returned as the tuple's first element; the second element is the merged blob contents from PR-GIT-165's three-way merges, keyed by path, for the checkout to write back once the work lands (STORE/HYDRAMERGE area, syncDefaultBranch).",
+      "side_effects": [
+        "A scratch directory and index file under the system temporary directory (removed on return)"
+      ],
+      "persistence": "None; the scratch is temporary and the result is an in-memory tree hash plus blob map.",
+      "failure_cases": [
+        "Any staging or write-tree git invocation failing throws via Self.check",
+        "A contested path that cannot be resolved (PR-GIT-164 cases returning nil, or a failed three-way merge in PR-GIT-165) makes the whole function return nil, not throw"
+      ],
+      "cancellation": "not cancellable at this layer",
+      "windows_path": "Use the Windows temporary directory for the scratch directory; GIT_INDEX_FILE takes a native path. Directory removal must succeed even when a file inside it is still notionally in use by a just-finished git process.",
+      "verification_method": "a CaptureTree onto matrix against a real temporary repository: clean paths only, no contested paths, and each PR-GIT-164 contested case, asserting the final tree contents and that the scratch directory is gone afterward",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New function at B3 (Git.swift:289-345), the core of the team-merge rebase-onto-remote behavior; see HYDRAMERGE's AppModel+HydraMerge.swift reclassifications for its only caller."
+    },
+    {
+      "id": "PR-GIT-164",
+      "title": "captureTree(paths:onto:from:) resolves each contested path by comparing the remote's, the ancestor's and the working tree's content",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:305-341 - for each contested path: ancestor = blobData(head, path), remote = blobData(base, path), working = the working-tree file's bytes or nil; a switch on (remote, working)",
+        "DroppyCode/Services/Git/Git.swift:311-313 - (nil, nil): continue (skip; the base already lacks it as the team's history does)",
+        "DroppyCode/Services/Git/Git.swift:314-317 - (remote?, nil): the team deleted it; allowed only when remote == ancestor, staged with `rm --cached --quiet --ignore-unmatch --`; otherwise falls through to the function returning nil",
+        "DroppyCode/Services/Git/Git.swift:318-320 - (nil, working?): the remote deleted a file the team kept or changed; the whole function returns nil",
+        "DroppyCode/Services/Git/Git.swift:321-324 - (remote?, working?): identical content (remote == working) continues (skip); when ancestor is nil (added differently on both sides) the whole function returns nil; otherwise the pair is three-way merged (PR-GIT-165)"
+      ],
+      "preconditions": "Reached only for a path present in the diff between head and base (PR-GIT-163's \"contested\" set).",
+      "action": "captureTree(paths:onto:from:) reaches a path the remote also touched since head.",
+      "expected_result": "Both sides gone (remote nil, working nil): the path is skipped; nothing is staged for it. The team deleted it but the remote kept it (remote non-nil, working nil): allowed only when the remote's content still equals the pre-rebase ancestor's, in which case the deletion is staged with `git rm --cached --quiet --ignore-unmatch -- <path>`; when the remote changed that file since the ancestor, the whole captureTree(paths:onto:from:) call returns nil (no partial tree). The remote deleted a file the team kept or changed (remote nil, working non-nil): the whole call returns nil. Both sides have content: identical content is a no-op; content added independently with no ancestor version returns nil for the whole call; otherwise the three-way merge in PR-GIT-165 runs.",
+      "side_effects": [
+        "A staged removal for the allowed team-delete case"
+      ],
+      "persistence": "None beyond the scratch index PR-GIT-163 owns.",
+      "failure_cases": [
+        "Any of the three nil-returning cases aborts the entire captureTree(paths:onto:from:) call, discarding whatever else it resolved"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port of the switch's case order and each branch's git invocation.",
+      "verification_method": "part of the PR-GIT-163 CaptureTree onto matrix: skip, team-delete accepted, team-delete refused, remote-delete, add/add-differently",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New at B3, inside captureTree(paths:onto:from:) (Git.swift:305-341)."
+    },
+    {
+      "id": "PR-GIT-165",
+      "title": "captureTree(paths:onto:from:) three-way merges a path both sides changed, with git merge-file, and stages the result",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:325-339 - current/common/other files written into the scratch directory from the working tree, the ancestor blob and the remote blob; `run([\"merge-file\", \"--quiet\", \"--\", current.path, common.path, other.path])` with no GIT_INDEX_FILE environment",
+        "DroppyCode/Services/Git/Git.swift:333-339 - a non-zero merge-file result returns nil for the whole function; on success the merged bytes are read back from current, hashed with `hash-object -w --stdin` (which writes the object even though the call can still later return nil for an unrelated later path), and staged with `update-index --add --cacheinfo \"<mode>,<hash>,<path>\"` where mode is fileMode(base, path) (PR-GIT-166) or \"100644\" when that returns nil"
+      ],
+      "preconditions": "A contested path where both the remote and the working tree have content, the two differ, and an ancestor blob exists (PR-GIT-164's fourth case).",
+      "action": "A path both the team and the remote changed since the shared ancestor is merged.",
+      "expected_result": "The working tree's bytes, the ancestor's blob and the remote's blob are written to three scratch files (current, common, other) inside the same droppy-code-rebase-<UUID> directory. `git merge-file --quiet -- <current> <common> <other>` runs with no GIT_INDEX_FILE override, at the 120 s default timeout; exit 0 means a clean merge was written into current, and anything above 0 makes captureTree(paths:onto:from:) return nil for the whole call. On success, current's bytes are read back, written as a git blob with `hash-object -w --stdin` (checked; this writes the object into the repository's object store even on a path that is later abandoned because some other contested path fails), staged into the scratch index with `update-index --add --cacheinfo <mode>,<hash>,<path>` where mode comes from fileMode(base, path) or defaults to \"100644\", and the merged bytes are recorded in the returned merged dictionary under path.",
+      "side_effects": [
+        "Three scratch files written and left for the scratch directory's defer to remove",
+        "A git blob object is written into the repository's object database even when the overall call later returns nil"
+      ],
+      "persistence": "The written blob persists in the repository's object store (unreachable garbage if the merge is later abandoned) until git gc.",
+      "failure_cases": [
+        "merge-file exits non-zero (conflict markers would be needed): the whole captureTree(paths:onto:from:) call returns nil"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "merge-file, hash-object and update-index run without the scratch GIT_INDEX_FILE for merge-file specifically (per source), but update-index and hash-object still need the scratch environment. Preserve exactly which calls receive `environment:` and which do not.",
+      "verification_method": "part of the PR-GIT-163 CaptureTree onto matrix: a clean content merge (asserting the staged mode and hash) and a genuine conflict (asserting nil)",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New at B3, inside captureTree(paths:onto:from:) (Git.swift:321-339)."
+    },
+    {
+      "id": "PR-GIT-166",
+      "title": "blobData and fileMode read a single path's content and mode at a commit, or nil",
+      "source_evidence": [
+        "DroppyCode/Services/Git/Git.swift:348-351 private blobData(_:_:) - `run([\"cat-file\", \"blob\", \"\\(commit):\\(path)\"])`; returns result.stdout on success, else nil",
+        "DroppyCode/Services/Git/Git.swift:354-359 private fileMode(_:_:) - `output([\"ls-tree\", \"-z\", commit, \"--\", path])`, takes the first NUL-separated entry, then its first space-separated field, as the mode string; nil when the listing is empty or malformed"
+      ],
+      "preconditions": "None; both take a commit-ish and a repository-relative path.",
+      "action": "captureTree(paths:onto:from:) needs a path's bytes or mode at a specific commit.",
+      "expected_result": "blobData runs `git cat-file blob <commit>:<path>` and returns its raw stdout bytes when the command succeeds, or nil when it fails (the path does not exist at that commit, or the commit does). fileMode runs `git ls-tree -z <commit> -- <path>`, splits the output on NUL, takes the first entry, splits that entry on spaces and takes the first field as the mode (e.g. \"100644\", \"100755\"); it returns nil when the listing is empty, has no NUL-separated entry, or that entry has no space-separated field.",
+      "side_effects": [
+        "None; read-only git invocations"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "A path absent at that commit: nil from both helpers",
+        "cat-file or ls-tree failing for any other reason: nil, not a thrown error"
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Direct port; both are simple argv builds with no path-separator concerns beyond the existing `<commit>:<path>` colon-joined argument, which stays one argv element exactly as PR-GIT-031's refspec does.",
+      "verification_method": "unit: blobData and fileMode against a fixture repository, for an existing path, a path added later, and a path with mode 100755",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New private helpers at B3 (Git.swift:347-359), used only by captureTree(paths:onto:from:) (PR-GIT-163, PR-GIT-165)."
     }
   ],
   "ui": [
@@ -5452,7 +5626,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 - `case .headline, .body: 13` (ED-059: upstream's table of the size each text style is laid out at)"
       ],
       "notes": "Section title \"Commit message instructions\"; placeholder exactly \"For example: use conventional commit prefixes\", with no trailing period. Stored under the defaults key \"commitInstructions\" and used by both the commit sheet and the Hydra landing path. ED-059: .body at 13 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:51), set in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal does not apply.",
-      "b2_change": "`.font(.system(size: 13))` (B1 DroppyCode/App/Views/Settings/SettingsView.swift:783, :811) -> `.font(.system(.body))` (B2 :845, :850); B1 DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The section moved from B1 :802-818 to B2 :841-857."
+      "b2_change": "`.font(.system(size: 13))` (B1 DroppyCode/App/Views/Settings/SettingsView.swift:806, :811) -> `.font(.system(.body))` (B2 :845, :850); B1 DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13` is upstream's own table of the size macOS lays that style out at; ChatZoom.swift no longer exists at B2. The section moved from B1 :802-818 to B2 :841-857."
     },
     {
       "id": "UI-GIT-059",

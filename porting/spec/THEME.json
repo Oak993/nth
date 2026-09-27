@@ -719,7 +719,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only. AppTheme.swift:239 `var text = hex.trimmingCharacters(in: .whitespacesAndNewlines)` (B1) -> `var text = hex.trimmed` (B2), and `trimmed` is exactly that trim (B2 Core/Support/Text.swift:224). Range 236-247 and behaviour unchanged."
+      "b2_change": "Re-cited only. AppTheme.swift:239 `var text = hex.trimmingCharacters(in: .whitespacesAndNewlines)` (B1) -> `var text = hex.trimmed` (B2), and `trimmed` is exactly that trim (B2 Core/Support/Text.swift:132). Range 236-247 and behaviour unchanged."
     },
     {
       "id": "PR-THEME-033",
@@ -918,7 +918,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Apply the accent as one inherited value on the root. The single-branch rule is a real bug fix: any Windows implementation that swaps the subtree when the accent becomes non-nil will reset Settings' scroll position on a theme change.",
       "verification_method": "interaction test: scroll Settings to the bottom, change the theme, the scroll position is unchanged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1062,7 +1062,7 @@
       "cancellation": "Dismissing the popover without choosing leaves the theme unchanged.",
       "windows_path": "Derive the two sections by filtering the same ordered id list on the scheme field; do not hard-code two lists that can drift from the palette table.",
       "verification_method": "interaction test: the popover's row order and the two header strings",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1087,7 +1087,7 @@
       "cancellation": "not cancellable once clicked; picking a different theme afterwards is the only undo",
       "windows_path": "Immediate apply, no OK button. The check mark is on the row, not a separate radio control.",
       "verification_method": "interaction test: click a row, the app repaints and the row is checked on reopen",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1112,11 +1112,11 @@
       "cancellation": "not cancellable",
       "windows_path": "The 0.92 to 1.0 opacity step is the only hover feedback; there is no background change. Keep the 0.1 second ease-out. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "interaction test: hover changes only the label opacity; capture comparison for the capsule metrics",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Chevron colour: Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79); the chevron is still `.foregroundStyle(Chrome.secondaryText)` (B2 SettingsView.swift:1180). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). Capsule metrics (Chrome.swift:33, :35) and hover (B1 Chrome.swift:96 -> B2 :98) unchanged.",
+      "b2_change": "Chevron colour: Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79); the chevron is still `.foregroundStyle(Chrome.secondaryText)` (B2 SettingsView.swift:1203). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). Capsule metrics (Chrome.swift:33, :35) and hover (B1 Chrome.swift:96 -> B2 :98) unchanged.",
       "deviation": {
         "decision": "OD-0005",
         "upstream": "The theme picker button is drawn with `.chromeGlassCapsule()` (DroppyCode/App/Views/Settings/SettingsView.swift:1189), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
@@ -1140,7 +1140,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Bind the detail to the live theme, not to a snapshot taken when the row was built.",
       "verification_method": "interaction test: the row detail follows the picker",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1171,7 +1171,7 @@
       "cancellation": "not cancellable; there is no drag-end commit, every intermediate value is written",
       "windows_path": "Persist on every change as upstream does. The backdrop's own rendering (scrim curve, the 0.98 solid cutover) is specified by the WIN area; this requirement covers only the control and the stored value. Where the desktop shows through, the material is an owner-approved deviation (OD-0005), not parity; see this record's deviation field. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
       "verification_method": "interaction test: drag writes continuously; restart test: the value survives",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1206,7 +1206,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The control must not participate in layout, or the slider will shift when it appears. The 0.005 threshold is what keeps it from flickering at values adjacent to the default. Text size (ED-059): .subheadline 11 pt (B1:DroppyCode/UI/Common/ChatZoom.swift:53) in Inter (OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 defines it (DroppyCode/UI/Chrome/Chrome.swift:79); ED-051's secondaryLabelColor literal is superseded for this token.",
       "verification_method": "interaction test: the slider does not move horizontally when the reset appears; unit: the 0.005 threshold",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1229,7 +1229,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One accessible group with that exact name.",
       "verification_method": "interaction test with the accessibility tree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1241,7 +1241,7 @@
         "DroppyCode/UI/Theme/Wallpaper.swift:15-17 `@MainActor @Observable final class WallpaperStore { static let shared = WallpaperStore() }`",
         "DroppyCode/UI/Theme/Wallpaper.swift:32-36 `private(set) var image: NSImage?`, `private(set) var isInstalling = false`, `private(set) var lastError: String?`",
         "DroppyCode/UI/Theme/Wallpaper.swift:57 `var hasWallpaper: Bool { image != nil || fileURL != nil }`",
-        "DroppyCode/Services/Store/Storage.swift:35-36 `/// The user's window wallpaper, one file at a time.` `static let wallpaperDirectory: URL = directory(\"wallpaper\")`",
+        "DroppyCode/Core/Support/StoragePaths.swift:14-15 `/// The user's window wallpaper, one file at a time.` `nonisolated static let wallpaperDirectory: URL = directory(\"wallpaper\")`",
         "DroppyCode/App/Views/RootView.swift:64 `.background { WindowBackdrop(opacity: model.settings.backdropOpacity, wallpaper: WallpaperStore.shared.image) }`"
       ],
       "preconditions": "The app is running.",
@@ -1258,7 +1258,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: wallpaperDirectory moves out of Services.Store.Storage into the new Core.Support.StoragePaths (N2), so UI code (Wallpaper.swift) no longer reaches into a Services type (upstream commit d70cff8fe, 'layer rules restored'). The folder path and its one-file-at-a-time behaviour are unchanged; Storage.swift no longer has a wallpaperDirectory member at all."
     },
     {
       "id": "PR-THEME-054",
@@ -1315,7 +1316,7 @@
       "id": "PR-THEME-056",
       "title": "At start the store reads a clamped softness and renders the stored file only when that file still exists",
       "source_evidence": [
-        "DroppyCode/UI/Theme/Wallpaper.swift:85-95 init: `let stored = defaults.object(forKey: Key.softness) as? Double ?? 0`, `softness = min(1, max(0, stored))`, then, when a non-empty file name is stored, the URL is built under Storage.wallpaperDirectory and `render()` runs only if `FileManager.default.fileExists(atPath: url.path)`"
+        "DroppyCode/UI/Theme/Wallpaper.swift:85-95 init: `let stored = defaults.object(forKey: Key.softness) as? Double ?? 0`, `softness = min(1, max(0, stored))`, then, when a non-empty file name is stored, the URL is built under StoragePaths.wallpaperDirectory and `render()` runs only if `FileManager.default.fileExists(atPath: url.path)`"
       ],
       "preconditions": "The app is starting.",
       "action": "The wallpaper store is created.",
@@ -1335,7 +1336,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: Storage.wallpaperDirectory is renamed StoragePaths.wallpaperDirectory (PR-THEME-053); the same line (B3 :89) builds the same URL under the same folder."
     },
     {
       "id": "PR-THEME-057",
@@ -1416,7 +1418,7 @@
       "id": "PR-THEME-060",
       "title": "Installing a wallpaper copies the file into the library under a generated name, decodes it, then swaps it in with a spring",
       "source_evidence": [
-        "DroppyCode/UI/Theme/Wallpaper.swift:113-144 install: sets isInstalling true, clears lastError, cancels the pending render, captures the current softness, then in a detached user-initiated task takes security-scoped access, computes `let ext = source.pathExtension.isEmpty ? \"jpg\" : source.pathExtension.lowercased()`, builds `Storage.wallpaperDirectory.appendingPathComponent(\"wallpaper-\\(UUID().uuidString).\\(ext)\")`, creates the directory with intermediates, copies the item, decodes it, and calls finishInstall",
+        "DroppyCode/UI/Theme/Wallpaper.swift:113-144 install: sets isInstalling true, clears lastError, cancels the pending render, captures the current softness, then in a detached user-initiated task takes security-scoped access, computes `let ext = source.pathExtension.isEmpty ? \"jpg\" : source.pathExtension.lowercased()`, builds `StoragePaths.wallpaperDirectory.appendingPathComponent(\"wallpaper-\\(UUID().uuidString).\\(ext)\")`, creates the directory with intermediates, copies the item, decodes it, and calls finishInstall",
         "DroppyCode/UI/Theme/Wallpaper.swift:219-227 finishInstall: removes the previous file, records the new one, persists its last path component, `withAnimation(.spring(duration: 0.45, bounce: 0.2)) { image = picture.image }`, clears isInstalling"
       ],
       "preconditions": "The picked URL passed the picture test.",
@@ -1438,6 +1440,7 @@
       "windows_path": "Platform boundary: there is no security-scoped URL to take and release. The file is read directly. Keep the generated name pattern \"wallpaper-<uuid>.<ext>\" so the folder never accumulates collisions, and keep the delete-previous-on-success order (never delete first).",
       "verification_method": "interaction test: drop a picture, the old file is gone and exactly one file remains; unit: the name pattern and the jpg fallback",
       "status": "IMPLEMENTED",
+      "b3_note": "Citation only: Storage.wallpaperDirectory is renamed StoragePaths.wallpaperDirectory (PR-THEME-053); the same lines (B3 :128, :130) build the same destination under the same folder.",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2070,7 +2073,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fire the preview on the transition to on only, not on every write of the setting.",
       "verification_method": "interaction test: toggling on is audible, toggling off is silent",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2124,7 +2127,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Preview on the transition to on only.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2146,7 +2149,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Dim, do not hide, and do not clear the stored value.",
       "verification_method": "interaction test: switching the finish action to archive dims the row without changing the toggle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2521,7 +2524,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only. MarkdownParser.swift:87 `.trimmingCharacters(in: .whitespacesAndNewlines)` (B1) -> `.trimmed` (B2), which is the same trim (B2 Core/Support/Text.swift:224). Behaviour unchanged."
+      "b2_change": "Re-cited only. MarkdownParser.swift:87 `.trimmingCharacters(in: .whitespacesAndNewlines)` (B1) -> `.trimmed` (B2), which is the same trim (B2 Core/Support/Text.swift:132). Behaviour unchanged."
     },
     {
       "id": "PR-THEME-104",
@@ -2619,25 +2622,28 @@
     },
     {
       "id": "PR-THEME-108",
-      "title": "A code block whose info string is a delegation info renders as a delegation card, faded and inert while leaving",
+      "title": "A code block whose info string is a delegation info renders through a registered card renderer, faded and inert while leaving, and as plain code before any renderer is registered",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:324-336 the code case: when the lower-cased info string is a delegation info, `HydraDelegationBlock(json: code, sent: info != \"hydra\")` with `.opacity(info == \"hydra-leaving\" ? 0 : 1)`, `.scaleEffect(info == \"hydra-leaving\" ? 0.98 : 1, anchor: .top)` and `.allowsHitTesting(info != \"hydra-leaving\")`; otherwise a CodeBlock"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:324-336 the code case: when the lower-cased info string is a delegation info AND `MarkdownDelegationCard.render` is non-nil, `delegationRenderer(code, info != \"hydra\")` with `.opacity(info == \"hydra-leaving\" ? 0 : 1)`, `.scaleEffect(info == \"hydra-leaving\" ? 0.98 : 1, anchor: .top)` and `.allowsHitTesting(info != \"hydra-leaving\")`; otherwise (no delegation info, or no renderer registered yet) a CodeBlock",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:505-509 `enum MarkdownDelegationCard { @MainActor static var render: ((String, Bool) -> AnyView)? }` - a process-global hook the App sets at launch, because the card is an App-level view UI cannot name",
+        "DroppyCode/App/AppDelegate.swift:14 - applicationDidFinishLaunching registers MarkdownDelegationCard.render before the main window is shown (LAUNCH area)"
       ],
       "preconditions": "A reply contains a fenced block with one of the three delegation info strings.",
       "action": "The block is rendered.",
-      "expected_result": "The block renders as the delegation card rather than as code, with its body passed as the card's data. The card is marked as sent for the info strings \"hydra-sent\" and \"hydra-leaving\" and as not sent for \"hydra\". For \"hydra-leaving\" the card is drawn at zero opacity, scaled to 0.98 anchored at its top, and takes no clicks, while still occupying its full room.",
+      "expected_result": "Once MarkdownDelegationCard.render has been set (which happens before the main window ever shows, at launch), the block renders through that renderer rather than as code, with its body and a sent flag passed to it. The renderer is marked sent for the info strings \"hydra-sent\" and \"hydra-leaving\" and not sent for \"hydra\". For \"hydra-leaving\" the rendered card is drawn at zero opacity, scaled to 0.98 anchored at its top, and takes no clicks, while still occupying its full room. Before the renderer is registered (there is no observable window for this in the running app, since it is set at launch before any content renders, but the fallback exists in source) the block renders as an ordinary CodeBlock instead of throwing or showing nothing.",
       "side_effects": [],
       "persistence": "not persisted",
       "failure_cases": [
-        "None expressed in source; the card itself is specified by the Hydra area."
+        "MarkdownDelegationCard.render is nil: the block renders as CodeBlock. None expressed in source for the card renderer itself; it is specified by the Hydra area."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "The three info strings are a protocol between the runtime and the renderer; the exact strings are load-bearing and the comparison is on the lower-cased info string.",
-      "verification_method": "unit: the three strings select the card; interaction test: a leaving card holds its room",
+      "windows_path": "The three info strings are a protocol between the runtime and the renderer; the exact strings are load-bearing and the comparison is on the lower-cased info string. The port's UI layer likewise cannot name the App-level card type, so it needs the same process-global registration hook, set during startup before the main window is shown; a nil hook must render CodeBlock, matching source, never throw or omit the block.",
+      "verification_method": "unit: the three strings select the card renderer when one is registered; a nil renderer falls back to CodeBlock; interaction test: a leaving card holds its room",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 replaces the direct `HydraDelegationBlock(json:sent:)` call with a registered closure hook, `MarkdownDelegationCard.render` (:505-509), set by AppDelegate at launch (:14, LAUNCH area) rather than constructed inline. This adds a new fallback state: while the hook is nil, the block renders as CodeBlock instead of the delegation card (R3-31 #2, folded into this reclassification per B3_PLAN 6.3; the LAUNCH area records the AppDelegate.swift:14 registration itself)."
     },
     {
       "id": "PR-THEME-109",
@@ -2850,7 +2856,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Fonts `.chat(.caption, zoom: zoom)` and `.chat(.callout, design: .monospaced, zoom: zoom)` (B1 MarkdownView.swift:1217, :1301) -> `.chat(.caption)` and `.chat(.callout, design: .monospaced)` (B2 :1290, :1301); B1 DroppyCode/UI/Common/ChatZoom.swift (the `chatZoom` environment value and `Font.chat(_:weight:design:zoom:)`, which scaled `chatBaseSize(style) * zoom` at any zoom other than 1, :59-70) is deleted at B2 and nothing at B2 reads `chatZoom`. Label colour `.foregroundStyle(.secondary)` (B1 :1291) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1291). Panel, padding and hover unchanged."
+      "b2_change": "Fonts `.chat(.caption, zoom: zoom)` and `.chat(.callout, design: .monospaced, zoom: zoom)` (B1 MarkdownView.swift:1290, :1301) -> `.chat(.caption)` and `.chat(.callout, design: .monospaced)` (B2 :1290, :1301); B1 DroppyCode/UI/Common/ChatZoom.swift (the `chatZoom` environment value and `Font.chat(_:weight:design:zoom:)`, which scaled `chatBaseSize(style) * zoom` at any zoom other than 1, :59-70) is deleted at B2 and nothing at B2 reads `chatZoom`. Label colour `.foregroundStyle(.secondary)` (B1 :1291) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1291). Panel, padding and hover unchanged."
     },
     {
       "id": "PR-THEME-118",
@@ -2877,7 +2883,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Button `.font(.chat(.caption, zoom: zoom))` and `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1240-1241) -> `.font(.chat(.caption))` and `.foregroundStyle(Chrome.secondaryText)` (B2 :1313-1314). The 120-line limit, the strings, the padding and the line counting are unchanged."
+      "b2_change": "Button `.font(.chat(.caption, zoom: zoom))` and `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1313-1314) -> `.font(.chat(.caption))` and `.foregroundStyle(Chrome.secondaryText)` (B2 :1313-1314). The 120-line limit, the strings, the padding and the line counting are unchanged."
     },
     {
       "id": "PR-THEME-119",
@@ -2905,7 +2911,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Button `.font(.chat(.caption, zoom: zoom))` and `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1317-1318) -> `.font(.chat(.caption))` and `.foregroundStyle(Chrome.secondaryText)` (B2 :1389-1390); re-cited B1 :1385-1394 -> B2 :1384-1393. The 30-row limit, grid spacing, 0.35 panel, cell colour and cell cache are unchanged."
+      "b2_change": "Button `.font(.chat(.caption, zoom: zoom))` and `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1390-1391) -> `.font(.chat(.caption))` and `.foregroundStyle(Chrome.secondaryText)` (B2 :1389-1390); re-cited B1 :1385-1394 -> B2 :1384-1393. The 30-row limit, grid spacing, 0.35 panel, cell colour and cell cache are unchanged."
     },
     {
       "id": "PR-THEME-120",
@@ -2932,7 +2938,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1423) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1495); re-cited B1 :1472-1499 -> B2 :1471-1498. Tooltip, 1.4 s reset, 22x22 size and the reflowed text are unchanged."
+      "b2_change": "Colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1496) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1495); re-cited B1 :1472-1499 -> B2 :1471-1498. Tooltip, 1.4 s reset, 22x22 size and the reflowed text are unchanged."
     },
     {
       "id": "PR-THEME-121",
@@ -2989,14 +2995,14 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/MarkdownView.swift:105-107 `@MainActor private static var blockCache = RecentCache<String, [MarkdownBlock]>(limit: 800)`",
         "DroppyCode/UI/Markdown/MarkdownView.swift:108-115 the streaming parse slots, `private static let streamingSlots = 48`, with the comment that four slots made twenty heads evict each other's parse on every flush",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:563-568 `RichLink.prettyCache = RecentCache<String, AttributedString>(limit: 1200)` and its own `streamingSlots = 4`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:527-532 `RichLink.prettyCache = RecentCache<String, AttributedString>(limit: 1200)` and `private static let streamingSlots = MarkdownView.streamingSlots`, no longer its own separate constant",
         "DroppyCode/UI/Markdown/MarkdownView.swift:1274 `TableBlock.cellCache = RecentCache<String, AttributedString>(limit: 1200)`",
         "DroppyCode/UI/Markdown/MarkdownView.swift:123-133 streamingParse: an exact hit by byte count then by value; otherwise the newest slot the text extends; the slot is removed and re-appended, or the oldest is dropped when full",
         "DroppyCode/UI/Markdown/MarkdownView.swift:135-148 blocks(for:): the shared cache first, then a finished streaming parse adopted out of its slot, then a fresh parse; the result is inserted into the shared cache"
       ],
       "preconditions": "Messages are being rendered.",
       "action": "A parse or an inline run is needed.",
-      "expected_result": "Finished messages parse once and are held in a cache of 800 entries keyed on the whole message text. Streaming messages parse through 48 separate slots, so a lead and a whole panel of heads streaming together keep their own parses; the shared cache is never touched by a streaming flush. When a message finishes, its streaming parse is moved out of its slot into the shared cache rather than being re-parsed. Inline pretty strings use a 1200 entry cache with 4 streaming slots of their own, and table cells a separate 1200 entry cache.",
+      "expected_result": "Finished messages parse once and are held in a cache of 800 entries keyed on the whole message text. Streaming messages parse through 48 separate slots, so a lead and a whole panel of heads streaming together keep their own parses; the shared cache is never touched by a streaming flush. When a message finishes, its streaming parse is moved out of its slot into the shared cache rather than being re-parsed. Inline pretty strings use a 1200 entry cache with streaming slots equal to MarkdownView's own streaming slot count (48, not a separate smaller number), and table cells a separate 1200 entry cache.",
       "side_effects": [
         "Memory held for the caches"
       ],
@@ -3005,12 +3011,13 @@
         "Eviction is by recency and loses only work, never content."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "port_impacts.md entry 152: port the exact limits, they are tuned against each other. The mismatch between 48 parse slots and 4 inline slots is deliberate and recorded.",
-      "verification_method": "unit: a finished stream's parse is adopted, not re-parsed; the slot counts",
+      "windows_path": "port_impacts.md entry 152: port the exact limits, they are tuned against each other. RichLink's inline streaming slots now equal MarkdownView's block-parse streaming slots (48); do not port them as two independently-tunable numbers.",
+      "verification_method": "unit: a finished stream's parse is adopted, not re-parsed; the slot counts, including that RichLink's cache keeps exactly 48 streaming entries before evicting",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 changes RichLink's streaming slot count from its own hardcoded 4 (B2 :563-568) to `MarkdownView.streamingSlots` (48, B3 :532), removing the deliberate mismatch B2's port_impacts.md entry 152 recorded. Twelve times as many in-flight streaming links are now kept before RichLink starts evicting."
     },
     {
       "id": "PR-THEME-124",
@@ -3210,7 +3217,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited only. isBareDisplay's `display.trimmingCharacters(in: .whitespacesAndNewlines)` (B1 MarkdownView.swift:702) -> `display.trimmed` (B2 :738), the same trim (B2 Core/Support/Text.swift:224). Behaviour unchanged."
+      "b2_change": "Re-cited only. isBareDisplay's `display.trimmingCharacters(in: .whitespacesAndNewlines)` (B1 MarkdownView.swift:738) -> `display.trimmed` (B2 :738), the same trim (B2 Core/Support/Text.swift:132). Behaviour unchanged."
     },
     {
       "id": "PR-THEME-132",
@@ -3312,7 +3319,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Re-cited: B1 LinkTitles.swift:39-55 -> B2 :40-56 and B1 :94-110 -> B2 :79-110 (`import Synchronization` added at :2). The store's lock changed from `NSLock` with `@unchecked Sendable` (B1 :81-111, `private final class Store: @unchecked Sendable` at :81) to `Mutex(State())` (B2 :82-111, `private final class Store: Sendable` at :82); the trim became `.trimmed` (B2 Core/Support/Text.swift:224). Endpoint, claim-before-fetch and the 200 check are unchanged."
+      "b2_change": "Re-cited: B1 LinkTitles.swift:39-55 -> B2 :40-56 and B1 :94-110 -> B2 :79-110 (`import Synchronization` added at :2). The store's lock changed from `NSLock` with `@unchecked Sendable` (B1 :81-111, `private final class Store: @unchecked Sendable` at :81) to `Mutex(State())` (B2 :82-111, `private final class Store: Sendable` at :82); the trim became `.trimmed` (B2 Core/Support/Text.swift:132). Endpoint, claim-before-fetch and the 200 check are unchanged."
     },
     {
       "id": "PR-THEME-136",
@@ -3370,7 +3377,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "iconData: first `https://icons.duckduckgo.com/ip3/<host>.ico` (2xx and decodes as an image), then `https://www.google.com/s2/favicons?domain=<host>&sz=64` (any response) (B1 MarkdownView.swift:903-915) -> a single `https://<host>/favicon.ico` request with `timeoutInterval = 5`, accepted only on 2xx whose body decodes as an NSImage, with no fallback (B2 :941-953). isPublic, the failed set, in-flight sharing and memory are unchanged."
+      "b2_change": "iconData: first `https://icons.duckduckgo.com/ip3/<host>.ico` (2xx and decodes as an image), then `https://www.google.com/s2/favicons?domain=<host>&sz=64` (any response) (B1 MarkdownView.swift:939-951) -> a single `https://<host>/favicon.ico` request with `timeoutInterval = 5`, accepted only on 2xx whose body decodes as an NSImage, with no fallback (B2 :941-953). isPublic, the failed set, in-flight sharing and memory are unchanged."
     },
     {
       "id": "PR-THEME-138",
@@ -3500,7 +3507,8 @@
       "id": "PR-THEME-143",
       "title": "In the native attributed path a head mention is a tinted dragon glyph, a space and the bold name, carrying a custom attribute and deliberately not a link",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:179-223 appendProse(): with no mentions the run is appended plainly; otherwise names are matched longest first and word-bounded (the character before and after must be neither a letter nor a number); a match emits an attachment whose image is the tinted dragon at `glyphSize = (base.pointSize * 1.25).rounded()` with bounds `NSRect(x: 0, y: base.descender + 1, width: glyphSize, height: glyphSize)`, then a space in the base font and the text colour, then the name in the bold face in the persona's own colour",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:179-223 appendProse(): with no mentions the run is appended plainly; otherwise `MentionScanner.matches(in: string, candidates: mentions, name: \\.name)` (:197) finds names longest first and word-bounded (the character before and after must be neither a letter nor a number); a match emits an attachment whose image is the tinted dragon at `glyphSize = (base.pointSize * 1.25).rounded()` with bounds `NSRect(x: 0, y: base.descender + 1, width: glyphSize, height: glyphSize)`, then a space in the base font and the text colour, then the name in the bold face in the persona's own colour",
+        "DroppyCode/UI/Markdown/MentionScanner.swift:1-33 matches(in:candidates:name:) - the shared longest-first, word-bounded scan, sorting candidates by name length descending and testing the character before and after each candidate occurrence with isLetter/isNumber",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:203-210 the comment 'Custom attribute, not .link: linkTextAttributes would recolour the name in the accent. No pointing hand either: a head chip keeps the normal arrow cursor. Its hover popover and its click still work; the hand is what a real link wears.' with `let headAttributes: [NSAttributedString.Key: Any] = [.hydraHead: target.url]` applied over the attachment's whole range",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:214-218 the name run `NSAttributedString(string: persona.name, attributes: [.font: bold, .foregroundColor: nsColor(persona), .hydraHead: target.url])`",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:247-249 `extension NSAttributedString.Key { static let hydraHead = NSAttributedString.Key(\"droppycode.hydraHead\") }`",
@@ -3520,14 +3528,16 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "The word-bounded, longest-first matching loop moves out of appendProse into the new shared UI.Markdown.MentionScanner (N10), called at :197 as `MentionScanner.matches(in:candidates:name:)`; MarkdownView.swift's mention scan (PR-THEME-*) uses the same function. The matching rule itself (longest name first; the character before and after must be neither a letter nor a number) is unchanged."
     },
     {
       "id": "PR-THEME-144",
       "title": "Hovering a link paragraph raises the pointing hand over links and shows a head's card over a mention, and clears both on exit",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1158-1193 the continuous hover: while active, the hand is pushed when the point is over a link and popped when it leaves, only on change; a head mention under the point whose name, URL and persona all agree shows the head popover anchored to the mention's rect, only when the hovered head changes; anything else hides it; on end the hand is popped and the popover hidden; the same happens on disappear",
-        "DroppyCode/UI/Markdown/ProseRunView.swift:27-59 the prose-run view repeats the same hover handling: `.onContinuousHover(coordinateSpace: .local)` pushing `NSCursor.pointingHand` only when `overLink != hand.wrappedValue`, showing `HydraHeadHoverPopover.shared.show(persona: persona, target: target, relativeTo: rect, of: view)` only when `hoveredHead.wrappedValue != target.threadID`, and on `.ended` and `.onDisappear` popping the hand and calling `HydraHeadHoverPopover.shared.hide()`",
+        "DroppyCode/UI/Markdown/LinkHover.swift:1-51 LinkHoverModifier - the shared continuous hover: while active, the hand is pushed when the point is over a link and popped when it leaves, only on change; a head mention under the point whose name, URL and persona all agree shows the head popover anchored to the mention's rect, only when the hovered head changes; anything else hides it; on end the hand is popped and the popover hidden; the same happens on disappear",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1119-1120 - `.modifier(LinkHoverModifier(linkView: linkBox, showsHand: $showsHand, hoveredHeadID: $hoveredHeadID, personas: hydraMentionPersonas, targets: targets))`",
+        "DroppyCode/UI/Markdown/ProseRunView.swift:24 - the prose-run view applies the identical `.modifier(LinkHoverModifier(...))`",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:339-350 the text view keeps no tracking areas and no cursor rects of its own, because rebuilding them every scrolled frame was a per-frame tax; the hover comes from the enclosing view instead",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:352-357 hasLink(at:) is true only for a real link; a head mention is clickable but keeps the arrow cursor",
         "DroppyCode/UI/Markdown/HydraHeadHoverPopover.swift - the card appears after a 250 millisecond hover delay, is measured at a pinned width of 300 points, and falls back to a height of 78 points"
@@ -3550,34 +3560,39 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation corrected, behaviour unchanged: ProseRunView.swift:213-245 lay beyond the end of the file (245 lines at B1, 244 at B2) -> B2 ProseRunView.swift:27-59, the same hover handler (B1 :28-60; B2 removed only B1 :7 `@Environment(\\.chatZoom) private var zoom`)."
+      "b2_change": "Citation corrected, behaviour unchanged: ProseRunView.swift:248-280 lay beyond the end of the file (245 lines at B1, 244 at B2) -> B2 ProseRunView.swift:27-59, the same hover handler (B1 :28-60; B2 removed only B1 :7 `@Environment(\\.chatZoom) private var zoom`).",
+      "b3_note": "Citation only: the duplicated hover handler that lived separately in MarkdownView.swift (B2 :1158-1193) and ProseRunView.swift (B2 :27-59) is extracted into one shared UI.Markdown.LinkHover (N9), `LinkHoverModifier`; both call sites now just apply `.modifier(LinkHoverModifier(...))` (MarkdownView.swift:1119-1120, ProseRunView.swift:24). The behaviour is unchanged; this closes the B2-era duplication the two prior citations recorded separately."
     },
     {
       "id": "PR-THEME-145",
-      "title": "Clicking a link opens it in the default browser; clicking a head mention opens that head's chat instead",
+      "title": "Clicking a link opens it through MarkdownLinkOpener, which treats a scheme-less absolute path as a local file; clicking a head mention opens that head's chat instead",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/LinkParagraphView.swift:90-100 the delegate's clickedOnLink: a URL value, or a string that parses as one, is opened with the workspace and the click is consumed; anything else is not handled",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:90-100 the delegate's clickedOnLink: a URL value, or a string that parses as one, is opened with `MarkdownLinkOpener.open(url)` and the click is consumed; anything else is not handled",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:226-245 `enum MarkdownLinkOpener { static func open(_ url: URL) { ... } }` - a URL with no scheme, no host, no query and no fragment, whose path starts with \"/\", opens as a local file URL. When that path does not exist as a file but stripping a trailing `:<positive integer>` leaves an existing non-directory path, the suffix is stripped first (`path[..<colon]`, checked with `fileExists(atPath:isDirectory:)`). Everything else, including any URL with a scheme, goes to `NSWorkspace.shared.open(url)` unchanged",
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:444-451 mouseDown: a head mention under the point calls the open-head handler and the event goes no further; otherwise the normal text behaviour runs",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1114 the handler passed in opens the head URL through the environment's URL opener"
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1114 the handler passed in opens the head URL through the environment's URL opener",
+        "DroppyCode/UI/Markdown/LinkPopover.swift:89 - the popover's \"Open Link\" item also calls MarkdownLinkOpener.open(url) (PR-THEME-147)"
       ],
       "preconditions": "A paragraph with links or mentions is on screen.",
       "action": "The user clicks a link or a mention.",
-      "expected_result": "A click on a link opens its URL in the system's default handler. A click on a head mention opens that head's chat through the app's own URL handling and does not select text or move the insertion point. A click on prose behaves as a normal text click and starts a selection.",
+      "expected_result": "A click on a link runs it through MarkdownLinkOpener.open. On macOS this only ever matters for a scheme-less absolute path such as \"/Users/me/app/main.swift:12\" (chat-model output can produce these): it opens as a local file, with a trailing \":<positive integer>\" suffix stripped first when the full path does not exist but the stripped path is an existing file (so \"main.swift:12\" opens \"main.swift\"; \":0\" and a negative number are left alone, since they are not \"a positive integer\"). Every other URL, including any with a scheme (http, https, mailto, and so on), goes to the system's default handler unchanged. A click on a head mention opens that head's chat through the app's own URL handling and does not select text or move the insertion point. A click on prose behaves as a normal text click and starts a selection.",
       "side_effects": [
-        "Launches the default browser for an external link",
+        "Opens a local file, or launches the default browser or handler for an external link",
         "Navigates within the app for a head mention"
       ],
       "persistence": "not persisted",
       "failure_cases": [
-        "A link value that is neither a URL nor a parseable string is ignored and the click falls through."
+        "A link value that is neither a URL nor a parseable string is ignored and the click falls through.",
+        "A scheme-less path that does not exist, with or without the suffix stripped: NSWorkspace.shared.open is still tried with the local file URL and fails silently (no error surfaced to the user)"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Opening an external URL hands it to the Windows shell. Note the head-mention click is intercepted before the text view sees it, which is why it does not disturb the selection.",
-      "verification_method": "interaction test: a mention click does not move the caret",
+      "windows_path": "UNRESOLVED pending owner decision O4 (drive-letter and UNC paths, and what a chat link may launch): Windows paths are `C:\\...` or `C:/...`, not `/...`, so a literal port of the \"/\"-rooted check never fires on Windows and every link falls through to the generic opener, where a bare drive-letter string parses with scheme \"C\" and fails against ShellExecuteW. Recommendation B (decisions_draft.md O4): treat Windows absolute paths (`C:\\...`, `C:/...`, the file-URL form `/C:/...`) as the local-file branch with the same `:line` suffix rule; never open a UNC path (`\\\\host\\share`, `file://host/...`) from a chat link, as a named safety deviation; and reveal a locally-runnable file type in File Explorer rather than launching it, also a named safety deviation. The generic opener (ShellExecuteW) must otherwise refuse a relative or scheme-less string it cannot resolve, rather than guessing.",
+      "verification_method": "interaction test: a mention click does not move the caret; unit: /abs/a.swift:12 opens the stripped path, :0 and a negative suffix are kept, a directory-prefixed path is kept, and a scheme/query/fragment URL goes to the default opener",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 introduces MarkdownLinkOpener (LinkParagraphView.swift:226-245), replacing the direct NSWorkspace.shared.open(url) call at the clickedOnLink delegate (:92, :96) and at LinkPopover's \"Open Link\" item (PR-THEME-147). Its Windows behaviour depends on OWNER decision O4, which this record's windows_path names but does not resolve; write the record from the Swift and revisit windows_path once O4 is decided."
     },
     {
       "id": "PR-THEME-146",
@@ -3613,15 +3628,15 @@
       "id": "PR-THEME-147",
       "title": "The link popover is 220 points wide and offers Open Link and Copy Link, with Merge above them on a merge or pull request link",
       "source_evidence": [
-        "DroppyCode/UI/Markdown/LinkPopover.swift:68-97 LinkPopoverContent: `VStack(alignment: .leading, spacing: 0)`; `if let request { PopoverItem(request.title, text: Text(\"\\(Text(\"Merge\").fontWeight(.semibold)) \\(Text(verbatim: request.label))\"), symbol: favicon == nil ? \"arrow.triangle.merge\" : nil, image: favicon) { merge(request) }; PopoverDivider() }`; `PopoverItem(\"Open Link\", symbol: \"safari\") { NSWorkspace.shared.open(url) }`; `PopoverItem(\"Copy Link\", symbol: \"link\") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(url.absoluteString, forType: .string) }`; `.padding(6)`, `.frame(width: 220, alignment: .leading)`. A request exists only when the chat can merge: `let request = mergeTarget == nil ? nil : MergeRequestLink(url: url)` (:29), and choosing it runs `self?.close()` then `mergeTarget?.merge(request)` (:30-33)",
+        "DroppyCode/UI/Markdown/LinkPopover.swift:68-97 LinkPopoverContent: `VStack(alignment: .leading, spacing: 0)`; `if let request { PopoverItem(request.title, text: Text(\"\\(Text(\"Merge\").fontWeight(.semibold)) \\(Text(verbatim: request.label))\"), symbol: favicon == nil ? \"arrow.triangle.merge\" : nil, image: favicon) { merge(request) }; PopoverDivider() }`; `PopoverItem(\"Open Link\", symbol: \"safari\") { MarkdownLinkOpener.open(url) }`; `PopoverItem(\"Copy Link\", symbol: \"link\") { NSPasteboard.general.clearContents(); NSPasteboard.general.setString(url.absoluteString, forType: .string) }`; `.padding(6)`, `.frame(width: 220, alignment: .leading)`. A request exists only when the chat can merge: `let request = mergeTarget == nil ? nil : MergeRequestLink(url: url)` (:29), and choosing it runs `self?.close()` then `mergeTarget?.merge(request)` (:30-33)",
         "DroppyCode/UI/Markdown/LinkPopover.swift:98-106 the favicon task: `guard request != nil, let host = url.host?.lowercased() else { return }`; `if let cached = FaviconCache.cached(host: host) { favicon = cached } else { favicon = await FaviconCache.image(for: host) }` (the fetch itself is PR-THEME-137)",
         "DroppyCode/UI/Markdown/LinkPopover.swift:4-7 doc: \"The popover a link in the chat opens on a right-click, in place of the system's text menu: the house rows, under the link. A merge or pull request link gets \\\"Merge\\\" first, wearing the forge's favicon; every link gets Open Link and Copy Link. One popover serves every link paragraph; opening it on another link moves it there.\""
       ],
       "preconditions": "The link popover is open.",
       "action": "The user reads it and chooses a row.",
-      "expected_result": "The popover is 220 points wide with 6 points of padding, its rows stacked leading-aligned with no spacing between them. Every link shows a row labelled exactly \"Open Link\" with a compass symbol and a row labelled exactly \"Copy Link\" with a link symbol. A merge or pull request link, in a chat that can merge, shows first a row whose text is the word \"Merge\" in semibold followed by the request's own label, wearing the forge host's favicon (or a merge-arrow symbol until the icon loads), then a divider. Open Link opens the URL in the default browser. Copy Link clears the clipboard and writes the URL's absolute string as plain text. Merge closes the popover and hands the request to the chat.",
+      "expected_result": "The popover is 220 points wide with 6 points of padding, its rows stacked leading-aligned with no spacing between them. Every link shows a row labelled exactly \"Open Link\" with a compass symbol and a row labelled exactly \"Copy Link\" with a link symbol. A merge or pull request link, in a chat that can merge, shows first a row whose text is the word \"Merge\" in semibold followed by the request's own label, wearing the forge host's favicon (or a merge-arrow symbol until the icon loads), then a divider. Open Link runs the URL through MarkdownLinkOpener.open (PR-THEME-145): almost always the default browser, except for the scheme-less absolute local-file case that record specifies. Copy Link clears the clipboard and writes the URL's absolute string as plain text. Merge closes the popover and hands the request to the chat.",
       "side_effects": [
-        "Open Link launches the browser",
+        "Open Link opens a local file or launches the browser, per MarkdownLinkOpener",
         "Copy Link writes the clipboard",
         "Merge closes the popover and starts a merge in the chat",
         "The Merge row may fetch a favicon"
@@ -3631,13 +3646,14 @@
         "Content that measures to a non-positive size falls back to 220 by 110 points."
       ],
       "cancellation": "Dismissing the popover cancels nothing that has started.",
-      "windows_path": "The three row labels are verbatim. The merge behaviour itself belongs to the GIT and HYDRAMERGE areas; this requirement fixes the popover's shape, its labels and its two universal actions.",
-      "verification_method": "interaction test: the row set with and without a merge target; unit: the three exact labels",
-      "status": "SPECIFIED",
+      "windows_path": "The three row labels are verbatim. Open Link's actual opening behaviour follows PR-THEME-145's MarkdownLinkOpener rule (UNRESOLVED pending owner decision O4). The merge behaviour itself belongs to the GIT and HYDRAMERGE areas; this requirement fixes the popover's shape, its labels and its two universal actions.",
+      "verification_method": "interaction test: the row set with and without a merge target; unit: the three exact labels; Open Link's opening behaviour is covered by PR-THEME-145's tests",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation corrected, behaviour unchanged: LinkPopover.swift:180-219, :210-218 and :116-119 lay beyond the end of the file (108 lines at B1 and at B2; the file is byte-identical between them) -> B2 LinkPopover.swift:68-97, :98-106 and :4-7; the doc quote is now verbatim (it puts Merge in quotation marks). At B2 the favicon it fetches comes from the host's own /favicon.ico (PR-THEME-137)."
+      "b2_change": "Citation corrected, behaviour unchanged: LinkPopover.swift:180-219, :210-218 and :116-119 lay beyond the end of the file (108 lines at B1 and at B2; the file is byte-identical between them) -> B2 LinkPopover.swift:68-97, :98-106 and :4-7; the doc quote is now verbatim (it puts Merge in quotation marks). At B2 the favicon it fetches comes from the host's own /favicon.ico (PR-THEME-137).",
+      "b3_note": "B3 changes Open Link's action from NSWorkspace.shared.open(url) to MarkdownLinkOpener.open(url) (LinkPopover.swift:89), the same change as PR-THEME-145's clickedOnLink delegate. Depends on OWNER decision O4 for the Windows path behaviour."
     },
     {
       "id": "PR-THEME-148",
@@ -3693,11 +3709,11 @@
       "cancellation": "not cancellable",
       "windows_path": "This path draws quotes with an indent and no capsule, and draws bullets as characters rather than as accent-coloured dots, so a finished message looks materially different from the same message mid-stream. That difference is upstream behaviour and must be reproduced, not harmonised.",
       "verification_method": "capture comparison: the same message streaming and finished; unit: the heading multipliers and the tab metrics",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Dimmed colour `NSColor.secondaryLabelColor` (B1 ProseRunView.swift:127) -> `NSColor.labelColor.withAlphaComponent(0.7)` (B2 :161); point size `(pointSize * zoom * 2).rounded() / 2` (B1 :18) -> `(pointSize * 2).rounded() / 2` (B2 :17), with the B1 `@Environment(\\.chatZoom)` (:7) removed. The previous citations (346-464) lay beyond the file (245 lines at B1, 244 at B2) and are replaced with B2 lines 17-243. Multipliers, markers, tabs and spacing are unchanged."
+      "b2_change": "Dimmed colour `NSColor.secondaryLabelColor` (B1 ProseRunView.swift:162) -> `NSColor.labelColor.withAlphaComponent(0.7)` (B2 :161); point size `(pointSize * zoom * 2).rounded() / 2` (B1 :18) -> `(pointSize * 2).rounded() / 2` (B2 :17), with the B1 `@Environment(\\.chatZoom)` (:7) removed. The previous citations (346-464) lay beyond the file (245 lines at B1, 244 at B2) and are replaced with B2 lines 17-243. Multipliers, markers, tabs and spacing are unchanged."
     },
     {
       "id": "PR-THEME-150",
@@ -3719,11 +3735,11 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the asymmetry as recorded. It is latent today because this path never activates the veil (the run path is used only for finished messages), so no clock is left running.",
       "verification_method": "unit: the six-input rebuild guard; the dismantle clears exactly three things",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "55",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation corrected, behaviour unchanged: ProseRunView.swift:277-298, :303-310 and :340-344 lay beyond the end of the file (245 lines at B1, 244 at B2) -> B2 ProseRunView.swift:56-77, :82-89 and :119-123 (B1 :92-113, :83-90, :120-124)."
+      "b2_change": "Citation corrected, behaviour unchanged: ProseRunView.swift:312-333, :303-310 and :340-344 lay beyond the end of the file (245 lines at B1, 244 at B2) -> B2 ProseRunView.swift:91-112, :82-89 and :119-123 (B1 :92-113, :83-90, :120-124)."
     },
     {
       "id": "PR-THEME-151",
@@ -3749,7 +3765,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "InlineText size `(pointSize * zoom * 2).rounded() / 2` (B1 MarkdownView.swift:1093) -> `(pointSize * 2).rounded() / 2` (B2 :1130), with B1's `@Environment(\\.chatZoom)` (:1106) removed. The baseline guides and the metrics cache are unchanged."
+      "b2_change": "InlineText size `(pointSize * zoom * 2).rounded() / 2` (B1 MarkdownView.swift:1129) -> `(pointSize * 2).rounded() / 2` (B2 :1130), with B1's `@Environment(\\.chatZoom)` (:1106) removed. The baseline guides and the metrics cache are unchanged."
     },
     {
       "id": "PR-THEME-152",
@@ -3794,7 +3810,7 @@
       "cancellation": "not cancellable; see PR-THEME-158 for what happens when a reply stops",
       "windows_path": "Grapheme-cluster offsets, never UTF-16 code units: a port indexing UTF-16 misplaces every fade after an astral character (markdown-link-grammar extract, gotcha 4).",
       "verification_method": "interaction test: a streaming reply's text does not move as it reveals",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3818,7 +3834,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All five constants are exact. The duration is per chunk and immutable; only the boost (PR-THEME-155) changes a chunk's effective speed after arrival.",
       "verification_method": "unit: the cadence recurrence and the clamp, including the first-append case",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3844,7 +3860,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the retroactive form exactly: applying the boost only to newly elapsed time would remove the backwards ramp and change how a fast stream looks.",
       "verification_method": "unit: progress for a fixed chunk decreases when the chunk count falls from 4 to 2",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3868,7 +3884,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact exponent 1.6; a linear fade reads visibly differently.",
       "verification_method": "unit: alpha at progress 0, 0.5 and 1",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3893,7 +3909,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The adoption rule is what stops a whole reply flashing in when the reader scrolls back to it. The clipping guard is a real crash fix.",
       "verification_method": "unit: a first advance registers no chunk; a truncating rewrite drops the affected chunks without error",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3920,7 +3936,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Resetting only when the message is no longer veiled, rather than when the chunks empty, is load-bearing: resetting on empty would make every flush after a pause arrive unveiled.",
       "verification_method": "unit: a pause between flushes keeps the baseline; the end of a reply clears it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3948,7 +3964,7 @@
       "cancellation": "The clock stops itself when its deadline passes.",
       "windows_path": "Platform boundary: a composition-synchronised callback at the same preferred rate. The scroll gate needs whatever the port uses to know the timeline is scrolling. Do not wrap the text in a per-frame timeline view: the source notes that would break list-marker baseline alignment mid-stream.",
       "verification_method": "interaction test: scrolling during a stream does not repaint fading paragraphs; the clock stops when the reply settles",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3972,7 +3988,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The clustering caveat is a real trap: a combining mark straddling a segment join counts as one character of the join and two of the parts.",
       "verification_method": "unit: a segment join across a combining mark does not throw; interaction test: a head name does not fade in",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4003,7 +4019,7 @@
       "cancellation": "Detaching the view stops the clock and clears the paint.",
       "windows_path": "Platform boundary: a temporary per-range foreground colour that does not invalidate layout. The difference in frame-rate pinning between this clock and the shared one is upstream behaviour (markdown-link-grammar extract, gotcha 11).",
       "verification_method": "interaction test: a streaming link paragraph's links stay accent-coloured as they fade in; the clock stops when the row scrolls away",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4398,7 +4414,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Glyph size `let size = 16 * zoom` (B1 MarkdownView.swift:450) -> `let size: CGFloat = 16` (B2 :490); re-cited B1 :490-494 -> B2 :489-493. The three name attributes and the plain fallback are unchanged."
+      "b2_change": "Glyph size `let size = 16 * zoom` (B1 MarkdownView.swift:491) -> `let size: CGFloat = 16` (B2 :490); re-cited B1 :490-494 -> B2 :489-493. The three name attributes and the plain fallback are unchanged."
     },
     {
       "id": "PR-THEME-178",
@@ -4597,6 +4613,62 @@
         "upstream": "The strip is drawn with `.chromeGlassCapsule()` (DroppyCode/UI/Chrome/ChromeSegmentedPicker.swift:39), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Where the window behind the control shows the desktop, an Acrylic-class Windows system material, without lensing, refraction or chromatic fringing; where the app draws its own backdrop (the wallpaper or the solid base), a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
       }
+    },
+    {
+      "id": "PR-THEME-185",
+      "title": "MarkdownLinkOpener.open decides between a local file and the system opener from the URL's own shape, independent of any caller",
+      "source_evidence": [
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:226-245 `enum MarkdownLinkOpener { static func open(_ url: URL) { ... } }`",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:228-232 - `guard url.scheme == nil, url.host == nil, url.query == nil, url.fragment == nil, url.path.hasPrefix(\"/\") else { NSWorkspace.shared.open(url); return }`",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:234-242 - when the local-file branch is taken: `var path = url.path`; if that path does not exist AND it ends in a colon followed by a positive integer, the substring up to that colon is checked; if IT exists and is not a directory, path is replaced with the stripped substring; either way, `NSWorkspace.shared.open(URL(fileURLWithPath: path))` runs last",
+        "DroppyCode/UI/Markdown/LinkParagraphView.swift:92, :96 - clickedOnLink's two call sites (PR-THEME-145)",
+        "DroppyCode/UI/Markdown/LinkPopover.swift:89 - the popover's Open Link row (PR-THEME-147)"
+      ],
+      "preconditions": "None; a pure function of one URL.",
+      "action": "Any caller opens a markdown link.",
+      "expected_result": "A URL with a scheme, a host, a query or a fragment always goes straight to NSWorkspace.shared.open(url) unchanged: the local-file branch requires ALL FOUR of scheme, host, query and fragment to be absent AND the path to start with \"/\". When that gate passes, the function tries the path as given first; only when a file does not exist at that exact path does it look for a trailing \":<positive integer>\" suffix (found via the LAST colon in the string), and only when the substring before that colon both exists on disk and is not a directory does it use the stripped substring instead. In every other combination (path exists as given; no colon; the colon-prefix does not exist; the colon-prefix is a directory; the suffix is not a positive integer, including \":0\" and a negative number) the original path is used unchanged. The final call is always `NSWorkspace.shared.open(URL(fileURLWithPath: path))` for the local-file branch, which silently does nothing observable to the caller if that file does not exist either.",
+      "side_effects": [
+        "Opens a file with its default application, or hands the URL to the system's default handler"
+      ],
+      "persistence": "None.",
+      "failure_cases": [
+        "A local-file-shaped path where nothing exists at either candidate: NSWorkspace.shared.open is still called and fails silently; no error is surfaced"
+      ],
+      "cancellation": "not cancellable; synchronous",
+      "windows_path": "UNRESOLVED pending OWNER decision O4. On Windows, `/x/a.swift:12` has no drive letter, so it is not how a user or a model would ever write an absolute Windows path; a genuine absolute path (`C:\\...`, `C:/...`) parses with scheme \"C\" and takes the generic-opener branch, which ShellExecuteW cannot resolve correctly. Recommendation B (decisions_draft.md O4): also treat `C:\\...`/`C:/...`/`/C:/...` as the local-file branch with the same `:<line>` stripping rule; never take a UNC path (`\\\\host\\share`, `file://host/...`) down the local-file branch or the generic opener, as a named safety deviation (it would send the user's Windows credentials to a host named in model output); and for a locally runnable file type, reveal it selected in File Explorer rather than launching it, also a named safety deviation.",
+      "verification_method": "unit: a table test over the four gating fields (scheme/host/query/fragment) each individually present; the exists/does-not-exist matrix for the path and its colon-stripped candidate; :0, a negative suffix, a non-numeric suffix and a directory-prefix all left unstripped",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New static helper at B3 (LinkParagraphView.swift:226-245), the routing target of PR-THEME-145 (clickedOnLink) and PR-THEME-147 (the link popover's Open Link row). Given its own atomic id so its decision procedure is testable once, independent of its three call sites. From impacts.json R3-52's new_records_needed, not folded per B3_PLAN 6.3."
+    },
+    {
+      "id": "PR-THEME-186",
+      "title": "A hint-less InlineText decides for itself whether its text has links, so a heading or a user bubble with a host-less local-path or mailto link still gets the native link path",
+      "source_evidence": [
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1095-1096 InlineText.body - `// Local file links have no host, but still need the native link opener.` then `let hasLinkText = hasLinks ?? RichLink.containsLinks(in: source, streaming: streaming)`",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:1085-1089 init(_:hasLinks:hugsContent:) - hasLinks defaults to nil, documented \"Set when the caller already branched on containsLinks, so the check runs once\"",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:303 the heading block case - `InlineText(text)`, passing no hasLinks hint",
+        "DroppyCode/App/Views/Chat/TimelineRows.swift:122 - the user message bubble: `InlineText(parts.body, hugsContent: true)`, also passing no hint",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:697 RichLink.containsLinks(in:streaming:) - PR-THEME-110's already-specified link detector"
+      ],
+      "preconditions": "InlineText is constructed with hasLinks left at its default of nil.",
+      "action": "The view's body is evaluated.",
+      "expected_result": "When a caller has already branched on RichLink.containsLinks itself (the paragraph and list-item block cases, which pass hasLinks: true or hasLinks: RichLink.containsLinks(...) explicitly), that cached answer is used and the check never runs twice. When a caller passes no hint at all, exactly two call sites at B3 (a heading's text, and a user message bubble's body), InlineText runs RichLink.containsLinks itself. Any run of links, including a host-less local-file path or a mailto: link with no visible scheme marker, takes the native LinkParagraphView rendering path (whose MarkdownLinkOpener then opens it, PR-THEME-145); with no links the text renders as the lighter-weight veiled Text path instead.",
+      "side_effects": [],
+      "persistence": "not persisted",
+      "failure_cases": [
+        "None expressed in source; a false negative from containsLinks would render a link as plain text, but that detector is specified separately (PR-THEME-110)."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Preserve the nil-coalescing exactly: a hint-less call site must still run the real link check, not default to false. Headings and the user's own message bubble are the two sites that rely on this at B3.",
+      "verification_method": "unit: a heading containing a host-less local-path link builds the LinkParagraphView path, not the veiled-Text path; a user bubble with a mailto link does the same; a hinted call site's explicit value is never overridden",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "b3_note": "New at B3 (MarkdownView.swift:1095-1096 is unchanged in line position from B2, but no prior THEME record stated this fallback decision; PR-THEME-110 covers only the paragraph and list-item block's explicit hints). From impacts.json R3-31's new_records_needed #1 (not folded; #2 is folded into PR-THEME-108 per B3_PLAN 6.3, provided the LAUNCH area records AppDelegate.swift:14's registration)."
     }
   ],
   "ui": [
@@ -4645,7 +4717,7 @@
         "DroppyCode/UI/Chrome/Chrome.swift:76-79"
       ],
       "notes": "The only hover feedback is the label opacity; the capsule itself does not change. The chevron never brightens. Glass material: owner-approved deviation OD-0005, not parity; see this record's deviation field. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005).",
-      "b2_change": "Chevron colour: Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). Capsule tokens (Chrome.swift:33-35) and hover (B1 Chrome.swift:96 -> B2 :98) unchanged; the button is still B2 SettingsView.swift:1159-1202.",
+      "b2_change": "Chevron colour: Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). Capsule tokens (Chrome.swift:33-35) and hover (B1 Chrome.swift:96 -> B2 :98) unchanged; the button is still B2 SettingsView.swift:1182-1225.",
       "deviation": {
         "decision": "OD-0005",
         "upstream": "The theme picker button is drawn with `.chromeGlassCapsule()` (DroppyCode/App/Views/Settings/SettingsView.swift:1189), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
@@ -5258,7 +5330,7 @@
         "DroppyCode/UI/Common/ChatFont.swift:6-10"
       ],
       "notes": "The two paths compute heading sizes differently (named text styles against multipliers), so the same heading can differ by a point between a streaming and a finished reply.",
-      "b2_change": "Streaming path: fonts scaled by the chat zoom (B1 MarkdownView.swift:377-384 with B1 ChatZoom.swift:45-70) -> plain text styles with no zoom (B2 MarkdownView.swift:376-383, ChatFont.swift:6-10); B1 DroppyCode/UI/Common/ChatZoom.swift (the `chatZoom` environment value and `Font.chat(_:weight:design:zoom:)`, which scaled `chatBaseSize(style) * zoom` at any zoom other than 1, :59-70) is deleted at B2 and nothing at B2 reads `chatZoom`. Prose run path: `(pointSize * zoom * 2).rounded() / 2` (B1 ProseRunView.swift:18) -> `(pointSize * 2).rounded() / 2` (B2 :17); the previous ProseRunView citation 393-417 lay beyond the file and is replaced by B2 :172-196. Quote colour: `.secondary` (B1 MarkdownView.swift:365) and `NSColor.secondaryLabelColor` (B1 ProseRunView.swift:127) -> Chrome.secondaryText (B2 MarkdownView.swift:364) and `NSColor.labelColor.withAlphaComponent(0.7)` (B2 ProseRunView.swift:126).",
+      "b2_change": "Streaming path: fonts scaled by the chat zoom (B1 MarkdownView.swift:377-384 with B1 ChatZoom.swift:45-70) -> plain text styles with no zoom (B2 MarkdownView.swift:376-383, ChatFont.swift:6-10); B1 DroppyCode/UI/Common/ChatZoom.swift (the `chatZoom` environment value and `Font.chat(_:weight:design:zoom:)`, which scaled `chatBaseSize(style) * zoom` at any zoom other than 1, :59-70) is deleted at B2 and nothing at B2 reads `chatZoom`. Prose run path: `(pointSize * zoom * 2).rounded() / 2` (B1 ProseRunView.swift:18) -> `(pointSize * 2).rounded() / 2` (B2 :17); the previous ProseRunView citation 393-417 lay beyond the file and is replaced by B2 :172-196. Quote colour: `.secondary` (B1 MarkdownView.swift:365) and `NSColor.secondaryLabelColor` (B1 ProseRunView.swift:162) -> Chrome.secondaryText (B2 MarkdownView.swift:364) and `NSColor.labelColor.withAlphaComponent(0.7)` (B2 ProseRunView.swift:161).",
       "status": "IMPLEMENTED"
     },
     {
@@ -5393,7 +5465,7 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1214-1248"
       ],
       "notes": "Code never wraps; it scrolls. The hover flag lives outside the block's own state so a pointer move does not re-lay out the text.",
-      "b2_change": "Fonts `.chat(.caption, zoom: zoom)` and `.chat(.callout, design: .monospaced, zoom: zoom)` (B1 MarkdownView.swift:1217, :1301) -> `.chat(.caption)` and `.chat(.callout, design: .monospaced)` (B2 :1290, :1301); label colour `.secondary` (B1 :1291) -> Chrome.secondaryText (B2 :1291). Re-cited at the same lines 1287-1321; geometry and panel colours unchanged.",
+      "b2_change": "Fonts `.chat(.caption, zoom: zoom)` and `.chat(.callout, design: .monospaced, zoom: zoom)` (B1 MarkdownView.swift:1290, :1301) -> `.chat(.caption)` and `.chat(.callout, design: .monospaced)` (B2 :1290, :1301); label colour `.secondary` (B1 :1291) -> Chrome.secondaryText (B2 :1291). Re-cited at the same lines 1287-1321; geometry and panel colours unchanged.",
       "status": "IMPLEMENTED"
     },
     {
@@ -5415,7 +5487,7 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1216-1218"
       ],
       "notes": "The fallback is the lower-case word \"code\". The info string is shown as written, not lower-cased, even though the delegation test lower-cases it.",
-      "b2_change": "Font `.chat(.caption, zoom: zoom)` (B1 MarkdownView.swift:1217) -> `.chat(.caption)` (B2 :1290); colour `.foregroundStyle(.secondary)` (B1 :1291) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1291). The \"code\" fallback is unchanged.",
+      "b2_change": "Font `.chat(.caption, zoom: zoom)` (B1 MarkdownView.swift:1290) -> `.chat(.caption)` (B2 :1290); colour `.foregroundStyle(.secondary)` (B1 :1291) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1291). The \"code\" fallback is unchanged.",
       "status": "IMPLEMENTED"
     },
     {
@@ -5441,7 +5513,7 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1398-1425"
       ],
       "notes": "The control keeps its space while invisible, so the header does not reflow on hover. What is copied is the reflowed text, not the raw text.",
-      "b2_change": "Colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1423) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1495); re-cited B1 :1472-1499 -> B2 :1471-1498. Glyphs, 22x22, 1.4 s and the \"Copy\" tooltip unchanged.",
+      "b2_change": "Colour `.foregroundStyle(.secondary)` (B1 MarkdownView.swift:1496) -> `.foregroundStyle(Chrome.secondaryText)` (B2 :1495); re-cited B1 :1472-1499 -> B2 :1471-1498. Glyphs, 22x22, 1.4 s and the \"Copy\" tooltip unchanged.",
       "status": "IMPLEMENTED"
     },
     {
@@ -5464,7 +5536,7 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1235-1244"
       ],
       "notes": "N is the full line count, which is one plus the number of line feeds. A block of exactly 120 lines shows no button.",
-      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1240-1241) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1313-1314). Strings and the 120 threshold unchanged.",
+      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1313-1314) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1313-1314). Strings and the 120 threshold unchanged.",
       "status": "IMPLEMENTED"
     },
     {
@@ -5488,7 +5560,7 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1284-1323"
       ],
       "notes": "Column alignment from the delimiter row is parsed and discarded; every cell is leading-aligned. A row with fewer cells than the header is padded with empty cells; extra cells in a row are dropped.",
-      "b2_change": "Re-cited only: B1 MarkdownView.swift:1285-1324 -> B2 :1357-1396, after B1's `@Environment(\\.chatZoom)` in TableBlock (:1342) was removed. The panel is unchanged.",
+      "b2_change": "Re-cited only: B1 MarkdownView.swift:1358-1397 -> B2 :1357-1396, after B1's `@Environment(\\.chatZoom)` in TableBlock (:1342) was removed. The panel is unchanged.",
       "status": "IMPLEMENTED"
     },
     {
@@ -5511,7 +5583,7 @@
         "DroppyCode/UI/Markdown/MarkdownView.swift:1311-1320"
       ],
       "notes": "Unlike the code block there is no collapse counterpart. N is the total row count.",
-      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1317-1318) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1389-1390); re-cited B1 :1385-1394 -> B2 :1384-1393. The string and the 30 threshold unchanged.",
+      "b2_change": "Font `.chat(.caption, zoom: zoom)` and colour `.secondary` (B1 MarkdownView.swift:1390-1391) -> `.chat(.caption)` and Chrome.secondaryText (B2 :1389-1390); re-cited B1 :1385-1394 -> B2 :1384-1393. The string and the 30 threshold unchanged.",
       "status": "IMPLEMENTED"
     },
     {
@@ -5621,13 +5693,14 @@
         "always present"
       ],
       "interactions": [
-        "click opens the URL in the default browser"
+        "click opens via MarkdownLinkOpener: the default browser for almost every URL, or a local file for a scheme-less absolute path (PR-THEME-145)"
       ],
       "source_evidence": [
-        "DroppyCode/UI/Markdown/LinkPopover.swift:88-90"
+        "DroppyCode/UI/Markdown/LinkPopover.swift:88-90 - `PopoverItem(\"Open Link\", symbol: \"safari\") { MarkdownLinkOpener.open(url) }`"
       ],
       "notes": "Both words capitalised.",
-      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:200-202 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:88-90."
+      "b2_change": "Citation corrected, unchanged: LinkPopover.swift:200-202 lay beyond the end of the file (108 lines at B1 and at B2) -> B2 LinkPopover.swift:88-90.",
+      "b3_note": "B3 changes the action from NSWorkspace.shared.open(url) to MarkdownLinkOpener.open(url), same line numbers (:89). See PR-THEME-145 (OWNER decision O4 pending for the Windows behaviour)."
     },
     {
       "id": "UI-THEME-045",
@@ -5669,11 +5742,12 @@
       "source_evidence": [
         "DroppyCode/UI/Markdown/LinkParagraphView.swift:179-223",
         "DroppyCode/UI/Markdown/MarkdownView.swift:385-404",
-        "DroppyCode/UI/Markdown/MarkdownView.swift:1170-1182",
+        "DroppyCode/UI/Markdown/LinkHover.swift:26-36 - the shared LinkHoverModifier's head-mention hover block",
         "DroppyCode/UI/Markdown/MarkdownView.swift:448-452"
       ],
       "notes": "Carries the custom attribute \"droppycode.hydraHead\" rather than a link attribute, precisely so it does not get the accent colour or the pointing hand. Head mention runs never veil while streaming.",
-      "b2_change": "Text-path glyph `let size = 16 * zoom` (B1 MarkdownView.swift:450) -> `let size: CGFloat = 16` (B2 :490). The native path and colours are unchanged.",
+      "b2_change": "Text-path glyph `let size = 16 * zoom` (B1 MarkdownView.swift:491) -> `let size: CGFloat = 16` (B2 :490). The native path and colours are unchanged.",
+      "b3_note": "Citation only: the head-mention hover-card trigger moves from MarkdownView.swift (B2 :1170-1182) into the shared UI.Markdown.LinkHover (N9) at LinkHover.swift:26-36, used identically by MarkdownView and ProseRunView (see PR-THEME-144).",
       "status": "IMPLEMENTED"
     },
     {

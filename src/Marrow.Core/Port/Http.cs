@@ -38,6 +38,12 @@ public sealed record URLRequest
     // Header fields in the order they were first set; names match case-insensitively and keep their first spelling.
     private (string Name, string Value)[] fields = [];
 
+    // ED-209 (OD-0022, extends ED-152). PORT-ONLY: upstream URLRequest carries no such marking; this is F.HTTP's
+    // hook for "a server's custom headers only to that server" (OD-0022's Services.MCP.MCPHub wording), the same
+    // treatment ED-152 already gives Authorization on a cross-origin redirect. Not part of URLRequest's Equatable
+    // conformance (Equals/GetHashCode below), since it is a port-only routing hint, not an observable Swift field.
+    private string[] originBoundFields = [];
+
     public URLRequest(Uri url, double timeoutInterval = DefaultTimeoutInterval)
     {
         Url = url;
@@ -89,6 +95,20 @@ public sealed record URLRequest
 
     /// <summary><c>allHTTPHeaderFields</c>, in the order they were set.</summary>
     internal IReadOnlyList<(string Name, string Value)> AllHTTPHeaderFields => fields;
+
+    /// <summary>
+    /// ED-209 (OD-0022): marks a header field (already set via <see cref="SetValue"/>) as origin-bound, so
+    /// <c>Redirected</c> drops it, the same as Authorization (ED-152), the moment a redirect changes scheme,
+    /// host or port, and keeps it across a same-origin hop. Idempotent; matches an existing mark case-insensitively.
+    /// </summary>
+    public URLRequest MarkOriginBound(string forHTTPHeaderField)
+    {
+        if (Array.Exists(originBoundFields, name => SameName(name, forHTTPHeaderField))) return this;
+        return this with { originBoundFields = [.. originBoundFields, forHTTPHeaderField] };
+    }
+
+    /// <summary>ED-209: the field names <see cref="MarkOriginBound"/> marked, for <c>Bytes</c> to seed the first hop.</summary>
+    internal IReadOnlyList<string> OriginBoundHeaderFields => originBoundFields;
 
     /// <summary><c>URLRequest.CachePolicy</c>, the two values the source uses (UpdateChecker.swift:103), with Foundation's raw values.</summary>
     public enum CachePolicy
@@ -182,22 +202,43 @@ public sealed class URLError(URLError.Code code) : Exception
 }
 
 /// <summary>
-/// Swift <c>URLCache</c>. The source gives it one value, nil (UpdateChecker.swift:104); the unit keeps the stores
-/// behind it: <c>URLCache.shared</c> for URLSession.shared, and a new memory-only cache for each
-/// <see cref="URLSessionConfiguration.Ephemeral"/> (ED-118 item 4).
+/// Swift <c>URLCache</c>. Before B3, the source gave it one value, nil (UpdateChecker.swift:104); the unit keeps
+/// the stores behind it: <c>URLCache.shared</c> for URLSession.shared, and a new memory-only cache for each
+/// <see cref="URLSessionConfiguration.Ephemeral"/> (ED-118 item 4). B3 52bc792 adds AppDelegate.swift:13
+/// <c>URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0)</c> at launch, so the
+/// constructor and <see cref="Shared"/>'s setter are now public for App.AppDelegate to call.
 /// UNVERIFIED O-33: a GET answer is stored when its status is 200-299, it came from the server, it carries explicit
 /// freshness (Cache-Control max-age, or Expires) and it is not no-store; it is answered from the store while fresh,
-/// its age measured on SwiftClock; no heuristic freshness and no size cut-off. Memory only (ED-118 item 5).
+/// its age measured on SwiftClock; no heuristic freshness and no size cut-off (ED-118 item 4 parks both numbers
+/// below: they are recorded, never enforced). Memory only (ED-118 item 5); disk capacity 0 needs no extra code,
+/// because this store has never written to disk.
 /// </summary>
 public sealed class URLCache
 {
     private readonly Lock gate = new();
     private readonly Dictionary<string, CachedResponse> entries = new(StringComparer.Ordinal);
 
-    internal URLCache() { }
+    internal URLCache() : this(0, 0) { }
 
-    /// <summary>Swift: <c>URLCache.shared</c>, the cache of URLSession.shared.</summary>
-    internal static URLCache Shared { get; } = new();
+    /// <summary>Swift: <c>URLCache(memoryCapacity:diskCapacity:)</c> (AppDelegate.swift:13, B3 52bc792).</summary>
+    public URLCache(long memoryCapacity, long diskCapacity)
+    {
+        MemoryCapacity = memoryCapacity;
+        DiskCapacity = diskCapacity;
+    }
+
+    /// <summary>Swift: <c>memoryCapacity</c>. Recorded, not enforced (ED-118 item 4, O-33 parks "no size cut-off").</summary>
+    public long MemoryCapacity { get; }
+
+    /// <summary>Swift: <c>diskCapacity</c>. Recorded, not enforced; this store is memory only regardless of its value.</summary>
+    public long DiskCapacity { get; }
+
+    /// <summary>
+    /// Swift: <c>URLCache.shared</c>, the cache of URLSession.shared. A plain settable static var, so
+    /// AppDelegate.swift:13 (B3 52bc792) can replace it at launch, before anything reads
+    /// <see cref="URLSession.Shared"/> or calls <see cref="URLSessionConfiguration.SharedDefault"/>.
+    /// </summary>
+    public static URLCache Shared { get; set; } = new();
 
     /// <summary>The stored answer for a GET of <paramref name="url"/> if it is still fresh at <paramref name="now"/>.</summary>
     internal CachedResponse? Fresh(Uri url, ContinuousInstant now)
@@ -631,7 +672,8 @@ public sealed class URLSession
         // timeoutIntervalForRequest; a request that sets its own interval keeps it (MCPProxy.swift:315 on the shared session).
         var idle = request.TimeoutInterval == URLRequest.DefaultTimeoutInterval ? timeoutIntervalForRequest : request.TimeoutInterval;
         var exchange = new Exchange(clock, SwiftTask.Seconds(idle), SwiftTask.Seconds(timeoutIntervalForResource), task);
-        var hop = new Hop(request.Url, request.HttpMethod, request.HttpBody, [.. request.AllHTTPHeaderFields], LeftOrigin: false);
+        var hop = new Hop(request.Url, request.HttpMethod, request.HttpBody, [.. request.AllHTTPHeaderFields], LeftOrigin: false,
+            [.. request.OriginBoundHeaderFields]);
         var readsCache = urlCache is not null && requestCachePolicy == URLRequest.CachePolicy.UseProtocolCachePolicy;
         for (var redirects = 0; ; redirects++)
         {
@@ -742,7 +784,9 @@ public sealed class URLSession
     /// The next hop: 303 becomes GET (RFC 9110 15.4.4), and so does a POST answered with 301 or 302 (15.4.2, 15.4.3);
     /// 307 and 308 repeat the method and body. A body dropped takes its content fields with it. UNVERIFIED O-29:
     /// to the same origin every other field is kept; after leaving the first origin (scheme, host and port),
-    /// Authorization is dropped for the rest of the chain, including configuration headers (ED-152).
+    /// Authorization is dropped for the rest of the chain, including configuration headers (ED-152). ED-209
+    /// (OD-0022): a caller-marked origin-bound field (URLRequest.MarkOriginBound; MCPWire.Post's server headers)
+    /// is dropped the same way, the moment the chain leaves the origin it started at, and never restored.
     /// </summary>
     private static Hop Redirected(Hop hop, int status, Uri target)
     {
@@ -758,8 +802,12 @@ public sealed class URLSession
         var sameOrigin = hop.Url.Scheme == target.Scheme &&
                          string.Equals(hop.Url.IdnHost, target.IdnHost, StringComparison.OrdinalIgnoreCase) &&
                          hop.Url.Port == target.Port;
-        if (!sameOrigin) fields.RemoveAll(f => f.Name.Equals("Authorization", StringComparison.OrdinalIgnoreCase));
-        return new Hop(target, method, body, [.. fields], hop.LeftOrigin || !sameOrigin);
+        if (!sameOrigin)
+        {
+            fields.RemoveAll(f => f.Name.Equals("Authorization", StringComparison.OrdinalIgnoreCase) ||
+                                   hop.OriginBoundFields.Any(name => f.Name.Equals(name, StringComparison.OrdinalIgnoreCase)));
+        }
+        return new Hop(target, method, body, [.. fields], hop.LeftOrigin || !sameOrigin, hop.OriginBoundFields);
     }
 
     /// <summary>allHeaderFields: every field as received; a repeated one joined with ", " in arrival order (O-30).</summary>
@@ -779,7 +827,8 @@ public sealed class URLSession
         return fields;
     }
 
-    private sealed record Hop(Uri Url, string Method, byte[]? Body, (string Name, string Value)[] Fields, bool LeftOrigin);
+    private sealed record Hop(Uri Url, string Method, byte[]? Body, (string Name, string Value)[] Fields, bool LeftOrigin,
+        string[] OriginBoundFields);
 
     /// <summary>
     /// One task's limits and end (R-NET-1, ED-068): the inactivity timer, re-armed before the request is written, at

@@ -100,4 +100,28 @@ public sealed class HttpProcessStateTests
         await (await arrivals.Next()).Respond(200, "OK", Ascii("v2"), ("Cache-Control", "max-age=600"));
         Assert.Equal(Ascii("v2"), (await stale.WaitAsync(Guard)).Data);
     }
+
+    [Fact]
+    [Trait("Decision", "ED-118")]
+    public void URLCache_shared_can_be_replaced_and_a_fresh_default_configuration_then_uses_the_replacement()
+    {
+        // AppDelegate.swift:13 (B3 52bc792): URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024,
+        // diskCapacity: 0), a plain settable static var (Swift: static var shared: URLCache). URLSession.Shared
+        // itself is a get-only singleton realized once, so it is not a safe probe for this in a shared test
+        // process (it may already have captured the pre-test URLCache.Shared); URLSessionConfiguration.SharedDefault
+        // reads URLCache.Shared fresh on every call and is what App.AppDelegate's launch call must run before, so
+        // it is the correct, deterministic seam to prove the reassignment through.
+        var original = URLCache.Shared;
+        try
+        {
+            var replacement = new URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0);
+            URLCache.Shared = replacement;
+            Assert.Same(replacement, URLCache.Shared);
+            Assert.Same(replacement, URLSessionConfiguration.SharedDefault().UrlCache);
+        }
+        finally
+        {
+            URLCache.Shared = original;
+        }
+    }
 }

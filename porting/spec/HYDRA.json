@@ -94,7 +94,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:46-50 -> B2 Hydra.swift:46-50; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:46-50 -> B2 Hydra.swift:46-50; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-005",
@@ -162,7 +162,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:103-106 -> B2 Hydra.swift:103-106; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:103-106 -> B2 Hydra.swift:103-106; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-008",
@@ -457,7 +457,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:273-280 -> B2 Hydra.swift:273-280; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:273-280 -> B2 Hydra.swift:273-280; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-020",
@@ -481,7 +481,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:284-292 -> B2 Hydra.swift:284-292; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:284-292 -> B2 Hydra.swift:284-292; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-021",
@@ -826,13 +826,13 @@
       "id": "PR-HYDRA-036",
       "title": "HydraPrompts.autoMergeRule is one exact paragraph, appended only when the launch auto-merges",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:708 private static let autoMergeRule",
+        "DroppyCode/Core/Models/Hydra.swift:708 private static let autoMergeRule = \"Droppy Code handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if it says Droppy Code retries by itself, say the work lands by itself and ask nothing; if merging failed or files are outside every project, give the stated reason and required user action. A merge never waits on another chat or session: never say it does, and never ask the user to merge. If nothing is pending, promise no merge. Never claim a merge without the note confirming it.\"",
         "DroppyCode/Core/Models/Hydra.swift:788 native policy - \\(autoMerges ? \"\\n\" + autoMergeRule + \"\\n\" : \"\")",
         "DroppyCode/Core/Models/Hydra.swift:967 fallback policy - \\(autoMerges ? \" \" + autoMergeRule : \"\")"
       ],
       "preconditions": "AppSettings.hydraAutoMerge is on, so HydraLaunch.autoMerges is true.",
       "action": "The lead policy is built.",
-      "expected_result": "The exact text: Marrow handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if merging failed or files are outside every project, give the stated reason and required user action. If nothing is pending, promise no merge. Never claim a merge without the note confirming it. In the native policy it is preceded by a newline and followed by a newline, on its own line after the last bullet. In the fallback policy it is preceded by a single space and stays inline.",
+      "expected_result": "The exact text: Marrow handles branches, commits and merge requests after all heads return and you finish. Never run or delegate those operations. For merge/status questions, use only the current [Hydra] note: if merged, give its link; if files remain, say they land when your answer ends; if it says Marrow retries by itself, say the work lands by itself and ask nothing; if merging failed or files are outside every project, give the stated reason and required user action. A merge never waits on another chat or session: never say it does, and never ask the user to merge. If nothing is pending, promise no merge. Never claim a merge without the note confirming it. In the native policy it is preceded by a newline and followed by a newline, on its own line after the last bullet. In the fallback policy it is preceded by a single space and stays inline.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -847,9 +847,10 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0012 F1",
-        "upstream": "DroppyCode/Core/Models/Hydra.swift:708 private static let autoMergeRule = \"Droppy Code handles branches, commits and merge requests after all heads return and you finish. ...\"",
-        "port": "\"Marrow handles branches, commits and merge requests after all heads return and you finish. ...\"; the rest of the paragraph and both joining conventions are unchanged."
-      }
+        "upstream": "DroppyCode/Core/Models/Hydra.swift:708 private static let autoMergeRule = \"Droppy Code handles branches, commits and merge requests after all heads return and you finish. ... if it says Droppy Code retries by itself, say the work lands by itself and ask nothing; ...\"",
+        "port": "\"Marrow handles branches, commits and merge requests after all heads return and you finish. ... if it says Marrow retries by itself, say the work lands by itself and ask nothing; ...\"; both occurrences of \"Droppy Code\" become \"Marrow\", and the rest of the paragraph and both joining conventions are unchanged."
+      },
+      "b3_note": "1.7.0 adds two sentences to autoMergeRule ('if it says Droppy Code retries by itself, ...' and 'A merge never waits on another chat or session: ...'), so OD-0012 F1 now renames two occurrences (B3 Hydra.swift:708)."
     },
     {
       "id": "PR-HYDRA-037",
@@ -1399,7 +1400,7 @@
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 2",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:273-280 -> B2 Hydra.swift:273-280; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:273-280 -> B2 Hydra.swift:273-280; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-059",
@@ -1526,7 +1527,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:1344-1348 -> B2 Hydra.swift:1433-1437 (code inserted above it); the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:1340-1344 -> B2 Hydra.swift:1429-1433 (code inserted above it); the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-064",
@@ -1574,33 +1575,40 @@
     },
     {
       "id": "PR-HYDRA-066",
-      "title": "mergeStatus renders eight shapes, and its failed branch omits the pending sentence",
+      "title": "mergeStatus renders nine shapes, and neither failed branch carries the pending sentence",
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:979-1022 static func mergeStatus(merges:unmergedFiles:now:) - files(count) is \"1 file\" or \"N files\"; when(date) is date.formatted(date: .omitted, time: .shortened); merged(record) is \"the team's work already merged as {label url} {in PROJECT} at {time} ({files}).\"; pendingLine(prefix) is \"{prefix} is not merged yet; it goes out by itself once you finish this answer with every head back.\" for one file and \"{prefix} are not merged yet; they go out by themselves once you finish this answer with every head back.\" for several",
         "DroppyCode/Core/Models/Hydra.swift:991-993 pending - pendingLine(\"N files changed since then\") when unmergedFiles > 0, else \"Nothing has changed since, so no merge is pending and none is coming.\"",
         "DroppyCode/Core/Models/Hydra.swift:994-997 no records - nil when unmergedFiles == 0, else \"Merge state: \" + pendingLine(\"N files changed in this chat\")",
-        "DroppyCode/Core/Models/Hydra.swift:998-1021 the five outcome branches: case .merged (:999-1000), case .failed (:1001-1002), case .held (:1003-1007), case .settled (:1008-1009), case .stray (:1010-1016)",
-        "DroppyCode/Core/Models/Hydra.swift:1003-1007 case .held: guard unmergedFiles > 0 else { return \"Merge state: the earlier wait has no recorded files left to merge. Do not claim a new merge or promise another one.\" }; return \"Merge state: the merge is waiting at \\(when(last.at)): \\(last.detail ?? \"another chat holds this job's files\") The work is still in the checkout. Explain the recorded dependency without assuming a completed chat needs more work: active work must finish, while completed jobs merge in order. Hydra retries automatically while this job remains eligible. Do not claim a successful merge.\"",
+        "DroppyCode/Core/Models/Hydra.swift:998-1021 the five outcome branches: case .merged (:999-1000), case .failed (:1001-1005), case .held (:1006-1011), case .settled (:1012-1013), case .stray (:1014-1020)",
+        "DroppyCode/Core/Models/Hydra.swift:1001-1005 case .failed: if last.retryable == true { return \"Merge state: the last try at \\(when(last.at)) did not land yet (\\(last.detail ?? \"no reason recorded\")). Droppy Code retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.\" }; return \"Merge state: the last merge failed at \\(when(last.at)): \\(last.detail ?? \"no reason recorded\"). The work is still in the checkout and goes out by itself once that is settled; if the reason needs the user (a sign-in, conflict markers, a real conflict with the remote), say exactly that.\"",
+        "DroppyCode/Core/Models/Hydra.swift:1006-1011 case .held: // Written only by earlier versions: a merge never waits on another chat now. guard unmergedFiles > 0 else { return \"Merge state: nothing from this job is left to merge. Do not claim a new merge or promise another one.\" }; return \"Merge state: \\(pendingLine(\"\\(files(unmergedFiles)) from this job\"))\"",
         "DroppyCode/Core/Models/Hydra.swift:1012-1013 case .settled: return \"Merge state: at \\(when(last.at)), Hydra found no recorded files left to merge. \\(pending) Do not describe this as a new merge.\"",
-        "DroppyCode/Core/Models/Timeline.swift:270-273 struct HydraMergeRecord - enum Outcome: String, Codable, Sendable { case merged, failed, stray, held, settled }; records of outcome .settled and .held are written at DroppyCode/App/AppModel+HydraMerge.swift:904 and :839"
+        "DroppyCode/Core/Models/Timeline.swift:271-273 struct HydraMergeRecord - /// `held` is no longer written: a merge never waits on another chat's files now. It /// stays so records written by earlier versions still decode. enum Outcome: String, Codable, Sendable { case merged, failed, stray, held, settled }; the .settled and .failed records are written at DroppyCode/App/AppModel+HydraMerge.swift:904 and :234, and nothing at B3 writes .held"
       ],
       "preconditions": "AppSettings.hydraAutoMerge is on, so the turn computes a merge status.",
       "action": "The merge note for the front of the lead's message is built.",
-      "expected_result": "Eight shapes. (1) No records and nothing unmerged: nil. (2) No records with files unmerged: 'Merge state: ' + pendingLine('N files changed in this chat'). (3) Last outcome merged: 'Merge state: ' + merged(last) + ' ' + pending. (4) Last outcome failed: 'Merge state: the last merge failed at {time}: {detail or \"no reason recorded\"}. The work is still in the checkout and is retried once you finish this answer; if the reason needs the user (a sign-in, a conflict), say exactly that.' (5) Last outcome held with no unmerged files: exactly 'Merge state: the earlier wait has no recorded files left to merge. Do not claim a new merge or promise another one.' (6) Last outcome held with unmerged files: 'Merge state: the merge is waiting at {time}: {detail or \"another chat holds this job's files\"} The work is still in the checkout. Explain the recorded dependency without assuming a completed chat needs more work: active work must finish, while completed jobs merge in order. Hydra retries automatically while this job remains eligible. Do not claim a successful merge.' (7) Last outcome settled: 'Merge state: at {time}, Hydra found no recorded files left to merge. {pending} Do not describe this as a new merge.' (8) Last outcome stray: the parts 'Merge state:', then merged(lastMergedRecord) if any merged record exists, then 'At {time} {detail or \"files were changed outside every project\"}', then pending, joined with single spaces. The pending sentence has its two forms as pendingLine gives them, or 'Nothing has changed since, so no merge is pending and none is coming.' with nothing unmerged. In merged(), the link is [record.label, record.url?.absoluteString] compacted and joined with a single space, and the scope is ' in PROJECT' when the record names a project.",
+      "expected_result": "Nine shapes. (1) No records and nothing unmerged: nil. (2) No records with files unmerged: 'Merge state: ' + pendingLine('N files changed in this chat'). (3) Last outcome merged: 'Merge state: ' + merged(last) + ' ' + pending. (4) Last outcome failed with retryable true: 'Merge state: the last try at {time} did not land yet ({detail or \"no reason recorded\"}). Droppy Code retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.' (PR-HYDRA-253). (5) Last outcome failed otherwise: 'Merge state: the last merge failed at {time}: {detail or \"no reason recorded\"}. The work is still in the checkout and goes out by itself once that is settled; if the reason needs the user (a sign-in, conflict markers, a real conflict with the remote), say exactly that.' (6) Last outcome held (a record only earlier versions wrote) with no unmerged files: exactly 'Merge state: nothing from this job is left to merge. Do not claim a new merge or promise another one.' (7) Last outcome held with unmerged files: 'Merge state: ' + pendingLine('N files from this job'), with N as files() gives it ('1 file' or 'N files'). (8) Last outcome settled: 'Merge state: at {time}, Hydra found no recorded files left to merge. {pending} Do not describe this as a new merge.' (9) Last outcome stray: the parts 'Merge state:', then merged(lastMergedRecord) if any merged record exists, then 'At {time} {detail or \"files were changed outside every project\"}', then pending, joined with single spaces. The pending sentence has its two forms as pendingLine gives them, or 'Nothing has changed since, so no merge is pending and none is coming.' with nothing unmerged. In merged(), the link is [record.label, record.url?.absoluteString] compacted and joined with a single space, and the scope is ' in PROJECT' when the record names a project. On Windows 'Droppy Code' in shape (4) reads 'Marrow' (OD-0012 F1).",
       "side_effects": [],
       "persistence": "None; read from the merge records.",
       "failure_cases": [
-        "The .failed branch does NOT append the pending sentence, so after a failed merge the lead is never told how many files are still unmerged even though the caller computed the number. Reproduce.",
-        "The .held branch interpolates the detail straight before ' The work is still in the checkout.' with no punctuation of its own. The only writer of a held record (AppModel+HydraMerge.swift:839, detail from heldDetail :846-851) always ends its detail with a period, so the run-on happens only with the built-in nil fallback \"another chat holds this job's files\", which has no closing period and reads '... holds this job's files The work is still in the checkout.'. Keep that literal verbatim."
+        "Neither .failed branch appends the pending sentence, so after a failed merge the lead is never told how many files are still unmerged even though the caller computed the number. Reproduce.",
+        "A failed record's detail is '<title>: <body>' as fail() builds it (PR-HYDRAMERGE-125), so shapes (4) and (5) quote the note's title and body run together, body line breaks included."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "when() uses the OS locale's short time format; on Windows use the same user-locale short time, not a fixed pattern.",
-      "verification_method": "contract fixture over all eight shapes with a pinned locale, including a held record with and without a detail",
+      "windows_path": "when() uses the OS locale's short time format; on Windows use the same user-locale short time, not a fixed pattern. Shape (4) says Marrow for Droppy Code (OD-0012 F1).",
+      "verification_method": "contract fixture over all nine shapes with a pinned locale, including a retryable and a non-retryable failure and a held record with and without unmerged files",
       "status": "IMPLEMENTED",
       "upstream_defect": "27",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 Hydra.swift:914-946 switched over .merged, .failed and .stray only -> B2 Hydra.swift:979-1021 adds case .held (:1003-1007, two shapes) and case .settled (:1008-1009) for the outcomes HydraMergeRecord.Outcome now has (Timeline.swift:273). The original branches and helpers are byte-identical."
+      "b2_change": "B1 Hydra.swift:914-946 switched over .merged, .failed and .stray only -> B2 Hydra.swift:979-1017 adds case .held (:1003-1007, two shapes) and case .settled (:1008-1009) for the outcomes HydraMergeRecord.Outcome now has (Timeline.swift:273). The original branches and helpers are byte-identical.",
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Models/Hydra.swift:1003 \"... did not land yet (...). Droppy Code retries it by itself within a minute; nothing is needed from the user, ...\"",
+        "port": "\"... did not land yet (...). Marrow retries it by itself within a minute; nothing is needed from the user, ...\"; every other shape is unchanged."
+      },
+      "b3_note": "1.7.0 splits .failed on retryable (a new 'did not land yet' text) and rewords the other, and replaces both held texts; the run-on nil-detail held case is gone (B3 Hydra.swift:1001-1011)."
     },
     {
       "id": "PR-HYDRA-067",
@@ -1737,7 +1745,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 fired when ThreadRuntime's own counter hydraDelegationRounds >= maxDelegationRounds (porting/extracts/hydra-prompt-corpus.md:1260-1269, a B1 extract); B2 removes that variable and gates on hydraBudget.canDelegate (ThreadRuntime.swift:2903), which is rounds < HydraPrompts.maxDelegationRounds in HydraDelegationBudget (Hydra.swift:571), and delivers the message through refuseBlock (ThreadRuntime.swift:2966-2973), which is capped by maxRefusals (PR-HYDRA-249). maxDelegationRounds (B1 Hydra.swift:847 -> B2 :912) and heldBackMessage (B1 :994-999 -> B2 :1066-1071) are unchanged."
+      "b2_change": "B1 fired when ThreadRuntime's own counter hydraDelegationRounds >= maxDelegationRounds (porting/extracts/hydra-prompt-corpus.md:1260-1269, a B1 extract); B2 removes that variable and gates on hydraBudget.canDelegate (ThreadRuntime.swift:2861), which is rounds < HydraPrompts.maxDelegationRounds in HydraDelegationBudget (Hydra.swift:571), and delivers the message through refuseBlock (ThreadRuntime.swift:2924-2931), which is capped by maxRefusals (PR-HYDRA-249). maxDelegationRounds (B1 Hydra.swift:847 -> B2 :912) and heldBackMessage (B1 :994-999 -> B2 :1066-1071) are unchanged."
     },
     {
       "id": "PR-HYDRA-073",
@@ -1762,13 +1770,13 @@
       "upstream_defect": "porting/extracts/hydra-prompt-corpus.md section 16 item 8",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:1122-1128 -> B2 Hydra.swift:1211-1217; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical. The text is unchanged. Past the refusal cap the same text now also reaches the lead as a drop notice (PR-HYDRA-250)."
+      "b2_change": "Citation only: B1 Hydra.swift:1118-1124 -> B2 Hydra.swift:1207-1213; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical. The text is unchanged. Past the refusal cap the same text now also reaches the lead as a drop notice (PR-HYDRA-250)."
     },
     {
       "id": "PR-HYDRA-074",
       "title": "reportMessage has three blocks separated by blank lines: the opening, the per-head sections, and the closing sentences joined by single spaces",
       "source_evidence": [
-        "DroppyCode/Core/Models/Hydra.swift:1314-1397 static func reportMessage(_ reports: [HydraReport], stillWorking: [String] = [], reviewsHeads: Bool = false) -> String - the final literal at :1386-1392 is opening, blank line, sections joined with \\n\\n, blank line, closing joined with a single space"
+        "DroppyCode/Core/Models/Hydra.swift:1314-1397 static func reportMessage(_ reports: [HydraReport], stillWorking: [String] = [], reviewsHeads: Bool = false) -> String - the final literal at :1390-1396 is opening, blank line, sections joined with \\n\\n, blank line, closing joined with a single space"
       ],
       "preconditions": "One or more Droppy-run heads of a batch have reported.",
       "action": "The report message for the lead is built.",
@@ -1785,7 +1793,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:1225-1308 -> B2 Hydra.swift:1314-1397; the per-report body now reads report.text.trimmed (:1332), identical to B1's trimmingCharacters(in: .whitespacesAndNewlines) (Text.swift:224)."
+      "b2_change": "Citation only: B1 Hydra.swift:1221-1304 -> B2 Hydra.swift:1310-1393; the per-report body now reads report.text.trimmed (:1332), identical to B1's trimmingCharacters(in: .whitespacesAndNewlines) (Text.swift:132)."
     },
     {
       "id": "PR-HYDRA-075",
@@ -1815,24 +1823,26 @@
       "title": "Each head's section is a level-two heading carrying name, task, outcome and effort, then an optional landing line, then the report body",
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:1322-1339 the per-report loop - outcome is \"\" for completed and running, \" (failed)\" for failed, \" (stopped by the user before finishing)\" for stopped; effort collects duration(elapsed) when elapsed >= 1 then \"1 tool\" or \"N tools\" when toolCalls > 0; took is \"\" or \" (\" + effort.joined(separator: \", \") + \")\"; lines = [\"## \\(persona.name): \\(report.task)\\(outcome)\\(took)\"]; the landing line is appended when non-nil; let body = report.text.trimmed; lines.append(body.isEmpty ? \"No report.\" : body)",
-        "DroppyCode/Core/Models/Hydra.swift:1420-1423 private static func duration(_ seconds:) - let total = Int(seconds); return total < 60 ? \"\\(total)s\" : \"\\(total / 60)m \\(total % 60)s\""
+        "DroppyCode/Core/Models/Hydra.swift:1420-1423 private static func duration(_ seconds: TimeInterval) -> String { Duration.seconds(Int(seconds)).formatted(.units(allowed: [.seconds, .minutes], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down))) }"
       ],
       "preconditions": "A head has reported.",
       "action": "Its section is built.",
-      "expected_result": "Header: '## ' + persona name + ': ' + task + outcome + took. outcome is empty for completed and for running, ' (failed)' for failed, ' (stopped by the user before finishing)' for stopped. took wraps the effort parts in parentheses with ', ' between them, duration first then tools. duration is 'Ns' under 60 seconds and 'Mm Ss' at or above, with integer truncation. The header is followed by the landing line when there is one, then by the trimmed report text, or by exactly 'No report.' when the text is empty after trimming. The three lines are joined by single newlines.",
+      "expected_result": "Header: '## ' + persona name + ': ' + task + outcome + took. outcome is empty for completed and for running, ' (failed)' for failed, ' (stopped by the user before finishing)' for stopped. took wraps the effort parts in parentheses with ', ' between them, duration first then tools. duration is the narrow minutes-and-seconds string of PR-HYDRA-254, over the elapsed time truncated to whole seconds. The header is followed by the landing line when there is one, then by the trimmed report text, or by exactly 'No report.' when the text is empty after trimming. The three lines are joined by single newlines.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
         "elapsed below 1 second contributes no duration part; toolCalls of 0 contributes no tools part; with neither, took is empty"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Exact template; integer truncation toward zero for duration.",
-      "verification_method": "contract fixture over each outcome and each effort combination",
+      "windows_path": "Exact template; the duration part comes from PR-HYDRA-254 and its reference-runtime fixtures, not from a hand-written template.",
+      "verification_method": "contract fixture over each outcome and each effort combination, with the duration strings of PR-HYDRA-254",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:1233-1250 -> B2 Hydra.swift:1322-1339; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:1229-1246 -> B2 Hydra.swift:1318-1335; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical.",
+      "open_question": "The exact duration strings are those of PR-HYDRA-254, which wait on a reference-runtime capture of Duration.UnitsFormatStyle (B3_PLAN.md 6.1 E1).",
+      "b3_note": "1.7.0 formats the duration with Duration.UnitsFormatStyle instead of the hand-built 'Ns' / 'Mm Ss' (B3 Hydra.swift:1420-1423)."
     },
     {
       "id": "PR-HYDRA-077",
@@ -2050,7 +2060,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraDelegationStream.swift:110-120 -> B2 :110-120; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical.",
+      "b2_change": "Citation only: B1 HydraDelegationStream.swift:110-120 -> B2 :110-120; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical.",
       "open_question": "Not closed by OD-0012 to OD-0014 or ED-059 to ED-063. Missing: TextCleanup.singleLine's truncation, which at B2 (DroppyCode/Core/Support/Text.swift:26-31) drops leading newlines, keeps the first line trimmed of spaces and tabs, and past the limit keeps limit - 1 Characters and appends U+2026; the record must state it for limit 60 and how Swift Character counts map to the port's string length."
     },
     {
@@ -2073,7 +2083,7 @@
       "upstream_defect": "28",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraDelegationStream.swift:113-117 -> B2 :113-117; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical; the shadowing is unchanged."
+      "b2_change": "Citation only: B1 HydraDelegationStream.swift:113-117 -> B2 :113-117; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical; the shadowing is unchanged."
     },
     {
       "id": "PR-HYDRA-088",
@@ -2097,7 +2107,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 Hydra.swift:1080-1084 -> B2 Hydra.swift:1169-1173; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 Hydra.swift:1076-1080 -> B2 Hydra.swift:1165-1169; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-089",
@@ -2569,7 +2579,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 AppModel+Hydra.swift:278-300 -> B2 :319-341; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical. Resolution order unchanged."
+      "b2_change": "Citation only: B1 AppModel+Hydra.swift:278-300 -> B2 :319-341; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical. Resolution order unchanged."
     },
     {
       "id": "PR-HYDRA-109",
@@ -2622,7 +2632,7 @@
         "upstream": "DroppyCode/App/AppModel+Hydra.swift:440 appends \"Hydra: no project named \\(reference) is in the sidebar or on this Mac, so \\(persona.name) works in \\(fallback).\"",
         "port": "Marrow appends \"Hydra: no project named {reference} is in the sidebar or on this PC, so {persona name} works in {fallback}.\"; the condition, the fallback words 'this chat's project' and the head creation are unchanged."
       },
-      "b2_change": "Citation re-anchored: B1 AppModel+Hydra.swift:397-400 -> B2 :438-441; the guard reads !reference.trimmed.isEmpty (Text.swift:224, the same trim) and the upstream note text is unchanged at B2. Not a B2 change: this refresh also applies owner ruling OD-0008 B4, so expected_result, windows_path and verification_method now say 'this PC' and the deviation block records the difference from upstream's 'this Mac'."
+      "b2_change": "Citation re-anchored: B1 AppModel+Hydra.swift:397-400 -> B2 :438-441; the guard reads !reference.trimmed.isEmpty (Text.swift:132, the same trim) and the upstream note text is unchanged at B2. Not a B2 change: this refresh also applies owner ruling OD-0008 B4, so expected_result, windows_path and verification_method now say 'this PC' and the deviation block records the difference from upstream's 'this Mac'."
     },
     {
       "id": "PR-HYDRA-111",
@@ -2968,7 +2978,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 AppModel+Hydra.swift:668-673 -> B2 :721-726; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 AppModel+Hydra.swift:668-673 -> B2 :721-726; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-123",
@@ -3069,7 +3079,7 @@
       "title": "waitForSettledCheckout polls every 250 ms for up to 30 minutes against the lead runtime's current-turn touched paths and lands anyway at the deadline",
       "source_evidence": [
         "DroppyCode/App/AppModel+Hydra.swift:816-833 private func waitForSettledCheckout(_ parentID: UUID, paths: [String]) async { guard let leadRuntime = existingRuntime(for: parentID) else { return }; let wanted = Set(paths); let deadline = Date.now.addingTimeInterval(30 * 60); while Date.now < deadline { let busy = leadRuntime.phase != .idle && !wanted.isEmpty && !wanted.isDisjoint(with: leadRuntime.hydraCurrentTurnTouchedPaths); guard busy || leadRuntime.isHydraMerging else { return }; guard (try? await Task.sleep(for: .milliseconds(250))) != nil else { return } } }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:500-504 @ObservationIgnored private(set) var hydraCurrentTurnTouchedPaths: Set<String> = [] - the paths the current turn has touched so far; fed by recordCurrentTurnEdits (:3428-3431, TouchedPaths.relative to workingRoot), noteHydraEdits (:3435-3440), native-head shell-command writes (:3465-3467) and the finished turn's set (:2381); reset at :624, :1205 and :1925; set to the turn's touchedPaths at :3716"
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:500-504 @ObservationIgnored private(set) var hydraCurrentTurnTouchedPaths: Set<String> = [] - the paths the current turn has touched so far; fed by recordCurrentTurnEdits (:3470-3473, TouchedPaths.relative to workingRoot), noteHydraEdits (:3477-3482), native-head shell-command writes (:3507-3509) and the finished turn's set (:2423); reset at :623, :1204 and :1925; set to the turn's touchedPaths at :3762"
       ],
       "preconditions": "A head's patch touches files the lead may be editing.",
       "action": "The landing waits for a safe moment.",
@@ -3086,7 +3096,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+Hydra.swift:769 !wanted.isDisjoint(with: hydraChatContext(for: parentID).touchedPaths) -> B2 AppModel+Hydra.swift:825 !wanted.isDisjoint(with: leadRuntime.hydraCurrentTurnTouchedPaths), a set the lead runtime keeps (ThreadRuntime.swift:504) that includes native heads' edits and shell-command writes. The comment at :818-820 gives the reason: a set intersection rather than a timeline walk on every look. Poll interval and deadline unchanged."
+      "b2_change": "B1 AppModel+Hydra.swift:769 !wanted.isDisjoint(with: hydraChatContext(for: parentID).touchedPaths) -> B2 AppModel+Hydra.swift:825 !wanted.isDisjoint(with: leadRuntime.hydraCurrentTurnTouchedPaths), a set the lead runtime keeps (ThreadRuntime.swift:505) that includes native heads' edits and shell-command writes. The comment at :818-820 gives the reason: a set intersection rather than a timeline walk on every look. Poll interval and deadline unchanged."
     },
     {
       "id": "PR-HYDRA-128",
@@ -3115,7 +3125,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 AppModel+Hydra.swift:789 landing.error = \"a rebase or merge is underway in the checkout\" -> B2 :851 \"a rebase or merge is underway in the checkout, or its git state cannot be read\". B2 also adds the landing stamps at :843-844. hasOperationInProgress (Git.swift:477-484) is unchanged; the three-way apply and the baseTree rule are unchanged."
+      "b2_change": "B1 AppModel+Hydra.swift:789 landing.error = \"a rebase or merge is underway in the checkout\" -> B2 :851 \"a rebase or merge is underway in the checkout, or its git state cannot be read\". B2 also adds the landing stamps at :843-844. hasOperationInProgress (Git.swift:372-379) is unchanged; the three-way apply and the baseTree rule are unchanged."
     },
     {
       "id": "PR-HYDRA-129",
@@ -3645,45 +3655,49 @@
     },
     {
       "id": "PR-HYDRA-152",
-      "title": "HydraCookbook.recipes holds exactly 10 recipes, strongest first, with these ids, titles, sides and caps",
+      "title": "HydraCookbook.recipes holds exactly 12 recipes, strongest first, with these ids, titles, sides and caps",
       "source_evidence": [
-        "DroppyCode/Core/Models/HydraCookbook.swift:29-42 static let recipes - claude-fable-opus, claude-opus-gemini-flash, claude-opus-deepseek, claude-opus-glm, claude-fable-composer, astra-spark, astra-terra, astra-astra, claude-opus-opus, claude-fable-fable",
-        "porting/extracts/hydra-prompt-corpus.md:1332-1358 the id, title, maxHeads and side tables"
+        "DroppyCode/Core/Models/HydraCookbook.swift:29-42 static let recipes - claude-fable-opus, claude-opus-gemini-flash, claude-opus-deepseek, claude-opus-glm, claude-fable-composer, astra-spark, astra-terra, astra-sol, sol-luna, astra-astra, claude-opus-opus, claude-fable-fable",
+        "DroppyCode/Core/Models/HydraCookbook.swift:37-38 - HydraPairRecipe(id: \"astra-sol\", title: \"Astra 6 leads Sol 5.6\", ..., lead: .init(providers: [.codex, .commandcode], models: [\"Astra\"], effort: \"high\"), heads: .init(providers: [.codex, .commandcode], models: [\"Sol\"], effort: \"medium\"), maxHeads: nil); HydraPairRecipe(id: \"sol-luna\", title: \"Sol 5.6 leads Luna 5.6\", ..., lead: .init(providers: [.codex, .commandcode], models: [\"Sol\"], effort: \"high\"), heads: .init(providers: [.codex, .commandcode], models: [\"Luna\"], effort: \"medium\"), maxHeads: nil)",
+        "porting/extracts/hydra-prompt-corpus.md:1332-1358 the id, title, maxHeads and side tables (a B2 transcription of the ten recipes; B3 renames 'Opus 5' to 'Opus 5.5' in five titles and adds the two above)"
       ],
       "preconditions": "The cookbook panel is being shown.",
       "action": "The recipes are listed.",
-      "expected_result": "Ten recipes in this exact order with these ids and titles: claude-fable-opus 'Fable 5.1 leads Opus 5' (no cap); claude-opus-gemini-flash 'Opus 5 leads Gemini 3.8 Flash' (cap 6); claude-opus-deepseek 'Opus 5 leads DeepSeek V4.1'; claude-opus-glm 'Opus 5 leads GLM-5.3 Flash'; claude-fable-composer 'Fable 5.1 leads Composer 2.5'; astra-spark 'Astra 6 leads Spark 1.3 Contributor'; astra-terra 'Astra 6 leads Terra 5.6'; astra-astra 'Astra 6 high, Astra 6 medium'; claude-opus-opus 'Opus 5 max, Opus 5 medium'; claude-fable-fable 'Fable 5.1 high, Fable 5.1 medium'. Only the second recipe carries a maxHeads, and it is 6. Each side lists its providers best first and its model name fragments best first, with the effort asked for.",
+      "expected_result": "Twelve recipes in this exact order with these ids and titles: claude-fable-opus 'Fable 5.1 leads Opus 5.5' (no cap); claude-opus-gemini-flash 'Opus 5.5 leads Gemini 3.8 Flash' (cap 6); claude-opus-deepseek 'Opus 5.5 leads DeepSeek V4.1'; claude-opus-glm 'Opus 5.5 leads GLM-5.3 Flash'; claude-fable-composer 'Fable 5.1 leads Composer 2.5'; astra-spark 'Astra 6 leads Spark 1.3 Contributor'; astra-terra 'Astra 6 leads Terra 5.6'; astra-sol 'Astra 6 leads Sol 5.6'; sol-luna 'Sol 5.6 leads Luna 5.6'; astra-astra 'Astra 6 high, Astra 6 medium'; claude-opus-opus 'Opus 5.5 max, Opus 5.5 medium'; claude-fable-fable 'Fable 5.1 high, Fable 5.1 medium'. Only the second recipe carries a maxHeads, and it is 6. Each side lists its providers best first and its model name fragments best first, with the effort asked for; astra-sol's lead is providers [codex, commandcode], models ['Astra'], effort 'high', over heads with providers [codex, commandcode], models ['Sol'], effort 'medium'; sol-luna's lead is providers [codex, commandcode], models ['Sol'], effort 'high', over heads with providers [codex, commandcode], models ['Luna'], effort 'medium'.",
       "side_effects": [],
       "persistence": "None; compile-time data.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Ten exact records. A recipe names models, not providers: each side lists the providers that serve its model and the first one set up on this machine whose catalogue has the model is the one the pair runs on.",
-      "verification_method": "unit asserting all ten ids, titles, caps and sides in order",
+      "windows_path": "Twelve exact records. A recipe names models, not providers: each side lists the providers that serve its model and the first one set up on this machine whose catalogue has the model is the one the pair runs on.",
+      "verification_method": "unit asserting all twelve ids, titles, caps and sides in order",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "1.7.0 inserts astra-sol and sol-luna at positions 8 and 9 and renames 'Opus 5' to 'Opus 5.5' in five titles (B3 HydraCookbook.swift:30-33, :37-38, :40)."
     },
     {
       "id": "PR-HYDRA-153",
-      "title": "The ten recipe taglines are exact user-visible strings",
+      "title": "The twelve recipe taglines are exact user-visible strings",
       "source_evidence": [
-        "DroppyCode/Core/Models/HydraCookbook.swift:30-39 the tagline of each recipe",
-        "porting/extracts/hydra-prompt-corpus.md:1360-1371 the ten taglines transcribed in order"
+        "DroppyCode/Core/Models/HydraCookbook.swift:30-41 the tagline of each recipe",
+        "DroppyCode/Core/Models/HydraCookbook.swift:37-38 - tagline: \"Astra plans and reviews; Sol heads take the complex building at medium.\"; tagline: \"Sol keeps the plan; quick Luna heads get through the routine parts.\"",
+        "porting/extracts/hydra-prompt-corpus.md:1360-1371 the ten B2 taglines transcribed in order (B3 adds the two above as the eighth and ninth)"
       ],
       "preconditions": "The cookbook panel is being shown.",
       "action": "Each recipe row draws its tagline.",
-      "expected_result": "In recipe order: (1) The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself. (2) A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them. (3) Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts. (4) Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat. (5) Fable thinks; Cursor's Composer heads type at the speed Composer is known for. (6) GPT-6 Astra orchestrates at high; Muse Spark Contributor heads build at medium. (7) OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium. (8) One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort. (9) Opus thinks as hard as it can where it counts; Opus heads at medium do the building. (10) For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.",
+      "expected_result": "In recipe order: (1) The deepest lead over the strongest builders: Fable plans and checks, Opus heads build. Set the thinking effort of each side yourself. (2) A careful lead and a wide, fast team: Opus writes the briefs, six Gemini Flash heads sprint through them. (3) Opus keeps the plan tight; DeepSeek V4.1 Flash heads keep the bill small on the routine parts. (4) Opus keeps the plan tight; GLM-5.3 Flash heads on a Z.ai Coding Plan keep the bill flat. (5) Fable thinks; Cursor's Composer heads type at the speed Composer is known for. (6) GPT-6 Astra orchestrates at high; Muse Spark Contributor heads build at medium. (7) OpenAI top to bottom: Astra plans and reviews, Terra does the work at medium. (8) Astra plans and reviews; Sol heads take the complex building at medium. (9) Sol keeps the plan; quick Luna heads get through the routine parts. (10) One model, two efforts: Astra thinks hard about the plan and the review, and Astra heads build at a working effort. (11) Opus thinks as hard as it can where it counts; Opus heads at medium do the building. (12) For the hardest, longest jobs: every seat on the most capable model, the lead at high and the heads at medium.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Ten exact strings.",
-      "verification_method": "contract fixture over all ten",
+      "windows_path": "Twelve exact strings.",
+      "verification_method": "contract fixture over all twelve",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "1.7.0 adds the taglines of astra-sol and sol-luna as the eighth and ninth; the other ten are unchanged (B3 HydraCookbook.swift:37-38)."
     },
     {
       "id": "PR-HYDRA-154",
@@ -4381,7 +4395,7 @@
       "title": "HydraLiveInfo.shown overlays the live activity and step count onto a running head's stored record, deliberately NOT the token total",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraPanel.swift:478-487 enum HydraLiveInfo - guard the stored status is .running and a runtime exists, else return the stored record; the activity is replaced when the runtime has one; toolCalls becomes max(stored, live)",
-        "DroppyCode/App/Views/Chat/HydraPanel.swift:475-479 doc comment - deliberately not the runtime's own hydraLiveInfo, which also reads the live token total: no line in the panel shows tokens, and a provider reports them many times a second, so following them here would redraw the row and the footer on every token the head spends"
+        "DroppyCode/App/Views/Chat/HydraPanel.swift:475-477 doc comment - A running head's record with the live progress the panel actually prints on top of it. Leaves out the live token total: the panel shows none, and following it would redraw the row and footer on every token the head spends."
       ],
       "preconditions": "A head row or footer is being drawn.",
       "action": "The shown record is resolved.",
@@ -4395,7 +4409,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: 1.7.0 shortens the doc comment (B3 HydraPanel.swift:475-477) and drops its mention of the runtime's own hydraLiveInfo; HydraLiveInfo.shown is unchanged (:478-487)."
     },
     {
       "id": "PR-HYDRA-180",
@@ -4404,21 +4419,23 @@
         "DroppyCode/App/Views/Chat/HydraPanel.swift:491-498 short - \"working\", \"done\", \"failed\", \"stopped\"",
         "DroppyCode/App/Views/Chat/HydraPanel.swift:500-511 long - running gives \"· \" plus the activity cut to 40 characters, or \"· working\"; completed gives \"· done\" plus the elapsed clause plus the steps clause plus \" · \" and the landing words when there are any; failed gives \"· failed\"; stopped gives \"· stopped\"",
         "DroppyCode/App/Views/Chat/HydraPanel.swift:513-524 footer - running gives the activity cut to 80 characters or \"Working\"; completed gives \"Done\" plus elapsed, steps, landing words and \" · \" plus the summary cut to 80; failed gives \"Failed\" plus \" · \" and the summary cut to 80; stopped gives \"Stopped\"",
-        "DroppyCode/App/Views/Chat/HydraPanel.swift:540-551 steps gives \" · 1 step\" or \" · N steps\" only when toolCalls > 0; elapsed gives \"\" without a finishedAt or when the whole seconds are not positive, else \" in Ns\" under a minute and \" in Mm Ss\" at or above"
+        "DroppyCode/App/Views/Chat/HydraPanel.swift:540-551 steps gives \" · 1 step\" or \" · N steps\" only when toolCalls > 0; elapsed gives \"\" without a finishedAt or when the whole seconds Int(finished.timeIntervalSince(info.startedAt)) are not positive, else \" in \" + Duration.seconds(seconds).formatted(.units(allowed: [.seconds, .minutes], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)))"
       ],
       "preconditions": "A head's state is being described.",
       "action": "One of the three registers is called.",
-      "expected_result": "short is one lowercase word. long is prefixed by a MIDDLE DOT U+00B7 and a space, and a running head's activity is truncated to 40 characters on one line. footer has no prefix, a running head's activity is truncated to 80 characters, and a completed or failed head appends its summary truncated to 80 after ' · '. The elapsed clause is ' in Ns' or ' in Mm Ss' with integer truncation and is omitted when the head has no finish time or took less than a whole second. The steps clause is ' · 1 step' or ' · N steps'.",
+      "expected_result": "short is one lowercase word. long is prefixed by a MIDDLE DOT U+00B7 and a space, and a running head's activity is truncated to 40 characters on one line. footer has no prefix, a running head's activity is truncated to 80 characters, and a completed or failed head appends its summary truncated to 80 after ' · '. The elapsed clause is ' in ' followed by the whole seconds (truncated) formatted by Foundation's Duration.UnitsFormatStyle with seconds and minutes allowed, narrow width, at most two units and the fraction hidden and rounded down, the same options as PR-HYDRA-254, and is omitted when the head has no finish time or took less than a whole second. The steps clause is ' · 1 step' or ' · N steps'. The exact elapsed strings are UNRESOLVED until captured on the reference runtime (B3_PLAN.md 6.1 E1).",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "The two truncation limits, 40 and 80, go through the shared single-line text helper and must match it.",
-      "verification_method": "unit over all four statuses in all three registers",
+      "windows_path": "The two truncation limits, 40 and 80, go through the shared single-line text helper and must match it. The elapsed strings come from reference-runtime fixtures of that formatter, not from a hand-written template.",
+      "verification_method": "unit over all four statuses in all three registers, with the elapsed strings taken from reference-runtime fixtures",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "The exact elapsed strings Duration.UnitsFormatStyle(allowed: [.seconds, .minutes], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)) gives on the reference runtime and locale (B3_PLAN.md 6.1 E1).",
+      "b3_note": "1.7.0 formats the elapsed clause with Duration.UnitsFormatStyle instead of the hand-built ' in Ns' / ' in Mm Ss' (B3 HydraPanel.swift:545-551)."
     },
     {
       "id": "PR-HYDRA-181",
@@ -4648,7 +4665,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraProgressBar.swift:452-481 -> B2 :452-481; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical (:458)."
+      "b2_change": "Citation only: B1 HydraProgressBar.swift:452-481 -> B2 :452-481; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical (:458)."
     },
     {
       "id": "PR-HYDRA-191",
@@ -4834,29 +4851,30 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraReportsPopover.swift:44-76 -> B2 :44-76; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 HydraReportsPopover.swift:44-76 -> B2 :44-76; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-199",
       "title": "parseHeader strips trailing parenthesised groups as outcome or effort, recognising a fixed set of meta words",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:88-119 private static func parseHeader(_ header:) - the name is everything before the first colon, trimmed, or the whole header when there is no colon; while the rest ends with ')' and holds a '(', the group is examined: it is meta when it lowercases to \"failed\", starts with \"stopped\", contains any decimal digit, or is one of the eight words low, medium, high, xhigh, max, minimal, fast, default; a non-meta group stops the walk; \"failed\" sets the outcome to failed, a \"stopped\" prefix sets it to stopped, and any other non-empty group is inserted at the FRONT of the efforts with \", \" replaced by \" · \"; the efforts are joined with \" · \" or nil when empty"
+        "DroppyCode/App/Views/Chat/HydraReportsPopover.swift:88-119 private static func parseHeader(_ header:) - the name is everything before the first colon, trimmed, or the whole header when there is no colon; while the rest ends with ')' and holds a '(', the group is examined: it is meta when it lowercases to \"failed\", starts with \"stopped\", contains any decimal digit, or is one of the nine words low, medium, high, xhigh, max, ultra, minimal, fast, default (:101 let metaEfforts: Set<String> = [\"low\", \"medium\", \"high\", \"xhigh\", \"max\", \"ultra\", \"minimal\", \"fast\", \"default\"]); a non-meta group stops the walk; \"failed\" sets the outcome to failed, a \"stopped\" prefix sets it to stopped, and any other non-empty group is inserted at the FRONT of the efforts with \", \" replaced by \" · \"; the efforts are joined with \" · \" or nil when empty"
       ],
       "preconditions": "A head section header is being parsed.",
       "action": "The name, task, outcome and effort are separated.",
-      "expected_result": "The name is the text before the first colon. Trailing parenthesised groups are peeled off the task from the right while they look like metadata. A group is metadata when it is exactly 'failed' ignoring case, when it starts with 'stopped' ignoring case, when it contains any decimal digit, or when it is one of exactly these eight effort words: low, medium, high, xhigh, max, minimal, fast, default. The first non-meta group stops the walk and stays part of the task. Commas inside an effort group become ' · '. Effort groups are collected front-first, so they read in their original left-to-right order, and are joined with ' · '.",
+      "expected_result": "The name is the text before the first colon. Trailing parenthesised groups are peeled off the task from the right while they look like metadata. A group is metadata when it is exactly 'failed' ignoring case, when it starts with 'stopped' ignoring case, when it contains any decimal digit, or when it is one of exactly these nine effort words: low, medium, high, xhigh, max, ultra, minimal, fast, default. The first non-meta group stops the walk and stays part of the task. Commas inside an effort group become ' · '. Effort groups are collected front-first, so they read in their original left-to-right order, and are joined with ' · '.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
         "A task legitimately ending in a parenthesised group containing a digit is misread as metadata and stripped"
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Exactly these eight effort words and these three meta tests.",
-      "verification_method": "unit over '(failed)', '(stopped by the user before finishing)', '(2m 7s, 14 tools)', '(high)' and a task ending in a real parenthesis",
+      "windows_path": "Exactly these nine effort words and these three meta tests.",
+      "verification_method": "unit over '(failed)', '(stopped by the user before finishing)', '(2m 7s, 14 tools)', '(high)', '(ultra)' and a task ending in a real parenthesis",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "1.7.0 adds 'ultra' to the meta effort words (B3 HydraReportsPopover.swift:101)."
     },
     {
       "id": "PR-HYDRA-200",
@@ -4880,7 +4898,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraReportsPopover.swift:131-155 -> B2 :131-155; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical (:135)."
+      "b2_change": "Citation only: B1 HydraReportsPopover.swift:131-155 -> B2 :131-155; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical (:135)."
     },
     {
       "id": "PR-HYDRA-201",
@@ -4906,7 +4924,7 @@
       "upstream_defect": "34",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "MOVED. B1 HydraReportsPopover.swift:157-160 private static let filePattern = try! NSRegularExpression(pattern: #\"^(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?$\"#), used by matchFile at :176-186 -> B2 :171-181 the same pattern as an inline Swift Regex, item.wholeMatch(of: #/(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?/#) (:173), with the U+2212 comment moved to :172; parseFiles moved from :162-174 to :157-169 and trims with .trimmed (Text.swift:224). Groups, integer parsing and the conflict flag are unchanged."
+      "b2_change": "MOVED. B1 HydraReportsPopover.swift:157-160 private static let filePattern = try! NSRegularExpression(pattern: #\"^(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?$\"#), used by matchFile at :176-186 -> B2 :171-181 the same pattern as an inline Swift Regex, item.wholeMatch(of: #/(\\S+) \\(\\+(\\d+) [−\\-](\\d+)\\)( with conflicts)?/#) (:173), with the U+2212 comment moved to :172; parseFiles moved from :162-174 to :157-169 and trims with .trimmed (Text.swift:132). Groups, integer parsing and the conflict flag are unchanged."
     },
     {
       "id": "PR-HYDRA-202",
@@ -4931,7 +4949,7 @@
       "upstream_defect": "26",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraReportsPopover.swift:196-201 -> B2 :191-196; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical."
+      "b2_change": "Citation only: B1 HydraReportsPopover.swift:196-201 -> B2 :191-196; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical."
     },
     {
       "id": "PR-HYDRA-203",
@@ -5073,7 +5091,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 HydraReportsPopover.swift:442-452 -> B2 :435-445; intro[start...].trimmingCharacters(in: .whitespacesAndNewlines) is now String(intro[start...]).trimmed (:443), the same trim (Text.swift:224)."
+      "b2_change": "Citation only: B1 HydraReportsPopover.swift:442-452 -> B2 :435-445; intro[start...].trimmingCharacters(in: .whitespacesAndNewlines) is now String(intro[start...]).trimmed (:443), the same trim (Text.swift:132)."
     },
     {
       "id": "PR-HYDRA-209",
@@ -5192,7 +5210,7 @@
       "cancellation": "not cancellable",
       "windows_path": "460 px width and 460 px scroll cap; eager layout. Host it outside the zoomed window tree: the app-wide zoom does not scale it. ED-059: each text style is set at the point size in upstream's B1 table (callout 12; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "capture comparison with and without a report",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5200,25 +5218,28 @@
     },
     {
       "id": "PR-HYDRA-214",
-      "title": "The head report caption and its colour follow the status, and its duration has three registers",
+      "title": "The head report caption and its colour follow the status, and its duration is the shared relative-time duration",
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:105-114 caption(for:) - the base is \"Finished\", \"Failed\", \"Stopped\" or \"Working\"; a finished head with a finish time appends \" · \" and the duration",
         "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:116-122 captionColor(for:) - Chrome.danger for failed, Chrome.warning for stopped, Chrome.secondaryText otherwise",
-        "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:124-126 duration(from:to:) - the seconds are clamped at zero; under 60 it is \"Ns\"; under 3600 it is \"M min\"; otherwise \"H h M min\""
+        "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:124-126 duration(from:to:) - RelativeTime.duration(to.timeIntervalSince(from))",
+        "DroppyCode/UI/Common/Components.swift:37-40 RelativeTime.duration - Duration.seconds(max(0, Int(interval.rounded()))).formatted(.units(allowed: [.seconds, .minutes, .hours], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)))"
       ],
       "preconditions": "A head report popover is being drawn.",
       "action": "The caption is built.",
-      "expected_result": "Exactly 'Working' while running, and 'Finished', 'Failed' or 'Stopped' otherwise, with ' · ' and the duration appended only when the head has a finish time. The duration is '45s' under a minute, '7 min' under an hour with whole minutes only, and '2 h 14 min' beyond. Note these are DIFFERENT registers from reportMessage's duration, which uses 'Ns' and 'Mm Ss'; do not unify them. The caption is red for failed, amber for stopped and secondary otherwise.",
+      "expected_result": "Exactly 'Working' while running, and 'Finished', 'Failed' or 'Stopped' otherwise, with ' · ' and the duration appended only when the head has a finish time. The duration is RelativeTime.duration of the time from start to finish (PR-CHAT-116): rounded to whole seconds, clamped at zero, and formatted by Foundation's Duration.UnitsFormatStyle with seconds, minutes and hours allowed, narrow width, at most two units and the fraction hidden and rounded down. It is the same register as the turn-duration line; its exact strings are UNRESOLVED until captured on the reference runtime (B3_PLAN.md 6.1 E1). The caption is red for failed, amber for stopped and secondary otherwise.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "Three registers with integer truncation and a zero clamp. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
-      "verification_method": "unit over 0 s, 45 s, 7 min and 2 h 14 min",
-      "status": "SPECIFIED",
+      "windows_path": "Use the shared relative-time duration, not a popover-specific format. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
+      "verification_method": "unit over 0 s, 45 s, 7 min and 2 h 14 min with the expected strings taken from reference-runtime fixtures of RelativeTime.duration",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "open_question": "The exact strings RelativeTime.duration's Duration.UnitsFormatStyle gives on the reference runtime and locale (B3_PLAN.md 6.1 E1).",
+      "b3_note": "1.7.0 replaces the popover's own '45s' / '7 min' / '2 h 14 min' register with RelativeTime.duration, which also rounds instead of truncating (B3 HydraHeadPopovers.swift:124-126)."
     },
     {
       "id": "PR-HYDRA-215",
@@ -5240,11 +5261,11 @@
       "cancellation": "not cancellable",
       "windows_path": "520 px, distinct from the report popover's 460 px. Host it outside the zoomed window tree: the app-wide zoom does not scale it. ED-059: each text style is set at the point size in upstream's B1 table (callout 12; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 HydraHeadPopovers.swift:170 .environment(\\.chatZoom, 1) -> removed at B2 (the per-chat zoom no longer exists; dd2b86ef UI/Common/ChatZoom.swift is deleted). The body font .system(size: 12) is now .system(.callout) (:161), the same 12 points. Width 520, caption 'Brief', the copy button and the 460 scroll cap are unchanged. B1 :134-175 -> B2 :133-173."
+      "b2_change": "B1 HydraHeadPopovers.swift:173 .environment(\\.chatZoom, 1) -> removed at B2 (the per-chat zoom no longer exists; dd2b86ef UI/Common/ChatZoom.swift is deleted). The body font .system(size: 12) is now .system(.callout) (:161), the same 12 points. Width 520, caption 'Brief', the copy button and the 460 scroll cap are unchanged. B1 :134-175 -> B2 :133-173."
     },
     {
       "id": "PR-HYDRA-216",
@@ -5262,7 +5283,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact sizes and the 3.5 percent overlay shade, which resolves per theme. ED-059: each text style is set at the point size in upstream's B1 table (callout 12, subheadline 11; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "verification_method": "capture comparison in light and dark",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5339,7 +5360,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Ten literal pixel values shared by the helper panel, the team panel, the popped-out panel and the usage panel.",
       "verification_method": "unit asserting each constant",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5364,7 +5385,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact arithmetic; the compact flag overrides a dragged height but not a dragged width.",
       "verification_method": "unit over a range of pane sizes, stack depths and dragged sizes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5387,7 +5408,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Three independent predicates; do not derive one from another.",
       "verification_method": "unit at pane widths straddling each threshold",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5407,7 +5428,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact arithmetic, so the panel lines up with the chat box on both sides.",
       "verification_method": "capture comparison at a wide pane, a medium pane and a narrow pane",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5429,7 +5450,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Exact slot arithmetic including the integer split.",
       "verification_method": "unit over 1, 2, 3 and 4 slots on both sides",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5451,7 +5472,7 @@
       "cancellation": "not cancellable",
       "windows_path": "56-point hysteresis and an 8-point inset.",
       "verification_method": "unit over a centre exactly on the middle, 55 points past and 57 points past",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5474,7 +5495,7 @@
       "cancellation": "Taking the handle's view out of its window mid-drag ends the drag and pops the cursor.",
       "windows_path": "120 ms carry, 80 ms rest, 4 ms minimum sample interval, 0.4/0.6 smoothing. OD-0013: the window live resize this record reacts to is the main window's, whose one-frame edge strip (probe P4) must be fixed before the window chrome is accepted; the behaviour specified here is unchanged.",
       "verification_method": "unit over a flick and a rested release with a synthetic pointer track",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5504,8 +5525,9 @@
       "id": "PR-HYDRA-227",
       "title": "The panel drag handle tracks the press itself, takes the first click even when the window is not key, and turns into a drag after 2 points",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/SubagentPanel.swift:646-675 PanelDragHandle - the cursor over the handle defaults to the open hand and the cursor while held to the closed hand; a grip passes a resize cursor for both; an optional double-click action",
-        "DroppyCode/App/Views/Chat/SubagentPanel.swift:677-737 PanelDragHandleView - acceptsFirstMouse is true; mouseDownCanMoveWindow is false so a press moves the panel and never the window; the cursor is a real cursor rect; slop is 2 points; mouseDown records the origin and fires the double-click action on clickCount 2; mouseDragged starts the drag once either axis has travelled at least the slop and pushes the drag cursor; mouseUp pops the cursor, reports the final travel and ends the drag; travel is measured in the window's coordinates with y INVERTED, because AppKit's y runs up and the panel's offset runs down",
+        "DroppyCode/App/Views/Chat/SubagentPanel.swift:646-666 PanelDragHandle - a View whose body is DragHandle(axis: .free, cursor: cursor, dragCursor: dragCursor, slop: 2, onChange: onDrag, onEnd: onDragEnd, onDoubleClick: onDoubleClick); the cursor over the handle defaults to the open hand and the cursor while held to the closed hand; a grip passes a resize cursor for both; an optional double-click action",
+        "DroppyCode/UI/Chrome/DragHandle.swift:6-267 DragHandleView - acceptsFirstMouse is true (:183); mouseDownCanMoveWindow is false so a press moves the panel and never the window (:185-186); the cursor is a real cursor rect (:188-192); mouseDown records the origin and fires the double-click action on clickCount 2 (:198-200); mouseDragged starts the drag once either axis has travelled at least the slop and pushes the drag cursor (:210-220); mouseUp pops the cursor, reports the final travel and ends the drag (:222-228); taken out of its window mid-drag it clears the drag and pops the cursor without ending it (:127-133); .free travel is (point.x - origin.x, origin.y - point.y), because AppKit's y runs up and the panel's offset runs down (:257-266)",
+        "DroppyCode/UI/Chrome/DragHandle.swift:269-304 DragHandle - the SwiftUI face of DragHandleView, applying axis, cursor, dragCursor, slop and the callbacks",
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:640-645 doc comment - a SwiftUI drag gesture here lost most presses to the transcript's scroll view beneath it"
       ],
       "preconditions": "The pointer is over a panel's strip or a resize grip.",
@@ -5521,10 +5543,11 @@
       "cancellation": "Losing the window cancels the drag.",
       "windows_path": "2-point slop, first-click-through, and a real cursor region. A DOM port must use pointer capture so the transcript's scroller cannot steal the drag.",
       "verification_method": "interaction test pressing without moving, moving 1 point, moving 3 points, and double-clicking a grip",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Citation only: 1.7.0 moves the press tracking of PanelDragHandleView (B2 SubagentPanel.swift:677-737) into the shared DragHandleView (B3 DragHandle.swift), configured as axis .free with a 2-point slop; the behaviour is unchanged."
     },
     {
       "id": "PR-HYDRA-228",
@@ -5545,7 +5568,7 @@
       "cancellation": "Releasing outside the pane still commits the clamped size.",
       "windows_path": "6-point edges, 16-point corner, exact tooltip.",
       "verification_method": "interaction test over each grip and the double-click reset",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5613,11 +5636,11 @@
       "cancellation": "The 0.9 s task restarts whenever the sending state changes.",
       "windows_path": "900 ms, a 24-character name cut, and exactly these two strings. Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005). OD-0013: the window live resize this record reacts to is the main window's, whose one-frame edge strip (probe P4) must be fixed before the window chrome is accepted; the behaviour specified here is unchanged. ED-059: each text style is set at the point size in upstream's B1 table (callout 12; B1:DroppyCode/UI/Common/ChatZoom.swift:44-57), in Inter (OD-0009), and scales only with the app's own zoom (UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001. ED-062: Chrome.secondaryText is Chrome.primaryText at opacity 0.7, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it.",
       "verification_method": "interaction test with a fake clock plus a capture comparison of both states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Citation only: B1 SubagentPanel.swift:365-413 -> B2 :365-413; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:224 defines as that exact call, so behaviour is identical (:375), and fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10) (:385)."
+      "b2_change": "Citation only: B1 SubagentPanel.swift:365-413 -> B2 :365-413; the B1 trimmingCharacters(in: .whitespacesAndNewlines) is now .trimmed, which Text.swift:132 defines as that exact call, so behaviour is identical (:375), and fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10) (:385)."
     },
     {
       "id": "PR-HYDRA-232",
@@ -5636,7 +5659,7 @@
       "cancellation": "Clicking away, or choosing 'Keep it working', cancels.",
       "windows_path": "300 px, exact strings with curly quotes, and the destructive styling on the stop row.",
       "verification_method": "capture comparison plus an interaction test over both rows and a click away",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5866,7 +5889,7 @@
         "DroppyCode/Core/Models/Hydra.swift:588-616 mutating func refuse(_ message: String) -> Bool { guard refusals < Self.maxRefusals else { noteDropped(message); return false }; refusals += 1; return true }; mutating func noteDropped(_ message: String) { dropNotice = HydraPrompts.droppedBlockNotice(message) }; mutating func takeDropNotice() -> String? { defer { dropNotice = nil }; return dropNotice }; static let maxRefusals = 3",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:2966-2973 private func refuseBlock(_ message: String, dropped: String) -> DelegationOutcome { guard hydraBudget.refuse(message) else { appendHydraNote(\"No heads went out\\n\\(dropped) The block was dropped from the reply.\"); return .none }; Task { await ensureLoaded(); await startTurn(text: message, attachments: [], hydraHeads: []) }; return .turnStarted }",
         "DroppyCode/App/Runtime/ThreadRuntime.swift:1344-1349 // Taken here, with the send about to run, so a turn that aborts while starting keeps it waiting. if let notice = hydraBudget.takeDropNotice() { prompt = notice + prompt }",
-        "dd2b86ef DroppyCode/App/Runtime/ThreadRuntime.swift:2706 private static let maxRefusedBlocks = 3 and :2841 guard hydraRefusedBlocks < Self.maxRefusedBlocks (B1: past the cap the block was dropped with the timeline note only)"
+        "dd2b86ef DroppyCode/App/Runtime/ThreadRuntime.swift:2664 private static let maxRefusedBlocks = 3 and :2841 guard hydraRefusedBlocks < Self.maxRefusedBlocks (B1: past the cap the block was dropped with the timeline note only)"
       ],
       "preconditions": "A lead keeps ending replies in delegation blocks that are refused (unreadable, or past the round limit) within one user request.",
       "action": "The runtime refuses each block.",
@@ -5891,7 +5914,7 @@
       "title": "A dropped block's notice is '[Hydra] ' plus the message plus a blank line, '---' and a blank line, prefixed to the lead's next prompt",
       "source_evidence": [
         "DroppyCode/Core/Models/Hydra.swift:1086-1092 /// ... Opens with [Hydra], which the policy tells the lead is /// Droppy Code speaking, not the user. static func droppedBlockNotice(_ message: String) -> String { \"[Hydra] \" + message + \"\\n\\n---\\n\\n\" }",
-        "DroppyCode/App/Runtime/ThreadRuntime.swift:1344-1349 prompt = notice + prompt, after the Hydra, delegation-request, anti-slop and continuation prefixes were added (:1300-1344)",
+        "DroppyCode/App/Runtime/ThreadRuntime.swift:1344-1349 prompt = notice + prompt, after the Hydra, delegation-request, anti-slop and continuation prefixes were added (:1299-1343)",
         "DroppyCode/Core/Models/Hydra.swift:1212 var message = \"[Hydra] Your delegation block could not be read, so no heads went out.\"",
         "DroppyCode/Core/Models/Hydra.swift:1070-1075 heldBackMessage(count:) begins \"Hydra held back ...\""
       ],
@@ -5938,9 +5961,9 @@
       "id": "PR-HYDRA-252",
       "title": "HydraRunMetricsView, its card and its reader are defined but nothing presents them, so no run-metrics card is shown",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:196-222 /// A run's recorded usage and head timings, hung under the panel's strip while it is open. ... struct HydraRunMetricsView: View { ... var body: some View { HydraRunMetricsCard(metrics: snapshot).equatable().task(id: heads.map(\\.id)) { ... } } }",
-        "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:226 private struct HydraRunMetricsCard: View, Equatable - private to the file, used only at :205",
-        "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:91-194 enum HydraRunMetricsReader - snapshot(leadTurns:heads:headTurns:), called only at :217",
+        "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:196-222 (B2 1fbf81e6 line range; the file is deleted at B3) /// A run's recorded usage and head timings, hung under the panel's strip while it is open. ... struct HydraRunMetricsView: View { ... var body: some View { HydraRunMetricsCard(metrics: snapshot).equatable().task(id: heads.map(\\.id)) { ... } } }",
+        "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:226 (B2 1fbf81e6; deleted at B3) private struct HydraRunMetricsCard: View, Equatable - private to the file, used only at :205",
+        "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:91-194 (B2 1fbf81e6; deleted at B3) enum HydraRunMetricsReader - snapshot(leadTurns:heads:headTurns:), called only at :217",
         "git -C E:/Droppy/reference/droppy-code-v1.6.2 grep -n HydraRunMetrics 1fbf81e61e28a079508a074c01ee1830a9cc23dc -- . : every match is in DroppyCode/App/Views/Chat/HydraRunMetricsView.swift (first at :11); the same holds at dd2b86ef",
         "porting/dead_code.md:41 entry 16 - [hydra] DroppyCode/App/Views/Chat/HydraRunMetricsView.swift, all 398 lines ... PORT ACTION: do not port; the register header (porting/dead_code.md:6-7): \"Anything here is excluded from the parity matrix as NOT_APPLICABLE_WITH_EVIDENCE, and the evidence is the entry itself.\""
       ],
@@ -5953,11 +5976,71 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not build or show the card: dead code per porting/dead_code.md entry 16 (PORT ACTION: do not port), so this record is NOT_APPLICABLE_WITH_EVIDENCE as that register requires. The file was read in full at B2 (398 lines) for this record; if a later baseline presents HydraRunMetricsView it needs records of its own then.",
       "verification_method": "source audit: git grep at B2 finds no reference to HydraRunMetricsView outside its own file; UI audit of the Windows build's Hydra panel, strip and popovers showing no usage-and-timings card",
-      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+      "status": "RETIRED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: porting/dead_code.md:41 entry 16 - DroppyCode/App/Views/Chat/HydraRunMetricsView.swift (all 398 lines) is never presented: every HydraRunMetrics reference at B2 is inside that file, so the card is neither implemented nor counted as missing (PORT ACTION: do not port)."
+      "not_applicable": "ED-061: porting/dead_code.md:41 entry 16 - DroppyCode/App/Views/Chat/HydraRunMetricsView.swift (all 398 lines) is never presented: every HydraRunMetrics reference at B2 is inside that file, so the card is neither implemented nor counted as missing (PORT ACTION: do not port).",
+      "retired": {
+        "reason": "HydraRunMetricsView.swift is deleted at B3, so the dead run-metrics card this record excluded no longer exists in the source: nothing defines or presents a recorded usage and timings card. The data it would have read is still recorded as specified elsewhere (PR-HYDRA-246, PR-HYDRA-247 and each turn's tokenSpends).",
+        "evidence": "git -C E:/Droppy/reference/droppy-code-v1.7.0 diff --name-status 1fbf81e6 52bc7926 -- DroppyCode/App/Views/Chat/HydraRunMetricsView.swift: `D` (all 398 lines removed); `git -C E:/Droppy/reference/droppy-code-v1.7.0 grep -n HydraRunMetrics 52bc7926 -- DroppyCode` finds nothing."
+      },
+      "b3_note": "Retired at 1.7.0: HydraRunMetricsView.swift is deleted (it was dead code at B2, porting/dead_code.md entry 16)."
+    },
+    {
+      "id": "PR-HYDRA-253",
+      "title": "The merge-state line after a retryable failure says a retry is under way and asks the lead not to raise it",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Hydra.swift:1001-1004 - case .failed: if last.retryable == true { return \"Merge state: the last try at \\(when(last.at)) did not land yet (\\(last.detail ?? \"no reason recorded\")). Droppy Code retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.\" }",
+        "DroppyCode/Core/Models/Hydra.swift:981 - func when(_ date: Date) -> String { date.formatted(date: .omitted, time: .shortened) }",
+        "DroppyCode/Core/Models/Hydra.swift:708 - autoMergeRule: \"if it says Droppy Code retries by itself, say the work lands by itself and ask nothing\""
+      ],
+      "preconditions": "AppSettings.hydraAutoMerge is on and the lead's last HydraMergeRecord is .failed with retryable true (PR-HYDRAMERGE-132).",
+      "action": "mergeStatus builds the merge note for the front of the lead's message.",
+      "expected_result": "Exactly \"Merge state: the last try at <time> did not land yet (<detail>). Droppy Code retries it by itself within a minute; nothing is needed from the user, so do not ask for anything or describe it as a problem. Do not claim a successful merge.\", where <time> is the record's time as the locale's short time with no date and <detail> is the record's detail verbatim, or \"no reason recorded\" when it has none. No pending sentence is appended, however many files are unmerged. On Windows \"Droppy Code\" reads \"Marrow\" (OD-0012 F1), matching the autoMergeRule sentence that tells the lead how to answer this note (PR-HYDRA-036).",
+      "side_effects": [
+        "Text prepended to the lead's prompt"
+      ],
+      "persistence": "None; read from the merge records.",
+      "failure_cases": [
+        "The detail is '<title>: <body>' (PR-HYDRAMERGE-125), so the parentheses can hold several paragraphs of the failure note."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "Verbatim string with Marrow for Droppy Code; the locale's short time as for the other shapes.",
+      "verification_method": "contract fixture with a pinned locale over a retryable record with and without a detail and with unmerged files, asserting no pending sentence",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "deviation": {
+        "decision": "OD-0012 F1",
+        "upstream": "DroppyCode/Core/Models/Hydra.swift:1003 \"... Droppy Code retries it by itself within a minute; ...\"",
+        "port": "\"... Marrow retries it by itself within a minute; ...\"; the rest of the sentence is unchanged."
+      },
+      "b3_note": "New at 1.7.0 (B3 Hydra.swift:1001-1004)."
+    },
+    {
+      "id": "PR-HYDRA-254",
+      "title": "A head report's duration is Foundation's narrow minutes-and-seconds duration of the elapsed whole seconds",
+      "source_evidence": [
+        "DroppyCode/Core/Models/Hydra.swift:1420-1423 - private static func duration(_ seconds: TimeInterval) -> String { Duration.seconds(Int(seconds)).formatted(.units(allowed: [.seconds, .minutes], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down))) }",
+        "DroppyCode/Core/Models/Hydra.swift:1331 - if let elapsed = report.elapsed, elapsed >= 1 { effort.append(duration(elapsed)) }"
+      ],
+      "preconditions": "A head's report is being written into the lead's report message and its elapsed time is at least one second.",
+      "action": "duration(_:) formats the elapsed time.",
+      "expected_result": "The elapsed TimeInterval is truncated to whole seconds with Int(seconds) and Duration.seconds of that is formatted with Foundation's Duration.UnitsFormatStyle: allowed units seconds and minutes only (hours are not among them), width .narrow, at most two units, and the fractional part hidden and rounded down. The report header uses the result as its first effort part (PR-HYDRA-076). The exact strings the formatter produces (for example at 45, 60, 127 and 3725 seconds, whether a zero-seconds unit is shown, and the spacing between units) are those of the reference runtime and are UNRESOLVED until captured there (B3_PLAN.md 6.1 E1).",
+      "side_effects": [],
+      "persistence": "None.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "Reproduce Foundation's Duration.UnitsFormatStyle output for exactly these options from fixtures captured on the reference runtime; do not substitute a hand-written \"Mm Ss\" template.",
+      "verification_method": "contract fixture over 1, 45, 60, 61, 127, 3599 and 3725 seconds, with the expected strings captured from the pinned 1.7.0 build",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "open_question": "The exact strings Duration.UnitsFormatStyle(allowed: [.seconds, .minutes], width: .narrow, maximumUnitCount: 2, fractionalPart: .hide(rounded: .down)) produces on the reference runtime and locale (B3_PLAN.md 6.1 E1).",
+      "b3_note": "New at 1.7.0: B2 built 'Ns' / 'Mm Ss' by hand (B3 Hydra.swift:1420-1423)."
     }
   ],
   "ui": [
@@ -6412,10 +6495,12 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraPanel.swift:171-175",
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:305-309",
-        "DroppyCode/App/Views/Chat/SubagentPanel.swift:646-737"
+        "DroppyCode/App/Views/Chat/SubagentPanel.swift:646-666",
+        "DroppyCode/UI/Chrome/DragHandle.swift:183-232"
       ],
       "notes": "Invisible, like a window's title bar with no title; the cursor says what it does. It takes the first click even when the window is not key, and nothing under it can claim the drag once it has begun.",
-      "status": "IMPLEMENTED"
+      "status": "IMPLEMENTED",
+      "b3_note": "Citation only: the strip's press tracking moved from B2 SubagentPanel.swift:677-737 into the shared DragHandleView (B3 DragHandle.swift:183-232), with the same 2-point slop, cursors and first-click behaviour."
     },
     {
       "id": "UI-HYDRA-021",
@@ -6583,7 +6668,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "At most three bars sweep at once app-wide; with twenty heads out, the canvas redraws and render passes alone saturated the main thread and the GPU queue and froze the app. Staves are filled one path per colour, not one per stave.",
-      "b2_change": "Citation only: B1 HydraProgressBar.swift:122-209 -> B2 :122-209; the only change inside the range is the counts line font, .system(size: 11) -> .system(.subheadline) (:180), the same 11 points, which this record does not state."
+      "b2_change": "Citation only: B1 HydraProgressBar.swift:122-209 -> B2 :122-209; the only change inside the range is the counts line font, .system(size: 11) -> .system(.subheadline) (:180), the same 11 points, which this record does not state.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-028",
@@ -6632,7 +6718,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "Reads \"3 edits · 2 commands · 5 reads\" in that fixed order with the zero parts left out; singular forms are \"edit\", \"command\", \"read\". The accessibility sentence uses commas instead and is exactly \"Nothing done yet\" when empty.",
-      "b2_change": "Citation re-anchored: B1 HydraProgressBar.swift:178-183 -> B2 HydraProgressBar.swift:178-183. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraProgressBar.swift:178-183 -> B2 HydraProgressBar.swift:178-183. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-030",
@@ -6850,7 +6937,7 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "The sentence begins just after the last period before the match and runs to the END of the intro, not to the next period.",
-      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:310-315 -> B2 HydraReportsPopover.swift:303-308. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged. The stillAtWorkSentence citation moved from B1 :442-452 to B2 :435-445 and trims with .trimmed (Text.swift:224, the same trim).",
+      "b2_change": "Citation re-anchored: B1 HydraReportsPopover.swift:310-315 -> B2 HydraReportsPopover.swift:303-308. Typography was \".system(size: 11).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged. The stillAtWorkSentence citation moved from B1 :442-452 to B2 :435-445 and trims with .trimmed (Text.swift:132, the same trim).",
       "status": "IMPLEMENTED"
     },
     {
@@ -7072,7 +7159,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :52 callout 12 | :53 subheadline 11"
       ],
       "notes": "The faint shade is what makes the header read as the panel's top and the report as its page.",
-      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:4-48 -> B2 HydraHeadPopovers.swift:4-48. Typography was \"Name .system(size: 14, weight: .semibold); caption .system(size: 11, weight: .medium) with monospaced digits on one line; title .system(size: 12) on at most three lines.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:4-48 -> B2 HydraHeadPopovers.swift:4-48. Typography was \"Name .system(size: 14, weight: .semibold); caption .system(size: 11, weight: .medium) with monospaced digits on one line; title .system(size: 12) on at most three lines.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-048",
@@ -7094,10 +7182,13 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:105-126",
         "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:21-27 HydraPopoverHeader draws the caption - Text(caption).font(.system(.subheadline, weight: .medium)).foregroundStyle(captionColor).monospacedDigit().lineLimit(1)",
-        "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
+        "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11",
+        "DroppyCode/UI/Common/Components.swift:37-40 RelativeTime.duration, which HydraHeadReportPopover.duration(from:to:) returns (HydraHeadPopovers.swift:124-126)"
       ],
-      "notes": "The duration here is \"45s\" under a minute, \"7 min\" under an hour and \"2 h 14 min\" beyond, which is a DIFFERENT register from the report message's \"2m 7s\". Do not unify them.",
-      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:106-127 -> B2 HydraHeadPopovers.swift:105-126. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged."
+      "notes": "The duration is RelativeTime.duration (PR-HYDRA-214, PR-CHAT-116): rounded to whole seconds, clamped at zero, and formatted by Foundation's Duration.UnitsFormatStyle with seconds, minutes and hours allowed, narrow width and at most two units, the same register as the turn-duration line. Its exact strings are UNRESOLVED until captured on the reference runtime (B3_PLAN.md 6.1 E1).",
+      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:106-130 -> B2 HydraHeadPopovers.swift:105-129. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged.",
+      "status": "IMPLEMENTED",
+      "b3_note": "1.7.0 replaces the popover's own '45s' / '7 min' / '2 h 14 min' register with RelativeTime.duration (B3 HydraHeadPopovers.swift:124-126)."
     },
     {
       "id": "UI-HYDRA-049",
@@ -7117,7 +7208,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/HydraHeadPopovers.swift:72"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-050",
@@ -7137,7 +7229,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :52 callout 12"
       ],
       "notes": "Distinct from the reports popover's \"No report.\"; both strings exist and differ.",
-      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:80-83 -> B2 HydraHeadPopovers.swift:80-83. Typography was \".system(size: 12).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:80-83 -> B2 HydraHeadPopovers.swift:80-83. Typography was \".system(size: 12).\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-051",
@@ -7158,7 +7251,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :53 subheadline 11"
       ],
       "notes": "The brief popover is 520 points wide, not 460 like the report popover, and its copy button is unconditional.",
-      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:149 -> B2 HydraHeadPopovers.swift:148. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged."
+      "b2_change": "Citation re-anchored: B1 HydraHeadPopovers.swift:152 -> B2 HydraHeadPopovers.swift:151. Typography was \".system(size: 11, weight: .medium) with monospaced digits.\"; the caption is drawn by HydraPopoverHeader, whose caption font is .system(.subheadline, weight: .medium) at B2 :23 (B1 .system(size: 11, weight: .medium)); body 13, callout 12 and subheadline 11 points per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:51-53 chatBaseSize (the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom), so the rendered size is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-052",
@@ -7464,7 +7558,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:44-57 Font.chatBaseSize, the table ED-059 takes text-style point sizes from (the file is deleted at B2): :52 callout 12"
       ],
       "notes": "The name is the chat's title reduced to a single line of at most 24 characters and trimmed, falling back to exactly \"Helper\". One capsule, one anchor, one size and one corner radius across both states, so the send morphs into the working box with no jump. The sending state clears after 0.9 seconds. The ellipsis is U+2026. Glass: OD-0005 applies (where the window shows the desktop, a Windows system material of the Acrylic class, with no lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing, drawn by the SKSL shader over app content per OD-0008's restatement in owner_decisions_pending.md:51); an owner-approved deviation, not parity. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the desktop shows through as Acrylic plus the app-drawn scrim (OD-0005). OD-0013: the window live resize this record reacts to is the main window's, whose one-frame edge strip (probe P4) must be fixed before the window chrome is accepted; the behaviour specified here is unchanged.",
-      "b2_change": "Citation re-anchored: B1 SubagentPanel.swift:365-413 -> B2 SubagentPanel.swift:365-413. Typography was \".system(size: 12) on one line, with an opacity content transition between the two texts.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged."
+      "b2_change": "Citation re-anchored: B1 SubagentPanel.swift:365-413 -> B2 SubagentPanel.swift:365-413. Typography was \".system(size: 12) on one line, with an opacity content transition between the two texts.\"; fixed .system(size: N) fonts are now text styles of the same macOS point size (text-style point sizes per dd2b86ef DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (B1; the file is deleted at B2, where DroppyCode/UI/Common/ChatFont.swift:6-10 returns Font.system(style) with no zoom): title2 17, title3 15, body 13, callout 12, subheadline 11, footnote 10, caption2 10), so the rendered point sizes are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-067",
@@ -7503,7 +7598,8 @@
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:424",
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:430"
       ],
-      "notes": null
+      "notes": null,
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-069",
@@ -7519,7 +7615,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:425"
       ],
-      "notes": "Reads exactly: “{chat title}” is still working. Closing the panel stops its turn. What it has done so far stays, and its chat moves to the sidebar under this one. The title is wrapped in U+201C and U+201D."
+      "notes": "Reads exactly: “{chat title}” is still working. Closing the panel stops its turn. What it has done so far stays, and its chat moves to the sidebar under this one. The title is wrapped in U+201C and U+201D.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-070",
@@ -7539,7 +7636,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:427"
       ],
-      "notes": "Symbol stop.circle."
+      "notes": "Symbol stop.circle.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-071",
@@ -7557,7 +7655,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:428"
       ],
-      "notes": "Symbol arrow.uturn.backward. Its action body is empty in source; clicking away has the same effect."
+      "notes": "Symbol arrow.uturn.backward. Its action body is empty in source; clicking away has the same effect.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-072",
@@ -7580,7 +7679,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:593-638"
       ],
-      "notes": "Invisible, like a window's edges; the cursor says what they do. The size is written to AppSettings.panelSize once the grip lets go, not during the drag."
+      "notes": "Invisible, like a window's edges; the cursor says what they do. The size is written to AppSettings.panelSize once the grip lets go, not during the drag.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRA-073",
@@ -7625,7 +7725,7 @@
         "DroppyCode/App/Views/Chat/SubagentPanel.swift:271-291"
       ],
       "notes": "The panel's compact height is 280 points, which is room for the strip, a two-line task over the bar and the chat box under them. The elapsed time is NOT here; it sits in the strip's capsule.",
-      "b2_change": "Citation only: B1 HydraProgressBar.swift:452-481 -> B2 :452-481; the only change inside the range is the task trim, now .trimmed (:458), the same call (Text.swift:224).",
+      "b2_change": "Citation only: B1 HydraProgressBar.swift:452-481 -> B2 :452-481; the only change inside the range is the task trim, now .trimmed (:458), the same call (Text.swift:132).",
       "status": "IMPLEMENTED"
     }
   ]

@@ -12,6 +12,7 @@ engineering decision rather than a new one:
 - the five upstream layering violations are dropped as edges, because the recorded resolutions move
   the offending code up a layer (HANDOFF section 9; MCP.swift's MCPProxy and Storage.root use moves
   to Services, WallpaperStore to App, MarkdownView's hydra rendering becomes an App-supplied hook);
+  at B3 upstream fixed all five (swift_deps.py reports 0 violations), so the set no longer matches an edge;
 - a unit whose records are all IMPLEMENTED or VERIFIED and none flagged "rework" is DONE and is not
   scheduled; its dependents treat it as satisfied.
 Cycles (strongly connected components) are marked so the workflow can generate C# skeletons for a
@@ -90,7 +91,18 @@ def project(f):
     return {'Core': 'Marrow.Core', 'Services': 'Marrow.Services', 'UI': 'Marrow.UI', 'App': 'Marrow.App'}[layer]
 
 
+# B3 (AM-0003): C# files that already hold a new Swift file's code, so the unit maps onto them (B3_PLAN.md section 3).
+# N3: the port made MCPCatalogEntry+Resolve's move into MCPResolver.cs before upstream did (architecture V1).
+# N4: MCPPaths stays in Models/MCP.cs (ED-177) until the batch-6 relocation.
+TARGET_OVERRIDES = {
+    'DroppyCode/Services/MCP/MCPCatalogEntry+Resolve.swift': 'src/Marrow.Services/MCP/MCPResolver.cs',
+    'DroppyCode/Services/MCP/MCPPaths.swift': 'src/Marrow.Services/Models/MCP.cs',
+}
+
+
 def target(f):
+    if f in TARGET_OVERRIDES:
+        return TARGET_OVERRIDES[f]
     m = re.match(r'^DroppyCode/(Core|Services|UI|App)/(.+)\.swift$', f)
     return f'src/{project(f)}/{m.group(2)}.cs'
 

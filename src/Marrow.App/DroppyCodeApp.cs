@@ -12,11 +12,9 @@ using Marrow.Core.Support;
 // development build (ED-005) and is not ported. HangWatchdog.start() (:17) is the one step actually called here.
 // The scene body (:21-25) has no port target: PR-WIN-001/PR-WIN-002's own windows_path says the Windows shell owns
 // no scene graph and builds no menu bar (OD-0008 C3); the single AppModel this file's body would construct on
-// first access to WindowManager.shared.model is instead constructed by WindowManager itself, once that unit exists
-// (still MARROW_STUB, App/Window/WindowManager.cs:29-30).
-// AppDelegate.swift (:5's @NSApplicationDelegateAdaptor) is a separate Swift file and a separate, not yet started
-// unit; the reopen-on-second-launch path ED-002 requires (applicationShouldHandleReopen) is its content, not this
-// file's, so it is not implemented here either. Program.cs documents the same dependency.
+// first access to WindowManager.shared.model is constructed by WindowManager itself (App/Window/WindowManager.cs).
+// :5's @NSApplicationDelegateAdaptor is Program.cs's `new AppDelegate()` handed to the shell (Port/AppShell.cs); the
+// reopen-on-second-launch path ED-002 requires is AppDelegate.swift:36-39, reached through Port/ReopenSignal.cs.
 
 namespace Marrow.App;
 
@@ -34,19 +32,18 @@ public static class DroppyCodeApp
     // AppInfo.isDevelopment's own "iordv.droppycode" vs "iordv.droppycode.dev" split (project.yml, AssemblyInfo.cs).
 #if DEBUG
     private const string SingleInstanceLockName = "Local\\Marrow.SingleInstance.Dev";
+    internal const string ReopenSignalName = "Local\\Marrow.Reopen.Dev";
 #else
     private const string SingleInstanceLockName = "Local\\Marrow.SingleInstance.Release";
+    internal const string ReopenSignalName = "Local\\Marrow.Reopen.Release";
 #endif
 
     /// <summary>
     /// True and holding <paramref name="handle"/> when this is the only running instance; false when another
     /// instance already holds the lock, in which case the caller must dispose nothing (there is nothing to
     /// dispose) and exit. The reopen path ED-002 specifies for that case - bring the existing main window forward
-    /// and activate the app, exactly AppDelegate.swift:30-33's applicationShouldHandleReopen - is not implemented
-    /// here: it belongs to the not yet ported App.AppDelegate unit, which owns applicationShouldHandleReopen, and
-    /// to WindowManager.ShowMain(), also not yet ported. A second launch here simply exits without disturbing the
-    /// first instance, which is a safe (if incomplete) subset of the ruled behavior: it never contends for the
-    /// store root, it just does not yet re-front the running window.
+    /// and activate the app, AppDelegate.swift:36-39's applicationShouldHandleReopen - is Program.cs's: the second
+    /// launch sets the running instance's <see cref="ReopenSignalName"/> signal (Port/ReopenSignal.cs) before it exits.
     /// </summary>
     public static bool TryAcquireSingleInstanceLock(out Mutex? handle) =>
         TryAcquireSingleInstanceLock(SingleInstanceLockName, out handle);

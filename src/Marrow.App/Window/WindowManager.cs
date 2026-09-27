@@ -26,9 +26,10 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // properties; `.tint` and `.buttonBorderShape(.capsule)` are UI/Chrome/Popovers.cs's (R-VIEW-6).
 // NOT PORTED: makeCaptureWindow(size:) (:74-78) is reachable only from the website capture run (dead_code.md 39;
 // ED-001), so it is not declared.
-// Not written here (STOP App.Window.WindowManager #2 and #3 in the tests): the OD-0008 C1 quit on the main window's
-// close (App.AppDelegate, PR-LAUNCH-074) and the ED-063 caption WndProc hook that sits beside WindowChrome.configure
-// (:101). UI-SETTINGS-001 (the Settings window, :21, :80-84, :92-99) is this file's as far as building, placing,
+// The OD-0008 C1 quit on the main window's close (PR-LAUNCH-074) is the application shell's (Port/AppShell.cs): it sets
+// MainWindowClose below, which the close handler of makeWindow (:98) runs for the main window in place of ordering it
+// out (closes STOP App.Window.WindowManager #2). Not written here (STOP #3 in the tests): the ED-063 caption WndProc
+// hook that sits beside WindowChrome.configure (:101). UI-SETTINGS-001 (the Settings window, :21, :80-84, :92-99) is this file's as far as building, placing,
 // opening and keeping the window go; its SettingsView.swift half and its openers are STOP #4, and the Acrylic hint
 // OD-0014 names for the clear window (WindowChrome.swift:116-117, reached from :101) is STOP #5. The three
 // window.center() calls (:43, :68, :82) are not written: AppKit's placement is unsettled (STOP #6).
@@ -70,6 +71,16 @@ public sealed class WindowManager
     // (STOP App.Window.WindowManager #1); nothing in the app sets them.
     internal Func<Control> MainContent { get; set; } = () => new RootView();
     internal Func<Control> SettingsContent { get; set; } = () => new SettingsView();
+
+    // PORT-ONLY (OD-0008 C1, C2; PR-LAUNCH-074): what a close asked of the main window itself (its close control, Alt+F4)
+    // does. The application shell sets it to its terminate request (Port/AppShell.cs), so the main window stays up while
+    // the quit waits for a Hydra merge (AppDelegate.swift:44-54) and the lifetime's shutdown then closes it. Unset (no
+    // shell), the main window is ordered out like every other window (:98).
+    internal Action? MainWindowClose { get; set; }
+
+    /// <summary>PORT-ONLY: the main window once <see cref="ShowMain"/> has made it (:15), for the application shell's
+    /// reopen (ED-002) and session-end hook (ED-004); null before.</summary>
+    internal AvaloniaWindow? MainWindow => mainWindow;
 
     // The implicit init of the Swift singleton (module-internal in Swift): `model` (:13) is made here.
     internal WindowManager() => Model = new AppModel();
@@ -200,6 +211,12 @@ public sealed class WindowManager
         {
             if (e.CloseReason != WindowCloseReason.WindowClosing) return;
             e.Cancel = true;
+            // DEVIATION OD-0008 C1: the main window's own close quits the app through the shell (PR-LAUNCH-074).
+            if (ReferenceEquals(window, mainWindow) && MainWindowClose is { } quit)
+            {
+                quit();
+                return;
+            }
             window.Hide();
         };
         // :99 animationBehavior = .documentWindow: the system's own window animation, which Windows applies to every

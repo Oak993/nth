@@ -15,11 +15,11 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Composer/FollowUpQueueTab.swift (B2 1fbf81e), :1-547.
+// Source: DroppyCode/App/Views/Composer/FollowUpQueueTab.swift (B3 52bc7926), :1-532.
 
 namespace Marrow.App.Views.Composer;
 
-/// <summary>:8-299 <c>struct FollowUpQueueTab: View</c>.</summary>
+/// <summary>:8-297 <c>struct FollowUpQueueTab: View</c>.</summary>
 public sealed class FollowUpQueueTab : Decorator
 {
     // :9
@@ -283,7 +283,7 @@ public sealed class FollowUpQueueTab : Decorator
     private static Animation Slide => Animation.Spring(response: 0.28, dampingFraction: 0.82);
     private const double PairBand = 0.25;
 
-    // :229-283
+    // :229-282
     private void DragChanged(Guid id, Size translation)
     {
         if (drag.Id != id)
@@ -332,7 +332,7 @@ public sealed class FollowUpQueueTab : Decorator
         RefreshRows();
     }
 
-    // :285-298
+    // :284-296
     private void DragEnded()
     {
         if (drag.Id is { } held && pairTarget is { } target)
@@ -355,7 +355,7 @@ public sealed class FollowUpQueueTab : Decorator
     }
 }
 
-/// <summary>:301-525 <c>private struct FollowUpRow: View</c>.</summary>
+/// <summary>:299-510 <c>private struct FollowUpRow: View</c>.</summary>
 public sealed class FollowUpRow : Decorator
 {
     private readonly int position;
@@ -371,13 +371,16 @@ public sealed class FollowUpRow : Decorator
     private bool isPairTarget;
     private bool isPairing;
     private bool showsRule;
+    // :324 whether the pointer is over the reorder grip, which brightens its icon (no cursor call - that is
+    // .pointerStyle(isDragged ? .grabActive : .grabIdle) alone).
+    private bool isHoveringGrip;
     private Point? dragOrigin;
     private Control? dragRoot;
     private readonly Border rowSurface;
     private readonly StackPanel rowLine;
     private QueueIconButton? sendButton;
 
-    // :333-336
+    // :331-334
     private static double ProseLift
     {
         get
@@ -392,18 +395,18 @@ public sealed class FollowUpRow : Decorator
         }
     }
 
-    /// <param name="position">:302</param>
-    /// <param name="prompt">:303</param>
-    /// <param name="runtime">:304</param>
-    /// <param name="isDragged">:306</param>
-    /// <param name="showsRule">:308</param>
-    /// <param name="isBundledWithPrevious">:310</param>
-    /// <param name="isBundledWithNext">:312</param>
-    /// <param name="isPairTarget">:314</param>
-    /// <param name="isPairing">:316</param>
-    /// <param name="onDragChanged">:317</param>
-    /// <param name="onDragEnded">:318</param>
-    // :338-508
+    /// <param name="position">:300</param>
+    /// <param name="prompt">:301</param>
+    /// <param name="runtime">:302</param>
+    /// <param name="isDragged">:304</param>
+    /// <param name="showsRule">:306</param>
+    /// <param name="isBundledWithPrevious">:308</param>
+    /// <param name="isBundledWithNext">:310</param>
+    /// <param name="isPairTarget">:312</param>
+    /// <param name="isPairing">:314</param>
+    /// <param name="onDragChanged">:315</param>
+    /// <param name="onDragEnded">:316</param>
+    // :336-492
     public FollowUpRow(
         int position,
         FollowUpPrompt prompt,
@@ -449,10 +452,8 @@ public sealed class FollowUpRow : Decorator
         this.Track(() => runtime.HasWorkingNativeHeads, _ => UpdateSendHelp());
         this.Track(() => runtime.FollowUpEdit, _ => SyncEditor());
 
-        PointerPressed += OnPointerPressed;
-        PointerMoved += OnPointerMoved;
-        PointerReleased += OnPointerReleased;
-        PointerCaptureLost += (_, _) => EndPointerDrag();
+        // :386 the DragGesture is chained directly onto the grip Image (28x22), not the row - PointerPressed/
+        // Moved/Released are wired onto the grip itself inside BuildRow(), not here.
         SizeChanged += (_, _) => UpdateSurface();
         DetachedFromVisualTree += (_, _) =>
         {
@@ -517,13 +518,26 @@ public sealed class FollowUpRow : Decorator
 
         var grip = SwiftImage.SystemName("line.3.horizontal");
         grip.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium));
-        grip.ForegroundStyle(isBundledWithNext ? Chrome.Accent.Opacity(0.85) : Chrome.SecondaryText.Opacity(0.7));
+        UpdateGripForeground(grip); // :380
         grip.Width = 28;
         grip.Height = 22;
-        grip.Cursor = new Cursor(StandardCursorType.Hand);
+        grip.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle); // :384
+        // :48 (Marrow.UI.Port.PointerStyleControl) resolves RenderScaling as 1 until the control has a TopLevel;
+        // BuildRow() runs before the caller attaches the row (FollowUpQueueTab.RefreshRows adds it to the tree only
+        // after `new FollowUpRow(...)` returns), so the cursor above is always baked at scale 1. Re-apply once the
+        // grip is actually attached, so a real monitor's RenderScaling gets picked up.
+        grip.AttachedToVisualTree += (_, _) => grip.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle);
         ToolTip.SetTip(grip, "Drag above or below to reorder \U000000B7 drop onto the middle of another to send them together"); // U+00B7 MIDDLE DOT
         AutomationProperties.SetName(grip, "Drag to reorder");
-        grip.PointerEntered += (_, _) => grip.Cursor = new Cursor(StandardCursorType.Hand);
+        // :383 .onHover { hovering in isHoveringGrip = hovering } - brightness only, no cursor call.
+        grip.PointerEntered += (_, _) => { isHoveringGrip = true; UpdateGripForeground(grip); };
+        grip.PointerExited += (_, _) => { isHoveringGrip = false; UpdateGripForeground(grip); };
+        // :386-389 the DragGesture (minimumDistance 1, .global) is chained onto the grip Image itself, so SwiftUI
+        // only recognizes the reorder drag inside this 28x22 hit rect - not anywhere else in the row.
+        grip.PointerPressed += OnPointerPressed;
+        grip.PointerMoved += OnPointerMoved;
+        grip.PointerReleased += OnPointerReleased;
+        grip.PointerCaptureLost += (_, _) => EndPointerDrag();
         rowLine.Children.Add(grip);
 
         if (prompt.Attachments.Count > 0)
@@ -572,6 +586,11 @@ public sealed class FollowUpRow : Decorator
 
         rowLine.SizeChanged += (_, _) => UpdateSurface();
     }
+
+    // :380 `isBundledWithNext ? Color.accentColor.opacity(isHoveringGrip ? 1 : 0.85) : Chrome.secondaryText.opacity(isHoveringGrip ? 1 : 0.7)`
+    private void UpdateGripForeground(SwiftImage grip) => grip.ForegroundStyle(isBundledWithNext
+        ? Chrome.Accent.Opacity(isHoveringGrip ? 1 : 0.85)
+        : Chrome.SecondaryText.Opacity(isHoveringGrip ? 1 : 0.7));
 
     private string GetSendHelp() =>
         runtime.HasWorkingNativeHeads && runtime.IsRunning
@@ -642,7 +661,10 @@ public sealed class FollowUpRow : Decorator
         if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed == false) return;
         dragRoot = TopLevel.GetTopLevel(this);
         dragOrigin = e.GetPosition(dragRoot);
-        e.Pointer.Capture(this);
+        // Captured on the grip itself (the event's source - see the grip.PointerPressed wiring in BuildRow()), not
+        // the whole row, so the drag that follows stays scoped to :386's 28x22 hit rect regardless of where the
+        // pointer travels afterward.
+        e.Pointer.Capture(sender as IInputElement);
     }
 
     private void OnPointerMoved(object? sender, PointerEventArgs e)
@@ -663,16 +685,16 @@ public sealed class FollowUpRow : Decorator
     }
 }
 
-/// <summary>:527-547 <c>private struct QueueIconButton: View</c>.</summary>
+/// <summary>:512-532 <c>private struct QueueIconButton: View</c>.</summary>
 public sealed class QueueIconButton : Decorator
 {
     private readonly Button button;
 
-    /// <param name="symbol">:528</param>
-    /// <param name="help">:529</param>
-    /// <param name="action">:531</param>
-    /// <param name="isEnabled">:530</param>
-    // :533-546
+    /// <param name="symbol">:513</param>
+    /// <param name="help">:514</param>
+    /// <param name="action">:516</param>
+    /// <param name="isEnabled">:515</param>
+    // :518-531
     public QueueIconButton(string symbol, string help, Action action, bool isEnabled = true)
     {
         button = new Button

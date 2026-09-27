@@ -16,7 +16,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/TimelineMinimap.swift (B2 1fbf81e), :1-449.
+// Source: DroppyCode/App/Views/Chat/TimelineMinimap.swift (B3 52bc7926), :1-435.
 
 /// <summary>:4-13 <c>struct TimelineMinimapEntry: Identifiable, Hashable</c>.</summary>
 public sealed record TimelineMinimapEntry
@@ -252,10 +252,10 @@ internal sealed class MinimapSelection : Decorator
     }
 }
 
-/// <summary>:164-380 <c>struct TimelineMinimapRail: View, Equatable</c>.</summary>
+/// <summary>:164-366 <c>struct TimelineMinimapRail: View, Equatable</c>.</summary>
 public sealed class TimelineMinimapRail : Decorator
 {
-    private const double CardWidth = 300; // :356
+    private const double CardWidth = 300; // :342
 
     private readonly IReadOnlyList<TimelineMinimapEntry> entries;
     private readonly double centerHeight;
@@ -263,21 +263,11 @@ public sealed class TimelineMinimapRail : Decorator
     private readonly Action<string, bool> onNavigate;
     private string? hoveredID;
     private bool isPressing;
-    private bool ownsCursorPush;
     private Border? hitArea;
     private Grid? root;
     private MinimapRailMetrics? metrics;
 
-    private sealed class CursorOwner(TimelineMinimapRail rail, Border area)
-    {
-        public TimelineMinimapRail Rail { get; } = rail;
-        public Border Area { get; } = area;
-        public bool Active { get; set; } = true;
-    }
-
-    private static readonly List<CursorOwner> CursorOwners = [];
-
-    // :169-177, :204-248
+    // :169-177, :201-240
     public TimelineMinimapRail(
         IReadOnlyList<TimelineMinimapEntry> entries,
         double centerHeight,
@@ -294,7 +284,6 @@ public sealed class TimelineMinimapRail : Decorator
 
         DetachedFromVisualTree += (_, _) =>
         {
-            ReleaseCursor();
             hoveredID = null;
             isPressing = false;
             RefreshVisuals();
@@ -329,7 +318,7 @@ public sealed class TimelineMinimapRail : Decorator
         return true;
     }
 
-    // :204-248
+    // :201-240
     private void BuildBody()
     {
         var localMetrics = new MinimapRailMetrics(centerHeight, entries.Count);
@@ -346,23 +335,19 @@ public sealed class TimelineMinimapRail : Decorator
             Height = hitRect.Height,
             Margin = new Thickness(0, hitRect.Y, 0, 0),
         };
+        localHitArea.PointerStyle(PointerStyle.Link); // :211
         hitArea = localHitArea;
 
         localHitArea.PointerEntered += (_, e) =>
-        {
-            PushCursor();
             SetHovered(localMetrics.EntryID(e.GetPosition(localRoot).Y, entries));
-        };
         localHitArea.PointerMoved += (_, e) =>
         {
-            PushCursor();
             var point = e.GetPosition(localRoot).Y;
             if (isPressing) UpdateScrub(point, ended: false);
             else SetHovered(localMetrics.EntryID(point, entries));
         };
         localHitArea.PointerExited += (_, _) =>
         {
-            ReleaseCursor();
             if (!isPressing) SetHovered(null);
         };
         localHitArea.PointerPressed += (_, e) =>
@@ -397,7 +382,7 @@ public sealed class TimelineMinimapRail : Decorator
         RefreshVisuals();
     }
 
-    // :426-438
+    // :412-424
     private void UpdateHitArea(Size size)
     {
         if (hitArea is null || metrics is null) return;
@@ -407,7 +392,7 @@ public sealed class TimelineMinimapRail : Decorator
         RefreshVisuals();
     }
 
-    // :259-268,303-344
+    // :245-254,289-330
     private void RefreshVisuals()
     {
         if (root is null || metrics is null) return;
@@ -433,47 +418,8 @@ public sealed class TimelineMinimapRail : Decorator
         IsHitTestVisible = true;
     }
 
-    // :214-229, :250-254
-    private void PushCursor()
-    {
-        if (ownsCursorPush || hitArea is null) return;
-        ownsCursorPush = true;
-        CursorOwners.Add(new CursorOwner(this, hitArea));
-        ApplyCursorOwners();
-    }
 
-    // :250-254
-    private void ReleaseCursor()
-    {
-        if (!ownsCursorPush) return;
-        ownsCursorPush = false;
-
-        for (var i = CursorOwners.Count - 1; i >= 0; i--)
-        {
-            if (!ReferenceEquals(CursorOwners[i].Rail, this)) continue;
-            CursorOwners[i].Active = false;
-            break;
-        }
-        while (CursorOwners.Count > 0 && !CursorOwners[^1].Active)
-            CursorOwners.RemoveAt(CursorOwners.Count - 1);
-        ApplyCursorOwners();
-    }
-
-    // :214-227. Windows cursor ownership mirrors each push and pop through this explicit LIFO stack.
-    private static void ApplyCursorOwners()
-    {
-        foreach (var owner in CursorOwners)
-            owner.Area.Cursor = null;
-
-        for (var i = CursorOwners.Count - 1; i >= 0; i--)
-        {
-            if (!CursorOwners[i].Active) continue;
-            CursorOwners[i].Area.Cursor = new Cursor(StandardCursorType.Hand);
-            break;
-        }
-    }
-
-    // :221-223, :298-301
+    // :215-217, :284-287
     private void SetHovered(string? id)
     {
         if (OptionalStringEqual(hoveredID, id)) return;
@@ -481,9 +427,9 @@ public sealed class TimelineMinimapRail : Decorator
         RefreshVisuals();
     }
 
-    // :259-288. PR-CHAT-073's static per-state colours/opacities (accent when selected, 0.95 when hovered,
+    // :245-274. PR-CHAT-073's static per-state colours/opacities (accent when selected, 0.95 when hovered,
     // 0.25/0.4 baseOpacity) are implemented below; the 0.22s smooth-curve ANIMATION between those states
-    // (:198-202 hoverAnimation, nil during a live resize or reduced motion) is not - every property snaps
+    // (:195-199 hoverAnimation, nil during a live resize or reduced motion) is not - every property snaps
     // instantly on every RefreshVisuals() rebuild, which happens to match only the "instant" fallback case.
     private Control CreateTick(TimelineMinimapEntry entry)
     {
@@ -511,7 +457,7 @@ public sealed class TimelineMinimapRail : Decorator
         return tick;
     }
 
-    // :290-296
+    // :276-282
     private double TickWidth(TimelineMinimapEntry entry, bool isHovered, bool isSelected)
     {
         // 10 pt narrowest, 26 pt widest. Hovered and selected ticks punch
@@ -521,7 +467,7 @@ public sealed class TimelineMinimapRail : Decorator
         return hoveredID is not null || isPressing ? Math.Min(26, baseWidth + 2) : baseWidth;
     }
 
-    // :298-301
+    // :284-287
     private TimelineMinimapEntry? FindEntry(string id)
     {
         foreach (var entry in entries)
@@ -529,7 +475,7 @@ public sealed class TimelineMinimapRail : Decorator
         return null;
     }
 
-    // :303-344
+    // :289-330
     private Control CreatePreviewCard(TimelineMinimapEntry entry, MinimapRailMetrics metrics)
     {
         var tickCenterY = metrics.CenterY(IndexOf(entry));
@@ -581,7 +527,7 @@ public sealed class TimelineMinimapRail : Decorator
         return card;
     }
 
-    // :347-354
+    // :333-340
     private double EstimatedCardHeight(TimelineMinimapEntry entry)
     {
         const double title = 17;
@@ -594,7 +540,7 @@ public sealed class TimelineMinimapRail : Decorator
         return title + 3 + lines * 15 + padding;
     }
 
-    // :358-360
+    // :344-346
     private int IndexOf(TimelineMinimapEntry entry)
     {
         for (var i = 0; i < entries.Count; i++)
@@ -602,7 +548,7 @@ public sealed class TimelineMinimapRail : Decorator
         return 0;
     }
 
-    // :362-379
+    // :348-365
     private void UpdateScrub(double y, bool ended)
     {
         var id = new MinimapRailMetrics(centerHeight, entries.Count).EntryID(y, entries);
@@ -616,18 +562,18 @@ public sealed class TimelineMinimapRail : Decorator
     }
 }
 
-/// <summary>:382-439 <c>private struct MinimapRailMetrics</c>: pure rail geometry.</summary>
+/// <summary>:368-425 <c>private struct MinimapRailMetrics</c>: pure rail geometry.</summary>
 internal sealed record MinimapRailMetrics
 {
-    public const double TickHeight = 2; // :388
-    private const double RoomySpacing = 8; // :389
-    private const double TightestSpacing = 2; // :390
-    private double Pitch => TickHeight + Spacing; // :413
+    public const double TickHeight = 2; // :374
+    private const double RoomySpacing = 8; // :375
+    private const double TightestSpacing = 2; // :376
+    private double Pitch => TickHeight + Spacing; // :399
 
-    public double Spacing { get; init; } // :392
-    public double TopInset { get; init; } // :394
+    public double Spacing { get; init; } // :378
+    public double TopInset { get; init; } // :380
 
-    // :396-411
+    // :382-397
     public MinimapRailMetrics(double centeringHeight, long count)
     {
         if (count <= 0 || centeringHeight <= 0)
@@ -645,10 +591,10 @@ internal sealed record MinimapRailMetrics
         TopInset = (centeringHeight - (ticks + gaps * Spacing)) / 2;
     }
 
-    // :415-417
+    // :401-403
     public double CenterY(long @for) => TopInset + @for * Pitch + TickHeight / 2;
 
-    // :419-424
+    // :405-410
     public string? EntryID(double at, IReadOnlyList<TimelineMinimapEntry> entries)
     {
         if (entries.Count == 0) return null;
@@ -658,7 +604,7 @@ internal sealed record MinimapRailMetrics
         return entries[index].Id;
     }
 
-    // :426-438
+    // :412-424
     private static double ChromeClearance => Chrome.ChromeTopPadding + Chrome.CapsuleHeight;
 
     public Rect HitRect(long count, Size railSize)
@@ -672,9 +618,9 @@ internal sealed record MinimapRailMetrics
     }
 }
 
-/// <summary>:441-449 <c>private struct RailHitArea: Shape</c>.</summary>
+/// <summary>:427-435 <c>private struct RailHitArea: Shape</c>.</summary>
 internal sealed record RailHitArea(Rect Rect)
 {
-    // :446-448
+    // :432-434
     public Geometry Path(Rect @in) => new RectangleGeometry(Rect);
 }

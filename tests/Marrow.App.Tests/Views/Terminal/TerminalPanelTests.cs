@@ -1,24 +1,57 @@
 using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Interactivity;
+using Avalonia.Threading;
 using Marrow.App;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Terminal;
 using Marrow.Core.Models;
+using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Xunit;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Terminal;
 
-// Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B2 1fbf81e), :1-443.
+// Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B3 52bc792), :1-318.
 [Collection("Headless")]
 public sealed class TerminalPanelTests(HeadlessSession headless)
 {
     private static string AllText(Control control) =>
         string.Join("\n", LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(block => block.Text ?? ""));
+
+    // Same idiom as FollowUpQueueTabTests.cs's own Center/Settle: a real attached, explicitly sized window, so
+    // the resize strip's real hit area and window-space coordinates exist for MouseDown/MouseMove/MouseUp to
+    // land on, unlike Build's auto-sized window (which the non-interaction tests below never need to click into).
+    private static (Control Host, AvaloniaWindow Window) BuildForDrag(AppModel model, ThreadRuntime runtime, string directory)
+    {
+        var host = new Border();
+        AppEnvironment.SetAppModel(host, model);
+        host.Child = new TerminalPanel(runtime, directory);
+        var window = new AvaloniaWindow { Content = host, Width = 500, Height = 400 };
+        window.Show();
+        Settle(window);
+        return (host, window);
+    }
+
+    private static void Settle(TopLevel window)
+    {
+        for (var pass = 0; pass < 5; pass++)
+        {
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+        }
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static Point Center(Visual control, Visual ancestor) =>
+        control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), ancestor)!.Value;
 
     private static (AppModel App, ThreadRuntime Runtime, AppModelHarness Store, ChatThread Thread) MakeFixture()
     {
@@ -215,6 +248,85 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
 
                     var session = harness.App.Terminals.Sessions(harness.Thread.Id).Single();
                     Assert.Contains(session.Title, AllText(host), System.StringComparison.Ordinal);
+                });
+            }
+            finally
+            {
+                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+            }
+        });
+    }
+
+    // Coordinator review 6.2: the resize strip used to be a hand-rolled Control that duplicated
+    // DragHandleView's mechanics by hand instead of wrapping the shared component (missing its 0.18s grip
+    // transition, painting from Chrome.PrimaryText instead of the source's own label colour, and calling onEnd
+    // from a lost pointer capture where DragHandleView deliberately never does). This test proves the strip in
+    // the live panel really is that shared component, configured exactly as TerminalResizeHandle.body states.
+    [Fact]
+    [Trait("Req", "PR-TERM-012")] // App/Views/Terminal/TerminalPanel.swift:84-99,122-129
+    [Trait("Req", "PR-TERM-016")] // App/Views/Terminal/TerminalPanel.swift:124; UI/Chrome/DragHandle.swift:18-30,58-61
+    public void The_resize_strip_is_the_shared_drag_handle_configured_vertical_with_the_terminal_grip_and_cursor()
+    {
+        headless.OnUiThread(() =>
+        {
+            var harness = MakeFixture();
+            using var store = harness.Store;
+            try
+            {
+                harness.Store.Main.OnMain(() =>
+                {
+                    var host = Build(harness.App, harness.Runtime, TerminalTestFolders.Create("resize handle config"));
+                    var handle = LogicalQuery.SelfAndDescendants<DragHandleView>(host).Single();
+
+                    Assert.Equal(DragHandleView.Axis.Vertical, handle.HandleAxis); // :123 axis: .vertical
+                    Assert.Equal(
+                        new DragHandleView.Grip(RestLength: 12, ShownLength: 28, Thickness: 2.5), // :124
+                        handle.HandleGrip);
+                    Assert.Same(TerminalResizeHandleView.ResizeCursor, handle.Cursor); // :125 cursor: .resizeUpDown
+                    Assert.Equal(8, handle.Height); // TerminalPanel.swift:98 .frame(height: 8)
+                });
+            }
+            finally
+            {
+                harness.Store.Main.OnMain(() => harness.App.Terminals.TerminateAll());
+            }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-013")] // App/Views/Terminal/TerminalPanel.swift:86; UI/Chrome/DragHandle.swift:198-208
+    [Trait("Req", "PR-TERM-014")] // App/Views/Terminal/TerminalPanel.swift:87-90,127; UI/Chrome/DragHandle.swift:210-220,259-266
+    [Trait("Req", "PR-TERM-015")] // UI/Chrome/DragHandle.swift:222-232; App/Views/Terminal/TerminalPanel.swift:91-96,126-128
+    public void Dragging_the_resize_strip_upward_grows_the_panel_live_and_commits_the_height_on_release()
+    {
+        headless.OnUiThread(() =>
+        {
+            var harness = MakeFixture();
+            using var store = harness.Store;
+            try
+            {
+                harness.Store.Main.OnMain(() =>
+                {
+                    Assert.Equal(260, harness.App.Settings.TerminalHeight); // sanity: the fixture's stored default
+
+                    var directory = TerminalTestFolders.Create("resize drag");
+                    var (host, window) = BuildForDrag(harness.App, harness.Runtime, directory);
+                    var handle = LogicalQuery.SelfAndDescendants<DragHandleView>(host).Single();
+                    var panel = LogicalQuery.SelfAndDescendants<TerminalPanel>(host).Single();
+                    var start = Center(handle, window);
+
+                    window.MouseDown(start, MouseButton.Left, RawInputModifiers.None);
+                    Assert.True(harness.Runtime.IsTerminalResizing); // :86 onBegin
+
+                    var up40 = start + new Vector(0, -40); // upward travel is positive delta (:116-118)
+                    window.MouseMove(up40, RawInputModifiers.LeftMouseButton);
+                    Assert.Equal(300, panel.Height); // :87-90 dragHeight = min(760, max(140, 260 + 40))
+                    Assert.Equal(260, harness.App.Settings.TerminalHeight); // :11-13 never written mid-drag
+
+                    window.MouseUp(up40, MouseButton.Left, RawInputModifiers.None);
+                    Assert.False(harness.Runtime.IsTerminalResizing); // :95 onEnd
+                    Assert.Equal(300, harness.App.Settings.TerminalHeight); // :92 committed on release
+                    Assert.Equal(300, panel.Height);
                 });
             }
             finally

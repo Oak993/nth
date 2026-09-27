@@ -1,12 +1,14 @@
 // PORT-ONLY: ED-163. os_log's Logger(subsystem:category:) (HangWatchdog.swift:18, CodexSession.swift:13) on Windows.
+// B3 52bc792 adds an Info level: MCPProxy.swift:116 Self.log.info("listening on \(port)").
 using System.Diagnostics;
 
 namespace Marrow.Core.Port;
 
 /// <summary>
-/// PORT-ONLY (ED-163). <c>Logger(subsystem:category:)</c>: <see cref="Error"/> hands the verbatim message and the
-/// channel "subsystem/category" to <see cref="Sink"/>, a trace line by default (precedent ResizeStretch.cs:70). Like
-/// os_log it has no UI.
+/// PORT-ONLY (ED-163). <c>Logger(subsystem:category:)</c>: <see cref="Error"/> and <see cref="Info"/> each hand the
+/// verbatim message and the channel "subsystem/category" to <see cref="Sink"/>, a trace line by default (precedent
+/// ResizeStretch.cs:70). Like os_log it has no UI; the sink is not told which level called it, matching how the one
+/// level this type had before B3 already worked.
 /// </summary>
 public sealed class Logger(string subsystem, string category)
 {
@@ -23,6 +25,9 @@ public sealed class Logger(string subsystem, string category)
 
     /// <summary><c>log.error(...)</c>.</summary>
     public void Error(string message) => Sink.Current(message, channel);
+
+    /// <summary><c>log.info(...)</c> (MCPProxy.swift:116, B3 52bc792).</summary>
+    public void Info(string message) => Sink.Current(message, channel);
 
     private static void Default(string message, string channel) => Trace.WriteLine(message, channel);
 }

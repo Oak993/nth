@@ -146,7 +146,7 @@
       "title": "A --tour-captures launch is a distinguishable sub-mode of the same capture machinery",
       "source_evidence": [
         "DroppyCode/Core/Support/CaptureRun.swift:21-25 isTourRun - true only when \"--tour-captures\" is present AND a following argument exists",
-        "DroppyCode/App/Captures/WebsiteCaptures.swift:303-304 run(model:) - 'if isTourRun { await TourCaptures.run(model: model); return }'"
+        "DroppyCode/App/Captures/WebsiteCaptures.swift:296 run(model:) - 'if CaptureRun.isTourRun { await TourCaptures.run(model: model); return }' (calls CaptureRun directly; WebsiteCaptures no longer declares its own isTourRun forwarding property)"
       ],
       "preconditions": "Capture run is enabled.",
       "action": "The capture run starts.",
@@ -163,7 +163,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing.",
+      "b3_note": "WebsiteCaptures.isTourRun (and isEnabled, outputDirectory, storageRoot, defaults) were removed as forwarding properties; every call site in WebsiteCaptures.swift now reads CaptureRun.* directly. No observable behaviour change; only the citation moves from a deleted declaration to the call site."
     },
     {
       "id": "PR-LAUNCH-007",
@@ -172,7 +173,7 @@
         "DroppyCode/Core/Support/CaptureRun.swift:30-32 storageRoot - outputDirectory?.appendingPathComponent(\"storage\", isDirectory: true)",
         "DroppyCode/Core/Support/CaptureRun.swift:35-37 defaults - isEnabled ? UserDefaults(suiteName: suiteName) : nil",
         "DroppyCode/Core/Support/CaptureRun.swift:40 suiteName - the literal \"iordv.droppycode.website-captures\"",
-        "DroppyCode/Services/Store/Storage.swift:19-25 root - 'if let captures = CaptureRun.storageRoot { return captures }' before the Application Support path"
+        "DroppyCode/Core/Support/StoragePaths.swift:6-12 root - 'if let captures = CaptureRun.storageRoot { return captures }' before the Application Support path; Storage.root (Storage.swift:19) forwards to StoragePaths.root"
       ],
       "preconditions": "Capture run enabled.",
       "action": "Storage or settings resolve their location.",
@@ -191,14 +192,15 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing.",
+      "b3_note": "The root-redirect closure quoted here moved from Services/Store/Storage.swift into Core/Support/StoragePaths.swift (see PR-STORE-001); Storage.root now only forwards to it. The capture-run redirect behaviour itself is unchanged."
     },
     {
       "id": "PR-LAUNCH-008",
       "title": "WebsiteCaptures.prepare() runs in the prologue and is a no-op in a normal launch",
       "source_evidence": [
         "DroppyCode/App/DroppyCodeApp.swift:13-14 - comment 'Before anything reads settings or the library.' then WebsiteCaptures.prepare()",
-        "DroppyCode/App/Captures/WebsiteCaptures.swift:84-85 prepare() - 'guard let output = outputDirectory, let root = storageRoot, let defaults else { return }'",
+        "DroppyCode/App/Captures/WebsiteCaptures.swift:77 prepare() - 'guard let output = CaptureRun.outputDirectory, let root = CaptureRun.storageRoot, let defaults = CaptureRun.defaults else { return }' (one line; WebsiteCaptures no longer has its own outputDirectory/storageRoot/defaults forwarding properties)",
         "DroppyCode/App/Captures/WebsiteCaptures.swift:78-101 - removes the storage root, creates <root>/threads and <output>/films, removes the persistent domain for CaptureRun.suiteName and writes the run's fixed defaults"
       ],
       "preconditions": "Prologue step 3.",
@@ -218,7 +220,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing.",
+      "b3_note": "The three optionals prepare() unwraps are now read directly off CaptureRun instead of through WebsiteCaptures' own forwarding properties (all removed). No observable behaviour change."
     },
     {
       "id": "PR-LAUNCH-009",
@@ -326,7 +329,7 @@
       "title": "UPSTREAM DEFECT: the migration's destination folder is the hardcoded literal \"Droppy Code\", not AppInfo.name",
       "source_evidence": [
         "DroppyCode/App/LegacyMigration.swift:21 - support.appendingPathComponent(\"Droppy Code\", isDirectory: true), a string literal",
-        "DroppyCode/Services/Store/Storage.swift:22 - base.appendingPathComponent(AppInfo.name, isDirectory: true), the folder the app actually reads",
+        "DroppyCode/Core/Support/StoragePaths.swift:9 - base.appendingPathComponent(AppInfo.name, isDirectory: true), the folder the app actually reads (Storage.root forwards to StoragePaths.root at Storage.swift:19)",
         "DroppyCode/Core/Support/Text.swift:4 AppInfo.name - CFBundleDisplayName with fallback \"Droppy Code\"",
         "porting/upstream_defects.md:105 entry 46"
       ],
@@ -347,7 +350,8 @@
       "upstream_defect": "46",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "OD-0008 A5 resolves BLK-0005 (area launch, quarantined path 'any Windows implementation of the legacy name migration'): NOT_APPLICABLE_WITH_EVIDENCE: Droppy Code never shipped on Windows, so no Cody or Droppy Code support folder can exist to migrate; the owner confirmed no migration from the separate Electron Marrow app is wanted. The migration reads the former macOS identity only (DroppyCode/App/LegacyMigration.swift:6 'formerBundleIdentifier = \"iordv.cody\"', :7 'formerSupportFolder = \"Cody\"', :18-24 ~/Library/Application Support), none of which can exist on a Windows PC."
+      "not_applicable": "OD-0008 A5 resolves BLK-0005 (area launch, quarantined path 'any Windows implementation of the legacy name migration'): NOT_APPLICABLE_WITH_EVIDENCE: Droppy Code never shipped on Windows, so no Cody or Droppy Code support folder can exist to migrate; the owner confirmed no migration from the separate Electron Marrow app is wanted. The migration reads the former macOS identity only (DroppyCode/App/LegacyMigration.swift:6 'formerBundleIdentifier = \"iordv.cody\"', :7 'formerSupportFolder = \"Cody\"', :18-24 ~/Library/Application Support), none of which can exist on a Windows PC.",
+      "b3_note": "The AppInfo.name-based folder construction cited here moved from Storage.swift:22 to StoragePaths.swift:9 as part of the StoragePaths.swift extraction (see PR-STORE-001); Storage.swift:22 is now a blank line. The defect itself is unchanged."
     },
     {
       "id": "PR-LAUNCH-014",
@@ -639,26 +643,31 @@
     },
     {
       "id": "PR-LAUNCH-025",
-      "title": "applicationDidFinishLaunching sets the user-notification centre delegate before anything else",
+      "title": "applicationDidFinishLaunching reconfigures URLCache and wires the Markdown delegation-card renderer before setting the notification-centre delegate",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:9-15 - UNUserNotificationCenter.current().delegate = self is the first statement",
+        "DroppyCode/App/AppDelegate.swift:9-13 - comment then URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0) is the first statement",
+        "DroppyCode/App/AppDelegate.swift:14 - MarkdownDelegationCard.render = { AnyView(HydraDelegationBlock(json: $0, sent: $1)) } is the second statement",
+        "DroppyCode/App/AppDelegate.swift:15 - UNUserNotificationCenter.current().delegate = self is now the third statement",
         "DroppyCode/App/AppDelegate.swift:6 - AppDelegate conforms to UNUserNotificationCenterDelegate"
       ],
       "preconditions": "The prologue has finished; the application has launched.",
       "action": "applicationDidFinishLaunching runs.",
-      "expected_result": "The delegate is installed before the capture-run branch, before any window is shown and before any notification could be delivered, so a notification that arrives during launch is routed by this delegate.",
+      "expected_result": "Two statements now run before the notification-centre delegate is installed: the shared URLCache is replaced with an 8 MiB memory-only cache (0 disk capacity, so nothing the app fetches is written to a SQLite cache file), and MarkdownDelegationCard.render is set to render a HydraDelegationBlock, wiring the hydra/hydra-leaving Markdown delegation-card path before any window exists. The delegate is installed third, still before the capture-run branch, before any window is shown and before any notification could be delivered, so a notification that arrives during launch is still routed by this delegate.",
       "side_effects": [
+        "Replaces the process-wide shared URLCache (memory-only, 8 MiB, 0 disk capacity)",
+        "Sets the process-global MarkdownDelegationCard.render closure",
         "Sets a system delegate"
       ],
       "persistence": "Nothing is persisted.",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY: register the Windows toast activation handler at the same point in the launch sequence, before the main window is shown.",
-      "verification_method": "unit test on the launch sequencer's call order",
+      "windows_path": "PLATFORM BOUNDARY: register the Windows toast activation handler at the same point in the launch sequence (now third), before the main window is shown. The URLCache reconfiguration and the MarkdownDelegationCard wiring are ordinary app-layer steps with Windows equivalents (an HTTP cache policy and a Markdown rendering hook); see the new records for each.",
+      "verification_method": "unit test on the launch sequencer's call order: URLCache reconfiguration, then MarkdownDelegationCard wiring, then the notification delegate",
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 inserts two new statements (AppDelegate.swift:10-14) before what PR-LAUNCH-025 described as 'the first statement'. The delegate assignment moves from being first to being third; it is otherwise unchanged. See the two new LAUNCH records for the inserted statements themselves."
     },
     {
       "id": "PR-LAUNCH-026",
@@ -679,7 +688,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One application-scoped model instance owned by the window manager, with the lifecycle handler holding a nullable reference to it.",
       "verification_method": "unit test asserting a single model instance",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -688,8 +697,8 @@
       "id": "PR-LAUNCH-027",
       "title": "A capture run short-circuits the entire normal launch after the delegate and model are set",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:12-15 - 'if WebsiteCaptures.isEnabled { Task { await WebsiteCaptures.run(model: windows.model) }; return }'",
-        "DroppyCode/App/Captures/WebsiteCaptures.swift:26 - isEnabled is CaptureRun.isEnabled"
+        "DroppyCode/App/AppDelegate.swift:18-21 - 'if CaptureRun.isEnabled { Task { await WebsiteCaptures.run(model: windows.model) }; return }'",
+        "DroppyCode/Core/Support/CaptureRun.swift:27 - nonisolated static var isEnabled: Bool { outputDirectory != nil } (WebsiteCaptures no longer declares its own isEnabled forwarding property; AppDelegate reads CaptureRun directly)"
       ],
       "preconditions": "The process was launched with a capture flag.",
       "action": "applicationDidFinishLaunching reaches the branch.",
@@ -702,11 +711,12 @@
       "cancellation": "not cancellable",
       "windows_path": "Not ported: NOT_APPLICABLE_WITH_EVIDENCE under ED-061 (dead_code.md entries 28, 33, 38, 42 and 44); ED-001 decides the capture subsystem and the CaptureRun indirection are not ported.",
       "verification_method": "code review and Gate C scan: the Windows tree contains no capture-run code (no --website-captures or --tour-captures handling, no CaptureRun, WebsiteCaptures or TourCaptures identifier)",
-      "status": "NOT_APPLICABLE_WITH_EVIDENCE",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing.",
+      "b3_note": "WebsiteCaptures.isEnabled (a one-line forward to CaptureRun.isEnabled) was deleted outright, and AppDelegate.swift was rewritten in the same commit to read CaptureRun.isEnabled directly. The branch also moves from statement 3 to statement 4 in applicationDidFinishLaunching (now after the URLCache and MarkdownDelegationCard steps; see PR-LAUNCH-025). The short-circuit behaviour itself - the capture task starts and the method returns, skipping the other five launch steps - is unchanged."
     },
     {
       "id": "PR-LAUNCH-028",
@@ -869,9 +879,9 @@
       ],
       "preconditions": "First read of the library at startup.",
       "action": "AppModel() is constructed.",
-      "expected_result": "The five collaborators are constructed in the order settings, providers, mcp, terminals, sidebar, then library.json is read from the store root. A missing file yields an empty library with no message, as upstream. A file that exists but cannot be read or decoded is a failed load: it is surfaced to the user as an error and is never overwritten by the next save (named deviation OD-0008 A10, whose ruling is 'Do not overwrite after a failed load; show the error'). The error is shown in the main window at launch with the exact text \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4); upstream both cases silently open an empty library (Storage.swift:50 for the read, :62 for the decode) and the first save overwrites the file.",
+      "expected_result": "The five collaborators are constructed in the order settings, providers, mcp, terminals, sidebar, then library.json is read from the store root. A missing file yields an empty library with no message, as upstream. A file that exists but cannot be read or decoded is a failed load: it is surfaced to the user as an error and is never overwritten by the next save (named deviation OD-0008 A10, whose ruling is 'Do not overwrite after a failed load; show the error'). The error is shown in the main window at launch with the exact text \"Marrow could not read library.json, so your projects and threads are hidden. The file will not be changed until it can be read.\" (OD-0012 E4); upstream both cases silently open an empty library (Storage.swift:50 for the read, :51 for the decode) and the first save overwrites the file.",
       "side_effects": [
-        "Reads library.json; creates the store root directory if missing (Storage.swift:23)"
+        "Reads library.json; creates the store root directory if missing (StoragePaths.swift:6-12, which Storage.swift:19 forwards to)"
       ],
       "persistence": "Reads <store root>/library.json. After a failed read or decode, no save writes over that file.",
       "failure_cases": [
@@ -958,23 +968,24 @@
       "cancellation": "The sleeping task is never cancelled and nothing cancels the presentation; quitting inside the window simply ends the process.",
       "windows_path": "Direct port: same 700 ms delay, same one-shot setting key, same write on both finish and close. The tour's own pages and controls belong to the tour area.",
       "verification_method": "interaction test: first launch shows the tour after 700 ms, second launch does not",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
     },
     {
       "id": "PR-LAUNCH-038",
-      "title": "Launch starts the asynchronous bootstrap, which runs its nine steps strictly in order",
+      "title": "Launch starts the asynchronous bootstrap, which runs its ten steps strictly in order",
       "source_evidence": [
         "DroppyCode/App/AppDelegate.swift:27 - Task { await windows.model.bootstrap() }",
-        "DroppyCode/App/AppModel.swift:240-287 bootstrap() - warmDocuments(recent), await settings.loadKeychainInBackground(), await LoginEnvironment.load(), sweepHydraCopies(), await resumeHydraMerges(), start the repeating merge sweep, await providers.refreshAll(), the catalog task group, the zai catalog, and finally await Storage.sweepOrphanedAttachments()",
+        "DroppyCode/App/AppModel.swift:240-287 bootstrap() - warmDocuments(recent), await settings.loadKeychainInBackground(), await LoginEnvironment.load(), sweepHydraCopies(), await resumeHydraMerges(), start the repeating merge sweep, await providers.refreshAll(), the catalog task group, the zai catalog, an un-awaited CLI self-update task, and finally await Storage.sweepOrphanedAttachments()",
         "DroppyCode/App/AppModel.swift:246-247 - comment 'After the login environment, so git runs with the user's PATH.'",
+        "DroppyCode/App/AppModel.swift:275-277 - comment 'The CLIs Droppy Code runs headless never update themselves, and a model newer than the installed CLI fails outright. Their own updaters run here, in the background, at most every twelve hours; a newer version reloads its catalog.'",
         "DroppyCode/App/AppModel.swift:283-284 - comment 'Last, once nothing the first click needs is waiting on the disk'"
       ],
       "preconditions": "The main window is up and a thread is selected; bootstrap runs concurrently with the user's first interactions.",
       "action": "bootstrap() runs.",
-      "expected_result": "The nine steps run in the source's order, each awaited before the next where the source awaits. Two orderings are stated as load-bearing by the source: the login environment must be loaded before the Hydra copy sweep so git runs with the user's PATH, and the orphan-attachment sweep is last so nothing the first click needs waits on the disk.",
+      "expected_result": "The ten steps run in the source's order, each awaited before the next where the source awaits. Two orderings are stated as load-bearing by the source: the login environment must be loaded before the Hydra copy sweep so git runs with the user's PATH, and the orphan-attachment sweep is last so nothing the first click needs waits on the disk. The ninth step, a CLI self-update task (see the new PR-LAUNCH record), is started but not awaited, so it never delays the tenth step.",
       "side_effects": [
         "See the per-step requirements PR-LAUNCH-039 to PR-LAUNCH-045"
       ],
@@ -988,7 +999,8 @@
       "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B3 adds a ninth step: after the zai catalog load and before the capture guard and orphan sweep, bootstrap starts an un-awaited Task that awaits providers.updateCLIIfDue for .claude and then .codex when installed (AppModel.swift:278-282). Ranges: 239-278 -> 240-287, 245-246 -> 246-247, 274-275 -> 283-284. See the new PR-LAUNCH record for the step itself."
     },
     {
       "id": "PR-LAUNCH-039",
@@ -1022,7 +1034,7 @@
         "DroppyCode/App/AppModel.swift:245 - await settings.loadKeychainInBackground()",
         "DroppyCode/App/AppSettings.swift:457-462 loadKeychainInBackground() - 'guard !didReadKeychain else { return }', reads on a detached userInitiated task, then fillKeys(keys)",
         "DroppyCode/App/AppSettings.swift:744 comment - 'Read from the Keychain later (see `loadKeychainInBackground`), not before the first frame.'",
-        "DroppyCode/App/AppSettings.swift:473-478 - keys held in the Keychain cause the legacy plaintext defaults copies to be removed, one removeObject(forKey:) each for deepseek, meta, zai and commandcode (:479-482)"
+        "DroppyCode/App/AppSettings.swift:473-478 - keys held in the Keychain cause the legacy plaintext defaults copies to be removed, one removeObject(forKey:) each for deepseek, meta, zai and commandcode (:475-478)"
       ],
       "preconditions": "Settings were constructed with empty key inputs.",
       "action": "Bootstrap step 2 runs.",
@@ -1129,7 +1141,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Resume criteria changed. B1 AppModel+HydraMerge.swift:37-53 loaded and judged each lead in filter order, skipped it unless 'runtime.phase == .idle, !runtime.isHydraMerging, runningHydraHeads(of: lead.id) == 0', then required '!finished.isEmpty, runtime.turns.last?.status == .completed', and counted a head as work when '!($0.landing?.files ?? []).isEmpty'. B2 AppModel+HydraMerge.swift:49-75 sorts leads by id.uuidString, loads them all first, gates on 'runtime.isReadyForHydraMerge, !runtime.isHydraMerging' (ThreadRuntime.swift:2527-2532), drops the at-least-one-completed-unmerged-turn requirement, and counts a head only when '$0.landing?.landed' (Hydra.swift:475). The 3-day window is unchanged (now hydraMergeWindow, :41); AppModel.swift:249-250 is unchanged."
+      "b2_change": "Resume criteria changed. B1 AppModel+HydraMerge.swift:36-52 loaded and judged each lead in filter order, skipped it unless 'runtime.phase == .idle, !runtime.isHydraMerging, runningHydraHeads(of: lead.id) == 0', then required '!finished.isEmpty, runtime.turns.last?.status == .completed', and counted a head as work when '!($0.landing?.files ?? []).isEmpty'. B2 AppModel+HydraMerge.swift:48-74 sorts leads by id.uuidString, loads them all first, gates on 'runtime.isReadyForHydraMerge, !runtime.isHydraMerging' (ThreadRuntime.swift:2485-2490), drops the at-least-one-completed-unmerged-turn requirement, and counts a head only when '$0.landing?.landed' (Hydra.swift:475). The 3-day window is unchanged (now hydraMergeWindow, :41); AppModel.swift:248-249 is unchanged."
     },
     {
       "id": "PR-LAUNCH-044",
@@ -1161,7 +1173,7 @@
         "DroppyCode/App/AppModel.swift:263 - await providers.refreshAll()",
         "DroppyCode/App/AppModel.swift:264-271 - comment 'The catalogs a fresh install starts without, or with only a seed of: one CLI and two HTTPS calls, overlapped.' then a withTaskGroup over 'for provider in [ProviderKind.claude, .codex, .deepseek, .meta] where providers.status(provider).isInstalled' calling providers.loadCatalog(provider)",
         "DroppyCode/App/AppModel.swift:272-274 - 'if providers.status(.zai).isInstalled { await providers.loadCatalog(.zai) }', outside the group",
-        "DroppyCode/App/AppModel.swift:276-277 - 'guard !WebsiteCaptures.isEnabled else { return }' then 'await Storage.sweepOrphanedAttachments()'",
+        "DroppyCode/App/AppModel.swift:283-286 - comment 'Last, once nothing the first click needs is waiting on the disk...' then 'guard !CaptureRun.isEnabled else { return }' then 'await Storage.sweepOrphanedAttachments()'",
         "DroppyCode/Services/Store/Storage.swift:106-132 sweepOrphanedAttachments() - detached utility task, scans every thread document as text for attachment file names, also decodes forwarded continuations, and deletes unreferenced attachment files older than 'let cutoff = Date.now.addingTimeInterval(-24 * 60 * 60)'"
       ],
       "preconditions": "Bootstrap steps 7 to 9.",
@@ -1182,14 +1194,15 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "This block is now preceded by a new, un-awaited CLI self-update step (see the new PR-LAUNCH record); since that step is not awaited, it does not delay this block, and the 'Finally' ordering described here is unchanged. The guard's identifier also changes from WebsiteCaptures.isEnabled to CaptureRun.isEnabled (WebsiteCaptures no longer declares that forwarding property), and its line moves from 276-277 to 285-286."
     },
     {
       "id": "PR-LAUNCH-046",
       "title": "Launch starts background update checks after an 8 second delay, then every 6 hours, plus on activation when stale",
       "source_evidence": [
         "DroppyCode/App/AppDelegate.swift:28 - UpdateChecker.shared.startBackgroundChecks()",
-        "DroppyCode/App/UpdateChecker.swift:132-133 - 'guard backgroundTask == nil, !WebsiteCaptures.isEnabled, !AppInfo.isDevelopment else { return }'",
+        "DroppyCode/App/UpdateChecker.swift:133 - 'guard backgroundTask == nil, !CaptureRun.isEnabled, !AppInfo.isDevelopment else { return }'",
         "DroppyCode/App/UpdateChecker.swift:74-75 - checkInterval: TimeInterval = 6 * 60 * 60; launchDelay: TimeInterval = 8",
         "DroppyCode/App/UpdateChecker.swift:134-140 - sleep launchDelay, then loop { check(background: true); sleep checkInterval }",
         "DroppyCode/App/UpdateChecker.swift:141-149 - an observer for NSApplication.didBecomeActiveNotification on the main queue that checks again when lastCheckedAt is older than checkInterval or nil"
@@ -1215,7 +1228,8 @@
         "decision": "OD-0008 C6; OD-0012 I1",
         "upstream": "DroppyCode/App/UpdateChecker.swift:134-140 - each scheduled 'await self?.check(background: true)' queries Droppy's release feed, :70 'https://gitlab.com/api/v4/projects/\\(projectID)/releases?per_page=20', whose assets :290 accepts only as 'path.hasSuffix(\".dmg\") || name.lowercased().hasSuffix(\".dmg\")'; DroppyCode/App/Views/Settings/AboutUpdateViews.swift:603 - 'case .failed: \"Check failed\"'",
         "port": "Update check shows its \"Check failed\" state until you have your own Windows release feed; the switch is one setting; OD-0012 I1: the feed is an internal value, empty by default, with no settings UI; while it is empty no network request is made and the About pill shows \"Check failed\" with the note \"No update feed is set.\""
-      }
+      },
+      "b3_note": "The guard's identifier changes from WebsiteCaptures.isEnabled to CaptureRun.isEnabled (WebsiteCaptures no longer declares that forwarding property); the line number (133) and the guard's behaviour are unchanged."
     },
     {
       "id": "PR-LAUNCH-047",
@@ -1240,7 +1254,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the exact key name, the remove-before-compare ordering and the version equality test. The installer mechanics belong to the update area.",
       "verification_method": "restart test with the key seeded to the matching and to a non-matching version",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1262,7 +1276,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: Windows has no Dock reopen. Because closing the main window quits the app (OD-0008 C1, PR-LAUNCH-074), the no-visible-window state is not reached by closing it. The path this handler defines runs on a second launch of the single-instance app (engineering_decisions.md, [LAUNCH] single-instance lock): the main window is shown when none is visible, and the app is activated in both cases.",
       "verification_method": "interaction test: with the app running, launch it again; assert one process and one main window, brought to the front and active",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1289,7 +1303,7 @@
       "cancellation": "not applicable",
       "windows_path": "The close and shutdown handler returns 'may close' immediately in the same two cases (platform_adaptations PA-0006).",
       "verification_method": "unit test on the terminate decision with and without a merging runtime",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1340,7 +1354,7 @@
       "cancellation": "not cancellable; termination has already been agreed",
       "windows_path": "The Windows shutdown handler runs the same three steps in the same order (platform_adaptations PA-0006). Child-process cleanup at exit is an explicit Gate E check.",
       "verification_method": "unit test on the shutdown sequencer asserting order; Gate E check that no child process survives",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1349,7 +1363,7 @@
       "id": "PR-LAUNCH-052",
       "title": "The capture-run early return does NOT short-circuit termination",
       "source_evidence": [
-        "DroppyCode/App/AppDelegate.swift:12-15 - the capture branch returns only from applicationDidFinishLaunching",
+        "DroppyCode/App/AppDelegate.swift:18-21 - the capture branch ('if CaptureRun.isEnabled { ...; return }') returns only from applicationDidFinishLaunching",
         "DroppyCode/App/AppDelegate.swift:56-61 applicationWillTerminate - no WebsiteCaptures.isEnabled guard",
         "porting/port_impacts.md:224 entry 108 - 'capture-run early return does not short-circuit applicationWillTerminate'"
       ],
@@ -1368,7 +1382,8 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing."
+      "not_applicable": "ED-061: this behaviour runs only in a capture run, which needs the launch argument '--website-captures <folder>' or '--tour-captures <folder>' that nothing in a user launch supplies (porting/dead_code.md:65 entry 28, :75 entry 33, :85 entry 38, :93 entry 42, and the capture-mode short circuits at :97 entry 44; DroppyCode/Core/Support/CaptureRun.swift:10-19, :27). ED-001 decides the port does not port the capture subsystem or the CaptureRun indirection, which is observationally identical for every launch reachable through the shipped UI. Dead code is neither implemented nor counted as missing.",
+      "b3_note": "The branch's identifier changes from WebsiteCaptures.isEnabled to CaptureRun.isEnabled and its line moves from 12-15 to 18-21 (two new statements, URLCache reconfiguration and MarkdownDelegationCard wiring, now precede it; see PR-LAUNCH-025). The claim itself - this early return does not short-circuit applicationWillTerminate - is unchanged."
     },
     {
       "id": "PR-LAUNCH-053",
@@ -1401,7 +1416,7 @@
       "source_evidence": [
         "DroppyCode/App/AppModel.swift:1332-1335 - 'var library = Library(); library.projects = projects; library.threads = threads; DiskWriter.shared.writeSynchronously(library, to: Storage.libraryURL)'",
         "DroppyCode/Services/Store/Storage.swift:353-356 writeSynchronously(_:to:) - 'pending.withLock { $0[url] = nil }' then 'queue.sync { Self.write(value, to: url) }'",
-        "DroppyCode/Services/Store/Storage.swift:381-388 write(_:to:) - JSONEncoder.storage, 'try data.write(to: url, options: .atomic)', and on failure NSLog(\"Droppy Code could not save %@: %@\", url.lastPathComponent, error.localizedDescription)"
+        "DroppyCode/Services/Store/Storage.swift:377-386 write(_:to:) - guard let data = try? JSONEncoder.storage.encode(value) else { return nil }; do { try data.write(to: url, options: .atomic); return data.count } catch { NSLog(\"Droppy Code could not save %@: %@\", url.lastPathComponent, error.localizedDescription); return nil }"
       ],
       "preconditions": "The latch has just been set.",
       "action": "The library is written.",
@@ -1499,7 +1514,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port including the guard: with no pending save, nothing is written at quit even if the in-memory state differs from disk.",
       "verification_method": "restart test: spend tokens, quit, relaunch, assert the spend survived",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1526,11 +1541,11 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY (platform_adaptations PA-0007 and port_impacts.md entry 54): Windows has no SIGTERM with these delivery semantics. The candidate is a Job Object per spawned child with JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE to match the negative-pid group kill, preceded by a cooperative shutdown or console control event. This must be probed, not assumed. Gate E checks that no npx or node child survives the app.",
       "verification_method": "Gate E check: after quit, no MCP server child process or grandchild remains",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "Moved and re-cited; the behaviour is unchanged. B1 MCPHub.swift:364-372 snapshotted under an NSLock ('lock.withLock { processes.filter(\\.isRunning) }') -> B2 MCPHub.swift:367-375 snapshots under a Mutex (MCPHub.swift:538 'private let state = Mutex<[Process]>([])'); the terminate pass and the SIGKILL pass are identical."
+      "b2_change": "Moved and re-cited; the behaviour is unchanged. B1 MCPHub.swift:544-553 snapshotted under an NSLock ('lock.withLock { processes.filter(\\.isRunning) }') -> B2 MCPHub.swift:547-556 snapshots under a Mutex (MCPHub.swift:538 'private let state = Mutex<[Process]>([])'); the terminate pass and the SIGKILL pass are identical."
     },
     {
       "id": "PR-LAUNCH-059",
@@ -1554,36 +1569,37 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce, with the requirement that none of these background tasks may keep the Windows process alive after the shutdown sequence; they must be background or daemon work that dies with the process.",
       "verification_method": "Gate E check: the process actually exits; unit test asserting the shutdown sequencer cancels only the two documented tasks",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
     },
     {
       "id": "PR-LAUNCH-060",
-      "title": "Library changes are saved on a 400 ms debounce during the session",
+      "title": "Library changes are saved on a 400 ms throttle during the session",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - 'guard persistenceEnabled else { return }', 'saveTask?.cancel()', then a task that sleeps 400 milliseconds, checks cancellation and calls saveLibrary()",
-        "DroppyCode/App/AppModel.swift:1316-1324 saveLibrary() - builds a Library from projects and threads and calls DiskWriter.shared.encodeAndWrite(library, to: Storage.libraryURL)",
+        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - 'guard persistenceEnabled, saveTask == nil else { return }', 'let sinceLast = lastLibrarySave.map { ContinuousClock.now - $0 } ?? .seconds(60)', 'let wait = max(.milliseconds(400), .seconds(4) - sinceLast)', then a task that sleeps `wait`, checks cancellation and calls saveLibrary()",
+        "DroppyCode/App/AppModel.swift:1316-1324 saveLibrary() - guard persistenceEnabled else { return }; lastLibrarySave = .now; builds a Library from projects and threads and calls DiskWriter.shared.encodeAndWrite(library, to: Storage.libraryURL)",
         "DroppyCode/Services/Store/Storage.swift:340-351 encodeAndWrite - coalesces by URL: a second value for the same URL replaces the pending one and enqueues no second job"
       ],
       "preconditions": "The app is running and persistence has not been latched off.",
       "action": "Anything mutates projects or threads and calls scheduleSave().",
-      "expected_result": "Each call cancels the previous pending save and restarts the 400 ms timer, so a burst of changes produces one write 400 ms after the last change. The write itself is asynchronous and coalesced per file, so a second value queued for library.json before the writer runs simply replaces the first.",
+      "expected_result": "A call while no save is pending schedules one, waiting max(400 ms, 4 s minus the time since the last save), or 400 ms when there has been none (the 60 s fallback used for 'time since the last save' always loses to the 400 ms floor in that max). A call while a save is already pending does nothing extra - it neither cancels nor restarts the wait - so a burst of changes produces exactly one write, 400 ms after the FIRST change of the burst, carrying whatever is current in projects/threads when the wait ends. The write itself is asynchronous and coalesced per file, so a second value queued for library.json before the writer runs simply replaces the first.",
       "side_effects": [
-        "One asynchronous atomic write per quiet period"
+        "One asynchronous atomic write per throttle window"
       ],
       "persistence": "<store root>/library.json.",
       "failure_cases": [
         "Write failure behaves as in PR-LAUNCH-054."
       ],
-      "cancellation": "Cancelled by the next scheduleSave and by saveBeforeQuit.",
-      "windows_path": "Direct port: the literal 400 ms, the cancel-and-restart debounce and the per-URL coalescing.",
-      "verification_method": "unit test with an injected clock: ten mutations in 100 ms produce one write",
-      "status": "IMPLEMENTED",
+      "cancellation": "The pending task is cancelled only by saveBeforeQuit; a later scheduleSave call while one is pending neither cancels nor restarts it.",
+      "windows_path": "Direct port: the literal 400 ms floor, the literal 4 s minimum spacing, the throttle (not cancel-and-restart debounce) semantics, and the per-URL coalescing.",
+      "verification_method": "unit test with an injected clock: ten mutations in 100 ms produce exactly one write, landing 400 ms after the first of them",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "Review fix (finding #2, HIGH): this record was carried over from B2 IMPLEMENTED, quoting B2's cancel-and-restart debounce ('guard persistenceEnabled else { return }', 'saveTask?.cancel()') at B3 line numbers where neither statement exists - B3's scheduleSave (AppModel.swift:1304-1314) is a throttle: a call while a save is pending is a complete no-op, not a cancel-and-restart. Rewritten in place to match B3 and the record's overlapping twin PR-STORE-015 (Services/Store area), which documents the same scheduleSave/saveLibrary pair in full including the direct-save (settle/reopen/delete) stamping behavior this record does not restate. Status moved off IMPLEMENTED per read_status governance (porting/CLAUDE.md, porting/tools/ledger_apply.mjs): only a reader report accepted by ledger_apply may re-promote it, even though AppModelTests.cs now carries passing B3-derived throttle tests for this behavior."
     },
     {
       "id": "PR-LAUNCH-061",
@@ -1815,10 +1831,10 @@
       "id": "PR-LAUNCH-070",
       "title": "The store root and the home state directory are two separate roots, both resolved on first use",
       "source_evidence": [
-        "DroppyCode/Services/Store/Storage.swift:19-25 root - CaptureRun.storageRoot, else ~/Library/Application Support/<AppInfo.name>, created with intermediate directories",
+        "DroppyCode/Core/Support/StoragePaths.swift:6-12 root - CaptureRun.storageRoot, else ~/Library/Application Support/<AppInfo.name>, created with intermediate directories (Storage.root forwards to it, Storage.swift:19)",
         "DroppyCode/Services/Store/Storage.swift:34-39 stateDirectory(_:) - URL(fileURLWithPath: LoginEnvironment.homeDirectory)/<AppInfo.stateDirectoryName>/<name>, created with intermediate directories",
         "DroppyCode/Core/Support/Text.swift:6 - AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"",
-        "DroppyCode/Services/Store/Storage.swift:25-32 - threadsDirectory, attachmentsDirectory and wallpaperDirectory under root; worktreesDirectory = stateDirectory(\"worktrees\"); patchesDirectory = stateDirectory(\"patches\")"
+        "DroppyCode/Services/Store/Storage.swift:25-32 - threadsDirectory and attachmentsDirectory under root (Storage.swift); wallpaperDirectory now lives in StoragePaths.swift (StoragePaths.swift:14-15); worktreesDirectory = stateDirectory(\"worktrees\"); patchesDirectory = stateDirectory(\"patches\")"
       ],
       "preconditions": "First access to any storage path during launch.",
       "action": "Storage resolves a path.",
@@ -1839,9 +1855,10 @@
       "depends_on_unknown": null,
       "deviation": {
         "decision": "OD-0008 C7; OD-0012 F1",
-        "upstream": "DroppyCode/Services/Store/Storage.swift:19-25 - 'let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]' then 'base.appendingPathComponent(AppInfo.name, isDirectory: true)'; DroppyCode/Core/Support/Text.swift:6 - 'AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"', the home state directory whose worktrees path the Settings \"Worktrees\" row shows and git receives",
+        "upstream": "DroppyCode/Core/Support/StoragePaths.swift:6-9 root - 'let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]' then 'base.appendingPathComponent(AppInfo.name, isDirectory: true)' (Storage.root forwards to it, Storage.swift:19); DroppyCode/Core/Support/Text.swift:6 - 'AppInfo.stateDirectoryName = isDevelopment ? \".droppy-code-dev\" : \".droppy-code\"', the home state directory whose worktrees path the Settings \"Worktrees\" row shows and git receives",
         "port": "The port installs and stores data under \"Marrow Code\" (folder %LOCALAPPDATA%\\Marrow Code, Start menu \"Marrow Code\"), so the two apps never touch each other; OD-0012 F1: the home state directory is %USERPROFILE%\\.marrow (%USERPROFILE%\\.marrow-dev in a development build); only droppy-code.json and DROPPY_CODE_PROJECT_ROOT keep the old name"
-      }
+      },
+      "b3_note": "The store root closure and wallpaperDirectory moved from Services/Store/Storage.swift into Core/Support/StoragePaths.swift (see PR-STORE-001 and PR-STORE-005); Storage.root and Storage's directory(_:) now forward to StoragePaths. The two-root split itself (application-support root vs. home dot-folder) is unchanged."
     },
     {
       "id": "PR-LAUNCH-071",
@@ -1887,7 +1904,7 @@
       "cancellation": "not applicable",
       "windows_path": "ENGINEERING DECISION ED-002 (engineering_decisions.md, [LAUNCH] single-instance lock): Windows has no Launch Services single-activation behavior, so without an explicit lock a double-click would start a second process. The port implements a single-instance lock, and on the second launch runs exactly the reopen path the source already defines (AppDelegate.swift:36-39 applicationShouldHandleReopen, see PR-LAUNCH-048): the main window is shown when none is visible and the app is activated. The two-process store sharing described above therefore does not arise in the port.",
       "verification_method": "interaction test: launching twice results in one visible main window",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1941,7 +1958,7 @@
       "cancellation": "The quit can be deferred while a Hydra merge runs but never refused (PR-LAUNCH-050).",
       "windows_path": "Owner ruling OD-0008 C1: the main window's close button, like Alt+F4 (OD-0008 C2), quits the app through the same termination sequence, keeping the upstream 250 ms / 4 minute deferral while a Hydra merge is running (ED-004). The ruling settles the choice this record left open; the source has no notification-area icon and none is added.",
       "verification_method": "interaction test: with no merge running, closing the main window ends the process after the three termination steps; with a Hydra merge running, the process stays alive until the merge ends or 4 minutes pass, then ends",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1971,22 +1988,22 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port: the shutdown sequence must tolerate a null model and still run the other two steps.",
       "verification_method": "unit test on the shutdown sequencer with a null model",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
     },
     {
       "id": "PR-LAUNCH-076",
-      "title": "A force kill or crash loses only what the debounced saves had not yet written",
+      "title": "A force kill or crash loses at most about 4 seconds of library changes",
       "source_evidence": [
-        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - the 400 ms debounce is the only routine library persistence",
+        "DroppyCode/App/AppModel.swift:1304-1314 scheduleSave() - waits max(400 ms, 4 s minus time since lastLibrarySave); when lastLibrarySave is nil, sinceLast reads as a 60 s fallback, and 4 s - 60 s always loses to the 400 ms floor in that max, so the wait is 400 ms, never up to 60 s; a mutation while a save is pending changes nothing",
         "DroppyCode/App/AppModel.swift:130-137 init() - the running-to-interrupted and running-head-to-stopped repairs exist precisely because a previous run may not have terminated cleanly",
         "DroppyCode/Core/Support/HangWatchdog.swift:5-7 - 'A freeze that ends in a force quit leaves nothing behind'"
       ],
       "preconditions": "The process is killed without running applicationWillTerminate.",
       "action": "The app is relaunched.",
-      "expected_result": "library.json holds everything that was quiet for 400 ms before the kill; changes newer than that are lost. Thread documents hold whatever their own persistence had written. On relaunch, running turns read as interrupted and running heads read as stopped with a launch-time finishedAt. No recovery prompt, no crash report dialog and no restore-session step is offered.",
+      "expected_result": "library.json holds everything written by the last save before the kill. Because a pending save is never restarted by later mutations, a steady stream of changes always gets its first write out within 400 ms and is never starved. Every saveLibrary() call stamps lastLibrarySave, whether it is reached through the scheduled wait or called directly (settle, reopen, thread delete); saveBeforeQuit does NOT call saveLibrary or stamp lastLibrarySave - it writes library.json synchronously by its own separate path. What can be lost is up to about 4 seconds of changes made after the last save; the 60 s value in scheduleSave is only the assumed 'time since the last save' used when there has been none in this run, and it always loses to the 400 ms floor in that max, so the very first save after launch still goes out within 400 ms, not up to 60 s. Thread documents hold whatever their own persistence had written. On relaunch, running turns read as interrupted and running heads read as stopped with a launch-time finishedAt. No recovery prompt, no crash report dialog and no restore-session step is offered.",
       "side_effects": [
         "MCP server and terminal children are NOT terminated and may be orphaned, because the termination step never ran"
       ],
@@ -2000,7 +2017,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "B2's cancel-and-restart 400 ms debounce could starve a steady stream of changes entirely (never quiet long enough to fire) and lost only 'the last 400 ms' when it did fire. B3's scheduler (PR-STORE-015 / PR-LAUNCH-060) always fires the first write 400 ms after the first change of a burst and re-arms at most every 4 s thereafter, so the worst-case loss window is about 4 s of changes, and a steady stream is no longer starved. Review fix (finding #5, MEDIUM): this record's expected_result previously said 'only the direct saveLibrary() calls and saveBeforeQuit stamp lastLibrarySave', and its title/expected_result framed the 60 s scheduleSave fallback as an actual 'up to 60 seconds' loss window. Both were wrong: saveBeforeQuit writes library.json synchronously through its own path and never calls saveLibrary or stamps lastLibrarySave (AppModel.swift:1327-1345); every saveLibrary() call, scheduled or direct, does the stamping (:1318); and the 60 s value is only the assumed 'time since the last save' fed into the max() when there has been none, which always loses to the 400 ms floor, so the wait after a long idle period is still 400 ms, not up to 60 s. Corrected in place; same correction made to E:/Droppy/work/b3/B3_PLAN.md section A32 and the L4b lane packet."
     },
     {
       "id": "PR-LAUNCH-077",
@@ -2158,6 +2176,83 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
+    },
+    {
+      "id": "PR-LAUNCH-083",
+      "preconditions": "Process has started; applicationDidFinishLaunching begins.",
+      "action": "applicationDidFinishLaunching runs its first statement.",
+      "expected_result": "URLCache.shared is replaced with a URLCache of memoryCapacity 8 * 1024 * 1024 (8 MiB) and diskCapacity 0, before anything else in the launch callback runs. Nothing the app fetches (API calls, the MCP proxy's streams, link titles) is written to a persistent disk cache; only an in-memory cache up to 8 MiB is kept, for the life of the process.",
+      "side_effects": [
+        "Replaces the process-wide shared URLCache for the rest of the process's life"
+      ],
+      "persistence": "None; the cache is memory-only and is discarded when the process ends.",
+      "failure_cases": [],
+      "cancellation": "not cancellable",
+      "windows_path": "PLATFORM BOUNDARY: .NET's HttpClient has no direct URLCache equivalent; the port's HTTP layer (src/Marrow.Core/Port/Http.cs) must be configured for a comparable memory-only response cache of a matching size, or explicitly disabled, so the class of disk-write pressure the source comment describes (a SQLite commit per response, a third of the app's disk writes while a team ran) is not reintroduced. This directly answers engineering_decisions.md ED-118's parked O-33 question with a concrete number: 8 MiB, memory only, no size cut-off beyond that.",
+      "verification_method": "unit test asserting URLCache.shared (or its Windows equivalent) has memoryCapacity 8388608 and diskCapacity 0 immediately after launch, before any network call",
+      "status": "IMPLEMENTED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "title": "Launch reconfigures the shared URLCache to 8 MiB memory-only, first thing in applicationDidFinishLaunching",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:9-13 - comment \"Nothing the app fetches is worth keeping on disk (API calls, the MCP proxy's streams, link titles), and the shared cache wrote a SQLite commit for every response: a third of the app's disk writes while a team ran. Memory only.\" then URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0)"
+      ],
+      "b3_note": "New in B3, the first statement of applicationDidFinishLaunching (previously the notification-centre delegate assignment was first; see PR-LAUNCH-025). See impacts.json bundle R3-34 (AppDelegate.swift) new_records_needed."
+    },
+    {
+      "id": "PR-LAUNCH-084",
+      "preconditions": "The URLCache reconfiguration (PR-LAUNCH-083) has just run.",
+      "action": "applicationDidFinishLaunching runs its second statement.",
+      "expected_result": "MarkdownDelegationCard.render is set to a closure that returns AnyView(HydraDelegationBlock(json: $0, sent: $1)), installed before UNUserNotificationCenter's delegate, before the capture-run branch and before any window is created. This is the hook point DroppyCode/UI/Markdown/MarkdownView.swift consults when rendering a hydra, hydra-sent or hydra-leaving fenced Markdown block; while it is nil such a block renders as an ordinary CodeBlock instead of the delegation card, which after this statement never happens on a normal launch.",
+      "side_effects": [
+        "Sets a process-global closure (MarkdownDelegationCard.render) consulted by every Markdown render for the rest of the process"
+      ],
+      "persistence": "None; the closure lives in memory for the process's life.",
+      "failure_cases": [
+        "If this statement ran after a Markdown view had already rendered such a block, that block would show as a plain code block instead of the delegation card; nothing in the source can cause that on a normal launch, since this runs before any window is created."
+      ],
+      "cancellation": "not cancellable",
+      "windows_path": "This wires the hook point that DroppyCode/UI/Markdown/MarkdownView.swift already defines and that the delegation-card view itself (the ported HydraDelegationBlock) already renders; only this one wiring statement needs a Windows equivalent, at the same point in the startup sequence, before the main window is shown.",
+      "verification_method": "unit test on the launch sequencer asserting the Markdown delegation-card hook is wired before the main window is created; interaction test that a hydra-sent fenced block renders as the delegation card, not a code block",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "title": "Launch wires the hydra delegation-card Markdown renderer before any window is shown",
+      "source_evidence": [
+        "DroppyCode/App/AppDelegate.swift:14 - MarkdownDelegationCard.render = { AnyView(HydraDelegationBlock(json: $0, sent: $1)) }",
+        "DroppyCode/UI/Markdown/MarkdownView.swift:505-509, 327-336 - MarkdownDelegationCard.render is a process-global closure consulted when rendering a hydra/hydra-sent/hydra-leaving fenced block; while nil, the block renders as an ordinary CodeBlock"
+      ],
+      "b3_note": "New in B3, the second statement of applicationDidFinishLaunching, between the URLCache reconfiguration (PR-LAUNCH-083) and the notification-centre delegate assignment (PR-LAUNCH-025). See impacts.json bundles R3-34 (AppDelegate.swift) and R3-31 (MarkdownView.swift) new_records_needed; this record is the prerequisite the THEME area's PR-THEME-108 reclassification folds into (B3_PLAN.md section 6.3, \"R3-31 #2\")."
+    },
+    {
+      "id": "PR-LAUNCH-085",
+      "preconditions": "Bootstrap has completed provider refresh and catalog loading, including the zai catalog.",
+      "action": "bootstrap() reaches its ninth step, after the zai catalog load and before the capture guard and orphan-attachment sweep.",
+      "expected_result": "bootstrap starts a Task that is not awaited, not stored and never cancelled by bootstrap itself. Inside it, for each of .claude and .codex in that order, if providers.status(provider).isInstalled at that point, it awaits providers.updateCLIIfDue(provider); the gate and the update itself are specified by ProviderRegistry.updateCLIIfDue. Because the task is un-awaited, bootstrap proceeds immediately to its tenth step (the orphan-attachment sweep) without waiting for either CLI's update check to finish.",
+      "side_effects": [
+        "May run \"<exe> update\" for claude and/or codex in a temporary directory (see ProviderRegistry.updateCLIIfDue)",
+        "May reload the CLI's catalog if the update changed its --version output"
+      ],
+      "persistence": "providerCLIUpdateDates, specified by the providers area.",
+      "failure_cases": [
+        "Neither providers.status nor updateCLIIfDue reports failure to bootstrap; the task's own errors are absorbed internally.",
+        "A provider that is not installed at the moment bootstrap reaches this step is skipped for the rest of that bootstrap run, even if it becomes installed moments later."
+      ],
+      "cancellation": "The task is never awaited, stored or cancelled by bootstrap; it runs to completion (or is abandoned at process exit) independently of the rest of the bootstrap sequence.",
+      "windows_path": "Direct port: fire-and-forget task, claude then codex, gated by ProviderRegistry.updateCLIIfDue's own installed/capture-run/custom-path/interval checks.",
+      "verification_method": "unit test on the bootstrap sequencer asserting this step starts an un-awaited task and that bootstrap's tenth step (the orphan sweep) begins without waiting for it",
+      "status": "SPECIFIED",
+      "upstream_defect": null,
+      "blocked_by": null,
+      "depends_on_unknown": null,
+      "title": "Bootstrap's ninth step starts an un-awaited task that updates the Claude and Codex CLIs when installed and due",
+      "source_evidence": [
+        "DroppyCode/App/AppModel.swift:275-282 - comment \"The CLIs Droppy Code runs headless never update themselves, and a model newer than the installed CLI fails outright. Their own updaters run here, in the background, at most every twelve hours; a newer version reloads its catalog.\" then Task { [providers] in for provider in [ProviderKind.claude, .codex] where providers.status(provider).isInstalled { await providers.updateCLIIfDue(provider) } } }",
+        "DroppyCode/Services/Providers/ProviderRegistry.swift:496-507 updateCLIIfDue gates - claude/codex only, not in a capture run, no custom binary path, single-flight with a forced wait, and a 12 h interval unless forced"
+      ],
+      "b3_note": "New in B3; the ninth of bootstrap's now-ten steps (see PR-LAUNCH-038). See impacts.json bundle R3-02 (AppModel.swift) new_records_needed."
     }
   ],
   "ui": [
@@ -2336,7 +2431,8 @@
         "decision": "OD-0008 C2",
         "upstream": "DroppyCode/App/AppCommands.swift:11-114 - the system Quit item, never replaced",
         "port": "Window close button and Alt+F4 only; no invented menu item"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-LAUNCH-007",

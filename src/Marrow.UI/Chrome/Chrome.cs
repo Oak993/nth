@@ -20,20 +20,25 @@ using Marrow.UI.Common;
 using Marrow.UI.Port;
 using Marrow.UI.Theme;
 
-// Source: DroppyCode/UI/Chrome/Chrome.swift (B2 1fbf81e), :1-1140.
+// Source: DroppyCode/UI/Chrome/Chrome.swift (B3 52bc792), :1-1137. B3 delta (lane A25, ED-200, PR-WIN-202,
+// UI-WIN-005, UI-WIN-052): ChromeCard gains `lazy: Bool = false` (:1006-1027, was B2 :1006-1021, +6); WindowDragArea
+// and WindowDragView (B2 :1085-1102, an NSViewRepresentable/NSView pair) collapse into one SwiftUI View,
+// WindowDragArea (:1091-1099); NoWindowDragArea/NoWindowDragView are unchanged apart from their citation moving
+// from B2 :1104-1140 to B3 :1101-1137. Net -3 lines.
 // Parts 1 to 3 of 4 are ported: the window backdrop (:201-273), the surfaces (:125-199), the chrome controls
 // (:306-560), the scroll model (:564-577), the search fields and the picker (:775-932), the veil and compact title
-// (:579-647), the sidebar row family (:648-773), the settings card/section/row (:1006-1074), the drag regions
-// (:1083-1140) and the tokens they read. Part 4 of 4 finishes the traffic-light geometry (TrafficLightPitch :17,
-// TrafficLightsWidth :20) and proves UI-WIN-055 (the ChromeRowDivider composition rule, :1076-1081).
+// (:579-647), the sidebar row family (:648-773), the settings card/section/row (:1006-1080), the drag regions
+// (:1089-1137) and the tokens they read. Part 4 of 4 finishes the traffic-light geometry (TrafficLightPitch :17,
+// TrafficLightsWidth :20) and proves UI-WIN-055 (the ChromeRowDivider composition rule, :1082-1087).
 // Forms (ED-095, ED-098): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed
 // record with `Control Body(Control content)`, an IAnimatableModifier where a transition animates it; a Layout is a
 // Panel; an NSView is a Control; NSImage is Avalonia.Media.IImage; AnyView is Control; a @ViewBuilder parameter is a
 // Func<Control>. A parameter without a default that follows one with a default moves before it (ED-095).
 // ENGINEERING DECISION (skeleton, no rule names the form): ButtonStyle (:276-280) is a sealed record with
-// `Control MakeBody(Control label)`, `configuration.label` being the label; NSViewRepresentable (:1086-1092,
-// :1114-1120) is a Decorator exposing MakeNSView()/UpdateNSView(_) without the SwiftUI Context; an NSEvent handler
-// is the matching Avalonia pointer override, NSEvent is PointerEventArgs.
+// `Control MakeBody(Control label)`, `configuration.label` being the label; NoWindowDragArea's NSViewRepresentable
+// (:1111-1117) is a Decorator exposing MakeNSView()/UpdateNSView(_) without the SwiftUI Context (B3/ED-200:
+// WindowDragArea is no longer NSViewRepresentable - it collapses into one plain Control, :1091-1099); an NSEvent
+// handler is the matching Avalonia pointer override, NSEvent is PointerEventArgs.
 // The private top-level structs (:153, :187, :967) are `file` types, C#'s nearest form of a file-private type.
 // View mechanics without an Avalonia counterpart of the same shape (a plain Button and TextField, `.background`,
 // `.onHover`, `.popover`, `.fixedSize`, a font on any view, an animated colour) are in Port/PlainControls.cs.
@@ -1555,81 +1560,92 @@ namespace Marrow.UI.Chrome
 
     // MARK: - Cards
 
-    // :1006-1021 struct ChromeCard<Content: View>: View
+    // :1006-1027 struct ChromeCard<Content: View>: View. B3 (PR-WIN-202, UI-WIN-052) adds `lazy: Bool = false`
+    // (:1009). ENGINEERING DECISION on how `lazy` renders in Avalonia: `content` (:1010) is a single already-built
+    // `Func<Control>` subtree - the caller's @ViewBuilder rows are composed before ChromeCard ever sees them - so
+    // there is nothing left for a virtualizing host to generate lazily; `lazy` is a recorded eager fallback rather
+    // than a virtualizing host, stored and exposed so the default and the three named call sites
+    // (MCPSettingsPage.swift:40, :395; SettingsView.swift:898) are inspectable, while both of :1015-1019's branches
+    // build the same eager StackPanel. The fill-not-clip property (UI-WIN-052) is reproduced either way: :1021-1025.
     public sealed class ChromeCard : Decorator
     {
-        /// <param name="content">:1007 <c>@ViewBuilder var content: Content</c>.</param>
-        // :1009-1020 body. PR-WIN-202: rows stacked with no spacing on a continuous rounded-16 fill at 0.03; a fill
-        // rather than a clip, so scrolling costs no offscreen mask pass (avalonia has no lazy-stack primitive here,
-        // so the rows are built eagerly; the fill-not-clip property is still reproduced).
-        public ChromeCard(Func<Control> content)
+        /// <param name="content">:1010 <c>@ViewBuilder var content: Content</c>.</param>
+        /// <param name="lazy">:1009 <c>var lazy = false</c>. Recorded, not a virtualizing host; see the class remark.</param>
+        // :1012-1026 body. PR-WIN-202: rows stacked with no spacing on a continuous rounded-16 fill at 0.03; a fill
+        // rather than a clip, so scrolling costs no offscreen mask pass.
+        public ChromeCard(Func<Control> content, bool lazy = false)
         {
-            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1011-1013
+            Lazy = lazy; // :1009
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1015-1019, both branches (see the class remark)
             stack.Children.Add(content());
-            var border = new Border { Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch } // :1014
-                .RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous); // :1017-1018
-            border.Background = Chrome.Overlay(0.03).Brush(border); // :1019
+            var border = new Border { Child = stack, HorizontalAlignment = HorizontalAlignment.Stretch } // :1021
+                .RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous); // :1023-1024
+            border.Background = Chrome.Overlay(0.03).Brush(border); // :1025
             Child = border;
         }
+
+        /// :1009 <c>var lazy = false</c>. Default false, matching the Swift default; recorded rather than
+        /// realised as a virtualizing host (see the class remark on <see cref="ChromeCard"/>).
+        public bool Lazy { get; }
     }
 
-    // :1023-1047 struct ChromeSection<Content: View>: View
+    // :1029-1053 struct ChromeSection<Content: View>: View
     public sealed class ChromeSection : Decorator
     {
-        /// <param name="title">:1024 <c>let title: String</c>.</param>
-        /// <param name="content">:1029 <c>@ViewBuilder var content: Content</c>.</param>
-        /// <param name="accessory">:1026 <c>var accessory: AnyView? = nil</c>.</param>
-        /// <param name="trailing">:1028 <c>var trailing: AnyView? = nil</c>.</param>
-        // :1031-1046 body. PR-WIN-203: a semibold body-style heading in the secondary text colour, an optional
+        /// <param name="title">:1030 <c>let title: String</c>.</param>
+        /// <param name="content">:1035 <c>@ViewBuilder var content: Content</c>.</param>
+        /// <param name="accessory">:1032 <c>var accessory: AnyView? = nil</c>.</param>
+        /// <param name="trailing">:1034 <c>var trailing: AnyView? = nil</c>.</param>
+        // :1037-1052 body. PR-WIN-203: a semibold body-style heading in the secondary text colour, an optional
         // accessory 4 points after it, an optional trailing control pushed to the far right, content 10 points below.
         public ChromeSection(string title, Func<Control> content, Control? accessory = null, Control? trailing = null)
         {
-            var heading = new TextBlock { Text = title, MaxLines = 1 }; // :1034
-            SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1035
-            heading.Foreground = Chrome.SecondaryText.Brush(heading); // :1036
-            var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; // :1033 HStack(spacing: 4)
+            var heading = new TextBlock { Text = title, MaxLines = 1 }; // :1040
+            SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1041
+            heading.Foreground = Chrome.SecondaryText.Brush(heading); // :1042
+            var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; // :1039 HStack(spacing: 4)
             header.Children.Add(heading);
-            if (accessory is not null) header.Children.Add(accessory); // :1037
+            if (accessory is not null) header.Children.Add(accessory); // :1043
             if (trailing is not null)
             {
-                trailing.Margin = new Thickness(8, 0, 0, 0); // :1039 Spacer(minLength: 8)
-                header.Children.Add(trailing); // :1040
+                trailing.Margin = new Thickness(8, 0, 0, 0); // :1045 Spacer(minLength: 8)
+                header.Children.Add(trailing); // :1046
             }
-            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1032, :1044
+            var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1038, :1050
             stack.Children.Add(header);
-            stack.Children.Add(content()); // :1042
+            stack.Children.Add(content()); // :1049
             Child = stack;
-            HorizontalAlignment = HorizontalAlignment.Stretch; // :1044
+            HorizontalAlignment = HorizontalAlignment.Stretch; // :1051
         }
     }
 
-    // :1049-1074 struct ChromeRow<Control: View>: View
+    // :1055-1080 struct ChromeRow<Control: View>: View
     public sealed class ChromeRow : Decorator
     {
-        /// <param name="title">:1050 <c>let title: String</c>.</param>
-        /// <param name="control">:1052 <c>@ViewBuilder var control: Control</c>.</param>
-        /// <param name="detail">:1051 <c>var detail: String?</c>.</param>
-        // :1054-1073 body. PR-WIN-204: a body-style title over an optional non-empty subheadline detail, control
+        /// <param name="title">:1056 <c>let title: String</c>.</param>
+        /// <param name="control">:1058 <c>@ViewBuilder var control: Control</c>.</param>
+        /// <param name="detail">:1057 <c>var detail: String?</c>.</param>
+        // :1060-1079 body. PR-WIN-204: a body-style title over an optional non-empty subheadline detail, control
         // at the trailing edge.
         public ChromeRow(string title, Func<Control> control, string? detail = null)
         {
-            var titleText = new TextBlock { Text = title }; // :1058-1059
-            SwiftFont.System(SwiftFont.TextStyle.Body).Apply(titleText); // :1058
-            titleText.Foreground = Chrome.PrimaryText.Brush(titleText); // :1059
-            var textStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left }; // :1057, :1060
+            var titleText = new TextBlock { Text = title }; // :1064-1065
+            SwiftFont.System(SwiftFont.TextStyle.Body).Apply(titleText); // :1064
+            titleText.Foreground = Chrome.PrimaryText.Brush(titleText); // :1065
+            var textStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left }; // :1063, :1066
             textStack.Children.Add(titleText);
-            if (!string.IsNullOrEmpty(detail)) // :1061 `if let detail, !detail.isEmpty`
+            if (!string.IsNullOrEmpty(detail)) // :1067 `if let detail, !detail.isEmpty`
             {
-                var detailText = new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap }; // :1062-1064
-                SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(detailText); // :1062
-                detailText.Foreground = Chrome.SecondaryText.Brush(detailText); // :1063
+                var detailText = new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap }; // :1068-1070
+                SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(detailText); // :1068
+                detailText.Foreground = Chrome.SecondaryText.Brush(detailText); // :1069
                 textStack.Children.Add(detailText);
             }
-            var controlView = control(); // :1067
-            controlView.Margin = new Thickness(12, 0, 0, 0); // :1066 Spacer(minLength: 12)
+            var controlView = control(); // :1073
+            controlView.Margin = new Thickness(12, 0, 0, 0); // :1072 Spacer(minLength: 12)
             controlView.HorizontalAlignment = HorizontalAlignment.Right;
             controlView.VerticalAlignment = VerticalAlignment.Center;
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") }; // :1056 HStack(spacing: 16)
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") }; // :1062 HStack(spacing: 16)
             textStack.HorizontalAlignment = HorizontalAlignment.Stretch;
             Grid.SetColumn(textStack, 0);
             Grid.SetColumn(controlView, 1);
@@ -1638,58 +1654,56 @@ namespace Marrow.UI.Chrome
             row.VerticalAlignment = VerticalAlignment.Center;
             var border = new Border
             {
-                Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), // :1068-1070
+                Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), // :1074-1076
                 Child = row,
             };
             Child = border;
         }
     }
 
-    // :1076-1081 struct ChromeRowDivider: View
+    // :1082-1087 struct ChromeRowDivider: View
     public sealed class ChromeRowDivider : Decorator
     {
-        // :1077-1080 body. PR-WIN-205: a hairline inset 16 points from the leading edge only.
+        // :1083-1086 body. PR-WIN-205: a hairline inset 16 points from the leading edge only.
         public ChromeRowDivider()
         {
             var line = new Border { BorderThickness = new Thickness(0, 0, 0, 1), Height = 1 };
-            // :1078 `Divider()`: SwiftUI's own separator, drawn in the system divider colour. B2 gives it no
+            // :1084 `Divider()`: SwiftUI's own separator, drawn in the system divider colour. B2 gives it no
             // literal (the framework paints it), so it takes the same translucent hairline opacity Chrome uses
             // for its other system-style rules (WindowBackdrop's edge, :270), UNVERIFIED under OD-0001.
             line.BorderBrush = Chrome.Overlay(0.14).Brush(line);
             Child = line;
-            Margin = new Thickness(16, 0, 0, 0); // :1079 .padding(.leading, 16)
+            Margin = new Thickness(16, 0, 0, 0); // :1085 .padding(.leading, 16)
         }
     }
 
     // MARK: - Window drag
 
-    // :1085-1092 struct WindowDragArea: NSViewRepresentable. Lets a stretch of chrome move the window.
-    public sealed class WindowDragArea : Decorator
+    // :1091-1099 struct WindowDragArea: View (doc comment :1091). ED-200 (oracle O-68): B3 replaces the B2
+    // NSViewRepresentable/NSView pair (WindowDragArea wrapping WindowDragView) with one SwiftUI View,
+    // `Color.clear.contentShape(.rect).gesture(WindowDragGesture()).allowsWindowActivationEvents(true)`; this
+    // collapses onto a single Avalonia Control the same way, keeping the ED-063 caption hit test (probe P7) with a
+    // BeginMoveDrag fallback for windows where the caption result does not apply. WindowDragGesture's own
+    // press-start and double-click semantics are UNDOCUMENTED and UNRESOLVED (6.1 E6, oracle O-68; OD-0001 rules
+    // out a Mac run to settle it): the press-and-move-drags, activating-click-drags, release-to-system,
+    // double-click-maximizes and right-click-shows-system-menu behaviour below is ED-063's own (already measured
+    // by probe P7), not a transcription of any documented WindowDragGesture behaviour, since none exists to
+    // transcribe.
+    public sealed class WindowDragArea : Control
     {
-        public WindowDragArea() => Child = MakeNSView();
+        // ED-063 (probe P7): the region is a caption to the Windows hit test, so the system move loop drags the
+        // window; :1097 `allowsWindowActivationEvents(true)` - a caption hit test's own click already activates
+        // an inactive window and drags it in the same gesture, matching Apple's stated intent.
+        public WindowDragArea() => Win32Properties.SetNonClientHitTestResult(this, Win32Properties.Win32HitTestValue.Caption);
 
-        // :1087-1089 makeNSView(context:)
-        public WindowDragView MakeNSView() => new();
-
-        // :1091 updateNSView(_:context:) {}
-        public void UpdateNSView(WindowDragView nsView)
-        {
-        }
-    }
-
-    // :1094-1102 final class WindowDragView: NSView
-    public sealed class WindowDragView : Control
-    {
-        // ED-063 (probe P7): the region is a caption to the Windows hit test, so the system moves the window.
-        public WindowDragView() => Win32Properties.SetNonClientHitTestResult(this, Win32Properties.Win32HitTestValue.Caption);
-
-        // :1095 acceptsFirstMouse(for:)
+        // :1094 `Color.clear` (B2's acceptsFirstMouse-equivalent): the region takes the hit over its whole frame.
         public bool AcceptsFirstMouse(PointerEventArgs? @for) => true;
 
-        // The view takes the hit over its whole frame, as an NSView does, and draws nothing.
+        // :1095 `.contentShape(.rect)`: the region draws nothing, as B2's NSView subclass did.
         public override void Render(DrawingContext context) => context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
 
-        // :1097-1099 mouseDown(with:): `window?.performDrag(with: event)`; the press goes no further.
+        // ED-200's BeginMoveDrag fallback, for windows the caption hit-test result does not reach; the press goes
+        // no further, the way B2's `window?.performDrag(with: event)` let no further handler see it.
         protected override void OnPointerPressed(PointerPressedEventArgs e)
         {
             if (e.GetCurrentPoint(this).Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed) return;
@@ -1697,7 +1711,8 @@ namespace Marrow.UI.Chrome
             e.Handled = true;
         }
 
-        // :1101 mouseUp(with:) {}: the release is swallowed and never reaches the UI behind the region.
+        // The release is swallowed here exactly as B2's empty mouseUp did, and never reaches the UI behind the
+        // region; WindowDragGesture documents nothing about the release either way (6.1 E6, oracle O-68).
         protected override void OnPointerReleased(PointerReleasedEventArgs e)
         {
             if (e.GetCurrentPoint(this).Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonReleased) return;
@@ -1705,44 +1720,46 @@ namespace Marrow.UI.Chrome
         }
     }
 
-    // :1104-1120 struct NoWindowDragArea: NSViewRepresentable. Marks a chrome control's hit area as never dragging the
-    // window; empty chrome around the controls has no such view behind it and still drags the window like a title bar.
+    // :1101-1117 struct NoWindowDragArea: NSViewRepresentable (doc comment :1101-1110, was B2 :1104-1120). Marks a
+    // chrome control's hit area as never dragging the window; empty chrome around the controls has no such view
+    // behind it and still drags the window like a title bar. Unchanged from B2 apart from this citation move.
     public sealed class NoWindowDragArea : Decorator
     {
         public NoWindowDragArea() => Child = MakeNSView();
 
-        // :1115-1117 makeNSView(context:)
+        // :1112-1114 makeNSView(context:)
         public NoWindowDragView MakeNSView() => new();
 
-        // :1119 updateNSView(_:context:) {}
+        // :1116 updateNSView(_:context:) {}
         public void UpdateNSView(NoWindowDragView nsView)
         {
         }
     }
 
-    // :1122-1140 final class NoWindowDragView: NSView
+    // :1119-1137 final class NoWindowDragView: NSView (was B2 :1122-1140). Unchanged from B2 apart from this
+    // citation move.
     public sealed class NoWindowDragView : Control
     {
         // ED-063 (probe P7): a client hit, so the Windows hit test never moves the window from here.
         public NoWindowDragView() => Win32Properties.SetNonClientHitTestResult(this, Win32Properties.Win32HitTestValue.Client);
 
-        // :1123 acceptsFirstMouse(for:)
+        // :1120 acceptsFirstMouse(for:)
         public bool AcceptsFirstMouse(PointerEventArgs? @for) => true;
 
-        // :1125-1126 A press here works the control, never the window.
+        // :1122-1123 A press here works the control, never the window.
         public bool MouseDownCanMoveWindow => false;
 
-        // :1128-1130 The view draws nothing and keeps nothing: it only takes the hit so the window does not drag.
+        // :1125-1127 The view draws nothing and keeps nothing: it only takes the hit so the window does not drag.
         public override void Render(DrawingContext context) => context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
 
-        // :1131 mouseDown(with:) and :1137 rightMouseDown(with:): the press travels on to the superview, left unhandled
+        // :1128 mouseDown(with:) and :1134 rightMouseDown(with:): the press travels on to the superview, left unhandled
         // so it bubbles to the parent the way `superview?.mouseDown(with:)` hands it on.
         protected override void OnPointerPressed(PointerPressedEventArgs e) => base.OnPointerPressed(e);
 
-        // :1133 mouseDragged(with:): travels on to the superview.
+        // :1130 mouseDragged(with:): travels on to the superview.
         protected override void OnPointerMoved(PointerEventArgs e) => base.OnPointerMoved(e);
 
-        // :1135 mouseUp(with:) and :1139 rightMouseUp(with:): travel on to the superview.
+        // :1132 mouseUp(with:) and :1136 rightMouseUp(with:): travel on to the superview.
         protected override void OnPointerReleased(PointerReleasedEventArgs e) => base.OnPointerReleased(e);
     }
 }

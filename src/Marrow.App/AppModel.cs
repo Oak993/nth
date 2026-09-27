@@ -13,10 +13,10 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Marrow.UI.Sound;
 
-// Source: DroppyCode/App/AppModel.swift (B2 1fbf81e), :1-1356. Skeleton (c100 group 1): AppAlert (:5-9), the
-// FinishRequest and ArchiveRequest shapes (:917-932), ThreadIndex's stored shape (:50-61) and the observed stored
-// properties without observers (:103-106, :923, :932) are complete; every didSet (:30-45, :72-98), the init
-// (:120-146), the cell machinery (:62-71, :148-226), the private task and flag state (:108-118, :999) and every
+// Source: DroppyCode/App/AppModel.swift (B3 52bc7926), :1-1374. Skeleton (c100 group 1): AppAlert (:5-9), the
+// FinishRequest and ArchiveRequest shapes (:926-941), ThreadIndex's stored shape (:50-61) and the observed stored
+// properties without observers (:103-106, :932, :941) are complete; every didSet (:30-45, :72-98), the init
+// (:121-147), the cell machinery (:62-71, :149-227), the private task and flag state (:108-119, :1008) and every
 // method and computed property are left to the implementing unit. AppModel is partial: the extensions in
 // AppModel+Hydra.swift, AppModel+HydraMerge.swift and AppModel+HydraPairs.swift are parts of it in their own twins
 // (R-FILE-1). Forms: URL is SwiftURL; an (inout T) -> Void closure is a Func<T, T> returning the changed copy
@@ -88,11 +88,12 @@ public sealed partial class AppModel : MainActorModel
     private Dictionary<Guid, ThreadRuntime> runtimes = []; // AppModel.swift:108
     private Dictionary<Guid, TaskHandle> idleSessionStops = []; // AppModel.swift:109
     private TaskHandle? saveTask; // AppModel.swift:110
-    private TaskHandle? hydraMergeSweepTask; // AppModel.swift:111-116
-    private bool persistenceEnabled = true; // AppModel.swift:117
-    private HashSet<Guid> sessionsToRelease = []; // AppModel.swift:999
+    private ContinuousInstant? lastLibrarySave; // AppModel.swift:111 (B3, PR-STORE-015/PR-LAUNCH-076)
+    private TaskHandle? hydraMergeSweepTask; // AppModel.swift:112-117
+    private bool persistenceEnabled = true; // AppModel.swift:118
+    private HashSet<Guid> sessionsToRelease = []; // AppModel.swift:1008
     private bool libraryLoadFailed; // DEVIATION OD-0008: protect library.json after a failed load.
-    private long dockUnreadCount; // AppModel.swift:1261-1264; Windows has no text badge surface.
+    private long dockUnreadCount; // AppModel.swift:1270-1273; Windows has no text badge surface.
 
     public AppSettings Settings { get; }          // AppModel.swift:15
     public ProviderRegistry Providers { get; }    // AppModel.swift:16
@@ -292,7 +293,7 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:235-237. Swift: children(of:).
     public ValueList<ChatThread> Children(Guid parentID) => new(ChildIDs(parentID).Select(Thread).OfType<ChatThread>()); // AppModel.swift:235-237
 
-    // AppModel.swift:239-278
+    // AppModel.swift:239-287 (B3)
     public async Task Bootstrap()
     {
         var recent = threads
@@ -317,7 +318,7 @@ public sealed partial class AppModel : MainActorModel
                 await model.ResumeHydraMerges(); // AppModel.swift:259
             }
         }); // AppModel.swift:255-261
-        await Providers.RefreshAll(); // AppModel.swift:262
+        await Providers.RefreshAll(); // AppModel.swift:263
         await TaskGroup.Run(async group =>
         {
             foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex, ProviderKind.Deepseek, ProviderKind.Meta })
@@ -325,9 +326,23 @@ public sealed partial class AppModel : MainActorModel
                 if (!Providers.Status(provider).IsInstalled) continue;
                 group.AddTask(() => MainActor.Invoke(() => Providers.LoadCatalog(provider)));
             }
-        }); // AppModel.swift:263-270
-        if (Providers.Status(ProviderKind.Zai).IsInstalled) await Providers.LoadCatalog(ProviderKind.Zai); // AppModel.swift:271-273
-        await Storage.SweepOrphanedAttachments(); // AppModel.swift:274-278; DEVIATION ED-001: capture guard dropped.
+        }); // AppModel.swift:267-271
+        if (Providers.Status(ProviderKind.Zai).IsInstalled) await Providers.LoadCatalog(ProviderKind.Zai); // AppModel.swift:272-274
+        // The CLIs Marrow runs headless never update themselves, and a model newer than the installed CLI
+        // fails outright. Their own updaters run here, in the background, at most every twelve hours; a
+        // newer version reloads its catalog. (PR-LAUNCH-085, new at B3)
+        var providers = Providers; // AppModel.swift:278 Swift: `Task { [providers] in ... }` captures only the registry, not self (R-ISO-4)
+        _ = MainActor.Spawn(async () =>
+        {
+            foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex }) // AppModel.swift:279
+            {
+                if (!providers.Status(provider).IsInstalled) continue; // AppModel.swift:279
+                await providers.UpdateCLIIfDue(provider); // AppModel.swift:280
+            }
+        }); // AppModel.swift:275-282; un-awaited: bootstrap proceeds to the sweep below without waiting for it.
+        // Last, once nothing the first click needs is waiting on the disk: the attachment files no
+        // thread refers to any more go, a day after they were written.
+        await Storage.SweepOrphanedAttachments(); // AppModel.swift:283-286; DEVIATION ED-001: capture guard dropped.
     }
 
     // MARK: - Lookup
@@ -1262,62 +1277,73 @@ public sealed partial class AppModel : MainActorModel
 
     // MARK: - Persistence
 
-    // AppModel.swift:1289-1297
+    // AppModel.swift:1298-1314 (B3, PR-STORE-015/PR-LAUNCH-076: a throttle, not a cancel-and-restart debounce)
     public void ScheduleSave() =>
         ScheduleLibrarySave();
 
     private void ScheduleLibrarySave()
     {
-        if (!persistenceEnabled) return; // AppModel.swift:1290
-        saveTask?.Cancel(); // AppModel.swift:1291
+        if (!persistenceEnabled || saveTask is not null) return; // AppModel.swift:1305; returns early while a save is pending, no cancel/restart
+        var sinceLast = lastLibrarySave is { } last ? SwiftClock.Now - last : TimeSpan.FromSeconds(60); // AppModel.swift:1306
+        var wait = new[] { TimeSpan.FromMilliseconds(400), TimeSpan.FromSeconds(4) - sinceLast }.Max(); // AppModel.swift:1307
         var weakSelf = new WeakReference<AppModel>(this);
         saveTask = MainActor.Spawn(async () =>
         {
-            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(400)); // AppModel.swift:1292-1293
-            if (SwiftTask.IsCancelled || !weakSelf.TryGetTarget(out var model)) return; // AppModel.swift:1294
-            model.SaveLibrary(); // AppModel.swift:1295
-        });
+            await SwiftTask.TrySleep(wait); // AppModel.swift:1309
+            if (SwiftTask.IsCancelled || !weakSelf.TryGetTarget(out var model)) return; // AppModel.swift:1310
+            model.saveTask = null; // AppModel.swift:1311
+            model.SaveLibrary(); // AppModel.swift:1312
+        }); // AppModel.swift:1308-1313
     }
 
     private void SaveLibrary()
     {
-        if (!persistenceEnabled || libraryLoadFailed) return; // AppModel.swift:1299-1300, DEVIATION OD-0008 A10
-        var library = new Library { Projects = projects, Threads = threads }; // AppModel.swift:1301-1303
-        DiskWriter.Shared.EncodeAndWrite(library, Storage.LibraryURL); // AppModel.swift:1304-1305
+        if (!persistenceEnabled) return; // AppModel.swift:1317
+        lastLibrarySave = SwiftClock.Now; // AppModel.swift:1318; every call, scheduled or direct, stamps this
+        // ENGINEERING DECISION: the OD-0008 A10 "do not overwrite after a failed load" guard has no Swift
+        // counterpart; the port adds it. Swift stamps lastLibrarySave unconditionally right after the
+        // persistenceEnabled guard, so that statement order is kept and the OD-0008 check is placed after the
+        // stamp rather than folded into the guard above it. This has no observable effect either way: a
+        // failed-load run never reaches the write below under either ordering (both checks return before it),
+        // and no other code reads lastLibrarySave; the ordering is chosen only to keep the Swift statement
+        // sequence intact rather than to change behavior.
+        if (libraryLoadFailed) return; // DEVIATION OD-0008 A10
+        var library = new Library { Projects = projects, Threads = threads }; // AppModel.swift:1319-1321
+        DiskWriter.Shared.EncodeAndWrite(library, Storage.LibraryURL); // AppModel.swift:1322-1323
     }
 
-    // AppModel.swift:1309-1327
+    // AppModel.swift:1327-1345
     public void SaveBeforeQuit() =>
-        SaveSynchronouslyBeforeQuit(); // AppModel.swift:1309-1327
+        SaveSynchronouslyBeforeQuit(); // AppModel.swift:1327-1345
 
     private void SaveSynchronouslyBeforeQuit()
     {
-        if (!persistenceEnabled) return; // AppModel.swift:1310
-        persistenceEnabled = false; // AppModel.swift:1311
-        saveTask?.Cancel(); // AppModel.swift:1312
-        saveTask = null; // AppModel.swift:1313
+        if (!persistenceEnabled) return; // AppModel.swift:1328
+        persistenceEnabled = false; // AppModel.swift:1329
+        saveTask?.Cancel(); // AppModel.swift:1330
+        saveTask = null; // AppModel.swift:1331
         if (!libraryLoadFailed)
         {
-            var library = new Library { Projects = projects, Threads = threads }; // AppModel.swift:1314-1316
-            DiskWriter.Shared.WriteSynchronously(library, Storage.LibraryURL); // AppModel.swift:1317
+            var library = new Library { Projects = projects, Threads = threads }; // AppModel.swift:1332-1334
+            DiskWriter.Shared.WriteSynchronously(library, Storage.LibraryURL); // AppModel.swift:1335
         }
         foreach (var runtime in runtimes.Values)
         {
-            runtime.CancelPersistence(); // AppModel.swift:1318-1319
-            runtime.StopSession(); // AppModel.swift:1320
-            if (runtime.UnsavedSnapshot() is not { } snapshot) continue; // AppModel.swift:1321-1322
-            DiskWriter.Shared.WriteSynchronously(snapshot, Storage.ThreadURL(runtime.ThreadID)); // AppModel.swift:1323
+            runtime.CancelPersistence(); // AppModel.swift:1336-1337
+            runtime.StopSession(); // AppModel.swift:1338
+            if (runtime.UnsavedSnapshot() is not { } snapshot) continue; // AppModel.swift:1339-1340
+            DiskWriter.Shared.WriteSynchronously(snapshot, Storage.ThreadURL(runtime.ThreadID)); // AppModel.swift:1341
         }
-        DiskWriter.Shared.WaitForQueuedWrites(); // AppModel.swift:1325
-        Terminals.TerminateAll(); // AppModel.swift:1326
+        DiskWriter.Shared.WaitForQueuedWrites(); // AppModel.swift:1343
+        Terminals.TerminateAll(); // AppModel.swift:1344
     }
 }
 
-// AppModel.swift:1331-1356. A caseless enum of static functions -> static class.
+// AppModel.swift:1349-1374. A caseless enum of static functions -> static class.
 public static class ProjectFile
 {
-    // AppModel.swift:1332-1344. Swift: scripts(at:).
-    public static ValueList<ProjectScript> Scripts(SwiftURL url) // AppModel.swift:1332-1344
+    // AppModel.swift:1350-1362. Swift: scripts(at:).
+    public static ValueList<ProjectScript> Scripts(SwiftURL url) // AppModel.swift:1350-1362
     {
         try
         {
@@ -1346,8 +1372,8 @@ public static class ProjectFile
         }
     }
 
-    // AppModel.swift:1346-1355. Swift: symbol(for:).
-    public static string Symbol(string? icon) // AppModel.swift:1346-1355
+    // AppModel.swift:1364-1373. Swift: symbol(for:).
+    public static string Symbol(string? icon) // AppModel.swift:1364-1373
         => icon switch
         {
             "test" => "checkmark.seal",

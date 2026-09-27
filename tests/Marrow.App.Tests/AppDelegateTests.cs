@@ -713,10 +713,10 @@ public sealed class AppDelegateTests
 // before it: :13 `URLCache.shared = URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0)` is new in B3; the
 // port's shared cache (src/Marrow.Core/Port/Http.cs URLCache.Shared, ED-118 (4)-(5)) already keeps nothing on disk
 // but has no memory capacity, and ED-118 parks any size cut-off under O-33, so the 8 MiB cap has no port form yet.
-// :14 `MarkdownDelegationCard.render = { AnyView(HydraDelegationBlock(json: $0, sent: $1)) }` (new in B3) is the
-// hook the port already has as MarkdownBlockView.HydraDelegationBlock (src/Marrow.UI/Markdown/MarkdownView.cs, the
-// B2 name of the same App-set renderer): `MarkdownBlockView.HydraDelegationBlock = (json, sent) => new
-// HydraDelegationBlock(json, sent);`. :15 `UNUserNotificationCenter.current().delegate = self` needs the Windows toast
+// :14 `MarkdownDelegationCard.render = { AnyView(HydraDelegationBlock(json: $0, sent: $1)) }` (B3 renames the hook
+// from its B2 name, MarkdownBlockView.HydraDelegationBlock, to its own enum, src/Marrow.UI/Markdown/MarkdownView.cs,
+// lane A30): `MarkdownDelegationCard.Render = (json, sent) => new HydraDelegationBlock(json, sent);`. :15
+// `UNUserNotificationCenter.current().delegate = self` needs the Windows toast
 // activation handler (PR-LAUNCH-025 windows_path); no unit has built one (Port/UpdateNotificationCenter.cs binds a
 // no-op, AppModel.Notify delivers nothing). :18-21, the capture-run branch (B3 reads CaptureRun.isEnabled where B2
 // read WebsiteCaptures.isEnabled), is not ported (ED-001). The boot sequence that replaces the plain show at :22
@@ -735,6 +735,20 @@ public sealed class AppDelegateTests
 // awaited (:27); startBackgroundChecks (:28); consumeRelaunchMarker, then armCelebration and showSettings(.about)
 // (:30-33).
 
+// Boot unit (2026-09-26): impl/b2 ec7c4395 has WindowManager, so :9-34 is now written (AppDelegate.cs) and tested in
+// AppDelegateThirdTests.cs, in source order, with these lines still open: :13 (the 8 MiB memory cap, O-33, ED-118) and
+// :15 (the Windows toast activation handler, PR-LAUNCH-025), which keep PR-LAUNCH-025, PR-WIN-068 and UI-LAUNCH-001
+// open; :22's boot sequence (OD-0018, ED-103) is STOP Boot #1 in AppDelegateThirdTests.cs.
+
+// App.AppDelegate unit (2026-09-26): :13 CLOSED. Lane 1c landed Core/Port/Http.cs's public
+// `URLCache(memoryCapacity:diskCapacity:)` constructor and settable `URLCache.Shared`, both cited to
+// AppDelegate.swift:13 (B3 52bc792), so O-33's parked size cut-off no longer blocks this one statement (ED-118 still
+// parks the cut-off itself for the store's own Fresh/Store behaviour, unaffected by this write). AppDelegate.cs now
+// runs `URLCache.Shared = new URLCache(8 * 1024 * 1024, 0);` first, tested in AppDelegateThirdTests.cs
+// (Launch_reconfigures_the_shared_URLCache_to_8_MiB_memory_only_before_it_reaches_the_window_manager,
+// PR-LAUNCH-083, PR-LAUNCH-025). :15 (the Windows toast activation handler) stays open; PR-LAUNCH-025, PR-WIN-068 and
+// UI-LAUNCH-001 stay SPECIFIED for that line alone.
+
 // STOP App.AppDelegate #2 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
 // Kind: missing dependency
 // Swift: DroppyCode/App/AppDelegate.swift:36-39 (B3 52bc792), applicationShouldHandleReopen(_:hasVisibleWindows:),
@@ -750,6 +764,10 @@ public sealed class AppDelegateTests
 // Needed to proceed: unit App.Window.WindowManager; the second-launch signal ED-002 asks for (a decision on its
 // mechanism, owned by the shell or App.DroppyCodeApp).
 // Done so far: nothing implemented at this site; no test written.
+
+// Boot unit (2026-09-26): CLOSED. :36-39 is written (AppDelegate.cs) and the second-launch signal is
+// Port/ReopenSignal.cs; tests in AppDelegateThirdTests.cs, Port/AppShellSecondTests.cs and Port/ReopenSignalTests.cs.
+// PR-WIN-072's "restores" (a minimised main window) stays open as STOP Boot #5 in AppDelegateThirdTests.cs.
 
 // STOP App.AppDelegate #3 (part 1, 2026-09-26; part 2 requirements added 2026-09-26)
 // Kind: missing dependency
@@ -783,3 +801,7 @@ public sealed class AppDelegateTests
 // Needed to proceed: unit App.Window.WindowManager and the application shell (Program.cs's entry point).
 // Done so far: the terminate decision and the three termination steps are implemented and green in this file; the
 // close wiring is not implemented.
+// Boot unit (2026-09-26): CLOSED. The close wiring is Port/AppShell.cs (Terminate, ShutdownRequested, WillTerminate,
+// the WM_ENDSESSION hook) with WindowManager.MainWindowClose, driven by Program.cs's desktop lifetime; tests in
+// Port/AppShellTests.cs and Port/AppShellSecondTests.cs. ED-004's ShutdownBlockReasonCreate is STOP Boot #3 in
+// AppDelegateThirdTests.cs.

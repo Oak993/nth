@@ -242,6 +242,18 @@ public sealed class HttpStoreTests
         Assert.Equal(Ascii("B"), (await againB).Data);
     }
 
+    [Fact]
+    [Trait("Decision", "ED-118")]
+    public void URLCache_records_the_memory_and_disk_capacities_it_is_constructed_with()
+    {
+        // AppDelegate.swift:13 (B3 52bc792): URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0). ED-118 item
+        // 4 parks "no size cut-off" (IMPLEMENTING.md Appendix B, O-33), so the unit does not evict on either number;
+        // it only has to accept and report them, matching Foundation's URLCache(memoryCapacity:diskCapacity:).
+        var cache = new URLCache(memoryCapacity: 8 * 1024 * 1024, diskCapacity: 0);
+        Assert.Equal(8 * 1024 * 1024, cache.MemoryCapacity);
+        Assert.Equal(0, cache.DiskCapacity);
+    }
+
     // ---- Cookie store (ED-118 item 3, O-28: RFC 6265) ----
 
     [Fact]

@@ -9,14 +9,14 @@ every line, not a sample.
 | Milestone | Packets | Requirements | HIGH risk | Quarantined reqs |
 | --- | --- | --- | --- | --- |
 | M0 Probes that must pass before production code (ADR-0002) | 10 | 0 | 2 | 0 |
-| M2 Core models and pure support | 78 | 546 | 9 | 0 |
-| M3 Services foundation: store and git | 25 | 186 | 12 | 0 |
-| M4 Providers and MCP | 147 | 1062 | 11 | 0 |
-| M5 UI toolkit: theme, chrome, glass, markdown, sound | 77 | 290 | 15 | 0 |
-| M6 App shell, windows, model and runtime | 92 | 705 | 45 | 0 |
-| M7 Feature views | 242 | 1062 | 10 | 0 |
+| M2 Core models and pure support | 81 | 553 | 9 | 0 |
+| M3 Services foundation: store and git | 25 | 191 | 12 | 0 |
+| M4 Providers and MCP | 148 | 1082 | 7 | 0 |
+| M5 UI toolkit: theme, chrome, glass, markdown, sound | 79 | 299 | 14 | 0 |
+| M6 App shell, windows, model and runtime | 94 | 717 | 47 | 0 |
+| M7 Feature views | 242 | 1057 | 9 | 0 |
 | M8 Update and packaging | 8 | 56 | 4 | 0 |
-| **Total** | **679** | **3907** | **108** | **0** |
+| **Total** | **687** | **3955** | **104** | **0** |
 
 ## M0: Probes that must pass before production code (ADR-0002)
 
@@ -39,82 +39,85 @@ every line, not a sample.
 | --- | --- | --- | --- | --- |
 | [T-M2-001](T-M2-001.md) | Core/Models/AntiSlopPolicy.swift | 3 | STANDARD | `src/Marrow.Core/Models/AntiSlopPolicy.cs` |
 | [T-M2-002](T-M2-002.md) | Core/Models/FileChangeSummary.swift | 1 | STANDARD | `src/Marrow.Core/Models/FileChangeSummary.cs` |
-| [T-M2-003](T-M2-003.md) | Core/Models/Hydra.swift (1 of 9) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
-| [T-M2-004](T-M2-004.md) | Core/Models/Hydra.swift (2 of 9) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
-| [T-M2-005](T-M2-005.md) | Core/Models/Hydra.swift (3 of 9) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
-| [T-M2-006](T-M2-006.md) | Core/Models/Hydra.swift (4 of 9) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
-| [T-M2-007](T-M2-007.md) | Core/Models/Hydra.swift (5 of 9) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
-| [T-M2-008](T-M2-008.md) | Core/Models/Hydra.swift (6 of 9) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
-| [T-M2-009](T-M2-009.md) | Core/Models/Hydra.swift (7 of 9) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
-| [T-M2-010](T-M2-010.md) | Core/Models/Hydra.swift (8 of 9) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
-| [T-M2-011](T-M2-011.md) | Core/Models/Hydra.swift (9 of 9) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
-| [T-M2-012](T-M2-012.md) | Core/Models/Hydra.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
-| [T-M2-013](T-M2-013.md) | Core/Models/HydraCookbook.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Core/Models/HydraCookbook.cs` |
-| [T-M2-014](T-M2-014.md) | Core/Models/HydraCookbook.swift (2 of 2) | 7 | STANDARD | `src/Marrow.Core/Models/HydraCookbook.cs` |
-| [T-M2-015](T-M2-015.md) | Core/Models/HydraCookbook.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/HydraCookbook.cs` |
-| [T-M2-016](T-M2-016.md) | Core/Models/HydraDelegationStream.swift | 6 | STANDARD | `src/Marrow.Core/Models/HydraDelegationStream.cs` |
-| [T-M2-017](T-M2-017.md) | Core/Models/Library.swift (1 of 6) | 10 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
-| [T-M2-018](T-M2-018.md) | Core/Models/Library.swift (2 of 6) | 10 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
-| [T-M2-019](T-M2-019.md) | Core/Models/Library.swift (3 of 6) | 10 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
-| [T-M2-020](T-M2-020.md) | Core/Models/Library.swift (4 of 6) | 10 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
-| [T-M2-021](T-M2-021.md) | Core/Models/Library.swift (5 of 6) | 10 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
-| [T-M2-022](T-M2-022.md) | Core/Models/Library.swift (6 of 6) | 2 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
-| [T-M2-023](T-M2-023.md) | Core/Models/Library.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
-| [T-M2-024](T-M2-024.md) | Core/Models/MCP.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Core/Models/MCP.cs` |
-| [T-M2-025](T-M2-025.md) | Core/Models/MCP.swift (2 of 2) | 4 | STANDARD | `src/Marrow.Core/Models/MCP.cs` |
-| [T-M2-026](T-M2-026.md) | Core/Models/MCPCatalog.swift (1 of 4) | 10 | STANDARD | `src/Marrow.Core/Models/MCPCatalog.cs` |
-| [T-M2-027](T-M2-027.md) | Core/Models/MCPCatalog.swift (2 of 4) | 10 | STANDARD | `src/Marrow.Core/Models/MCPCatalog.cs` |
-| [T-M2-028](T-M2-028.md) | Core/Models/MCPCatalog.swift (3 of 4) | 10 | STANDARD | `src/Marrow.Core/Models/MCPCatalog.cs` |
-| [T-M2-029](T-M2-029.md) | Core/Models/MCPCatalog.swift (4 of 4) | 7 | STANDARD | `src/Marrow.Core/Models/MCPCatalog.cs` |
-| [T-M2-030](T-M2-030.md) | Core/Models/MCPCustom.swift | 10 | STANDARD | `src/Marrow.Core/Models/MCPCustom.cs` |
-| [T-M2-031](T-M2-031.md) | Core/Models/MergeRequestLink.swift | 4 | STANDARD | `src/Marrow.Core/Models/MergeRequestLink.cs` |
-| [T-M2-032](T-M2-032.md) | Core/Models/Provider.swift (1 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-033](T-M2-033.md) | Core/Models/Provider.swift (2 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-034](T-M2-034.md) | Core/Models/Provider.swift (3 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-035](T-M2-035.md) | Core/Models/Provider.swift (4 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-036](T-M2-036.md) | Core/Models/Provider.swift (5 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-037](T-M2-037.md) | Core/Models/Provider.swift (6 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-038](T-M2-038.md) | Core/Models/Provider.swift (7 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-039](T-M2-039.md) | Core/Models/Provider.swift (8 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-040](T-M2-040.md) | Core/Models/Provider.swift (9 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-041](T-M2-041.md) | Core/Models/Provider.swift (10 of 10) | 7 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-042](T-M2-042.md) | Core/Models/Provider.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
-| [T-M2-043](T-M2-043.md) | Core/Models/ProviderSettings.swift | 1 | STANDARD | `src/Marrow.Core/Models/ProviderSettings.cs` |
-| [T-M2-044](T-M2-044.md) | Core/Models/Requests.swift | 5 | STANDARD | `src/Marrow.Core/Models/Requests.cs` |
-| [T-M2-045](T-M2-045.md) | Core/Models/Shortcuts.swift (1 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-046](T-M2-046.md) | Core/Models/Shortcuts.swift (2 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-047](T-M2-047.md) | Core/Models/Shortcuts.swift (3 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-048](T-M2-048.md) | Core/Models/Shortcuts.swift (4 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-049](T-M2-049.md) | Core/Models/Shortcuts.swift (5 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-050](T-M2-050.md) | Core/Models/Shortcuts.swift (6 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-051](T-M2-051.md) | Core/Models/Shortcuts.swift (7 of 7) | 3 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-052](T-M2-052.md) | Core/Models/Shortcuts.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
-| [T-M2-053](T-M2-053.md) | Core/Models/ThreadContinuation.swift | 3 | STANDARD | `src/Marrow.Core/Models/ThreadContinuation.cs` |
-| [T-M2-054](T-M2-054.md) | Core/Models/Timeline.swift (1 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
-| [T-M2-055](T-M2-055.md) | Core/Models/Timeline.swift (2 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
-| [T-M2-056](T-M2-056.md) | Core/Models/Timeline.swift (3 of 3) | 5 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
-| [T-M2-057](T-M2-057.md) | Core/Models/TokenSpend.swift | 3 | STANDARD | `src/Marrow.Core/Models/TokenSpend.cs` |
-| [T-M2-058](T-M2-058.md) | Core/Support/Coding.swift | 3 | STANDARD | `src/Marrow.Core/Support/Coding.cs` |
-| [T-M2-059](T-M2-059.md) | Core/Support/HangWatchdog.swift | 8 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
-| [T-M2-060](T-M2-060.md) | Core/Support/HangWatchdog.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
-| [T-M2-061](T-M2-061.md) | Core/Support/ISO8601.swift | 3 | STANDARD | `src/Marrow.Core/Support/ISO8601.cs` |
-| [T-M2-062](T-M2-062.md) | Core/Support/JSONRPC.swift | 9 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
-| [T-M2-063](T-M2-063.md) | Core/Support/JSONRPC.swift (UI) | 0 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
-| [T-M2-064](T-M2-064.md) | Core/Support/JSONValue.swift | 8 | STANDARD | `src/Marrow.Core/Support/JSONValue.cs` |
-| [T-M2-065](T-M2-065.md) | Core/Support/ObservedValue.swift | 1 | STANDARD | `src/Marrow.Core/Support/ObservedValue.cs` |
-| [T-M2-066](T-M2-066.md) | Core/Support/RecentCache.swift | 6 | STANDARD | `src/Marrow.Core/Support/RecentCache.cs` |
-| [T-M2-067](T-M2-067.md) | Core/Support/Shell.swift (1 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-068](T-M2-068.md) | Core/Support/Shell.swift (2 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-069](T-M2-069.md) | Core/Support/Shell.swift (3 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-070](T-M2-070.md) | Core/Support/Shell.swift (4 of 4) | 3 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
-| [T-M2-071](T-M2-071.md) | Core/Support/StdioFramer.swift | 5 | HIGH | `src/Marrow.Core/Support/StdioFramer.cs` |
-| [T-M2-072](T-M2-072.md) | Core/Support/StdioProcess.swift (1 of 2) | 10 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
-| [T-M2-073](T-M2-073.md) | Core/Support/StdioProcess.swift (2 of 2) | 9 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
-| [T-M2-074](T-M2-074.md) | Core/Support/SwitchLatency.swift | 1 | STANDARD | `src/Marrow.Core/Support/SwitchLatency.cs` |
-| [T-M2-075](T-M2-075.md) | Core/Support/Text.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
-| [T-M2-076](T-M2-076.md) | Core/Support/Text.swift (2 of 2) | 4 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
-| [T-M2-077](T-M2-077.md) | Core/Support/ThumbnailCache.swift | 5 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
-| [T-M2-078](T-M2-078.md) | Core/Support/ThumbnailCache.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
+| [T-M2-003](T-M2-003.md) | Core/Models/Hydra.swift (1 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-004](T-M2-004.md) | Core/Models/Hydra.swift (2 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-005](T-M2-005.md) | Core/Models/Hydra.swift (3 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-006](T-M2-006.md) | Core/Models/Hydra.swift (4 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-007](T-M2-007.md) | Core/Models/Hydra.swift (5 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-008](T-M2-008.md) | Core/Models/Hydra.swift (6 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-009](T-M2-009.md) | Core/Models/Hydra.swift (7 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-010](T-M2-010.md) | Core/Models/Hydra.swift (8 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-011](T-M2-011.md) | Core/Models/Hydra.swift (9 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-012](T-M2-012.md) | Core/Models/Hydra.swift (10 of 10) | 2 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-013](T-M2-013.md) | Core/Models/Hydra.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Hydra.cs` |
+| [T-M2-014](T-M2-014.md) | Core/Models/HydraCookbook.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Core/Models/HydraCookbook.cs` |
+| [T-M2-015](T-M2-015.md) | Core/Models/HydraCookbook.swift (2 of 2) | 9 | STANDARD | `src/Marrow.Core/Models/HydraCookbook.cs` |
+| [T-M2-016](T-M2-016.md) | Core/Models/HydraCookbook.swift (UI 1 of 2) | 0 | STANDARD | `src/Marrow.Core/Models/HydraCookbook.cs` |
+| [T-M2-017](T-M2-017.md) | Core/Models/HydraCookbook.swift (UI 2 of 2) | 0 | STANDARD | `src/Marrow.Core/Models/HydraCookbook.cs` |
+| [T-M2-018](T-M2-018.md) | Core/Models/HydraDelegationStream.swift | 6 | STANDARD | `src/Marrow.Core/Models/HydraDelegationStream.cs` |
+| [T-M2-019](T-M2-019.md) | Core/Models/Library.swift (1 of 6) | 10 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
+| [T-M2-020](T-M2-020.md) | Core/Models/Library.swift (2 of 6) | 10 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
+| [T-M2-021](T-M2-021.md) | Core/Models/Library.swift (3 of 6) | 10 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
+| [T-M2-022](T-M2-022.md) | Core/Models/Library.swift (4 of 6) | 10 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
+| [T-M2-023](T-M2-023.md) | Core/Models/Library.swift (5 of 6) | 10 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
+| [T-M2-024](T-M2-024.md) | Core/Models/Library.swift (6 of 6) | 2 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
+| [T-M2-025](T-M2-025.md) | Core/Models/Library.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Library.cs` |
+| [T-M2-026](T-M2-026.md) | Core/Models/MCP.swift | 9 | STANDARD | `src/Marrow.Core/Models/MCP.cs` |
+| [T-M2-027](T-M2-027.md) | Core/Models/MCPCatalog.swift (1 of 4) | 10 | STANDARD | `src/Marrow.Core/Models/MCPCatalog.cs` |
+| [T-M2-028](T-M2-028.md) | Core/Models/MCPCatalog.swift (2 of 4) | 10 | STANDARD | `src/Marrow.Core/Models/MCPCatalog.cs` |
+| [T-M2-029](T-M2-029.md) | Core/Models/MCPCatalog.swift (3 of 4) | 10 | STANDARD | `src/Marrow.Core/Models/MCPCatalog.cs` |
+| [T-M2-030](T-M2-030.md) | Core/Models/MCPCatalog.swift (4 of 4) | 7 | STANDARD | `src/Marrow.Core/Models/MCPCatalog.cs` |
+| [T-M2-031](T-M2-031.md) | Core/Models/MCPCustom.swift | 10 | STANDARD | `src/Marrow.Core/Models/MCPCustom.cs` |
+| [T-M2-032](T-M2-032.md) | Core/Models/MergeRequestLink.swift | 4 | STANDARD | `src/Marrow.Core/Models/MergeRequestLink.cs` |
+| [T-M2-033](T-M2-033.md) | Core/Models/Provider.swift (1 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-034](T-M2-034.md) | Core/Models/Provider.swift (2 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-035](T-M2-035.md) | Core/Models/Provider.swift (3 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-036](T-M2-036.md) | Core/Models/Provider.swift (4 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-037](T-M2-037.md) | Core/Models/Provider.swift (5 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-038](T-M2-038.md) | Core/Models/Provider.swift (6 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-039](T-M2-039.md) | Core/Models/Provider.swift (7 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-040](T-M2-040.md) | Core/Models/Provider.swift (8 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-041](T-M2-041.md) | Core/Models/Provider.swift (9 of 10) | 10 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-042](T-M2-042.md) | Core/Models/Provider.swift (10 of 10) | 7 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-043](T-M2-043.md) | Core/Models/Provider.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Provider.cs` |
+| [T-M2-044](T-M2-044.md) | Core/Models/ProviderSettings.swift | 1 | STANDARD | `src/Marrow.Core/Models/ProviderSettings.cs` |
+| [T-M2-045](T-M2-045.md) | Core/Models/Requests.swift | 5 | STANDARD | `src/Marrow.Core/Models/Requests.cs` |
+| [T-M2-046](T-M2-046.md) | Core/Models/Shortcuts.swift (1 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-047](T-M2-047.md) | Core/Models/Shortcuts.swift (2 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-048](T-M2-048.md) | Core/Models/Shortcuts.swift (3 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-049](T-M2-049.md) | Core/Models/Shortcuts.swift (4 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-050](T-M2-050.md) | Core/Models/Shortcuts.swift (5 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-051](T-M2-051.md) | Core/Models/Shortcuts.swift (6 of 7) | 10 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-052](T-M2-052.md) | Core/Models/Shortcuts.swift (7 of 7) | 3 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-053](T-M2-053.md) | Core/Models/Shortcuts.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Models/Shortcuts.cs` |
+| [T-M2-054](T-M2-054.md) | Core/Models/ThreadContinuation.swift | 3 | STANDARD | `src/Marrow.Core/Models/ThreadContinuation.cs` |
+| [T-M2-055](T-M2-055.md) | Core/Models/Timeline.swift (1 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
+| [T-M2-056](T-M2-056.md) | Core/Models/Timeline.swift (2 of 3) | 10 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
+| [T-M2-057](T-M2-057.md) | Core/Models/Timeline.swift (3 of 3) | 6 | STANDARD | `src/Marrow.Core/Models/Timeline.cs` |
+| [T-M2-058](T-M2-058.md) | Core/Models/TokenSpend.swift | 3 | STANDARD | `src/Marrow.Core/Models/TokenSpend.cs` |
+| [T-M2-059](T-M2-059.md) | Core/Support/Coding.swift | 3 | STANDARD | `src/Marrow.Core/Support/Coding.cs` |
+| [T-M2-060](T-M2-060.md) | Core/Support/HangWatchdog.swift | 8 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
+| [T-M2-061](T-M2-061.md) | Core/Support/HangWatchdog.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/HangWatchdog.cs` |
+| [T-M2-062](T-M2-062.md) | Core/Support/ISO8601.swift | 3 | STANDARD | `src/Marrow.Core/Support/ISO8601.cs` |
+| [T-M2-063](T-M2-063.md) | Core/Support/JSONRPC.swift | 10 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
+| [T-M2-064](T-M2-064.md) | Core/Support/JSONRPC.swift (UI) | 0 | HIGH | `src/Marrow.Core/Support/JSONRPC.cs` |
+| [T-M2-065](T-M2-065.md) | Core/Support/JSONValue.swift | 8 | STANDARD | `src/Marrow.Core/Support/JSONValue.cs` |
+| [T-M2-066](T-M2-066.md) | Core/Support/ObservedValue.swift | 1 | STANDARD | `src/Marrow.Core/Support/ObservedValue.cs` |
+| [T-M2-067](T-M2-067.md) | Core/Support/PendingReplies.swift | 2 | STANDARD | `src/Marrow.Core/Support/PendingReplies.cs` |
+| [T-M2-068](T-M2-068.md) | Core/Support/RecentCache.swift | 6 | STANDARD | `src/Marrow.Core/Support/RecentCache.cs` |
+| [T-M2-069](T-M2-069.md) | Core/Support/Shell.swift (1 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-070](T-M2-070.md) | Core/Support/Shell.swift (2 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-071](T-M2-071.md) | Core/Support/Shell.swift (3 of 4) | 10 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-072](T-M2-072.md) | Core/Support/Shell.swift (4 of 4) | 3 | HIGH | `src/Marrow.Core/Support/Shell.cs` |
+| [T-M2-073](T-M2-073.md) | Core/Support/StdioFramer.swift | 6 | HIGH | `src/Marrow.Core/Support/StdioFramer.cs` |
+| [T-M2-074](T-M2-074.md) | Core/Support/StdioProcess.swift (1 of 2) | 10 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
+| [T-M2-075](T-M2-075.md) | Core/Support/StdioProcess.swift (2 of 2) | 9 | HIGH | `src/Marrow.Core/Support/StdioProcess.cs` |
+| [T-M2-076](T-M2-076.md) | Core/Support/StoragePaths.swift | 3 | STANDARD | `src/Marrow.Core/Support/StoragePaths.cs` |
+| [T-M2-077](T-M2-077.md) | Core/Support/SwitchLatency.swift | 1 | STANDARD | `src/Marrow.Core/Support/SwitchLatency.cs` |
+| [T-M2-078](T-M2-078.md) | Core/Support/Text.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
+| [T-M2-079](T-M2-079.md) | Core/Support/Text.swift (2 of 2) | 4 | STANDARD | `src/Marrow.Core/Support/Text.cs` |
+| [T-M2-080](T-M2-080.md) | Core/Support/ThumbnailCache.swift | 5 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
+| [T-M2-081](T-M2-081.md) | Core/Support/ThumbnailCache.swift (UI) | 0 | STANDARD | `src/Marrow.Core/Support/ThumbnailCache.cs` |
 
 ## M3: Services foundation: store and git
 
@@ -129,7 +132,7 @@ every line, not a sample.
 | [T-M3-007](T-M3-007.md) | Services/Git/Git.swift (5 of 8) | 10 | HIGH | `src/Marrow.Services/Git/Git.cs` |
 | [T-M3-008](T-M3-008.md) | Services/Git/Git.swift (6 of 8) | 10 | HIGH | `src/Marrow.Services/Git/Git.cs` |
 | [T-M3-009](T-M3-009.md) | Services/Git/Git.swift (7 of 8) | 10 | HIGH | `src/Marrow.Services/Git/Git.cs` |
-| [T-M3-010](T-M3-010.md) | Services/Git/Git.swift (8 of 8) | 3 | HIGH | `src/Marrow.Services/Git/Git.cs` |
+| [T-M3-010](T-M3-010.md) | Services/Git/Git.swift (8 of 8) | 10 | HIGH | `src/Marrow.Services/Git/Git.cs` |
 | [T-M3-011](T-M3-011.md) | Services/Git/RevertPreview.swift | 2 | HIGH | `src/Marrow.Services/Git/RevertPreview.cs` |
 | [T-M3-012](T-M3-012.md) | Services/Git/TouchedPaths.swift | 4 | STANDARD | `src/Marrow.Services/Git/TouchedPaths.cs` |
 | [T-M3-013](T-M3-013.md) | Services/Git/TurnDiff.swift | 3 | HIGH | `src/Marrow.Services/Git/TurnDiff.cs` |
@@ -140,7 +143,7 @@ every line, not a sample.
 | [T-M3-018](T-M3-018.md) | Services/Store/Storage.swift (3 of 6) | 10 | STANDARD | `src/Marrow.Services/Store/Storage.cs` |
 | [T-M3-019](T-M3-019.md) | Services/Store/Storage.swift (4 of 6) | 10 | STANDARD | `src/Marrow.Services/Store/Storage.cs` |
 | [T-M3-020](T-M3-020.md) | Services/Store/Storage.swift (5 of 6) | 10 | STANDARD | `src/Marrow.Services/Store/Storage.cs` |
-| [T-M3-021](T-M3-021.md) | Services/Store/Storage.swift (6 of 6) | 10 | STANDARD | `src/Marrow.Services/Store/Storage.cs` |
+| [T-M3-021](T-M3-021.md) | Services/Store/Storage.swift (6 of 6) | 8 | STANDARD | `src/Marrow.Services/Store/Storage.cs` |
 | [T-M3-022](T-M3-022.md) | Services/Store/Storage.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Store/Storage.cs` |
 | [T-M3-023](T-M3-023.md) | Services/Store/TokenLedger.swift (1 of 3) | 10 | STANDARD | `src/Marrow.Services/Store/TokenLedger.cs` |
 | [T-M3-024](T-M3-024.md) | Services/Store/TokenLedger.swift (2 of 3) | 10 | STANDARD | `src/Marrow.Services/Store/TokenLedger.cs` |
@@ -151,100 +154,100 @@ every line, not a sample.
 | Task | Source | Reqs | Risk | Target |
 | --- | --- | --- | --- | --- |
 | [T-M4-001](T-M4-001.md) | Services/MCP/MCPBridgeSource.swift | 6 | STANDARD | `src/Marrow.Services/MCP/MCPBridgeSource.cs` |
-| [T-M4-002](T-M4-002.md) | Services/MCP/MCPHub.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPHub.cs` |
-| [T-M4-003](T-M4-003.md) | Services/MCP/MCPHub.swift (2 of 2) | 9 | STANDARD | `src/Marrow.Services/MCP/MCPHub.cs` |
-| [T-M4-004](T-M4-004.md) | Services/MCP/MCPKeychain.swift | 6 | HIGH | `src/Marrow.Services/MCP/MCPKeychain.cs` |
-| [T-M4-005](T-M4-005.md) | Services/MCP/MCPOAuth.swift (1 of 3) | 10 | HIGH | `src/Marrow.Services/MCP/MCPOAuth.cs` |
-| [T-M4-006](T-M4-006.md) | Services/MCP/MCPOAuth.swift (2 of 3) | 10 | HIGH | `src/Marrow.Services/MCP/MCPOAuth.cs` |
-| [T-M4-007](T-M4-007.md) | Services/MCP/MCPOAuth.swift (3 of 3) | 6 | HIGH | `src/Marrow.Services/MCP/MCPOAuth.cs` |
-| [T-M4-008](T-M4-008.md) | Services/MCP/MCPProbe.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPProbe.cs` |
-| [T-M4-009](T-M4-009.md) | Services/MCP/MCPProbe.swift (2 of 2) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPProbe.cs` |
-| [T-M4-010](T-M4-010.md) | Services/MCP/MCPProviderConfig.swift | 8 | STANDARD | `src/Marrow.Services/MCP/MCPProviderConfig.cs` |
-| [T-M4-011](T-M4-011.md) | Services/MCP/MCPProxy.swift (1 of 2) | 10 | HIGH | `src/Marrow.Services/MCP/MCPProxy.cs` |
-| [T-M4-012](T-M4-012.md) | Services/MCP/MCPProxy.swift (2 of 2) | 8 | HIGH | `src/Marrow.Services/MCP/MCPProxy.cs` |
-| [T-M4-013](T-M4-013.md) | Services/MCP/MCPSessionOverrides.swift | 3 | STANDARD | `src/Marrow.Services/MCP/MCPSessionOverrides.cs` |
-| [T-M4-014](T-M4-014.md) | Services/MCP/MCPStore.swift (1 of 4) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPStore.cs` |
-| [T-M4-015](T-M4-015.md) | Services/MCP/MCPStore.swift (2 of 4) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPStore.cs` |
-| [T-M4-016](T-M4-016.md) | Services/MCP/MCPStore.swift (3 of 4) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPStore.cs` |
-| [T-M4-017](T-M4-017.md) | Services/MCP/MCPStore.swift (4 of 4) | 4 | STANDARD | `src/Marrow.Services/MCP/MCPStore.cs` |
-| [T-M4-018](T-M4-018.md) | Services/Providers/ACPSession.swift (1 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-019](T-M4-019.md) | Services/Providers/ACPSession.swift (2 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-020](T-M4-020.md) | Services/Providers/ACPSession.swift (3 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-021](T-M4-021.md) | Services/Providers/ACPSession.swift (4 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-022](T-M4-022.md) | Services/Providers/ACPSession.swift (5 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-023](T-M4-023.md) | Services/Providers/ACPSession.swift (6 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-024](T-M4-024.md) | Services/Providers/ACPSession.swift (7 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-025](T-M4-025.md) | Services/Providers/ACPSession.swift (8 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-026](T-M4-026.md) | Services/Providers/ACPSession.swift (9 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-027](T-M4-027.md) | Services/Providers/ACPSession.swift (10 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-028](T-M4-028.md) | Services/Providers/ACPSession.swift (11 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-029](T-M4-029.md) | Services/Providers/ACPSession.swift (12 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-030](T-M4-030.md) | Services/Providers/ACPSession.swift (13 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-031](T-M4-031.md) | Services/Providers/ACPSession.swift (14 of 14) | 7 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-032](T-M4-032.md) | Services/Providers/ACPSession.swift (UI 1 of 4) | 0 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-033](T-M4-033.md) | Services/Providers/ACPSession.swift (UI 2 of 4) | 0 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-034](T-M4-034.md) | Services/Providers/ACPSession.swift (UI 3 of 4) | 0 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-035](T-M4-035.md) | Services/Providers/ACPSession.swift (UI 4 of 4) | 0 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
-| [T-M4-036](T-M4-036.md) | Services/Providers/APIKeychain.swift | 5 | HIGH | `src/Marrow.Services/Providers/APIKeychain.cs` |
-| [T-M4-037](T-M4-037.md) | Services/Providers/AntigravitySession.swift (1 of 6) | 10 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
-| [T-M4-038](T-M4-038.md) | Services/Providers/AntigravitySession.swift (2 of 6) | 10 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
-| [T-M4-039](T-M4-039.md) | Services/Providers/AntigravitySession.swift (3 of 6) | 10 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
-| [T-M4-040](T-M4-040.md) | Services/Providers/AntigravitySession.swift (4 of 6) | 10 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
-| [T-M4-041](T-M4-041.md) | Services/Providers/AntigravitySession.swift (5 of 6) | 10 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
-| [T-M4-042](T-M4-042.md) | Services/Providers/AntigravitySession.swift (6 of 6) | 2 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
-| [T-M4-043](T-M4-043.md) | Services/Providers/AntigravitySession.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
-| [T-M4-044](T-M4-044.md) | Services/Providers/ClaudeSession.swift (1 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-045](T-M4-045.md) | Services/Providers/ClaudeSession.swift (2 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-046](T-M4-046.md) | Services/Providers/ClaudeSession.swift (3 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-047](T-M4-047.md) | Services/Providers/ClaudeSession.swift (4 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-048](T-M4-048.md) | Services/Providers/ClaudeSession.swift (5 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-049](T-M4-049.md) | Services/Providers/ClaudeSession.swift (6 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-050](T-M4-050.md) | Services/Providers/ClaudeSession.swift (7 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-051](T-M4-051.md) | Services/Providers/ClaudeSession.swift (8 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-052](T-M4-052.md) | Services/Providers/ClaudeSession.swift (9 of 9) | 2 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-053](T-M4-053.md) | Services/Providers/ClaudeSession.swift (UI 1 of 2) | 0 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-054](T-M4-054.md) | Services/Providers/ClaudeSession.swift (UI 2 of 2) | 0 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
-| [T-M4-055](T-M4-055.md) | Services/Providers/CodexSession.swift (1 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
-| [T-M4-056](T-M4-056.md) | Services/Providers/CodexSession.swift (2 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
-| [T-M4-057](T-M4-057.md) | Services/Providers/CodexSession.swift (3 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
-| [T-M4-058](T-M4-058.md) | Services/Providers/CodexSession.swift (4 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
-| [T-M4-059](T-M4-059.md) | Services/Providers/CodexSession.swift (5 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
-| [T-M4-060](T-M4-060.md) | Services/Providers/CodexSession.swift (6 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
-| [T-M4-061](T-M4-061.md) | Services/Providers/CodexSession.swift (7 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
-| [T-M4-062](T-M4-062.md) | Services/Providers/CodexSession.swift (8 of 8) | 1 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
-| [T-M4-063](T-M4-063.md) | Services/Providers/CodexSession.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
-| [T-M4-064](T-M4-064.md) | Services/Providers/CommandCodeAPI.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeAPI.cs` |
-| [T-M4-065](T-M4-065.md) | Services/Providers/CommandCodeAPI.swift (2 of 2) | 6 | STANDARD | `src/Marrow.Services/Providers/CommandCodeAPI.cs` |
-| [T-M4-066](T-M4-066.md) | Services/Providers/CommandCodeAPI.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/CommandCodeAPI.cs` |
-| [T-M4-067](T-M4-067.md) | Services/Providers/CommandCodeKeychain.swift | 1 | HIGH | `src/Marrow.Services/Providers/CommandCodeKeychain.cs` |
-| [T-M4-068](T-M4-068.md) | Services/Providers/CommandCodeSession.swift (1 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
-| [T-M4-069](T-M4-069.md) | Services/Providers/CommandCodeSession.swift (2 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
-| [T-M4-070](T-M4-070.md) | Services/Providers/CommandCodeSession.swift (3 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
-| [T-M4-071](T-M4-071.md) | Services/Providers/CommandCodeSession.swift (4 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
-| [T-M4-072](T-M4-072.md) | Services/Providers/CommandCodeSession.swift (5 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
-| [T-M4-073](T-M4-073.md) | Services/Providers/CommandCodeSession.swift (6 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
-| [T-M4-074](T-M4-074.md) | Services/Providers/CommandCodeSession.swift (7 of 7) | 5 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
-| [T-M4-075](T-M4-075.md) | Services/Providers/CommandCodeSession.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
-| [T-M4-076](T-M4-076.md) | Services/Providers/CopilotSession.swift (1 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-077](T-M4-077.md) | Services/Providers/CopilotSession.swift (2 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-078](T-M4-078.md) | Services/Providers/CopilotSession.swift (3 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-079](T-M4-079.md) | Services/Providers/CopilotSession.swift (4 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-080](T-M4-080.md) | Services/Providers/CopilotSession.swift (5 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-081](T-M4-081.md) | Services/Providers/CopilotSession.swift (6 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-082](T-M4-082.md) | Services/Providers/CopilotSession.swift (7 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-083](T-M4-083.md) | Services/Providers/CopilotSession.swift (8 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-084](T-M4-084.md) | Services/Providers/CopilotSession.swift (9 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-085](T-M4-085.md) | Services/Providers/CopilotSession.swift (10 of 10) | 1 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-086](T-M4-086.md) | Services/Providers/CopilotSession.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
-| [T-M4-087](T-M4-087.md) | Services/Providers/DeepSeekAPI.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/DeepSeekAPI.cs` |
-| [T-M4-088](T-M4-088.md) | Services/Providers/DeepSeekAPI.swift (2 of 2) | 1 | STANDARD | `src/Marrow.Services/Providers/DeepSeekAPI.cs` |
-| [T-M4-089](T-M4-089.md) | Services/Providers/DeepSeekAPI.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/DeepSeekAPI.cs` |
-| [T-M4-090](T-M4-090.md) | Services/Providers/DeepSeekKeychain.swift | 1 | HIGH | `src/Marrow.Services/Providers/DeepSeekKeychain.cs` |
-| [T-M4-091](T-M4-091.md) | Services/Providers/DeepSeekSession.swift | 8 | STANDARD | `src/Marrow.Services/Providers/DeepSeekSession.cs` |
-| [T-M4-092](T-M4-092.md) | Services/Providers/MetaAPI.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/MetaAPI.cs` |
-| [T-M4-093](T-M4-093.md) | Services/Providers/MetaAPI.swift (2 of 2) | 1 | STANDARD | `src/Marrow.Services/Providers/MetaAPI.cs` |
-| [T-M4-094](T-M4-094.md) | Services/Providers/MetaAPI.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/MetaAPI.cs` |
-| [T-M4-095](T-M4-095.md) | Services/Providers/MetaKeychain.swift | 1 | HIGH | `src/Marrow.Services/Providers/MetaKeychain.cs` |
+| [T-M4-002](T-M4-002.md) | Services/MCP/MCPCatalogEntry+Resolve.swift | 3 | STANDARD | `src/Marrow.Services/MCP/MCPCatalogEntry+Resolve.cs` |
+| [T-M4-003](T-M4-003.md) | Services/MCP/MCPHub.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPHub.cs` |
+| [T-M4-004](T-M4-004.md) | Services/MCP/MCPHub.swift (2 of 2) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPHub.cs` |
+| [T-M4-005](T-M4-005.md) | Services/MCP/MCPKeychain.swift | 6 | HIGH | `src/Marrow.Services/MCP/MCPKeychain.cs` |
+| [T-M4-006](T-M4-006.md) | Services/MCP/MCPOAuth.swift (1 of 3) | 10 | HIGH | `src/Marrow.Services/MCP/MCPOAuth.cs` |
+| [T-M4-007](T-M4-007.md) | Services/MCP/MCPOAuth.swift (2 of 3) | 10 | HIGH | `src/Marrow.Services/MCP/MCPOAuth.cs` |
+| [T-M4-008](T-M4-008.md) | Services/MCP/MCPOAuth.swift (3 of 3) | 6 | HIGH | `src/Marrow.Services/MCP/MCPOAuth.cs` |
+| [T-M4-009](T-M4-009.md) | Services/MCP/MCPPaths.swift | 2 | STANDARD | `src/Marrow.Services/MCP/MCPPaths.cs` |
+| [T-M4-010](T-M4-010.md) | Services/MCP/MCPProbe.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPProbe.cs` |
+| [T-M4-011](T-M4-011.md) | Services/MCP/MCPProbe.swift (2 of 2) | 5 | STANDARD | `src/Marrow.Services/MCP/MCPProbe.cs` |
+| [T-M4-012](T-M4-012.md) | Services/MCP/MCPProviderConfig.swift | 8 | STANDARD | `src/Marrow.Services/MCP/MCPProviderConfig.cs` |
+| [T-M4-013](T-M4-013.md) | Services/MCP/MCPProxy.swift (1 of 2) | 10 | HIGH | `src/Marrow.Services/MCP/MCPProxy.cs` |
+| [T-M4-014](T-M4-014.md) | Services/MCP/MCPProxy.swift (2 of 2) | 8 | HIGH | `src/Marrow.Services/MCP/MCPProxy.cs` |
+| [T-M4-015](T-M4-015.md) | Services/MCP/MCPSessionOverrides.swift | 3 | STANDARD | `src/Marrow.Services/MCP/MCPSessionOverrides.cs` |
+| [T-M4-016](T-M4-016.md) | Services/MCP/MCPStore.swift (1 of 4) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPStore.cs` |
+| [T-M4-017](T-M4-017.md) | Services/MCP/MCPStore.swift (2 of 4) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPStore.cs` |
+| [T-M4-018](T-M4-018.md) | Services/MCP/MCPStore.swift (3 of 4) | 10 | STANDARD | `src/Marrow.Services/MCP/MCPStore.cs` |
+| [T-M4-019](T-M4-019.md) | Services/MCP/MCPStore.swift (4 of 4) | 3 | STANDARD | `src/Marrow.Services/MCP/MCPStore.cs` |
+| [T-M4-020](T-M4-020.md) | Services/MCP/MCPWire.swift | 8 | STANDARD | `src/Marrow.Services/MCP/MCPWire.cs` |
+| [T-M4-021](T-M4-021.md) | Services/Providers/ACPSession.swift (1 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-022](T-M4-022.md) | Services/Providers/ACPSession.swift (2 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-023](T-M4-023.md) | Services/Providers/ACPSession.swift (3 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-024](T-M4-024.md) | Services/Providers/ACPSession.swift (4 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-025](T-M4-025.md) | Services/Providers/ACPSession.swift (5 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-026](T-M4-026.md) | Services/Providers/ACPSession.swift (6 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-027](T-M4-027.md) | Services/Providers/ACPSession.swift (7 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-028](T-M4-028.md) | Services/Providers/ACPSession.swift (8 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-029](T-M4-029.md) | Services/Providers/ACPSession.swift (9 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-030](T-M4-030.md) | Services/Providers/ACPSession.swift (10 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-031](T-M4-031.md) | Services/Providers/ACPSession.swift (11 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-032](T-M4-032.md) | Services/Providers/ACPSession.swift (12 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-033](T-M4-033.md) | Services/Providers/ACPSession.swift (13 of 14) | 10 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-034](T-M4-034.md) | Services/Providers/ACPSession.swift (14 of 14) | 7 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-035](T-M4-035.md) | Services/Providers/ACPSession.swift (UI 1 of 4) | 0 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-036](T-M4-036.md) | Services/Providers/ACPSession.swift (UI 2 of 4) | 0 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-037](T-M4-037.md) | Services/Providers/ACPSession.swift (UI 3 of 4) | 0 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-038](T-M4-038.md) | Services/Providers/ACPSession.swift (UI 4 of 4) | 0 | STANDARD | `src/Marrow.Services/Providers/ACPSession.cs` |
+| [T-M4-039](T-M4-039.md) | Services/Providers/APIKeychain.swift | 10 | HIGH | `src/Marrow.Services/Providers/APIKeychain.cs` |
+| [T-M4-040](T-M4-040.md) | Services/Providers/AntigravitySession.swift (1 of 6) | 10 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
+| [T-M4-041](T-M4-041.md) | Services/Providers/AntigravitySession.swift (2 of 6) | 10 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
+| [T-M4-042](T-M4-042.md) | Services/Providers/AntigravitySession.swift (3 of 6) | 10 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
+| [T-M4-043](T-M4-043.md) | Services/Providers/AntigravitySession.swift (4 of 6) | 10 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
+| [T-M4-044](T-M4-044.md) | Services/Providers/AntigravitySession.swift (5 of 6) | 10 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
+| [T-M4-045](T-M4-045.md) | Services/Providers/AntigravitySession.swift (6 of 6) | 2 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
+| [T-M4-046](T-M4-046.md) | Services/Providers/AntigravitySession.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/AntigravitySession.cs` |
+| [T-M4-047](T-M4-047.md) | Services/Providers/ClaudeSession.swift (1 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-048](T-M4-048.md) | Services/Providers/ClaudeSession.swift (2 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-049](T-M4-049.md) | Services/Providers/ClaudeSession.swift (3 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-050](T-M4-050.md) | Services/Providers/ClaudeSession.swift (4 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-051](T-M4-051.md) | Services/Providers/ClaudeSession.swift (5 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-052](T-M4-052.md) | Services/Providers/ClaudeSession.swift (6 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-053](T-M4-053.md) | Services/Providers/ClaudeSession.swift (7 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-054](T-M4-054.md) | Services/Providers/ClaudeSession.swift (8 of 9) | 10 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-055](T-M4-055.md) | Services/Providers/ClaudeSession.swift (9 of 9) | 3 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-056](T-M4-056.md) | Services/Providers/ClaudeSession.swift (UI 1 of 2) | 0 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-057](T-M4-057.md) | Services/Providers/ClaudeSession.swift (UI 2 of 2) | 0 | STANDARD | `src/Marrow.Services/Providers/ClaudeSession.cs` |
+| [T-M4-058](T-M4-058.md) | Services/Providers/CodexSession.swift (1 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
+| [T-M4-059](T-M4-059.md) | Services/Providers/CodexSession.swift (2 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
+| [T-M4-060](T-M4-060.md) | Services/Providers/CodexSession.swift (3 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
+| [T-M4-061](T-M4-061.md) | Services/Providers/CodexSession.swift (4 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
+| [T-M4-062](T-M4-062.md) | Services/Providers/CodexSession.swift (5 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
+| [T-M4-063](T-M4-063.md) | Services/Providers/CodexSession.swift (6 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
+| [T-M4-064](T-M4-064.md) | Services/Providers/CodexSession.swift (7 of 8) | 10 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
+| [T-M4-065](T-M4-065.md) | Services/Providers/CodexSession.swift (8 of 8) | 1 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
+| [T-M4-066](T-M4-066.md) | Services/Providers/CodexSession.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/CodexSession.cs` |
+| [T-M4-067](T-M4-067.md) | Services/Providers/CommandCodeAPI.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeAPI.cs` |
+| [T-M4-068](T-M4-068.md) | Services/Providers/CommandCodeAPI.swift (2 of 2) | 6 | STANDARD | `src/Marrow.Services/Providers/CommandCodeAPI.cs` |
+| [T-M4-069](T-M4-069.md) | Services/Providers/CommandCodeAPI.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/CommandCodeAPI.cs` |
+| [T-M4-070](T-M4-070.md) | Services/Providers/CommandCodeSession.swift (1 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
+| [T-M4-071](T-M4-071.md) | Services/Providers/CommandCodeSession.swift (2 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
+| [T-M4-072](T-M4-072.md) | Services/Providers/CommandCodeSession.swift (3 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
+| [T-M4-073](T-M4-073.md) | Services/Providers/CommandCodeSession.swift (4 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
+| [T-M4-074](T-M4-074.md) | Services/Providers/CommandCodeSession.swift (5 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
+| [T-M4-075](T-M4-075.md) | Services/Providers/CommandCodeSession.swift (6 of 7) | 10 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
+| [T-M4-076](T-M4-076.md) | Services/Providers/CommandCodeSession.swift (7 of 7) | 5 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
+| [T-M4-077](T-M4-077.md) | Services/Providers/CommandCodeSession.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/CommandCodeSession.cs` |
+| [T-M4-078](T-M4-078.md) | Services/Providers/CopilotSession.swift (1 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-079](T-M4-079.md) | Services/Providers/CopilotSession.swift (2 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-080](T-M4-080.md) | Services/Providers/CopilotSession.swift (3 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-081](T-M4-081.md) | Services/Providers/CopilotSession.swift (4 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-082](T-M4-082.md) | Services/Providers/CopilotSession.swift (5 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-083](T-M4-083.md) | Services/Providers/CopilotSession.swift (6 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-084](T-M4-084.md) | Services/Providers/CopilotSession.swift (7 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-085](T-M4-085.md) | Services/Providers/CopilotSession.swift (8 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-086](T-M4-086.md) | Services/Providers/CopilotSession.swift (9 of 10) | 10 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-087](T-M4-087.md) | Services/Providers/CopilotSession.swift (10 of 10) | 1 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-088](T-M4-088.md) | Services/Providers/CopilotSession.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/CopilotSession.cs` |
+| [T-M4-089](T-M4-089.md) | Services/Providers/DeepSeekAPI.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/DeepSeekAPI.cs` |
+| [T-M4-090](T-M4-090.md) | Services/Providers/DeepSeekAPI.swift (2 of 2) | 1 | STANDARD | `src/Marrow.Services/Providers/DeepSeekAPI.cs` |
+| [T-M4-091](T-M4-091.md) | Services/Providers/DeepSeekAPI.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/DeepSeekAPI.cs` |
+| [T-M4-092](T-M4-092.md) | Services/Providers/DeepSeekSession.swift | 8 | STANDARD | `src/Marrow.Services/Providers/DeepSeekSession.cs` |
+| [T-M4-093](T-M4-093.md) | Services/Providers/MetaAPI.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/MetaAPI.cs` |
+| [T-M4-094](T-M4-094.md) | Services/Providers/MetaAPI.swift (2 of 2) | 1 | STANDARD | `src/Marrow.Services/Providers/MetaAPI.cs` |
+| [T-M4-095](T-M4-095.md) | Services/Providers/MetaAPI.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/MetaAPI.cs` |
 | [T-M4-096](T-M4-096.md) | Services/Providers/MetaSession.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/MetaSession.cs` |
 | [T-M4-097](T-M4-097.md) | Services/Providers/MetaSession.swift (2 of 2) | 1 | STANDARD | `src/Marrow.Services/Providers/MetaSession.cs` |
 | [T-M4-098](T-M4-098.md) | Services/Providers/NativeFileTools.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/NativeFileTools.cs` |
@@ -275,28 +278,29 @@ every line, not a sample.
 | [T-M4-123](T-M4-123.md) | Services/Providers/ProjectGuidance.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ProjectGuidance.cs` |
 | [T-M4-124](T-M4-124.md) | Services/Providers/ProjectGuidance.swift (2 of 2) | 1 | STANDARD | `src/Marrow.Services/Providers/ProjectGuidance.cs` |
 | [T-M4-125](T-M4-125.md) | Services/Providers/ProviderCredits.swift | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderCredits.cs` |
-| [T-M4-126](T-M4-126.md) | Services/Providers/ProviderRegistry.swift (1 of 11) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-127](T-M4-127.md) | Services/Providers/ProviderRegistry.swift (2 of 11) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-128](T-M4-128.md) | Services/Providers/ProviderRegistry.swift (3 of 11) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-129](T-M4-129.md) | Services/Providers/ProviderRegistry.swift (4 of 11) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-130](T-M4-130.md) | Services/Providers/ProviderRegistry.swift (5 of 11) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-131](T-M4-131.md) | Services/Providers/ProviderRegistry.swift (6 of 11) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-132](T-M4-132.md) | Services/Providers/ProviderRegistry.swift (7 of 11) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-133](T-M4-133.md) | Services/Providers/ProviderRegistry.swift (8 of 11) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-134](T-M4-134.md) | Services/Providers/ProviderRegistry.swift (9 of 11) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-135](T-M4-135.md) | Services/Providers/ProviderRegistry.swift (10 of 11) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-136](T-M4-136.md) | Services/Providers/ProviderRegistry.swift (11 of 11) | 9 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-137](T-M4-137.md) | Services/Providers/ProviderRegistry.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
-| [T-M4-138](T-M4-138.md) | Services/Providers/ProviderSession.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderSession.cs` |
-| [T-M4-139](T-M4-139.md) | Services/Providers/ProviderSession.swift (2 of 2) | 5 | STANDARD | `src/Marrow.Services/Providers/ProviderSession.cs` |
-| [T-M4-140](T-M4-140.md) | Services/Providers/TextGeneration.swift | 5 | STANDARD | `src/Marrow.Services/Providers/TextGeneration.cs` |
-| [T-M4-141](T-M4-141.md) | Services/Providers/UsageLimitSignal.swift | 4 | STANDARD | `src/Marrow.Services/Providers/UsageLimitSignal.cs` |
-| [T-M4-142](T-M4-142.md) | Services/Providers/ZaiAPI.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
-| [T-M4-143](T-M4-143.md) | Services/Providers/ZaiAPI.swift (2 of 2) | 7 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
-| [T-M4-144](T-M4-144.md) | Services/Providers/ZaiAPI.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
-| [T-M4-145](T-M4-145.md) | Services/Providers/ZaiKeychain.swift | 1 | HIGH | `src/Marrow.Services/Providers/ZaiKeychain.cs` |
-| [T-M4-146](T-M4-146.md) | Services/Providers/ZaiSession.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ZaiSession.cs` |
-| [T-M4-147](T-M4-147.md) | Services/Providers/ZaiSession.swift (2 of 2) | 5 | STANDARD | `src/Marrow.Services/Providers/ZaiSession.cs` |
+| [T-M4-126](T-M4-126.md) | Services/Providers/ProviderRegistry.swift (1 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-127](T-M4-127.md) | Services/Providers/ProviderRegistry.swift (2 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-128](T-M4-128.md) | Services/Providers/ProviderRegistry.swift (3 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-129](T-M4-129.md) | Services/Providers/ProviderRegistry.swift (4 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-130](T-M4-130.md) | Services/Providers/ProviderRegistry.swift (5 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-131](T-M4-131.md) | Services/Providers/ProviderRegistry.swift (6 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-132](T-M4-132.md) | Services/Providers/ProviderRegistry.swift (7 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-133](T-M4-133.md) | Services/Providers/ProviderRegistry.swift (8 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-134](T-M4-134.md) | Services/Providers/ProviderRegistry.swift (9 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-135](T-M4-135.md) | Services/Providers/ProviderRegistry.swift (10 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-136](T-M4-136.md) | Services/Providers/ProviderRegistry.swift (11 of 12) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-137](T-M4-137.md) | Services/Providers/ProviderRegistry.swift (12 of 12) | 7 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-138](T-M4-138.md) | Services/Providers/ProviderRegistry.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/ProviderRegistry.cs` |
+| [T-M4-139](T-M4-139.md) | Services/Providers/ProviderSession.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ProviderSession.cs` |
+| [T-M4-140](T-M4-140.md) | Services/Providers/ProviderSession.swift (2 of 2) | 5 | STANDARD | `src/Marrow.Services/Providers/ProviderSession.cs` |
+| [T-M4-141](T-M4-141.md) | Services/Providers/SessionSupport.swift | 2 | STANDARD | `src/Marrow.Services/Providers/SessionSupport.cs` |
+| [T-M4-142](T-M4-142.md) | Services/Providers/TextGeneration.swift | 5 | STANDARD | `src/Marrow.Services/Providers/TextGeneration.cs` |
+| [T-M4-143](T-M4-143.md) | Services/Providers/UsageLimitSignal.swift | 4 | STANDARD | `src/Marrow.Services/Providers/UsageLimitSignal.cs` |
+| [T-M4-144](T-M4-144.md) | Services/Providers/ZaiAPI.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
+| [T-M4-145](T-M4-145.md) | Services/Providers/ZaiAPI.swift (2 of 2) | 7 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
+| [T-M4-146](T-M4-146.md) | Services/Providers/ZaiAPI.swift (UI) | 0 | STANDARD | `src/Marrow.Services/Providers/ZaiAPI.cs` |
+| [T-M4-147](T-M4-147.md) | Services/Providers/ZaiSession.swift (1 of 2) | 10 | STANDARD | `src/Marrow.Services/Providers/ZaiSession.cs` |
+| [T-M4-148](T-M4-148.md) | Services/Providers/ZaiSession.swift (2 of 2) | 5 | STANDARD | `src/Marrow.Services/Providers/ZaiSession.cs` |
 
 ## M5: UI toolkit: theme, chrome, glass, markdown, sound
 
@@ -314,71 +318,73 @@ every line, not a sample.
 | [T-M5-010](T-M5-010.md) | UI/Chrome/ChromeSegmentedPicker.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/ChromeSegmentedPicker.cs` |
 | [T-M5-011](T-M5-011.md) | UI/Chrome/ChromeVisualPicker.swift | 2 | STANDARD | `src/Marrow.UI/Chrome/ChromeVisualPicker.cs` |
 | [T-M5-012](T-M5-012.md) | UI/Chrome/ChromeVisualPicker.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/ChromeVisualPicker.cs` |
-| [T-M5-013](T-M5-013.md) | UI/Chrome/HydraPairMark.swift | 1 | STANDARD | `src/Marrow.UI/Chrome/HydraPairMark.cs` |
-| [T-M5-014](T-M5-014.md) | UI/Chrome/HydraPairMark.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/HydraPairMark.cs` |
-| [T-M5-015](T-M5-015.md) | UI/Chrome/Popovers.swift | 4 | STANDARD | `src/Marrow.UI/Chrome/Popovers.cs` |
-| [T-M5-016](T-M5-016.md) | UI/Chrome/Popovers.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/Popovers.cs` |
-| [T-M5-017](T-M5-017.md) | UI/Chrome/ProjectIconPicker.swift | 4 | STANDARD | `src/Marrow.UI/Chrome/ProjectIconPicker.cs` |
-| [T-M5-018](T-M5-018.md) | UI/Chrome/ProjectIconPicker.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/ProjectIconPicker.cs` |
-| [T-M5-019](T-M5-019.md) | UI/Chrome/ProjectSymbolCatalogue.swift | 1 | STANDARD | `src/Marrow.UI/Chrome/ProjectSymbolCatalogue.cs` |
-| [T-M5-020](T-M5-020.md) | UI/Chrome/ProjectSymbolCatalogue.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/ProjectSymbolCatalogue.cs` |
-| [T-M5-021](T-M5-021.md) | UI/Chrome/RowDrag.swift | 1 | STANDARD | `src/Marrow.UI/Chrome/RowDrag.cs` |
-| [T-M5-022](T-M5-022.md) | UI/Chrome/WindowChrome.swift (1 of 4) | 10 | HIGH | `src/Marrow.UI/Chrome/WindowChrome.cs` |
-| [T-M5-023](T-M5-023.md) | UI/Chrome/WindowChrome.swift (2 of 4) | 10 | HIGH | `src/Marrow.UI/Chrome/WindowChrome.cs` |
-| [T-M5-024](T-M5-024.md) | UI/Chrome/WindowChrome.swift (3 of 4) | 10 | HIGH | `src/Marrow.UI/Chrome/WindowChrome.cs` |
-| [T-M5-025](T-M5-025.md) | UI/Chrome/WindowChrome.swift (4 of 4) | 6 | HIGH | `src/Marrow.UI/Chrome/WindowChrome.cs` |
-| [T-M5-026](T-M5-026.md) | UI/Chrome/WindowChrome.swift (UI) | 0 | HIGH | `src/Marrow.UI/Chrome/WindowChrome.cs` |
-| [T-M5-027](T-M5-027.md) | UI/Common/AppZoom.swift | 5 | STANDARD | `src/Marrow.UI/Common/AppZoom.cs` |
-| [T-M5-028](T-M5-028.md) | UI/Common/AppZoom.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/AppZoom.cs` |
-| [T-M5-029](T-M5-029.md) | UI/Common/AttachmentPreview.swift (1 of 2) | 10 | STANDARD | `src/Marrow.UI/Common/AttachmentPreview.cs` |
-| [T-M5-030](T-M5-030.md) | UI/Common/AttachmentPreview.swift (2 of 2) | 3 | STANDARD | `src/Marrow.UI/Common/AttachmentPreview.cs` |
-| [T-M5-031](T-M5-031.md) | UI/Common/AttachmentPreview.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/AttachmentPreview.cs` |
-| [T-M5-032](T-M5-032.md) | UI/Common/AttachmentPreviewPanel.swift | 4 | STANDARD | `src/Marrow.UI/Common/AttachmentPreviewPanel.cs` |
-| [T-M5-033](T-M5-033.md) | UI/Common/ChatFont.swift | 2 | STANDARD | `src/Marrow.UI/Common/ChatFont.cs` |
-| [T-M5-034](T-M5-034.md) | UI/Common/ChatFont.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/ChatFont.cs` |
-| [T-M5-035](T-M5-035.md) | UI/Common/Components.swift | 4 | STANDARD | `src/Marrow.UI/Common/Components.cs` |
-| [T-M5-036](T-M5-036.md) | UI/Common/Components.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/Components.cs` |
-| [T-M5-037](T-M5-037.md) | UI/Common/Genie.swift | 5 | HIGH | `src/Marrow.UI/Common/Genie.cs` |
-| [T-M5-038](T-M5-038.md) | UI/Common/Genie.swift (UI) | 0 | HIGH | `src/Marrow.UI/Common/Genie.cs` |
-| [T-M5-039](T-M5-039.md) | UI/Common/HydraGlyph.swift | 3 | STANDARD | `src/Marrow.UI/Common/HydraGlyph.cs` |
-| [T-M5-040](T-M5-040.md) | UI/Common/HydraGlyph.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/HydraGlyph.cs` |
-| [T-M5-041](T-M5-041.md) | UI/Common/RenderBudget.swift | 9 | STANDARD | `src/Marrow.UI/Common/RenderBudget.cs` |
-| [T-M5-042](T-M5-042.md) | UI/Common/WorkingIndicators.swift (1 of 2) | 10 | STANDARD | `src/Marrow.UI/Common/WorkingIndicators.cs` |
-| [T-M5-043](T-M5-043.md) | UI/Common/WorkingIndicators.swift (2 of 2) | 1 | STANDARD | `src/Marrow.UI/Common/WorkingIndicators.cs` |
-| [T-M5-044](T-M5-044.md) | UI/Common/WorkingIndicators.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/WorkingIndicators.cs` |
-| [T-M5-045](T-M5-045.md) | UI/Markdown/HydraHeadHoverPopover.swift | 1 | STANDARD | `src/Marrow.UI/Markdown/HydraHeadHoverPopover.cs` |
-| [T-M5-046](T-M5-046.md) | UI/Markdown/HydraHeadHoverPopover.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Markdown/HydraHeadHoverPopover.cs` |
-| [T-M5-047](T-M5-047.md) | UI/Markdown/LinkParagraphView.swift | 8 | STANDARD | `src/Marrow.UI/Markdown/LinkParagraphView.cs` |
-| [T-M5-048](T-M5-048.md) | UI/Markdown/LinkParagraphView.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Markdown/LinkParagraphView.cs` |
-| [T-M5-049](T-M5-049.md) | UI/Markdown/LinkPopover.swift | 1 | STANDARD | `src/Marrow.UI/Markdown/LinkPopover.cs` |
-| [T-M5-050](T-M5-050.md) | UI/Markdown/LinkPopover.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Markdown/LinkPopover.cs` |
-| [T-M5-051](T-M5-051.md) | UI/Markdown/LinkTitles.swift | 3 | STANDARD | `src/Marrow.UI/Markdown/LinkTitles.cs` |
-| [T-M5-052](T-M5-052.md) | UI/Markdown/MarkdownParser.swift (1 of 2) | 10 | STANDARD | `src/Marrow.UI/Markdown/MarkdownParser.cs` |
-| [T-M5-053](T-M5-053.md) | UI/Markdown/MarkdownParser.swift (2 of 2) | 6 | STANDARD | `src/Marrow.UI/Markdown/MarkdownParser.cs` |
-| [T-M5-054](T-M5-054.md) | UI/Markdown/MarkdownView.swift (1 of 4) | 10 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
-| [T-M5-055](T-M5-055.md) | UI/Markdown/MarkdownView.swift (2 of 4) | 10 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
-| [T-M5-056](T-M5-056.md) | UI/Markdown/MarkdownView.swift (3 of 4) | 10 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
-| [T-M5-057](T-M5-057.md) | UI/Markdown/MarkdownView.swift (4 of 4) | 6 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
-| [T-M5-058](T-M5-058.md) | UI/Markdown/MarkdownView.swift (UI 1 of 2) | 0 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
-| [T-M5-059](T-M5-059.md) | UI/Markdown/MarkdownView.swift (UI 2 of 2) | 0 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
-| [T-M5-060](T-M5-060.md) | UI/Markdown/ProseRunView.swift | 2 | STANDARD | `src/Marrow.UI/Markdown/ProseRunView.cs` |
-| [T-M5-061](T-M5-061.md) | UI/Markdown/SelectableMessageText.swift | 2 | STANDARD | `src/Marrow.UI/Markdown/SelectableMessageText.cs` |
-| [T-M5-062](T-M5-062.md) | UI/Markdown/StreamVeil.swift | 9 | STANDARD | `src/Marrow.UI/Markdown/StreamVeil.cs` |
-| [T-M5-063](T-M5-063.md) | UI/Markdown/StreamVeil.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Markdown/StreamVeil.cs` |
-| [T-M5-064](T-M5-064.md) | UI/Sound/FinishChime.swift | 1 | STANDARD | `src/Marrow.UI/Sound/FinishChime.cs` |
-| [T-M5-065](T-M5-065.md) | UI/Sound/SettleChime.swift | 1 | STANDARD | `src/Marrow.UI/Sound/SettleChime.cs` |
-| [T-M5-066](T-M5-066.md) | UI/Sound/ToneSynth.swift | 3 | STANDARD | `src/Marrow.UI/Sound/ToneSynth.cs` |
-| [T-M5-067](T-M5-067.md) | UI/Theme/AppTheme.swift (1 of 4) | 10 | STANDARD | `src/Marrow.UI/Theme/AppTheme.cs` |
-| [T-M5-068](T-M5-068.md) | UI/Theme/AppTheme.swift (2 of 4) | 10 | STANDARD | `src/Marrow.UI/Theme/AppTheme.cs` |
-| [T-M5-069](T-M5-069.md) | UI/Theme/AppTheme.swift (3 of 4) | 10 | STANDARD | `src/Marrow.UI/Theme/AppTheme.cs` |
-| [T-M5-070](T-M5-070.md) | UI/Theme/AppTheme.swift (4 of 4) | 7 | STANDARD | `src/Marrow.UI/Theme/AppTheme.cs` |
-| [T-M5-071](T-M5-071.md) | UI/Theme/AppTheme.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Theme/AppTheme.cs` |
-| [T-M5-072](T-M5-072.md) | UI/Theme/ShortcutTint.swift | 1 | STANDARD | `src/Marrow.UI/Theme/ShortcutTint.cs` |
-| [T-M5-073](T-M5-073.md) | UI/Theme/ShortcutTint.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Theme/ShortcutTint.cs` |
-| [T-M5-074](T-M5-074.md) | UI/Theme/Wallpaper.swift (1 of 2) | 10 | STANDARD | `src/Marrow.UI/Theme/Wallpaper.cs` |
-| [T-M5-075](T-M5-075.md) | UI/Theme/Wallpaper.swift (2 of 2) | 6 | STANDARD | `src/Marrow.UI/Theme/Wallpaper.cs` |
-| [T-M5-076](T-M5-076.md) | UI/Common/MCPGlyph.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/MCPGlyph.cs` |
-| [T-M5-077](T-M5-077.md) | UI/Chrome/InfoHoverButton.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/InfoHoverButton.cs` |
+| [T-M5-013](T-M5-013.md) | UI/Chrome/DragHandle.swift (1 of 2) | 10 | STANDARD | `src/Marrow.UI/Chrome/DragHandle.cs` |
+| [T-M5-014](T-M5-014.md) | UI/Chrome/DragHandle.swift (2 of 2) | 3 | STANDARD | `src/Marrow.UI/Chrome/DragHandle.cs` |
+| [T-M5-015](T-M5-015.md) | UI/Chrome/HydraPairMark.swift | 1 | STANDARD | `src/Marrow.UI/Chrome/HydraPairMark.cs` |
+| [T-M5-016](T-M5-016.md) | UI/Chrome/HydraPairMark.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/HydraPairMark.cs` |
+| [T-M5-017](T-M5-017.md) | UI/Chrome/Popovers.swift | 4 | STANDARD | `src/Marrow.UI/Chrome/Popovers.cs` |
+| [T-M5-018](T-M5-018.md) | UI/Chrome/Popovers.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/Popovers.cs` |
+| [T-M5-019](T-M5-019.md) | UI/Chrome/ProjectIconPicker.swift | 4 | STANDARD | `src/Marrow.UI/Chrome/ProjectIconPicker.cs` |
+| [T-M5-020](T-M5-020.md) | UI/Chrome/ProjectIconPicker.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/ProjectIconPicker.cs` |
+| [T-M5-021](T-M5-021.md) | UI/Chrome/ProjectSymbolCatalogue.swift | 1 | STANDARD | `src/Marrow.UI/Chrome/ProjectSymbolCatalogue.cs` |
+| [T-M5-022](T-M5-022.md) | UI/Chrome/ProjectSymbolCatalogue.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/ProjectSymbolCatalogue.cs` |
+| [T-M5-023](T-M5-023.md) | UI/Chrome/RowDrag.swift | 1 | STANDARD | `src/Marrow.UI/Chrome/RowDrag.cs` |
+| [T-M5-024](T-M5-024.md) | UI/Chrome/WindowChrome.swift (1 of 3) | 10 | HIGH | `src/Marrow.UI/Chrome/WindowChrome.cs` |
+| [T-M5-025](T-M5-025.md) | UI/Chrome/WindowChrome.swift (2 of 3) | 10 | HIGH | `src/Marrow.UI/Chrome/WindowChrome.cs` |
+| [T-M5-026](T-M5-026.md) | UI/Chrome/WindowChrome.swift (3 of 3) | 10 | HIGH | `src/Marrow.UI/Chrome/WindowChrome.cs` |
+| [T-M5-027](T-M5-027.md) | UI/Chrome/WindowChrome.swift (UI) | 0 | HIGH | `src/Marrow.UI/Chrome/WindowChrome.cs` |
+| [T-M5-028](T-M5-028.md) | UI/Common/AppZoom.swift | 5 | STANDARD | `src/Marrow.UI/Common/AppZoom.cs` |
+| [T-M5-029](T-M5-029.md) | UI/Common/AppZoom.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/AppZoom.cs` |
+| [T-M5-030](T-M5-030.md) | UI/Common/AttachmentPreview.swift (1 of 2) | 10 | STANDARD | `src/Marrow.UI/Common/AttachmentPreview.cs` |
+| [T-M5-031](T-M5-031.md) | UI/Common/AttachmentPreview.swift (2 of 2) | 3 | STANDARD | `src/Marrow.UI/Common/AttachmentPreview.cs` |
+| [T-M5-032](T-M5-032.md) | UI/Common/AttachmentPreview.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/AttachmentPreview.cs` |
+| [T-M5-033](T-M5-033.md) | UI/Common/AttachmentPreviewPanel.swift | 4 | STANDARD | `src/Marrow.UI/Common/AttachmentPreviewPanel.cs` |
+| [T-M5-034](T-M5-034.md) | UI/Common/ChatFont.swift | 2 | STANDARD | `src/Marrow.UI/Common/ChatFont.cs` |
+| [T-M5-035](T-M5-035.md) | UI/Common/ChatFont.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/ChatFont.cs` |
+| [T-M5-036](T-M5-036.md) | UI/Common/Components.swift | 4 | STANDARD | `src/Marrow.UI/Common/Components.cs` |
+| [T-M5-037](T-M5-037.md) | UI/Common/Components.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/Components.cs` |
+| [T-M5-038](T-M5-038.md) | UI/Common/Genie.swift | 5 | HIGH | `src/Marrow.UI/Common/Genie.cs` |
+| [T-M5-039](T-M5-039.md) | UI/Common/Genie.swift (UI) | 0 | HIGH | `src/Marrow.UI/Common/Genie.cs` |
+| [T-M5-040](T-M5-040.md) | UI/Common/HydraGlyph.swift | 3 | STANDARD | `src/Marrow.UI/Common/HydraGlyph.cs` |
+| [T-M5-041](T-M5-041.md) | UI/Common/HydraGlyph.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/HydraGlyph.cs` |
+| [T-M5-042](T-M5-042.md) | UI/Common/RenderBudget.swift | 9 | STANDARD | `src/Marrow.UI/Common/RenderBudget.cs` |
+| [T-M5-043](T-M5-043.md) | UI/Common/WorkingIndicators.swift (1 of 2) | 10 | STANDARD | `src/Marrow.UI/Common/WorkingIndicators.cs` |
+| [T-M5-044](T-M5-044.md) | UI/Common/WorkingIndicators.swift (2 of 2) | 1 | STANDARD | `src/Marrow.UI/Common/WorkingIndicators.cs` |
+| [T-M5-045](T-M5-045.md) | UI/Common/WorkingIndicators.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/WorkingIndicators.cs` |
+| [T-M5-046](T-M5-046.md) | UI/Markdown/HydraHeadHoverPopover.swift | 1 | STANDARD | `src/Marrow.UI/Markdown/HydraHeadHoverPopover.cs` |
+| [T-M5-047](T-M5-047.md) | UI/Markdown/HydraHeadHoverPopover.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Markdown/HydraHeadHoverPopover.cs` |
+| [T-M5-048](T-M5-048.md) | UI/Markdown/LinkHover.swift | 1 | STANDARD | `src/Marrow.UI/Markdown/LinkHover.cs` |
+| [T-M5-049](T-M5-049.md) | UI/Markdown/LinkParagraphView.swift | 9 | STANDARD | `src/Marrow.UI/Markdown/LinkParagraphView.cs` |
+| [T-M5-050](T-M5-050.md) | UI/Markdown/LinkParagraphView.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Markdown/LinkParagraphView.cs` |
+| [T-M5-051](T-M5-051.md) | UI/Markdown/LinkPopover.swift | 1 | STANDARD | `src/Marrow.UI/Markdown/LinkPopover.cs` |
+| [T-M5-052](T-M5-052.md) | UI/Markdown/LinkPopover.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Markdown/LinkPopover.cs` |
+| [T-M5-053](T-M5-053.md) | UI/Markdown/LinkTitles.swift | 3 | STANDARD | `src/Marrow.UI/Markdown/LinkTitles.cs` |
+| [T-M5-054](T-M5-054.md) | UI/Markdown/MarkdownParser.swift (1 of 2) | 10 | STANDARD | `src/Marrow.UI/Markdown/MarkdownParser.cs` |
+| [T-M5-055](T-M5-055.md) | UI/Markdown/MarkdownParser.swift (2 of 2) | 6 | STANDARD | `src/Marrow.UI/Markdown/MarkdownParser.cs` |
+| [T-M5-056](T-M5-056.md) | UI/Markdown/MarkdownView.swift (1 of 4) | 10 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
+| [T-M5-057](T-M5-057.md) | UI/Markdown/MarkdownView.swift (2 of 4) | 10 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
+| [T-M5-058](T-M5-058.md) | UI/Markdown/MarkdownView.swift (3 of 4) | 10 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
+| [T-M5-059](T-M5-059.md) | UI/Markdown/MarkdownView.swift (4 of 4) | 6 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
+| [T-M5-060](T-M5-060.md) | UI/Markdown/MarkdownView.swift (UI 1 of 2) | 0 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
+| [T-M5-061](T-M5-061.md) | UI/Markdown/MarkdownView.swift (UI 2 of 2) | 0 | STANDARD | `src/Marrow.UI/Markdown/MarkdownView.cs` |
+| [T-M5-062](T-M5-062.md) | UI/Markdown/ProseRunView.swift | 2 | STANDARD | `src/Marrow.UI/Markdown/ProseRunView.cs` |
+| [T-M5-063](T-M5-063.md) | UI/Markdown/SelectableMessageText.swift | 2 | STANDARD | `src/Marrow.UI/Markdown/SelectableMessageText.cs` |
+| [T-M5-064](T-M5-064.md) | UI/Markdown/StreamVeil.swift | 9 | STANDARD | `src/Marrow.UI/Markdown/StreamVeil.cs` |
+| [T-M5-065](T-M5-065.md) | UI/Markdown/StreamVeil.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Markdown/StreamVeil.cs` |
+| [T-M5-066](T-M5-066.md) | UI/Sound/FinishChime.swift | 1 | STANDARD | `src/Marrow.UI/Sound/FinishChime.cs` |
+| [T-M5-067](T-M5-067.md) | UI/Sound/SettleChime.swift | 1 | STANDARD | `src/Marrow.UI/Sound/SettleChime.cs` |
+| [T-M5-068](T-M5-068.md) | UI/Sound/ToneSynth.swift | 3 | STANDARD | `src/Marrow.UI/Sound/ToneSynth.cs` |
+| [T-M5-069](T-M5-069.md) | UI/Theme/AppTheme.swift (1 of 4) | 10 | STANDARD | `src/Marrow.UI/Theme/AppTheme.cs` |
+| [T-M5-070](T-M5-070.md) | UI/Theme/AppTheme.swift (2 of 4) | 10 | STANDARD | `src/Marrow.UI/Theme/AppTheme.cs` |
+| [T-M5-071](T-M5-071.md) | UI/Theme/AppTheme.swift (3 of 4) | 10 | STANDARD | `src/Marrow.UI/Theme/AppTheme.cs` |
+| [T-M5-072](T-M5-072.md) | UI/Theme/AppTheme.swift (4 of 4) | 7 | STANDARD | `src/Marrow.UI/Theme/AppTheme.cs` |
+| [T-M5-073](T-M5-073.md) | UI/Theme/AppTheme.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Theme/AppTheme.cs` |
+| [T-M5-074](T-M5-074.md) | UI/Theme/ShortcutTint.swift | 1 | STANDARD | `src/Marrow.UI/Theme/ShortcutTint.cs` |
+| [T-M5-075](T-M5-075.md) | UI/Theme/ShortcutTint.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Theme/ShortcutTint.cs` |
+| [T-M5-076](T-M5-076.md) | UI/Theme/Wallpaper.swift (1 of 2) | 10 | STANDARD | `src/Marrow.UI/Theme/Wallpaper.cs` |
+| [T-M5-077](T-M5-077.md) | UI/Theme/Wallpaper.swift (2 of 2) | 6 | STANDARD | `src/Marrow.UI/Theme/Wallpaper.cs` |
+| [T-M5-078](T-M5-078.md) | UI/Common/MCPGlyph.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Common/MCPGlyph.cs` |
+| [T-M5-079](T-M5-079.md) | UI/Chrome/InfoHoverButton.swift (UI) | 0 | STANDARD | `src/Marrow.UI/Chrome/InfoHoverButton.cs` |
 
 ## M6: App shell, windows, model and runtime
 
@@ -395,7 +401,7 @@ every line, not a sample.
 | [T-M6-009](T-M6-009.md) | App/AppDelegate.swift (1 of 4) | 10 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
 | [T-M6-010](T-M6-010.md) | App/AppDelegate.swift (2 of 4) | 10 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
 | [T-M6-011](T-M6-011.md) | App/AppDelegate.swift (3 of 4) | 10 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
-| [T-M6-012](T-M6-012.md) | App/AppDelegate.swift (4 of 4) | 3 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
+| [T-M6-012](T-M6-012.md) | App/AppDelegate.swift (4 of 4) | 6 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
 | [T-M6-013](T-M6-013.md) | App/AppDelegate.swift (UI) | 0 | STANDARD | `src/Marrow.App/AppDelegate.cs` |
 | [T-M6-014](T-M6-014.md) | App/AppModel+Hydra.swift (1 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
 | [T-M6-015](T-M6-015.md) | App/AppModel+Hydra.swift (2 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
@@ -403,79 +409,81 @@ every line, not a sample.
 | [T-M6-017](T-M6-017.md) | App/AppModel+Hydra.swift (4 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
 | [T-M6-018](T-M6-018.md) | App/AppModel+Hydra.swift (5 of 6) | 10 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
 | [T-M6-019](T-M6-019.md) | App/AppModel+Hydra.swift (6 of 6) | 2 | STANDARD | `src/Marrow.App/AppModel+Hydra.cs` |
-| [T-M6-020](T-M6-020.md) | App/AppModel+HydraMerge.swift (1 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
-| [T-M6-021](T-M6-021.md) | App/AppModel+HydraMerge.swift (2 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
-| [T-M6-022](T-M6-022.md) | App/AppModel+HydraMerge.swift (3 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
-| [T-M6-023](T-M6-023.md) | App/AppModel+HydraMerge.swift (4 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
-| [T-M6-024](T-M6-024.md) | App/AppModel+HydraMerge.swift (5 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
-| [T-M6-025](T-M6-025.md) | App/AppModel+HydraMerge.swift (6 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
-| [T-M6-026](T-M6-026.md) | App/AppModel+HydraMerge.swift (7 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
-| [T-M6-027](T-M6-027.md) | App/AppModel+HydraMerge.swift (8 of 9) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
-| [T-M6-028](T-M6-028.md) | App/AppModel+HydraMerge.swift (9 of 9) | 9 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
-| [T-M6-029](T-M6-029.md) | App/AppModel+HydraMerge.swift (UI) | 0 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
-| [T-M6-030](T-M6-030.md) | App/AppModel+HydraPairs.swift | 8 | STANDARD | `src/Marrow.App/AppModel+HydraPairs.cs` |
-| [T-M6-031](T-M6-031.md) | App/AppModel.swift (1 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
-| [T-M6-032](T-M6-032.md) | App/AppModel.swift (2 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
-| [T-M6-033](T-M6-033.md) | App/AppModel.swift (3 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
-| [T-M6-034](T-M6-034.md) | App/AppModel.swift (4 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
-| [T-M6-035](T-M6-035.md) | App/AppModel.swift (5 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
-| [T-M6-036](T-M6-036.md) | App/AppModel.swift (6 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
-| [T-M6-037](T-M6-037.md) | App/AppModel.swift (7 of 7) | 2 | STANDARD | `src/Marrow.App/AppModel.cs` |
-| [T-M6-038](T-M6-038.md) | App/AppModel.swift (UI) | 0 | STANDARD | `src/Marrow.App/AppModel.cs` |
-| [T-M6-039](T-M6-039.md) | App/AppSettings.swift (1 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-040](T-M6-040.md) | App/AppSettings.swift (2 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-041](T-M6-041.md) | App/AppSettings.swift (3 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-042](T-M6-042.md) | App/AppSettings.swift (4 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-043](T-M6-043.md) | App/AppSettings.swift (5 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-044](T-M6-044.md) | App/AppSettings.swift (6 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-045](T-M6-045.md) | App/AppSettings.swift (7 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-046](T-M6-046.md) | App/AppSettings.swift (8 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-047](T-M6-047.md) | App/AppSettings.swift (9 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-048](T-M6-048.md) | App/AppSettings.swift (10 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-049](T-M6-049.md) | App/AppSettings.swift (11 of 11) | 5 | STANDARD | `src/Marrow.App/AppSettings.cs` |
-| [T-M6-050](T-M6-050.md) | App/DroppyCodeApp.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
-| [T-M6-051](T-M6-051.md) | App/DroppyCodeApp.swift (2 of 2) | 3 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
-| [T-M6-052](T-M6-052.md) | App/DroppyCodeApp.swift (UI) | 0 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
-| [T-M6-053](T-M6-053.md) | App/HydraCookbook+Resolve.swift | 2 | STANDARD | `src/Marrow.App/HydraCookbook+Resolve.cs` |
-| [T-M6-054](T-M6-054.md) | App/Runtime/AutoContinue.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
-| [T-M6-055](T-M6-055.md) | App/Runtime/AutoContinue.swift (2 of 2) | 3 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
-| [T-M6-056](T-M6-056.md) | App/Runtime/AutoContinue.swift (UI) | 0 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
-| [T-M6-057](T-M6-057.md) | App/Runtime/ThreadRuntime.swift (1 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-058](T-M6-058.md) | App/Runtime/ThreadRuntime.swift (2 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-059](T-M6-059.md) | App/Runtime/ThreadRuntime.swift (3 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-060](T-M6-060.md) | App/Runtime/ThreadRuntime.swift (4 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-061](T-M6-061.md) | App/Runtime/ThreadRuntime.swift (5 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-062](T-M6-062.md) | App/Runtime/ThreadRuntime.swift (6 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-063](T-M6-063.md) | App/Runtime/ThreadRuntime.swift (7 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-064](T-M6-064.md) | App/Runtime/ThreadRuntime.swift (8 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-065](T-M6-065.md) | App/Runtime/ThreadRuntime.swift (9 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-066](T-M6-066.md) | App/Runtime/ThreadRuntime.swift (10 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-067](T-M6-067.md) | App/Runtime/ThreadRuntime.swift (11 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-068](T-M6-068.md) | App/Runtime/ThreadRuntime.swift (12 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-069](T-M6-069.md) | App/Runtime/ThreadRuntime.swift (13 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-070](T-M6-070.md) | App/Runtime/ThreadRuntime.swift (14 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-071](T-M6-071.md) | App/Runtime/ThreadRuntime.swift (15 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-072](T-M6-072.md) | App/Runtime/ThreadRuntime.swift (16 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-073](T-M6-073.md) | App/Runtime/ThreadRuntime.swift (17 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-074](T-M6-074.md) | App/Runtime/ThreadRuntime.swift (18 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-075](T-M6-075.md) | App/Runtime/ThreadRuntime.swift (19 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-076](T-M6-076.md) | App/Runtime/ThreadRuntime.swift (20 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-077](T-M6-077.md) | App/Runtime/ThreadRuntime.swift (21 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-078](T-M6-078.md) | App/Runtime/ThreadRuntime.swift (22 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-079](T-M6-079.md) | App/Runtime/ThreadRuntime.swift (23 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-080](T-M6-080.md) | App/Runtime/ThreadRuntime.swift (24 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-081](T-M6-081.md) | App/Runtime/ThreadRuntime.swift (25 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-082](T-M6-082.md) | App/Runtime/ThreadRuntime.swift (26 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-083](T-M6-083.md) | App/Runtime/ThreadRuntime.swift (27 of 27) | 2 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-084](T-M6-084.md) | App/Runtime/ThreadRuntime.swift (UI 1 of 3) | 0 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-085](T-M6-085.md) | App/Runtime/ThreadRuntime.swift (UI 2 of 3) | 0 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-086](T-M6-086.md) | App/Runtime/ThreadRuntime.swift (UI 3 of 3) | 0 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
-| [T-M6-087](T-M6-087.md) | App/Window/ThreadWindow.swift | 5 | HIGH | `src/Marrow.App/Window/ThreadWindow.cs` |
-| [T-M6-088](T-M6-088.md) | App/Window/WindowManager.swift (1 of 3) | 10 | HIGH | `src/Marrow.App/Window/WindowManager.cs` |
-| [T-M6-089](T-M6-089.md) | App/Window/WindowManager.swift (2 of 3) | 10 | HIGH | `src/Marrow.App/Window/WindowManager.cs` |
-| [T-M6-090](T-M6-090.md) | App/Window/WindowManager.swift (3 of 3) | 4 | HIGH | `src/Marrow.App/Window/WindowManager.cs` |
-| [T-M6-091](T-M6-091.md) | App/Window/WindowManager.swift (UI) | 0 | HIGH | `src/Marrow.App/Window/WindowManager.cs` |
-| [T-M6-092](T-M6-092.md) | misc | 3 | STANDARD | `-` |
+| [T-M6-020](T-M6-020.md) | App/AppModel+HydraMerge.swift (1 of 10) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-021](T-M6-021.md) | App/AppModel+HydraMerge.swift (2 of 10) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-022](T-M6-022.md) | App/AppModel+HydraMerge.swift (3 of 10) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-023](T-M6-023.md) | App/AppModel+HydraMerge.swift (4 of 10) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-024](T-M6-024.md) | App/AppModel+HydraMerge.swift (5 of 10) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-025](T-M6-025.md) | App/AppModel+HydraMerge.swift (6 of 10) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-026](T-M6-026.md) | App/AppModel+HydraMerge.swift (7 of 10) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-027](T-M6-027.md) | App/AppModel+HydraMerge.swift (8 of 10) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-028](T-M6-028.md) | App/AppModel+HydraMerge.swift (9 of 10) | 10 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-029](T-M6-029.md) | App/AppModel+HydraMerge.swift (10 of 10) | 6 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-030](T-M6-030.md) | App/AppModel+HydraMerge.swift (UI) | 0 | HIGH | `src/Marrow.App/AppModel+HydraMerge.cs` |
+| [T-M6-031](T-M6-031.md) | App/AppModel+HydraPairs.swift | 8 | STANDARD | `src/Marrow.App/AppModel+HydraPairs.cs` |
+| [T-M6-032](T-M6-032.md) | App/AppModel.swift (1 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
+| [T-M6-033](T-M6-033.md) | App/AppModel.swift (2 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
+| [T-M6-034](T-M6-034.md) | App/AppModel.swift (3 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
+| [T-M6-035](T-M6-035.md) | App/AppModel.swift (4 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
+| [T-M6-036](T-M6-036.md) | App/AppModel.swift (5 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
+| [T-M6-037](T-M6-037.md) | App/AppModel.swift (6 of 7) | 10 | STANDARD | `src/Marrow.App/AppModel.cs` |
+| [T-M6-038](T-M6-038.md) | App/AppModel.swift (7 of 7) | 3 | STANDARD | `src/Marrow.App/AppModel.cs` |
+| [T-M6-039](T-M6-039.md) | App/AppModel.swift (UI) | 0 | STANDARD | `src/Marrow.App/AppModel.cs` |
+| [T-M6-040](T-M6-040.md) | App/AppSettings.swift (1 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-041](T-M6-041.md) | App/AppSettings.swift (2 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-042](T-M6-042.md) | App/AppSettings.swift (3 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-043](T-M6-043.md) | App/AppSettings.swift (4 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-044](T-M6-044.md) | App/AppSettings.swift (5 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-045](T-M6-045.md) | App/AppSettings.swift (6 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-046](T-M6-046.md) | App/AppSettings.swift (7 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-047](T-M6-047.md) | App/AppSettings.swift (8 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-048](T-M6-048.md) | App/AppSettings.swift (9 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-049](T-M6-049.md) | App/AppSettings.swift (10 of 11) | 10 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-050](T-M6-050.md) | App/AppSettings.swift (11 of 11) | 5 | STANDARD | `src/Marrow.App/AppSettings.cs` |
+| [T-M6-051](T-M6-051.md) | App/DroppyCodeApp.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
+| [T-M6-052](T-M6-052.md) | App/DroppyCodeApp.swift (2 of 2) | 3 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
+| [T-M6-053](T-M6-053.md) | App/DroppyCodeApp.swift (UI) | 0 | STANDARD | `src/Marrow.App/DroppyCodeApp.cs` |
+| [T-M6-054](T-M6-054.md) | App/HydraCookbook+Resolve.swift | 2 | STANDARD | `src/Marrow.App/HydraCookbook+Resolve.cs` |
+| [T-M6-055](T-M6-055.md) | App/Runtime/AutoContinue.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
+| [T-M6-056](T-M6-056.md) | App/Runtime/AutoContinue.swift (2 of 2) | 3 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
+| [T-M6-057](T-M6-057.md) | App/Runtime/AutoContinue.swift (UI) | 0 | STANDARD | `src/Marrow.App/Runtime/AutoContinue.cs` |
+| [T-M6-058](T-M6-058.md) | App/Runtime/ThreadRuntime.swift (1 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-059](T-M6-059.md) | App/Runtime/ThreadRuntime.swift (2 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-060](T-M6-060.md) | App/Runtime/ThreadRuntime.swift (3 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-061](T-M6-061.md) | App/Runtime/ThreadRuntime.swift (4 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-062](T-M6-062.md) | App/Runtime/ThreadRuntime.swift (5 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-063](T-M6-063.md) | App/Runtime/ThreadRuntime.swift (6 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-064](T-M6-064.md) | App/Runtime/ThreadRuntime.swift (7 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-065](T-M6-065.md) | App/Runtime/ThreadRuntime.swift (8 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-066](T-M6-066.md) | App/Runtime/ThreadRuntime.swift (9 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-067](T-M6-067.md) | App/Runtime/ThreadRuntime.swift (10 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-068](T-M6-068.md) | App/Runtime/ThreadRuntime.swift (11 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-069](T-M6-069.md) | App/Runtime/ThreadRuntime.swift (12 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-070](T-M6-070.md) | App/Runtime/ThreadRuntime.swift (13 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-071](T-M6-071.md) | App/Runtime/ThreadRuntime.swift (14 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-072](T-M6-072.md) | App/Runtime/ThreadRuntime.swift (15 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-073](T-M6-073.md) | App/Runtime/ThreadRuntime.swift (16 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-074](T-M6-074.md) | App/Runtime/ThreadRuntime.swift (17 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-075](T-M6-075.md) | App/Runtime/ThreadRuntime.swift (18 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-076](T-M6-076.md) | App/Runtime/ThreadRuntime.swift (19 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-077](T-M6-077.md) | App/Runtime/ThreadRuntime.swift (20 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-078](T-M6-078.md) | App/Runtime/ThreadRuntime.swift (21 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-079](T-M6-079.md) | App/Runtime/ThreadRuntime.swift (22 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-080](T-M6-080.md) | App/Runtime/ThreadRuntime.swift (23 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-081](T-M6-081.md) | App/Runtime/ThreadRuntime.swift (24 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-082](T-M6-082.md) | App/Runtime/ThreadRuntime.swift (25 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-083](T-M6-083.md) | App/Runtime/ThreadRuntime.swift (26 of 27) | 10 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-084](T-M6-084.md) | App/Runtime/ThreadRuntime.swift (27 of 27) | 4 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-085](T-M6-085.md) | App/Runtime/ThreadRuntime.swift (UI 1 of 4) | 0 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-086](T-M6-086.md) | App/Runtime/ThreadRuntime.swift (UI 2 of 4) | 0 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-087](T-M6-087.md) | App/Runtime/ThreadRuntime.swift (UI 3 of 4) | 0 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-088](T-M6-088.md) | App/Runtime/ThreadRuntime.swift (UI 4 of 4) | 0 | HIGH | `src/Marrow.App/Runtime/ThreadRuntime.cs` |
+| [T-M6-089](T-M6-089.md) | App/Window/ThreadWindow.swift | 5 | HIGH | `src/Marrow.App/Window/ThreadWindow.cs` |
+| [T-M6-090](T-M6-090.md) | App/Window/WindowManager.swift (1 of 3) | 10 | HIGH | `src/Marrow.App/Window/WindowManager.cs` |
+| [T-M6-091](T-M6-091.md) | App/Window/WindowManager.swift (2 of 3) | 10 | HIGH | `src/Marrow.App/Window/WindowManager.cs` |
+| [T-M6-092](T-M6-092.md) | App/Window/WindowManager.swift (3 of 3) | 4 | HIGH | `src/Marrow.App/Window/WindowManager.cs` |
+| [T-M6-093](T-M6-093.md) | App/Window/WindowManager.swift (UI) | 0 | HIGH | `src/Marrow.App/Window/WindowManager.cs` |
+| [T-M6-094](T-M6-094.md) | misc | 2 | STANDARD | `-` |
 
 ## M7: Feature views
 
@@ -604,7 +612,7 @@ every line, not a sample.
 | [T-M7-121](T-M7-121.md) | App/Views/Palette/CommandPalette.swift (3 of 3) | 2 | STANDARD | `src/Marrow.App/Views/Palette/CommandPalette.cs` |
 | [T-M7-122](T-M7-122.md) | App/Views/Palette/CommandPalette.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Palette/CommandPalette.cs` |
 | [T-M7-123](T-M7-123.md) | App/Views/RootView.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/Views/RootView.cs` |
-| [T-M7-124](T-M7-124.md) | App/Views/RootView.swift (2 of 2) | 7 | STANDARD | `src/Marrow.App/Views/RootView.cs` |
+| [T-M7-124](T-M7-124.md) | App/Views/RootView.swift (2 of 2) | 6 | STANDARD | `src/Marrow.App/Views/RootView.cs` |
 | [T-M7-125](T-M7-125.md) | App/Views/RootView.swift (UI 1 of 2) | 0 | STANDARD | `src/Marrow.App/Views/RootView.cs` |
 | [T-M7-126](T-M7-126.md) | App/Views/RootView.swift (UI 2 of 2) | 0 | STANDARD | `src/Marrow.App/Views/RootView.cs` |
 | [T-M7-127](T-M7-127.md) | App/Views/Settings/AboutUpdateViews.swift (1 of 4) | 10 | STANDARD | `src/Marrow.App/Views/Settings/AboutUpdateViews.cs` |
@@ -614,89 +622,89 @@ every line, not a sample.
 | [T-M7-131](T-M7-131.md) | App/Views/Settings/AboutUpdateViews.swift (UI 1 of 3) | 0 | STANDARD | `src/Marrow.App/Views/Settings/AboutUpdateViews.cs` |
 | [T-M7-132](T-M7-132.md) | App/Views/Settings/AboutUpdateViews.swift (UI 2 of 3) | 0 | STANDARD | `src/Marrow.App/Views/Settings/AboutUpdateViews.cs` |
 | [T-M7-133](T-M7-133.md) | App/Views/Settings/AboutUpdateViews.swift (UI 3 of 3) | 0 | STANDARD | `src/Marrow.App/Views/Settings/AboutUpdateViews.cs` |
-| [T-M7-134](T-M7-134.md) | App/Views/Settings/HydraCookbookPanel.swift | 2 | STANDARD | `src/Marrow.App/Views/Settings/HydraCookbookPanel.cs` |
-| [T-M7-135](T-M7-135.md) | App/Views/Settings/HydraCookbookPanel.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/HydraCookbookPanel.cs` |
-| [T-M7-136](T-M7-136.md) | App/Views/Settings/HydraSettingsPage.swift (1 of 4) | 10 | STANDARD | `src/Marrow.App/Views/Settings/HydraSettingsPage.cs` |
-| [T-M7-137](T-M7-137.md) | App/Views/Settings/HydraSettingsPage.swift (2 of 4) | 10 | STANDARD | `src/Marrow.App/Views/Settings/HydraSettingsPage.cs` |
-| [T-M7-138](T-M7-138.md) | App/Views/Settings/HydraSettingsPage.swift (3 of 4) | 10 | STANDARD | `src/Marrow.App/Views/Settings/HydraSettingsPage.cs` |
-| [T-M7-139](T-M7-139.md) | App/Views/Settings/HydraSettingsPage.swift (4 of 4) | 1 | STANDARD | `src/Marrow.App/Views/Settings/HydraSettingsPage.cs` |
-| [T-M7-140](T-M7-140.md) | App/Views/Settings/HydraSettingsPage.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/HydraSettingsPage.cs` |
-| [T-M7-141](T-M7-141.md) | App/Views/Settings/MCPKeyPanel.swift | 6 | STANDARD | `src/Marrow.App/Views/Settings/MCPKeyPanel.cs` |
-| [T-M7-142](T-M7-142.md) | App/Views/Settings/MCPKeyPanel.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPKeyPanel.cs` |
-| [T-M7-143](T-M7-143.md) | App/Views/Settings/MCPSettingsPage.swift (1 of 3) | 10 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-144](T-M7-144.md) | App/Views/Settings/MCPSettingsPage.swift (2 of 3) | 10 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-145](T-M7-145.md) | App/Views/Settings/MCPSettingsPage.swift (3 of 3) | 1 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-146](T-M7-146.md) | App/Views/Settings/MCPSettingsPage.swift (UI 1 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-147](T-M7-147.md) | App/Views/Settings/MCPSettingsPage.swift (UI 2 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-148](T-M7-148.md) | App/Views/Settings/MCPSettingsPage.swift (UI 3 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-149](T-M7-149.md) | App/Views/Settings/MCPSettingsPage.swift (UI 4 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-150](T-M7-150.md) | App/Views/Settings/MCPSettingsPage.swift (UI 5 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-151](T-M7-151.md) | App/Views/Settings/MCPSettingsPage.swift (UI 6 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-152](T-M7-152.md) | App/Views/Settings/MCPSettingsPage.swift (UI 7 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-153](T-M7-153.md) | App/Views/Settings/MCPSettingsPage.swift (UI 8 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
-| [T-M7-154](T-M7-154.md) | App/Views/Settings/MCPSetupPanel.swift | 4 | STANDARD | `src/Marrow.App/Views/Settings/MCPSetupPanel.cs` |
-| [T-M7-155](T-M7-155.md) | App/Views/Settings/MCPSetupPanel.swift (UI 1 of 2) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSetupPanel.cs` |
-| [T-M7-156](T-M7-156.md) | App/Views/Settings/MCPSetupPanel.swift (UI 2 of 2) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSetupPanel.cs` |
-| [T-M7-157](T-M7-157.md) | App/Views/Settings/ModelsSettingsPage.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/Views/Settings/ModelsSettingsPage.cs` |
-| [T-M7-158](T-M7-158.md) | App/Views/Settings/ModelsSettingsPage.swift (2 of 2) | 7 | STANDARD | `src/Marrow.App/Views/Settings/ModelsSettingsPage.cs` |
-| [T-M7-159](T-M7-159.md) | App/Views/Settings/ModelsSettingsPage.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/ModelsSettingsPage.cs` |
-| [T-M7-160](T-M7-160.md) | App/Views/Settings/SettingsScrollTracker.swift | 1 | STANDARD | `src/Marrow.App/Views/Settings/SettingsScrollTracker.cs` |
-| [T-M7-161](T-M7-161.md) | App/Views/Settings/SettingsView.swift (1 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-162](T-M7-162.md) | App/Views/Settings/SettingsView.swift (2 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-163](T-M7-163.md) | App/Views/Settings/SettingsView.swift (3 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-164](T-M7-164.md) | App/Views/Settings/SettingsView.swift (4 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-165](T-M7-165.md) | App/Views/Settings/SettingsView.swift (5 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-166](T-M7-166.md) | App/Views/Settings/SettingsView.swift (6 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-167](T-M7-167.md) | App/Views/Settings/SettingsView.swift (7 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-168](T-M7-168.md) | App/Views/Settings/SettingsView.swift (8 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-169](T-M7-169.md) | App/Views/Settings/SettingsView.swift (9 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-170](T-M7-170.md) | App/Views/Settings/SettingsView.swift (10 of 10) | 7 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-171](T-M7-171.md) | App/Views/Settings/SettingsView.swift (UI 1 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-172](T-M7-172.md) | App/Views/Settings/SettingsView.swift (UI 2 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-173](T-M7-173.md) | App/Views/Settings/SettingsView.swift (UI 3 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-174](T-M7-174.md) | App/Views/Settings/SettingsView.swift (UI 4 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-175](T-M7-175.md) | App/Views/Settings/SettingsView.swift (UI 5 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-176](T-M7-176.md) | App/Views/Settings/SettingsView.swift (UI 6 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-177](T-M7-177.md) | App/Views/Settings/SettingsView.swift (UI 7 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-178](T-M7-178.md) | App/Views/Settings/SettingsView.swift (UI 8 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-179](T-M7-179.md) | App/Views/Settings/SettingsView.swift (UI 9 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-180](T-M7-180.md) | App/Views/Settings/SettingsView.swift (UI 10 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-181](T-M7-181.md) | App/Views/Settings/SettingsView.swift (UI 11 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
-| [T-M7-182](T-M7-182.md) | App/Views/Settings/ShortcutsSettingsPage.swift | 10 | STANDARD | `src/Marrow.App/Views/Settings/ShortcutsSettingsPage.cs` |
-| [T-M7-183](T-M7-183.md) | App/Views/Settings/ShortcutsSettingsPage.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/ShortcutsSettingsPage.cs` |
-| [T-M7-184](T-M7-184.md) | App/Views/Settings/TokenActivitySection.swift | 9 | STANDARD | `src/Marrow.App/Views/Settings/TokenActivitySection.cs` |
-| [T-M7-185](T-M7-185.md) | App/Views/Settings/TokenActivitySection.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/TokenActivitySection.cs` |
-| [T-M7-186](T-M7-186.md) | App/Views/Settings/WallpaperCard.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/Views/Settings/WallpaperCard.cs` |
-| [T-M7-187](T-M7-187.md) | App/Views/Settings/WallpaperCard.swift (2 of 2) | 6 | STANDARD | `src/Marrow.App/Views/Settings/WallpaperCard.cs` |
-| [T-M7-188](T-M7-188.md) | App/Views/Settings/WallpaperCard.swift (UI 1 of 2) | 0 | STANDARD | `src/Marrow.App/Views/Settings/WallpaperCard.cs` |
-| [T-M7-189](T-M7-189.md) | App/Views/Settings/WallpaperCard.swift (UI 2 of 2) | 0 | STANDARD | `src/Marrow.App/Views/Settings/WallpaperCard.cs` |
-| [T-M7-190](T-M7-190.md) | App/Views/Sidebar/FloatingSidebarPanel.swift | 7 | STANDARD | `src/Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs` |
-| [T-M7-191](T-M7-191.md) | App/Views/Sidebar/FloatingSidebarPanel.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs` |
-| [T-M7-192](T-M7-192.md) | App/Views/Sidebar/RowGlide.swift | 7 | STANDARD | `src/Marrow.App/Views/Sidebar/RowGlide.cs` |
-| [T-M7-193](T-M7-193.md) | App/Views/Sidebar/RowGlide.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/RowGlide.cs` |
-| [T-M7-194](T-M7-194.md) | App/Views/Sidebar/SidebarView.swift (1 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-195](T-M7-195.md) | App/Views/Sidebar/SidebarView.swift (2 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-196](T-M7-196.md) | App/Views/Sidebar/SidebarView.swift (3 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-197](T-M7-197.md) | App/Views/Sidebar/SidebarView.swift (4 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-198](T-M7-198.md) | App/Views/Sidebar/SidebarView.swift (5 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-199](T-M7-199.md) | App/Views/Sidebar/SidebarView.swift (6 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-200](T-M7-200.md) | App/Views/Sidebar/SidebarView.swift (7 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-201](T-M7-201.md) | App/Views/Sidebar/SidebarView.swift (8 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-202](T-M7-202.md) | App/Views/Sidebar/SidebarView.swift (9 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-203](T-M7-203.md) | App/Views/Sidebar/SidebarView.swift (10 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-204](T-M7-204.md) | App/Views/Sidebar/SidebarView.swift (11 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-205](T-M7-205.md) | App/Views/Sidebar/SidebarView.swift (12 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-206](T-M7-206.md) | App/Views/Sidebar/SidebarView.swift (13 of 13) | 5 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-207](T-M7-207.md) | App/Views/Sidebar/SidebarView.swift (UI 1 of 5) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-208](T-M7-208.md) | App/Views/Sidebar/SidebarView.swift (UI 2 of 5) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-209](T-M7-209.md) | App/Views/Sidebar/SidebarView.swift (UI 3 of 5) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-210](T-M7-210.md) | App/Views/Sidebar/SidebarView.swift (UI 4 of 5) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-211](T-M7-211.md) | App/Views/Sidebar/SidebarView.swift (UI 5 of 5) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
-| [T-M7-212](T-M7-212.md) | App/Views/Terminal/TerminalFont.swift | 10 | HIGH | `src/Marrow.App/Views/Terminal/TerminalFont.cs` |
-| [T-M7-213](T-M7-213.md) | App/Views/Terminal/TerminalPanel.swift (1 of 4) | 10 | HIGH | `src/Marrow.App/Views/Terminal/TerminalPanel.cs` |
-| [T-M7-214](T-M7-214.md) | App/Views/Terminal/TerminalPanel.swift (2 of 4) | 10 | HIGH | `src/Marrow.App/Views/Terminal/TerminalPanel.cs` |
-| [T-M7-215](T-M7-215.md) | App/Views/Terminal/TerminalPanel.swift (3 of 4) | 10 | HIGH | `src/Marrow.App/Views/Terminal/TerminalPanel.cs` |
-| [T-M7-216](T-M7-216.md) | App/Views/Terminal/TerminalPanel.swift (4 of 4) | 3 | HIGH | `src/Marrow.App/Views/Terminal/TerminalPanel.cs` |
+| [T-M7-134](T-M7-134.md) | App/Views/Settings/FloatingGuidePanel.swift | 1 | STANDARD | `src/Marrow.App/Views/Settings/FloatingGuidePanel.cs` |
+| [T-M7-135](T-M7-135.md) | App/Views/Settings/HydraCookbookPanel.swift | 2 | STANDARD | `src/Marrow.App/Views/Settings/HydraCookbookPanel.cs` |
+| [T-M7-136](T-M7-136.md) | App/Views/Settings/HydraCookbookPanel.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/HydraCookbookPanel.cs` |
+| [T-M7-137](T-M7-137.md) | App/Views/Settings/HydraSettingsPage.swift (1 of 4) | 10 | STANDARD | `src/Marrow.App/Views/Settings/HydraSettingsPage.cs` |
+| [T-M7-138](T-M7-138.md) | App/Views/Settings/HydraSettingsPage.swift (2 of 4) | 10 | STANDARD | `src/Marrow.App/Views/Settings/HydraSettingsPage.cs` |
+| [T-M7-139](T-M7-139.md) | App/Views/Settings/HydraSettingsPage.swift (3 of 4) | 10 | STANDARD | `src/Marrow.App/Views/Settings/HydraSettingsPage.cs` |
+| [T-M7-140](T-M7-140.md) | App/Views/Settings/HydraSettingsPage.swift (4 of 4) | 1 | STANDARD | `src/Marrow.App/Views/Settings/HydraSettingsPage.cs` |
+| [T-M7-141](T-M7-141.md) | App/Views/Settings/HydraSettingsPage.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/HydraSettingsPage.cs` |
+| [T-M7-142](T-M7-142.md) | App/Views/Settings/MCPKeyPanel.swift | 5 | STANDARD | `src/Marrow.App/Views/Settings/MCPKeyPanel.cs` |
+| [T-M7-143](T-M7-143.md) | App/Views/Settings/MCPKeyPanel.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPKeyPanel.cs` |
+| [T-M7-144](T-M7-144.md) | App/Views/Settings/MCPSettingsPage.swift (1 of 3) | 10 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-145](T-M7-145.md) | App/Views/Settings/MCPSettingsPage.swift (2 of 3) | 10 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-146](T-M7-146.md) | App/Views/Settings/MCPSettingsPage.swift (3 of 3) | 1 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-147](T-M7-147.md) | App/Views/Settings/MCPSettingsPage.swift (UI 1 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-148](T-M7-148.md) | App/Views/Settings/MCPSettingsPage.swift (UI 2 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-149](T-M7-149.md) | App/Views/Settings/MCPSettingsPage.swift (UI 3 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-150](T-M7-150.md) | App/Views/Settings/MCPSettingsPage.swift (UI 4 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-151](T-M7-151.md) | App/Views/Settings/MCPSettingsPage.swift (UI 5 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-152](T-M7-152.md) | App/Views/Settings/MCPSettingsPage.swift (UI 6 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-153](T-M7-153.md) | App/Views/Settings/MCPSettingsPage.swift (UI 7 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-154](T-M7-154.md) | App/Views/Settings/MCPSettingsPage.swift (UI 8 of 8) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSettingsPage.cs` |
+| [T-M7-155](T-M7-155.md) | App/Views/Settings/MCPSetupPanel.swift | 4 | STANDARD | `src/Marrow.App/Views/Settings/MCPSetupPanel.cs` |
+| [T-M7-156](T-M7-156.md) | App/Views/Settings/MCPSetupPanel.swift (UI 1 of 2) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSetupPanel.cs` |
+| [T-M7-157](T-M7-157.md) | App/Views/Settings/MCPSetupPanel.swift (UI 2 of 2) | 0 | STANDARD | `src/Marrow.App/Views/Settings/MCPSetupPanel.cs` |
+| [T-M7-158](T-M7-158.md) | App/Views/Settings/ModelsSettingsPage.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/Views/Settings/ModelsSettingsPage.cs` |
+| [T-M7-159](T-M7-159.md) | App/Views/Settings/ModelsSettingsPage.swift (2 of 2) | 7 | STANDARD | `src/Marrow.App/Views/Settings/ModelsSettingsPage.cs` |
+| [T-M7-160](T-M7-160.md) | App/Views/Settings/ModelsSettingsPage.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/ModelsSettingsPage.cs` |
+| [T-M7-161](T-M7-161.md) | App/Views/Settings/SettingsScrollTracker.swift | 1 | STANDARD | `src/Marrow.App/Views/Settings/SettingsScrollTracker.cs` |
+| [T-M7-162](T-M7-162.md) | App/Views/Settings/SettingsView.swift (1 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-163](T-M7-163.md) | App/Views/Settings/SettingsView.swift (2 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-164](T-M7-164.md) | App/Views/Settings/SettingsView.swift (3 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-165](T-M7-165.md) | App/Views/Settings/SettingsView.swift (4 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-166](T-M7-166.md) | App/Views/Settings/SettingsView.swift (5 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-167](T-M7-167.md) | App/Views/Settings/SettingsView.swift (6 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-168](T-M7-168.md) | App/Views/Settings/SettingsView.swift (7 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-169](T-M7-169.md) | App/Views/Settings/SettingsView.swift (8 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-170](T-M7-170.md) | App/Views/Settings/SettingsView.swift (9 of 10) | 10 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-171](T-M7-171.md) | App/Views/Settings/SettingsView.swift (10 of 10) | 7 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-172](T-M7-172.md) | App/Views/Settings/SettingsView.swift (UI 1 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-173](T-M7-173.md) | App/Views/Settings/SettingsView.swift (UI 2 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-174](T-M7-174.md) | App/Views/Settings/SettingsView.swift (UI 3 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-175](T-M7-175.md) | App/Views/Settings/SettingsView.swift (UI 4 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-176](T-M7-176.md) | App/Views/Settings/SettingsView.swift (UI 5 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-177](T-M7-177.md) | App/Views/Settings/SettingsView.swift (UI 6 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-178](T-M7-178.md) | App/Views/Settings/SettingsView.swift (UI 7 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-179](T-M7-179.md) | App/Views/Settings/SettingsView.swift (UI 8 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-180](T-M7-180.md) | App/Views/Settings/SettingsView.swift (UI 9 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-181](T-M7-181.md) | App/Views/Settings/SettingsView.swift (UI 10 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-182](T-M7-182.md) | App/Views/Settings/SettingsView.swift (UI 11 of 11) | 0 | STANDARD | `src/Marrow.App/Views/Settings/SettingsView.cs` |
+| [T-M7-183](T-M7-183.md) | App/Views/Settings/ShortcutsSettingsPage.swift | 10 | STANDARD | `src/Marrow.App/Views/Settings/ShortcutsSettingsPage.cs` |
+| [T-M7-184](T-M7-184.md) | App/Views/Settings/ShortcutsSettingsPage.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/ShortcutsSettingsPage.cs` |
+| [T-M7-185](T-M7-185.md) | App/Views/Settings/TokenActivitySection.swift | 9 | STANDARD | `src/Marrow.App/Views/Settings/TokenActivitySection.cs` |
+| [T-M7-186](T-M7-186.md) | App/Views/Settings/TokenActivitySection.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Settings/TokenActivitySection.cs` |
+| [T-M7-187](T-M7-187.md) | App/Views/Settings/WallpaperCard.swift (1 of 2) | 10 | STANDARD | `src/Marrow.App/Views/Settings/WallpaperCard.cs` |
+| [T-M7-188](T-M7-188.md) | App/Views/Settings/WallpaperCard.swift (2 of 2) | 6 | STANDARD | `src/Marrow.App/Views/Settings/WallpaperCard.cs` |
+| [T-M7-189](T-M7-189.md) | App/Views/Settings/WallpaperCard.swift (UI 1 of 2) | 0 | STANDARD | `src/Marrow.App/Views/Settings/WallpaperCard.cs` |
+| [T-M7-190](T-M7-190.md) | App/Views/Settings/WallpaperCard.swift (UI 2 of 2) | 0 | STANDARD | `src/Marrow.App/Views/Settings/WallpaperCard.cs` |
+| [T-M7-191](T-M7-191.md) | App/Views/Sidebar/FloatingSidebarPanel.swift | 7 | STANDARD | `src/Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs` |
+| [T-M7-192](T-M7-192.md) | App/Views/Sidebar/FloatingSidebarPanel.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/FloatingSidebarPanel.cs` |
+| [T-M7-193](T-M7-193.md) | App/Views/Sidebar/RowGlide.swift | 7 | STANDARD | `src/Marrow.App/Views/Sidebar/RowGlide.cs` |
+| [T-M7-194](T-M7-194.md) | App/Views/Sidebar/RowGlide.swift (UI) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/RowGlide.cs` |
+| [T-M7-195](T-M7-195.md) | App/Views/Sidebar/SidebarView.swift (1 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-196](T-M7-196.md) | App/Views/Sidebar/SidebarView.swift (2 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-197](T-M7-197.md) | App/Views/Sidebar/SidebarView.swift (3 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-198](T-M7-198.md) | App/Views/Sidebar/SidebarView.swift (4 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-199](T-M7-199.md) | App/Views/Sidebar/SidebarView.swift (5 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-200](T-M7-200.md) | App/Views/Sidebar/SidebarView.swift (6 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-201](T-M7-201.md) | App/Views/Sidebar/SidebarView.swift (7 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-202](T-M7-202.md) | App/Views/Sidebar/SidebarView.swift (8 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-203](T-M7-203.md) | App/Views/Sidebar/SidebarView.swift (9 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-204](T-M7-204.md) | App/Views/Sidebar/SidebarView.swift (10 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-205](T-M7-205.md) | App/Views/Sidebar/SidebarView.swift (11 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-206](T-M7-206.md) | App/Views/Sidebar/SidebarView.swift (12 of 13) | 10 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-207](T-M7-207.md) | App/Views/Sidebar/SidebarView.swift (13 of 13) | 5 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-208](T-M7-208.md) | App/Views/Sidebar/SidebarView.swift (UI 1 of 5) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-209](T-M7-209.md) | App/Views/Sidebar/SidebarView.swift (UI 2 of 5) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-210](T-M7-210.md) | App/Views/Sidebar/SidebarView.swift (UI 3 of 5) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-211](T-M7-211.md) | App/Views/Sidebar/SidebarView.swift (UI 4 of 5) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-212](T-M7-212.md) | App/Views/Sidebar/SidebarView.swift (UI 5 of 5) | 0 | STANDARD | `src/Marrow.App/Views/Sidebar/SidebarView.cs` |
+| [T-M7-213](T-M7-213.md) | App/Views/Terminal/TerminalFont.swift | 10 | HIGH | `src/Marrow.App/Views/Terminal/TerminalFont.cs` |
+| [T-M7-214](T-M7-214.md) | App/Views/Terminal/TerminalPanel.swift (1 of 3) | 10 | HIGH | `src/Marrow.App/Views/Terminal/TerminalPanel.cs` |
+| [T-M7-215](T-M7-215.md) | App/Views/Terminal/TerminalPanel.swift (2 of 3) | 10 | HIGH | `src/Marrow.App/Views/Terminal/TerminalPanel.cs` |
+| [T-M7-216](T-M7-216.md) | App/Views/Terminal/TerminalPanel.swift (3 of 3) | 9 | HIGH | `src/Marrow.App/Views/Terminal/TerminalPanel.cs` |
 | [T-M7-217](T-M7-217.md) | App/Views/Terminal/TerminalPanel.swift (UI 1 of 2) | 0 | HIGH | `src/Marrow.App/Views/Terminal/TerminalPanel.cs` |
 | [T-M7-218](T-M7-218.md) | App/Views/Terminal/TerminalPanel.swift (UI 2 of 2) | 0 | HIGH | `src/Marrow.App/Views/Terminal/TerminalPanel.cs` |
 | [T-M7-219](T-M7-219.md) | App/Views/Terminal/TerminalStore.swift (1 of 3) | 10 | HIGH | `src/Marrow.App/Views/Terminal/TerminalStore.cs` |

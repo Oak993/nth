@@ -1,10 +1,13 @@
 using System;
+using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -107,6 +110,32 @@ public sealed class HydraPanelTests
     }
 
     [Fact]
+    [Trait("Req", "PR-HYDRA-180")] // App/Views/Chat/HydraPanel.swift:545-551
+    [Trait("Decision", "ED-197")]
+    public void Elapsed_uses_the_narrow_duration_style_and_drops_a_zero_minutes_remainder()
+    {
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+
+        var start = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var completed = new HydraHeadInfo(0, "", default, default) with
+        {
+            HydraHeadInfoStatus = HydraHeadInfo.Status.Completed,
+            StartedAt = start,
+            FinishedAt = start.AddSeconds(60),
+        };
+        var oddSeconds = completed with { FinishedAt = start.AddSeconds(61) };
+        var underOneSecond = completed with { FinishedAt = start.AddMilliseconds(999) };
+        var noFinish = completed with { FinishedAt = null };
+
+        // 60s -> "1m", not the pre-B3 hand-built "1m 0s": SwiftFormatters.DurationUnits drops the zero unit
+        // (SwiftFormattersSecondTests.Hydra_and_HydraPanel_allow_seconds_and_minutes(60L, "1m")).
+        Assert.Equal("Done in 1m", HydraStatusText.Footer(completed));
+        Assert.Equal("Done in 1m 1s", HydraStatusText.Footer(oddSeconds));
+        Assert.Equal("Done", HydraStatusText.Footer(underOneSecond));
+        Assert.Equal("Done", HydraStatusText.Footer(noFinish));
+    }
+
+    [Fact]
     [Trait("Req", "UI-HYDRA-024")] // App/Views/Chat/HydraPanel.swift:515-552
     public void Footer_includes_elapsed_steps_landing_and_summary_in_upstream_order()
     {
@@ -166,4 +195,28 @@ public sealed class HydraPanelTests
     {
         Assert.Equal(22.0, HydraPanel.CornerRadius);
     }
+
+    // Review fix (b3/SubagentPanel): WireDragHandle's doc comment used to assert, in the present tense, that
+    // Marrow.App.Views.Chat.SubagentPanel was "still pinned to B2" and so still carried its own pre-refactor
+    // PanelDragHandle/PanelDragHandleView pair rather than the shared Marrow.UI.Chrome.DragHandle. That unit's
+    // own B3 re-pin (SubagentPanel.cs:796-849) falsified the claim: PanelDragHandle there now wraps the shared
+    // DragHandleView. This reads HydraPanel.cs's own source and pins the corrected wording, the same
+    // source-scan technique ProgramStartupBindingTests.cs uses, so the comment cannot silently regress to the
+    // stale claim again.
+    [Fact]
+    [Trait("Req", "PR-HYDRA-227")] // App/Views/Chat/SubagentPanel.swift:640-666 (the PanelDragHandle retarget this doc comment describes)
+    public void WireDragHandle_doc_no_longer_claims_SubagentPanel_is_still_unrefactored()
+    {
+        var source = File.ReadAllText(HydraPanelCsPath());
+
+        Assert.DoesNotContain("is still pinned to B2", source, StringComparison.Ordinal);
+        Assert.DoesNotContain("has not yet been re-verified against B3", source, StringComparison.Ordinal);
+        Assert.Contains("has since been", source, StringComparison.Ordinal);
+        Assert.Contains("re-pinned against B3", source, StringComparison.Ordinal);
+        Assert.Contains("Marrow.App.Views.Chat.SubagentPanel.PanelDragHandle", source, StringComparison.Ordinal);
+    }
+
+    private static string HydraPanelCsPath([CallerFilePath] string path = "") =>
+        Path.GetFullPath(Path.Combine(Path.GetDirectoryName(path)!, "..", "..", "..", "..",
+            "src", "Marrow.App", "Views", "Chat", "HydraPanel.cs"));
 }

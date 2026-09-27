@@ -7,6 +7,7 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
+using Marrow.Services.Store;
 using Marrow.Testing;
 
 namespace Marrow.App.Tests.Runtime;
@@ -633,9 +634,14 @@ public sealed class ThreadRuntimePart7Tests
     }
 
     [Fact]
-    [Trait("Req", "PR-RUNTIME-158")] // ThreadRuntime.swift:3581-3602
-    public void Running_saves_share_one_five_second_timer()
+    [Trait("Req", "PR-RUNTIME-158")] // ThreadRuntime.swift:3623-3648 (B3): the 5 s floor, for a thread file never
+    // written (DiskWriter.LastWrittenSize is null, so bytes defaults to 0 and the formula's max(5, 0) floors at
+    // 5 s exactly as the old fixed delay did) - rewritten per the b3_note to bind Storage.Locations, since
+    // ScheduleSave now reads DiskWriter.Shared.LastWrittenSize(Storage.ThreadURL(ThreadID)) synchronously; the
+    // 5 s expectation itself is unchanged and unloosened.
+    public void Running_saves_share_one_five_second_timer_for_a_thread_file_never_written()
     {
+        using var scratch = new ThreadRuntimeStorageScratch();
         using var test = new TestRuntime();
         var runtime = test.OnMain(() =>
         {
@@ -650,6 +656,63 @@ public sealed class ThreadRuntimePart7Tests
         test.OnMain(runtime.ScheduleSave);
         test.OnMain(() => Assert.Same(firstTask, ReadField(runtime, "saveTask")));
         test.AdvanceMilliseconds(2_999);
+        test.OnMain(() => Assert.NotNull(ReadField(runtime, "saveTask")));
+        test.AdvanceMilliseconds(1);
+        test.OnMain(() => Assert.Null(ReadField(runtime, "saveTask")));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-158")] // ThreadRuntime.swift:3634-3648 (B3, new): min(20, max(5, bytes/250_000)),
+    // linear between the 5 s floor (<=1.25 MB) and the 20 s ceiling (>=5 MB). bytes is read back from
+    // DiskWriter.Shared.LastWrittenSize after a real EncodeAndWrite, rather than assumed, so the test does not
+    // depend on SwiftJson's exact byte overhead for a JSON string literal.
+    public void Running_saves_scale_the_shared_timer_linearly_with_the_thread_files_last_written_size()
+    {
+        using var scratch = new ThreadRuntimeStorageScratch();
+        using var test = new TestRuntime();
+        var runtime = test.OnMain(() => CreateRuntime());
+        var url = Storage.ThreadURL(runtime.ThreadID);
+        // A plain ASCII string with no characters SwiftJson escapes: the written JSON is exactly the quoted
+        // string, so LastWrittenSize reports a size under this test's control by construction (2,500,000 bytes:
+        // squarely between the floor and the ceiling, seconds = 2,500,000 / 250,000 = 10 exactly).
+        DiskWriter.Shared.EncodeAndWrite(new string('a', 2_500_000 - 2), url);
+        DiskWriter.Shared.WaitForQueuedWrites();
+        var bytes = DiskWriter.Shared.LastWrittenSize(url);
+        Assert.Equal(2_500_000, bytes);
+        var expectedMs = Math.Min(20_000d, Math.Max(5_000d, bytes!.Value / 250d));
+        Assert.Equal(10_000d, expectedMs);
+
+        test.OnMain(() =>
+        {
+            SetField(runtime, "persistenceEnabled", true);
+            SetField(runtime, "phase", RuntimePhase.Running);
+            runtime.ScheduleSave();
+        });
+        test.AdvanceMilliseconds(expectedMs - 1);
+        test.OnMain(() => Assert.NotNull(ReadField(runtime, "saveTask")));
+        test.AdvanceMilliseconds(1);
+        test.OnMain(() => Assert.Null(ReadField(runtime, "saveTask")));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-158")] // ThreadRuntime.swift:3634-3648 (B3, new): the 20 s ceiling at or above 5 MB.
+    public void Running_saves_cap_the_shared_timer_at_twenty_seconds_for_a_large_thread_file()
+    {
+        using var scratch = new ThreadRuntimeStorageScratch();
+        using var test = new TestRuntime();
+        var runtime = test.OnMain(() => CreateRuntime());
+        var url = Storage.ThreadURL(runtime.ThreadID);
+        DiskWriter.Shared.EncodeAndWrite(new string('a', 6_000_000 - 2), url); // well past the 5 MB ceiling
+        DiskWriter.Shared.WaitForQueuedWrites();
+        Assert.Equal(6_000_000, DiskWriter.Shared.LastWrittenSize(url));
+
+        test.OnMain(() =>
+        {
+            SetField(runtime, "persistenceEnabled", true);
+            SetField(runtime, "phase", RuntimePhase.Running);
+            runtime.ScheduleSave();
+        });
+        test.AdvanceMilliseconds(19_999);
         test.OnMain(() => Assert.NotNull(ReadField(runtime, "saveTask")));
         test.AdvanceMilliseconds(1);
         test.OnMain(() => Assert.Null(ReadField(runtime, "saveTask")));

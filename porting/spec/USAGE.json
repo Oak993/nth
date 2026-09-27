@@ -19,7 +19,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Renderer component in the composer row reading the same three predicates. No platform boundary.",
       "verification_method": "interaction test over the predicate combinations plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -42,7 +42,7 @@
       "cancellation": "not cancellable",
       "windows_path": "SVG circle with stroke-dasharray/offset or a conic mask, rotated -90deg; the track uses the quaternary label token.",
       "verification_method": "capture comparison at 0%, 50%, 86% and 100%",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -65,7 +65,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two CSS custom properties; the arc stroke switches at fraction > 0.85. The tint branch must resolve to the theme accent, not a hardcoded colour.",
       "verification_method": "unit test on the predicate plus capture comparison in two themes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -88,7 +88,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Native tooltip with the same three strings and the same truncating integer conversion (Math.trunc, never Math.round).",
       "verification_method": "unit test on helpText over the three branches and the truncation boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -112,7 +112,7 @@
       "cancellation": "not cancellable",
       "windows_path": "aria-label plus aria-valuetext on the button; do not merge them into one string.",
       "verification_method": "interaction test reading the accessibility tree",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -139,7 +139,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Anchored popover above the trigger with a bottom-edge arrow. Windows has no NSPopover: the shell supplies the arrow, the shadow and the light-dismiss.",
       "verification_method": "interaction test: open, reopen, dismiss by outside click",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -166,7 +166,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Header div plus a 32px round glass button. The arrow.up.right glyph follows OD-0010: it maps to Lucide arrow-up-right through the published symbol-by-symbol table (porting/icons/sf-symbols-to-lucide.json), which closes the icon half of UNK-0007; Apple glyphs cannot ship. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing). ED-059: on Windows .callout is 12 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:52 `case .callout: 12`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "capture comparison plus interaction test on the tooltip string",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -198,7 +198,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Set the persisted setting and animate the panel mount with the panelSlide spring; honour the OS reduce-motion flag for the ease-out fallback.",
       "verification_method": "interaction test plus restart test that the panel is still shown",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -222,7 +222,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Fixed 360px content box with 16px padding, height auto; the fillsWidth variant is width:100% with left alignment.",
       "verification_method": "capture comparison, width measured against the source constant",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1489,7 +1489,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Scrollable container with the same four-part predicate; keep the port's fraction derived from windowTokens (port_impacts entry 199).",
       "verification_method": "unit test over the four predicate terms plus a fixture asserting the fraction implication still holds",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1515,7 +1515,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Centred placeholder with a 50px top inset; report 94px to the placer on mount. ED-059: on Windows .body is 13 px at 100% zoom (B1:DroppyCode/UI/Common/ChatZoom.swift:51 `case .headline, .body: 13`), set in Inter (OD-0009); the size is fixed per text style and scales only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference. Visual size parity stays UNVERIFIED (OD-0001). ED-062: Chrome.secondaryText is Chrome.primaryText at 0.7 opacity, as B2 DroppyCode/UI/Chrome/Chrome.swift:79 defines it; ED-051's secondaryLabelColor literal does not apply to this token.",
       "verification_method": "interaction test with a provider that exposes nothing, asserting the reported height",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
@@ -1542,7 +1542,7 @@
       "cancellation": "not cancellable",
       "windows_path": "ResizeObserver on the content, reporting height + 58; guard against feedback loops by writing state only on change.",
       "verification_method": "interaction test measuring the reported height for a known content height",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1567,7 +1567,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows has no Liquid Glass. The glass layer follows OD-0005, an owner-approved deviation, not parity (UNK-0004 resolved as an accepted deviation): where the window shows the desktop behind the panel, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop behind the panel, the full source-defined material is reproduced: the continuous rounded rectangle of radius 22 and the Chrome.glassTint tint at 0.22 in dark or 0.16 in light. In both cases the layer order, the scrim opacities and the exact shadow are reproduced as specified above. OD-0014: the window stays clear by default, as upstream, so until the user sets a wallpaper the panel's glass sits over the desktop and takes the Acrylic branch (Acrylic plus the app-drawn scrim, probe P3); the drawn material applies once a wallpaper is set. This default is exact parity, not a deviation.",
       "verification_method": "capture comparison in both themes against the reference panel",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1596,7 +1596,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Disable the panel's layout transition while the window is being resized; the Windows shell must expose an equivalent live-resize flag. OD-0013: the window live resize this record reacts to is the main window's, whose live-resize edge strip measured by probe P4 (a 3-5 px strip of the window's own backdrop on growing edges and a clip of about a frame on shrinking edges while the pointer moves) must be fixed before the main window chrome is accepted, and is not downgraded to a deviation; the panel behaviour specified here is unchanged.",
       "verification_method": "interaction test resizing the window and sampling the panel frame per frame",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1621,7 +1621,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Glass capsule with the same token-derived paddings emitted as CSS custom properties (port_impacts entry 212). OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing).",
       "verification_method": "capture comparison against the field capture of the two-panel layout",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1652,7 +1652,7 @@
       "cancellation": "Releasing ends the drag; the source has no escape-to-cancel for a panel drag.",
       "windows_path": "Pointer capture on the two handle regions reporting cumulative translation. On macOS this is an NSView representable; on Windows it is a pointer-events region in the renderer.",
       "verification_method": "interaction test dragging from the capsule and from the middle, asserting the reported translation",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1677,7 +1677,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same predicate in the strip component. Do not deduplicate.",
       "verification_method": "unit test rendering the strip with headsProvider equal to provider and asserting two icons",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "71",
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1702,7 +1702,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Round glass button with the xmark glyph mapped to Lucide x through the published symbol-by-symbol table (OD-0010, porting/icons/sf-symbols-to-lucide.json); same persisted setting. OD-0005 (owner-approved deviation, not parity): on Windows this glass follows the owner's glass ruling: where the window shows the desktop, a Windows system material of the Acrylic class, with lensing, refraction and chromatic fringing not reproduced; where the app draws its own backdrop, the full source-defined material (shape, corner radius, tint colour and opacity, .interactive() and container spacing).",
       "verification_method": "interaction test plus restart test that the panel stays closed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1911,7 +1911,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Settings row component with the two strings verbatim.",
       "verification_method": "capture comparison of the General page plus an interaction test on the toggle",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1944,11 +1944,11 @@
       "cancellation": "not cancellable",
       "windows_path": "One shared component used by both surfaces; the Settings page composition itself belongs to the settings area.",
       "verification_method": "capture comparison of the same provider in the popover and in Settings, with the provider's section both expanded and collapsed",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "CHANGED. The views moved: B1 DroppyCode/App/Views/Settings/SettingsView.swift:670-675 (`PlanLimitsView(provider: provider)` at :671, `CreditsView(provider: provider)` at :674) -> B2 SettingsView.swift:679-684 (:703 and :706), still guarded by exposesLimits and exposesCredits inside `if showsUsage` (B2 :699). New at B2: each provider section is collapsible. B1 SettingsView.swift:606-607 `ForEach(ProviderKind.allCases) { provider in ProviderSettingsSection(provider: provider)` kept every section open -> B2 :604-611 lists configured (signed-in) providers first and expands a section by default only when `configured(provider)`, and :671 wraps the card in `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, so a collapsed section hides these views. The refresh calls at B2 :800-801 still run from `.onChange(of: showsUsage, initial: true)` (:795) whatever the expansion. The section header itself belongs to the settings area."
+      "b2_change": "CHANGED. The views moved: B1 DroppyCode/App/Views/Settings/SettingsView.swift:670-675 (`PlanLimitsView(provider: provider)` at :671, `CreditsView(provider: provider)` at :674) -> B2 SettingsView.swift:702-707 (:703 and :706), still guarded by exposesLimits and exposesCredits inside `if showsUsage` (B2 :699). New at B2: each provider section is collapsible. B1 SettingsView.swift:606-607 `ForEach(ProviderKind.allCases) { provider in ProviderSettingsSection(provider: provider)` kept every section open -> B2 :604-611 lists configured (signed-in) providers first and expands a section by default only when `configured(provider)`, and :671 wraps the card in `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, so a collapsed section hides these views. The refresh calls at B2 :800-801 still run from `.onChange(of: showsUsage, initial: true)` (:795) whatever the expansion. The section header itself belongs to the settings area."
     },
     {
       "id": "PR-USAGE-078",
@@ -2362,7 +2362,7 @@
         "DroppyCode/Services/Store/TokenLedger.swift:330-351 private struct LiveSpendState: Codable, Sendable { var daily: [String: Int]; var settledCodex: [String: Int]; var liveCodex: [String: Int]; var legacyDaily: [String: Int] } with an init(from:) defaulting each to an empty map",
         "DroppyCode/Services/Store/TokenLedger.swift:354-357 private static var fileURL: URL { Storage.root.appendingPathComponent(\"token-activity-live-v2.json\") }",
         "DroppyCode/Services/Store/TokenLedger.swift:379-382 static func save(_ state:) { guard let data = try? JSONEncoder().encode(state) else { return }; try? data.write(to: fileURL, options: .atomic) }",
-        "DroppyCode/Services/Store/Storage.swift:19-25 static let root - Application Support directory plus the app name"
+        "DroppyCode/Core/Support/StoragePaths.swift:6-12 - nonisolated static let root: URL - Application Support directory plus the app name (Storage.root forwards to it, Storage.swift:19)"
       ],
       "preconditions": "Live spend has been recorded.",
       "action": "The state is saved.",
@@ -2380,7 +2380,8 @@
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "The root closure cited here moved from Services/Store/Storage.swift into Core/Support/StoragePaths.swift (see PR-STORE-001); Storage.root now only forwards to it. Storage location and behaviour for token-activity-live-v2.json are unchanged."
     },
     {
       "id": "PR-USAGE-095",
@@ -2455,7 +2456,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "At B1 nothing called record(codexSpend:rolloutID:) (B1 DroppyCode/Services/Providers/CodexSession.swift:611, :610, :619, :621 called record(spend:)), so liveCodex stayed empty and this roll-forward did nothing. B2 CodexSession.swift:674 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` fills it. The roll-forward itself, TokenLedger.swift:369-376, is unchanged."
+      "b2_change": "At B1 nothing called record(codexSpend:rolloutID:) (B1 DroppyCode/Services/Providers/CodexSession.swift:608, :610, :619, :621 called record(spend:)), so liveCodex stayed empty and this roll-forward did nothing. B2 CodexSession.swift:671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` fills it. The roll-forward itself, TokenLedger.swift:369-376, is unchanged."
     },
     {
       "id": "PR-USAGE-098",
@@ -2512,30 +2513,34 @@
     },
     {
       "id": "PR-USAGE-100",
-      "title": "Each rollout contributes its own growth: the last token_count total less the total it inherited on resume",
+      "title": "Each rollout contributes its own growth, its total parsed leniently through JSONValue.int: numeric strings accepted, booleans rejected, out-of-range doubles trap",
       "source_evidence": [
-        "DroppyCode/Services/Store/TokenLedger.swift:538-572 tailContribution(at:) - seeks to the last 131072 bytes, decodes lines in reverse looking for a line containing \"token_count\", requires payload.info.total_token_usage.total_tokens greater than zero, takes the day from the event's timestamp, and returns (max(0, tokens - inheritedTotal(at: url)), day); a line whose timestamp is missing or unparsable is skipped",
-        "DroppyCode/Services/Store/TokenLedger.swift:498-533 inheritedTotal(at:) - reads up to 8388608 bytes from the head in 524288 byte chunks, scanning line by line for the first token_count event, and returns max(0, total_token_usage.total_tokens - last_token_usage.total_tokens), or 0 when none is found",
+        "DroppyCode/Services/Store/TokenLedger.swift:538-572 tailContribution(at:) - seeks to the last 131072 bytes, decodes lines in reverse looking for a line containing \"token_count\", requires info[\"total_token_usage\"]?[\"total_tokens\"]?.int greater than zero, takes the day from the event's timestamp, and returns (max(0, tokens - inheritedTotal(at: url)), day); a line whose timestamp is missing or unparsable is skipped",
+        "DroppyCode/Services/Store/TokenLedger.swift:498-533 inheritedTotal(at:) - reads up to 8388608 bytes from the head in 524288 byte chunks, scanning line by line for the first token_count event, and returns max(0, total - last), or 0 when none is found; both totals read through JSONValue.int",
+        "DroppyCode/Core/Support/JSONValue.swift:83-90 var int: Int? - .int(value): value; .double(value): value.isFinite ? Int(value) : nil; .string(value): Int(value); default: nil",
         "DroppyCode/Services/Store/TokenLedger.swift:551-553 comment - Lossy on purpose: one stray byte must not throw away the whole tail when the token_count line itself is intact"
       ],
       "preconditions": "A rollout file is being read.",
       "action": "Its contribution is computed.",
-      "expected_result": "The tail of at most 131072 bytes is decoded lossily as UTF-8 and scanned from the last line backwards for the first line containing the literal \"token_count\" that parses into an object with payload.info.total_token_usage.total_tokens greater than zero and a parsable timestamp. From that total the file's inherited history is subtracted: the head of at most 8388608 bytes is scanned forward for the first such line and its total less its last_token_usage.total_tokens, floored at zero, is the inherited amount. The result is the file's own growth, floored at zero, attributed to the day of the tail event. A file with no qualifying line contributes nothing.",
+      "expected_result": "The tail of at most 131072 bytes is decoded lossily as UTF-8 and scanned from the last line backwards for the first line containing the literal \"token_count\" that parses into an object whose payload.info.total_token_usage.total_tokens, read through JSONValue.int, is greater than zero, and whose timestamp is parsable. JSONValue.int accepts a JSON integer as itself, a JSON string by Int(string) parsing (so a numeric-string total like \"12345\" is accepted), and a JSON double by Int(value) when the double is finite (which traps at runtime for a double outside Int's range); a JSON boolean, null, array or object gives nil and the line is skipped as unparsable, same as before. From the tail's total, the file's inherited history is subtracted: the head of at most 8388608 bytes is scanned forward for the first such line and its total less its last_token_usage.total_tokens (also read through JSONValue.int, defaulting to 0 when absent or unparsable), floored at zero, is the inherited amount. The result is the file's own growth, floored at zero, attributed to the day of the tail event. A file with no qualifying line contributes nothing. For an ordinary integer total, behaviour is identical to a plain integer decode.",
       "side_effects": [
         "Opens and reads two regions of each changed file."
       ],
       "persistence": "The computed tokens and day are stored in the file's fingerprint.",
       "failure_cases": [
         "An unreadable file, a zero-length file or a failed seek yields no contribution rather than an error.",
-        "A resumed thread's later file therefore counts only what it added, never the history it replayed."
+        "A resumed thread's later file therefore counts only what it added, never the history it replayed.",
+        "A total_tokens value that is a JSON boolean is rejected (JSONValue.int returns nil for it), same as a missing field.",
+        "A total_tokens value that is a JSON double outside the range Int can represent traps the process (Int(value) on an out-of-range finite Double), rather than being rejected as unparsable; this is upstream behaviour, reproduced."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same byte budgets and the same two-pass read. The head scan must stop at the first qualifying line, not read the whole file.",
-      "verification_method": "contract fixture over a synthetic rollout with an inherited total and a later growth",
+      "windows_path": "Same byte budgets and the same two-pass read. The head scan must stop at the first qualifying line, not read the whole file. The .NET port's equivalent int-parsing helper must accept a numeric JSON string, reject a JSON boolean, and either replicate the trap on an out-of-range double or flag the difference explicitly rather than silently clamping it.",
+      "verification_method": "contract fixture over a synthetic rollout with an inherited total and a later growth, plus fixtures for a total_tokens given as a numeric JSON string (accepted) and as a JSON boolean (rejected, line skipped)",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "b3_note": "The token_count total is now read through JSONValue.int instead of a plain Int decode: a numeric-string total is now accepted, a boolean total is rejected (as before), and a double outside Int's range still traps. Behaviour for an ordinary integer total, the byte budgets and the two-pass read are unchanged. Lines :545-581 -> :538-572, :498-540 -> :498-533, :558-560 -> :551-553 (already re-cited)."
     },
     {
       "id": "PR-USAGE-101",
@@ -2583,7 +2588,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "At B1 no caller populated liveCodex (B1 DroppyCode/Services/Providers/CodexSession.swift:611, :610, :619, :621 called record(spend:)), so settledLive was empty and every file's growth was kept whole. B2 CodexSession.swift:674 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` gives settledCodex real content after the next launch, so the subtraction now applies. reconcile at TokenLedger.swift:468-488 is unchanged."
+      "b2_change": "At B1 no caller populated liveCodex (B1 DroppyCode/Services/Providers/CodexSession.swift:608, :610, :619, :621 called record(spend:)), so settledLive was empty and every file's growth was kept whole. B2 CodexSession.swift:671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)` gives settledCodex real content after the next launch, so the subtraction now applies. reconcile at TokenLedger.swift:468-488 is unchanged."
     },
     {
       "id": "PR-USAGE-103",
@@ -2664,7 +2669,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": "UNK-0003",
-      "b2_change": "MOVED. B1 DroppyCode/Services/Store/TokenLedger.swift:574-586 built two ISO8601DateFormatter instances per call (`fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]`, then `plain.formatOptions = [.withInternetDateTime]`) with the comment at :583-587 -> B2 TokenLedger.swift:574-577 `ISO8601.date(from: stamp)`, delegating to the new DroppyCode/Core/Support/ISO8601.swift:19-21 `(try? fractional.parse(text)) ?? (try? plain.parse(text))` over Date.ISO8601FormatStyle values (:10, :13). Order and outcome are the same: fractional first, then whole-second, nil otherwise, and the empty-day skip at :576 is unchanged. Whether Date.ISO8601FormatStyle accepts exactly the strings ISO8601DateFormatter accepted is UNKNOWN: Swift was not run, and there is no macOS runtime (UNK-0003)."
+      "b2_change": "MOVED. B1 DroppyCode/Services/Store/TokenLedger.swift:583-595 built two ISO8601DateFormatter instances per call (`fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]`, then `plain.formatOptions = [.withInternetDateTime]`) with the comment at :583-587 -> B2 TokenLedger.swift:583-586 `ISO8601.date(from: stamp)`, delegating to the new DroppyCode/Core/Support/ISO8601.swift:19-21 `(try? fractional.parse(text)) ?? (try? plain.parse(text))` over Date.ISO8601FormatStyle values (:10, :13). Order and outcome are the same: fractional first, then whole-second, nil otherwise, and the empty-day skip at :576 is unchanged. Whether Date.ISO8601FormatStyle accepts exactly the strings ISO8601DateFormatter accepted is UNKNOWN: Swift was not run, and there is no macOS runtime (UNK-0003)."
     },
     {
       "id": "PR-USAGE-106",
@@ -2697,7 +2702,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "B1 DroppyCode/Services/Providers/CodexSession.swift:611 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` and :610 `TokenLedger.shared.record(spend: used)` (lead), :619 and :621 the same for heads -> B2 CodexSession.swift:612 `recordCodexSpend(spend, rolloutID: threadID, model: activeModel)`, :611 `recordCodexSpend(used, rolloutID: threadID, model: activeModel)`, :621 `recordCodexSpend(spend, rolloutID: head, model: headModel, agentID: head)`, :623 `recordCodexSpend(used, rolloutID: head, model: headModel, agentID: head)`, and :671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)`. The B1 record's premise (no caller of record(codexSpend:), a provenance path with no producer, and a directive not to wire it) no longer holds: upstream wires it at B2. Claude is unchanged in amount: B1 ClaudeSession.swift:572 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` -> B2 :583-586 `if let spend = Self.turnSpendEvent(message, model: model) { TokenLedger.shared.record(spend: spend.totalTokens); onEvent?(.tokenSpend(spend)) }`. Status DISCOVERED -> SPECIFIED: the owner question the B1 record raised is answered by the source."
+      "b2_change": "B1 DroppyCode/Services/Providers/CodexSession.swift:608 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` and :610 `TokenLedger.shared.record(spend: used)` (lead), :619 and :621 the same for heads -> B2 CodexSession.swift:609 `recordCodexSpend(spend, rolloutID: threadID, model: activeModel)`, :611 `recordCodexSpend(used, rolloutID: threadID, model: activeModel)`, :621 `recordCodexSpend(spend, rolloutID: head, model: headModel, agentID: head)`, :623 `recordCodexSpend(used, rolloutID: head, model: headModel, agentID: head)`, and :671 `TokenLedger.shared.record(codexSpend: spend, rolloutID: rolloutID)`. The B1 record's premise (no caller of record(codexSpend:), a provenance path with no producer, and a directive not to wire it) no longer holds: upstream wires it at B2. Claude is unchanged in amount: B1 ClaudeSession.swift:574 `if spend > 0 { TokenLedger.shared.record(spend: spend) }` -> B2 :583-586 `if let spend = Self.turnSpendEvent(message, model: model) { TokenLedger.shared.record(spend: spend.totalTokens); onEvent?(.tokenSpend(spend)) }`. Status DISCOVERED -> SPECIFIED: the owner question the B1 record raised is answered by the source."
     },
     {
       "id": "PR-USAGE-107",
@@ -2721,7 +2726,7 @@
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b2_change": "No behaviour change. Flagged citation re-checked at B2: DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-85 still renders one chip per TokenActivityMode case with Text(verbatim: option.title), and TokenLedger.swift:580-593 still declares daily, weekly and cumulative with the titles Daily, Weekly and Cumulative. The only B2 edit inside the range is :77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> `.font(.system(.body, weight: mode == option ? .medium : .regular))`, which UI-USAGE-045 specifies."
+      "b2_change": "No behaviour change. Flagged citation re-checked at B2: DroppyCode/App/Views/Settings/TokenActivitySection.swift:61-85 still renders one chip per TokenActivityMode case with Text(verbatim: option.title), and TokenLedger.swift:589-602 still declares daily, weekly and cumulative with the titles Daily, Weekly and Cumulative. The only B2 edit inside the range is :77 `.font(.system(size: 13, weight: mode == option ? .medium : .regular))` -> `.font(.system(.body, weight: mode == option ? .medium : .regular))`, which UI-USAGE-045 specifies."
     },
     {
       "id": "PR-USAGE-108",
@@ -3682,7 +3687,8 @@
         "decision": "OD-0005",
         "upstream": "`shape.fill(.clear).glassEffect(.regular, in: shape)` under a `Chrome.glassTint.opacity(isDark ? 0.22 : 0.16)` overlay (DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:53-63, the glass at :59), macOS Liquid Glass",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-037",
@@ -3709,7 +3715,8 @@
         "decision": "OD-0005",
         "upstream": "`.chromeGlassCapsule()` (DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:93; DroppyCode/UI/Chrome/Chrome.swift:129-131), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` in a `Capsule(style: .continuous)` (DroppyCode/UI/Chrome/Chrome.swift:165, :180), macOS Liquid Glass",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-038",
@@ -3732,7 +3739,8 @@
         "DroppyCode/App/Views/Usage/UsageFloatingPanel.swift:100-104",
         "DroppyCode/App/Views/Chat/ChatView.swift:509-519"
       ],
-      "notes": "Tooltip and accessibility label are both exactly Drag to move. The capsule's overlaid handle has neither."
+      "notes": "Tooltip and accessibility label are both exactly Drag to move. The capsule's overlaid handle has neither.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-039",
@@ -3762,7 +3770,8 @@
         "decision": "OD-0005",
         "upstream": "`ChromeCircleButton` applies `.chromeGlassCircle()` (DroppyCode/UI/Chrome/Chrome.swift:429, :141-143), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` in a `Circle()` (DroppyCode/UI/Chrome/Chrome.swift:167, :180), macOS Liquid Glass",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-040",
@@ -3862,7 +3871,7 @@
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:378",
-        "DroppyCode/App/AppSettings.swift:635-637, :770"
+        "DroppyCode/App/AppSettings.swift:635-637, :774"
       ],
       "notes": "The same setting is written by the popover's pop-out button and by the panel's close button, so all three stay in sync."
     },
