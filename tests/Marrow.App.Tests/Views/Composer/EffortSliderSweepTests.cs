@@ -978,6 +978,12 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Assert.Equal(new ModelPreference { Effort = "high", FastMode = true }, restarted.Settings.ModelPreferences["claude/opus"]); // AppSettings.swift :859-862
             Assert.Equal("opus", restarted.Settings.LastModels["claude"]); // :899-902 raw provider keys
             Assert.Equal("high", restarted.Settings.LastEfforts["claude"]);
+            Assert.Equal("opus", harness.Defaults.Dictionary("lastModels")!["claude"]); // literal user-defaults keys, AppSettings.swift :140-147
+            Assert.Equal("high", harness.Defaults.Dictionary("lastEfforts")!["claude"]);
+            using var preferences = System.Text.Json.JsonDocument.Parse(Assert.IsType<byte[]>(harness.Defaults.Object("modelPreferences")));
+            var stored = preferences.RootElement.GetProperty("claude/opus");
+            Assert.Equal("high", stored.GetProperty("effort").GetString());
+            Assert.True(stored.GetProperty("fastMode").GetBoolean());
             Assert.Equal("opus", restarted.Settings.LastModel(ProviderKind.Claude));
             Assert.Equal("high", restarted.Settings.LastEffort(ProviderKind.Claude));
             restarted.SelectedThreadID = null; // force fresh-chat preference path, not carrying an existing thread
@@ -1012,6 +1018,57 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Assert.Equal(TrackLook.Kind.Fusion, KindOf(kept));
             Assert.Equal(1, kept.Opacity);
             shownAgain.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-132")] // App/Views/Composer/EffortSlider.swift:1024-1026; source identity only, capture verification remains STOP #1
+    public void Pair_kind_changes_preserve_the_effect_instance_and_its_clock_origin()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var index = 2;
+            var pair = new EffortPairBrand(new HydraPair(ProviderKind.Claude));
+            var slider = new EffortSlider(3, new Binding<int>(() => index, _ => { }), "High", pair: pair);
+            var window = Show(slider);
+            var effect = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            var origin = typeof(TrackEffect).GetField("startedAt", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(effect);
+            index = 1; slider.UpdateLook(true, "Medium", pair);
+            Assert.Same(effect, Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>()));
+            Assert.Equal(TrackLook.Kind.Fast, KindOf(effect));
+            Assert.Equal(origin, typeof(TrackEffect).GetField("startedAt", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(effect));
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-124")] // App/Views/Composer/EffortSlider.swift:230-235; guard: no model ID means nothing is remembered
+    public void Reset_without_a_model_id_does_not_change_the_remembered_choices()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness(withRuntime: false);
+            var chosen = new ChatThread(Guid.NewGuid(), ProviderKind.Claude, "opus", "low", RuntimeMode.Supervised);
+            var noModel = new ChatThread(Guid.NewGuid(), ProviderKind.Claude, null, "high", RuntimeMode.Supervised, true);
+            harness.WriteLibrary([], [chosen, noModel]);
+            var model = new AppModel();
+            var firstPanel = new ModelEffortPanel(chosen.Id, false);
+            var firstWindow = Host(firstPanel, model);
+            SetPanelEffort(firstPanel, 2); // production Remember seeds a meaningful prior choice
+            firstWindow.Close();
+            var panel = new ModelEffortPanel(noModel.Id, false);
+            var window = Host(panel, model);
+            ResetPanel(panel);
+            Assert.Null(model.Thread(noModel.Id)!.Effort);
+            Assert.False(model.Thread(noModel.Id)!.FastMode);
+            var restarted = new AppModel();
+            Assert.Equal(new ModelPreference { Effort = "high" }, restarted.Settings.Preference(ProviderKind.Claude, "opus"));
+            Assert.Single(restarted.Settings.ModelPreferences);
+            Assert.Equal("opus", restarted.Settings.LastModel(ProviderKind.Claude));
+            Assert.Equal("high", restarted.Settings.LastEffort(ProviderKind.Claude));
+            window.Close();
         });
     }
 
@@ -1108,7 +1165,8 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 // What is proven: solo identity changes crossfade (outgoing retained while fading out, replacement fading in
 // with smooth 0.3) with intermediate opacities and eventual removal; pair kind changes keep one instance and clock.
 // What is missing: the record's verification_method calls for a capture comparison across a kind change with a pair
-// active; the headless opacity assertions are not that comparison, so Req PR-COMPOSER-132 is dropped.
+// active; the headless opacity assertions are not that comparison. Animation tests omit Req PR-COMPOSER-132;
+// the separate Req test anchors only the source-defined pair identity and clock-origin assertions.
 // Needed to proceed: a macOS/Windows capture comparison to promote PR-COMPOSER-132 to fully proven.
 //
 // STOP sweepA-fixes #2
@@ -1120,9 +1178,18 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 // accessibility contract. Cadence expectations carry Decision ED-117 + Oracle O-34 per ED-117(7), never Req.
 // What is missing: the record's verification_method calls for an instrumented ten-second frame-count run in each
 // mode with pause behavior; this theory runs 40 ms and does not establish the full ten-second, pause, narrow-fill
-// and reduce-motion matrix, so Req PR-COMPOSER-133 is dropped.
+// and reduce-motion matrix. The cadence theory omits Req PR-COMPOSER-133; the separate Req test covers
+// only source-defined hit-testing/accessibility. The whole record remains unproved.
 // Needed to proceed: the ten-second instrumented run in each mode with pause/reduce-motion coverage to promote PR-133.
 //
 // Round 2: the previous STOP #3 was false. ProviderRegistry.swift:71-77 seeds Claude/opus with
 // low, medium, high, xhigh, max. Offered, unoffered and absent-pair resets now use that catalog
 // and a production-written nondefault precondition, so restart assertions can fail.
+//
+// STOP sweepA-fixes #4
+// Kind: partial proof (per-provider capture comparison missing)
+// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:893-908,985-998 (B3 52bc792)
+// Requirements: PR-COMPOSER-128
+// What is proven: exact solo purple fill colours and fusion stops, plus pair fill stops for every kind.
+// What is missing: the record's capture comparison per provider brand; these brush assertions do not prove it.
+// Needed to proceed: macOS/Windows fill captures for each provider brand. PR-128 is not a records candidate.

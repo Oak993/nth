@@ -704,6 +704,14 @@ public sealed class EffortSlider : Decorator
         PointerCaptureLost += (_, _) => { if (dragX is not null) { dragX = null; LayoutTrack(); } };
         SizeChanged += (_, _) => LayoutTrack();
         ActualThemeVariantChanged += (_, _) => LayoutTrack();
+        DetachedFromVisualTree += (_, _) =>
+        {
+            // :765 removal views end with the view lifetime. Animate stops detached playbacks, so finish
+            // their removal here; a retained slider shown again starts with its current effect fully visible.
+            foreach (var outgoing in outgoingEffects.ToArray()) effects.Children.Remove(outgoing);
+            outgoingEffects.Clear();
+            if (currentEffect is not null) currentEffect.Opacity = 1;
+        };
         this.Track(() => index.Value, _ => LayoutTrack());
     }
 
@@ -931,13 +939,14 @@ internal static class EffortView
     internal static IBrush BrandTitle(EffortBrand brand, ThemeVariant theme) => brand == EffortBrand.Antigravity ? Gradient(EffortBrand.Gemini, theme) : new SolidColorBrush(brand.TitleColor.Resolve(theme));
     internal static IBrush Fill(TrackLook look, ThemeVariant theme)
     {
-        if (look.Pair is { } pair) return Gradient(new[] { look.Brand.FillColor }.Concat(pair.Colors).Concat(look.TrackLookKind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion ? new[] { EffortPalette.FastFill } : Array.Empty<SwiftColor>()), theme);
+        // :986-988: pair colours own the fill for every kind; fast/fusion add effects, never a fill stop.
+        if (look.Pair is { } pair) return Gradient(new[] { look.Brand.FillColor }.Concat(pair.Colors), theme);
         return look.TrackLookKind switch
         {
             TrackLook.Kind.Plain => new SolidColorBrush(Chrome.Accent.Resolve(theme)),
             TrackLook.Kind.Supercharged => look.Brand == EffortBrand.Antigravity ? Gradient(EffortBrand.Gemini, theme) : new SolidColorBrush(look.Brand.FillColor.Resolve(theme)),
             TrackLook.Kind.Fast => new SolidColorBrush(EffortPalette.FastFill.Resolve(theme)),
-            _ => Gradient([look.Brand.FillColor, EffortPalette.FastFill], theme),
+            _ => Gradient([look.Brand.FillColor, look.Brand.FillColor, EffortPalette.FastFill], theme), // :993-996
         };
     }
 }
