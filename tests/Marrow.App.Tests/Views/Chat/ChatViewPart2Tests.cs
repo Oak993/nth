@@ -33,6 +33,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
         // Attach without measuring the shared headless glyph cache (its fresh-run font failure is documented in SidebarViewTests).
         if (control is ScriptsEditor) control.IsVisible = false;
         var window = new AvaloniaWindow { Content = control };
+        ChatHeadlessFixtures.Track(window);
         window.Show();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         return control;
@@ -67,7 +68,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-019")] // ChatView.swift:1452-1454,1456-1463
     public void The_last_row_switches_between_Add_and_Edit_and_clicking_either_presents_the_editor_without_throwing()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             using var presentation = Presentation.Presenter.Override(new RecordingPresenter()); // R-VIEW-9: real Popup unavailable in headless.
@@ -114,7 +115,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-015")] // ChatView.swift:1164-1167
     public void The_terminal_button_reflects_the_drawers_visibility_live_and_flips_it_on_click()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -151,7 +152,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-015")] // ChatView.swift:1165 help: "Terminal" + ShortcutStore.hint(for: .toggleTerminal)
     public void The_terminal_tooltip_carries_the_default_chord_in_Windows_notation_and_is_bare_once_cleared()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             using var shared = ShortcutStore.Shared.Override(harness.Main.OnMain(FreshStore));
@@ -181,7 +182,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-022")] // ChatView.swift:1660-1665,1721-1722
     public void The_editor_is_a_fixed_580_by_460_sheet_titled_Project_scripts_with_the_two_sentence_explanation()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -211,7 +212,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "PR-TERM-075")] // ChatView.swift:1657,1723
     public void The_editor_takes_a_copy_of_the_projects_scripts_on_appear_and_a_missing_project_yields_empty()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -241,7 +242,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-027")] // ChatView.swift:1666-1699
     public void Each_card_holds_a_Name_field_a_trash_button_a_monospaced_Command_field_and_a_worktree_checkbox()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -279,7 +280,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-025")] // ChatView.swift:1674-1679
     public void The_trash_button_removes_the_card_immediately_with_no_confirmation_and_Cancel_still_restores_it()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -315,7 +316,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-030")] // ChatView.swift:1684-1691,1711-1718,1726-1729
     public void A_blank_command_is_outlined_in_danger_and_blocks_saving_while_a_real_command_is_not()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -364,7 +365,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-028")] // ChatView.swift:1701-1707; Library.swift:102-108
     public void Add_script_appends_a_New_script_row_with_an_empty_command_and_library_defaults()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -394,7 +395,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-030")] // ChatView.swift:1708-1717
     public void Cancel_discards_every_change_while_Save_writes_the_whole_list_back_and_dismisses()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -433,7 +434,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-030")] // ChatView.swift:1717 .disabled(incomplete)
     public void Save_is_unreachable_while_any_script_is_incomplete()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -458,7 +459,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-069")] // ChatView.swift:797-806,930,234-241
     public void The_usage_panel_exists_only_when_the_setting_is_on_the_pane_is_measured_and_a_thread_is_loaded()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -496,7 +497,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-070")] // ChatView.swift:492-494; AppSettings.swift:175,787
     public void The_usage_panel_docks_at_the_setting_which_defaults_to_bottom_leading()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -524,7 +525,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-072")] // ChatView.swift:945-951,920
     public void The_usage_height_follows_override_then_stored_then_content_then_one_slot_with_a_floor_at_both_ends()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -581,7 +582,7 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-073")] // ChatView.swift:1106-1182 (states: no project, not a repository)
     public void With_no_project_the_Scripts_item_is_absent_and_with_no_repository_the_branch_and_git_items_are_absent()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();

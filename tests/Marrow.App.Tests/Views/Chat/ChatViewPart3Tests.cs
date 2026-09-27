@@ -27,6 +27,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     private static T Show<T>(T control) where T : Control
     {
         var window = new AvaloniaWindow { Content = control };
+        ChatHeadlessFixtures.Track(window);
         window.Show();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         return control;
@@ -70,7 +71,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-024")] // ChatView.swift:1164-1172
     public void The_changes_button_reflects_the_diffs_visibility_live_and_flips_it_on_click()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -110,7 +111,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-026")] // ChatView.swift:1478
     public void The_menu_buttons_tooltip_is_the_sentence_at_zero_and_the_unsingularised_count_otherwise()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -136,7 +137,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-027")] // ChatView.swift:1479
     public void The_note_is_singular_at_one_changed_file_and_plural_otherwise()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -162,7 +163,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-028")] // ChatView.swift:1481
     public void The_commit_row_is_disabled_at_zero_changed_files_and_carries_the_single_ellipsis()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -187,7 +188,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-029")] // ChatView.swift:1482
     public void The_push_row_is_always_enabled_even_with_nothing_to_push()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -208,7 +209,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-030")] // ChatView.swift:1483
     public void The_create_pull_request_row_is_always_present_and_enabled()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -229,7 +230,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-031")] // ChatView.swift:1484-1487
     public void The_open_repository_row_and_its_divider_are_absent_when_there_is_no_remote()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -256,7 +257,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-039")] // ChatView.swift:1357, 1316-1325
     public void The_title_is_the_running_activity_verb_else_the_branch_else_Detached()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -291,7 +292,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-040")] // ChatView.swift:1360-1369
     public void The_current_branch_is_checked_and_disabled_and_every_row_disables_while_the_thread_runs()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -327,7 +328,7 @@ public sealed class ChatViewPart3Tests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-043")] // ChatView.swift:1381-1385
     public void The_new_branch_alert_carries_the_exact_title_placeholder_and_buttons()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();

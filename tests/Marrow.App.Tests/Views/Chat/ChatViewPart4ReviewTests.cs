@@ -20,6 +20,129 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
 {
     private static ThreadRuntime Runtime(AppModel model, Project project) => model.Runtime(model.NewThread(project)!.Id);
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-176")] // App/Views/Chat/ChatView.swift:1147-1151,1203-1214
+    [Trait("Req", "UI-CHAT-076")] // App/Views/Chat/ChatView.swift:1203-1214
+    public void Updating_the_title_input_cuts_to_the_new_text_without_replacing_its_button()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                var runtime = Runtime(model, model.AddProject(new Project("P", h.NewFolder("project")).Url));
+                var title = new ChatChromeTitle(model, runtime, "Before");
+                var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(title));
+                var update = typeof(ChatChromeTitle).GetMethod("UpdateTitle", BindingFlags.NonPublic | BindingFlags.Instance);
+                Assert.NotNull(update);
+                update.Invoke(title, ["After"]);
+                Assert.Same(button, Assert.Single(LogicalQuery.SelfAndDescendants<Button>(title)));
+                Assert.Equal("After", Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(title)).Text);
+                Assert.Equal(1, button.Opacity);
+                update.Invoke(title, [""]);
+                Assert.Equal("New thread", Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(title)).Text);
+            });
+        });
+    }
+
+    [Theory]
+    [InlineData(PanelDockCorner.TopLeading, 370, 430)]
+    [InlineData(PanelDockCorner.TopTrailing, 330, 430)]
+    [InlineData(PanelDockCorner.BottomLeading, 370, 370)]
+    [InlineData(PanelDockCorner.BottomTrailing, 330, 370)]
+    [Trait("Rule", "R-FILE-1")] // App/Views/Chat/ChatView.swift:533-551 (no packet item names the shared-panel resizer).
+    public void Shared_grips_grow_away_from_the_corner_and_reset_only_the_shared_size(PanelDockCorner corner, double width, double height)
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                model.Settings.PanelSize = new Size(350, 400);
+                model.Settings.UsagePanelHeight = 222;
+                var runtime = Runtime(model, model.AddProject(new Project("P", h.NewFolder("project")).Url));
+                var scene = new PanelScene(new PanelMembers(runtime, model), runtime, model, new Size(1600, 2000), 120, null);
+                var resize = new PanelResizeState();
+                var grip = ChatViewReviewFixtures.Invoke<PanelResize>("Resizer", model, resize, corner, scene);
+                grip.OnResize(new Size(20, 30), PanelResizeAxes.Both);
+                Assert.Equal(new Size(width, height), resize.LiveSize); // :541-546, signs and fitting; ample room avoids clipping.
+                Assert.Equal(new Size(350, 400), model.Settings.PanelSize);
+                grip.OnResizeEnd();
+                Assert.Equal(new Size(width, height), model.Settings.PanelSize);
+                Assert.False(resize.IsActive);
+                grip.OnReset();
+                Assert.Null(model.Settings.PanelSize);
+                Assert.Equal(222, model.Settings.UsagePanelHeight);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-GIT-126")] // App/Views/Chat/ChatView.swift:1284-1307
+    public void Git_snapshots_are_shared_and_are_fresh_only_while_their_age_is_less_than_thirty_seconds()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var directory = ChatGitFixtures.Init(h.NewFolder("repo"));
+            var first = new GitStatusModel();
+            h.Main.Loop.Run(() => first.Refresh(directory));
+            Assert.Equal("main", first.Status!.Branch);
+            ChatGitFixtures.Run(directory, "switch", "-c", "changed");
+            var second = new GitStatusModel();
+            h.Main.Advance(TimeSpan.FromSeconds(29));
+            h.Main.Loop.Run(() => second.Refresh(directory, force: false));
+            Assert.Equal("main", second.Status!.Branch); // :1291 cached state applied before the age guard.
+            h.Main.Advance(TimeSpan.FromSeconds(1));
+            h.Main.Loop.Run(() => second.Refresh(directory, force: false));
+            Assert.Equal("changed", second.Status!.Branch); // :1292 strict <30, so exactly 30 is stale.
+        });
+    }
+
+    // STOP App.Views.Chat.ChatView #6
+    // Kind: missing dependency (observable producer).
+    // Swift: App/Views/Chat/ChatView.swift:1575,1591-1592; Services/Providers/ProviderRegistry.swift:33,358-380.
+    // Records: UI-GIT-035.
+    // This checkout's ProviderRegistry.Refresh still assigns its private statuses field directly.
+    // The consumer below observes the public Statuses getter, and the test supplies an observable setter write.
+    // Needed: integration of the already prepared Services.Providers.ProviderRegistry-notify producer fix.
+    // Do not edit that other unit from the ChatView branch or claim its actual Refresh notifications are proven here.
+
+    [Fact]
+    [Trait("Req", "UI-GIT-035")] // App/Views/Chat/ChatView.swift:1575,1591-1592
+    public void Write_for_me_reacts_to_observable_provider_auth_changes()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            var directory = ChatGitFixtures.Init(h.NewFolder("repo"));
+            var engine = ChatProviderFixture.Create(h.NewFolder("stand-in"), "Unused");
+            CommitSheet sheet = null!;
+            Avalonia.Controls.Window window = null!;
+            h.Main.OnMain(() =>
+            {
+                model.Settings.SetBinaryPath(engine, ProviderKind.Claude);
+                model.Settings.TextGeneration = TextGenerationChoice.Claude;
+                var runtime = Runtime(model, model.AddProject(new Project("P", directory).Url));
+                sheet = new CommitSheet(model, runtime, directory, new GitStatusModel(), () => { }) { IsVisible = false };
+                sheet.Message = "Typed"; // :1608 loading must not auto-generate.
+                window = new Avalonia.Controls.Window { Content = sheet }; window.Show();
+                Assert.True(sheet.WriteForMeButton.IsEnabled);
+                var status = new Marrow.Services.Providers.ProviderStatus { ProviderStatusAuth = new Marrow.Services.Providers.ProviderStatus.Auth.SignedOut() };
+                typeof(Marrow.Services.Providers.ProviderRegistry).GetProperty("Statuses")!.SetValue(model.Providers,
+                    new ValueMap<ProviderKind, Marrow.Services.Providers.ProviderStatus>(new Dictionary<ProviderKind, Marrow.Services.Providers.ProviderStatus> { [ProviderKind.Claude] = status }));
+            });
+            h.Main.RunUntilIdle();
+            Assert.False(sheet.WriteForMeButton.IsEnabled);
+            Assert.Equal("Turn on text generation in Settings > Source control", ToolTip.GetTip(sheet.WriteForMeButton));
+            h.Main.OnMain(() => window.Close());
+            h.Main.RunUntilIdle();
+        });
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
@@ -28,7 +151,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-043")] // App/Views/Chat/ChatView.swift:1381-1385
     public void The_production_prompt_uses_the_common_seam_and_cancel_never_performs_the_text_action(bool cancels)
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var recorder = new RecordingPresenter();
@@ -72,7 +195,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-028")] // App/Views/Chat/ChatView.swift:1701-1707
     public void Adding_a_script_keeps_existing_card_identity_and_the_source_plus_symbol()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -99,7 +222,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-034")] // App/Views/Chat/ChatView.swift:1562-1567
     public void Generation_follows_engine_settings_shows_busy_state_and_preserves_text_on_a_nil_reply(int exit, string expected)
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -156,7 +279,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-042")] // App/Views/Chat/ChatView.swift:1375-1379
     public void Branch_rows_stop_at_twenty_five_disable_while_running_and_hide_the_worktree_offer_when_assigned()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -183,7 +306,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-070")] // App/Views/Chat/ChatView.swift:642-690
     public void Reordering_onto_an_occupied_full_side_swaps_slots_and_rewrites_corner_order()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -221,7 +344,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-030")] // App/Views/Chat/ChatView.swift:1711-1718
     public void Script_controls_have_templates_cancel_roles_glass_styles_and_a_flexible_footer()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -247,7 +370,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-029")] // App/Views/Chat/ChatView.swift:1709-1710
     public void Appearance_reloads_the_projects_local_copy_and_Escape_discards_edits()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -279,7 +402,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-TERM-064")] // App/Views/Chat/ChatView.swift:1452-1463
     public void The_scripts_sheet_uses_the_presentation_seam_and_the_source_backdrop_then_dismisses()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -308,7 +431,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-037")] // App/Views/Chat/ChatView.swift:1596-1597
     public void The_commit_sheet_uses_the_presentation_seam_and_Escape_closes_it()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -338,7 +461,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-USAGE-041")] // App/Views/Chat/ChatView.swift:527,554-590
     public void Grip_resize_pins_the_start_commit_is_exact_and_the_live_width_is_stepped(PanelDockCorner corner, int across, int down)
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -375,7 +498,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-070")] // App/Views/Chat/ChatView.swift:620-625
     public void Usage_docking_follows_the_pointer_but_keeps_the_locked_side_in_a_narrow_pane(double width, PanelDockCorner expected)
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -398,7 +521,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1123
     public void The_glass_group_retains_the_source_spacing_for_the_deferred_compositor()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             var group = new GlassEffectContainer(2, () => new Border());
             var spacing = typeof(GlassEffectContainer).GetProperty("Spacing");
@@ -411,7 +534,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-172")] // App/Views/Chat/ChatView.swift:1177-1180
     public void Caption_clearance_moves_through_frames_when_the_sidebar_takes_the_caption_buttons()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var frames = new ManualFrameSource();
@@ -441,7 +564,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-030")] // App/Views/Chat/ChatView.swift:1483,1505-1527
     public void Pull_request_uses_the_last_commit_and_opens_the_offline_forges_returned_url()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();

@@ -24,6 +24,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
         // without unrelated Skia glyph-cache layout failures after a prior editor's template is torn down.
         if (control is ScriptsEditor) control.IsVisible = false;
         var window = new AvaloniaWindow { Content = control };
+        ChatHeadlessFixtures.Track(window);
         window.Show();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         return control;
@@ -39,7 +40,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-023")] // ChatView.swift:1666-1667,1669,1700
     public void Cards_sit_10_points_apart_inside_a_scroll_area_at_least_220_points_tall_each_padded_14()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -69,7 +70,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-020")] // ChatView.swift:1721-1722
     public void The_sheet_is_a_fixed_size_that_does_not_grow_with_the_number_of_scripts()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -92,7 +93,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-024")] // ChatView.swift:1672-1674
     public void A_blank_name_is_allowed_and_does_not_block_saving()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -123,7 +124,7 @@ public sealed class ChatViewPart4Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-018")] // ChatView.swift:1445-1448
     public void Every_script_appears_as_its_own_row_in_the_projects_stored_order_with_no_disabled_state()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();

@@ -90,7 +90,7 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1135-1142
     public void Changing_the_sidebar_and_Hydra_settings_updates_the_conditional_slots_live()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -125,7 +125,7 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-183")] // App/Views/Chat/ChatView.swift:1165-1171
     public void Changing_a_shortcut_updates_the_chrome_tooltip_on_the_mounted_row()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             using var store = ShortcutStore.Shared.Override(harness.Main.OnMain(() => (ShortcutStore)Activator.CreateInstance(typeof(ShortcutStore), nonPublic: true)!));

@@ -16,7 +16,7 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-076")] // App/Views/Chat/ChatView.swift:1203-1214,1238
     public void The_title_has_the_source_font_single_line_tail_truncation_and_six_point_hit_padding()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -52,7 +52,7 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-TERM-080")] // App/Views/Chat/ChatView.swift:1712-1714
     public void Editing_the_command_preserves_the_same_cards_edited_name_and_worktree_flag()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -78,7 +78,7 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-TERM-074")] // App/Views/Chat/ChatView.swift:1660,1721-1722
     public void The_scripts_sheet_pads_its_contents_by_twenty_inside_its_fixed_frame()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -102,7 +102,7 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-073")] // App/Views/Chat/ChatView.swift:554-590
     public void Usage_grips_keep_width_shared_and_height_local_until_release(PanelDockCorner corner, double across, double down)
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -136,7 +136,7 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-074")] // App/Views/Chat/ChatView.swift:574-577
     public void Resetting_a_usage_grip_clears_only_its_stored_height()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -162,7 +162,7 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-071")] // App/Views/Chat/ChatView.swift:496-503,707-710
     public void Usage_origin_preserves_the_docked_edge_when_its_height_differs(PanelDockCorner corner)
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -187,7 +187,7 @@ public sealed class ChatViewPart2ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-072")] // App/Views/Chat/ChatView.swift:960-981
     public void Auto_popping_uses_the_fixed_number_of_free_slots_before_removing_candidates()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();

@@ -23,7 +23,7 @@ public sealed class ChatViewPart3ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-034")] // App/Views/Chat/ChatView.swift:1557-1571
     public void Commit_layout_keeps_twenty_point_padding_and_a_noninteractive_top_leading_placeholder()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -64,7 +64,7 @@ public sealed class ChatViewPart3ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-038")] // App/Views/Chat/ChatView.swift:1598-1600
     public void The_action_row_has_drawable_glass_controls_a_flexible_gap_and_a_cancel_role()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -93,7 +93,7 @@ public sealed class ChatViewPart3ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-033")] // App/Views/Chat/ChatView.swift:1547,1605-1609
     public void Loading_waits_for_appearance_and_restarts_after_the_sheet_is_shown_again()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -130,7 +130,7 @@ public sealed class ChatViewPart3ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-060")] // App/Views/Chat/ChatView.swift:1645
     public void Commit_disables_while_running_trims_text_and_dismisses_only_after_success(bool pushes)
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -177,7 +177,7 @@ public sealed class ChatViewPart3ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-GIT-130")] // App/Views/Chat/ChatView.swift:1398-1408
     public void New_branch_trims_and_replaces_spaces_then_refreshes_the_branch()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -203,7 +203,7 @@ public sealed class ChatViewPart3ReviewTests(HeadlessSession headless)
     [Trait("Req", "PR-GIT-131")] // App/Views/Chat/ChatView.swift:1495-1527
     public void Git_failure_paths_alert_and_refresh_without_dismissing_the_error(string operation, string title)
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();
@@ -226,7 +226,7 @@ public sealed class ChatViewPart3ReviewTests(HeadlessSession headless)
     [Trait("Req", "UI-GIT-031")] // App/Views/Chat/ChatView.swift:1484-1487
     public void Open_repository_uses_the_refreshed_remote_url()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var h = new AppModelHarness();
             var model = h.MakeModel();

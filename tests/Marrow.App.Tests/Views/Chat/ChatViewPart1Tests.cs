@@ -31,6 +31,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     private static Control Show(Control control)
     {
         var window = new AvaloniaWindow { Content = control };
+        ChatHeadlessFixtures.Track(window);
         window.Show();
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         return control;
@@ -142,7 +143,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-079")] // App/Views/Chat/ChatView.swift:1334
     public void The_circle_menu_symbol_and_tooltip_come_from_the_threads_own_mode()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -161,7 +162,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-079")] // App/Views/Chat/ChatView.swift:1335-1338
     public void The_menu_lists_every_RuntimeMode_in_declaration_order_under_a_Permissions_header()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -181,7 +182,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-079")] // App/Views/Chat/ChatView.swift:1339-1340
     public void Picking_a_mode_writes_it_onto_the_thread_through_the_model()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -214,7 +215,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "PR-GIT-111")] // ChatView.swift:1375-1379
     public void The_worktree_offer_is_absent_once_the_thread_has_a_turn()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -234,7 +235,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "PR-GIT-111")] // ChatView.swift:1371-1374
     public void The_new_branch_item_is_always_present_with_its_own_glyph()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -255,7 +256,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-080")] // App/Views/Chat/ChatView.swift:1416,1425-1429
     public void The_menu_opens_with_File_Explorer_then_a_divider_then_Copy_path()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             var menu = Show(OpenInMenu.BuildMenu("C:\\work"));
             var texts = Texts(menu);
@@ -272,7 +273,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-016")] // App/Views/Chat/ChatView.swift:1153-1158,1442
     public void The_scripts_button_carries_the_run_a_project_script_tooltip()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -292,7 +293,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-017")] // ChatView.swift:1444-1450
     public void The_menu_lists_every_script_under_a_Scripts_header_then_a_divider_then_Edit_scripts()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -315,7 +316,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-TERM-017")] // ChatView.swift:1443,1452
     public void With_no_scripts_the_header_and_divider_are_omitted_and_the_add_item_reads_Add_a_script()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -336,7 +337,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-076")] // App/Views/Chat/ChatView.swift:1203,1212-1213
     public void An_empty_title_reads_New_thread_and_the_tooltip_and_accessibility_label_are_exact()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -357,7 +358,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-076")] // App/Views/Chat/ChatView.swift:1203
     public void A_non_empty_title_is_shown_verbatim()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -376,7 +377,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-077")] // App/Views/Chat/ChatView.swift:1220-1228
     public void The_title_popover_offers_Copy_title_and_Rename_under_a_Thread_title_header()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -395,7 +396,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-078")] // App/Views/Chat/ChatView.swift:1231-1236
     public void Rename_shows_the_exact_alert_and_renames_through_the_model_on_Rename()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -436,7 +437,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-078")] // App/Views/Chat/ChatView.swift:1236
     public void Cancel_renames_nothing()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -470,7 +471,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-074")] // App/Views/Chat/ChatView.swift:1252
     public void The_tooltip_is_Show_the_sidebar_when_floating_and_Threads_otherwise()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -492,7 +493,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-074")] // App/Views/Chat/ChatView.swift:1253
     public void Clicking_toggles_the_sidebar_when_it_floats_instead_of_opening_a_popover()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -596,7 +597,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-171")] // ChatView.swift:1124-1174
     public void The_row_lays_out_in_the_fixed_order_for_a_thread_with_a_project_and_a_repository()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -627,7 +628,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-075")] // App/Views/Chat/ChatView.swift:1132-1134
     public void The_New_thread_button_is_unconditional_and_creates_a_thread_in_the_rows_project()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -653,7 +654,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-172")] // ChatView.swift:1177
     public void The_leading_inset_follows_holdsTrafficLights_not_the_sidebars_own_visibility()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
@@ -674,7 +675,7 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-183")] // ChatView.swift:1165-1171
     public void Terminal_toggle_flips_the_flag_directly_while_Changes_calls_toggleDiff()
     {
-        headless.OnUiThread(() =>
+        ChatHeadlessFixtures.Run(headless, () =>
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
