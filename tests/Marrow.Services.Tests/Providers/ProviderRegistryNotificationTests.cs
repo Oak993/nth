@@ -210,17 +210,50 @@ public sealed class ProviderRegistryNotificationTests
         Assert.Equal([true, false], states);
     }
 
-    [Trait("Req", "PR-PROVREG-196")] // Services/Providers/ProviderRegistry.swift:729-735
     [Fact]
-    public void Redeeming_reset_notifies_the_credit_ID_and_deferred_clear_even_on_failure()
+    [Trait("Req", "PR-PROVREG-166")] // Services/Providers/ProviderRegistry.swift:687-694
+    public void Clearing_an_empty_key_removes_nonempty_limits_but_preserves_the_known_fetch_timestamp()
+    {
+        using var runtime = new TestRuntime();
+        var registry = Registry();
+        var fetchedAt = SwiftDate.Now - TimeSpan.FromSeconds(30);
+        var timestamps = (Dictionary<ProviderKind, DateTimeOffset>)typeof(ProviderRegistry)
+            .GetField("limitsFetchedAt", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(registry)!;
+        runtime.OnMain(() =>
+        {
+            timestamps[ProviderKind.Zai] = fetchedAt;
+            var limits = new PlanLimits
+            {
+                Windows = new([new() { Id = "cached", Title = "Cached usage", Percent = 42 }]),
+            };
+            Cached(registry, nameof(ProviderRegistry.PlanLimits), new ValueMap<ProviderKind, PlanLimits>([KeyValuePair.Create(ProviderKind.Zai, limits)]));
+        });
+        var clears = new List<bool>();
+        registry.PropertyChanged += (_, change) =>
+        {
+            if (change.PropertyName == nameof(ProviderRegistry.PlanLimits)) clears.Add(!registry.PlanLimits.ContainsKey(ProviderKind.Zai));
+        };
+        // Force bypasses the one-minute gate to reach the empty-key branch even with a recent timestamp.
+        runtime.OnMain(() => registry.RefreshPlanLimits(ProviderKind.Zai, force: true));
+        Assert.Equal(new[] { true }, clears);
+        Assert.Empty(registry.PlanLimits);
+        Assert.Empty(registry.LoadingLimits);
+        Assert.Equal(fetchedAt, timestamps[ProviderKind.Zai]); // :692 clears only planLimits, never limitsFetchedAt.
+    }
+
+    [Trait("Req", "PR-PROVREG-196")] // Services/Providers/ProviderRegistry.swift:729-735
+    [Theory]
+    [InlineData("credit-1", "credit-1")]
+    [InlineData(null, "codex")]
+    public void Redeeming_reset_notifies_the_credit_ID_and_deferred_clear_even_on_failure(string? creditID, string activeID)
     {
         using var runtime = new TestRuntime();
         using var executables = ProviderRegistry.SetCLIUpdaterExecutableForTesting(_ => null);
         var registry = Registry();
         var states = new List<string?>();
         registry.PropertyChanged += (_, change) => { if (change.PropertyName == nameof(ProviderRegistry.RedeemingReset)) states.Add(registry.RedeemingReset); };
-        Assert.Throws<ResetCreditError>(() => runtime.Loop.Run(() => registry.ConsumeResetCredit(ProviderKind.Codex, "credit-1")));
-        Assert.Equal(["credit-1", null], states);
+        Assert.Throws<ResetCreditError>(() => runtime.Loop.Run(() => registry.ConsumeResetCredit(ProviderKind.Codex, creditID)));
+        Assert.Equal([activeID, null], states); // :730 creditID ?? provider.rawValue, then :731 defer nil.
     }
 
     [Trait("Req", "PR-PROVREG-199")] // Services/Providers/ProviderRegistry.swift:766-768

@@ -3179,6 +3179,146 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         });
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-COMPOSER-052")] // App/Views/Composer/ComposerView.swift:204-212; Services/Providers/ClaudeSession.swift:198-208
+    public void B3_delayed_listing_refreshes_the_focused_open_panel_with_commands_or_a_late_error(bool fails)
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            var frames = new ManualFrameSource();
+            using var fs = FrameClock.Source.Override(frames);
+            var presenter = new RecordingPresenter();
+            using var ps = Presentation.Presenter.Override(presenter);
+            var script = ProviderProbeStandIns.CopyFor("composer-delayed-listing").WaitForRelease().SetExitCode(fails ? 1 : 0);
+            if (!fails) script.SetStdout("{\"type\":\"control_response\",\"response\":{\"request_id\":\"handshake\",\"response\":{\"commands\":[{\"name\":\"proof-late\",\"description\":\"Delayed fixture command\"}]}}}\n");
+            h.Main.OnMain(() =>
+            {
+                h.App.Settings.SetBinaryPath(script.ExecutablePath, ProviderKind.Claude);
+                // The mounted model picker must not start a separate catalogue handshake on this command fixture.
+                ((HashSet<ProviderKind>)typeof(ProviderRegistry).GetField("attemptedCatalogs",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(h.App.Providers)!).Add(ProviderKind.Claude);
+            });
+            var directory = h.Store.NewFolder("delayed-listing");
+            var key = ProviderRegistry.CommandKey(ProviderKind.Claude, directory);
+            var (view, window, _, _) = OnScreen(h, h.Runtime, directory);
+            var loads = (System.Collections.IDictionary)typeof(ProviderRegistry)
+                .GetField("commandLoads", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(h.App.Providers)!;
+            try
+            {
+                Until(h, window, () => script.CommandListings().Count == 1 && loads.Contains(key));
+                h.Main.OnMain(() => Type(view, "/"));
+                Until(h, window, () => view.Suggestions.IsVisible && presenter.Calls.Count > 0 && presenter.Calls[^1].Presented);
+                Pump(h, window); // Let the opening-triggered task join the still-held listing before releasing it.
+                Assert.True(loads.Contains(key));
+                Assert.Single(script.CommandListings());
+                Assert.True(h.Main.OnMain(() => view.Controller.HasFocus));
+                Assert.True(h.Main.OnMain(() => One<ComposerNSTextView>(view).IsFocused));
+                var before = presenter.Calls.Count;
+                var popup = presenter.Calls[^1].Popup;
+                var panel = Shown(presenter);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<PopoverNote>(panel));
+                Assert.DoesNotContain("/proof-late", Titles(view));
+                Assert.False(h.App.Providers.Commands.ContainsKey(key));
+                Assert.False(h.App.Providers.CommandErrors.ContainsKey(key));
+                script.Release(); // Only now may the real offline listing answer or fail.
+                if (fails)
+                {
+                    Until(h, window, () => presenter.Calls.Count > before && presenter.Calls[^1].Presented
+                        && LogicalQuery.SelfAndDescendants<PopoverNote>(Shown(presenter)).Any());
+                    Assert.Equal("Claude's command discovery did not finish. Try again.",
+                        Assert.IsType<TextBlock>(One<PopoverNote>(Shown(presenter)).Child).Text);
+                    Assert.Equal("Retry loading commands", AutomationProperties.GetName(One<Button>(One<PopoverItem>(Shown(presenter)))));
+                }
+                else
+                {
+                    Until(h, window, () => presenter.Calls.Count > before && presenter.Calls[^1].Presented
+                        && LogicalQuery.SelfAndDescendants<MiddleTruncatingText>(Shown(presenter)).Any(text => text.FullText == "/proof-late"));
+                    Assert.Contains("/proof-late", Titles(view));
+                    Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(Shown(presenter)), text => text.Text == "Delayed fixture command");
+                }
+                Assert.Same(popup, presenter.Calls[^1].Popup);
+                Assert.NotSame(panel, Shown(presenter)); // Read the newly presented content, not a freshly constructed menu.
+                Assert.All(presenter.Calls.Skip(before), call => Assert.True(call.Presented)); // The panel stayed open.
+                Assert.True(view.Suggestions.IsVisible);
+                Assert.True(h.Main.OnMain(() => view.Controller.HasFocus));
+                Assert.True(h.Main.OnMain(() => One<ComposerNSTextView>(view).IsFocused));
+                Until(h, window, () => !loads.Contains(key));
+                Assert.Single(script.CommandListings());
+            }
+            finally
+            {
+                script.Release();
+                Until(h, window, () => !loads.Contains(key));
+                Close(h, window);
+            }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-052")] // App/Views/Composer/ComposerView.swift:213-215; Services/Providers/ProviderRegistry.swift:44,844-848
+    public void B3_opening_the_command_panel_starts_a_stale_load_and_reopening_uses_the_fresh_cache()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            var frames = new ManualFrameSource();
+            using var fs = FrameClock.Source.Override(frames);
+            var presenter = new RecordingPresenter();
+            using var ps = Presentation.Presenter.Override(presenter);
+            var script = ProviderProbeStandIns.CopyFor("composer-opening-load").WaitForRelease().SetExitCode(0)
+                .SetStdout("{\"type\":\"control_response\",\"response\":{\"request_id\":\"handshake\",\"response\":{\"commands\":[{\"name\":\"proof-late\",\"description\":\"Delayed fixture command\"}]}}}\n");
+            var directory = h.Store.NewFolder("opening-load");
+            var key = ProviderRegistry.CommandKey(ProviderKind.Claude, directory);
+            h.Main.OnMain(() =>
+            {
+                h.App.Settings.SetBinaryPath(script.ExecutablePath, ProviderKind.Claude);
+                h.App.Providers.UpdateCommands(new([new() { Name = "cached", Detail = "Cached command" }]), ProviderKind.Claude, directory);
+                ((HashSet<ProviderKind>)typeof(ProviderRegistry).GetField("attemptedCatalogs",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(h.App.Providers)!).Add(ProviderKind.Claude);
+            });
+            var (view, window, _, _) = OnScreen(h, h.Runtime, directory);
+            var loads = (System.Collections.IDictionary)typeof(ProviderRegistry)
+                .GetField("commandLoads", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(h.App.Providers)!;
+            try
+            {
+                Pump(h, window); // The mounted commandKey task is complete; the fresh cache suppresses its CLI read.
+                Assert.False(view.Suggestions.IsVisible);
+                Assert.Empty(script.CommandListings());
+                Assert.False(loads.Contains(key));
+                h.Main.Advance(TimeSpan.FromSeconds(601)); // :44 freshness = 600 seconds. No commandKey change.
+                Assert.Empty(script.CommandListings());
+                h.Main.OnMain(() => Type(view, "/")); // The visible observer alone must now ask for the listing.
+                Until(h, window, () => view.Suggestions.IsVisible && script.CommandListings().Count == 1 && loads.Contains(key));
+                Assert.True(h.Main.OnMain(() => view.Controller.HasFocus));
+                Assert.Contains(LogicalQuery.SelfAndDescendants<MiddleTruncatingText>(Shown(presenter)), text => text.FullText == "/cached");
+                script.Release();
+                Until(h, window, () => !loads.Contains(key) && Titles(view).Contains("/proof-late")
+                    && LogicalQuery.SelfAndDescendants<MiddleTruncatingText>(Shown(presenter)).Any(text => text.FullText == "/proof-late"));
+                h.Main.OnMain(() => Type(view, ""));
+                Until(h, window, () => !view.Suggestions.IsVisible);
+                h.Main.OnMain(() => Type(view, "/"));
+                Until(h, window, () => view.Suggestions.IsVisible && presenter.Calls[^1].Presented);
+                Pump(h, window);
+                Assert.Single(script.CommandListings()); // Reopening asks again but the new list is still fresh.
+                Assert.Contains(LogicalQuery.SelfAndDescendants<MiddleTruncatingText>(Shown(presenter)), text => text.FullText == "/proof-late");
+                Assert.True(h.Main.OnMain(() => view.Controller.HasFocus));
+            }
+            finally
+            {
+                script.Release();
+                Until(h, window, () => !loads.Contains(key));
+                Close(h, window);
+            }
+        });
+    }
+
     [Fact]
     [Trait("Req", "UI-COMPOSER-019")] // App/Views/Composer/ComposerView.swift:244; UI/Chrome/Popovers.swift:117-133
     [Trait("Req", "UI-COMPOSER-021")] // App/Views/Composer/ComposerView.swift:245-246; UI/Chrome/Popovers.swift:135-150
