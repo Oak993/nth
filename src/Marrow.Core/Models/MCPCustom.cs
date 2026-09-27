@@ -7,7 +7,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using static Marrow.Core.Port.SwiftDecoding;
 
-// Source: DroppyCode/Core/Models/MCPCustom.swift (B2 1fbf81e), :1-184.
+// Source: DroppyCode/Core/Models/MCPCustom.swift (B3 52bc792), :1-184.
 
 namespace Marrow.Core.Models;
 
@@ -280,13 +280,11 @@ public abstract record MCPCustomError
         return null; // :167
     }
 
-    // :172-182 static func validRemoteURL(_ text: String) -> Bool (PR-MCP-094). URLComponents(string:) has no
-    // separate port; SwiftURL (F.URL, the only URL-parsing dependency this unit was given) provides the same
-    // scheme/host access used here and at MCPCustomServer.summary (:85).
+    // :172-182 static func validRemoteURL(_ text: String) -> Bool (PR-MCP-094); ED-169 URLComponents.
     public static bool ValidRemoteURL(string text)
     {
         var trimmed = text.Trimmed(); // :173
-        var parsed = SwiftURL.Create(trimmed); // :174
+        var parsed = URLComponents.Create(trimmed); // :174
         if (parsed is null) return false;
         var scheme = parsed.Scheme; // :175
         if (scheme is null) return false;

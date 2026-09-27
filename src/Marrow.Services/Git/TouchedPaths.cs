@@ -3,7 +3,7 @@ using Marrow.Core.Support;
 
 namespace Marrow.Services.Git;
 
-// Source: DroppyCode/Services/Git/TouchedPaths.swift (B2 1fbf81e), :1-61.
+// Source: DroppyCode/Services/Git/TouchedPaths.swift (B3 52bc792), :1-61.
 
 /// <summary>
 /// :3-4 Matches the files an agent reported editing against the files a diff contains.
@@ -91,7 +91,7 @@ public static class TouchedPaths
             if (touched.Contains(p)) return true; // :57
             foreach (var entry in touched)
             {
-                if (entry.EndsWith("/" + p, StringComparison.Ordinal) || p.EndsWith("/" + entry, StringComparison.Ordinal)) return true; // :57
+                if (SwiftString.HasSuffix(entry, "/" + p) || SwiftString.HasSuffix(p, "/" + entry)) return true; // :57 external path Characters, including canonical equivalence
             }
         }
         return false;

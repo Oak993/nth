@@ -11,7 +11,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.UI.Common;
 
-// Source: DroppyCode/UI/Common/MCPGlyph.swift (B2 1fbf81e), :4-58.
+// Source: DroppyCode/UI/Common/MCPGlyph.swift (B3 52bc792), :4-58.
 // Forms (ED-095, ED-098): MCPGlyph is a Decorator; it depends on HydraBreathRingView from HydraGlyph.cs
 // for the breathing ring animation. Chrome.primaryText, Chrome.danger, Chrome.warning are in Chrome.cs.
 public sealed class MCPGlyph : Decorator
@@ -33,7 +33,7 @@ public sealed class MCPGlyph : Decorator
             {
                 Width = size,
                 Height = size,
-                StrokeColor = glyph.Opacity(0.55), // :15 entry.color.opacity(0.55)
+                StrokeColor = SwiftColor.Rgb(entry.ColorValue).Opacity(0.55), // :15 entry.color.opacity(0.55), independently of :23 monochrome foreground
                 StrokeWidth = 1.5,
                 IsHitTestVisible = false,
             };

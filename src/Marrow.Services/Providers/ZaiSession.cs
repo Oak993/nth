@@ -4,7 +4,7 @@ using Marrow.Core.Support;
 
 namespace Marrow.Services.Providers;
 
-// Source: DroppyCode/Services/Providers/ZaiSession.swift (B2 1fbf81e), :1-106.
+// Source: DroppyCode/Services/Providers/ZaiSession.swift (B3 52bc792), :1-106.
 //
 // Native Z.ai agent: talks to https://api.z.ai/api/coding/paas/v4/chat/completions directly
 // (OpenAI-compatible, the GLM Coding Plan endpoint) and executes coding tools locally, so no CLI
@@ -140,12 +140,22 @@ public sealed class ZaiSession : OpenAICompatibleSession
     private static string PlanRefusedModel(string message)
     {
         const string needle = "access to ";
-        var lower = SwiftString.Lowercased(message);
-        var index = lower.IndexOf(needle, StringComparison.Ordinal); // :102 range(of:options:.caseInsensitive)
+        var index = -1;
+        // :102 compare windows of original text; ICU lowercasing can expand preceding scalars and invalidate indices.
+        for (var start = 0; start + needle.Length <= message.Length; start++)
+        {
+            if (SwiftString.CaseInsensitiveCompare(message.Substring(start, needle.Length), needle) != 0) continue;
+            index = start;
+            break;
+        }
         if (index < 0) return "that model";
         var named = message[(index + needle.Length)..];
-        named = FoundationText.Trim(named, includeNewlines: true);
-        named = named.Trim('.', '`', '"', '\''); // :103
+        static bool IsTrim(char c) => FoundationText.IsWhitespace(c) || FoundationText.IsNewline(c) || c is '.' or '`' or '"' or '\'';
+        var first = 0;
+        var last = named.Length;
+        while (first < last && IsTrim(named[first])) first++;
+        while (last > first && IsTrim(named[last - 1])) last--;
+        named = named[first..last]; // :103 trim one union including interleaved whitespace and punctuation
         return named.Length == 0 ? "that model" : named; // :104
     }
 }
