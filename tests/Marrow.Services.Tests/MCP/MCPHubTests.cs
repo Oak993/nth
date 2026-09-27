@@ -374,6 +374,27 @@ public sealed class MCPHubTests
     // ---- PR-MCP-237 (new at B3): a relaunched connection's ids restart at 1 ----
 
     [Fact]
+    [Trait("Req", "PR-MCP-237")] // Services/MCP/MCPHub.swift:266-295; Services/MCP/MCPWire.swift:126,164-168.
+    public async Task Both_processes_report_the_actual_initialize_id_before_and_after_the_one_restart()
+    {
+        var hub = new MCPHub();
+        await hub.Seed(OneServer("s", StdioFixture()));
+        try
+        {
+            Assert.Equal("initialize-id:1", (await hub.Call("mcp__s__initialize-id", new JSONValue.Null())).Text);
+            Assert.Equal("id:3", (await hub.Call("mcp__s__which-id", new JSONValue.Null())).Text);
+            var exit = await Assert.ThrowsAsync<MCPHubError>(() => hub.Call("mcp__s__exit-server", new JSONValue.Null()));
+            Assert.Equal("The server quit (exit 7).", exit.ErrorDescription);
+            Assert.Equal("initialize-id:1", (await hub.Call("mcp__s__initialize-id", new JSONValue.Null())).Text);
+            Assert.Equal("id:3", (await hub.Call("mcp__s__which-id", new JSONValue.Null())).Text);
+        }
+        finally
+        {
+            await hub.Reload();
+        }
+    }
+
+    [Fact]
     [Trait("Req", "PR-MCP-237")] // Services/MCP/MCPHub.swift:279-295; MCPWire.swift:126,164-168 (B3)
     public async Task A_relaunched_stdio_connections_initialize_carries_id_1_again()
     {

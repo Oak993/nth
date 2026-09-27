@@ -410,7 +410,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         headless.OnUiThread(() => { using var h = RuntimeHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource()); h.Main.OnMain(() => {
             var turn = System.Guid.NewGuid(); var content = new ValueList<TimelineEntry>([ReplyEntry("```\nanswer\n```", turn: turn)]);
             var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), new ValueList<TimelineEntry>([UserEntry("question", turn)]), content, null, canUndo: false, chronological: false);
-            // STOP #3 is the external expanded derivation only. A real folded Derived still tests the owned frame.
+            // A folded Derived tests the owned frame; the expanded regression above exercises the real group builder.
             var derived = Invoke(block, "DerivedFor", false);
             var steps = Assert.IsAssignableFrom<Control>(Invoke(block, "Steps", derived, false));
             Assert.Contains(LogicalQuery.SelfAndDescendants<Border>(steps), b => b.Padding == new Thickness(14));
@@ -4199,8 +4199,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                     var host = new Border { Child = row };
                     Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
                     var window = Show(host);
-                    // STOP #4 is only the external helpers(of:) lookup. Test the owned :404-418 body with real
-                    // children of this fixture's lead, not a replacement implementation of AppModel.Helpers.
+                    // Independently test the :404-418 dictionary and order against real fixture children;
+                    // the mounted lookup regression above exercises the corrected AppModel.Helpers.
                     row.ApplyTeam(app.Children(runtime.ThreadID));
                     var pills = LogicalQuery.SelfAndDescendants<FinishedHeadPill>(row).ToList();
                     Assert.Equal(["Walter finished working", "Hank failed"], pills.Select(pill => AutomationProperties.GetName(pill)));

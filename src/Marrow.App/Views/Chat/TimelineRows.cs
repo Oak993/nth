@@ -152,7 +152,7 @@ public static class TimelineRows
     // :2298-2306, :2789-2793. Same glass button recipe as RequestCards / FollowUpEditor (OD-0005).
     internal static Button GlassCommand(string title, Action action, bool prominent, bool small = false)
     {
-        // STOP #5: only the .controlSize(.small) modifier (:2796) is unwritten; the glass/action recipe remains.
+        // STOP #5: only .controlSize(.small) (:2796) is unwritten; deferred by ED-180 (the glass material is built after the app runs).
         // No source size or approved small-size adapter is present in the shared button foundation.
         var label = new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center };
         SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(label);

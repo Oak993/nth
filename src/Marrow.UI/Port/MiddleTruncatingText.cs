@@ -76,7 +76,7 @@ public sealed class MiddleTruncatingTextBlock : TextBlock
             var headLength = kept / 2;
             var candidate = string.Concat(characters.Take(headLength)) + Ellipsis
                 + string.Concat(characters.Skip(characters.Count - (kept - headLength)));
-            if (Measure(candidate) <= maxWidth) { best = candidate; lo = kept + 1; }
+            if (!candidate.Any(FoundationText.IsNewline) && Measure(candidate) <= maxWidth) { best = candidate; lo = kept + 1; }
             else hi = kept - 1;
         }
         Text = full[..prefixEnd] + "\n" + best;

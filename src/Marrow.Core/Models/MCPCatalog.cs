@@ -2,7 +2,7 @@ using Marrow.Core.Port;
 
 namespace Marrow.Core.Models;
 
-// Source: DroppyCode/Core/Models/MCPCatalog.swift (B2 1fbf81e), :1-483.
+// Source: DroppyCode/Core/Models/MCPCatalog.swift (B3 52bc792), :1-483.
 public static partial class MCPCatalog
 {
     private static ValueMap<string, string> Map(Dictionary<string, string> pairs) => new(pairs, SwiftStringComparer.Instance);
