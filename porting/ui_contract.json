@@ -309,7 +309,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:219",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:31-34"
       ],
-      "notes": "Symbol doc.on.doc. The confirmation text is exactly Copied. Present on both sent messages and replies."
+      "notes": "Symbol doc.on.doc. The confirmation text is exactly Copied. Present on both sent messages and replies.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -330,7 +331,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:220"
       ],
-      "notes": "Symbol number. Lowercase m in markdown."
+      "notes": "Symbol number. Lowercase m in markdown.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -351,7 +353,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:222-226"
       ],
-      "notes": "Symbol arrow.uturn.backward, startsGroup true so a divider precedes it. It posts an intent that the row takes up; the menu must not retain the row."
+      "notes": "Symbol arrow.uturn.backward, startsGroup true so a divider precedes it. It posts an intent that the row takes up; the menu must not retain the row.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -374,7 +377,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:191-196"
       ],
-      "notes": "Body text is exactly This message and everything after it leave the thread, and your prompt returns to the composer."
+      "notes": "Body text is exactly This message and everything after it leave the thread, and your prompt returns to the composer.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -5243,7 +5247,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Chat/TimelineRows.swift:191-196"
       ],
-      "notes": "Title \"Edit from this message?\"; message \"This message and everything after it leave the thread, and your prompt returns to the composer.\" This is the only revert affordance that offers to keep the files."
+      "notes": "Title \"Edit from this message?\"; message \"This message and everything after it leave the thread, and your prompt returns to the composer.\" This is the only revert affordance that offers to keep the files.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "GIT",
