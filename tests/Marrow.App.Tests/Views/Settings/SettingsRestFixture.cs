@@ -30,7 +30,7 @@ public abstract class SettingsRestFixture(HeadlessSession headless)
     protected static T[] Nodes<T>(Control root) where T : class => LogicalQuery.SelfAndDescendants<T>(root).ToArray();
     protected static string[] Text(Control root) => Nodes<TextBlock>(root).Select(t => t is MiddleTruncatingText m ? m.FullText : t.Text ?? "").ToArray();
     protected static ChromeRow Row(Control root, string title) => Nodes<ChromeRow>(root).Single(r => Text(r).First() == title);
-    protected static void Drain(HostWindow window) { for (var i = 0; i < 5; i++) { window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); } }
+    protected static void Drain(HostWindow window) { for (var i = 0; i < 5; i++) { window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(); } }
     protected static void Tick(AppModelHarness h, double ms) { h.Main.AdvanceMilliseconds(ms); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromMilliseconds(ms)); Dispatcher.UIThread.RunJobs(); }
     protected static Point At(Control control, HostWindow window, Point? local = null) => control.TranslatePoint(local ?? new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
     protected static void Hover(HostWindow window, Control control, Point? local = null) { window.MouseMove(At(control, window, local)); Drain(window); Assert.True(control.IsPointerOver); }
