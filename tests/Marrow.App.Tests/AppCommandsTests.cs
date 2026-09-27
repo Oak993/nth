@@ -2572,6 +2572,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // Partial evidence for UI-WIN-074; whole record remains STOP. // App/AppCommands.swift:53-54; UI/Common/AppZoom.swift:6, :12-15
     // Partial evidence for UI-WIN-077; whole record remains STOP. // App/AppCommands.swift:59-62; UI/Common/AppZoom.swift:6, :12-15
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    // STOP opencode-App.AppCommands #2, part 2: MenuKeyEquivalents.Shortcut still lacks the literal +/=
+    // character-key route ruling. These action assertions are partial UI-WIN-074/077 evidence, not whole-record proof.
     public void Both_Zoom_In_items_step_the_zoom_up_one_level_and_at_200_leave_it_there()
     {
         using var h = new AppModelHarness();
