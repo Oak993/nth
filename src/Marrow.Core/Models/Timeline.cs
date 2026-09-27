@@ -11,14 +11,10 @@ namespace Marrow.Core.Models;
 // Source: DroppyCode/Core/Models/Timeline.swift (B3 52bc792), :1-369.
 // :202-207 FileEdit is already ported in Models/FileEdit.cs (pre-convention file, kept as is).
 //
-// BLOCKED (reported, not invented): TurnRecord.TokenSpends (:306) and ThreadDocument.Continuation (:353) are left
-// undecoded and unwritten below. Both need the Codable conformance of a sibling skeleton in this unit's dependency
-// cycle (Core.Models.TokenSpend, TokenSpend.swift:56-65 init(from:); Core.Models.ThreadContinuation) which their own
-// file headers say is "left to the implementing unit" - not this one. Writing that Codable here would be inventing
-// another file's behaviour from evidence this packet does not carry (TokenSpend's per-field leniency) or reaching
-// into a sibling unit's file (ThreadContinuation). Both fields decode to null and are omitted on encode, which
-// round-trips a document that never had them (Swift's synthesized encoder omits a nil optional the same way) but
-// loses a real TokenSpend list or a real ThreadContinuation across a save. See the STOP report for this unit.
+// TurnRecord.TokenSpends (:306/:329) uses the implemented TokenSpend Codable below, preserving
+// spends across a save. Missing, null or malformed lists fall back to nil, as Coding.Value does in Swift.
+// BLOCKED: ThreadDocument.Continuation (:353) still needs Core.Models.ThreadContinuation's Codable.
+// That field remains null on decode and omitted on encode; see this unit's retained STOP report.
 
 // :4-33
 [JsonConverter(typeof(TimelineItemConverter))]
@@ -856,7 +852,8 @@ internal sealed class TurnRecordConverter : JsonConverter<TurnRecord>
         ProviderAnchor = Coding.Value(element, "providerAnchor", SwiftDecoding.ReadString, () => (string?)null),          // :327
         TouchedPaths = Coding.Value(element, "touchedPaths",
             field => (ValueList<string>?)SwiftDecoding.ReadArray(field, SwiftDecoding.ReadString), () => (ValueList<string>?)null), // :328
-        // :329 tokenSpends - BLOCKED (see file header): left undecoded until Core.Models.TokenSpend has its Codable.
+        TokenSpends = Coding.Value(element, "tokenSpends",
+            field => (ValueList<TokenSpend>?)SwiftDecoding.ReadArray(field, TokenSpend.Decode), () => (ValueList<TokenSpend>?)null), // :329
         HydraMerged = Coding.Value(element, "hydraMerged", SwiftDecoding.ReadBool, () => false),                          // :330
     };
 
@@ -883,7 +880,13 @@ internal sealed class TurnRecordConverter : JsonConverter<TurnRecord>
             foreach (var path in touchedPaths) writer.WriteStringValue(path);
             writer.WriteEndArray();
         }
-        // tokenSpends: BLOCKED, never written (see file header note).
+        if (value.TokenSpends is { } tokenSpends) // :306 synthesized encodeIfPresent
+        {
+            writer.WritePropertyName("tokenSpends");
+            writer.WriteStartArray();
+            foreach (var spend in tokenSpends) TokenSpend.Write(writer, spend);
+            writer.WriteEndArray();
+        }
         writer.WriteBoolean("hydraMerged", value.HydraMerged);
         writer.WriteEndObject();
     }
