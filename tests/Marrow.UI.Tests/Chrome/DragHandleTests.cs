@@ -412,6 +412,38 @@ public sealed class DragHandleTests(HeadlessSession headless)
         });
     }
 
+    [Trait("Req", "PR-WIN-232")] // DragHandle.swift:134-136 then :145-147, a window going away leaves no window to read
+    [Fact]
+    public void Closing_the_window_of_a_gripped_handle_under_the_pointer_clears_hover_without_throwing()
+    {
+        headless.OnUiThread(() =>
+        {
+            // Leaving its window (:127-138) still runs refreshHover whenever a grip is configured (:134-135), and
+            // refreshHover's own `guard isActive, let window, ...` (:145) answers a missing window with
+            // `isHovering = false` (:146) and returns (:147) - it never reads a mouse location there is no window
+            // for. Closing the window is that departure for everything it hosts, so the close itself must not throw.
+            var cursor = new FakeCursorPlatform(null);
+            using var _ = DragHandleView.CursorPlatform.Override(cursor);
+            var grip = new DragHandleView.Grip(12, 28, 2.5, GlowInset: 4);
+            var (window, view) = NewAttachedHandle(axis: DragHandleView.Axis.Vertical, grip: grip, width: 300);
+            Move(window, new Point(150, 10), cursor); // the pointer rests over the strip, so a screen position exists
+            Assert.True(view.IsHoveringForTest);
+
+            var thrown = Record.Exception(() =>
+            {
+                window.Close();
+                Dispatcher.UIThread.RunJobs();
+            });
+
+            Assert.Null(thrown);
+            Assert.False(view.IsHoveringForTest); // :146
+            Assert.Equal(grip.RestLength, view.GripLayerForTest.Width); // :159 restLength; :171 .vertical's width
+            Assert.Equal(0, view.GripLayerForTest.Opacity); // :173 showsGrip false
+            Assert.Equal(0, view.GlowLayerForTest.Opacity); // :176 showsGrip false
+            Assert.Null(view.GripLayerForTest.Transitions); // :136 animated: false, :165 setDisableActions(true)
+        });
+    }
+
     // ---- PR-WIN-233: taken out of the window mid-drag clears state, never calls onEnd ----
 
     [Trait("Req", "PR-WIN-233")] // DragHandle.swift:127-133
