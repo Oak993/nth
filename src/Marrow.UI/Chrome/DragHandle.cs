@@ -3,6 +3,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 using PortAnimation = Marrow.UI.Port.Animation;
@@ -238,7 +239,11 @@ public sealed class DragHandleView : Canvas
     /// cursor being over the strip; the entered/exited pair only keeps it true while the mouse itself moves.</summary>
     private void RefreshHover()
     {
-        if (TopLevel.GetTopLevel(this) is not Window window ||
+        // `let window` (:145) holds only while the window itself is still in a visual tree. When a Window closes,
+        // Avalonia detaches it (its PresentationSource cleared) before it detaches its descendants, whose visual
+        // parent chain stays intact, so GetTopLevel still finds the closing window from this handle's own detach
+        // callback, and PointToClient below would throw on it. A closing window is no window here (:146-147).
+        if (TopLevel.GetTopLevel(this) is not Window window || !window.IsAttachedToVisualTree() ||
             !IsActive || !IsEffectivelyVisible) // :145 guard isActive, let window, !isHiddenOrHasHiddenAncestor
         {
             isHovering = false; // :146
