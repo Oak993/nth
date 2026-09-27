@@ -1,222 +1,269 @@
-// Source: DroppyCode/UI/Common/Components.swift (B2 1fbf81e), :1-168.
-
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Templates;
+using Avalonia.Layout;
+using Avalonia.Media;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
+using Marrow.UI.Port;
+using ChromeTokens = Marrow.UI.Chrome.Chrome;
 
+// Source: DroppyCode/UI/Common/Components.swift (B3 52bc792), :1-168.
 namespace Marrow.UI.Common;
 
 // :4-14
-public sealed class ProviderIcon : Control
+public sealed class ProviderIcon : Decorator
 {
     public static readonly StyledProperty<ProviderKind> ProviderProperty =
         AvaloniaProperty.Register<ProviderIcon, ProviderKind>(nameof(Provider));
-
     public static readonly StyledProperty<double> SizeProperty =
         AvaloniaProperty.Register<ProviderIcon, double>(nameof(Size), 14);
+    public ProviderKind Provider { get => GetValue(ProviderProperty); set => SetValue(ProviderProperty, value); }
+    public double Size { get => GetValue(SizeProperty); set => SetValue(SizeProperty, value); }
 
-    public ProviderKind Provider
+    // :8-12
+    public ProviderIcon() => Rebuild();
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        get => GetValue(ProviderProperty);
-        set => SetValue(ProviderProperty, value);
+        base.OnPropertyChanged(change);
+        if (change.Property == ProviderProperty || change.Property == SizeProperty) Rebuild();
     }
-
-    public double Size
+    private void Rebuild()
     {
-        get => GetValue(SizeProperty);
-        set => SetValue(SizeProperty, value);
-    }
-
-    public ProviderIcon()
-    {
-        // Icon rendering is handled through data binding to the image resource system
+        var image = SwiftImage.Named(Provider.IconName).Resizable().AspectRatio(ContentMode.Fit); // :9-11
+        image.Width = Size; image.Height = Size; // :12
+        Child = image;
     }
 }
 
 // :16-43
 public static class RelativeTime
 {
-    // :19 @MainActor private static var days = RecentCache<Date, String>(limit: 256)
-    private static readonly RecentCache<DateTimeOffset, string> DayCache =
-        new(limit: 256);
-
+    // :19 @MainActor; recent two-generation cache, exactly 256 entries per generation.
+    private static readonly RecentCache<DateTimeOffset, string> DayCache = new(limit: 256);
     // :22-35
     public static string Short(DateTimeOffset date, DateTimeOffset? now = null)
     {
-        var nowValue = now ?? DateTimeOffset.UtcNow;
-        var seconds = nowValue.Subtract(date).TotalSeconds;
-
+        MainActor.AssumeIsolated(); // :21 @MainActor
+        var seconds = ((now ?? SwiftDate.Now) - date).TotalSeconds; // :23
         switch (seconds)
         {
-            case < 60:
-                return "now";
-            case < 3_600:
-                return $"{(long)(seconds / 60)}m";
-            case < 86_400:
-                return $"{(long)(seconds / 3_600)}h";
-            case < 604_800:
-                return $"{(long)(seconds / 86_400)}d";
+            case < 60: return "now"; // :25
+            case < 3_600: return $"{(long)(seconds / 60)}m"; // :26
+            case < 86_400: return $"{(long)(seconds / 3_600)}h"; // :27
+            case < 604_800: return $"{(long)(seconds / 86_400)}d"; // :28
             default:
-                // :30 if let day = days.value(for: date) { return day }
-                if (DayCache.TryGetValue(date, out var cached))
-                {
-                    return cached;
-                }
-
-                // :31 let day = date.formatted(.dateTime.month(.abbreviated).day())
-                var formatted = date.ToString("MMM d", System.Globalization.CultureInfo.InvariantCulture);
-
-                // :32 days.insert(day, for: date)
-                DayCache.Insert(formatted, date);
-
-                return formatted;
+                if (DayCache.TryGetValue(date, out var day)) return day; // :30
+                day = SwiftFormatters.Formatted(date, DateFormatStyle.DateTime.Month().Day()); // :31
+                DayCache.Insert(day, date); // :32
+                return day;
         }
     }
-
-    // :37-42
-    public static string Duration(TimeSpan interval)
-    {
-        // :38 let total = max(0, Int(interval.rounded()))
-        var total = Math.Max(0, (long)Math.Round(interval.TotalSeconds));
-
-        if (total < 60)
-            return $"{total}s";
-        if (total < 3_600)
-            return $"{total / 60}m {total % 60}s";
-        return $"{total / 3_600}h {(total % 3_600) / 60}m";
-    }
+    // :37-41 B3 uses Duration.UnitsFormatStyle, no longer B2's hand-written units.
+    public static string Duration(TimeSpan interval) => SwiftFormatters.DurationUnits(
+        Math.Max(0, checked((long)Math.Round(interval.TotalSeconds, MidpointRounding.AwayFromZero))),
+        [SwiftFormatters.DurationUnit.Seconds, SwiftFormatters.DurationUnit.Minutes, SwiftFormatters.DurationUnit.Hours],
+        SwiftFormatters.CurrentLocale.Current);
 }
 
 // :45-56
-public sealed class DiffStatLabel : Control
+public sealed class DiffStatLabel : Decorator
 {
-    public static readonly StyledProperty<int> AdditionsProperty =
-        AvaloniaProperty.Register<DiffStatLabel, int>(nameof(Additions));
-
-    public static readonly StyledProperty<int> DeletionsProperty =
-        AvaloniaProperty.Register<DiffStatLabel, int>(nameof(Deletions));
-
-    public int Additions
+    public static readonly StyledProperty<int> AdditionsProperty = AvaloniaProperty.Register<DiffStatLabel, int>(nameof(Additions));
+    public static readonly StyledProperty<int> DeletionsProperty = AvaloniaProperty.Register<DiffStatLabel, int>(nameof(Deletions));
+    public int Additions { get => GetValue(AdditionsProperty); set => SetValue(AdditionsProperty, value); }
+    public int Deletions { get => GetValue(DeletionsProperty); set => SetValue(DeletionsProperty, value); }
+    private readonly TextBlock additions = new();
+    private readonly TextBlock deletions = new();
+    // :49-54
+    public DiffStatLabel()
     {
-        get => GetValue(AdditionsProperty);
-        set => SetValue(AdditionsProperty, value);
+        SwiftFont.Caption.MonospacedDigit().Apply(additions); // :54
+        SwiftFont.Caption.MonospacedDigit().Apply(deletions);
+        additions.Track(() => ChromeTokens.Success, color => additions.Foreground = color.Brush(additions)); // :51
+        deletions.Track(() => ChromeTokens.Danger, color => deletions.Foreground = color.Brush(deletions)); // :52
+        Child = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { additions, deletions } }; // :50
+        UpdateCounts();
     }
-
-    public int Deletions
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
     {
-        get => GetValue(DeletionsProperty);
-        set => SetValue(DeletionsProperty, value);
+        base.OnPropertyChanged(change);
+        if (change.Property == AdditionsProperty || change.Property == DeletionsProperty) UpdateCounts();
+    }
+    private void UpdateCounts()
+    {
+        additions.Text = "+" + Additions.ToString(CultureInfo.InvariantCulture); // :51
+        deletions.Text = "−" + Deletions.ToString(CultureInfo.InvariantCulture); // :52
     }
 }
 
-// :58-92
-// A compact, borderless control used inside glass surfaces
+// :59-92
+public sealed record ChipButtonStyle(bool IsActive = false)
+{
+    private static readonly FuncControlTemplate<Button> ChipTemplate = new((owner, scope) =>
+        new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope));
+    // :62-64 Apply the configuration to an existing button, retaining its click, keyboard and automation behaviour.
+    public Button Apply(Button button)
+    {
+        var label = button.Content as Control ?? new TextBlock { Text = button.Content?.ToString() ?? "" };
+        button.Content = null; // Release the configuration label's logical parent before wrapping it.
+        if (label is Border { Tag: ChipBody previous }) { previous.Dispose(); previous.Surface.Child = null; label = previous.Label; }
+        var body = new ChipBody(button, label, IsActive);
+        button.Content = body.Surface;
+        button.Padding = default;
+        button.BorderThickness = default;
+        button.Background = Brushes.Transparent;
+        button.Template = ChipTemplate;
+        return button;
+    }
+
+    // :66-92
+    private sealed class ChipBody : IDisposable
+    {
+        private readonly Button button;
+        private readonly bool active;
+        private readonly AnimatedColor fill;
+        private bool hovering; // :69
+        public Control Label { get; }
+        public Border Surface { get; }
+        public ChipBody(Button button, Control label, bool active)
+        {
+            this.button = button; this.active = active; Label = label;
+            if (label is TextBlock text) { text.MaxLines = 1; text.TextWrapping = TextWrapping.NoWrap; } // :74
+            Surface = new Border { Child = label, Padding = new Thickness(9, 5), Tag = this }.Capsule(RoundedCornerStyle.Circular); // :75-80
+            Surface.Font(SwiftFont.Callout); // :73 inherited default, label's explicit font can override it.
+            fill = new AnimatedColor(Surface); Surface.Background = fill.Brush;
+            button.PointerEntered += Entered; button.PointerExited += Exited; // :83
+            button.PropertyChanged += Changed; // configuration.isPressed
+            button.SizeChanged += Sized;
+            UpdateHitShape(); // :82 contentShape(.capsule), including the button's otherwise rectangular hit area.
+            Surface.Track(() => (ChromeTokens.Accent, ChromeTokens.PrimaryText, ChromeTokens.SecondaryText), _ => Draw(null));
+            button.PropertyChanged += TintChanged;
+            Draw(null);
+        }
+        private void Draw(Animation? animation)
+        {
+            var tint = ChipButtonStyleHelper.GetTint(button) ?? ChromeTokens.Accent;
+            Surface.SetValue(TextElement.ForegroundProperty, (active ? tint : ChromeTokens.SecondaryText).Brush(Surface)); // :77
+            var color = active ? tint.Opacity(button.IsPressed ? 0.26 : 0.16) // :89
+                : ChromeTokens.PrimaryText.Opacity(button.IsPressed ? 0.12 : hovering ? 0.07 : 0); // :90-91
+            fill.Set(color, animation);
+        }
+        private void Entered(object? sender, Avalonia.Input.PointerEventArgs args) { hovering = true; Draw(Animation.EaseOut(0.12)); } // :83-84
+        private void Exited(object? sender, Avalonia.Input.PointerEventArgs args) { hovering = false; Draw(Animation.EaseOut(0.12)); }
+        private void Changed(object? sender, AvaloniaPropertyChangedEventArgs args) { if (args.Property == Button.IsPressedProperty) Draw(null); }
+        private void TintChanged(object? sender, AvaloniaPropertyChangedEventArgs args) { if (args.Property == ChipButtonStyleHelper.TintProperty) Draw(null); }
+        private void Sized(object? sender, SizeChangedEventArgs args) => UpdateHitShape();
+        private void UpdateHitShape() => button.Clip = SwiftShapes.CapsuleGeometry(new Rect(button.Bounds.Size), RoundedCornerStyle.Circular);
+        public void Dispose() { button.PointerEntered -= Entered; button.PointerExited -= Exited; button.PropertyChanged -= Changed; button.PropertyChanged -= TintChanged; button.SizeChanged -= Sized; }
+    }
+}
+
+// :94-99 Keeps the existing helper name, and exposes the .chip / .chip(active:) reusable forms.
 public static class ChipButtonStyleHelper
 {
-    // ChipButtonStyle in SwiftUI applies modifiers to buttons.
-    // In Avalonia, this would be applied through styling, not as a direct class.
-    // This class serves as a helper for consistent chip-style button appearance.
+    public static readonly AttachedProperty<SwiftColor?> TintProperty = AvaloniaProperty.RegisterAttached<Button, Control, SwiftColor?>("ChipTint", inherits: true);
+    public static SwiftColor? GetTint(Control control) => control.GetValue(TintProperty);
+    public static void SetTint(Control control, SwiftColor? tint) => control.SetValue(TintProperty, tint);
+    public static ChipButtonStyle ChipStyle { get; } = new(); // :95
+    public static ChipButtonStyle ChipStyleActive(bool active) => new(active); // :97-99
+    public static Button Chip(this Button button, bool active = false) => new ChipButtonStyle(active).Apply(button);
 }
 
-// :102-168
+// :101-168
 public static class Workspace
 {
-    // :103-107
+    // :102-107
     public sealed record Editor
     {
         public required string Name { get; init; }
         public required string BundleID { get; init; }
-
-        // :104 var id: String { bundleID }
-        public string Id => BundleID;
+        public string Id => BundleID; // :103
     }
+    // :109-117 DEVIATION OD-0012 G4: Xcode and iTerm omitted; Terminal means Windows Terminal.
+    public static IReadOnlyList<Editor> Editors { get; } = new ReadOnlyCollection<Editor>([
+        new() { Name = "Visual Studio Code", BundleID = "com.microsoft.VSCode" },
+        new() { Name = "Cursor", BundleID = "com.todesktop.230313mzl4w4u92" },
+        new() { Name = "Zed", BundleID = "dev.zed.Zed" },
+        new() { Name = "Terminal", BundleID = "com.apple.Terminal" },
+        new() { Name = "Ghostty", BundleID = "com.mitchellh.ghostty" },
+    ]);
 
-    // :109-117 DEVIATION OD-0012 G4: Five entries (Xcode and iTerm excluded)
-    public static IReadOnlyList<Editor> Editors { get; } = new ReadOnlyCollection<Editor>(
-        new List<Editor>
-        {
-            new() { Name = "Visual Studio Code", BundleID = "com.microsoft.VSCode" },
-            new() { Name = "Cursor", BundleID = "com.todesktop.230313mzl4w4u92" },
-            new() { Name = "Zed", BundleID = "dev.zed.Zed" },
-            new() { Name = "Terminal", BundleID = "com.apple.Terminal" }, // :114, Terminal on Windows
-            new() { Name = "Ghostty", BundleID = "com.mitchellh.ghostty" }
-            // :113 Xcode and :116 iTerm removed per OD-0012 G4
-        }
-    );
+    // :119-167 PORT-ONLY boundary implemented in Port/SwiftImage.cs (allowed foundation unit file).
+    public sealed class Backend : WorkspacePlatform;
+    public static Ambient<Backend> Platform { get; } = new(() => new Backend());
+    private sealed class Cache(Backend backend)
+    {
+        public Lazy<IReadOnlyList<Editor>> Installed { get; } = new(() => new ReadOnlyCollection<Editor>(Editors.Where(e => Resolve(e, backend) is not null).ToArray())); // :139-141
+        public Dictionary<string, IImage> Icons { get; } = new(StringComparer.Ordinal); // :150
+        public Lazy<IImage?> ExplorerIcon { get; } = new(() => backend.ReadIcon(backend.Explorer)); // :163
+    }
+    private static readonly ConditionalWeakTable<Backend, Cache> IconCache = new();
+    private static Cache CurrentCache => IconCache.GetValue(Platform.Current, backend => new Cache(backend));
 
-    // BLOCKED: PR-CHAT-181 and PR-CHAT-182 open questions
-    // The Windows detection keys and launch methods for editors are not yet decided.
-    // The following methods require that decision:
-
-    // :120-135 BLOCKED: PR-PROVREG-233
-    // "What a Windows Login button launches" is unresolved
-    // The zsh shebang, .command extension, POSIX permissions, and workspace open
-    // all have no Windows equivalent. OD-0012 F1 names "marrow-login" as the folder
-    // but the terminal launch mechanism needs an owner decision.
+    // :120-135 DEVIATION ED-089: direct -Command launch needs no script, so no temp file can be overwritten.
     public static void OpenTerminal(string command)
     {
-        throw new NotImplementedException(
-            "BLOCKED PR-PROVREG-233: Windows terminal launch mechanism not yet decided. " +
-            "See porting/decision_batch_20260922b.md section F1 and open_question in the work packet."
-        );
+        var backend = Platform.Current;
+        var shell = backend.Which("pwsh.exe") ?? backend.Which("powershell.exe") ?? backend.WindowsPowerShell; // OD-0008 C5
+        if (backend.Which("wt.exe") is { } terminal)
+            backend.Launch(terminal, ["-w", "new", "new-tab", "-d", backend.Home, shell, "-NoExit", "-Command", command], backend.Home, false);
+        else backend.Launch(shell, ["-NoExit", "-Command", command], backend.Home, true);
     }
-
-    // :139-141 BLOCKED: PR-CHAT-182
-    // "Looked up once per launch" requires Windows detection keys for each editor
-    public static IReadOnlyList<Editor> InstalledEditors
-    {
-        get => throw new NotImplementedException(
-            "BLOCKED PR-CHAT-182: Windows detection keys for editors not yet decided. " +
-            "See open_question in work packet UI.Common.Components part1.md"
-        );
-    }
-
-    // :143-146 BLOCKED: PR-CHAT-182 and PR-CHAT-181
-    // The Windows launch method depends on detection keys
+    // :139-141 Once per process backend; tests get isolated caches with their own backend.
+    public static IReadOnlyList<Editor> InstalledEditors => CurrentCache.Installed.Value;
+    // :143-146 DEVIATION ED-087: executable registry/PATH resolution substitutes for Launch Services.
     public static void Open(string path, Editor editor)
     {
-        throw new NotImplementedException(
-            "BLOCKED PR-CHAT-181/PR-CHAT-182: Windows editor launch not yet decided. " +
-            "Depends on detection keys and launch method for each editor."
-        );
+        var backend = Platform.Current;
+        if (Resolve(editor, backend) is not { } executable) return;
+        backend.Launch(executable, editor.BundleID == "com.apple.Terminal" ? ["-d", path] : [path], null, false);
     }
-
-    // :150 @MainActor private static var icons: [String: NSImage] = [:]
-    private static readonly Dictionary<string, object?> IconCache = new();
-
-    // :153-160 BLOCKED: PR-CHAT-182
-    // Icon caching requires the detection keys
+    // :153-160
     public static object? Icon(Editor editor)
     {
-        throw new NotImplementedException(
-            "BLOCKED PR-CHAT-182: Icon caching requires Windows detection keys. " +
-            "See open_question in work packet UI.Common.Components part1.md"
-        );
+        MainActor.AssumeIsolated(); // :152 @MainActor
+        var cache = CurrentCache;
+        if (cache.Icons.TryGetValue(editor.BundleID, out var cached)) return cached;
+        var backend = Platform.Current;
+        if (Resolve(editor, backend) is not { } application || backend.ReadIcon(application) is not { } image) return null;
+        var sized = new SizedIcon(image);
+        cache.Icons[editor.BundleID] = sized;
+        return sized;
     }
+    // :163 DEVIATION OD-0012 G4: File Explorer's executable icon instead of Finder's.
+    public static object? FileExplorerIcon => MainActor.AssumeIsolated(() => CurrentCache.ExplorerIcon.Value);
+    // :165-167 The native backend forwards to the existing ShellWorkspace seam.
+    public static void RevealInFileExplorer(string path) => Platform.Current.Reveal(path);
 
-    // :163 BLOCKED: PR-CHAT-182 and OD-0012 G4
-    // "Finder's icon... File Explorer's icon is read from is likewise not fixed"
-    public static object? FileExplorerIcon
+    private static string? Resolve(Editor editor, Backend backend)
     {
-        get => throw new NotImplementedException(
-            "BLOCKED PR-CHAT-182: File Explorer icon path not yet decided. " +
-            "The source fixed /System/Library/CoreServices/Finder.app but Windows path is open."
-        );
+        var pair = editor.BundleID switch // :109-117 DEVIATION ED-087
+        {
+            "com.microsoft.VSCode" => ("Code.exe", "code"),
+            "com.todesktop.230313mzl4w4u92" => ("Cursor.exe", "cursor"),
+            "dev.zed.Zed" => ("Zed.exe", "zed"),
+            "com.apple.Terminal" => ("wt.exe", "wt.exe"),
+            _ => ((string, string)?)null, // Ghostty has no Windows build; unknown editor resolves nothing.
+        };
+        if (pair is not { } names) return null;
+        foreach (var machine in new[] { false, true })
+            if (backend.AppPath(names.Item1, machine) is { } registered && backend.Exists(registered)) return registered;
+        return backend.Which(names.Item2);
     }
-
-    // :165-167 BLOCKED: PR-CHAT-182 and OD-0012 G4
-    // Reveal in File Explorer (not Finder)
-    public static void RevealInFileExplorer(string path)
+    // :158 NSImage's size changes its drawing size, not the source pixels.
+    private sealed class SizedIcon(IImage image) : IImage
     {
-        throw new NotImplementedException(
-            "BLOCKED OD-0012 G4: File Explorer reveal not yet implemented. " +
-            "Requires platform-specific file explorer invocation."
-        );
+        public Size Size => new(16, 16);
+        public void Draw(DrawingContext context, Rect sourceRect, Rect destRect) => image.Draw(context,
+            new Rect(sourceRect.X * image.Size.Width / 16, sourceRect.Y * image.Size.Height / 16,
+                sourceRect.Width * image.Size.Width / 16, sourceRect.Height * image.Size.Height / 16), destRect);
     }
 }

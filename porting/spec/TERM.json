@@ -1841,7 +1841,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same three-way priority in the composer's key handler. porting/port_impacts.md:424 entry 208 records that Escape is handled in five places in this family with five different swallow policies and must be decided per site rather than translated once.",
       "verification_method": "interaction test over all three states",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
