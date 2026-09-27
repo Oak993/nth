@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Marrow.App.Runtime;
@@ -13,6 +14,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.Providers;
 using Marrow.Testing;
+using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Chat;
@@ -32,7 +34,8 @@ internal static class TimelineRowsPrSupport
     }
     internal static AvaloniaWindow Show(Control content)
     {
-        var window = new AvaloniaWindow { Width = 900, Height = 700, Content = content };
+        var window = new AvaloniaWindow { Width = 900, Height = 700,
+            Content = new VisualLayerManager { EnableOverlayLayer = true, Child = content } };
         window.Show();
         Settle(window);
         window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
@@ -44,7 +47,7 @@ internal static class TimelineRowsPrSupport
     }
     internal static void Close(AvaloniaWindow window)
     {
-        Settle(window); window.Content = null; window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        window.Content = null; window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
     }
     internal static void Click(AvaloniaWindow window, Control target)
     {
@@ -67,6 +70,22 @@ internal static class TimelineRowsPrSupport
     internal static TurnSummary Summary(Guid turn) => new() { TurnID = turn, Status = TurnStatus.Completed, Duration = 5, FilesChanged = 0, Additions = 0, Deletions = 0 };
 }
 
+// Real overlay popups keep hit testing and pointer input in the headless window.
+internal sealed class TimelineRowsPrPopupPresenter : IPopoverPresenter, IDisposable
+{
+    internal List<(Popup Popup, bool Presented)> Calls { get; } = [];
+    public void SetPresented(Popup popup, bool presented)
+    {
+        Calls.Add((popup, presented));
+        popup.ShouldUseOverlayLayer = true;
+        popup.IsOpen = presented;
+    }
+    public void Dispose()
+    {
+        foreach (var popup in Calls.Select(call => call.Popup).Distinct()) popup.IsOpen = false;
+    }
+}
+
 // Counts the real Derived constructor's walks without adding counters or callbacks to production.
 internal sealed class TimelineRowsPrCountedEntries : IList<TimelineEntry>
 {
@@ -81,8 +100,9 @@ internal sealed class TimelineRowsPrCountedEntries : IList<TimelineEntry>
     }
     public IEnumerator<TimelineEntry> GetEnumerator()
     {
-        if (new StackTrace().GetFrames().Any(frame => frame.GetMethod()?.DeclaringType?.Name == "Derived"
-            && frame.GetMethod()?.Name == ".ctor")) Derivations++;
+        var caller = new StackTrace().GetFrames().Select(frame => frame.GetMethod())
+            .FirstOrDefault(method => method?.DeclaringType?.Assembly == typeof(Marrow.App.Views.Chat.TurnFinishedBlock).Assembly);
+        if (caller?.DeclaringType?.Name == "Derived" && caller.Name == ".ctor") Derivations++;
         return entries.GetEnumerator();
     }
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

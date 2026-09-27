@@ -93,18 +93,23 @@ public sealed class TimelineRowsPrDerivationTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var h = Harness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            TurnFinishedBlock? block = null;
+            Avalonia.Controls.Window? window = null;
+            var entries = new TimelineRowsPrCountedEntries([Reply("```\nanswer\n```")]);
+            try
+            {
             h.Main.OnMain(() =>
             {
                 var turn = Guid.NewGuid();
-                var entries = new TimelineRowsPrCountedEntries([Reply("```\nanswer\n```")]);
-                var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty,
+                block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty,
                     entries.AsValueList(), null, false, false);
                 Assert.Null(Field(block, "derived"));
                 var cold = Invoke(block, "DerivedFor", false);
                 Assert.Equal(1, entries.Derivations);
                 // :2513-2514 "Written after the body ... never in it"; :2704-2706 onChange stores it.
                 Assert.Null(Field(block, "derived"));
-                var window = Show(block);
+                window = Show(block);
                 Assert.NotNull(Field(block, "derived"));
                 Assert.Equal(2, entries.Derivations);
                 var cached = Invoke(block, "DerivedFor", false);
@@ -120,17 +125,21 @@ public sealed class TimelineRowsPrDerivationTests(HeadlessSession headless)
                 var header = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Button>(block)
                     .Single(button => Equals(Avalonia.Controls.ToolTip.GetTip(button), "Show this turn's steps"));
                 Click(window, header);
-                h.Main.RunUntilIdle(); Settle(window);
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
                 Assert.Equal(4, entries.Derivations);
-                var expanded = Invoke(block, "DerivedFor", true);
-                Assert.Same(expanded, Invoke(block, "DerivedFor", true));
+                var expanded = Invoke(block!, "DerivedFor", true);
+                Assert.Same(expanded, Invoke(block!, "DerivedFor", true));
                 Assert.Equal(4, entries.Derivations);
                 // Equal text in a different entry is a DIFFERENT identity (DerivedKey.ids).
                 entries[0] = Reply("```\nanswer\n```");
-                Assert.NotSame(expanded, Invoke(block, "DerivedFor", true));
+                Assert.NotSame(expanded, Invoke(block!, "DerivedFor", true));
                 Assert.Equal(5, entries.Derivations);
-                Close(window);
             });
+            }
+            finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
         });
     }
 

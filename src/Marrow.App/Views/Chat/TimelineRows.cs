@@ -3111,10 +3111,12 @@ public sealed class TurnFinishedBlock : Decorator
         Control? middle = null;
         (bool ShowsBody, bool Expanded)? middleKey = null;
         FileChangeSummary? shownChanges = null;
+        Derived? rendered = null;
         stack.Track(() => (state.IsExpanded, state.LegacyChanges), value =>
         {
             var (expanded, legacy) = value;
             var turn = DerivedFor(expanded); // :2590-2591
+            rendered = turn;
             var showsHeads = turn.HeadEntries.Count != 0; // :2592
             var changes = summary.Changes ?? legacy; // :2593-2595 the files as the turn's own diff saw them, or as worked out once
             var hasFiles = changes is { Files.Count: > 0 }; // :2596
@@ -3157,11 +3159,19 @@ public sealed class TurnFinishedBlock : Decorator
             }
         });
 
+        // :2703-2706 .onChange(of: key, initial: true): store the value the body just computed,
+        // after the render callback; DerivedFor itself only reads the previously committed cache.
+        stack.Track(() => new DerivedKey(content.ToArray(), state.IsExpanded), key =>
+        {
+            if (rendered is not null && (derived is null || !derived.Value.Key.Equals(key)))
+                derived = (key, rendered);
+        });
+
         // :2707-2714 .task(id: turnID): a turn recorded before per-file summaries existed has its changes worked out once
         // and stored back.
         this.Task(() => turnID, async _ =>
         {
-            if (summary.Changes is not null || !(summary.FilesChanged > 0 || DerivedFor(state.IsExpanded).HasEdits)) return; // :2708
+            if (summary.Changes is not null || !(summary.FilesChanged > 0 || rendered?.HasEdits == true)) return; // :2708
             var files = await runtime.ParsedDiff(selection: turnID); // :2709
             if (SwiftTask.IsCancelled) return; // :2710
             var changes = FileChangeSummaryDiff.Create(files); // :2711 FileChangeSummary(files:)
@@ -3296,11 +3306,9 @@ public sealed class TurnFinishedBlock : Decorator
     // :2590-2591, :2704-2706 the derivation for this fold, read back while the key holds.
     private Derived DerivedFor(bool expanded)
     {
-        var key = new DerivedKey(content, expanded);
+        var key = new DerivedKey(content.ToArray(), expanded);
         if (derived is { } cached && cached.Key.Equals(key)) return cached.Value;
-        var value = new Derived(content, expanded);
-        derived = (key, value);
-        return value;
+        return new Derived(content, expanded);
     }
 
     /// <summary>:2516-2521 <c>private struct DerivedKey: Equatable</c>: which entries the turn holds (each a class, so
