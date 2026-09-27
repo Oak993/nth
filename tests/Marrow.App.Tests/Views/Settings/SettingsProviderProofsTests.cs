@@ -157,7 +157,8 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     {
         var button = Assert.Single(Nodes<Button>(row)); var text = Assert.Single(Nodes<TextBlock>(button)); Assert.Equal(label, text.Text); Assert.Equal(16, text.Height); // :724,743,754
         var glass = Assert.Single(Nodes<Control>(row), x => SwiftGlass.GetEffect(x) is not null); var effect = SwiftGlass.GetEffect(glass)!;
-        Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style); Assert.True(effect.IsInteractive); // Chrome.swift:126-131 / ED-180
+        Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style); Assert.True(effect.IsInteractive); Assert.Equal(0.3, effect.TintOpacity);
+        Assert.Equal(button.FontFamily, text.FontFamily); Assert.Equal(button.FontSize, text.FontSize); // Chrome.swift:126-131 / ED-180
         return button;
     }
     // Tests-first reflection: minimal endpoint boundary, default identity; HTTP and parsing stay production.
@@ -205,9 +206,11 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     [Trait("Req", "UI-PROVREG-003")] // App/Views/Settings/SettingsView.swift:254-255,585-614: scrolling keeps every eager card mounted.
     public void Refresh_is_the_only_probe_and_is_symbol_only_disabled_and_single_flight() => WithView(() => new SettingsView(), (view, model, h) =>
     {
+        SettingsNavigation.Shared.RequestedPage = SettingsPage.General; Sync(); Assert.Empty(Nodes<ProvidersRefreshButton>(view));
         Assert.Empty(model.Providers.Statuses); SettingsNavigation.Shared.RequestedPage = SettingsPage.Providers; Sync();
         Layout(view); Assert.Empty(model.Providers.Statuses);
-        var scroll = Nodes<ScrollViewer>(Field<Control>(view, "detail")).Single(); scroll.Offset = new Vector(0, 240); Layout(view); Assert.True(scroll.Offset.Y > 0); Assert.Equal(14, Nodes<ProviderSettingsSection>(view).Length); Assert.Empty(model.Providers.Statuses);
+        var scroll = Nodes<ScrollViewer>(Field<Control>(view, "detail")).Single(); var scrollWindow = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(scroll)); Layout(scroll); using var scrollFrame = scrollWindow.CaptureRenderedFrame();
+        var wheelPoint = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), scrollWindow)!.Value; Assert.NotNull(scrollWindow.InputHitTest(wheelPoint)); scrollWindow.MouseMove(wheelPoint); scrollWindow.MouseWheel(wheelPoint, new Vector(0, -3)); Layout(view); Assert.True(scroll.Offset.Y > 0, $"Wheel hit {scrollWindow.InputHitTest(wheelPoint)?.GetType().Name}; extent={scroll.Extent}, viewport={scroll.Viewport}, presenter={scroll.GetVisualDescendants().OfType<ScrollContentPresenter>().Single().Offset}."); Assert.Equal(14, Nodes<ProviderSettingsSection>(view).Length); Assert.Empty(model.Providers.Statuses);
         var refresh = Assert.Single(Nodes<ProvidersRefreshButton>(view)); Assert.Single(Nodes<ChromeCapsule>(refresh)); Assert.Single(Nodes<ChromeIconButton>(refresh)); Assert.Empty(Text(refresh));
         var symbol = Assert.Single(Nodes<SwiftImage>(refresh)); Assert.Equal("arrow.clockwise", symbol.SymbolName); Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), SwiftImage.GetFont(symbol));
         Assert.Single(Nodes<Border>(refresh), x => x.Padding == new Thickness(3, 2));
@@ -309,9 +312,10 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     [Trait("Req", "UI-PROVREG-040")] // App/Views/Settings/SettingsView.swift:719-728
     public void Native_API_and_key_rows_have_all_metrics_gates_colors_and_literal_links(ProviderKind provider, string source, string host, string url) => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
+        var name = provider switch { ProviderKind.Deepseek => "DeepSeek", ProviderKind.Meta => "Meta", ProviderKind.Zai => "Z.ai", _ => throw new UnreachableException() }; // Provider.swift:29-31 literal display names
         var section = Section(view, provider); Collapsed(section, true); Assert.Single(Labels(section).Children); Open(section, h); HeaderMetrics(section);
         var key = Row(section, "API key"); RowMetrics(key, "API key", $"Stored in your Credential Manager. Get one at {source}."); PrecededByDivider(key);
-        var get = Row(section, "Get a key"); RowMetrics(get, "Get a key", provider.DisplayName + " needs an API key. Nothing to install."); PrecededByDivider(get); var link = GlassLink(get, "Get a " + provider.DisplayName + " key");
+        var get = Row(section, "Get a key"); RowMetrics(get, "Get a key", name + " needs an API key. Nothing to install."); PrecededByDivider(get); var link = GlassLink(get, "Get a " + name + " key");
         string? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(value => { opened = value.AbsoluteString; return true; }); Click(link); Assert.Equal(url, opened);
         Seed(model, provider, new ProviderStatus { ApiKeyConfigured = true, IsChecking = true, Version = "API", ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync();
         Assert.DoesNotContain("Get a key", Text(section)); Assert.DoesNotContain("Version API", Text(section));
@@ -341,7 +345,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             var field = Nodes<TextBox>(row).Single(); Assert.Equal(200, field.Width); Assert.Equal(12, field.FontSize); Assert.Equal("sk-…", field.PlaceholderText); Assert.Equal(SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Resolve().FontFamily, field.FontFamily);
             var pair = Nodes<StackPanel>(row).Single(x => x.Orientation == Orientation.Horizontal); Assert.Equal(8, pair.Spacing); Assert.Same(field, pair.Children[0]); var eye = Assert.IsType<Button>(pair.Children[1]); Assert.Equal(new Thickness(0), eye.BorderThickness); Assert.Equal(new Thickness(0), eye.Padding); Assert.DoesNotContain(Nodes<Control>(eye), x => SwiftGlass.GetEffect(x) is not null);
             var image = Assert.Single(Nodes<SwiftImage>(eye)); Assert.Equal("eye", image.SymbolName); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(image)); ColorIs(image, image.Foreground, SwiftColor.LabelColor.Opacity(0.7)); Assert.Equal("Show the API key", ToolTip.GetTip(eye));
-            field.Text = "fixture-key-never-sent"; Sync(); Assert.Equal("fixture-key-never-sent", model.Settings.ApiKeyInput(provider)); var presenter = Assert.Single(field.GetVisualDescendants().OfType<TextPresenter>()); Assert.Equal('•', presenter.PasswordChar);
+            PointerClick(field); Assert.True(field.Focus()); Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(field)).KeyTextInput("fixture-key-never-sent"); Sync(); Assert.Equal("fixture-key-never-sent", model.Settings.ApiKeyInput(provider)); var presenter = Assert.Single(field.GetVisualDescendants().OfType<TextPresenter>()); Assert.Equal('•', presenter.PasswordChar);
             Click(eye); Sync(); Assert.Equal('\0', presenter.PasswordChar); Assert.Equal("Hide the API key", ToolTip.GetTip(eye)); Assert.Equal("eye.slash", Nodes<SwiftImage>(eye).Single().SymbolName); Assert.Equal(SwiftFont.System(12), SwiftImage.GetFont(Nodes<SwiftImage>(eye).Single())); ColorIs(Nodes<SwiftImage>(eye).Single(), Nodes<SwiftImage>(eye).Single().Foreground, SwiftColor.LabelColor.Opacity(0.7));
             field.Text = ""; Sync(); Close(section, h); shown.Add(eye); // Empty key replaces debounce, no credential leaves fixture.
         }
@@ -373,6 +377,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     public void Every_CLI_install_and_login_row_has_literal_text_glass_gates_and_real_terminal_callback() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
         var urls = new[] { "https://developers.openai.com/codex/cli", "https://claude.com/product/claude-code", "https://cursor.com/cli", "https://opencode.ai", "https://opencode.ai", "https://x.ai/cli", "https://cli.devin.ai", "https://antigravity.google/docs/cli/overview", "https://github.com/github/copilot-cli", "https://commandcode.ai/docs/quickstart", "https://pi.dev/docs/latest" };
+        var names = new[] { "Codex", "Claude", "Cursor", "OpenCode Zen", "OpenCode Go", "Grok", "Devin", "Antigravity", "Copilot", "Command Code", "Pi" }; // Provider.swift:21-38
         var commands = new[] { "codex login", "claude auth login", "cursor-agent login", "opencode auth login", "opencode auth login", "grok login", "devin auth login", "agy", "copilot login", "cmd login", "pi" };
         var launches = new List<(string, string[], string?, bool)>(); using var workspace = Marrow.UI.Common.Workspace.Platform.Override(new Marrow.UI.Common.Workspace.Backend { Home = @"C:\fixture home", Which = name => name == "pwsh.exe" ? @"C:\fixture\pwsh.exe" : name == "wt.exe" ? @"C:\fixture\wt.exe" : null, Launch = (exe, args, cwd, console) => launches.Add((exe, args.ToArray(), cwd, console)) });
         string? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(value => { opened = value.AbsoluteString; return true; });
@@ -380,7 +385,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         for (var i = 0; i < cli.Length; i++)
         {
             var provider = cli[i]; var section = Section(view, provider); Collapsed(section, true); Open(section, h);
-            var install = Row(section, "Install"); RowMetrics(install, "Install", provider.DisplayName + " was not found on your PATH."); PrecededByDivider(install); Assert.DoesNotContain("Sign in", Text(section)); Click(GlassLink(install, "Get " + provider.DisplayName)); Assert.Equal(urls[i], opened);
+            var install = Row(section, "Install"); RowMetrics(install, "Install", names[i] + " was not found on your PATH."); PrecededByDivider(install); Assert.DoesNotContain("Sign in", Text(section)); Click(GlassLink(install, "Get " + names[i])); Assert.Equal(urls[i], opened);
             foreach (var auth in new ProviderStatus.Auth[] { new ProviderStatus.Auth.Unknown(), new ProviderStatus.Auth.SignedOut() })
             {
                 Seed(model, provider, new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/missing-cli"), ProviderStatusAuth = auth }); Sync(); Assert.DoesNotContain("Install", Text(section)); var login = Row(section, "Sign in"); RowMetrics(login, "Sign in", "Click here to login again."); PrecededByDivider(login); var button = GlassLink(login, "Login"); Assert.True(button.IsEffectivelyEnabled); Click(button); var launch = launches.Last();
@@ -448,7 +453,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     public void Zai_usage_reads_real_quota_and_cards_throttles_and_posts_reset_before_two_second_reread() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
         var mode = 0;
-        using var server = new SettingsProviderProofServer(request => request.Target.Contains("/use", StringComparison.Ordinal) ? CannedResponse.Json("""{"code":200,"success":true}""") : request.Target.Contains("/list", StringComparison.Ordinal) ? mode == 1 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Cards) : mode == 2 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Quota));
+        using var server = new SettingsProviderProofServer(request => request.Target.Contains("/use", StringComparison.Ordinal) ? CannedResponse.Json("""{"code":200,"success":true}""") : request.Target.Contains("/list", StringComparison.Ordinal) ? mode == 1 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(Cards) : mode == 2 ? CannedResponse.Plain(503, "Unavailable") : CannedResponse.Json(mode == 3 ? Quota.Replace("\"usage\":100,", "\"usage\":1000000.4,", StringComparison.Ordinal).Replace("\"currentValue\":25", "\"currentValue\":250000.4", StringComparison.Ordinal).Replace("\"usage\":40,", "\"usage\":40000.4,", StringComparison.Ordinal).Replace("\"currentValue\":10", "\"currentValue\":10000.4", StringComparison.Ordinal) : Quota));
         using var endpoints = Endpoints(typeof(ZaiAPI), server.Url);
         model.Settings.SetAPIKeyInput("fixture-key-never-sent", ProviderKind.Zai);
         Seed(model, ProviderKind.Zai, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync();
@@ -458,7 +463,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Assert.Contains("Plan usage limits · Coding Plan Pro", Text(section));
         foreach (var text in new[] { "5-hour limit", "Weekly", "Monthly · MCP tools", "25 of 100 credits", "50 of 200 credits", "10 of 40 calls", "Resets the 5-hour limit", "Resets the weekly limit" }) Assert.Contains(text, Text(section));
         Assert.Equal(2, Nodes<BankedResetRow>(section).Length); Assert.Equal(new[] { "FIVE_HOUR:1", "WEEK:3" }, model.Providers.PlanLimits[ProviderKind.Zai].PlanLimitsResetCredits!.Credits.Select(x => x.Id));
-        var initial = server.Requests.Count;
+        var initial = server.Requests.Count; Assert.Equal(2, initial);
         Close(section, h); Open(section, h); Assert.Equal(initial, server.Requests.Count);
         Seed(model, ProviderKind.Zai, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync(); Assert.Empty(Nodes<PlanLimitsView>(section));
         Seed(model, ProviderKind.Zai, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.Unknown() }); Sync(); Assert.Single(Nodes<PlanLimitsView>(section)); Assert.Equal(initial, server.Requests.Count);
@@ -470,12 +475,20 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         var quotaBefore = server.Requests.Count(x => x.Target.Contains("/quota/", StringComparison.Ordinal));
         var clock = new SettingsProviderProofClock(h.Main.Time); using var recordedClock = SwiftClock.Provider.Override(clock);
         Click(Nodes<Button>(section).Single(x => Equals(x.Content, "Reset now"))); Sync();
-        Wait(() => server.Requests.Any(x => x.Method == "POST") && clock.Durations.Contains(TimeSpan.FromSeconds(2)));
+        Wait(() => server.Requests.Any(x => x.Method == "POST") && clock.Durations.Any()); Assert.Contains(TimeSpan.FromSeconds(2), clock.Durations);
         using var body = JsonDocument.Parse(server.PostBody!); Assert.Equal("PERSONAL", body.RootElement.GetProperty("targetType").GetString()); Assert.Equal("FIVE_HOUR", body.RootElement.GetProperty("resetType").GetString()); Assert.Equal(1, body.RootElement.GetProperty("recordId").GetInt32()); Assert.True(Guid.TryParse(body.RootElement.GetProperty("requestId").GetString(), out _));
         var post = server.Requests.Single(x => x.Method == "POST"); Assert.Equal("/api/biz/customer-package-reset/use", post.Target); Assert.Equal(new[] { "Bearer fixture-key-never-sent" }, post.HeaderValues("Authorization"));
         // :178-180: actual production sleeper must retain the old quota for 1999 ms, then read at 2000 ms.
         Frames(h, 1999); Assert.Equal(quotaBefore, server.Requests.Count(x => x.Target.Contains("/quota/", StringComparison.Ordinal))); Assert.NotNull(model.Providers.RedeemingReset);
         Frames(h, 1); Wait(() => server.Requests.Count(x => x.Target.Contains("/quota/", StringComparison.Ordinal)) == quotaBefore + 1 && model.Providers.RedeemingReset is null);
+        mode = 3; var savedCulture = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("de-DE");
+            model.Providers.RefreshPlanLimits(ProviderKind.Zai, force: true); Wait(() => !model.Providers.LoadingLimits.Contains(ProviderKind.Zai));
+            Assert.Contains("250,000 of 1,000,000 credits", Text(section)); Assert.Contains("10,000 of 40,000 calls", Text(section));
+        }
+        finally { System.Globalization.CultureInfo.CurrentCulture = savedCulture; }
         mode = 1; model.Providers.RefreshPlanLimits(ProviderKind.Zai, force: true); Wait(() => !model.Providers.LoadingLimits.Contains(ProviderKind.Zai)); Assert.Empty(Nodes<BankedResetRow>(section)); Assert.Null(model.Providers.PlanLimits[ProviderKind.Zai].PlanLimitsResetCredits);
         // Nil quota has no meters; shared UsageViews.swift:66-68 retains its informative empty-state line.
         typeof(ProviderRegistry).GetProperty("PlanLimits")!.SetValue(model.Providers, ValueMap<ProviderKind, PlanLimits>.Empty); mode = 2; model.Providers.RefreshPlanLimits(ProviderKind.Zai, force: true); Wait(() => !model.Providers.LoadingLimits.Contains(ProviderKind.Zai)); Assert.Empty(Nodes<LimitRow>(section)); Assert.Empty(Nodes<BankedResetRow>(section));
@@ -492,13 +505,14 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         model.Settings.SetAPIKeyInput("fixture-key-never-sent", ProviderKind.Deepseek);
         Seed(model, ProviderKind.Deepseek, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Wait(() => model.Providers.Credits.ContainsKey(ProviderKind.Deepseek) && !model.Providers.LoadingCredits.Contains(ProviderKind.Deepseek));
         var section = Section(view, ProviderKind.Deepseek); Collapsed(section, false); UsageMetrics(section); Assert.Contains("Remaining credits", Text(section)); Assert.Contains("$12.34", Text(section)); Assert.Contains("Topped up $10.00 · Granted $2.34", Text(section)); // ProviderCredits.swift:23-49
-        var count = server.Requests.Count; Close(section, h); Open(section, h); Assert.Equal(count, server.Requests.Count);
+        var count = server.Requests.Count; Assert.Equal(1, count); Close(section, h); Open(section, h); Assert.Equal(count, server.Requests.Count);
         Seed(model, ProviderKind.Deepseek, model.Providers.Status(ProviderKind.Deepseek) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync(); Assert.Empty(Nodes<CreditsView>(section));
         Seed(model, ProviderKind.Deepseek, model.Providers.Status(ProviderKind.Deepseek) with { ProviderStatusAuth = new ProviderStatus.Auth.Unknown() }); Sync(); Assert.Equal(count, server.Requests.Count);
         // Real validation entry point triggers an immediate forced balance read even within the minute gate.
         var valid = model.Providers.Refresh(ProviderKind.Deepseek); Wait(() => valid.IsCompleted && !model.Providers.LoadingCredits.Contains(ProviderKind.Deepseek)); valid.GetAwaiter().GetResult(); Assert.Equal(2, server.Requests.Count(x => x.Target == "/user/balance")); Assert.Contains("$12.34", Text(section));
         reject = true; var invalid = model.Providers.Refresh(ProviderKind.Deepseek); Wait(() => invalid.IsCompleted); invalid.GetAwaiter().GetResult(); Assert.False(model.Providers.Credits.ContainsKey(ProviderKind.Deepseek)); Assert.Empty(Nodes<CreditsView>(section)); Assert.DoesNotContain("$12.34", Text(section));
         reject = false; unreachable = true; Seed(model, ProviderKind.Deepseek, model.Providers.Status(ProviderKind.Deepseek) with { ProviderStatusAuth = new ProviderStatus.Auth.Unknown() }); Sync(); model.Providers.RefreshCredits(ProviderKind.Deepseek, force: true); Wait(() => !model.Providers.LoadingCredits.Contains(ProviderKind.Deepseek)); Assert.DoesNotContain("$12.34", Text(section));
+        unreachable = false; model.Providers.RefreshCredits(ProviderKind.Deepseek, force: true); Wait(() => !model.Providers.LoadingCredits.Contains(ProviderKind.Deepseek)); Assert.Contains("$12.34", Text(section));
         model.Settings.SetAPIKeyInput("", ProviderKind.Deepseek); model.Providers.RefreshCredits(ProviderKind.Deepseek, force: true); Sync(); Assert.False(model.Providers.Credits.ContainsKey(ProviderKind.Deepseek)); Assert.DoesNotContain("$12.34", Text(section));
         Close(section, h);
     });
@@ -599,17 +613,28 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Seed(model, ProviderKind.Commandcode, new ProviderStatus { ApiKeyConfigured = true, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync();
         Wait(() => model.Providers.PlanLimits.ContainsKey(ProviderKind.Commandcode) && model.Providers.Credits.ContainsKey(ProviderKind.Commandcode) && !model.Providers.LoadingLimits.Contains(ProviderKind.Commandcode) && !model.Providers.LoadingCredits.Contains(ProviderKind.Commandcode));
         Assert.Equal(2, server.Requests.Count(x => x.Target == "/alpha/billing/credits")); Assert.Single(server.Requests, x => x.Target == "/alpha/billing/subscriptions");
-        var host = Assert.IsType<Border>(view.Parent); host.Child = new ProvidersSettingsPage(); Sync(); Layout(host);
+        var host = Assert.IsType<Border>(view.Parent); host.Child = null; Sync();
+        Frames(h, 60_000); Assert.Equal(3, server.Requests.Count);
+        host.Child = new ProvidersSettingsPage(); Sync(); Layout(host);
+        Assert.True(model.Providers.LoadingLimits.Contains(ProviderKind.Commandcode) || server.Requests.Count >= 5, "A shown initial usage block starts its limits read.");
+        Assert.True(model.Providers.LoadingCredits.Contains(ProviderKind.Commandcode) || server.Requests.Count >= 6, "A shown initial usage block starts its credits read.");
+        Wait(() => server.Requests.Count == 6 && !model.Providers.LoadingLimits.Contains(ProviderKind.Commandcode) && !model.Providers.LoadingCredits.Contains(ProviderKind.Commandcode));
+        var fetched = h.Main.Time.GetUtcNow(); Assert.Equal(4, server.Requests.Count(x => x.Target == "/alpha/billing/credits")); Assert.Equal(2, server.Requests.Count(x => x.Target == "/alpha/billing/subscriptions"));
         var section = Section(host, ProviderKind.Commandcode); Collapsed(section, false); UsageMetrics(section);
-        var usage = Nodes<StackPanel>(section).Single(x => x.Spacing == 14); Assert.IsType<PlanLimitsView>(usage.Children[0]); Assert.IsType<CreditsView>(usage.Children[1]); Assert.Equal(3, server.Requests.Count);
-        Close(section, h); Open(section, h); Assert.Equal(3, server.Requests.Count);
+        var usage = Nodes<StackPanel>(section).Single(x => x.Spacing == 14); Assert.IsType<PlanLimitsView>(usage.Children[0]); Assert.IsType<CreditsView>(usage.Children[1]); Assert.Equal(6, server.Requests.Count);
+        Close(section, h); Open(section, h); Assert.Equal(6, server.Requests.Count);
         Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync();
-        Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Assert.Equal(3, server.Requests.Count);
-        Frames(h, 60_000);
+        Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync(); Assert.Equal(6, server.Requests.Count);
+        Frames(h, 59_999 - (h.Main.Time.GetUtcNow() - fetched).TotalMilliseconds);
         Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync();
         Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync();
-        Wait(() => server.Requests.Count == 6 && !model.Providers.LoadingLimits.Contains(ProviderKind.Commandcode) && !model.Providers.LoadingCredits.Contains(ProviderKind.Commandcode));
-        Assert.Equal(4, server.Requests.Count(x => x.Target == "/alpha/billing/credits")); Assert.Equal(2, server.Requests.Count(x => x.Target == "/alpha/billing/subscriptions"));
+        Wait(() => !model.Providers.LoadingLimits.Contains(ProviderKind.Commandcode) && !model.Providers.LoadingCredits.Contains(ProviderKind.Commandcode)); Assert.Equal(6, server.Requests.Count);
+        Frames(h, 1);
+        Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); Sync();
+        Seed(model, ProviderKind.Commandcode, model.Providers.Status(ProviderKind.Commandcode) with { ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }); Sync();
+        Assert.True(model.Providers.LoadingLimits.Contains(ProviderKind.Commandcode) || server.Requests.Count >= 8); Assert.True(model.Providers.LoadingCredits.Contains(ProviderKind.Commandcode) || server.Requests.Count >= 9);
+        Wait(() => server.Requests.Count == 9 && !model.Providers.LoadingLimits.Contains(ProviderKind.Commandcode) && !model.Providers.LoadingCredits.Contains(ProviderKind.Commandcode));
+        Assert.Equal(6, server.Requests.Count(x => x.Target == "/alpha/billing/credits")); Assert.Equal(3, server.Requests.Count(x => x.Target == "/alpha/billing/subscriptions"));
         Assert.All(server.Requests, x => Assert.Equal(new[] { "Bearer fixture-command-key" }, x.HeaderValues("Authorization")));
     });
 
