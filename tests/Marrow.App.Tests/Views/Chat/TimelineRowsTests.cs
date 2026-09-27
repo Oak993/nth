@@ -41,6 +41,38 @@ namespace Marrow.App.Tests.Views.Chat;
 public sealed class TimelineRowsTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Req", "UI-CHAT-033")] // App/Views/Chat/TimelineRows.swift:2356-2369
+    public void Checklist_symbols_share_the_first_text_baseline_with_their_steps()
+    {
+        headless.OnUiThread(() => { using var actor = new TestRuntime(); actor.OnMain(() => {
+            var row = new TodoListRow(new TimelineEntry(new TimelineItem(null, Steps(("first line\nsecond line", TodoStep.Status.Active))))) { Width = 350 };
+            var window = Show(row);
+            var label = TextNamed(row, "first line\nsecond line");
+            var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(image => image.SymbolName == "circle.dotted.circle");
+            var a = label.TranslatePoint(default, row)!.Value.Y + label.TextLayout.TextLines[0].Baseline;
+            var b = glyph.TranslatePoint(default, row)!.Value.Y + TextBlock.GetBaselineOffset(glyph);
+            Assert.Equal(a, b, 5);
+            Close(window);
+        }); });
+    }
+    [Fact]
+    [Trait("Req", "PR-CHAT-154")] // App/Views/Chat/TimelineRows.swift:1958-1973
+    public void Head_tool_steps_have_two_wrapping_lines_with_a_constrained_text_column()
+    {
+        headless.OnUiThread(() => { using var actor = new TestRuntime(); actor.OnMain(() => {
+            var entry = ToolEntry(Call(ToolCall.Kind.Read, string.Join(" ", Enumerable.Repeat("a long source path", 15))));
+            var view = Assert.IsAssignableFrom<Control>(InvokeStatic(typeof(HydraHeadStepsPopover), "Step", entry));
+            view.Width = 300;
+            var window = Show(view);
+            var label = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(view));
+            Assert.Equal(TextWrapping.Wrap, label.TextWrapping);
+            Assert.Equal(2, label.MaxLines);
+            Assert.True(label.Bounds.Width <= 300 - TimelineMetrics.IconWidth - TimelineMetrics.IconSpacing);
+            Close(window);
+        }); });
+    }
+
+    [Fact]
     [Trait("Req", "UI-GIT-047")] // App/Views/Chat/TimelineRows.swift:2777-2798
     public void Git_confirmation_UI_is_close_first_with_default_Revert_pending_only_small_size_STOP_5() => The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts();
     [Fact]
