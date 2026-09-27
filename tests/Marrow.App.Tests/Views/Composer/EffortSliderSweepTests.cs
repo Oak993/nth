@@ -316,6 +316,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     // App/Views/Composer/EffortSlider.swift:1070-1071; partial source proof, whole record remains STOP #2.
     public void Track_effect_never_hit_tests_and_is_hidden_from_assistive_tech()
     {
@@ -1027,6 +1028,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     // App/Views/Composer/EffortSlider.swift:1024-1026; source identity only, capture verification remains STOP #1.
     public void Pair_kind_changes_preserve_the_effect_instance_and_its_clock_origin()
     {
@@ -1142,6 +1144,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Theory]
+    [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     // App/Views/Composer/EffortSlider.swift:986-988: pair fill is brand + pair.colors for EVERY kind; STOP #4.
     [InlineData(TrackLook.Kind.Plain)]
     [InlineData(TrackLook.Kind.Supercharged)]
