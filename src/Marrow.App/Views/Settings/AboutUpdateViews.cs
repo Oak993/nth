@@ -32,6 +32,53 @@ namespace Marrow.App.Views.Settings;
 // :280, :755 ScrollView needs a real presenter even without an application-wide control theme.
 internal static class AboutUpdateScroll
 {
+    // Round 3: :749-762 carries no .scrollIndicators modifier, unlike the sites this presenter/gesture recipe is
+    // otherwise shared with (SidebarView :139 and ThreadTimeline :363 .scrollIndicators(.never); MCPSettingsPage
+    // :781-787's TextEditor is likewise hidden; this template's own popover use at VerticalScrollBarVisibility.Hidden),
+    // so SwiftUI keeps the platform default (visible-while-scrolling) indicator there. Avalonia's own ScrollBar
+    // self-binds Value/Maximum/ViewportSize/Visibility from the ScrollViewer that owns a "PART_VerticalScrollBar"
+    // named part (Avalonia.Controls.Primitives.ScrollBar.AttachToScrollViewer, confirmed by decompiling
+    // Avalonia.Controls 12.1.2 -- no XAML/source ships with the package). The app has no application-wide control
+    // theme to give that ScrollBar a stock visual (see MCPSettingsPage.EditorScrollTemplate; OD-0001 also makes any
+    // native scroll-indicator appearance UNVERIFIED regardless of which theme supplied it), so its own template
+    // here is the smallest real indicator: a track-width bar sized and positioned from the ScrollBar's own bound
+    // range. ENGINEERING DECISION: the bar's thickness, colour and 24px minimum thumb length are not sourced from
+    // the Swift; they exist only so the indicator that :752's default asks for is not literally invisible.
+    private static readonly FuncControlTemplate<ScrollBar> IndicatorTemplate = new((bar, scope) =>
+    {
+        var thumb = new Border
+        {
+            Name = "PART_Thumb",
+            Width = 3,
+            CornerRadius = new CornerRadius(1.5),
+            Background = new SolidColorBrush(Color.FromArgb(140, 128, 128, 128)),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+            IsHitTestVisible = false,
+            IsVisible = false,
+        };
+        void Update()
+        {
+            var viewport = bar.ViewportSize;
+            var maximum = bar.Maximum;
+            var extent = maximum + viewport;
+            var trackHeight = bar.Bounds.Height;
+            if (double.IsNaN(viewport) || extent <= 0 || trackHeight <= 0) { thumb.IsVisible = false; return; }
+            var barHeight = Math.Clamp(trackHeight * (viewport / extent), Math.Min(24, trackHeight), trackHeight);
+            var barOffset = maximum > 0 ? (trackHeight - barHeight) * (bar.Value / maximum) : 0;
+            thumb.IsVisible = true;
+            thumb.Height = barHeight;
+            thumb.Margin = new Thickness(0, barOffset, 0, 0);
+        }
+        bar.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == RangeBase.ValueProperty || e.Property == RangeBase.MaximumProperty ||
+                e.Property == ScrollBar.ViewportSizeProperty || e.Property == Visual.BoundsProperty)
+                Update();
+        };
+        return thumb.RegisterInNameScope(scope);
+    });
+
     public static readonly FuncControlTemplate<ScrollViewer> Template = new((viewer, scope) =>
     {
         var presenter = new ScrollContentPresenter
@@ -41,7 +88,20 @@ internal static class AboutUpdateScroll
             [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty],
         };
         presenter.GestureRecognizers.Add(new ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
-        return presenter.RegisterInNameScope(scope);
+
+        var verticalBar = new ScrollBar
+        {
+            Name = "PART_VerticalScrollBar",
+            Orientation = Orientation.Vertical,
+            Template = IndicatorTemplate,
+            Width = 5,
+            HorizontalAlignment = HorizontalAlignment.Right,
+        };
+
+        var grid = new Grid();
+        grid.Children.Add(presenter.RegisterInNameScope(scope));
+        grid.Children.Add(verticalBar.RegisterInNameScope(scope));
+        return grid;
     });
 }
 
@@ -931,8 +991,23 @@ public sealed class AboutUpdateChromeAccessory : Decorator
 
 internal sealed class AboutIdentityPill : Decorator
 {
-    // :565-566 the fixed capsule must not stretch with its accessory host.
-    protected override Size MeasureOverride(Size availableSize) => PlainControls.MeasureFixed(this, Child, availableSize);
+    // Icon (20) + the HStack's :553 spacing (6) + the capsule's own left/right padding (:560-561, 8+12): the fixed
+    // width the text's row never gives up, so a compressed offer can be translated into the text's own constraint.
+    private const double NonTextWidth = 20 + 6 + (Chrome.CapsuleHorizontalPadding - 4) + Chrome.CapsuleHorizontalPadding;
+
+    private readonly TextBlock text;
+
+    // :566-567 .frame(height:) and the vertical padding fix the height only; there is no .fixedSize here (unlike
+    // AboutVersionPill's :635 fixedSize), so the width is whatever the parent offers, up to the natural width. Avalonia's
+    // horizontal StackPanel measures its children unconstrained on that axis (unlike SwiftUI's HStack, which shrinks a
+    // flexible Text), so the offered width has to be pushed onto the text directly for :562's lineLimit(1) to truncate.
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        text.MaxWidth = double.IsPositiveInfinity(availableSize.Width)
+            ? double.PositiveInfinity
+            : Math.Max(0, availableSize.Width - NonTextWidth);
+        return PlainControls.MeasureFixed(this, Child, availableSize, horizontal: false, vertical: true);
+    }
 
     public AboutIdentityPill()
     {
@@ -945,11 +1020,12 @@ internal sealed class AboutIdentityPill : Decorator
         icon.Height = 20;
         AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
 
-        var text = new TextBlock
+        text = new TextBlock
         {
             Text = $"v{version}",
             MaxLines = 1,
             TextWrapping = TextWrapping.NoWrap,
+            TextTrimming = TextTrimming.CharacterEllipsis, // :562 lineLimit(1) truncates the tail once the capsule is compressed
         };
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(text);
         text.Foreground = Chrome.PrimaryText.Brush(text);
