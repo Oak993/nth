@@ -22,7 +22,6 @@ public sealed class ComponentsSecondTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Req", "PR-USAGE-020")] // DroppyCode/UI/Common/Components.swift:4-14
-    [Trait("Req", "PR-COMPOSER-106")] // DroppyCode/UI/Common/Components.swift:4-14
     public void Provider_marks_are_fitted_at_14_by_default_and_13_when_requested_and_change_with_provider()
     {
         headless.OnUiThread(() =>
@@ -105,7 +104,7 @@ public sealed class ComponentsSecondTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:38-40
+    [Trait("Rule", "R-FMT-2")] // UI/Common/Components.swift:37-41; duration is not part of PR-SIDEBAR-074.
     public void Duration_uses_B3_ICU_units_zero_elision_two_units_and_rounds_half_away_from_zero()
     {
         using var runtime = new TestRuntime();
@@ -118,8 +117,7 @@ public sealed class ComponentsSecondTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-022")] // DroppyCode/UI/Common/Components.swift:58-99
-    [Trait("Req", "PR-SETTINGS-131")] // DroppyCode/UI/Common/Components.swift:58-99
+    [Trait("Rule", "R-VIEW-1")] // UI/Common/Components.swift:56-89; shared style only, caller STOP below.
     public void Chip_style_applies_to_an_existing_Button_and_uses_all_hover_pressed_and_active_states()
     {
         headless.OnUiThread(() =>
@@ -167,7 +165,7 @@ public sealed class ComponentsSecondTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-022")] // DroppyCode/UI/Common/Components.swift:73-84
+    [Trait("Rule", "R-VIEW-1")] // UI/Common/Components.swift:71-79; shared style only, caller STOP below.
     public void Chip_respects_explicit_label_font_inherited_tint_and_capsule_hit_target()
     {
         headless.OnUiThread(() =>
@@ -196,4 +194,85 @@ public sealed class ComponentsSecondTests(HeadlessSession headless)
             finally { window.Close(); }
         });
     }
+    [Fact]
+    [Trait("Rule", "R-VIEW-2")] // UI/Common/Components.swift:64-87; @State survives isActive changes.
+    public void Restyling_active_then_inactive_under_a_stationary_pointer_preserves_the_hover_fill()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var button = new Button { Content = new TextBlock { Text = "Daily" } }.Chip();
+            var enters = 0;
+            button.PointerEntered += (_, _) => enters++;
+            var window = Show(button);
+            try
+            {
+                window.MouseMove(new Point(20, 14), RawInputModifiers.None);
+                runtime.AdvanceMilliseconds(120);
+                frames.Advance(TimeSpan.FromMilliseconds(120));
+                Dispatcher.UIThread.RunJobs();
+                Assert.True(button.IsPointerOver);
+                Assert.Equal(1, enters);
+                var surface = Assert.Single(VisualQuery.Descendants<Border>(button));
+                Assert.Equal(ChromeTokens.PrimaryText.Opacity(0.07).Resolve(surface.ActualThemeVariant), ((ISolidColorBrush)surface.Background!).Color);
+
+                for (var i = 0; i < 3; i++)
+                {
+                    button.Chip(active: true);
+                    Dispatcher.UIThread.RunJobs();
+                    surface = Assert.Single(VisualQuery.Descendants<Border>(button));
+                    Assert.Equal(ChromeTokens.Accent.Opacity(0.16).Resolve(surface.ActualThemeVariant), ((ISolidColorBrush)surface.Background!).Color);
+                    button.Chip(active: false);
+                    Dispatcher.UIThread.RunJobs();
+                    surface = Assert.Single(VisualQuery.Descendants<Border>(button));
+                    Assert.True(button.IsPointerOver);
+                    Assert.Equal(1, enters); // No second PointerEntered may repair the state.
+                    Assert.Equal(ChromeTokens.PrimaryText.Opacity(0.07).Resolve(surface.ActualThemeVariant), ((ISolidColorBrush)surface.Background!).Color);
+                }
+
+                window.MouseMove(new Point(190, 90), RawInputModifiers.None);
+                runtime.AdvanceMilliseconds(120);
+                frames.Advance(TimeSpan.FromMilliseconds(120));
+                Dispatcher.UIThread.RunJobs();
+                Assert.False(button.IsPointerOver);
+                Assert.Equal(0, ((ISolidColorBrush)surface.Background!).Color.A);
+            }
+            finally { window.Close(); }
+        });
+    }
+
+    [Theory]
+    [Trait("Req", "PR-SIDEBAR-074")] // UI/Common/Components.swift:23-33
+    [InlineData("en_US", 4, "Feb 4")]
+    [InlineData("en_GB", 5, "5 Feb")]
+    public void Exactly_604800_seconds_uses_the_locale_month_day_branch(string localeName, int day, string expected)
+    {
+        // :28 is strictly <604800; :31 is .dateTime.month(.abbreviated).day(). Separate dates avoid the
+        // source's intentional date-only cache preserving the first locale's value in the second case.
+        using var runtime = new TestRuntime();
+        using var locale = SwiftFormatters.CurrentLocale.Override(localeName);
+        var date = new DateTimeOffset(2026, 2, day, 12, 0, 0, TimeSpan.Zero);
+        Assert.Equal(expected, runtime.OnMain(() => RelativeTime.Short(date, date.AddSeconds(604800))));
+    }
+
+    // STOP UI.Common.Components #1
+    // Kind: missing caller dependency. Swift: App/Views/Composer/EffortSlider.swift:65-104.
+    // Records: PR-COMPOSER-106.
+    // Missing: the shared ProviderIcon test proves artwork only; EffortSlider's whole model chip remains
+    // unwritten under that unit's STOP #1. Its file is owned by the composer chat, outside this fix's scope.
+    // Needed: caller tests for chipName, pair/fast/effort/chevron composition and unknown-model fallback.
+    // The mark assertions are retained; the misleading PR-COMPOSER-106 trait is removed.
+    //
+    // STOP UI.Common.Components #2
+    // Kind: incomplete owning-section proof. Swift: App/Views/Settings/TokenActivitySection.swift:54-87.
+    // Records: UI-SETTINGS-022, PR-SETTINGS-131.
+    // Missing: shared chip tests do not prove the real mode header; the owning TokenActivitySection.cs also
+    // approximates first-baseline alignment, omits the heading trait, and has no separate .smooth(0.25)
+    // header animation (:59, :87). Correcting that production file belongs to its owning settings unit.
+    // Needed: owner implementation/proofs of those header behaviors and full capsule hit geometry.
+    // ComponentsCallerTests adds real mode selection, all chip fonts/accessibility, guarded same-mode
+    // clicks and reopening on Daily. Those are explicitly partial R-VIEW-2 proofs, not complete Req proofs.
+    // The existing shared assertions are retained under R-VIEW-1, without either full-record Req trait.
 }
