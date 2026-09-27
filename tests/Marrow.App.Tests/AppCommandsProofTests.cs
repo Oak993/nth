@@ -87,6 +87,7 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
                 Settle(settings!);
                 settings.Close();
                 Assert.False(settings!.IsVisible);
+                main.Position = new PixelPoint(120, 100); // Move after initial construction: each chord must re-center.
 
                 launch.Manager.Model.SelectedThreadID = launch.Manager.Model.SidebarThreads[0].Id;
                 // Source :14 takes the live store; default Shortcuts.swift:234 is Command-comma, Ctrl+, (ED-050/099).
@@ -94,11 +95,21 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
                 Settle(settings!);
                 Assert.True(settings.IsVisible);
                 Assert.True(settings!.IsActive); // WindowManager.swift:37,58-59 focuses the requested window.
+                main.Activate();
+                // Headless Activate does not deliver deactivation to the other top-level. Supply the documented
+                // OS callback to establish Settings visible but inactive; production must activate it again.
+                var deactivated = (Action)typeof(Avalonia.Platform.IWindowBaseImpl)
+                    .GetProperty("Deactivated", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)!
+                    .GetValue(settings.PlatformImpl)!;
+                deactivated();
+                Assert.False(settings.IsActive);
+                Press(main, Key.OemComma, PhysicalKey.Comma, RawInputModifiers.Control);
+                Assert.True(settings.IsActive); // Also front an already-visible Settings window, :37,58-59.
                 Assert.Same(settings, LaunchHarness.WindowOf(view));
                 Assert.Equal("archive", input.Text); // :13 requests no page; cached view keeps page/search.
                 Assert.Contains(view.GetVisualDescendants().OfType<Control>(), control => Avalonia.Automation.AutomationProperties.GetName(control) == "No archived threads"); // SettingsView.swift:201-204: actual Archive empty page, not its sidebar label.
                 Assert.Null(SettingsNavigation.Shared.RequestedPage);
-                Assert.Equal(new PixelPoint(370, 220), settings!.Position); // (100+(1320-780)/2,80+(860-580)/2), :48-49.
+                Assert.Equal(new PixelPoint(390, 240), settings!.Position); // (120+(1320-780)/2,100+(860-580)/2), :48-49.
                 NoMenu(main!); NoMenu(settings!);
                 settings.Close();
 
@@ -112,6 +123,7 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
                 Assert.True(settings.IsActive);
                 settings.Close();
 
+                main.Position = new PixelPoint(140, 120); // Palette opens must re-center the same cached window too.
                 palette = new CommandPalette();
                 launch.MainContent.Child = palette;
                 launch.Manager.Model.IsCommandPalettePresented = true;
@@ -135,7 +147,7 @@ public sealed class AppCommandsProofTests(HeadlessSession headless)
                 Assert.Same(settings, LaunchHarness.WindowOf(view));
                 Assert.Equal("archive", input.Text);
                 Assert.Contains(view.GetVisualDescendants().OfType<Control>(), control => Avalonia.Automation.AutomationProperties.GetName(control) == "No archived threads"); // SettingsView.swift:201-204: actual Archive empty page, not its sidebar label.
-                Assert.Equal(new PixelPoint(370, 220), settings.Position);
+                Assert.Equal(new PixelPoint(410, 260), settings.Position); // (140+(1320-780)/2,120+(860-580)/2), WindowManager.swift:48-49.
                 NoMenu(main); NoMenu(settings);
             });
         }
