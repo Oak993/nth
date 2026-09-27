@@ -325,7 +325,8 @@ public sealed class HydraPairListRow : Decorator
     // :384-419 body
     public HydraPairListRow(HydraPair pair, string title, string detail, double rowHeight, bool isSelected, bool isEnabled, Action action)
     {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("18,10,*,12,Auto") };
+        // :386 HStack(spacing:10), :400 Spacer(minLength:12): preserve the gap on EACH side of the spacer.
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("18,10,*,10,12,10,Auto") };
         row.Children.Add(new HydraFusedPairIcon(pair.Provider, pair.HeadsProvider, 16, false) { Width = 18 }); // :387-388
         var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children =
         {
@@ -333,7 +334,7 @@ public sealed class HydraPairListRow : Decorator
             EffortView.Text(detail, SwiftFont.Callout, Chrome.SecondaryText),
         } }; Grid.SetColumn(texts, 2); row.Children.Add(texts); // :389-399
         var check = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.PrimaryText);
-        check.Opacity = isSelected ? 1 : 0; Grid.SetColumn(check, 4); row.Children.Add(check); // :401-405
+        check.Opacity = isSelected ? 1 : 0; Grid.SetColumn(check, 6); row.Children.Add(check); // :401-405
         Child = EffortView.Row(row, rowHeight, isEnabled, action); // :407-419
     }
 }
@@ -930,6 +931,13 @@ internal static class EffortView
         var plate = new Border { Padding = new Thickness(10, 0), Height = height, Child = row }.RoundedRectangle(9, RoundedCornerStyle.Continuous);
         var fill = new AnimatedColor(plate); plate.Background = fill.Brush;
         var button = PlainControls.Button(plate, action); button.IsEnabled = enabled; button.Opacity = enabled ? 1 : 0.45;
+        // :415 .contentShape(.rect): include the unpainted corners outside the rounded hover plate.
+        // The plain template's presenter needs a transparent background to participate in rectangular hit testing.
+        button.TemplateApplied += (_, _) =>
+        {
+            if (button.GetVisualChildren().Single() is Avalonia.Controls.Presenters.ContentPresenter presenter)
+                presenter.Background = Brushes.Transparent;
+        };
         button.OnHover(hovering => fill.Set(hovering && enabled ? Chrome.Overlay(0.1) : SwiftColor.Clear, Chrome.Hover));
         return button;
     }

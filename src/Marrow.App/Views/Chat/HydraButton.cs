@@ -843,6 +843,8 @@ public static class HydraPairSummary
         {
             if (SwiftString.Equal(lead, heads))
                 // :687 lead.capitalized: each word of the lowercased effort title (including "extra high").
+                // UNVERIFIED O-07: invariant TextInfo word boundaries outside the pinned effort titles may
+                // differ from NSString.capitalized; all catalog titles, including "extra high", agree.
                 return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(lead) + " effort";
             return $"Lead {lead}, heads {heads} effort";
         }
