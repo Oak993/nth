@@ -4236,7 +4236,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             forward.Action(); // :2211 Task { await model.forwardThread(thread.id) }
         });
         // AppModel.swift:624-646 awaits document loading and continuation installation before selecting the new thread.
-        harness.Main.Loop.RunUntil(() => model.SelectedThreadID is { } selected && selected != thread.Id, AppModelHarness.Bound);
+        harness.Main.Loop.RunUntil(() =>
+        {
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            return model.SelectedThreadID is { } selected && selected != thread.Id;
+        }, AppModelHarness.Bound);
         harness.Main.OnMain(() => Assert.Equal(2, model.Threads.Count)); // the forward has landed
     });
 
