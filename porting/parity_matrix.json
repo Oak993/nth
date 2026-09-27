@@ -7,9 +7,9 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3612,
+      "IMPLEMENTED": 3613,
       "RETIRED": 15,
-      "SPECIFIED": 337,
+      "SPECIFIED": 336,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
       "DISCOVERED": 6
     },
@@ -7220,7 +7220,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Re-resolve the brush on a theme/appearance change without recreating the visual tree.",
       "verification_method": "interaction test switching light and dark mid-turn",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
