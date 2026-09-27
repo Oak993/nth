@@ -31,7 +31,9 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
     {
         headless.OnUiThread(() =>
         {
-            using var runtime = new TestRuntime();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var time = new ManualTimeProvider(DateTimeOffset.Parse("2026-09-27T00:00:00Z"));
+            using var timeScope = SwiftClock.Provider.Override(time);
             using var motionScope = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reducedMotion });
             var frames = new ManualFrameSource();
             using var frameScope = FrameClock.Source.Override(frames);
@@ -51,22 +53,22 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
                 try
                 {
                     drag.Move(new Size(100, 80), rest, layout);
-                    runtime.RunUntilIdle();
+                    Dispatcher.UIThread.RunJobs();
                     var wrapper = Assert.IsAssignableFrom<Control>(placed.Child);
                     Assert.Equal(120, Assert.IsType<TranslateTransform>(wrapper.RenderTransform).X);
                     Assert.Equal(152, Assert.IsType<TranslateTransform>(wrapper.RenderTransform).Y);
                     Assert.Equal(0, frames.Pending);
                     drag.Release();
-                    runtime.RunUntilIdle();
+                    Dispatcher.UIThread.RunJobs();
                     Assert.Equal(120, Assert.IsType<TranslateTransform>(wrapper.RenderTransform).X);
                     Assert.Equal(1, frames.Pending);
-                    runtime.Time.Advance(TimeSpan.FromSeconds(0.09));
+                    time.Advance(TimeSpan.FromSeconds(0.09));
                     frames.Advance(TimeSpan.FromSeconds(0.09));
                     var progress = (reducedMotion ? Animation.EaseOut(0.18) : Animation.Spring(0.32, 0.9)).Progress(0.09);
                     Assert.Equal(120 + (20 - 120) * progress, Assert.IsType<TranslateTransform>(wrapper.RenderTransform).X, 8);
                     ResizeMessage(resize, 0x0231);
                     ResizeMessage(resize, 0x0214);
-                    runtime.RunUntilIdle();
+                    Dispatcher.UIThread.RunJobs();
                     Assert.Equal(20, Assert.IsType<TranslateTransform>(wrapper.RenderTransform).X);
                     Assert.Equal(0, frames.Pending);
                     Assert.Same(content, Assert.IsAssignableFrom<Decorator>(wrapper).Child);
@@ -78,12 +80,12 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
                     Assert.Equal(450, wrapper.Width);
                     Assert.Equal(0, frames.Pending);
                     ResizeMessage(resize, 0x0232);
-                    runtime.RunUntilIdle();
+                    Dispatcher.UIThread.RunJobs();
                     update.Invoke(placed, [new Point(70, 100), new Size(500, 400), false]);
                     Assert.Equal(50, Assert.IsType<TranslateTransform>(wrapper.RenderTransform).X);
                     Assert.Equal(450, wrapper.Width);
                     Assert.Equal(1, frames.Pending);
-                    runtime.Time.Advance(TimeSpan.FromSeconds(1));
+                    time.Advance(TimeSpan.FromSeconds(1));
                     frames.Advance(TimeSpan.FromSeconds(1));
                     Assert.Equal(70, Assert.IsType<TranslateTransform>(wrapper.RenderTransform).X);
                     Assert.Equal(500, wrapper.Width);
@@ -117,7 +119,7 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
             model.Settings.HydraShowsHeadDetails = false;
             var runtime = model.Runtime(thread.Id);
             var closed = 0;
-            var panel = new SubagentPanel(thread, new Size(400, 500), project.Path, project.Name, _ => { }, () => { }, () => closed++);
+            var panel = MakePanel(thread, project, () => closed++);
             AppEnvironment.SetAppModel(panel, model);
             var window = new Avalonia.Controls.Window { Content = panel };
             AppEnvironment.SetWindowLiveResize(panel, new WindowLiveResize(window));
@@ -146,7 +148,7 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
                 Assert.Equal(1, closed);
                 // A helper without Hydra remains a full conversation even with head details off.
                 model.Settings.HydraShowsHeadDetails = false;
-                var helper = new SubagentPanel(thread with { Hydra = null }, new Size(400, 500), project.Path, project.Name, _ => { }, () => { }, () => { });
+                var helper = MakePanel(thread with { Hydra = null }, project, () => { });
                 Assert.Empty(Descendants<HydraHeadProgress>(helper));
                 Assert.Single(Descendants<ThreadTimeline>(helper));
                 Assert.Single(Descendants<ComposerArea>(helper));
@@ -156,6 +158,20 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
     }
 
     private static IEnumerable<T> Descendants<T>(Control root) => root.GetSelfAndLogicalDescendants().OfType<T>();
+
+    // STOP App.Views.Chat.SubagentPanel #1
+    // Kind: missing dependency. Swift: App/Views/Chat/SubagentPanel.swift:294-297.
+    // Records: PR-HYDRA-230. JumpToLatestButton still throws MARROW_STUB in the excluded ChatView.cs.
+    // Needed: its ChatView unit implementation before an end-to-end public panel can be constructed.
+    // These tests substitute only that unrelated control; transcript/composer/close behavior stays real.
+    private static SubagentPanel MakePanel(ChatThread thread, Project project, Action close)
+    {
+        var constructor = typeof(SubagentPanel).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)
+            .SingleOrDefault(value => value.GetParameters().Length == 8);
+        Assert.NotNull(constructor);
+        return (SubagentPanel)constructor.Invoke([thread, new Size(400, 500), project.Path, project.Name,
+            (Action<Size>)(_ => { }), (Action)(() => { }), close, (Func<TimelineScrollState, Control>)(_ => new Border())]);
+    }
 
     private static void ResizeMessage(WindowLiveResize resize, uint message)
     {
