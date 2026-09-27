@@ -63,7 +63,7 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
                     Assert.Equal(1, frames.Pending);
                     time.Advance(TimeSpan.FromSeconds(0.09));
                     frames.Advance(TimeSpan.FromSeconds(0.09));
-                    var progress = (reducedMotion ? Animation.EaseOut(0.18) : Animation.Spring(0.32, 0.9)).Progress(0.09);
+                    var progress = (reducedMotion ? Animation.EaseOut(0.18) : Animation.Spring(response: 0.32, dampingFraction: 0.9)).Progress(0.09);
                     Assert.Equal(120 + (20 - 120) * progress, Assert.IsType<TranslateTransform>(wrapper.RenderTransform).X, 8);
                     ResizeMessage(resize, 0x0231);
                     ResizeMessage(resize, 0x0214);
@@ -107,6 +107,11 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
         {
             using var h = new AppModelHarness(withRuntime: false);
             using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            // Headless has no native popup backend; observe the same presentation request through the
+            // established IPopoverPresenter harness (HeadlessFixtures), retaining the true/open assertion.
+            var presenter = new RecordingPresenter();
+            using var presentation = Presentation.Presenter.Override(presenter);
             var project = AppModelSamples.Project("Panel", h.NewFolder("panel"));
             var thread = AppModelSamples.Thread(project) with { Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Running) };
             h.WriteLibrary([project], [thread]);
@@ -120,7 +125,7 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
             var closed = 0;
             var panel = MakePanel(thread, project, () => closed++);
             AppEnvironment.SetAppModel(panel, model);
-            var window = new Avalonia.Controls.Window { Content = panel };
+            var window = new Avalonia.Controls.Window { Content = new Avalonia.Controls.Primitives.VisualLayerManager { EnableOverlayLayer = true, Child = panel } };
             AppEnvironment.SetWindowLiveResize(panel, new WindowLiveResize(window));
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -140,7 +145,7 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
                 Descendants<Button>(close).Single().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal(0, closed);
-                Assert.True(panel.GetLogicalDescendants().OfType<Avalonia.Controls.Primitives.Popup>().Single().IsOpen);
+                Assert.True(Assert.Single(presenter.Calls).Presented);
                 typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Phase))!.SetValue(runtime, RuntimePhase.Idle);
                 Dispatcher.UIThread.RunJobs();
                 Descendants<Button>(close).Single().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
