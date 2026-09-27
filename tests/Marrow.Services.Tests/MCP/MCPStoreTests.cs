@@ -124,7 +124,7 @@ public sealed class MCPStoreTests
             Assert.Equal("draft-value", store.Value(secretField, entry));
 
             // Once the draft is gone, a secret field reads the secret store, never the plaintext connection.
-            store.Drafts.Remove(entry.Id);
+            var drafts = store.Drafts; drafts.Remove(entry.Id); store.Drafts = drafts;
             MCPKeychain.Set("stored-secret", entry.Id, "apiKey");
             Assert.Equal("stored-secret", store.Value(secretField, entry));
 

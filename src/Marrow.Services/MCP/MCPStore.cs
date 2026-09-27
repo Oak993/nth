@@ -22,9 +22,12 @@ public sealed class MCPStore : MainActorModel
     // :14 private(set) var states: [String: MCPConnectionState] = [:]
     private Dictionary<string, MCPConnectionState> statesField = new(StringComparer.Ordinal);
 
-    // :16 var drafts: [String: [String: String]] = [:]. Public read-write in Swift; exposed directly so
-    // setDraft/value(for:of:) (below) and callers outside this file read and write the same storage.
-    public Dictionary<string, Dictionary<string, string>> Drafts { get; } = new(StringComparer.Ordinal);
+    // :16 var drafts: [String: [String: String]] = [:]. Keep the public dictionary API; runtime writes copy
+    // both dictionary levels on reads and assignments (Swift value semantics), then use the tracked setter (R-OBS-1/3/6).
+    private Dictionary<string, Dictionary<string, string>> draftsField = new(StringComparer.Ordinal);
+    public Dictionary<string, Dictionary<string, string>> Drafts { get => DraftSnapshot(Read(draftsField)); set => Set(ref draftsField, DraftSnapshot(value)); }
+    private static Dictionary<string, Dictionary<string, string>> DraftSnapshot(Dictionary<string, Dictionary<string, string>> value) =>
+        value.ToDictionary(pair => pair.Key, pair => new Dictionary<string, string>(pair.Value, StringComparer.Ordinal), StringComparer.Ordinal);
 
     // :18 private(set) var customs: [MCPCustomServer] = []
     private List<MCPCustomServer> customsField = [];
@@ -44,16 +47,23 @@ public sealed class MCPStore : MainActorModel
 
     // MARK: Reading (:30)
 
-    public IReadOnlyDictionary<string, MCPConnection> Connections => Read(connectionsField); // :11-12
-    public IReadOnlyDictionary<string, MCPConnectionState> States => Read(statesField); // :13-14
-    public IReadOnlyList<MCPCustomServer> Customs => Read(customsField); // :17-18
+    // :11-18. Every runtime mutation replaces a snapshot through Set; only Load (constructor) writes fields.
+    public IReadOnlyDictionary<string, MCPConnection> Connections { get => Read(connectionsField); private set => Set(ref connectionsField, new Dictionary<string, MCPConnection>(value, StringComparer.Ordinal)); }
+    public IReadOnlyDictionary<string, MCPConnectionState> States { get => Read(statesField); private set => Set(ref statesField, new Dictionary<string, MCPConnectionState>(value, StringComparer.Ordinal)); }
+    public IReadOnlyList<MCPCustomServer> Customs { get => Read(customsField); private set => Set(ref customsField, new List<MCPCustomServer>(value)); }
+
+    // PORT-ONLY: OD-0008 A12 / OD-0012 E6, PR-MCP-228. The report outlives the disconnected/deleted row.
+    // ED-221: own the page-level report above its footer; the next disconnect/deletion replaces or clears it.
+    private string? credentialDeletionFailure;
+    public string? CredentialDeletionFailure { get => Read(credentialDeletionFailure); private set => Set(ref credentialDeletionFailure, value); }
+    private const string CredentialDeletionFailureText = "Disconnected, but Credential Manager did not remove this server\u2019s stored values."; // U+2019 RIGHT SINGLE QUOTATION MARK
 
     // :32-34
     public MCPConnectionState State(string id) =>
-        statesField.TryGetValue(id, out var state) ? state : new MCPConnectionState.NotConnected();
+        States.TryGetValue(id, out var state) ? state : new MCPConnectionState.NotConnected();
 
     // :36-38
-    public MCPConnection? Connection(string id) => connectionsField.TryGetValue(id, out var connection) ? connection : null;
+    public MCPConnection? Connection(string id) => Connections.TryGetValue(id, out var connection) ? connection : null;
 
     /// :40-49 Connected and enabled servers, resolved with their field values: what providers get.
     public IReadOnlyList<MCPResolvedServer> EnabledServers => Computed(() => Connections.Values
@@ -70,7 +80,7 @@ public sealed class MCPStore : MainActorModel
 
     /// :51-54 The entry an id names: a custom first, then the catalog.
     public MCPCatalogEntry? Entry(string id) => // :52-54
-        customsField.FirstOrDefault(custom => SwiftString.Equal(custom.Id, id))?.CatalogEntry() ?? MCPCatalog.Entry(id);
+        Customs.FirstOrDefault(custom => SwiftString.Equal(custom.Id, id))?.CatalogEntry() ?? MCPCatalog.Entry(id);
 
     /// :56-57 The value the card shows for a field: the draft, else the stored value (secrets from the store).
     public string Value(MCPField field, MCPCatalogEntry entry) // :57-65
@@ -91,9 +101,10 @@ public sealed class MCPStore : MainActorModel
     // :67-69
     public void SetDraft(string value, MCPField field, MCPCatalogEntry entry)
     {
-        if (!Drafts.TryGetValue(entry.Id, out var entryDrafts))
-            Drafts[entry.Id] = entryDrafts = new Dictionary<string, string>(StringComparer.Ordinal); // :68, default: [:]
-        entryDrafts[field.Key] = value;
+        MainActor.AssumeIsolated(); // :8 @MainActor, before any mutation
+        var next = new Dictionary<string, Dictionary<string, string>>(Drafts, StringComparer.Ordinal);
+        var entryDrafts = Drafts.TryGetValue(entry.Id, out var old) ? new Dictionary<string, string>(old, StringComparer.Ordinal) : new Dictionary<string, string>(StringComparer.Ordinal);
+        entryDrafts[field.Key] = value; next[entry.Id] = entryDrafts; Drafts = next; // :68, default: [:]
     }
 
     /// :71-74 Whether every required field of the entry has a value (draft or stored).
@@ -106,6 +117,7 @@ public sealed class MCPStore : MainActorModel
     /// connected with its tools; on failure keeps the values and records the message.
     public void Connect(MCPCatalogEntry entry) // :80
     {
+        MainActor.AssumeIsolated(); // :8, before credential/process side effects
         if (probes.Remove(entry.Id, out var existing)) existing.Cancel(); // :81
 
         var connection = Connection(entry.Id) ?? new MCPConnection(entry.Id); // :82
@@ -145,44 +157,48 @@ public sealed class MCPStore : MainActorModel
             }
         }
 
-        connectionsField[entry.Id] = connection; // :107
-        Drafts.Remove(entry.Id); // :108
+        Connections = Setting(Connections, entry.Id, connection); // :107
+        Drafts = Removing(Drafts, entry.Id); // :108
         Save(); // :109
-        statesField[entry.Id] = new MCPConnectionState.Connecting(); // :110
+        States = Setting(States, entry.Id, new MCPConnectionState.Connecting()); // :110
         StartProbe(entry); // :111
     }
 
     /// :114-128 Forgets the connection, its values and its secrets, and removes it from every provider config.
     public void Disconnect(MCPCatalogEntry entry) // :115
     {
+        MainActor.AssumeIsolated(); // :8, before credential deletions
         if (probes.Remove(entry.Id, out var existing)) existing.Cancel(); // :116-117
-        MCPKeychain.DeleteAll(entry); // :118
+        var removed = MCPKeychain.DeleteAll(entry); // :118, DEVIATION OD-0008 A12 / PR-MCP-228
         if (entry.IsOAuth) // :119
         {
-            MCPOAuth.SignOut(entry.Id); // :120
+            removed = MCPOAuth.SignOut(entry.Id) && removed; // :120, PR-MCP-228 includes both OAuth items; do not short-circuit sign-out
             MCPProxy.Shared.Current.Unregister(entry.Id); // :121
         }
-        connectionsField.Remove(entry.Id); // :123
-        statesField.Remove(entry.Id); // :124
-        Drafts.Remove(entry.Id); // :125
+        Connections = Removing(Connections, entry.Id); // :123
+        States = Removing(States, entry.Id); // :124
+        Drafts = Removing(Drafts, entry.Id); // :125
         Save(); // :126
         ExportAll(); // :127
+        CredentialDeletionFailure = removed ? null : CredentialDeletionFailureText; // OD-0012 E6; disconnect still completes
     }
 
     /// :130-135 Re-probes a connected server without changing its values.
     public void Refresh(MCPCatalogEntry entry) // :131
     {
+        MainActor.AssumeIsolated(); // :8
         if (probes.Remove(entry.Id, out var existing)) existing.Cancel(); // :132
-        statesField[entry.Id] = new MCPConnectionState.Connecting(); // :133
+        States = Setting(States, entry.Id, new MCPConnectionState.Connecting()); // :133
         StartProbe(entry); // :134
     }
 
     // :137-143
     public void SetEnabled(bool enabled, MCPCatalogEntry entry)
     {
+        MainActor.AssumeIsolated(); // :8
         if (Connection(entry.Id) is not { } connection) return; // :138
         connection = connection with { IsEnabled = enabled }; // :139
-        connectionsField[entry.Id] = connection; // :140
+        Connections = Setting(Connections, entry.Id, connection); // :140
         Save(); // :141
         ExportAll(); // :142
     }
@@ -193,9 +209,10 @@ public sealed class MCPStore : MainActorModel
     /// editor to show and nothing is written.
     public MCPCustomError? SaveCustom(MCPCustomServer server, string? replacing = null) // :150
     {
-        var old = replacing is { } oldID ? customsField.FirstOrDefault(custom => SwiftString.Equal(custom.Id, oldID)) : null; // :151
+        MainActor.AssumeIsolated(); // :8
+        var old = replacing is { } oldID ? Customs.FirstOrDefault(custom => SwiftString.Equal(custom.Id, oldID)) : null; // :151
         var taken = new HashSet<string>(MCPCatalog.Entries.Select(entry => entry.Id), SwiftStringComparer.Instance); // :152
-        foreach (var custom in customsField) taken.Add(custom.Id); // :153
+        foreach (var custom in Customs) taken.Add(custom.Id); // :153
         if (old is not null) taken.Remove(old.Id); // :154
         server = server with { Name = server.Name.Trimmed() }; // :155-156
         // :157-159 The id is made once, at creation, from the first name; a rename never moves it, so the
@@ -204,10 +221,11 @@ public sealed class MCPStore : MainActorModel
         if (MCPCustomError.Validate(server, taken) is { } error) return error; // :160
 
         if (probes.Remove(server.Id, out var existing)) existing.Cancel(); // :161-162
-        Drafts.Remove(server.Id); // :163
-        var index = customsField.FindIndex(custom => SwiftString.Equal(custom.Id, server.Id)); // :164
-        if (index >= 0) customsField[index] = server; // :164-165
-        else customsField.Add(server); // :167
+        Drafts = Removing(Drafts, server.Id); // :163
+        var nextCustoms = Customs.ToList(); var index = nextCustoms.FindIndex(custom => SwiftString.Equal(custom.Id, server.Id)); // :164
+        if (index >= 0) nextCustoms[index] = server; // :164-165
+        else nextCustoms.Add(server); // :167
+        Customs = nextCustoms;
         SaveCustoms(); // :169
 
         // :170-173 The definition changed under any connection it had: the tools and the provider configs
@@ -217,8 +235,8 @@ public sealed class MCPStore : MainActorModel
         if (Connection(server.Id) is { } connection) // :174
         {
             connection = connection with { ConnectedAt = null, ServerVersion = null, Tools = ValueList<MCPToolSummary>.Empty }; // :175-177
-            connectionsField[server.Id] = connection; // :178
-            statesField[server.Id] = new MCPConnectionState.NotConnected(); // :179
+            Connections = Setting(Connections, server.Id, connection); // :178
+            States = Setting(States, server.Id, new MCPConnectionState.NotConnected()); // :179
             Save(); // :180
             ExportAll(); // :181
         }
@@ -228,9 +246,10 @@ public sealed class MCPStore : MainActorModel
     /// :186-193 Removes a custom server: its connection and secrets go with it.
     public void DeleteCustom(MCPCustomServer server)
     {
-        if (customsField.FirstOrDefault(custom => SwiftString.Equal(custom.Id, server.Id)) is { } entry) // :188
+        MainActor.AssumeIsolated(); // :8
+        if (Customs.FirstOrDefault(custom => SwiftString.Equal(custom.Id, server.Id)) is { } entry) // :188
             Disconnect(entry.CatalogEntry()); // :189
-        customsField.RemoveAll(custom => SwiftString.Equal(custom.Id, server.Id)); // :191
+        Customs = Customs.Where(custom => !SwiftString.Equal(custom.Id, server.Id)).ToList(); // :191
         SaveCustoms(); // :192
     }
 
@@ -245,6 +264,7 @@ public sealed class MCPStore : MainActorModel
     /// supplies the stored value for fields the user has not changed.
     public bool SaveCustomValues(IReadOnlyList<(string Key, string Value, bool IsSecret)> values, string id, MCPCatalogEntry? replacingFieldsOf) // :209
     {
+        MainActor.AssumeIsolated(); // :8, before credential writes
         foreach (var item in values.Where(item => item.IsSecret)) // :210
             if (!MCPKeychain.Set(item.Value, id, item.Key)) return false; // :211
 
@@ -279,13 +299,20 @@ public sealed class MCPStore : MainActorModel
         // :229-230 A server whose values are all empty needs no connection yet: it gets one on connect.
         if (Connection(id) is not null || connection.Values.Count > 0) // :230
         {
-            connectionsField[id] = connection; // :231
+            Connections = Setting(Connections, id, connection); // :231
             Save(); // :232
         }
         return true; // :234
     }
 
     // MARK: Persistence (:237)
+
+    // PORT-ONLY copy/modify helpers for Swift dictionary value mutations. They never write a model field.
+    private static Dictionary<string, T> Setting<T>(IReadOnlyDictionary<string, T> source, string key, T value) => new(source, StringComparer.Ordinal) { [key] = value };
+    private static Dictionary<string, T> Removing<T>(IReadOnlyDictionary<string, T> source, string key)
+    {
+        var next = new Dictionary<string, T>(source, StringComparer.Ordinal); next.Remove(key); return next;
+    }
 
     private void Load() // :239-254
     {
@@ -397,9 +424,9 @@ public sealed class MCPStore : MainActorModel
                         ServerVersion = result.ServerVersion, // :331
                         Tools = result.Tools, // :332
                     };
-                    connectionsField[entry.Id] = connection; // :333
+                    Connections = Setting(Connections, entry.Id, connection); // :333
                 }
-                statesField[entry.Id] = new MCPConnectionState.Connected(result.Tools.Count); // :335
+                States = Setting(States, entry.Id, new MCPConnectionState.Connected(result.Tools.Count)); // :335
                 Save(); // :336
                 ExportAll(); // :337
             }
@@ -411,12 +438,12 @@ public sealed class MCPStore : MainActorModel
                 if (SwiftTask.IsCancelled) return; // :340
                 // :341-342 The token is good; the server needs a step on its side. Keep the sign-in so Check
                 // again re-probes without another browser round trip.
-                statesField[entry.Id] = new MCPConnectionState.NeedsSetup(guide); // :343
+                States = Setting(States, entry.Id, new MCPConnectionState.NeedsSetup(guide)); // :343
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error)) // :344
             {
                 if (SwiftTask.IsCancelled) return; // :345
-                statesField[entry.Id] = new MCPConnectionState.Failed(SwiftErrors.LocalizedDescription(error)); // :346
+                States = Setting(States, entry.Id, new MCPConnectionState.Failed(SwiftErrors.LocalizedDescription(error))); // :346
             }
         });
     }

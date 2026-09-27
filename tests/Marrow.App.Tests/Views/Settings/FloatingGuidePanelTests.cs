@@ -53,7 +53,7 @@ public sealed class FloatingGuidePanelTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
 
-            MCPKeyPanel.Shared.Present(KeyEntry(), model);
+            harness.Main.OnMain(() => { MCPKeyPanel.Shared.Present(KeyEntry(), model); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });
             var keyWindow = PanelOf(MCPKeyPanel.Shared);
             Assert.NotNull(keyWindow);
             Assert.False(keyWindow!.ShowActivated);
@@ -68,7 +68,7 @@ public sealed class FloatingGuidePanelTests(HeadlessSession headless)
             Assert.Contains(WindowTransparencyLevel.AcrylicBlur, keyWindow.TransparencyLevelHint);
             MCPKeyPanel.Shared.Close();
 
-            MCPSetupPanel.Shared.Present(SetupEntry(), Guide(), model);
+            harness.Main.OnMain(() => { MCPSetupPanel.Shared.Present(SetupEntry(), Guide(), model); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });
             var setupWindow = PanelOf(MCPSetupPanel.Shared);
             Assert.NotNull(setupWindow);
             Assert.False(setupWindow!.ShowActivated);
@@ -94,12 +94,12 @@ public sealed class FloatingGuidePanelTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
 
-            MCPKeyPanel.Shared.Present(KeyEntry(fields: []), model);
+            harness.Main.OnMain(() => { MCPKeyPanel.Shared.Present(KeyEntry(fields: []), model); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });
             var first = PanelOf(MCPKeyPanel.Shared);
             Assert.NotNull(first);
             Assert.True(first!.Height >= 100);
 
-            MCPKeyPanel.Shared.Present(KeyEntry(fields: []), model);
+            harness.Main.OnMain(() => { MCPKeyPanel.Shared.Present(KeyEntry(fields: []), model); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });
             var second = PanelOf(MCPKeyPanel.Shared);
             Assert.Same(first, second);
             MCPKeyPanel.Shared.Close();
@@ -118,7 +118,7 @@ public sealed class FloatingGuidePanelTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
 
-            MCPKeyPanel.Shared.Present(KeyEntry(fields: []), model);
+            harness.Main.OnMain(() => { MCPKeyPanel.Shared.Present(KeyEntry(fields: []), model); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });
             var window = PanelOf(MCPKeyPanel.Shared)!;
             Assert.True(window.IsVisible);
 
@@ -146,7 +146,7 @@ public sealed class FloatingGuidePanelTests(HeadlessSession headless)
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
 
-            MCPSetupPanel.Shared.Present(SetupEntry(), Guide(), model);
+            harness.Main.OnMain(() => { MCPSetupPanel.Shared.Present(SetupEntry(), Guide(), model); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });
             var window = PanelOf(MCPSetupPanel.Shared)!;
 
             var elsewhere = new AvaloniaWindow { Content = new Border() };

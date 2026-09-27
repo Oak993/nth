@@ -218,6 +218,20 @@ public sealed class HydraGlyphTests(HeadlessSession headless)
         var diameter = 20 * 0.5;
         Assert.Equal(diameter * 0.55, font.PointSize, 3);
         Assert.Equal(800, (int)font.Resolve().FontWeight);
+        var disc = VisualQuery.Descendants<Ellipse>(glyph).Single(e => e.StrokeThickness == 0);
+        var expected = status switch
+        {
+            HydraHeadInfo.Status.Completed => Marrow.UI.Chrome.Chrome.Success,
+            HydraHeadInfo.Status.Failed => Marrow.UI.Chrome.Chrome.Danger,
+            _ => Marrow.UI.Chrome.Chrome.SecondaryText,
+        };
+        Assert.Equal(Effective(expected, disc), ((ISolidColorBrush)disc.Fill!).Color); // UI/Common/HydraGlyph.swift:47-51
+        var badgeRoot = Assert.IsAssignableFrom<Control>(disc.GetVisualParent()!.GetVisualParent());
+        var table = typeof(SwiftTransition).GetField("attachments", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.GetValue(null)!;
+        var arguments = new object?[] { badgeRoot, null };
+        Assert.True((bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table, arguments)!);
+        var transition = arguments[1]!.GetType().GetProperty("Transition")!.GetValue(arguments[1]);
+        Assert.Equal(SwiftTransition.Scale().Combined(SwiftTransition.Opacity), transition); // :64
     });
 
     // ---------------------------------------------------------------------------------------------------------
@@ -322,6 +336,7 @@ public sealed class HydraGlyphTests(HeadlessSession headless)
         Assert.Equal("Hank", run.Text);
         Assert.Equal(Effective(Marrow.UI.Chrome.Chrome.PrimaryText.Opacity(0.92), block), ((ISolidColorBrush)run.Foreground!).Color);
         Assert.Equal(13, run.FontSize, 3);
+        Assert.Equal(500, (int)run.FontWeight); // UI/Common/HydraGlyph.swift:237-240 .medium
         window.Close();
     });
 

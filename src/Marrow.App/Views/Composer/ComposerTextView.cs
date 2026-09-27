@@ -19,7 +19,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Composer;
 
-// Source: DroppyCode/App/Views/Composer/ComposerTextView.swift (B2 1fbf81e), :1-379.
+// Source: DroppyCode/App/Views/Composer/ComposerTextView.swift (B3 52bc792), :1-379.
 
 /// <summary>The key the composer text view reports to its owner from a doCommandBy selector. :5-15</summary>
 public enum ComposerKey
@@ -95,6 +95,8 @@ public sealed class ComposerController
                 PlacementGravity = PopupGravity.Top,
                 IsLightDismissEnabled = false, // :60 .applicationDefined: the app, not the system, dismisses it
             };
+            // :61 popover.animates = true. UNVERIFIED platform default: Avalonia Popup/the presenter
+            // have no equivalent native show/close/reposition animation; see the explicit test STOP below.
             suggestionPopover = popup;
         }
         Popovers.SetFixedContent(popup, content(), size); // :70-71 frame(width:height:) + presentedChrome()

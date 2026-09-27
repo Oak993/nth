@@ -299,7 +299,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same tolerant per-key read. A strict schema validator here would silently lose a user's turn history.",
       "verification_method": "restart test: write with the new shape, read a fixture missing touchedPaths, tokenSpends and hydraMerged",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -383,7 +383,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and same required/optional split.",
       "verification_method": "restart test",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1600,7 +1600,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Chrome.accent resolves to the theme's accent or the system control accent for System, Light and Dark (chrome-design-tokens section 6.1). Primary is the label colour, which is appearance-dependent.",
       "verification_method": "capture comparison in both themes",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5495,7 +5495,7 @@
         "DroppyCode/App/Views/Chat/NewThreadPrompt.swift:536-576"
       ],
       "notes": "The sentence is assembled from three literals: What should we build in , the project name, and ?. There is a space before the name and none before the question mark. Tooltip on the name is exactly Choose another project.",
-      "status": "IMPLEMENTED"
+      "status": "SPECIFIED"
     },
     {
       "id": "UI-CHAT-046",
