@@ -13,6 +13,16 @@ using static Marrow.App.Tests.Fixtures.MCPSettingsPageFixture;
 namespace Marrow.App.Tests.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/MCPSettingsPage.swift (B3 52bc792), :19-74,284-290.
+// STOP App.Views.Settings.MCPSettingsPage #4
+// Kind: shared UI dependency not ported at the collection site.
+// Swift: App/Views/Settings/MCPSettingsPage.swift:55-57.
+// Records: UI-MCP-002; PR-MCP-203 (grid transition/spring only).
+// Missing: ForEach.Apply (UI/Port/ViewLifetime.cs) inserts/removes Panel.Children directly; it does not
+// consume SwiftTransition.Insert/Remove or animate the surviving grid's positions. Publishing the 0.35s
+// transaction is insufficient to render the source scale(0.9)+opacity exit and grid layout spring.
+// Needed: the shared UI owner supplies transition-aware keyed reconciliation/grid layout support, then
+// this site attaches the source transition and receives frame-driven motion assertions. No shared UI
+// file was changed. The 900ms celebration, chime, exclusions, live refresh and setup effects are tested.
 [Collection("Headless")]
 public sealed class MCPSettingsPageFollowupTests(HeadlessSession headless)
 {

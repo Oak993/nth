@@ -19,49 +19,106 @@ using Marrow.Core.Support;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Sound;
 
 namespace Marrow.App.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/MCPSettingsPage.swift (B3 52bc792), :1-1141.
-// Partial: :64-74 and :284-290 await MCPStore observation (STOP #1 in MCPSettingsPageTests).
+// Partial: :55-57 native grid transitions await shared keyed animation support (STOP #4 in follow-up tests).
 // DEVIATION OD-0012 F1: Marrow; OD-0008 B3/B4: Credential Manager / this PC.
 public sealed class MCPSettingsPage : Decorator
 {
     private string query; // :7
     private readonly StackPanel root = new() { Spacing = Chrome.SectionSpacing }; // :36
+    private sealed class ViewState : MainActorModel
+    {
+        private ValueSet<string> celebrating = new([], SwiftStringComparer.Instance); // :12
+        public ValueSet<string> Celebrating { get => Read(celebrating); set => Set(ref celebrating, value); }
+    }
+    private readonly ViewState view = new();
+    private OnChange<IReadOnlyDictionary<string, MCPConnectionState>>? stateChanges;
+    private readonly MCPLeadCard lead = new();
+    private readonly TextBlock footer = Text("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.", 11, Chrome.SecondaryText); // :60-62
+    private readonly StackPanel connectedRows = new();
+    private readonly Dictionary<string, MCPConnectedRow> connectedControls = new(SwiftStringComparer.Instance);
+    private readonly Dictionary<string, ChromeRowDivider> connectedDividers = new(SwiftStringComparer.Instance);
+    private ChromeSection? connectedSection;
+    private MCPCustomSection? customs;
+    private string? customsQuery;
+    // PORT-ONLY identity cache for :49-59's ForEach/LazyVGrid. Retaining a card keeps its onChange armed.
+    private sealed record CategoryView(ChromeSection Section, Grid Grid, ForEach<MCPCatalogEntry, string> Cards);
+    private readonly Dictionary<MCPCategory, CategoryView> categories = new();
+    private TextBlock? deletionReport; // OD-0008 A12 / OD-0012 E6
     // :7,35-63
     public MCPSettingsPage(string query)
     {
         this.query = query; Child = root;
-        this.Track(() => (AppEnvironment.GetAppModel(this).Mcp.States, AppEnvironment.GetAppModel(this).Mcp.Customs), _ => Rebuild());
-        // :64-74 STOP #1: upstream observation cannot run until MCPStore publishes its mutations.
+        // :64-74 register before layout tracking, so a newly connected card stays in its grid while celebrating.
+        AttachedToVisualTree += (_, _) => stateChanges ??= new OnChange<IReadOnlyDictionary<string, MCPConnectionState>>(() => AppEnvironment.GetAppModel(this).Mcp.States, Celebrate);
+        DetachedFromVisualTree += (_, _) => { stateChanges?.Dispose(); stateChanges = null; };
+        this.Track(() => (AppEnvironment.GetAppModel(this).Mcp.States, AppEnvironment.GetAppModel(this).Mcp.Customs, view.Celebrating, AppEnvironment.GetAppModel(this).Mcp.CredentialDeletionFailure), _ => Rebuild());
+    }
+    // :64-74. Intentionally independent of Settings.SettleSound, and each task removes its own ID after 900ms.
+    private void Celebrate(IReadOnlyDictionary<string, MCPConnectionState> previous, IReadOnlyDictionary<string, MCPConnectionState> current)
+    {
+        if (EnvironmentValues.GetAccessibilityReduceMotion(this)) return; // :65 suppresses BOTH sound and celebration
+        foreach (var (id, state) in current.Where(pair => pair.Value.IsConnected && !(previous.GetValueOrDefault(pair.Key)?.IsConnected ?? false)))
+        {
+            Transaction.WithAnimation(Animation.Spring(duration: 0.35), () => view.Celebrating = view.Celebrating.Mutating(ids => ids.Add(id))); // :57,67
+            SettleChime.Play(); // :68
+            MainActor.Spawn(async () =>
+            {
+                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(900)); // :69-70 unstructured task, as in source
+                Transaction.WithAnimation(Animation.Spring(duration: 0.35), () => view.Celebrating = view.Celebrating.Mutating(ids => ids.Remove(id))); // :57,71
+            });
+        }
     }
     // :7,77-85
     public void SetQuery(string value) { query = value; if (GetValue(AppEnvironment.AppModelProperty) is not null) Rebuild(); }
     // :19-63
     private void Rebuild()
     {
-        var model = AppEnvironment.GetAppModel(this); root.Children.Clear(); root.Children.Add(new MCPLeadCard());
-        var connected = MCPCatalog.Entries.Where(e => model.Mcp.State(e.Id).IsConnected).OrderBy(e => e.Name, SwiftStringComparer.Instance).ToArray(); // :19-23
-        if (connected.Length > 0) root.Children.Add(new ChromeSection("Connected", () => new ChromeCard(() =>
+        var model = AppEnvironment.GetAppModel(this); var children = new List<Control> { lead };
+        var connected = MCPCatalog.Entries.Where(e => !view.Celebrating.Contains(e.Id) && model.Mcp.State(e.Id).IsConnected).OrderBy(e => e.Name, SwiftStringComparer.Instance).ToArray(); // :19-23
+        var rows = new List<Control>();
+        for (var i = 0; i < connected.Length; i++)
         {
-            var rows = new StackPanel();
-            for (var i = 0; i < connected.Length; i++) { if (i > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(new MCPConnectedRow(connected[i])); }
-            return rows;
-        }, lazy: true))); // :38-47
-        root.Children.Add(new MCPCustomSection(query)); // :48
+            var entry = connected[i];
+            if (i > 0) { if (!connectedDividers.TryGetValue(entry.Id, out var divider)) connectedDividers[entry.Id] = divider = new ChromeRowDivider(); rows.Add(divider); }
+            if (!connectedControls.TryGetValue(entry.Id, out var row)) connectedControls[entry.Id] = row = new MCPConnectedRow(entry); rows.Add(row);
+        }
+        Reconcile(connectedRows, rows); // :40-45 retains the source ForEach identities
+        foreach (var gone in connectedControls.Keys.Where(id => !connected.Any(e => SwiftString.Equal(e.Id, id))).ToArray()) { connectedControls.Remove(gone); connectedDividers.Remove(gone); }
+        if (connected.Length > 0) { connectedSection ??= new ChromeSection("Connected", () => new ChromeCard(() => connectedRows, lazy: true)); children.Add(connectedSection); } // :38-47
+        if (customs is null || !SwiftString.Equal(customsQuery ?? "", query)) { customs = new MCPCustomSection(query); customsQuery = query; }
+        children.Add(customs); // :48
+        var visibleCategories = new HashSet<MCPCategory>();
         foreach (var group in MCPCatalog.ByCategory)
         {
-            var visible = group.Entries.Where(e => !model.Mcp.State(e.Id).IsConnected && Matches(e, query)).ToArray(); // :25-33
+            var visible = group.Entries.Where(e => (!model.Mcp.State(e.Id).IsConnected || view.Celebrating.Contains(e.Id)) && Matches(e, query)).ToArray(); // :25-33
             if (visible.Length == 0) continue;
-            root.Children.Add(new ChromeSection(group.Category.Title(), () =>
+            visibleCategories.Add(group.Category);
+            if (!categories.TryGetValue(group.Category, out var category))
             {
                 var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*"), ColumnSpacing = 10, RowSpacing = 10 };
-                for (var i = 0; i < visible.Length; i++) { if (i % 2 == 0) grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); var card = new MCPServerCard(visible[i]); Grid.SetColumn(card, i % 2); Grid.SetRow(card, i / 2); grid.Children.Add(card); }
-                return grid;
-            })); // :49-59
+                var cards = new ForEach<MCPCatalogEntry, string>(grid, e => e.Id, e => new MCPServerCard(e, view.Celebrating.Contains(e.Id)), (control, e) => ((MCPServerCard)control).UpdateCelebrating(view.Celebrating.Contains(e.Id)));
+                categories[group.Category] = category = new CategoryView(new ChromeSection(group.Category.Title(), () => grid), grid, cards);
+            }
+            category.Cards.Apply(visible); category.Grid.RowDefinitions.Clear();
+            for (var i = 0; i < category.Grid.Children.Count; i++) { if (i % 2 == 0) category.Grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); Grid.SetColumn(category.Grid.Children[i], i % 2); Grid.SetRow(category.Grid.Children[i], i / 2); }
+            children.Add(category.Section); // :49-59
         }
-        root.Children.Add(Text("Connected servers reach every provider when a thread starts: the CLIs at launch, the API models through Marrow itself.", 11, Chrome.SecondaryText)); // :60-62
+        foreach (var gone in categories.Keys.Where(category => !visibleCategories.Contains(category)).ToArray()) categories.Remove(gone);
+        // ENGINEERING DECISION (PR-MCP-228 open placement): a page-level report survives a removed custom row.
+        // It uses the existing failure-label style; the next disconnect replaces/clears the service report.
+        if (model.Mcp.CredentialDeletionFailure is { } failure) { deletionReport ??= Text(failure, 11, Chrome.Danger, lines: 3); deletionReport.Text = failure; children.Add(deletionReport); }
+        children.Add(footer); Reconcile(root, children); // :60-62 footer remains last
+    }
+    // PORT-ONLY keyed body reconciliation: unchanged controls stay attached, preserving their onChange/focus.
+    private static void Reconcile(Panel panel, IReadOnlyList<Control> children)
+    {
+        foreach (var gone in panel.Children.Where(control => !children.Contains(control)).ToArray()) panel.Children.Remove(gone);
+        for (var i = 0; i < children.Count; i++) { var old = panel.Children.IndexOf(children[i]); if (old < 0) panel.Children.Insert(i, children[i]); else if (old != i) panel.Children.Move(old, i); }
     }
     // :77-85
     internal static bool Matches(MCPCatalogEntry entry, string query)
@@ -146,7 +203,7 @@ internal sealed class MCPConnectedRow : Decorator
     }
     private readonly ViewState view = new();
     // :152-203
-    public MCPConnectedRow(MCPCatalogEntry entry) { this.entry = entry; this.Track(() => AppEnvironment.GetAppModel(this).Mcp.States, _ => Build()); }
+    public MCPConnectedRow(MCPCatalogEntry entry) { this.entry = entry; this.Track(() => (AppEnvironment.GetAppModel(this).Mcp.States, AppEnvironment.GetAppModel(this).Mcp.Connections), _ => Build()); }
     // :145-203
     private void Build()
     {
@@ -170,7 +227,6 @@ internal sealed class MCPConnectedRow : Decorator
             new PopoverItem("Show tools",()=>{view.Menu=false;view.Tools=true;},symbol:"wrench"),
             new PopoverDivider(), new PopoverItem("Disconnect",()=>model.Mcp.Disconnect(entry),symbol:"xmark.circle",isDestructive:true),
         } });
-        // :191 STOP #2: the store does not expose failed credential deletions to this view.
     }
     // :205-228
     private Control BuildTools()
@@ -194,24 +250,38 @@ internal sealed class MCPConnectedRow : Decorator
 internal sealed class MCPServerCard : Decorator
 {
     private readonly MCPCatalogEntry entry; // :237
-    private readonly bool celebrating; // :238
+    private bool celebrating; // :238
+    private OnChange<MCPConnectionState>? stateChanges;
+    private sealed class ViewState : MainActorModel
+    {
+        private bool successPopped;
+        public bool SuccessPopped { get => Read(successPopped); set => Set(ref successPopped, value); } // :240
+    }
+    private readonly ViewState view = new();
     // :249-303
     public MCPServerCard(MCPCatalogEntry entry, bool celebrating = false)
     {
         this.entry = entry; this.celebrating = celebrating; this.Track(() => AppEnvironment.GetAppModel(this).Mcp.States, _ => Build());
-        // :284-290 STOP #1: MCPStore.State(id) is not observed, and States never notifies.
+        AttachedToVisualTree += (_, _) => stateChanges ??= new OnChange<MCPConnectionState>(() => AppEnvironment.GetAppModel(this).Mcp.State(entry.Id), (_, now) =>
+        {
+            if (now is MCPConnectionState.NeedsSetup needs) MCPSetupPanel.Shared.Present(entry, needs.Guide, AppEnvironment.GetAppModel(this)); // :284-290
+        });
+        DetachedFromVisualTree += (_, _) => { stateChanges?.Dispose(); stateChanges = null; };
     }
+    // :238,54. Update the ForEach input without replacing the card's identity or its state watcher.
+    internal void UpdateCelebrating(bool value) { if (celebrating == value) return; celebrating = value; Build(); }
     // :249-303,305-349,360-375
     private void Build()
     {
         var state = AppEnvironment.GetAppModel(this).Mcp.State(entry.Id); var stack = new StackPanel { Spacing = 8 };
         if (celebrating)
         {
-            var image = MCPSettingsPage.Symbol("checkmark.circle.fill", 34, Chrome.Success); image.RenderTransform = new ScaleTransform(0.5, 0.5); image.RenderTransformOrigin = RelativePoint.Center; image.HorizontalAlignment = HorizontalAlignment.Center;
+            var image = MCPSettingsPage.Symbol("checkmark.circle.fill", 34, Chrome.Success); var initialScale = view.SuccessPopped ? 1 : 0.5; image.RenderTransform = new ScaleTransform(initialScale, initialScale); image.RenderTransformOrigin = RelativePoint.Center; image.HorizontalAlignment = HorizontalAlignment.Center;
             // :371-374 use the shared frame seam and manual-clock-compatible source spring.
             image.AttachedToVisualTree += (_, _) =>
             {
-                if (EnvironmentValues.GetAccessibilityReduceMotion(this)) return;
+                if (EnvironmentValues.GetAccessibilityReduceMotion(this) || view.SuccessPopped) return;
+                view.SuccessPopped = true; // :371-374 onAppear only pops this card identity once
                 var start = SwiftClock.Now;
                 var animation = Animation.Spring(duration: 0.5, bounce: 0.4);
                 var frames = FrameClock.Source.Current;
@@ -313,7 +383,7 @@ internal sealed class MCPCustomRow : Decorator
     private readonly ViewState view = new();
     private Control? DeleteConfirmation { get; set; }
     // :463-480
-    public MCPCustomRow(MCPCustomServer server) { this.server = server; this.Track(() => AppEnvironment.GetAppModel(this).Mcp.States, _ => Build()); }
+    public MCPCustomRow(MCPCustomServer server) { this.server = server; this.Track(() => (AppEnvironment.GetAppModel(this).Mcp.States, AppEnvironment.GetAppModel(this).Mcp.Connections), _ => Build()); }
     // :463-529
     private void Build()
     {
