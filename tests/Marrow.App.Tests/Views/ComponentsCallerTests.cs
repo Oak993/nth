@@ -27,10 +27,25 @@ namespace Marrow.App.Tests.Views;
 [Collection("Headless")]
 public sealed class ComponentsCallerTests(HeadlessSession headless)
 {
-    private static AvaloniaWindow Show(Control content)
+    // With a harness, the content holds a UsagePanel: UsagePanel.swift:9 reads AppModel from @Environment and :71-78
+    // refreshes plan limits and credits in .onAppear, on the main actor. Marrow.App binds the main actor to the
+    // Avalonia UI thread (MainActor.cs:5); the harness runs it on its own loop instead, so the window is shown inside
+    // harness.Main.OnMain, after every CLI provider is pointed at a missing no-cli.exe so no refresh can find a real
+    // CLI: the UsagePanelTests.Show convention.
+    private static AvaloniaWindow Show(Control content, AppModelHarness? harness = null)
     {
         var window = new AvaloniaWindow { Content = content, Width = 650, Height = 400 };
-        window.Show();
+        if (harness is null) window.Show();
+        else
+        {
+            var model = AppEnvironment.GetAppModel(content);
+            harness.Main.OnMain(() =>
+            {
+                foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+                    if (!kind.IsAPIKeyBased) model.Settings.SetBinaryPath(System.IO.Path.Combine(harness.Scratch, "no-cli.exe"), kind);
+            });
+            harness.Main.OnMain(() => window.Show());
+        }
         Dispatcher.UIThread.RunJobs();
         return window;
     }
@@ -46,7 +61,7 @@ public sealed class ComponentsCallerTests(HeadlessSession headless)
             AppEnvironment.SetAppModel(host, harness.MakeModel());
             var panel = new UsagePanel(null, ProviderKind.Codex, headsProvider: ProviderKind.Deepseek);
             host.Child = panel;
-            var window = Show(host);
+            var window = Show(host, harness);
             try
             {
                 var icons = LogicalQuery.SelfAndDescendants<ProviderIcon>(panel).ToArray();
