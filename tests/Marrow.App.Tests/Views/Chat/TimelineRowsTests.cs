@@ -41,6 +41,88 @@ namespace Marrow.App.Tests.Views.Chat;
 public sealed class TimelineRowsTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Req", "UI-CHAT-011")] // App/Views/Chat/TimelineRows.swift:219, :31-34
+    public void Copy_message_UI_keeps_its_symbol_and_Copied_confirmation() => Copy_message_writes_the_plain_text_and_Copy_as_markdown_the_raw_text_and_both_confirm_Copied();
+    [Fact]
+    [Trait("Req", "UI-CHAT-012")] // App/Views/Chat/TimelineRows.swift:220
+    public void Markdown_copy_UI_preserves_the_raw_prose_and_lowercase_label() => Copy_message_writes_the_plain_text_and_Copy_as_markdown_the_raw_text_and_both_confirm_Copied();
+    [Fact]
+    [Trait("Req", "UI-CHAT-013")] // App/Views/Chat/TimelineRows.swift:222-226
+    public void Edit_menu_UI_has_the_divider_and_is_not_destructive() => Right_clicking_a_sent_message_offers_the_two_copies_and_when_revertable_a_divider_then_Edit_from_here();
+    [Fact]
+    [Trait("Req", "UI-CHAT-014")] // App/Views/Chat/TimelineRows.swift:191-196
+    public void Edit_dialog_intent_stays_on_the_row_pending_STOP_2() => Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it();
+    [Fact]
+    [Trait("Req", "UI-CHAT-019")] // App/Views/Chat/TimelineRows.swift:1353-1390
+    public void Reply_hover_UI_keeps_its_reserved_22_point_line_and_caption() { A_reply_renders_its_markdown_and_keeps_a_hidden_22_point_line_with_the_turn_label_in_caption_secondary_text(); Hovering_a_settled_reply_fades_the_line_in_and_a_streaming_reply_never_shows_it(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-020")] // App/Views/Chat/TimelineRows.swift:1401-1405, :38-54
+    public void Code_copy_UI_requires_a_closed_fence_and_confirms_Copied() { The_last_code_block_is_the_last_closed_fence_and_an_unclosed_fence_yields_none(); A_replys_menu_is_the_two_copies_then_the_last_code_block_when_there_is_one_then_Add_to_reply_in_its_own_group(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-021")] // App/Views/Chat/TimelineRows.swift:1406-1410
+    public void Add_quote_UI_has_its_own_group_and_does_not_add_twice() { A_replys_menu_is_the_two_copies_then_the_last_code_block_when_there_is_one_then_Add_to_reply_in_its_own_group(); Add_to_reply_quotes_the_reply_into_the_draft_once(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-022")] // App/Views/Chat/TimelineRows.swift:1463-1509
+    public void Work_group_UI_opens_once_with_the_source_spacing_and_chevron() => A_group_the_agent_moved_on_from_starts_as_one_summary_line_and_opening_it_reveals_the_end_while_closing_does_not();
+    [Fact]
+    [Trait("Req", "UI-CHAT-023")] // App/Views/Chat/TimelineRows.swift:1522-1544
+    public void Earlier_steps_UI_hides_all_but_the_last_two_until_opened() => Only_the_two_latest_steps_show_under_an_earlier_steps_line_that_reveals_them_all();
+    [Fact]
+    [Trait("Req", "UI-CHAT-024")] // App/Views/Chat/TimelineRows.swift:1657-1853
+    public void Tool_UI_preserves_statuses_action_help_and_chevrons() { The_status_icon_is_a_spinner_a_red_cross_a_raised_hand_or_the_kinds_glyph_in_a_16_point_column(); A_failed_call_shows_its_exit_code_in_danger_and_a_declined_one_Declined_in_warning(); A_popover_row_has_a_static_down_chevron_and_an_output_row_a_right_chevron_turning_down_when_open(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-025")] // App/Views/Chat/TimelineRows.swift:2141-2164
+    public void Output_UI_is_inline_selectable_and_capped_at_thirty_lines() => Output_over_thirty_lines_shows_its_first_thirty_and_a_link_that_shows_all_of_it_then_Show_less();
+    [Fact]
+    [Trait("Req", "UI-CHAT-026")] // App/Views/Chat/TimelineRows.swift:2156-2162
+    public void Full_output_UI_link_switches_to_Show_less() => Output_over_thirty_lines_shows_its_first_thirty_and_a_link_that_shows_all_of_it_then_Show_less();
+    [Fact]
+    [Trait("Req", "UI-CHAT-027")] // App/Views/Chat/TimelineRows.swift:2120-2126
+    public void Detail_UI_is_secondary_monospace_with_twelve_display_lines() => Thirty_lines_show_whole_with_no_link_and_the_detail_is_capped_at_twelve_lines_in_secondary_monospace();
+    [Fact]
+    [Trait("Req", "UI-CHAT-028")] // App/Views/Chat/TimelineRows.swift:2127-2140
+    public void Diff_UI_has_the_path_insets_continuous_ten_point_plate_and_no_line_numbers() => Each_edit_with_a_diff_shows_its_path_above_its_lines_on_a_rounded_plate();
+    [Fact]
+    [Trait("Req", "UI-CHAT-029")] // App/Views/Chat/TimelineRows.swift:2263-2337
+    public void Plan_badge_UI_keeps_all_four_states_and_the_inner_14_point_spinner() { A_plans_badge_title_caption_and_attention_follow_its_state(); A_plan_with_empty_markdown_has_no_chevron_and_cannot_be_opened(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-030")] // App/Views/Chat/TimelineRows.swift:2279-2313
+    public void Plan_heading_is_chat_headline_semibold_not_regular()
+    {
+        headless.OnUiThread(() => { using var h = RuntimeHarness(); h.Main.OnMain(() => {
+            var entry = PlanEntry(ProposedPlan.State.Proposed);
+            var plan = ((TimelineItem.Content.Plan)entry.Item.TimelineItemContent).Value;
+            var detail = Assert.IsAssignableFrom<Control>(Invoke(new PlanCard(entry, h.Runtime), "Detail", plan));
+            Assert.Equal(FontWeight.SemiBold, TextNamed(detail, "Plan").FontWeight); // ChatFont.swift:7; ED-186.
+        }); });
+        The_plan_popover_is_520_wide_with_the_markdown_in_a_420_point_scroller_and_the_two_buttons_only_while_proposed();
+    }
+    [Fact]
+    [Trait("Req", "UI-CHAT-031")] // App/Views/Chat/TimelineRows.swift:2296-2300
+    public void Implement_plan_UI_closes_first_and_remains_greyed_while_busy() { Dismiss_closes_the_popover_and_dismisses_the_plan_and_Implement_plan_closes_it_and_implements(); The_plan_buttons_stay_greyed_while_the_thread_is_busy_with_the_reason_and_carry_no_tip_when_free(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-032")] // App/Views/Chat/TimelineRows.swift:2301-2305
+    public void Dismiss_UI_uses_the_nondestructive_glass_action() => Dismiss_closes_the_popover_and_dismisses_the_plan_and_Implement_plan_closes_it_and_implements();
+    [Fact]
+    [Trait("Req", "UI-CHAT-033")] // App/Views/Chat/TimelineRows.swift:2343-2382
+    public void Checklist_UI_keeps_status_glyphs_strikes_and_identity() { A_checklist_is_a_card_headed_N_of_M_done_with_a_glyph_and_line_per_step(); A_checklist_with_no_steps_draws_nothing_and_an_update_rewrites_the_same_rows_in_place(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-034")] // App/Views/Chat/TimelineRows.swift:2385-2431
+    public void Notice_UI_uses_theme_status_colours_not_system_red_and_orange() { An_info_notice_is_a_bare_line_of_secondary_selectable_text(); A_warning_or_error_notice_sits_in_a_full_width_pill_tinted_at_ten_percent_of_its_theme_status_colour(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-035")] // App/Views/Chat/TimelineRows.swift:2433-2456
+    public void Standalone_duration_UI_is_absent_after_a_reply() => The_standalone_turn_end_line_shows_only_when_the_turn_produced_no_reply();
+    [Fact]
+    [Trait("Req", "UI-CHAT-036")] // App/Views/Chat/TimelineRows.swift:2598-2701
+    public void Folded_header_UI_has_the_rule_and_both_body_branches_have_identity_transition() { A_finished_turn_opens_folded_to_its_prompt_a_summary_line_a_rule_and_its_answer(); Both_finished_turn_body_branches_remain_opaque_and_leave_immediately_under_the_fold_animation(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-037")] // App/Views/Chat/TimelineRows.swift:2735-2827
+    public void File_card_UI_hugs_its_content_with_a_twenty_point_control_gap() => The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill();
+    [Fact]
+    [Trait("Req", "UI-CHAT-038")] // App/Views/Chat/TimelineRows.swift:2770-2799, :2463-2478
+    public void Revert_disc_UI_is_a_flat_28_point_overlay_control() => A_muted_round_glyph_is_a_28_point_overlay_disc_whose_glyph_and_fill_come_up_under_the_pointer();
+
+    [Fact]
     [Trait("Req", "PR-CHAT-154")] // App/Views/Chat/TimelineRows.swift:2008-2064
     public void Head_steps_keep_every_tool_notice_and_nonblank_reply_and_only_briefs_after_the_first()
     {
