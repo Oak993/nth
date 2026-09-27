@@ -74,7 +74,7 @@ public static class APIKeychain
     // trimmed value deletes (:39-43) and returns true; otherwise the UTF-8 bytes (:44) update the item in place
     // (:50-52), and only when no item exists (errSecItemNotFound, :52) is one added (:53-57).
     public static bool Set(string key, string account, string? service = null) =>
-        SecretStore.Shared.Current.SetUpdating(service ?? AppInfo.Current.Name, account, key);
+        SecretStore.Shared.Current.SetUpdating(service ?? DevDataRoot.CredentialService(AppInfo.Current.Name), account, key);
 
     /// <summary>
     /// SecItemCopyMatching with kSecReturnData and kSecMatchLimitOne; nil unless the status is success, the bytes
@@ -82,10 +82,10 @@ public static class APIKeychain
     /// </summary>
     // :60-74
     public static string? Read(string account, string? service = null) =>
-        SecretStore.Shared.Current.Read(service ?? AppInfo.Current.Name, account);
+        SecretStore.Shared.Current.Read(service ?? DevDataRoot.CredentialService(AppInfo.Current.Name), account);
 
     /// <summary>SecItemDelete; the status is ignored, as upstream ignores it.</summary>
     // :76-83
     public static void Delete(string account, string? service = null) =>
-        SecretStore.Shared.Current.Delete(service ?? AppInfo.Current.Name, account);
+        SecretStore.Shared.Current.Delete(service ?? DevDataRoot.CredentialService(AppInfo.Current.Name), account);
 }

@@ -28,7 +28,7 @@ public static class MCPKeychain
     private static string Account(string server, string field) => "MCP " + server + " " + field;
 
     // :15, :39, :55 kSecAttrService as String: AppInfo.name
-    private static string Service => AppInfo.Current.Name;
+    private static string Service => DevDataRoot.CredentialService(AppInfo.Current.Name); // ED-212
 
     // :11-26
     public static string? Value(string server, string field)
