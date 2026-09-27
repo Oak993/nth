@@ -313,11 +313,15 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         for (var i = 0; i < tiles.Length; i++)
         {
             var tile = tiles[i]; var stage = Field<Border>(tile, "stageBack"); var ring = Field<Border>(tile, "paddedStage"); var caption = Field<TextBlock>(tile, "captionBlock");
-            Assert.Equal(76, stage.Width); Assert.Equal(48, stage.Height); Assert.Equal(new CornerRadius(6), stage.CornerRadius); Assert.Equal(new Thickness(3), ring.Padding); Assert.Equal(new CornerRadius(9), ring.CornerRadius);
+            Assert.Equal(76, stage.Width); Assert.Equal(48, stage.Height); Assert.Equal(new CornerRadius(6), stage.CornerRadius); Assert.Equal(new Thickness(1), ring.Padding); Assert.Equal(new CornerRadius(9), ring.CornerRadius);
+            // ChromeVisualPicker.swift:96-101: .padding(ringInset=3) then an overlay .strokeBorder(lineWidth: ringWidth=2) drawn
+            // inward from that padded edge (Avalonia's Border draws its border inside its own bounds the same way), so the gap
+            // between the stroke and the stage is ringInset - ringWidth = 1, and the stroke's own width is fixed at ringWidth = 2
+            // regardless of selection (UI.Chrome.ChromeVisualPicker review findings, impl/b2); only the colour (BorderBrush) toggles.
             Assert.Equal(6, Nodes<StackPanel>(tile).Single().Spacing); Assert.Equal(76, caption.Width); Assert.Equal(2, caption.MaxLines); Assert.Equal(11, caption.FontSize);
             var image = Nodes<SwiftImage>(tile).Single(); Assert.Equal(symbols[i], image.SymbolName); Glyph(image, SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium), i == 0 ? Chrome.Accent : Chrome.SecondaryText);
             Foreground(caption, i == 0 ? Chrome.PrimaryText : Chrome.SecondaryText); Assert.Equal((i == 0 ? Chrome.Overlay(0.10) : Chrome.Overlay(0.06)).Resolve(stage.ActualThemeVariant), ColorOf(stage.Background));
-            Assert.Equal(i == 0 ? new Thickness(2) : new Thickness(0), ring.BorderThickness); if (i == 0) Assert.Equal(Chrome.Accent.Resolve(ring.ActualThemeVariant), ColorOf(ring.BorderBrush));
+            Assert.Equal(new Thickness(2), ring.BorderThickness); if (i == 0) Assert.Equal(Chrome.Accent.Resolve(ring.ActualThemeVariant), ColorOf(ring.BorderBrush)); else Assert.Null(ring.BorderBrush);
         }
         Hover(Nodes<Button>(tiles[1]).Single(), true); Sync(); Frame(h, 101); Assert.Equal(Chrome.Overlay(0.10).Resolve(tiles[1].ActualThemeVariant), ColorOf(Field<Border>(tiles[1], "stageBack").Background));
         Click(Nodes<Button>(tiles[1]).Single()); Sync(); Assert.True(tiles[1].IsSelected); Assert.False(tiles[0].IsSelected);
