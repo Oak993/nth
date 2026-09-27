@@ -11,6 +11,8 @@ using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Chat;
+using Marrow.App.Views.Composer;
 using Marrow.App.Views.Palette;
 using Marrow.App.Views.Sidebar;
 using Marrow.App.Window;
@@ -595,6 +597,7 @@ public sealed class RootViewTests(HeadlessSession headless)
         {
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
             using var harness = new AppModelHarness();
+            using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
             var manager = harness.Main.OnMain(() => new WindowManager());
             using var shared = WindowManager.OverrideShared(manager);
             harness.Main.OnMain(() =>
@@ -605,6 +608,7 @@ public sealed class RootViewTests(HeadlessSession headless)
             });
             harness.PrepareBootstrap(manager.Model); // absent CLI paths + in-memory secrets; no real provider process or key
             harness.Main.Loop.Run(() => manager.Model.Bootstrap(), AppModelHarness.Bound); // real bootstrap completes
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             try
             {
                 harness.Main.OnMain(manager.ShowMain); // MainContent remains its production () => new RootView()
@@ -631,6 +635,32 @@ public sealed class RootViewTests(HeadlessSession headless)
                     Assert.NotNull(image);
                     Assert.True(image.PixelSize.Width > 0);
                     Assert.True(image.PixelSize.Height > 0);
+                });
+                // :130-133 the same real RootView changes to the selected thread after first launch.
+                harness.Main.OnMain(() =>
+                {
+                    var project = manager.Model.AddProject(new Project("First project", harness.NewFolder("first-project")).Url);
+                    var thread = manager.Model.NewThread(project)!;
+                    Assert.Equal(thread.Id, manager.Model.SelectedThreadID);
+                });
+                harness.Main.OnMain(() =>
+                {
+                    var window = manager.MainWindow!;
+                    window.UpdateLayout();
+                    Dispatcher.UIThread.RunJobs();
+                    var root = Assert.Single(LogicalQuery.SelfAndDescendants<RootView>(window));
+                    Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(root));
+                    var detail = Assert.Single(LogicalQuery.SelfAndDescendants<DetailView>(root));
+                    Assert.Empty(LogicalQuery.SelfAndDescendants<WelcomeView>(detail));
+                    var chat = Assert.Single(LogicalQuery.SelfAndDescendants<ChatView>(detail));
+                    Assert.Same(manager.Model, AppEnvironment.GetAppModel(chat));
+                    Assert.Same(AppEnvironment.GetWindowLiveResize(root), AppEnvironment.GetWindowLiveResize(chat));
+                    Assert.Single(LogicalQuery.SelfAndDescendants<ThreadTimeline>(chat));
+                    Assert.Single(LogicalQuery.SelfAndDescendants<ComposerView>(chat));
+                    Assert.True(chat.Bounds.Width > 0);
+                    Assert.True(chat.Bounds.Height > 0);
+                    using var image = window.CaptureRenderedFrame();
+                    Assert.NotNull(image);
                 });
             }
             finally { harness.Main.OnMain(() => { manager.MainWindow?.Hide(); Dispatcher.UIThread.RunJobs(); }); }

@@ -5705,6 +5705,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SIDEBAR-122")] // App/Views/Sidebar/SidebarView.swift:1440-1551
     public void A_head_card_selects_a_head_on_click_and_rings_the_selected_glyph() => headless.OnUiThread(() =>
     {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
         using var harness = new AppModelHarness();
         var project = NewProject(harness, "Alpha");
         var parent = NewThread(project, "Parent", 0);
@@ -5740,7 +5742,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Equal(headA.Id, model.SelectedThreadID);
             Click(buttons[1]); // :1473-1475
             Assert.Equal(headB.Id, model.SelectedThreadID);
-            window.Close();
+            window.Hide();
+            Dispatcher.UIThread.RunJobs();
         });
     });
 
