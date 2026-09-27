@@ -16,6 +16,7 @@ using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
+using Marrow.UI.Chrome;
 using Marrow.Testing;
 
 namespace Marrow.App.Tests.Views.Composer;
@@ -179,6 +180,14 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Assert.Equal(TrackLook.Kind.Fast, KindOf(incoming));
             Assert.Equal(1, outgoing.Opacity);
             Assert.Equal(0, incoming.Opacity);
+            var elapsed = TimeSpan.FromSeconds(Math.Log(1000) / (2 * Math.PI / 0.3) / 2);
+            time.Advance(elapsed); frames.Advance(elapsed); Dispatcher.UIThread.RunJobs();
+            var w = 2 * Math.PI / 0.3; // ED-092(2)/ED-011: critical spring p(t) = 1-exp(-wt)*(1+wt)
+            var progress = 1 - Math.Exp(-w * elapsed.TotalSeconds) * (1 + w * elapsed.TotalSeconds);
+            Assert.Equal(progress, incoming.Opacity, 6);
+            Assert.Equal(1 - progress, outgoing.Opacity, 6);
+            Assert.Equal(TrackLook.Kind.Fusion, KindOf(outgoing));
+            Assert.Equal(TrackLook.Kind.Fast, KindOf(incoming));
             window.Close();
         });
     }
@@ -261,7 +270,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
                 time.Advance(step); frames.Advance(step); Dispatcher.UIThread.RunJobs();
                 peak = Math.Max(peak, slider.GetVisualDescendants().OfType<TrackEffect>().Count());
             }
-            Assert.True(peak <= 5, "alive effects " + peak);
+            Assert.Equal(4, peak); // one incoming plus at most three outgoing after each 100 ms frame; ln(1000)/(2*pi/0.3) < 400 ms
             time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
             Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
             window.Close();
@@ -285,14 +294,17 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var window = Show(slider);
             var before = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
             selected = 2; slider.UpdateLook(true, "High", null); // solo identity change: fast -> fusion
-            var half = TimeSpan.FromTicks(span.Ticks / 2);
+            var half = TimeSpan.FromSeconds(Math.Log(1000) / (2 * Math.PI / 0.3) / 2); // independent fixed time, ED-011
             time.Advance(half); frames.Advance(half); Dispatcher.UIThread.RunJobs();
             var mid = slider.GetVisualDescendants().OfType<TrackEffect>().ToArray();
             Assert.Equal(2, mid.Length);
             Assert.Contains(before, mid);
             var incoming = Assert.Single(mid, e => !ReferenceEquals(e, before));
-            Assert.Equal(0.8592, incoming.Opacity, 2);
-            Assert.Equal(0.1408, before.Opacity, 2);
+            // ED-092(2), ED-011: w = 2*pi/0.3; p(t) = 1 - exp(-w*t)*(1+w*t).
+            var w = 2 * Math.PI / 0.3;
+            var expected = 1 - Math.Exp(-w * half.TotalSeconds) * (1 + w * half.TotalSeconds);
+            Assert.Equal(expected, incoming.Opacity, 6);
+            Assert.Equal(1 - expected, before.Opacity, 6);
             time.Advance(span - half - TimeSpan.FromMilliseconds(10)); frames.Advance(span - half - TimeSpan.FromMilliseconds(10)); Dispatcher.UIThread.RunJobs();
             Assert.Equal(2, slider.GetVisualDescendants().OfType<TrackEffect>().Count()); // the outgoing view is still attached one frame before its fade ends
             time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
@@ -345,7 +357,9 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var window = Show(effect);
             window.Activate(); Dispatcher.UIThread.RunJobs();
             var field = typeof(TrackEffect).GetField("time", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
-            // Cadence-oracle expectations below (ED-117/O-34); hit-test and accessibility moved to the Req test below.
+            Assert.False(effect.IsHitTestVisible); // :1070; also covered independently above
+            Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(effect)); // :1071
+            // Cadence-oracle expectations below (ED-117/O-34); source hit-test/accessibility also have a separate Req test.
             time.Advance(TimeSpan.FromMilliseconds(20)); frames.Advance(TimeSpan.FromMilliseconds(20)); Dispatcher.UIThread.RunJobs();
             Assert.Equal(ticksAtTwentyMilliseconds ? 0.02 : 0, (double)field.GetValue(effect)!, 6);
             time.Advance(TimeSpan.FromMilliseconds(20)); frames.Advance(TimeSpan.FromMilliseconds(20)); Dispatcher.UIThread.RunJobs();
@@ -772,8 +786,26 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var slider = new EffortSlider(3, new Binding<int>(() => index, _ => { }), "Medium", fast);
             var window = Show(slider);
             var fill = Assert.Single(slider.GetVisualDescendants().OfType<Border>(), b => b.Name == "EffortFill");
-            if (kind == TrackLook.Kind.Fusion) Assert.IsType<LinearGradientBrush>(fill.Background);
-            else Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background);
+            var theme = Avalonia.Styling.ThemeVariant.Light;
+            switch (kind)
+            {
+                case TrackLook.Kind.Plain:
+                    Assert.Equal(Chrome.Accent.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :990
+                    break;
+                case TrackLook.Kind.Supercharged:
+                    Assert.Equal(EffortBrand.Purple.FillColor.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :991
+                    break;
+                case TrackLook.Kind.Fast:
+                    Assert.Equal(EffortPalette.FastFill.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :992
+                    break;
+                default:
+                    var fusion = Assert.IsType<LinearGradientBrush>(fill.Background); // Swift :993-996: the brand colour for the first two stops
+                    Assert.Equal(3, fusion.GradientStops.Count);
+                    Assert.Equal(EffortBrand.Purple.FillColor.Resolve(theme), fusion.GradientStops[0].Color);
+                    Assert.Equal(EffortBrand.Purple.FillColor.Resolve(theme), fusion.GradientStops[1].Color);
+                    Assert.Equal(EffortPalette.FastFill.Resolve(theme), fusion.GradientStops[2].Color);
+                    break;
+            }
             var effects = slider.GetVisualDescendants().OfType<TrackEffect>().ToArray();
             if (kind == TrackLook.Kind.Plain) Assert.Empty(effects);
             else Assert.Single(effects);
@@ -828,15 +860,55 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     {
         static string? Efforts(string? lead, string? heads) =>
             Marrow.App.Views.Chat.HydraPairSummary.Efforts(new HydraPair(ProviderKind.Codex) { OrchestratorEffort = lead, WorkerEffort = heads });
-        Assert.Equal("High effort", Efforts("high", "high")); // both match: capitalised single effort
-        Assert.Equal("Lead high, heads medium effort", Efforts("high", "medium")); // differ
-        Assert.Equal("Lead high effort", Efforts("high", null)); // lead only
-        Assert.Equal("Heads medium effort", Efforts(null, "medium")); // heads only
-        Assert.Null(Efforts(null, null)); // neither: absent
-        var pair = new HydraPair(ProviderKind.Codex) { OrchestratorEffort = "high", WorkerEffort = "high" };
-        var providers = Marrow.App.Views.Chat.HydraPairSummary.Providers(pair); // "Codex"
-        var efforts = Marrow.App.Views.Chat.HydraPairSummary.Efforts(pair); // "High effort"
-        Assert.Equal("Codex · High effort", string.Join(" · ", new[] { providers, efforts }.Where(v => v is not null)));
+        Assert.Equal("High effort", Efforts("high", "high")); // Swift HydraButton :687
+        Assert.Equal("Lead high, heads medium effort", Efforts("high", "medium")); // :688
+        Assert.Equal("Lead high effort", Efforts("high", null)); // :689
+        Assert.Equal("Heads medium effort", Efforts(null, "medium")); // :690
+        Assert.Null(Efforts(null, null)); // :691
+        Assert.Equal("Extra High effort", Efforts("xhigh", "xhigh")); // :687 .capitalized capitalises each word
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness(withRuntime: false);
+            var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Claude, "opus", null, RuntimeMode.Supervised) { HydraEnabled = true };
+            harness.WriteLibrary([], [thread]);
+            var model = new AppModel();
+            DisableExecutables(model, harness);
+            model.Settings.HydraEnabled = true;
+            var cases = new (string? Lead, string? Heads, string Detail)[]
+            {
+                ("high", "high", "Claude · High effort"),
+                ("high", "medium", "Claude · Lead high, heads medium effort"),
+                ("high", null, "Claude · Lead high effort"),
+                (null, "medium", "Claude · Heads medium effort"),
+                (null, null, "Claude"),
+                ("xhigh", "xhigh", "Claude · Extra High effort"),
+            };
+            foreach (var item in cases)
+            {
+                var pair = new HydraPair(ProviderKind.Claude) { OrchestratorEffort = item.Lead, WorkerEffort = item.Heads };
+                model.Settings.AddHydraPair(pair);
+                var list = new ModelList(thread, false, _ => { }, () => { });
+                var window = Host(list, model);
+                var row = Assert.Single(list.GetVisualDescendants().OfType<HydraPairListRow>());
+                Assert.Equal(item.Detail, row.GetVisualDescendants().OfType<TextBlock>().ElementAt(1).Text); // actual production detail(for:) :364-367
+                window.Close();
+                model.Settings.RemoveHydraPair(pair.Id);
+            }
+            var named = new HydraPair(ProviderKind.Claude)
+            {
+                Name = "My pair", OrchestratorModel = "opus", WorkerProvider = ProviderKind.Codex,
+                WorkerModel = "custom-head", OrchestratorEffort = "high", WorkerEffort = "medium",
+            };
+            model.Settings.AddHydraPair(named);
+            var namedList = new ModelList(thread, false, _ => { }, () => { });
+            var namedWindow = Host(namedList, model);
+            var namedRow = Assert.Single(namedList.GetVisualDescendants().OfType<HydraPairListRow>());
+            var texts = namedRow.GetVisualDescendants().OfType<TextBlock>().ToArray();
+            Assert.Equal("My pair", texts[0].Text);
+            Assert.Equal("Opus + custom-head · Claude lead, Codex heads · Lead high, heads medium effort", texts[1].Text); // Swift :365; HydraButton :677,:697-704
+            namedWindow.Close();
+        });
     }
 
     [Fact]
@@ -847,22 +919,25 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
         {
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
             using var harness = new AppModelHarness(withRuntime: false);
-            var pair = new HydraPair(ProviderKind.Codex) { OrchestratorEffort = "high" }; // "test-model" offers nothing, so nil wins
-            var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "test-model", "high", RuntimeMode.Supervised, true) { HydraEnabled = true, HydraPairID = pair.Id };
+            var pair = new HydraPair(ProviderKind.Claude) { OrchestratorEffort = "unoffered" };
+            var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Claude, "opus", "high", RuntimeMode.Supervised, true) { HydraEnabled = true, HydraPairID = pair.Id };
             harness.WriteLibrary([], [thread]);
             var model = new AppModel();
             model.Settings.HydraEnabled = true;
             model.Settings.AddHydraPair(pair);
             var panel = new ModelEffortPanel(thread.Id, false);
             var window = Host(panel, model);
-            Assert.Single(panel.GetVisualDescendants().OfType<Button>(), b => Equals(ToolTip.GetTip(b), "Reset to default"))
-                .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            Dispatcher.UIThread.RunJobs();
-            Assert.Null(model.Thread(thread.Id)!.Effort); // unoffered pair effort ignored, nil used
+            // Precondition comes through production bindings, not a test-side SetPreference.
+            SetPanelEffort(panel, 4); // Claude seed :71-77: max
+            Assert.Equal(new ModelPreference { Effort = "max", FastMode = true }, model.Settings.Preference(ProviderKind.Claude, "opus"));
+            ResetPanel(panel);
+            Assert.Null(model.Thread(thread.Id)!.Effort); // Swift :219-226 ignores unoffered pair effort
             Assert.False(model.Thread(thread.Id)!.FastMode);
-            var restarted = new AppModel(); // same in-memory store: the restart test
-            Assert.Equal(new ModelPreference(), restarted.Settings.Preference(ProviderKind.Codex, "test-model"));
-            Assert.Null(restarted.Settings.LastEffort(ProviderKind.Codex));
+            var restarted = new AppModel();
+            Assert.Equal(new ModelPreference(), restarted.Settings.Preference(ProviderKind.Claude, "opus"));
+            Assert.False(restarted.Settings.ModelPreferences.ContainsKey("claude/opus")); // :859-862 removes default entry
+            Assert.Equal("opus", restarted.Settings.LastModel(ProviderKind.Claude));
+            Assert.Null(restarted.Settings.LastEffort(ProviderKind.Claude));
             window.Close();
         });
     }
@@ -876,22 +951,152 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
         {
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
             using var harness = new AppModelHarness(withRuntime: false);
-            var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "old", null, RuntimeMode.Supervised);
-            harness.WriteLibrary([], [thread]);
+            var project = new Project("Fixture", harness.NewFolder("project"));
+            var thread = new ChatThread(project.Id, ProviderKind.Claude, "opus", "low", RuntimeMode.Supervised);
+            harness.WriteLibrary([project], [thread]);
             var model = new AppModel();
-            model.Settings.SetPreference(new ModelPreference { Effort = "high", FastMode = true }, ProviderKind.Codex, "new");
-            var option = new ModelOption("new", "New", null, new ValueList<string>(["low", "high"]), "low", fastTier: "fast");
+            DisableExecutables(model, harness);
             var panel = new ModelEffortPanel(thread.Id, false);
             var window = Host(panel, model);
-            typeof(ModelEffortPanel).GetMethod("Choose", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
-                .Invoke(panel, [new ModelCatalog.Entry(ProviderKind.Codex, option), thread]); // production write-through + remember
+            SetPanelEffort(panel, 2); // production accessibility -> card snappy(0.2) -> effort binding -> Remember, high
+            Assert.Single(Assert.Single(panel.GetVisualDescendants().OfType<FastModeButton>()).GetVisualDescendants().OfType<Button>())
+                .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("high", model.Thread(thread.Id)!.Effort);
+            Assert.True(model.Thread(thread.Id)!.FastMode);
+            // Choose reads the preference produced above; never seed SetPreference in this test.
+            var choose = typeof(ModelEffortPanel).GetMethod("Choose", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            choose.Invoke(panel, [new ModelCatalog.Entry(ProviderKind.Claude, model.Providers.Model("sonnet", ProviderKind.Claude)!), model.Thread(thread.Id)!]);
+            Dispatcher.UIThread.RunJobs();
+            choose.Invoke(panel, [new ModelCatalog.Entry(ProviderKind.Claude, model.Providers.Model("opus", ProviderKind.Claude)!), model.Thread(thread.Id)!]);
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("high", model.Thread(thread.Id)!.Effort);
+            Assert.True(model.Thread(thread.Id)!.FastMode);
             window.Close();
-            var restarted = new AppModel(); // restart: same store
-            Assert.Equal(new ModelPreference { Effort = "high", FastMode = true }, restarted.Settings.Preference(ProviderKind.Codex, "new"));
-            Assert.Equal("new", restarted.Settings.LastModel(ProviderKind.Codex));
-            Assert.Equal("high", restarted.Settings.LastEffort(ProviderKind.Codex));
-            var fresh = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "new", null, RuntimeMode.Supervised); // a new chat on that model
-            Assert.Equal("high", restarted.Settings.Preference(fresh.Provider, fresh.Model).Effort); // the stored choice applies
+            var restarted = new AppModel(); // new settings and registry, same isolated defaults store
+            Assert.Equal(new ModelPreference { Effort = "high", FastMode = true }, restarted.Settings.Preference(ProviderKind.Claude, "opus"));
+            Assert.Equal(new ModelPreference { Effort = "high", FastMode = true }, restarted.Settings.ModelPreferences["claude/opus"]); // AppSettings.swift :859-862
+            Assert.Equal("opus", restarted.Settings.LastModels["claude"]); // :899-902 raw provider keys
+            Assert.Equal("high", restarted.Settings.LastEfforts["claude"]);
+            Assert.Equal("opus", restarted.Settings.LastModel(ProviderKind.Claude));
+            Assert.Equal("high", restarted.Settings.LastEffort(ProviderKind.Claude));
+            restarted.SelectedThreadID = null; // force fresh-chat preference path, not carrying an existing thread
+            var fresh = Assert.IsType<ChatThread>(restarted.NewThread(project, WorkspaceMode.Local)); // AppModel.swift :668-680
+            Assert.Equal(ProviderKind.Claude, fresh.Provider);
+            Assert.Equal("opus", fresh.Model);
+            Assert.Equal("high", fresh.Effort);
+            Assert.True(fresh.FastMode);
+        });
+    }
+    [Fact]
+    [Trait("Decision", "ED-092")] // App/Views/Composer/EffortSlider.swift:765; removal views end with the view lifetime
+    public void Detaching_mid_fade_does_not_leave_ghost_effects_when_the_slider_is_shown_again()
+    {
+        headless.OnUiThread(() =>
+        {
+            var frames = new ManualFrameSource();
+            var time = new ManualTimeProvider();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var selected = 1;
+            var slider = new EffortSlider(3, new Binding<int>(() => selected, _ => { }), "Medium", true);
+            var window = Show(slider);
+            var outgoing = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            selected = 2; slider.UpdateLook(true, "High", null);
+            time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
+            Assert.Equal(2, slider.GetVisualDescendants().OfType<TrackEffect>().Count());
+            window.Close(); window.Content = null;
+            var shownAgain = Show(slider);
+            var kept = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
+            Assert.NotSame(outgoing, kept);
+            Assert.Equal(TrackLook.Kind.Fusion, KindOf(kept));
+            Assert.Equal(1, kept.Opacity);
+            shownAgain.Close();
+        });
+    }
+
+    private static void DisableExecutables(AppModel model, AppModelHarness harness)
+    {
+        foreach (var provider in SwiftEnum<ProviderKind>.AllCases)
+            if (!provider.IsAPIKeyBased) model.Settings.SetBinaryPath(System.IO.Path.Combine(harness.Scratch, "missing.exe"), provider);
+    }
+
+    private static void SetPanelEffort(ModelEffortPanel panel, int index)
+    {
+        var slider = Assert.Single(panel.GetVisualDescendants().OfType<EffortSlider>());
+        Assert.IsAssignableFrom<IRangeValueProvider>(ControlAutomationPeer.CreatePeerForElement(slider)).SetValue(index);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void ResetPanel(ModelEffortPanel panel)
+    {
+        Assert.Single(panel.GetVisualDescendants().OfType<Button>(), b => Equals(ToolTip.GetTip(b), "Reset to default"))
+            .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-121")] // App/Views/Composer/EffortSlider.swift:219-235; Providers/ProviderRegistry.swift:71-77
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Reset_with_the_seeded_claude_catalog_persists_with_and_without_an_offered_pair(bool hasPair)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness(withRuntime: false);
+            var pair = new HydraPair(ProviderKind.Claude) { OrchestratorEffort = "high" };
+            var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Claude, "opus", "low", RuntimeMode.Supervised, true)
+                { HydraEnabled = hasPair, HydraPairID = hasPair ? pair.Id : null };
+            harness.WriteLibrary([], [thread]);
+            var model = new AppModel();
+            model.Settings.HydraEnabled = hasPair;
+            if (hasPair) model.Settings.AddHydraPair(pair);
+            Assert.Equal(new[] { "low", "medium", "high", "xhigh", "max" }, model.Providers.Model("opus", ProviderKind.Claude)!.Efforts);
+            var panel = new ModelEffortPanel(thread.Id, false);
+            var window = Host(panel, model);
+            SetPanelEffort(panel, 4);
+            var before = new AppModel();
+            Assert.Equal(new ModelPreference { Effort = "max", FastMode = true }, before.Settings.Preference(ProviderKind.Claude, "opus"));
+            Assert.Equal("max", before.Settings.LastEffort(ProviderKind.Claude));
+            ResetPanel(panel);
+            Assert.Equal(hasPair ? "high" : null, model.Thread(thread.Id)!.Effort);
+            Assert.False(model.Thread(thread.Id)!.FastMode);
+            var restarted = new AppModel();
+            Assert.Equal(new ModelPreference { Effort = hasPair ? "high" : null, FastMode = false }, restarted.Settings.Preference(ProviderKind.Claude, "opus"));
+            Assert.Equal("opus", restarted.Settings.LastModel(ProviderKind.Claude));
+            Assert.Equal(hasPair ? "high" : null, restarted.Settings.LastEffort(ProviderKind.Claude));
+            Assert.Equal(hasPair, restarted.Settings.ModelPreferences.ContainsKey("claude/opus"));
+            window.Close();
+        });
+    }
+
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:986-988: pair fill is brand + pair.colors for EVERY kind
+    [InlineData(TrackLook.Kind.Plain)]
+    [InlineData(TrackLook.Kind.Supercharged)]
+    [InlineData(TrackLook.Kind.Fast)]
+    [InlineData(TrackLook.Kind.Fusion)]
+    public void Pair_fill_keeps_exact_stops_for_every_kind(TrackLook.Kind kind)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var index = kind is TrackLook.Kind.Supercharged or TrackLook.Kind.Fusion ? 2 : 1;
+            var fast = kind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion;
+            var pair = new EffortPairBrand(new HydraPair(ProviderKind.Claude) { WorkerProvider = ProviderKind.Codex });
+            var slider = new EffortSlider(3, new Binding<int>(() => index, _ => { }), "Effort", fast, EffortBrand.Claude, pair);
+            var window = Show(slider);
+            var fill = Assert.Single(slider.GetVisualDescendants().OfType<Border>(), b => b.Name == "EffortFill");
+            var gradient = Assert.IsType<LinearGradientBrush>(fill.Background);
+            Assert.Equal(3, gradient.GradientStops.Count); // Swift :948-961: Claude + silver heads' white 0.8 and 0.95, no fast stop
+            Assert.Equal(EffortBrand.Claude.FillColor.Resolve(Avalonia.Styling.ThemeVariant.Light), gradient.GradientStops[0].Color);
+            Assert.Equal(new SwiftColor(white: 0.8).Resolve(Avalonia.Styling.ThemeVariant.Light), gradient.GradientStops[1].Color);
+            Assert.Equal(new SwiftColor(white: 0.95).Resolve(Avalonia.Styling.ThemeVariant.Light), gradient.GradientStops[2].Color);
+            Assert.Equal(0, gradient.GradientStops[0].Offset);
+            Assert.Equal(0.5, gradient.GradientStops[1].Offset);
+            Assert.Equal(1, gradient.GradientStops[2].Offset);
+            window.Close();
         });
     }
 }
@@ -918,13 +1123,6 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 // and reduce-motion matrix, so Req PR-COMPOSER-133 is dropped.
 // Needed to proceed: the ten-second instrumented run in each mode with pause/reduce-motion coverage to promote PR-133.
 //
-// STOP sweepA-fixes #3
-// Kind: partial proof (catalog fixture gap)
-// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:219-239,521-534,626-637,384-419 (B3 52bc792)
-// Requirements: PR-COMPOSER-121, PR-COMPOSER-122, PR-COMPOSER-124, PR-COMPOSER-113, PR-COMPOSER-147
-// What is proven: reset without a pair plus restart; reset with an unoffered pair effort (nil branch) plus restart;
-// Choose write-through plus restart plus new-chat preference read-back; the 0.2 s snappy transaction; a one-effort
-// model never reading as maximum with plain track and no effect; the five-case efforts() contract with U+00B7 joins.
-// What is missing: the offered-branch reset (pair lead effort the model actually offers) needs a catalog fixture with
-// a model whose efforts contain the lead effort; the test registry carries no such entry, so that branch is not exercised.
-// Needed to proceed: a catalog fixture (or provider stub) exposing an offerable lead effort to promote PR-121 to fully proven.
+// Round 2: the previous STOP #3 was false. ProviderRegistry.swift:71-77 seeds Claude/opus with
+// low, medium, high, xhigh, max. Offered, unoffered and absent-pair resets now use that catalog
+// and a production-written nondefault precondition, so restart assertions can fail.
