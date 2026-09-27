@@ -93,11 +93,11 @@ public sealed class ProviderRegistrySlashCommandsTests
         using var runtime = new TestRuntime();
         var registry = MakeRegistry(runtime, Settings());
 
-        registry.RecordCommand("alpha", ProviderKind.Claude);
-        registry.RecordCommand("beta", ProviderKind.Claude);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RecordCommand("alpha", ProviderKind.Claude)));
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RecordCommand("beta", ProviderKind.Claude)));
         Assert.Equal(new[] { "beta", "alpha" }, registry.RecentCommands["claude"].ToArray());
 
-        registry.RecordCommand("alpha", ProviderKind.Claude); // moves back to front, no duplicate left
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RecordCommand("alpha", ProviderKind.Claude))); // moves back to front, no duplicate left
         Assert.Equal(new[] { "alpha", "beta" }, registry.RecentCommands["claude"].ToArray());
 
         // Persisted under the exact key, and written on every call (one write per RecordCommand).
@@ -111,7 +111,7 @@ public sealed class ProviderRegistrySlashCommandsTests
         using var runtime = new TestRuntime();
         var registry = MakeRegistry(runtime, Settings());
 
-        for (var i = 0; i < 105; i++) registry.RecordCommand("cmd" + i, ProviderKind.Codex);
+        for (var i = 0; i < 105; i++) runtime.Loop.Run(() => MainActor.Run(() => registry.RecordCommand("cmd" + i, ProviderKind.Codex)));
 
         var recent = registry.RecentCommands["codex"];
         Assert.Equal(100, recent.Count);
@@ -126,8 +126,8 @@ public sealed class ProviderRegistrySlashCommandsTests
         using var runtime = new TestRuntime();
         var registry = MakeRegistry(runtime, Settings());
 
-        registry.RecordCommand("only-claude", ProviderKind.Claude);
-        registry.RecordCommand("only-codex", ProviderKind.Codex);
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RecordCommand("only-claude", ProviderKind.Claude)));
+        runtime.Loop.Run(() => MainActor.Run(() => registry.RecordCommand("only-codex", ProviderKind.Codex)));
 
         Assert.Equal(new[] { "only-claude" }, registry.RecentCommands["claude"].ToArray());
         Assert.Equal(new[] { "only-codex" }, registry.RecentCommands["codex"].ToArray());
@@ -149,7 +149,7 @@ public sealed class ProviderRegistrySlashCommandsTests
         settings.Paths[provider] = WriteExecutable(dir, "cli.exe"); // resolved, so only the provider guard could stop it
         var registry = MakeRegistry(runtime, settings);
 
-        await registry.LoadCommands(provider, dir);
+        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCommands(provider, dir)));
 
         Assert.Empty(registry.Commands);
         Assert.Empty(registry.CommandErrors);
@@ -166,7 +166,7 @@ public sealed class ProviderRegistrySlashCommandsTests
         settings.Paths[ProviderKind.Codex] = Path.Combine(TempDir(), "does-not-exist.exe"); // does not resolve, no fallback (:219-226)
         var registry = MakeRegistry(runtime, settings);
 
-        await registry.LoadCommands(ProviderKind.Codex, TempDir());
+        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCommands(ProviderKind.Codex, TempDir())));
 
         Assert.Empty(registry.Commands);
         Assert.Empty(registry.CommandErrors);
@@ -183,9 +183,9 @@ public sealed class ProviderRegistrySlashCommandsTests
         var dir = TempDir();
         settings.Paths[ProviderKind.Codex] = WriteExecutable(dir, "codex.exe"); // resolves: only the freshness gate could stop it
         var registry = MakeRegistry(runtime, settings);
-        registry.UpdateCommands(ValueList<SlashCommand>.Empty, ProviderKind.Codex, dir); // sets the fetch timestamp to "now"
+        runtime.Loop.Run(() => MainActor.Run(() => registry.UpdateCommands(ValueList<SlashCommand>.Empty, ProviderKind.Codex, dir))); // sets the fetch timestamp to "now"
 
-        await registry.LoadCommands(ProviderKind.Codex, dir, force: false);
+        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCommands(ProviderKind.Codex, dir, force: false)));
 
         // No error was recorded: the freshness gate returned before ever reaching CodexSession.
         Assert.Empty(registry.CommandErrors);

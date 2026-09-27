@@ -192,7 +192,7 @@ public sealed class ProviderRegistryTests
         Assert.True(registry.CountsAsInstalled(ProviderKind.Claude));
         // Once a status exists (here, an API-key provider refreshed with an empty key, which never
         // touches a network), its own IsInstalled is used, including false.
-        await registry.RefreshAPIProvider(ProviderKind.Deepseek);
+        await Task.Run(() => runtime.Loop.Run(() => registry.RefreshAPIProvider(ProviderKind.Deepseek)));
         Assert.False(registry.CountsAsInstalled(ProviderKind.Deepseek));
     }
 
@@ -208,8 +208,8 @@ public sealed class ProviderRegistryTests
         var registry = MakeRegistry(runtime, settings);
         // Deepseek and Zai refresh to signedOut on their empty keys (offline, no network reached);
         // Claude has no status yet and so counts as installed.
-        await registry.RefreshAPIProvider(ProviderKind.Deepseek);
-        await registry.RefreshAPIProvider(ProviderKind.Zai);
+        await Task.Run(() => runtime.Loop.Run(() => registry.RefreshAPIProvider(ProviderKind.Deepseek)));
+        await Task.Run(() => runtime.Loop.Run(() => registry.RefreshAPIProvider(ProviderKind.Zai)));
         Assert.Equal([ProviderKind.Claude], registry.AvailableProviders);
         // Every provider disabled: an empty list.
         Assert.Empty(MakeRegistry(runtime, new FakeProviderSettings()).AvailableProviders);
@@ -536,7 +536,7 @@ public sealed class ProviderRegistryTests
         var registry = MakeRegistry(runtime, new FakeProviderSettings());
         foreach (var provider in new[] { ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai })
         {
-            await registry.RefreshAPIProvider(provider);
+            await Task.Run(() => runtime.Loop.Run(() => registry.RefreshAPIProvider(provider)));
             var status = registry.Status(provider);
             Assert.Equal(new ProviderStatus.Auth.SignedOut(), status.ProviderStatusAuth);
             Assert.False(status.ApiKeyConfigured);
