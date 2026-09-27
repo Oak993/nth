@@ -7,9 +7,9 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3619,
+      "IMPLEMENTED": 3612,
       "RETIRED": 15,
-      "SPECIFIED": 330,
+      "SPECIFIED": 337,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
       "DISCOVERED": 6
     },
@@ -7340,7 +7340,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim effortTitle mapping; uppercase only the first character, do not title-case the whole word.",
       "verification_method": "unit test of effortTitle and resolvedIndex over the fallback chain",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -8061,7 +8061,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Verbatim strings. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "interaction test",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -72219,7 +72219,7 @@
       "cancellation": "Leaving the page cancels the sweep and completes the celebration.",
       "windows_path": "Same open-time check and the same sweep timings. The haptics become no-op shims. The must-complete-on-disappear rule is load-bearing and must be kept, or the frame-driven slider would run forever. By owner ruling OD-0008 C6 the open-time check does not query Droppy's feed: until the owner's Windows release feed is set it ends in the \"Check failed\" standing with the note \"No update feed is set.\", and while the feed value is empty it makes no network request (OD-0012 I1).",
       "verification_method": "interaction test opening About after a simulated install and asserting the sweep timings and the settle; test that leaving mid-sweep settles immediately",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -91507,7 +91507,7 @@
       "cancellation": "Leaving the page cancels the sweep (PR-UPDATE-063).",
       "windows_path": "Same: mount at 0.86, then sweep. The direct assignment matters because the slider's chase is seeded from the current target at mount.",
       "verification_method": "interaction test",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91534,7 +91534,7 @@
       "cancellation": "Cancelled by leaving the page; see PR-UPDATE-063.",
       "windows_path": "Same timings. Respect the Windows 'animation effects off' system setting as the Reduce Motion analogue and take the shortened branch when it is off. Haptics are the no-op shim.",
       "verification_method": "interaction test",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91581,7 +91581,7 @@
       "cancellation": "This IS the cancellation path for the celebration.",
       "windows_path": "Same teardown when the About panel unmounts. Without it the port inherits the exact bug the comment describes.",
       "verification_method": "interaction test",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -91882,7 +91882,7 @@
       "cancellation": "not cancellable",
       "windows_path": "title attribute plus aria-label with the same strings; add role button only in the ready state.",
       "verification_method": "interaction test",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
