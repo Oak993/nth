@@ -1495,7 +1495,7 @@
       "cancellation": "Leaving the page cancels the sweep (PR-UPDATE-063).",
       "windows_path": "Same: mount at 0.86, then sweep. The direct assignment matters because the slider's chase is seeded from the current target at mount.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1521,7 +1521,7 @@
       "cancellation": "Cancelled by leaving the page; see PR-UPDATE-063.",
       "windows_path": "Same timings. Respect the Windows 'animation effects off' system setting as the Reduce Motion analogue and take the shortened branch when it is off. Haptics are the no-op shim.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1566,7 +1566,7 @@
       "cancellation": "This IS the cancellation path for the celebration.",
       "windows_path": "Same teardown when the About panel unmounts. Without it the port inherits the exact bug the comment describes.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1855,7 +1855,7 @@
       "cancellation": "not cancellable",
       "windows_path": "title attribute plus aria-label with the same strings; add role button only in the ready state.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

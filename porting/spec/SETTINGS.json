@@ -6308,7 +6308,7 @@
       "cancellation": "Leaving the page cancels the sweep and completes the celebration.",
       "windows_path": "Same open-time check and the same sweep timings. The haptics become no-op shims. The must-complete-on-disappear rule is load-bearing and must be kept, or the frame-driven slider would run forever. By owner ruling OD-0008 C6 the open-time check does not query Droppy's feed: until the owner's Windows release feed is set it ends in the \"Check failed\" standing with the note \"No update feed is set.\", and while the feed value is empty it makes no network request (OD-0012 I1).",
       "verification_method": "interaction test opening About after a simulated install and asserting the sweep timings and the settle; test that leaving mid-sweep settles immediately",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
