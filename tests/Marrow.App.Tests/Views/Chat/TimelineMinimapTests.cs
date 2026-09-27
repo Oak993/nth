@@ -298,4 +298,5 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
         (TValue)instance.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.Public)!.Invoke(instance, arguments)!;
 }
 
-// B3 audit: the former animation STOP #1 is satisfied by the transaction-driven persistent ticks.
+// B3 review fixes: animation STOP #1 is satisfied for persistent ticks and the preview's fade/offset/glide logic.
+// PR-CHAT-073 remains partly proven until the required light/dark capture comparison exists.

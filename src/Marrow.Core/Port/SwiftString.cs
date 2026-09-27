@@ -327,10 +327,12 @@ public static class SwiftCharacter
     public static bool IsUppercase(string character)
     {
         var scalar = First(character);
-        if (scalar.Utf16SequenceLength == character.Length &&
+        var single = scalar.Utf16SequenceLength == character.Length;
+        if (single &&
             IcuNative.HasBinaryProperty(scalar.Value, IcuNative.PropertyUppercase)) return true;
         return SwiftString.Equal(character, SwiftString.Uppercased(character)) &&
-            !SwiftString.Equal(character, SwiftString.Lowercased(character));
+            ((single && IcuNative.HasBinaryProperty(scalar.Value, IcuNative.PropertyCased)) ||
+             !SwiftString.Equal(character, SwiftString.Lowercased(character))); // isCased :260-264 retains its scalar fast path.
     }
 
     private static Rune First(string character) =>

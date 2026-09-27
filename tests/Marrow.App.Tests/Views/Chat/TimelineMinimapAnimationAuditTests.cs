@@ -15,6 +15,7 @@ using Marrow.UI.Port;
 namespace Marrow.App.Tests.Views.Chat;
 
 // Source: DroppyCode/App/Views/Chat/TimelineMinimap.swift (B3 52bc792), :139-287.
+// PR-CHAT-073 is partly proven by animation logic; its light/dark capture comparison is still pending.
 [Collection("Headless")]
 public sealed class TimelineMinimapAnimationAuditTests(HeadlessSession headless)
 {

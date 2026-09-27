@@ -282,6 +282,10 @@ public sealed class TimelineMinimapRail : Decorator
     private readonly List<(TimelineMinimapEntry Entry, Button Tick, AnimatedColor Fill)> ticks = [];
     private IFrameSource? tickFrameSource;
     private Action<TimeSpan>? tickFrame;
+    private Control? previewCard;
+    private string? previewID;
+    private IFrameSource? previewFrameSource;
+    private Action<TimeSpan>? previewFrame;
 
     // :169-177, :201-240
     public TimelineMinimapRail(
@@ -419,6 +423,15 @@ public sealed class TimelineMinimapRail : Decorator
         var updated = metrics.HitRect(entries.Count, size);
         hitArea.Height = updated.Height;
         hitArea.Margin = new Thickness(0, updated.Y, 0, 0);
+        // :224-231,289-300. Geometry changes re-clamp the mounted card without replacing the ticks.
+        if (previewCard is { } card && hoveredID is { } id && FindEntry(id) is { } entry)
+        {
+            CancelPreviewFrame();
+            var offset = (TranslateTransform)card.RenderTransform!;
+            offset.X = 0;
+            offset.Y = PreviewY(entry, metrics, size.Height);
+            card.Opacity = 1;
+        }
     }
 
     // :245-254,289-330
@@ -426,10 +439,7 @@ public sealed class TimelineMinimapRail : Decorator
     {
         if (root is null || metrics is null) return;
 
-        // :245-254 ForEach keeps the same ticks through hover/press/selection. Only the preview mounts/unmounts.
-        while (root.Children.Count > 2)
-            root.Children.RemoveAt(root.Children.Count - 1);
-
+        // :245-254 ForEach keeps the same ticks through hover/press/selection.
         if (tickStack is null)
         {
             tickStack = new StackPanel
@@ -449,12 +459,88 @@ public sealed class TimelineMinimapRail : Decorator
             Transaction.WithAnimation(animated ? HoverAnimation : null, UpdateTicks); // :241-243
         }
 
-        if (hoveredID is { } current && FindEntry(current) is { } hovered)
-            root.Children.Add(CreatePreviewCard(hovered, metrics));
+        Transaction.WithAnimation(animated ? HoverAnimation : null, UpdatePreview); // :230,238-243
 
         IsHitTestVisible = true;
     }
 
+    // :224-240,289-330. Preview insertion/removal combines opacity and x=-6; an existing preview glides in y.
+    // Both scalar and color animations share the hover transaction. Interruption begins at displayed values.
+    private void UpdatePreview()
+    {
+        CancelPreviewFrame();
+        if (root is null || metrics is null) return;
+        var animation = Transaction.Current;
+        var entry = hoveredID is { } id ? FindEntry(id) : null;
+        var previous = previewCard;
+        if (entry is not null && (previous is null || !OptionalStringEqual(previewID, entry.Id)))
+        {
+            var card = CreatePreviewCard(entry, metrics);
+            var offset = (TranslateTransform)card.RenderTransform!;
+            if (previous is not null)
+            {
+                var oldOffset = (TranslateTransform)previous.RenderTransform!;
+                card.Opacity = previous.Opacity;
+                offset.X = oldOffset.X;
+                offset.Y = oldOffset.Y;
+                root.Children.Remove(previous);
+            }
+            else if (animation is not null)
+            {
+                card.Opacity = 0;
+                offset.X = EnvironmentValues.GetAccessibilityReduceMotion(this) ? 0 : -6;
+            }
+            previewCard = card;
+            previewID = entry.Id;
+            root.Children.Add(card);
+        }
+        if (previewCard is not { } preview) return;
+        var transform = (TranslateTransform)preview.RenderTransform!;
+        var opacityFrom = preview.Opacity;
+        var xFrom = transform.X;
+        var yFrom = transform.Y;
+        var opacityTo = entry is null ? 0 : 1;
+        var xTo = entry is null && !EnvironmentValues.GetAccessibilityReduceMotion(this) ? -6 : 0;
+        var yTo = entry is null ? yFrom : PreviewY(entry, metrics, Bounds.Height);
+        void Place(double progress)
+        {
+            preview.Opacity = opacityFrom + (opacityTo - opacityFrom) * progress;
+            transform.X = xFrom + (xTo - xFrom) * progress;
+            transform.Y = yFrom + (yTo - yFrom) * progress;
+            if (progress == 1 && entry is null)
+            {
+                root.Children.Remove(preview);
+                previewCard = null;
+                previewID = null;
+            }
+        }
+        if (animation is null || (opacityFrom == opacityTo && xFrom == xTo && yFrom == yTo))
+        {
+            Place(1);
+            return;
+        }
+        var start = SwiftClock.Now;
+        var frames = FrameClock.Source.Current;
+        var span = TimeSpan.FromSeconds(animation.Duration);
+        Action<TimeSpan>? step = null;
+        step = _ =>
+        {
+            var elapsed = SwiftClock.Now - start;
+            var complete = elapsed >= span;
+            Place(complete ? 1 : animation.Progress(elapsed.TotalSeconds));
+            if (complete) previewFrame = null;
+            else frames.RequestFrame(step!);
+        };
+        previewFrameSource = frames;
+        previewFrame = step;
+        frames.RequestFrame(step);
+    }
+
+    private void CancelPreviewFrame()
+    {
+        if (previewFrame is { } previous) previewFrameSource?.CancelFrame(previous);
+        previewFrame = null;
+    }
 
     // :215-217, :284-287
     private void SetHovered(string? id)
@@ -559,13 +645,19 @@ public sealed class TimelineMinimapRail : Decorator
     }
 
     // :289-330
-    private Control CreatePreviewCard(TimelineMinimapEntry entry, MinimapRailMetrics metrics)
+    private double PreviewY(TimelineMinimapEntry entry, MinimapRailMetrics metrics, double railHeight)
     {
         var tickCenterY = metrics.CenterY(IndexOf(entry));
         var half = EstimatedCardHeight(entry) / 2;
         var top = half + 2;
-        var bottom = Math.Max(top, Bounds.Height - half - 2);
-        var y = Math.Min(Math.Max(tickCenterY, top), bottom) - Bounds.Height / 2;
+        var bottom = Math.Max(top, railHeight - half - 2);
+        return Math.Min(Math.Max(tickCenterY, top), bottom) - railHeight / 2;
+    }
+
+    // :289-330
+    private Control CreatePreviewCard(TimelineMinimapEntry entry, MinimapRailMetrics metrics)
+    {
+        var y = PreviewY(entry, metrics, Bounds.Height);
 
         var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 3 };
         var title = new TextBlock

@@ -3,6 +3,7 @@ using Marrow.Services.Providers;
 namespace Marrow.Services.Tests.Providers;
 
 // Source: DroppyCode/Services/Providers/CommandCodeAPI.swift (B3 52bc792), :194-221.
+// PR-PROVCLI-260 is partly proven here: synthetic casing/parser branches only; a Windows CLI capture comparison is pending.
 public sealed class CommandCodeUnicodeAuditTests
 {
     [Theory]

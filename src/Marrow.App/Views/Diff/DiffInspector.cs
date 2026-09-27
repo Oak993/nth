@@ -9,6 +9,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Media.Transformation;
+using Avalonia.Threading;
 using Marrow.App.Runtime;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -940,6 +941,8 @@ public sealed class DiffPopoverCoordinator
     private bool isShown;
     private IDisposable? pointerMonitor;
     private IDisposable? keyMonitor;
+    private bool reopening;
+    private long? notifiedCloseSession;
 
     // :534-539
     public DiffPopoverCoordinator()
@@ -998,9 +1001,7 @@ public sealed class DiffPopoverCoordinator
         pendingSession = session;
         if (isShown)
         {
-            isShown = false;
-            Presentation.Presenter.Current.SetPresented(popover, false);
-            PopoverDidClose(); // also releases content when the recording presenter has no native Closed event
+            HidePopover();
         }
     }
 
@@ -1030,9 +1031,9 @@ public sealed class DiffPopoverCoordinator
             StopMonitors(); // :606
             session++;
             pendingSession = session;
-            isShown = false;
-            Presentation.Presenter.Current.SetPresented(popover, false);
-            PopoverDidClose();
+            reopening = true;
+            try { HidePopover(); }
+            finally { reopening = false; }
         }
 
         Show();
@@ -1072,6 +1073,26 @@ public sealed class DiffPopoverCoordinator
     // :640-658
     public void PopoverDidClose()
     {
+        var closedSession = pendingSession;
+        if (notifiedCloseSession == closedSession) return;
+        notifiedCloseSession = closedSession;
+        // :640-658. A reopen's close finishes after Show has incremented the session, as the Swift Task does.
+        if (reopening) Dispatcher.UIThread.Post(() => CompletePopoverClose(closedSession));
+        else CompletePopoverClose(closedSession);
+    }
+
+    // :606-612,640-658. The native Closed event owns notification; the recording seam needs one fallback only.
+    private void HidePopover()
+    {
+        isShown = false;
+        Presentation.Presenter.Current.SetPresented(popover, false);
+        if (notifiedCloseSession != pendingSession) PopoverDidClose();
+    }
+
+    private void CompletePopoverClose(long closedSession)
+    {
+        // A delayed close must not clear the newer inspector, visibility state, or its new monitor pair.
+        if (session != closedSession) return;
         StopMonitors(); // :643
         isShown = false;
         desiredVisible = false;

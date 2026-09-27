@@ -16,6 +16,7 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 namespace Marrow.App.Tests.Views.Diff;
 
 // Source: DroppyCode/App/Views/Diff/DiffInspector.swift (B3 52bc792), :520-692.
+// PR-GIT-137 is partly proven: recording-presenter routing/lifetime only; native flyout rendering and pass-through remain unverified.
 [Collection("Headless")]
 public sealed class DiffPopoverAuditTests(HeadlessSession headless)
 {

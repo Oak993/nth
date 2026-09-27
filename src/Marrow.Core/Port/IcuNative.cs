@@ -15,6 +15,7 @@ internal static class IcuNative
 
     internal const int PropertyAlphabetic = 0;       // UCHAR_ALPHABETIC
     internal const int PropertyUppercase = 30;       // UCHAR_UPPERCASE (ICU unicode/uchar.h)
+    internal const int PropertyCased = 49;           // UCHAR_CASED; Swift Character.isCased single-scalar path.
     internal const int PropertyWhiteSpace = 31;      // UCHAR_WHITE_SPACE
     internal const int PropertyNumericType = 0x1009; // UCHAR_NUMERIC_TYPE
 
