@@ -3313,6 +3313,26 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // Needed: geometric layout animation in its owning foundation unit. Arrival/departure clip and fade are implemented;
 // adding/removing/reordering chips while the row remains nonempty has immediate layout, explicitly unverified.
 
+// STOP App.Views.Composer.ComposerView #8
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:205-212 (B3 52bc792)
+// Records: PR-COMPOSER-052 (command/error observers).
+// Missing: ProviderRegistry.UpdateCommands and LoadCommands assign commands/commandErrors backing fields directly
+// without Set/Notify, so OnChange cannot observe delivered commands or errors. Reproduced on a focused mounted pill.
+// Needed: owning Services.Providers.ProviderRegistry unit must notify these observable properties as Swift @Observable
+// does. The source-correct observer wiring is present; its executable regression test remains failing, not skipped.
+// Historical STOP #4's ComposerControls mount obstruction is resolved; this separate dependency now blocks proof.
+
+// STOP App.Views.Composer.ComposerView #9
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:482; Core/Models/Provider.swift:306-323 (B3 52bc792)
+// Records: PR-COMPOSER-042; dependent command suggestion and selection records PR-COMPOSER-039 through 055,
+// UI-COMPOSER-019/021/022 where command suggestions are exercised.
+// Missing: SlashCommand.Suggestions is MARROW_STUB in impl/b2. The inherited WIP edited Provider.cs outside this unit.
+// That edit is restored to impl/b2 during scope cleanup; all original suggestion tests remain unchanged and unskipped.
+// Needed: Core.Models.Provider owning unit implements the existing public Suggestions API. No local fallback is invented.
+// Composer's call, built-in command inputs and suggestion-row mapping are ready; command execution proof is blocked.
+
 // STOP App.Views.Composer.ComposerView #10
 // Kind: missing dependency
 // Swift: DroppyCode/App/Views/Composer/ComposerView.swift:23,56 (B3 52bc792)
