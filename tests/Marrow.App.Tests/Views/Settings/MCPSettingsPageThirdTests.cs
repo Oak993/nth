@@ -23,9 +23,9 @@ public sealed class MCPSettingsPageThirdTests(HeadlessSession headless)
         using var scope=Presentation.Presenter.Override(new RecordingPresenter());var model=new AppModel();runtime.OnMain(()=>test(model,frames));Dispatcher.UIThread.RunJobs();
     });
     [Fact]
-    [Trait("Req", "UI-MCP-028")] // App/Views/Settings/MCPSettingsPage.swift:341-344
-    [Trait("Req", "UI-MCP-029")] // App/Views/Settings/MCPSettingsPage.swift:345-348
-    [Trait("Req", "UI-MCP-030")] // App/Views/Settings/MCPSettingsPage.swift:345-348
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:341-344
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:345-348
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:345-348
     public void Setup_uses_prominent_glass_and_failure_labels_follow_oauth()
     {
         Ui((model,_)=>{var guide=new MCPSetupGuide("Setup","Explanation",new[]{"Step"},"Open","https://example.invalid",null);State(model,"offline",new MCPConnectionState.NeedsSetup(guide));var card=new MCPServerCard(Entry());using var window=Attach(card,model);var fix=Button(card,"Fix it");Assert.Contains(Nodes<Border>(fix),b=>SwiftGlass.GetEffect(b)?.TintColor is not null);
@@ -104,7 +104,7 @@ public sealed class MCPSettingsPageThirdTests(HeadlessSession headless)
     }
     [Fact]
     [Trait("Req", "UI-MCP-036")] // App/Views/Settings/MCPSettingsPage.swift:463-480,483-498
-    [Trait("Req", "UI-MCP-037")] // App/Views/Settings/MCPSettingsPage.swift:504-507
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:504-507
     [Trait("Req", "UI-MCP-038")] // App/Views/Settings/MCPSettingsPage.swift:508-515
     [Trait("Req", "UI-MCP-039")] // App/Views/Settings/MCPSettingsPage.swift:516-520
     [Trait("Req", "UI-MCP-040")] // App/Views/Settings/MCPSettingsPage.swift:521-524
