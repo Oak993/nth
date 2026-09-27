@@ -1,0 +1,100 @@
+using System.Collections;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Reflection;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Marrow.App.Runtime;
+using Marrow.App.Tests.Fixtures;
+using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Core.Support;
+using Marrow.Services.Providers;
+using Marrow.Testing;
+using AvaloniaWindow = Avalonia.Controls.Window;
+
+namespace Marrow.App.Tests.Views.Chat;
+
+// Test-owned helpers; no edits to the other TimelineRows job's tests.
+internal static class TimelineRowsPrSupport
+{
+    internal const BindingFlags Hidden = BindingFlags.Instance | BindingFlags.NonPublic;
+    internal static object? Invoke(object target, string member, params object?[] args) =>
+        target.GetType().GetMethod(member, Hidden)!.Invoke(target, args);
+    internal static object? Field(object target, string name) => target.GetType().GetField(name, Hidden)!.GetValue(target);
+    internal static T Property<T>(object target, string name) => (T)target.GetType().GetProperty(name)!.GetValue(target)!;
+    internal static ThreadRuntimePart12Harness Harness()
+    {
+        Task.Run(() => LoginEnvironment.Load()).GetAwaiter().GetResult();
+        return new ThreadRuntimePart12Harness();
+    }
+    internal static AvaloniaWindow Show(Control content)
+    {
+        var window = new AvaloniaWindow { Width = 900, Height = 700, Content = content };
+        window.Show();
+        Settle(window);
+        window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
+        return window;
+    }
+    internal static void Settle(AvaloniaWindow window)
+    {
+        for (var i = 0; i < 4; i++) { window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
+    }
+    internal static void Close(AvaloniaWindow window)
+    {
+        Settle(window); window.Content = null; window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+    }
+    internal static void Click(AvaloniaWindow window, Control target)
+    {
+        var point = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)
+            ?? throw new InvalidOperationException("Target is not mounted");
+        window.MouseMove(point, RawInputModifiers.None);
+        window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
+        window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+        Settle(window);
+    }
+    internal static TimelineEntry Reply(string text) => new(new TimelineItem(null,
+        new TimelineItem.Content.Assistant(new AssistantMessage { Text = text })));
+    internal static TimelineEntry Tool(ToolCall.Kind kind = ToolCall.Kind.Command, ToolCall.Status status = ToolCall.Status.Completed,
+        ValueList<FileEdit>? edits = null) => new(new TimelineItem(null, new TimelineItem.Content.Tool(
+            new ToolCall { ToolCallKind = kind, ToolCallStatus = status, Title = "Read file", Edits = edits ?? ValueList<FileEdit>.Empty })));
+    internal static TimelineEntry Plan() => new(new TimelineItem(null, new TimelineItem.Content.Plan(new ProposedPlan
+        { Markdown = "plan", ProposedPlanState = ProposedPlan.State.Accepted })));
+    internal static TimelineEntry MakeNotice(Notice.Level level) => new(new TimelineItem(null,
+        new TimelineItem.Content.Notice(new Notice { Message = level.ToString(), NoticeLevel = level })));
+    internal static TurnSummary Summary(Guid turn) => new() { TurnID = turn, Status = TurnStatus.Completed, Duration = 5, FilesChanged = 0, Additions = 0, Deletions = 0 };
+}
+
+// Counts the real Derived constructor's walks without adding counters or callbacks to production.
+internal sealed class TimelineRowsPrCountedEntries : IList<TimelineEntry>
+{
+    private readonly List<TimelineEntry> entries;
+    internal int Derivations { get; private set; }
+    internal TimelineRowsPrCountedEntries(IEnumerable<TimelineEntry> entries) => this.entries = entries.ToList();
+    internal ValueList<TimelineEntry> AsValueList()
+    {
+        var result = new ValueList<TimelineEntry>(entries);
+        typeof(ReadOnlyCollection<TimelineEntry>).GetField("list", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(result, this);
+        return result;
+    }
+    public IEnumerator<TimelineEntry> GetEnumerator()
+    {
+        if (new StackTrace().GetFrames().Any(frame => frame.GetMethod()?.DeclaringType?.Name == "Derived"
+            && frame.GetMethod()?.Name == ".ctor")) Derivations++;
+        return entries.GetEnumerator();
+    }
+    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    public TimelineEntry this[int index] { get => entries[index]; set => entries[index] = value; }
+    public int Count => entries.Count;
+    public bool IsReadOnly => false;
+    public void Add(TimelineEntry item) => entries.Add(item);
+    public void Clear() => entries.Clear();
+    public bool Contains(TimelineEntry item) => entries.Contains(item);
+    public void CopyTo(TimelineEntry[] array, int index) => entries.CopyTo(array, index);
+    public int IndexOf(TimelineEntry item) => entries.IndexOf(item);
+    public void Insert(int index, TimelineEntry item) => entries.Insert(index, item);
+    public bool Remove(TimelineEntry item) => entries.Remove(item);
+    public void RemoveAt(int index) => entries.RemoveAt(index);
+}
