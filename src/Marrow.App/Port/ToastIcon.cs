@@ -11,7 +11,11 @@ public interface IToastIconFiles
 
 public static class ToastIcon
 {
-    public static string Install(IToastIconFiles files, string path, byte[] png) => throw new NotImplementedException("MARROW_STUB toasts icon");
+    public static string Install(IToastIconFiles files, string path, byte[] png)
+    {
+        if (files.Read(path) is not { } existing || !existing.AsSpan().SequenceEqual(png)) files.Write(path, png);
+        return path;
+    }
 }
 
 public sealed class WindowsToastIconFiles : IToastIconFiles
