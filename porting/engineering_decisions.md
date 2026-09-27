@@ -1314,3 +1314,203 @@ MARROW_PORT_DATA_DIR. Real installs (%USERPROFILE%\.local\bin, %LOCALAPPDATA%\Pr
 Tests: ProviderCliGuardTests (guard installed and excludes the real install folders; a binary outside the roots resolves to
 nothing; a stand-in in the temp folder still resolves). ENGINEERING DECISION; test safety, not a behaviour change.
 
+ED-212 [DEV] A Debug-only MARROW_DEV_DATA_ROOT redirect of every app-owned data location, so a manual Debug launch
+can run against a throwaway folder instead of the developer's own real %LOCALAPPDATA%\Marrow Code,
+%USERPROFILE%\.marrow-dev and Windows Credential Manager entries (STOP Boot #4,
+tests/Marrow.App.Tests/AppDelegateThirdTests.cs:305-321; E:/Droppy/work/b3/DEV_LAUNCH.md).
+
+SOURCE FACT: none of this has a B3 Swift counterpart (52bc7926). MARROW_DEV_DATA_ROOT is not read anywhere in the
+pinned source, and Storage.swift, StoragePaths.swift, HangWatchdog.swift, MCPBridgeSource.swift, PiCLI.swift,
+CommandCodeAPI.swift and APIKeychain.swift/MCPKeychain.swift each resolve their own root unconditionally
+(kSecAttrService = AppInfo.name; the Application Support/Library folder on the Mac side). This is a development
+affordance the port adds for its own manual testing, not a behavior traced to the source.
+
+DECISION: `Marrow.Core.Support.DevDataRoot` (src/Marrow.Core/Support/DevDataRoot.cs, PORT-ONLY). Its
+`LocalApplicationData()` returns, under `#if DEBUG` only, the value of MARROW_DEV_DATA_ROOT when that variable
+names a directory that already exists; every other case (Release; Debug with the variable unset, empty, or naming
+a directory that does not exist) returns `Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)`
+unchanged, byte-for-byte the value every one of the call sites below returned before this decision. The whole
+redirect is behind `#if DEBUG`, so it does not exist in a Release build's compiled code, not merely a runtime
+branch that happens to be false.
+
+Every production site that used to call `Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData)`
+directly now calls `DevDataRoot.LocalApplicationData()` instead:
+- `Marrow.App/Program.cs:46` (Main's `localAppData`, feeding SettingsStore.ProductionPath, Storage.Locations and
+  StoragePaths.Locations at start-up).
+- `Marrow.Core/Support/HangWatchdog.cs:44` (the hang-report log folder, ED-162).
+- `Marrow.Core/Support/StoragePaths.cs:70` (`StoragePathsLocations.CreateProduction`: root and wallpaper).
+- `Marrow.Services/Store/Storage.cs:130` (`StorageLocations.CreateProduction`'s `root` factory: library.json,
+  threads, attachments).
+- `Marrow.Services/MCP/MCPBridgeSource.cs:309` (`InstallBridge()`'s base folder).
+- `Marrow.Services/Providers/CommandCodeAPI.cs:634` (`SupportDirectory` / `InstallMod()`'s base folder).
+- `Marrow.Services/Providers/PiCLI.cs:39` (`SupportDirectory`'s base folder).
+- `Marrow.Services/Providers/CommandCodeSession.cs:1030` (`ApprovalDirectoryRoot()`, the test seam that duplicates
+  CommandCodeAPI's own "Marrow Code/CommandCode" literal so approvals land next to the mod's own support folder).
+
+Two more per-user identities get the same treatment, both PORT-ONLY (OD-0012 F1's ".marrow"/".marrow-dev" folder
+name and ED-093's credential target names are otherwise unchanged):
+- `Storage.StorageLocations.CreateProduction`'s `homeDirectory` factory (Storage.cs) returns
+  `DevDataRoot.LocalApplicationData()` in place of `LoginEnvironment.HomeDirectory` while the redirect is active, so
+  the ".marrow-dev" worktrees/patches folder moves under the dev root too, never under the developer's own
+  %USERPROFILE%.
+- `DevDataRoot.KernelObjectName(baseName)` and `DevDataRoot.CredentialService(baseService)`: the identity function
+  when not redirected; while redirected, `baseName + "." + tag` and `baseService + " [" + tag + "]"`, where `tag`
+  is the first 8 lowercase hex characters of SHA-256 over the active dev root's own directory path. The tag is hex
+  only, so it is used in a Win32 kernel-object name (`DroppyCodeApp.cs`'s `SingleInstanceLockName` and
+  `ReopenSignalName`) with no backslash-escaping question, and it differs between two different dev roots (so two
+  dev launches on different roots never contend for the same single-instance lock, never signal each other's
+  reopen, and never read or overwrite each other's stored provider keys). `APIKeychain.cs`'s three call sites and
+  `MCPKeychain.cs`'s `Service` property route `AppInfo.Current.Name` through `CredentialService` before it becomes
+  a Credential Manager service name; nothing else reads `AppInfo.Current.Name` differently, so the display name,
+  window title and every other reader of `AppInfo.Current.Name` are unchanged.
+
+Tests: `tests/Marrow.Core.Tests/Support/DevDataRootTests.cs` (unset/empty/missing-directory all resolve the real
+special folder and report not redirected; an existing directory is returned verbatim and reports redirected;
+`KernelObjectName`/`CredentialService` are the identity when not redirected, tagged with 8 hex characters when
+redirected, and two different dev roots get two different tags).
+`tests/Marrow.Services.Tests/Support/DevDataRootProductionSitesTests.cs` (every Marrow.Services site above, tested
+by pointing MARROW_DEV_DATA_ROOT at a throwaway MARROW_PORT_DATA_DIR folder for every redirected case, so no
+side-effecting call (InstallMod, InstallBridge, StorageLocations.Root/.WorktreesDirectory/.PatchesDirectory) ever
+creates anything under a real %LOCALAPPDATA%\Marrow Code; the two path-only sites (SupportDirectory,
+ApprovalDirectoryRoot) are additionally checked unredirected against the real special folder, since neither one
+creates anything on its own; APIKeychain/MCPKeychain tests confirm a redirected write lands only under the tagged
+service and the plain, untagged service sees nothing).
+`tests/Marrow.App.Tests/DroppyCodeAppTests.cs` (ReopenSignalName is the unchanged literal with no dev root active;
+tagged, and distinct between two different dev roots, once one is active).
+`tests/Marrow.Services.Tests/Providers/CommandCodeAPITests.cs`'s pre-existing
+`SupportDirectory_is_LocalAppData_Marrow_Code_CommandCode_as_a_directory_URL` now clears MARROW_DEV_DATA_ROOT in its
+own try/finally scope before comparing `CommandCodeAPI.SupportDirectory` against the real special folder, so its
+assertion holds regardless of whatever a developer's shell happens to have set.
+
+ENGINEERING DECISION; not a deviation (no Swift source declares or reads this variable); not present in a Release
+build, which never compiles the `#if DEBUG` branch. `E:/Droppy/work/b3/DEV_LAUNCH.md` gives the manual launch and
+cleanup steps this decision exists for.
+ED-213 [UI] GraphicsContext `.plusLighter` path drawing (sweep-A STOP #5; PR-COMPOSER-138). SOURCE FACT: EffortSlider.swift is
+the only pinned file that sets `.plusLighter` (:1278 `plasma.blendMode = .plusLighter`, :1320 `glow.blendMode = .plusLighter`), inside
+the fusion drawing (:1232-1335): path layers that are blurred (:1279 radius 2.5, :1321 radius 7) and clipped (:1282
+`plasma.clip(to: Path(side))`). Apple documents kCGBlendModePlusLighter as R = MIN(1, S + D) on premultiplied colour. Avalonia's
+DrawingContext has no per-drawing blend mode for vector paths, so the site was left unwritten. DECISION: the fusion drawing runs as an
+Avalonia ICustomDrawOperation on the Skia lease (ISkiaSharpApiLeaseFeature), the pattern ShaderLibrary.cs's
+GenieDistortionOperation already uses. Each GraphicsContext copy that sets `.plusLighter` becomes an SKCanvas save layer composited
+with SKBlendMode.Plus (the same saturating per-channel add). Its blur is a Skia Gaussian whose standard deviation is the SwiftUI
+radius, the convention EffortSlider's other blurred layers already follow through CometPainter.GaussianBlur (and Wallpaper.cs's
+radius-as-sigma). Its clip is the same path through SKCanvas.ClipPath with anti-aliasing. Draw order, paths, colours and opacities
+are the Swift's, and the helper stays private to EffortSlider unless a second site appears. Tests render to an offscreen Skia surface:
+- two 0.5-alpha red plus-layers sum to 1.0 and clamp;
+- the blur spreads past the path edge;
+- the clip bounds the result.
+ENGINEERING DECISION; the exact macOS blur kernel and colour space stay UNVERIFIED under OD-0001.
+
+ED-214 [UI] Text `.minimumScaleFactor` (sweep-A STOP #6; the untracked gap at NewThreadPrompt.cs:55-57). SOURCE FACT: four pinned
+sites, each on one-line text:
+- NewThreadPrompt.swift:46 (0.6);
+- EffortSlider.swift:614 (0.85) and :648 (0.9);
+- AboutUpdateViews.swift:227 (0.8), on a VStack of two texts.
+Apple documents minimumScaleFactor as the minimum amount text scales down to fit the available space, applied before truncation, and
+as an environment value every Text inside the modified view reads. Avalonia's TextBlock has no counterpart. DECISION: one port
+primitive in Marrow.UI/Port, used at all four sites. During measure, when the proposed width is finite and the text's natural
+one-line width is larger, the font size becomes size x max(factor, available / natural). When it still does not fit at factor x
+size, the text truncates with its own trimming (tail unless the site says otherwise). The scale changes the font size, not a render
+transform, so line height and the reported height follow the scaled text. An infinite proposal never scales. Applied to a container,
+it reaches each text inside, and each text scales independently. Tests:
+- a text that fits is unchanged;
+- a slightly-too-wide text lands exactly at the fitting size;
+- a far-too-wide text lands at factor x size with an ellipsis;
+- each of the four sites carries its own factor.
+ENGINEERING DECISION; macOS's exact scale stepping stays UNVERIFIED under OD-0001.
+
+ED-215 [UI][FOUNDATION] Every asset-catalogue image the pinned Swift names is bundled. This extends ED-182's asset table, which
+held three names, droppy-logo, hydra-mark and badge-edit, plus the 25 hydra-head marks. SOURCE FACT: at B3,
+DroppyCode/Resources/Assets.xcassets holds 85 imagesets and the port bundles 28 of them. Still missing:
+- 13 provider-* images (ProviderKind.iconName; ProviderIcon, Components.swift:4-14);
+- 33 mcp-* images (the MCP catalogue marks; MCPGlyph);
+- UpdateBugFixesIcon, UpdateNewFeaturesIcon and UpdateRefinementsIcon (the AboutUpdateViews release-note cards);
+- 8 tour-* images (TourView.swift:256).
+SwiftImage.Named returns an empty image for an unknown name, so every one of those sites draws nothing and reports nothing (found
+2026-09-27 while reviewing sweep-A). PA-0012 already classes the provider and mcp marks as the app's own shipped artwork and
+reusable; UNK-0002 was resolved by OD-0002. DECISION: copy each imageset's files byte for byte into src/Marrow.UI/Assets/Images/ and
+register each under its imageset name in SwiftImage's table, following its Contents.json:
+- an SVG with preserves-vector-representation stays a vector image;
+- PNG scale variants map to Bitmap (1x) and Bitmap2x (2x);
+- template-rendering-intent "original" or "template" maps to ImageRenderingMode.Original or Template; an imageset without it
+  follows the rule ED-182 already applies.
+A test reads a manifest of every non-tour imageset name at B3, checked in beside the tests, and proves each one resolves to a
+non-empty image with the intent its Contents.json declares. The 8 tour-* screenshots are held back by OD-0027 (retaken in Marrow on Windows once it runs): they show
+macOS window controls and "DroppyCode" text (OD-0012 F1). TourView keeps a visible STOP naming OD-0027 until the captures exist.
+ENGINEERING DECISION.
+
+ED-216 [UI] One dialog seam for every SwiftUI `.alert`, `.confirmationDialog` and NSAlert (TimelineRows STOP 2). SOURCE FACT: six
+sites in 1.7.0:
+- TimelineRows.swift:191-196, confirmationDialog "Edit from this message?": "Revert and keep file changes", then "Revert files too"
+  (role .destructive), and a message;
+- SettingsView.swift:920-934, confirmationDialog "Delete \"<title>\"?" or "Delete the archived thread?": "Delete thread"
+  (.destructive), and a message;
+- RootView.swift:80-91, .alert(model.alert.title): "OK" (role .cancel), message model.alert.message;
+- ChatView.swift:1231-1237, .alert("Rename thread"): TextField("Title"), "Rename", "Cancel" (.cancel);
+- ChatView.swift:1381-1385, .alert("New branch"): TextField("Branch name"), "Create", "Cancel" (.cancel);
+- AppUpdater.swift:274-280, NSAlert "Update Failed", warning style, runModal (already on the seam).
+Apple documents that every dialog action dismisses the dialog after it runs; that a confirmation dialog includes a standard dismiss
+action unless a button has the cancel role, which then takes its place; and that an alert without actions gets a standard "OK".
+Today the port has AlertPresentation (src/Marrow.App/Port/AlertPresenter.cs, the updater's plain OK alert) and a private window in
+SettingsView.cs:761-772 with no Cancel button. DECISION: AlertPresentation becomes the one seam for all six sites:
+- AlertButton gains a Role (None, Cancel, Destructive; SwiftUI ButtonRole), and Show takes the title, an optional message, the
+  buttons in declared order, optional text fields (label plus a two-way value) and a kind (Alert or ConfirmationDialog);
+- a ConfirmationDialog with no cancel-role button gets a "Cancel" button with that role;
+- an Alert with no buttons gets "OK";
+- every button runs its action, then closes the dialog;
+- Escape and the window's close box run the cancel-role button, or just close when there is none;
+- destructive titles draw in Chrome.Danger;
+- buttons sit right-aligned in declared order with the cancel-role button moved last (the Windows convention);
+- Return activates the first button with no role, and a dialog with no such button has no Return default;
+- the title is the window title and a bold first line, and the message and fields follow;
+- the dialog is modal, centred on the owner window, and returns a Task that completes on close.
+The seam keeps its test override (the Ambient Presenter): tests record the request and press buttons by title, never open a
+window. SettingsView's private window, TimelineRows STOP 2, RootView and ChatView all move onto it. ENGINEERING DECISION. macOS's
+button order, default-button choice and the look of the sheet stay UNVERIFIED under OD-0001.
+
+ED-217 [UI] Two-line middle truncation (TimelineRows STOP 6). SOURCE FACT: TimelineRows.swift:1969-1973 sets `.lineLimit(2)` and
+`.truncationMode(.middle)` on a tool row's label. Every other `.truncationMode(.middle)` site in 1.7.0 is single-line, and those are
+served by src/Marrow.UI/Port/MiddleTruncatingText.cs (MiddleTruncatingTextBlock), which is single-line. DECISION:
+MiddleTruncatingTextBlock gains a line limit. With a limit of 2, the text wraps normally. When it needs more than two lines, the first
+line keeps its normal wrap and the second holds the rest of the text, elided in its own middle to fit the width: the start of the
+remainder, U+2026, then the end of the whole string. This is TextKit's rule of truncating only the last line; its exact
+middle-truncation of a wrapped paragraph on macOS stays UNVERIFIED under OD-0001. A limit of 1 behaves exactly as today. Tests:
+- text that fits in one line or in two is unchanged;
+- an overflowing string keeps a whole first line, and its second line ends with the string's own last characters, with one U+2026;
+- a limit of 1 is unchanged from today.
+ENGINEERING DECISION.
+
+ED-218 [UI][FOUNDATION] ForEach rows enter and leave through their transitions, and surviving rows glide (MCPSettingsPage STOP #4).
+SOURCE FACT: 1.7.0 has 136 ForEach sites and 88 .transition(...) sites, many of them rows inside a ForEach under withAnimation or
+.animation(_:value:). Examples: MCPSettingsPage.swift:55-57 (the connected grid); TimelineRows.swift:410-414 (FinishedHeadPill with
+.settleGlide under .smooth(duration: 0.3)). In SwiftUI, an inserted row plays its insertion transition and a removed row its removal
+transition, under the transaction's animation; rows that survive but move animate from their old frame to their new one under the same
+transaction. The port's ForEach (src/Marrow.UI/Port/ViewLifetime.cs:88-130) inserts and removes Panel children directly, so none of that
+happens. 52 call sites work around it by calling SwiftTransition.Insert/Remove by hand. DECISION: ForEach.Apply does it itself:
+- a new row goes in through SwiftTransition.Insert, and a vanished row leaves through SwiftTransition.Remove (it is disposed when its
+  removal ends), whenever the row carries a transition (SwiftTransition's attached value) or Transaction.Current is animated;
+- rows with no transition and no animated transaction behave exactly as today, so existing callers and tests are unchanged;
+- when Transaction.Current is animated, each surviving row whose laid-out position changes is moved FLIP-style: record its bounds
+  before Apply; after the next layout pass, set a RenderTransform translation from the old position to the new one and animate it to
+  zero with the transaction's curve. Size changes are not animated by this mechanism;
+- reduce motion (Transaction.Current already carries it) and window live resize (WindowLiveResize) turn the glide off, as the
+  sources gate animations elsewhere.
+The 52 hand-written call sites may move to the new ForEach later, but none has to. Tests (headless, clock-driven):
+- insert and remove play the row's transition and the removed row is disposed after it;
+- a reorder under an animated transaction starts each moved row at its old offset and ends at zero;
+- no transition and no animation behaves exactly as before.
+ENGINEERING DECISION; SwiftUI's exact interpolation of a moved row stays UNVERIFIED under OD-0001.
+
+ED-219 [WIN][LAUNCH] The Dock unread badge becomes a taskbar overlay badge (AppModel.updateDockBadge). SOURCE FACT: AppModel.swift:1270-1273
+sets `NSApp.dockTile.badgeLabel` to the number of threads with hasUnread that are neither archived nor in a panel, or nil when there are
+none. The port (AppModel.cs UpdateDockBadge) keeps the count but shows nothing, with a comment that the taskbar cannot show text; no
+decision recorded that. Windows has ITaskbarList3::SetOverlayIcon, a small icon drawn over the app's taskbar button, which is how
+Windows apps show unread counts. DECISION:
+- the port sets the main window's taskbar overlay icon to a badge drawn in code: the count in white on a filled red circle
+  (NSColor.systemRed at macOS's light values, the Dock badge's own colours), rendered at the system small-icon size for the current DPI;
+- above 99 the badge text stays the decimal count, shrunk to fit, exactly as the source's String(unread) (no "99+" is invented);
+- nil clears the overlay;
+- the accessible description is the count as text;
+- the COM call goes through a seam, so tests record the count and rendered pixels and never touch the real taskbar.
+ENGINEERING DECISION.
+

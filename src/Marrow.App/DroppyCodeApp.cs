@@ -31,12 +31,19 @@ public static class DroppyCodeApp
     // Mutex, one per build identity so a Dev build and a Release build never contend with each other, matching
     // AppInfo.isDevelopment's own "iordv.droppycode" vs "iordv.droppycode.dev" split (project.yml, AssemblyInfo.cs).
 #if DEBUG
-    private const string SingleInstanceLockName = "Local\\Marrow.SingleInstance.Dev";
-    internal const string ReopenSignalName = "Local\\Marrow.Reopen.Dev";
+    private const string BaseSingleInstanceLockName = "Local\\Marrow.SingleInstance.Dev";
+    private const string BaseReopenSignalName = "Local\\Marrow.Reopen.Dev";
 #else
-    private const string SingleInstanceLockName = "Local\\Marrow.SingleInstance.Release";
-    internal const string ReopenSignalName = "Local\\Marrow.Reopen.Release";
+    private const string BaseSingleInstanceLockName = "Local\\Marrow.SingleInstance.Release";
+    private const string BaseReopenSignalName = "Local\\Marrow.Reopen.Release";
 #endif
+
+    // ED-212: a Debug launch under MARROW_DEV_DATA_ROOT gets its own lock and reopen names, tagged with a hash of
+    // its dev root, so two dev launches on different roots never contend with each other's single-instance lock or
+    // signal each other's reopen. Release, and a Debug launch with no active redirect, keep the literal above
+    // unchanged (DevDataRoot.KernelObjectName is the identity when not redirected).
+    private static string SingleInstanceLockName => DevDataRoot.KernelObjectName(BaseSingleInstanceLockName);
+    internal static string ReopenSignalName => DevDataRoot.KernelObjectName(BaseReopenSignalName);
 
     /// <summary>
     /// True and holding <paramref name="handle"/> when this is the only running instance; false when another
