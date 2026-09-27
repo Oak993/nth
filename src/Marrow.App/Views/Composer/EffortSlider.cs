@@ -107,6 +107,7 @@ public sealed class ModelEffortButton : Decorator
         popup.Closed += (_, _) => { presented = false; button.Chip(); lockedWidth = null; frame.Width = double.NaN; popup.Child = null; }; // :114,116-117
         DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
         Child = button;
+        ProviderRegistry registry = null!; // :60 `let registry = model.providers`, set by every body evaluation below
         this.Track(() =>
         {
             var model = AppEnvironment.GetAppModel(this);
@@ -117,6 +118,7 @@ public sealed class ModelEffortButton : Decorator
         }, snapshot =>
         {
             var (model, currentThread, current, pair) = snapshot;
+            registry = model.Providers;
             frame.Children.Clear();
             Control mark = pair is null
                 ? new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 } // :73-75 real provider artwork from Components.
@@ -144,7 +146,9 @@ public sealed class ModelEffortButton : Decorator
             if (pair is not null) parts.Add(HydraPairSummary.Title(pair, model.Providers));
             var help = string.Join(" · ", parts); ToolTip.SetTip(button, help); AutomationProperties.SetName(button, help); // :142-149
         });
-        this.Task(() => thread.Provider, async provider => await AppEnvironment.GetAppModel(this).Providers.LoadCatalog(provider)); // :138
+        // :138 the body closes over the registry of the body evaluation (:60), attached before this task starts; it
+        // never looks the environment up, so a task left queued by a chip that has since left the tree still has it.
+        this.Task(() => thread.Provider, async provider => await registry.LoadCatalog(provider)); // :138
         // :125-137 capture-only anchor/frame sites remain outside the shipped path (ED-001).
     }
 }
