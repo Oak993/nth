@@ -6550,6 +6550,129 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             });
         });
     }
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-056")] // App/Views/Sidebar/SidebarView.swift:347-375,1622-1633
+    [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:128-137,1838-1849
+    public void A_real_parent_pointer_drag_carries_two_helpers_and_a_head_card_then_a_folded_stub_and_releases_its_lift() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0) with { ExpandsHelpers = true };
+        var first = NewThread(project, "First helper", 1) with { ParentThreadID = parent.Id };
+        var second = NewThread(project, "Second helper", 2) with { ParentThreadID = parent.Id };
+        var head = HeadHelper(project, parent.Id, 0, 3);
+        var model = Model(harness, [project], [parent, first, second, head]);
+        SidebarView view = null!;
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        Point start = default;
+        void Tick(int milliseconds)
+        {
+            harness.Main.AdvanceMilliseconds(milliseconds);
+            harness.Main.OnMain(() => { frames.Advance(TimeSpan.FromMilliseconds(milliseconds)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        void AssertRider(Control dependent, double offset)
+        {
+            var rider = dependent.GetVisualAncestors().OfType<Control>().First(c => c.RenderTransform is TranslateTransform);
+            Assert.Equal(offset, ((TranslateTransform)rider.RenderTransform!).Y, 3);
+            Assert.Equal(offset == 0 ? 0 : 1, rider.ZIndex); // :1627-1632 the same visualOffset/zIndex as the parent
+        }
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.HydraAutoHidesIdleHeads = false;
+                view = Attached(model);
+                window = WindowOf(view);
+                row = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarThreadRow"));
+                start = row.TranslatePoint(new Point(12, 12), window)!.Value;
+                Assert.Equal(2, LogicalQuery.SelfAndDescendants<Control>(view).Count(c => c.GetType() == Private("SidebarHelperRow")));
+                Assert.Single(LogicalQuery.SelfAndDescendants<Control>(view), c => c.GetType() == Private("HeadCardsRow"));
+                Assert.Equal(parent.Id, CallOn(Field(view, "rowFrames")!, "Thread", row.TranslatePoint(new Point(12, 12), ListPanel(view))!.Value));
+                window.MouseDown(start, MouseButton.Left);
+                Assert.NotNull(Field(view, "pressStart"));
+                window.MouseMove(start + new Vector(0, 3), RawInputModifiers.LeftMouseButton);
+                Assert.Null(Drag(view).Id); // :129 minimumDistance 4
+                window.MouseMove(start + new Vector(0, 17), RawInputModifiers.LeftMouseButton);
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(parent.Id, Drag(view).Id);
+                Assert.Equal(17, Drag(view).VisualOffset); // no peer swap: source translation follows the pointer
+                row = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarThreadRow")); // :758-759 updates the isDragged input
+                AssertRider(row, 17);
+                foreach (var helper in LogicalQuery.SelfAndDescendants<Control>(view).Where(c => c.GetType() == Private("SidebarHelperRow"))) AssertRider(helper, 17);
+                AssertRider(LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("HeadCardsRow")), 17);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<RowActionsButton>(row)); // :1723 !isDragged
+            });
+            Tick(1600); // settle the exact response 0.25/damping 0.8 lift, while still holding the pointer
+            harness.Main.OnMain(() =>
+            {
+                var overlays = (Control)Field(row, "overlays")!;
+                Assert.Equal(1.02, ((ScaleTransform)overlays.RenderTransform!).ScaleX, 3); // :1846
+                var lift = Assert.IsType<Border>(Assert.IsType<Panel>(row is Decorator d ? d.Child : null).Children[0]);
+                Assert.Equal(1, lift.Opacity);
+                model.UpdateThread(parent.Id, t => t.WithFoldsHelpers(true));
+            });
+            Tick(1600); // finish removal transitions before inspecting the folded branch
+            harness.Main.OnMain(() =>
+            {
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Control>(view), c => c.GetType() == Private("SidebarHelperRow"));
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Control>(view), c => c.GetType() == Private("HeadCardsRow"));
+                AssertRider(LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("HelperStubRow")), 17);
+                window.MouseUp(start + new Vector(0, 17), MouseButton.Left);
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(Drag(view).Id);
+                row = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarThreadRow"));
+                AssertRider(row, 0);
+                AssertRider(LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("HelperStubRow")), 0);
+                Assert.Equal(1, ((ScaleTransform)((Control)Field(row, "overlays")!).RenderTransform!).ScaleX, 3);
+                Assert.Equal(0, Assert.IsType<Border>(Assert.IsType<Panel>(((Decorator)row).Child).Children[0]).Opacity);
+                window.MouseMove(new Point(-20, -20));
+                window.MouseMove(row.TranslatePoint(new Point(12, 12), window)!.Value); // re-enter the newly released row's live instance
+            });
+            harness.Main.OnMain(() => Assert.NotNull(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).SingleOrDefault()));
+        }
+        finally { harness.Main.OnMain(() => { window?.Close(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-013")] // App/Views/Sidebar/SidebarView.swift:168-175; App/Window/WindowManager.swift:32-36,80-84
+    public void Clicking_Settings_opens_the_real_shared_managers_SettingsView_and_reuses_its_window() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var managerType = typeof(Marrow.App.Window.WindowManager);
+        var manager = harness.Main.OnMain(() => (Marrow.App.Window.WindowManager)Activator.CreateInstance(managerType, nonPublic: true)!);
+        using var shared = (IDisposable)managerType.GetMethod("OverrideShared", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [manager])!;
+        AvaloniaWindow settings = null!;
+        SidebarView view = null!;
+        var oldPage = harness.Main.OnMain(() => SettingsNavigation.Shared.RequestedPage);
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                view = Attached(manager.Model);
+                Click(ButtonNamed(view, "Settings"));
+                settings = (AvaloniaWindow)managerType.GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager)!;
+                Assert.True(settings.IsVisible);
+                var content = Assert.Single(LogicalQuery.SelfAndDescendants<SettingsView>(settings));
+                Assert.Same(manager.Model, AppEnvironment.GetAppModel(content));
+                Assert.Equal(780, settings.Width); // WindowManager.swift:21
+                Assert.Equal(580, settings.Height);
+                settings.Hide();
+                Click(ButtonNamed(view, "Settings"));
+                Assert.Same(settings, managerType.GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager));
+                Assert.True(settings.IsVisible);
+                Assert.Same(content, Assert.Single(LogicalQuery.SelfAndDescendants<SettingsView>(settings)));
+            });
+        }
+        finally { harness.Main.OnMain(() => { settings?.Close(); if (view is not null) Close(view); SettingsNavigation.Shared.RequestedPage = oldPage; Dispatcher.UIThread.RunJobs(); }); }
+    });
 }
 
 // STOP App.Views.Sidebar.SidebarView #9 (Window review fixes)

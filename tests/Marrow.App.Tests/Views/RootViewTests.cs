@@ -1095,6 +1095,74 @@ public sealed class RootViewTests(HeadlessSession headless)
             });
         });
     }
+    [Fact]
+    [Trait("Req", "PR-WIN-067")] // App/Views/RootView.swift:69-76; App/Views/Sidebar/RowGlide.swift:224-236
+    public void Opening_the_palette_during_a_live_glide_preserves_the_ghost_origin_and_layer_order() => headless.OnUiThread(() =>
+    {
+        using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var harness = new AppModelHarness();
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        using var departure = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(200, 24));
+        using var arrival = new Avalonia.Media.Imaging.RenderTargetBitmap(new PixelSize(200, 24));
+        var model = harness.MakeModel();
+        AvaloniaWindow window = null!;
+        RootView root = null!;
+        RowGlideView ghost = null!;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                root = Assert.IsType<RootView>(Assert.IsType<Border>(Build(model, () => new RootView())).Child);
+                window = Assert.IsAssignableFrom<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+                animator.Launch(Guid.NewGuid(), RowGlideAnimator.Glide.Direction.Settle,
+                    new Rect(20, 60, 200, 24), new Rect(20, 260, 200, 24), new Rect(root.Bounds.Size),
+                    departure, arrival, 1, 1);
+            });
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                ghost = Assert.Single(LogicalQuery.SelfAndDescendants<RowGlideView>(root));
+            });
+            harness.Main.AdvanceMilliseconds(100); // live flight, before the source's arrival/finish deadlines
+            harness.Main.OnMain(() =>
+            {
+                frames.Advance(TimeSpan.FromMilliseconds(100));
+                var progress = (double)typeof(RowGlideView).GetField("progress", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(ghost)!;
+                Assert.InRange(progress, double.Epsilon, 1);
+                Assert.False(Assert.Single(animator.Glides).HasArrived);
+                model.IsCommandPalettePresented = true;
+            });
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                var layers = Assert.IsType<Panel>(root.Child);
+                Assert.IsType<GenieLayer>(layers.Children[1]);
+                var glideLayer = Assert.IsType<RowGlideLayer>(layers.Children[2]);
+                var paletteLayer = Assert.IsType<Panel>(layers.Children[3]);
+                Assert.Same(ghost, Assert.Single(LogicalQuery.SelfAndDescendants<RowGlideView>(glideLayer)));
+                Assert.Single(LogicalQuery.SelfAndDescendants<CommandPalette>(paletteLayer));
+                Assert.Single(animator.Glides); // opening the palette must not finish or replace the active ghost
+                foreach (var layer in new Control[] { layers.Children[1], glideLayer, paletteLayer })
+                {
+                    Assert.Equal(root.Bounds.Size, layer.Bounds.Size);
+                    Assert.Equal(new Point(0, 0), layer.TranslatePoint(default, window));
+                }
+                model.IsCommandPalettePresented = false;
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<CommandPalette>(root));
+                Assert.Same(ghost, Assert.Single(LogicalQuery.SelfAndDescendants<RowGlideView>(root)));
+                Assert.False(Assert.Single(animator.Glides).HasArrived);
+            });
+        }
+        finally { harness.Main.OnMain(() => { window?.Close(); Dispatcher.UIThread.RunJobs(); }); }
+    });
 }
 
 // STOP App.Views.RootView #3 (Window review fixes, ED-216)
