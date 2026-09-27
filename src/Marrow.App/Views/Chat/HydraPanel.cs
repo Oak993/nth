@@ -86,6 +86,7 @@ public sealed class HydraPanel : Decorator
         // :99-121 Keep the shadow-bearing scrim outside the clipped glass surface.
         var shape = new Border { CornerRadius = new CornerRadius(CornerRadius), ClipToBounds = true,
             Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this), Child = stageHost };
+        SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous))); // :105
         var scrim = new Border { CornerRadius = new CornerRadius(CornerRadius),
             Background = new SolidColorBrush(Color.FromArgb(isDark ? (byte)77 : (byte)87,
                 isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255)),
