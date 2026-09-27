@@ -14,13 +14,6 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
 {
-    // STOP App.Views.Chat.ChatView #2
-    // Kind: missing dependency / platform gap
-    // Swift: DroppyCode/App/Views/Chat/ChatView.swift:1417-1424 (1.7.0).
-    // Records: PR-CHAT-180, UI-CHAT-080.
-    // Workspace.InstalledEditors, Icon, FileExplorerIcon and RevealInFileExplorer remain BLOCKED.
-    // Needed: UI.Common.Components' owner ruling and implementation. Menu text alone is not full proof.
-
     // STOP App.Views.Chat.ChatView #3
     // Kind: missing dependency
     // Swift: DroppyCode/App/Views/Chat/ChatView.swift:1123 (1.7.0).

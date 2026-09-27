@@ -1587,13 +1587,11 @@ internal sealed class OpenInMenu : Decorator
     {
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
         stack.Children.Add(new PopoverSectionHeader("Open in")); // :1416
-        // :1417-1419 deviation OD-0012 G4: "Finder" -> "File Explorer", opening the directory in it. The icon
-        // and the installed-editor catalogue (Workspace.FileExplorerIcon, Workspace.InstalledEditors,
-        // Workspace.Icon, PR-CHAT-181/182) are BLOCKED on an owner decision (UI/Common/Components.cs); this
-        // menu still opens correctly, only its icon and the editor rows are missing until that lands.
-        stack.Children.Add(new PopoverItem("File Explorer", () => Workspace.RevealInFileExplorer(directory)));
-        // :1420-1424 STOP #2: the installed-editor catalogue/icon/open primitives are blocked in Workspace.
-        // Leave this site unwritten, without catching a dependency stub and claiming the menu is complete.
+        // :1417-1419 deviation OD-0012 G4: "Finder" -> "File Explorer", using Components' workspace seam.
+        stack.Children.Add(new PopoverItem("File Explorer", () => Workspace.RevealInFileExplorer(directory), image: Workspace.FileExplorerIcon as IImage));
+        foreach (var editor in Workspace.InstalledEditors) // :1420-1424
+            stack.Children.Add(new PopoverItem(editor.Name, () => Workspace.Open(directory, editor),
+                symbol: "chevron.left.forwardslash.chevron.right", image: Workspace.Icon(editor) as IImage));
         stack.Children.Add(new PopoverDivider()); // :1425
         stack.Children.Add(new PopoverItem("Copy path", () => CopyPath(directory), symbol: "doc.on.doc")); // :1426-1429
         return stack;
@@ -1871,7 +1869,8 @@ internal sealed class CommitSheet : Decorator
         } }; // :1603 .padding(20).
         Width = 560; // :1604
 
-        this.Track(() => (CanGenerate, model.Providers.Statuses), _ => UpdateWriteForMeState()); // :1575,1591-1592 observable settings/provider state.
+        // :1575,1591-1592. Refresh's observable Statuses write re-evaluates the engine and the help/disabled state.
+        this.Track(() => (CanGenerate, model.Providers.Statuses), _ => UpdateWriteForMeState());
         this.Task(() => directory, value => Load(model, runtime, value)); // :1605-1609 .task, cancelled on disappearance.
         KeyDown += (_, e) => { if (e.Key == Key.Escape) { dismiss(); e.Handled = true; } }; // :1596 cancel role, including popup presentation.
     }
