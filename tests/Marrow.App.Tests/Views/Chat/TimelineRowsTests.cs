@@ -70,14 +70,19 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         {
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
             var (store, app, lead) = TeamHarness(Head(0, HydraHeadInfo.Status.Completed) with { Summary = "report text" });
-            using (store) store.Main.OnMain(() =>
+            using (store)
+            {
+            ThreadRuntime runtime = null!;
+            HydraHeadStepsPopover view = null!;
+            AvaloniaWindow window = null!;
+            store.Main.OnMain(() =>
             {
                 var id = app.Threads.Single(thread => thread.IsHydraHead).Id;
-                var runtime = app.Runtime(id);
-                var view = new HydraHeadStepsPopover(id);
+                runtime = app.Runtime(id);
+                view = new HydraHeadStepsPopover(id);
                 var host = new Border { Child = view };
                 Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
-                var window = Show(host);
+                window = Show(host);
                 Assert.Equal(440, ((Control)view).Width);
                 Assert.Contains("Steps", Texts(view));
                 Assert.Contains("No steps yet.", Texts(view));
@@ -87,7 +92,13 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 Assert.Equal(22, Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(view)).Size);
                 var scroll = Assert.Single(LogicalQuery.SelfAndDescendants<PopoverScroll>(view));
                 Assert.True(Assert.IsType<ScrollViewer>(scroll.Child).Height <= 520);
+            });
+            store.Main.OnMain(() =>
+            {
                 runtime.Rehearse(new ProviderEvent.ToolStarted("head-read", Call(ToolCall.Kind.Read, "Read head", ToolCall.Status.Running)));
+            });
+            store.Main.OnMain(() =>
+            {
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs();
                 Settle(window);
                 Assert.Contains("Reading head", Texts(view));
@@ -97,6 +108,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 Assert.Equal(Resolved(ChromeTokens.SecondaryText, label), BrushColor(label.Foreground));
                 Close(window);
             });
+            }
         });
     }
 

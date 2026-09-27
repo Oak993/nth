@@ -1872,8 +1872,12 @@ public sealed class HydraHeadsList : Decorator
     /// <param name="runtime">:1566 <c>let runtime: ThreadRuntime</c>.</param>
     /// <param name="workingDirectory">:1567 <c>var workingDirectory: String?</c>.</param>
     // :1569-1576 body
-    public HydraHeadsList(ValueList<TimelineEntry> entries, ThreadRuntime runtime, string? workingDirectory = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:1569");
+    public HydraHeadsList(ValueList<TimelineEntry> entries, ThreadRuntime runtime, string? workingDirectory = null)
+    {
+        var column = new StackPanel { Spacing = 8, HorizontalAlignment = HorizontalAlignment.Left };
+        foreach (var entry in entries) column.Children.Add(new ToolRow(entry, runtime, workingDirectory));
+        Child = column;
+    }
 }
 
 /// <summary>:1586-1634 <c>@MainActor enum WorkGroupSummary</c>.</summary>
@@ -2301,24 +2305,125 @@ public sealed class HydraHeadStepsPopover : Decorator
 
     /// <param name="headID">:1878 <c>let headID: UUID</c>.</param>
     // :1884-1931 body
-    public HydraHeadStepsPopover(Guid headID) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:1884");
+    public HydraHeadStepsPopover(Guid headID)
+    {
+        base.Width = Width;
+        this.Track(() =>
+        {
+            var model = AppEnvironment.GetAppModel(this);
+            return (Head: model.Thread(headID)?.Hydra, Entries: model.Runtime(headID).Entries);
+        }, value => Child = Body(value.Head, Steps(value.Entries)));
+    }
+
+    // :1884-1931 the list reads the head's runtime, not the lead's. Selection stays per text block.
+    private static Control Body(HydraHeadInfo? head, IReadOnlyList<TimelineEntry> steps)
+    {
+        var column = new StackPanel { Spacing = 16 };
+        if (head is not null)
+        {
+            column.Children.Add(Header(head));
+            if (head.Task.Length != 0) column.Children.Add(Selectable(head.Task, Chrome.PrimaryText));
+        }
+        var list = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
+        list.Children.Add(SectionTitle("Steps"));
+        if (steps.Count == 0) list.Children.Add(TimelineRows.ChatText("No steps yet.", color: Chrome.SecondaryText));
+        else foreach (var entry in steps) list.Children.Add(Step(entry));
+        column.Children.Add(list);
+        if (head?.IsFinished == true && (head.Summary ?? "").Trimmed() is { Length: > 0 } report)
+        {
+            var section = new StackPanel { Spacing = 8 };
+            section.Children.Add(SectionTitle("Report"));
+            section.Children.Add(Selectable(report, Chrome.PrimaryText));
+            column.Children.Add(section);
+        }
+        return new PopoverScroll(() => new Border { Padding = new Thickness(16), Width = Width, Child = column }, maxHeight: MaxHeight);
+    }
+
+    // :1934-1952 header and sectionTitle.
+    private static Control Header(HydraHeadInfo head)
+    {
+        var header = new DockPanel();
+        var status = TimelineRows.ChatText(StatusLine(head), SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText, singleLine: true);
+        status.Margin = new Thickness(12 + TimelineMetrics.IconSpacing, 0, 0, 0);
+        status.VerticalAlignment = VerticalAlignment.Center;
+        DockPanel.SetDock(status, Dock.Right); header.Children.Add(status);
+        var name = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+        name.Children.Add(new HydraGlyph(head.Persona, 22, head.HydraHeadInfoStatus == HydraHeadInfo.Status.Running, head.HydraHeadInfoStatus));
+        var text = TimelineRows.ChatText(head.Persona.Name, SwiftFont.TextStyle.Headline, SwiftFont.Weight.Semibold, Chrome.PrimaryText);
+        text.VerticalAlignment = VerticalAlignment.Center; name.Children.Add(text); header.Children.Add(name);
+        return header;
+    }
+
+    private static TextBlock SectionTitle(string title) => TimelineRows.ChatText(title, SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold, Chrome.SecondaryText); // :1950-1952
+    private static SelectableTextBlock Selectable(string text, SwiftColor color) // :1897-1902, :1919-1923, :1980-2001
+    {
+        var label = new SelectableTextBlock { Text = text, TextWrapping = TextWrapping.Wrap };
+        ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(label); label.Foreground = color.Brush(label); return label;
+    }
+
+    // :1955-2006 plain text only: no timeline menus, output expansion or per-step popovers here.
+    private static Control Step(TimelineEntry entry)
+    {
+        switch (entry.Item.TimelineItemContent)
+        {
+            case TimelineItem.Content.Tool tool:
+                var call = tool.Value;
+                var mcp = ToolPresentation.McpParts(call);
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+                row.Children.Add(new Border { Width = TimelineMetrics.IconWidth, Child = mcp is { } badge
+                    ? new MCPGlyph(badge.Entry, 14, call.ToolCallStatus == ToolCall.Status.Running, call.ToolCallStatus) : new ToolStatusIcon(call) });
+                var words = mcp is { } server ? ToolPresentation.McpLabel(server.Entry, server.Tool, call.ToolCallStatus == ToolCall.Status.Running) : ToolPresentation.Label(call);
+                var label = new MiddleTruncatingTextBlock { Text = words, FullText = words, MaxLines = 2 };
+                ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(label); label.Foreground = Chrome.SecondaryText.Brush(label); row.Children.Add(label);
+                if (ToolPresentation.Stats(call) is { } stats) row.Children.Add(new DiffStatLabel { Additions = stats.Additions, Deletions = stats.Deletions });
+                return row;
+            case TimelineItem.Content.Assistant reply: return Selectable(reply.Value.Text, Chrome.PrimaryText);
+            case TimelineItem.Content.User user: return Selectable(user.Value.Text, Chrome.SecondaryText);
+            case TimelineItem.Content.Notice notice:
+                var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+                line.Children.Add(new Border { Width = TimelineMetrics.IconWidth, Child = SwiftImage.SystemName(NoticeSymbol(notice.Value.NoticeLevel))
+                    .Font(ChatFont.Chat(SwiftFont.TextStyle.Caption)).ForegroundStyle(NoticeColor(notice.Value.NoticeLevel)) });
+                line.Children.Add(Selectable(notice.Value.Message, NoticeColor(notice.Value.NoticeLevel))); return line;
+            default: return new Control();
+        }
+    }
 
     // :2010-2025 private static func statusLine(for:) -> String
-    private static string StatusLine(HydraHeadInfo @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2010");
+    private static string StatusLine(HydraHeadInfo @for)
+    {
+        var parts = new List<string> { @for.HydraHeadInfoStatus switch {
+            HydraHeadInfo.Status.Running => "Working\u2026", HydraHeadInfo.Status.Completed => "Done",
+            HydraHeadInfo.Status.Failed => "Failed", HydraHeadInfo.Status.Stopped => "Stopped" } };
+        if (@for.ToolCalls > 0) parts.Add(@for.ToolCalls == 1 ? "1 tool" : $"{@for.ToolCalls} tools");
+        if (@for.FinishedAt is { } end) parts.Add(RelativeTime.Duration(end - @for.StartedAt));
+        return string.Join(" \u00b7 ", parts);
+    }
 
     // :2030-2048 private static func steps(in:) -> [TimelineEntry]
-    private static ValueList<TimelineEntry> Steps(IReadOnlyList<TimelineEntry> @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2030");
+    private static ValueList<TimelineEntry> Steps(IReadOnlyList<TimelineEntry> @in)
+    {
+        var sawBrief = false;
+        return new ValueList<TimelineEntry>(@in.Where(entry =>
+        {
+            switch (entry.Item.TimelineItemContent)
+            {
+                case TimelineItem.Content.User user:
+                    if (!sawBrief) { sawBrief = true; return false; }
+                    return user.Value.Text.Trimmed().Length != 0;
+                case TimelineItem.Content.Assistant reply: return reply.Value.Text.Trimmed().Length != 0;
+                case TimelineItem.Content.Tool or TimelineItem.Content.Notice: return true;
+                default: return false;
+            }
+        }));
+    }
 
     // :2050-2056 private static func noticeSymbol(for:) -> String
-    private static string NoticeSymbol(Notice.Level @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2050");
+    private static string NoticeSymbol(Notice.Level @for) => @for switch {
+        Notice.Level.Info => "info.circle", Notice.Level.Warning => "exclamationmark.triangle", Notice.Level.Error => "exclamationmark.octagon" };
 
     // :2058-2064 private static func noticeColor(for:) -> Color
-    private static SwiftColor NoticeColor(Notice.Level @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2058");
+    private static SwiftColor NoticeColor(Notice.Level @for) => @for switch {
+        Notice.Level.Info => SwiftColor.Secondary, Notice.Level.Warning => Chrome.Warning, Notice.Level.Error => Chrome.Danger };
 }
 
 /// <summary>:2067-2092 <c>private struct ToolStatusIcon: View</c>.</summary>
