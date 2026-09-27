@@ -85,6 +85,7 @@ public sealed class FloatingSidebarPanel : Decorator
             Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this),
             Child = surfaceContent
         };
+        SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous))); // :90
 
         var panel = new Grid
         {

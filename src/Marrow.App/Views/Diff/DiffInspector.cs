@@ -95,6 +95,7 @@ public sealed class DiffInspector : Decorator
             Spacing = 10,
             Margin = new Thickness(14, 12, 14, 10),
         };
+        SwiftGlass.SetContainerSpacing(chromeRow, 2); // :25 GlassEffectContainer(spacing: 2)
         chromeRow.Children.Add(menu);
         chromeRow.Children.Add(new Border
         {
