@@ -1077,12 +1077,10 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
     // with the button held, before the release. ENGINEERING DECISION: a 1 px move is still a click, so its outcome must
     // be the still click's; AppKit's own drag threshold is not in the pinned source, and none is modelled here.
 
-    private sealed record ClickOutcome(
-        List<string> Opened, int Popovers, List<SwiftURL> Heads, int SelectionStart, int SelectionEnd, int MoreStart);
-
     // Builds a fresh paragraph through `make` (given the list onOpenHead fills), selects "more", then clicks `button`
     // with `modifiers` on the centre of the text `on`, moving `moveBy` px right between the press and the release.
-    private static ClickOutcome ClickWithMoreSelected(
+    private static (List<string> Opened, int Popovers, List<SwiftURL> Heads, int SelectionStart, int SelectionEnd, int MoreStart)
+        ClickWithMoreSelected(
         Func<List<SwiftURL>, LinkParagraphView> make, string on, MouseButton button, RawInputModifiers modifiers, double moveBy)
     {
         var previousOpen = ShellWorkspace.OpenWithDefaultApp;
@@ -1118,7 +1116,7 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
             window.MouseUp(release, button, modifiers);
             Dispatcher.UIThread.RunJobs();
 
-            return new ClickOutcome(opened, recorder.Calls.Count, heads, block.SelectionStart, block.SelectionEnd, start);
+            return (opened, recorder.Calls.Count, heads, block.SelectionStart, block.SelectionEnd, start);
         }
         finally
         {
