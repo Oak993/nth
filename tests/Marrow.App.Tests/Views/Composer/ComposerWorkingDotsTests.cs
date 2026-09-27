@@ -15,6 +15,11 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 {
+    private void OnUiThread(Action body) => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        body();
+    });
     private static Avalonia.Controls.Window ShowInFrame(Control content, double width, double height)
     {
         var window = new Avalonia.Controls.Window { Width = width, Height = height, Content = content };
@@ -25,7 +30,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-102")] // :67-71 dotSize = 2, pitch = 8, maxRows = 3; :124-149 layout
-    public void The_working_dot_field_is_2_point_dots_on_an_8_point_pitch_with_max_three_rows() => headless.OnUiThread(() =>
+    public void The_working_dot_field_is_2_point_dots_on_an_8_point_pitch_with_max_three_rows() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
         var window = ShowInFrame(control, width: 400, height: 300);
@@ -39,7 +44,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-102")] // :129-132 rowCount calculation
-    public void The_dot_field_caps_at_three_rows_however_tall() => headless.OnUiThread(() =>
+    public void The_dot_field_caps_at_three_rows_however_tall() => OnUiThread(() =>
     {
         // Test with a very tall container
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
@@ -53,7 +58,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-102")] // :154-156 guard size != laidOutSize
-    public void Layout_is_skipped_for_unchanged_bounds() => headless.OnUiThread(() =>
+    public void Layout_is_skipped_for_unchanged_bounds() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
         var window = ShowInFrame(control, width: 100, height: 100);
@@ -74,7 +79,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-103")] // :72-76 period = 2.2, columnDelay = 0.045, rowDelay = 0.09; :177-189 keyframes
-    public void The_dot_pulse_is_a_2_2_second_keyframe_from_0_08_to_0_75_and_back() => headless.OnUiThread(() =>
+    public void The_dot_pulse_is_a_2_2_second_keyframe_from_0_08_to_0_75_and_back() => OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
@@ -91,7 +96,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-103")] // :142, :172-174 column and row delays spread the wave
-    public void The_animation_wave_travels_left_to_right_and_upward() => headless.OnUiThread(() =>
+    public void The_animation_wave_travels_left_to_right_and_upward() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
         var window = ShowInFrame(control, width: 200, height: 100);
@@ -106,7 +111,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-104")] // :13-19 passes animated: !reduceMotion; :152-157 dot.opacity = 0.28
-    public void With_reduced_motion_the_dot_field_is_static_at_0_28_opacity() => headless.OnUiThread(() =>
+    public void With_reduced_motion_the_dot_field_is_static_at_0_28_opacity() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: false, sweeps: false);
         var window = ShowInFrame(control, width: 200, height: 100);
@@ -119,7 +124,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-104")] // :155 dot.opacity = 0.28 for pill, 0 for sweep
-    public void A_sweep_is_invisible_when_not_animated() => headless.OnUiThread(() =>
+    public void A_sweep_is_invisible_when_not_animated() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: false, sweeps: true);
         var window = ShowInFrame(control, width: 200, height: 100);
@@ -132,7 +137,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-105")] // :104-111 configure only reinstalls animation when motion flag changed
-    public void Color_change_does_not_restart_animation() => headless.OnUiThread(() =>
+    public void Color_change_does_not_restart_animation() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
         var window = ShowInFrame(control, width: 200, height: 100);
@@ -150,7 +155,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-105")] // :118-122 viewDidChangeEffectiveAppearance re-resolves dynamic accent
-    public void Appearance_change_re_resolves_color_without_restarting() => headless.OnUiThread(() =>
+    public void Appearance_change_re_resolves_color_without_restarting() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
         var window = ShowInFrame(control, width: 200, height: 100);
@@ -169,7 +174,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-105")] // :104-111 motion changed reinstalls animation
-    public void Motion_setting_change_reinstalls_animation() => headless.OnUiThread(() =>
+    public void Motion_setting_change_reinstalls_animation() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
         var window = ShowInFrame(control, width: 200, height: 100);
@@ -186,7 +191,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-017")] // Fills pill's bottom 40%, clipped to 22 point radius
-    public void The_dot_field_fills_the_pills_bottom_portion() => headless.OnUiThread(() =>
+    public void The_dot_field_fills_the_pills_bottom_portion() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
         var window = ShowInFrame(control, width: 300, height: 80);
@@ -199,7 +204,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-COMPOSER-017")] // colors: Chrome.accentNSColor; each row up is fainter by 1/rowCount
-    public void Each_row_is_fainter_than_the_one_below() => headless.OnUiThread(() =>
+    public void Each_row_is_fainter_than_the_one_below() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
         var window = ShowInFrame(control, width: 200, height: 100);
@@ -212,7 +217,7 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-102")] // :155-157 check size > 0
-    public void Zero_size_skips_layout() => headless.OnUiThread(() =>
+    public void Zero_size_skips_layout() => OnUiThread(() =>
     {
         var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
         // Don't show it - zero size should skip layout

@@ -1,13 +1,16 @@
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.Core.Port;
 using Marrow.UI.Port;
 using Marrow.UI.Theme;
 
-// Source: DroppyCode/UI/Chrome/ChromeVisualPicker.swift (B2 1fbf81e), :1-106.
+// Source: DroppyCode/UI/Chrome/ChromeVisualPicker.swift (B3 52bc792), :1-106.
 
 namespace Marrow.UI.Chrome;
 
@@ -113,6 +116,7 @@ public sealed class ChromeVisualTile : Decorator
     private bool isSelected;
     private readonly double width;
     private readonly Func<Control> content;
+    private readonly Action action;
     private readonly ViewState state = new();
     private Border? stageBack;
     private Border? paddedStage;
@@ -132,10 +136,12 @@ public sealed class ChromeVisualTile : Decorator
         this.isSelected = isSelected;
         this.width = width;
         this.content = content;
+        this.action = action;
 
         // Set accessibility properties
         // :72 .accessibilityLabel(Text(verbatim: title))
         AutomationProperties.SetName(this, title);
+        AutomationProperties.SetAutomationId(this, isSelected ? "selected" : null);
 
         // Create the vertical stack for stage and caption
         var stack = new StackPanel
@@ -195,7 +201,9 @@ public sealed class ChromeVisualTile : Decorator
         paddedStage = new Border
         {
             Child = stageBack,
-            Padding = new Thickness(ChromeVisualTileMetrics.RingInset),
+            Padding = new Thickness(ChromeVisualTileMetrics.RingInset - ChromeVisualTileMetrics.RingWidth),
+            BorderThickness = new Thickness(ChromeVisualTileMetrics.RingWidth),
+            CornerRadius = new CornerRadius(ChromeVisualTileMetrics.CornerRadius + ChromeVisualTileMetrics.RingInset),
         };
 
         UpdateRing();
@@ -247,7 +255,6 @@ public sealed class ChromeVisualTile : Decorator
     {
         if (paddedStage is null) return;
         paddedStage.BorderBrush = isSelected ? Chrome.Accent.Brush(this) : null;
-        paddedStage.BorderThickness = isSelected ? new Thickness(ChromeVisualTileMetrics.RingWidth) : new Thickness(0);
     }
 
     /// <summary>
@@ -263,6 +270,8 @@ public sealed class ChromeVisualTile : Decorator
     /// </summary>
     private void ApplyFontToContent(Control control, SwiftFont font)
     {
+        SwiftImage.SetFont(control, font);
+        control.Font(font);
         if (control is TextBlock textBlock)
         {
             font.Apply(textBlock);
@@ -279,6 +288,7 @@ public sealed class ChromeVisualTile : Decorator
     private void UpdateContentColor(Control control)
     {
         var color = isSelected ? Chrome.Accent : Chrome.SecondaryText;
+        TextElement.SetForeground(control, color.Brush(control));
         if (control is TextBlock textBlock)
         {
             textBlock.Foreground = color.Brush(this);
@@ -300,16 +310,13 @@ public sealed class ChromeVisualTile : Decorator
     /// </summary>
     public void UpdateSelected(bool selected)
     {
+        AutomationProperties.SetAutomationId(this, selected ? "selected" : null);
         if (isSelected == selected) return;
 
         isSelected = selected;
 
         // Update accessibility trait
         // :73 .accessibilityAddTraits(isSelected ? .isSelected : [])
-        if (isSelected)
-        {
-            AutomationProperties.SetAutomationId(this, "selected");
-        }
 
         // Update stage visuals
         UpdateStageBrush();
@@ -333,4 +340,17 @@ public sealed class ChromeVisualTile : Decorator
     /// Gets the width of this tile.
     /// </summary>
     public new double Width => width;
+
+    protected override AutomationPeer OnCreateAutomationPeer() => new TilePeer(this);
+
+    private sealed class TilePeer(ChromeVisualTile owner) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
+        public bool IsSelected => owner.IsSelected;
+        public ISelectionProvider? SelectionContainer => null;
+        public void AddToSelection() => owner.action();
+        public void Select() => owner.action();
+        public void RemoveFromSelection() { }
+        public void Invoke() => owner.action();
+    }
 }

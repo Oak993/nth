@@ -9,6 +9,7 @@ using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Marrow.App.Runtime;
+using Marrow.App.Views.Tour;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -16,7 +17,7 @@ using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 
-// Source: DroppyCode/App/Views/Chat/HydraProgressBar.swift (B2 1fbf81e), :4-603.
+// Source: DroppyCode/App/Views/Chat/HydraProgressBar.swift (B3 52bc792), :4-603.
 
 namespace Marrow.App.Views.Chat;
 
@@ -50,6 +51,23 @@ public sealed class HydraProgressBar : Decorator
     private double width;
     private int? hoveredIndex;
     private DateTimeOffset drawDate = SwiftDate.Now;
+    private readonly MotionState motion = new();
+    private WorkItem? riseTask;
+    private long taskEventCount = -1;
+    private bool attached;
+    private readonly AnimatedDouble cardOpacity;
+    private readonly AnimatedDouble cardX;
+    private WorkItem? hideCard;
+    private bool cardShown;
+    private double? cardTargetX;
+
+    private sealed class MotionState : MainActorModel
+    {
+        private bool rising;
+        private bool settled;
+        public bool Rising { get => Read(rising); set => Set(ref rising, value); }
+        public bool Settled { get => Read(settled); set => Set(ref settled, value); }
+    }
 
     // :20-27, :122-209
     public HydraProgressBar(
@@ -103,8 +121,13 @@ public sealed class HydraProgressBar : Decorator
             IsHitTestVisible = false,
             IsVisible = false,
         };
-        card.Background = Chrome.PanelControlFill(
-            ActualThemeVariant == ThemeVariant.Dark).Brush(card);
+        cardOpacity = new AnimatedDouble(value => card.Opacity = value);
+        cardOpacity.Set(0, null);
+        cardX = new AnimatedDouble(value => card.Margin = new Thickness(value, 0, 0, 0));
+        void Surface() => new ProgressCardSurface(RenderBudget.GetIsOnGlassPanel(this), ActualThemeVariant == ThemeVariant.Dark).Apply(card);
+        ActualThemeVariantChanged += (_, _) => Surface();
+        PropertyChanged += (_, e) => { if (e.Property == RenderBudget.IsOnGlassPanelProperty) Surface(); };
+        Surface();
 
         overlay = new Grid();
         overlay.Children.Add(bar);
@@ -130,19 +153,31 @@ public sealed class HydraProgressBar : Decorator
         var id = (object)runtime;
         AttachedToVisualTree += (_, _) =>
         {
+            attached = true;
+            taskEventCount = -1;
             if (status == HydraHeadInfo.Status.Running)
                 SweepBudget.Shared.Join(id);
             Refresh();
         };
-        DetachedFromVisualTree += (_, _) => SweepBudget.Shared.Leave(id);
+        DetachedFromVisualTree += (_, _) =>
+        {
+            attached = false;
+            riseTask?.Cancel();
+            hideCard?.Cancel();
+            cardOpacity.Set(0, null);
+            cardX.Set(0, null);
+            cardTargetX = null;
+            cardShown = false;
+            card.IsVisible = false;
+            SweepBudget.Shared.Leave(id);
+        };
 
         bar.TimelineView(
             () =>
             {
                 var stavesNow = Resolve().Staves;
                 var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
-                var isRising = !reduceMotion &&
-                    stavesNow.Any(stave => (SwiftDate.Now - stave.ArrivedAt).TotalSeconds < Rise);
+                var isRising = motion.Rising;
                 var isSweeping = status == HydraHeadInfo.Status.Running &&
                     !reduceMotion &&
                     stavesNow.Count > 0 &&
@@ -151,6 +186,7 @@ public sealed class HydraProgressBar : Decorator
                 return new AnimationTimelineSchedule(
                     1.0 / 24.0,
                     reduceMotion ||
+                    motion.Settled ||
                     ScrollActivity.Shared.Current.IsScrolling ||
                     (!isSweeping && !isRising));
             },
@@ -379,6 +415,23 @@ public sealed class HydraProgressBar : Decorator
     {
         var capacity = Math.Max(1L, (long)Math.Floor((width + Gap) / Pitch));
         var resolved = cache.Resolve(suppliedEntries ?? runtime.Entries, capacity);
+        // :186-198 The source tasks are keyed by event count, not by current stave age.
+        // Their state writes cause the animation schedule to pause even if entries never change again.
+        if (attached && taskEventCount != resolved.Events.Count)
+        {
+            taskEventCount = resolved.Events.Count;
+            riseTask?.Cancel();
+            motion.Settled = false;
+            motion.Rising = resolved.Events.Count > 0 && !EnvironmentValues.GetAccessibilityReduceMotion(this);
+            riseTask = MainActor.AsyncAfter(TimeSpan.FromSeconds(Rise + 0.1), () =>
+            {
+                if (!attached) return;
+                motion.Rising = false;
+                motion.Settled = status != HydraHeadInfo.Status.Running;
+                drawDate = SwiftDate.Now;
+                Refresh();
+            });
+        }
         countsText.Text = resolved.Counts.Line;
         if (resolved.Counts.Line.Length == 0)
         {
@@ -412,25 +465,41 @@ public sealed class HydraProgressBar : Decorator
             var stave = resolved.Staves[index];
             cardLabel.Text = stave.Step;
             cardMark = MakeMark(stave);
+            if (card.Child is Panel oldCard) oldCard.Children.Clear();
             card.Child = new StackPanel
             {
                 Orientation = Avalonia.Layout.Orientation.Horizontal,
                 Spacing = 8,
                 Children = { cardMark, cardLabel },
             };
-            card.IsVisible = true;
+            ShowCard(true);
             card.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left;
             card.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top;
             PositionCard(index);
         }
         else
         {
-            card.IsVisible = false;
+            ShowCard(false);
         }
 
         AutomationProperties.SetName(
             this,
             $"{resolved.Counts.Sentence}, {RelativeTime.Duration((status == HydraHeadInfo.Status.Running ? SwiftDate.Now : finishedAt ?? SwiftDate.Now) - startedAt)}{(status == HydraHeadInfo.Status.Running ? " so far" : "")}");
+    }
+
+    // :177,242 The hover overlay has a smooth 0.15s opacity transition in both directions.
+    private void ShowCard(bool show)
+    {
+        if (show == cardShown) return;
+        cardShown = show;
+        hideCard?.Cancel();
+        if (show) card.IsVisible = true;
+        var fade = Animation.Smooth(0.15);
+        cardOpacity.Set(show ? 1 : 0, fade);
+        if (!show) hideCard = MainActor.AsyncAfter(TimeSpan.FromSeconds(fade.Duration), () =>
+        {
+            if (!cardShown) card.IsVisible = false;
+        });
     }
 
     // :213-243
@@ -455,7 +524,11 @@ public sealed class HydraProgressBar : Decorator
         if (staveIndex is not { } value) return;
         var centre = value * Pitch + StaveWidth / 2;
         var x = Math.Min(Math.Max(0, centre - CardWidth / 2), Math.Max(0, width - CardWidth));
-        card.Margin = new Thickness(x, 0, 0, 0);
+        if (cardTargetX != x)
+        {
+            cardTargetX = x;
+            cardX.Set(x, Animation.Smooth(0.15));
+        }
         card.RenderTransform = new TranslateTransform(0, -card.DesiredSize.Height - 8);
     }
 
@@ -723,9 +796,22 @@ public sealed class HydraElapsedTime : Decorator
             return;
         }
 
-        label.TimelineView(
-            () => new AnimationTimelineSchedule(1.0, false),
-            date => label.Text = RelativeTime.Duration(date - startedAt));
+        // :551 ED-117: periodic-from-date is separate from the display's animation clock.
+        ITimer? nextTick = null;
+        var attached = false;
+        void Tick()
+        {
+            nextTick?.Dispose();
+            if (!attached) return;
+            var now = SwiftDate.Now;
+            var n = Math.Floor((now - startedAt).TotalSeconds);
+            var gridDate = startedAt.AddSeconds(n);
+            label.Text = RelativeTime.Duration(gridDate - startedAt);
+            nextTick = SwiftClock.Provider.Current.CreateTimer(_ => MainActor.Post(Tick), null,
+                startedAt.AddSeconds(n + 1) - now, Timeout.InfiniteTimeSpan);
+        }
+        label.AttachedToVisualTree += (_, _) => { attached = true; Tick(); };
+        label.DetachedFromVisualTree += (_, _) => { attached = false; nextTick?.Dispose(); };
     }
 }
 
@@ -733,13 +819,23 @@ public sealed class HydraElapsedTime : Decorator
 internal sealed record ProgressCardSurface(bool IsOnGlassPanel, bool IsDark)
 {
     // :571-578
-    public Control Body(Control content) =>
-        new Border
+    public Control Body(Control content)
+    {
+        var surface = new Border
         {
             CornerRadius = new CornerRadius(Chrome.CardCornerRadius),
             Child = content,
-            Background = Chrome.PanelControlFill(IsDark).Brush(content),
         };
+        Apply(surface);
+        return surface;
+    }
+
+    public void Apply(Border surface)
+    {
+        surface.Background = IsOnGlassPanel ? Chrome.PanelControlFill(IsDark).Brush(surface) : null;
+        SwiftGlass.SetEffect(surface, IsOnGlassPanel ? null : GlassEffect.Regular(
+            GlassShape.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous)));
+    }
 }
 
 /// <summary>:581-603 <c>@MainActor @Observable final class SweepBudget</c> (R-OBS-6).</summary>
