@@ -64,6 +64,15 @@ public sealed class RootViewTests(HeadlessSession headless)
         return SwiftURL.Create("marrow-dropped-path:" + builder) ?? throw new InvalidOperationException("bad test path");
     }
 
+    // Headless keeps its virtual native client fixed; deliver the resize notification the real platform sends.
+    private static void ResizeWindow(AvaloniaWindow window, Size size)
+    {
+        var resized = (Delegate)typeof(Avalonia.Platform.ITopLevelImpl)
+            .GetProperty("Resized", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(window.PlatformImpl)!;
+        resized.DynamicInvoke(size, WindowResizeReason.User);
+    }
+
     private static Control Build(AppModel model, Func<Control> makeView)
     {
         var host = new Border();
@@ -908,6 +917,7 @@ public sealed class RootViewTests(HeadlessSession headless)
                 window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(root));
                 window.Width = 900;
                 window.Height = 700;
+                ResizeWindow(window, new Size(900, 700));
                 window.UpdateLayout();
             });
             launch.Harness.Main.OnMain(() =>
@@ -916,16 +926,16 @@ public sealed class RootViewTests(HeadlessSession headless)
                 sidebar = Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(panel));
                 search = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(sidebar));
                 search.Text = "kept query";
-                window.Width = 1100;
-                window.Height = 800;
-                root.Measure(new Size(1100, 800));
-                root.Arrange(new Rect(0, 0, 1100, 800));
+                window.Width = 1000;
+                window.Height = 740;
+                ResizeWindow(window, new Size(1000, 740));
+                window.UpdateLayout();
             });
             launch.Harness.Main.OnMain(() =>
             {
                 window.UpdateLayout();
-                Assert.Equal(1100, root.DetailClip.Bounds.Width); // force a real detail-area geometry change
                 Assert.Same(panel, Assert.Single(LogicalQuery.SelfAndDescendants<FloatingSidebarPanel>(root)));
+                Assert.Equal(1000, root.DetailClip.Bounds.Width); // exact requested geometry, within the headless screen
                 Assert.Same(sidebar, Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(panel)));
                 Assert.Same(search, Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(sidebar)));
                 Assert.Equal("kept query", search.Text);
