@@ -45,6 +45,54 @@ public sealed class MCPSettingsPageThirdTests(HeadlessSession headless)
         Ui((model,frames)=>{State(model,"offline",new MCPConnectionState.Connected(3));var card=new MCPServerCard(Entry(),true);using var window=Attach(card,model);var success=Nodes<StackPanel>(card).Single(x=>x.MinHeight==120);Assert.Equal(8,success.Spacing);Assert.Equal(Avalonia.Layout.VerticalAlignment.Center,success.VerticalAlignment);Assert.Contains("Connected \U000000B7 3 tools",Texts(card));Assert.True(frames.Pending>0);}); // U+00B7 MIDDLE DOT
     }
     [Fact]
+    [Trait("Req", "UI-MCP-032")] // App/Views/Settings/MCPSettingsPage.swift:360-375
+    [Trait("Decision", "ED-011")]
+    public void Success_glyph_continues_after_response_time_until_the_shared_spring_settles() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var harness = new AppModelHarness(withRuntime: false);
+        var frames = new ManualFrameSource(); using var source = FrameClock.Source.Override(frames);
+        MCPServerCard card = null!; IDisposable window = null!; SwiftImage glyph = null!;
+        runtime.OnMain(() =>
+        {
+            var model = new AppModel(); State(model, "offline", new MCPConnectionState.Connected(3));
+            card = new MCPServerCard(Entry(), true); window = Attach(card, model); glyph = Assert.Single(Nodes<SwiftImage>(card));
+            Assert.Equal(0.5, Assert.IsType<ScaleTransform>(glyph.RenderTransform).ScaleX);
+        });
+        try
+        {
+            runtime.AdvanceMilliseconds(500); runtime.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(500)));
+            runtime.OnMain(() =>
+            {
+                // :373 spring(duration: 0.5, bounce: 0.4). ED-011: damping 0.6; response is not settling time.
+                var omega = 2 * Math.PI / 0.5; var damped = omega * 0.8;
+                var progress = 1 - Math.Exp(-0.6 * omega * 0.5) * (Math.Cos(damped * 0.5) + 0.75 * Math.Sin(damped * 0.5));
+                Assert.Equal(0.5 + 0.5 * progress, Assert.IsType<ScaleTransform>(glyph.RenderTransform).ScaleX, 7);
+                Assert.True(frames.Pending > 0);
+            });
+            // ED-011 settling duration ln(1000)/(0.6 * 2*pi/0.5) is below 0.920 s.
+            runtime.AdvanceMilliseconds(420); runtime.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(420)));
+            runtime.OnMain(() => { Assert.Equal(1, Assert.IsType<ScaleTransform>(glyph.RenderTransform).ScaleX); Assert.Equal(0, frames.Pending); });
+        }
+        finally { runtime.OnMain(window.Dispose); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-MCP-039")] // App/Views/Settings/MCPSettingsPage.swift:508-515
+    public void Custom_connecting_label_applies_the_shared_subheadline_font()
+    {
+        Ui((model, _) =>
+        {
+            var server = Custom(); State(model, server.Id, new MCPConnectionState.Connecting());
+            var row = new MCPCustomRow(server); using var window = Attach(row, model);
+            var label = Nodes<TextBlock>(row).Single(x => x.Text == "Connecting");
+            Assert.Equal(11, label.FontSize);
+            Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Subheadline).Resolve().FontFamily, label.FontFamily);
+            Assert.Equal(FontWeight.Normal, label.FontWeight); Assert.Equal(TextWrapping.NoWrap, label.TextWrapping);
+            Assert.Single(Nodes<WorkingSpinner>(row));
+        });
+    }
+
+    [Fact]
     [Trait("Req", "UI-MCP-033")] // App/Views/Settings/MCPSettingsPage.swift:394
     [Trait("Req", "UI-MCP-034")] // App/Views/Settings/MCPSettingsPage.swift:397-403
     [Trait("Req", "UI-MCP-035")] // App/Views/Settings/MCPSettingsPage.swift:417-440
