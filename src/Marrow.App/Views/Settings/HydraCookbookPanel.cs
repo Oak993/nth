@@ -17,10 +17,12 @@ using Marrow.UI.Port;
 // DroppyCode/App/HydraCookbook+Resolve.swift:1-69, ported as the single shared implementation in
 // src/Marrow.App/HydraCookbook+Resolve.cs (extension(HydraCookbook) members of Marrow.App.HydraCookbookResolve),
 // called here the same way the Swift source calls it (HydraCookbook.resolve/missingProvider/isReady). This
-// file used to carry its own private duplicate of that logic (fix/cookbook: line-by-line comparison against
-// the Swift found it behaviour-identical to the shared copy for every input, so it was a pure duplicate, not
-// a second behaviour; removed rather than kept as a second unit, since a duplicate cannot be the correct twin
-// R-FILE-1 asks for).
+// file used to carry its own private duplicate of that logic, removed by fix/cookbook. The two C# copies were
+// NOT behaviour-identical: on an equal-version tie between catalog rows that share an id, the private copy's
+// Aggregate returned the later row, while Swift :54-58 (max(by:), where equal ids give equal firstIndex so
+// neither row orders before the other) and the shared copy keep the first row. The chosen row decides the
+// efforts (:38,:42 and Core HydraCookbook.swift :45-48), so the private copy could drop them. Pinned by
+// HydraCookbookPanelResolverTests.An_equal_version_tie_between_catalog_rows_sharing_an_id_keeps_the_first_row_as_the_swift_max_does.
 // B3 (AM-0003): both Swift files are byte-identical to B2 (last touched 5c63f538a/2afcd6c37, long before
 // 52bc7926; line counts unchanged at 134 and 69) -- this file needs no code change for B3. The recipe data
 // this panel renders (Core/Models/HydraCookbook.swift) DID change at B3 (five titles renamed to "Opus 5.5"

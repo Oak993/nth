@@ -17,23 +17,19 @@ namespace Marrow.App.Tests.Views.Settings;
 // internal HydraCookbookResolve class in the Marrow.App.Views.Settings namespace, :266-358 as of
 // B3 52bc7926), duplicating the public, tested implementation the Swift source itself calls
 // (DroppyCode/App/HydraCookbook+Resolve.swift, ported as the extension(HydraCookbook) members of
-// Marrow.App.HydraCookbookResolve in src/Marrow.App/HydraCookbook+Resolve.cs). Line-by-line
-// comparison against that Swift file found the two C# copies behaviour-identical for every input:
-// same isReady/provider/missingProvider/resolve logic, and the same model(named:) tie-break (an
-// equal version keeps the earliest original registry index -- Aggregate's cumulative comparison in
-// the duplicate computes the same maximum-under-a-total-order as the shared copy's "replace only on
-// a strictly greater version" loop), and the same no-match on an empty name fragment either way
-// (SwiftString.LocalizedCaseInsensitiveContains already returns false for an empty needle, so the
-// duplicate's implicit reliance on that and the shared copy's explicit guard agree). So this is a
-// refactor (down to a single implementation), not a behaviour fix, per the defect brief's own
-// carve-out for that case: no case exists where the two copies differ, so there is nothing to pin
-// through a behavioural red test. These tests instead pin: (1) structurally, that the panel no
-// longer carries a second type named HydraCookbookResolve outside Marrow.App, so the duplicate
-// cannot silently return; and (2) observably, that the real production panel's rendered ready and
-// waiting rows for every HydraCookbook.Recipes entry match what the single shared
-// HydraCookbook.Resolve/MissingProvider implementation computes for the same registry and settings,
-// including a tied-version model catalog (the case the duplicate's own header comment called out at
-// :19, "equal-version models retain their original registry order").
+// Marrow.App.HydraCookbookResolve in src/Marrow.App/HydraCookbook+Resolve.cs). The two C# copies agreed
+// on isReady/provider/missingProvider/resolve, on the empty-name no-match, and on model(named:) ties between
+// rows with distinct ids (the earlier registry row wins). They differed on one input: an equal-version tie
+// between catalog rows that SHARE an id. Swift HydraCookbook+Resolve.swift:54-58 compares
+// options.firstIndex(where: id ==), which is equal for such rows, so max(by:) keeps the first row; the
+// shared copy does the same, the duplicate's Aggregate returned the later row. So removing the duplicate is
+// a behaviour fix for that edge, not a pure refactor. These tests pin: (1) structurally, that the panel no
+// longer carries a second type named HydraCookbookResolve outside Marrow.App, so the duplicate cannot
+// silently return; (2) observably, that the real production panel's rendered ready and waiting rows for
+// every HydraCookbook.Recipes entry match what the single shared HydraCookbook.Resolve/MissingProvider
+// implementation computes for the same registry and settings (distinct ids, so it cannot see the
+// shared-id difference); and (3) behaviourally, the shared-id tie itself through the real panel, with the
+// expected pair taken from the Swift, not from the resolver under test.
 [Collection("Headless")]
 public sealed class HydraCookbookPanelResolverTests(HeadlessSession headless)
 {
