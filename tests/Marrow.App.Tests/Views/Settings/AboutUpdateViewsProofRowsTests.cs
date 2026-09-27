@@ -127,10 +127,44 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
             Assert.Equal(12.5, MarkdownView.GetMarkdownPointSize(markdown)); Assert.Equal(new Thickness(16), markdown.Margin); Assert.Equal(HorizontalAlignment.Stretch, markdown.HorizontalAlignment);
             var scroll = Assert.Single(page.GetVisualDescendants().OfType<ScrollViewer>()); Assert.Equal(240, scroll.MaxHeight); Assert.Equal(ScrollBarVisibility.Auto, scroll.VerticalScrollBarVisibility);
             Assert.Equal(notes.Contains('\n', StringComparison.Ordinal), scroll.Extent.Height > scroll.Viewport.Height);
+            var at = scroll.TranslatePoint(new Point(30, 30), window)!.Value;
+            window.UpdateLayout(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(3); Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(3);
+            window.MouseMove(at, RawInputModifiers.None); Dispatcher.UIThread.RunJobs();
+            window.MouseWheel(at, new Vector(0, -1), RawInputModifiers.None); Dispatcher.UIThread.RunJobs();
+            Assert.Equal(notes.Contains('\n', StringComparison.Ordinal), scroll.Offset.Y > 0); // :756 basedOnSize: short content cannot scroll
             var card = page.GetVisualDescendants().OfType<ChromeCard>().First(); var fill = Assert.IsType<Border>(card.Child);
             Assert.Equal(new CornerRadius(16), fill.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(fill));
             Assert.Equal(Chrome.PrimaryText.Opacity(0.03).Resolve(fill.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color);
         }
         window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "UI-UPDATE-016")] // App/Views/Settings/AboutUpdateViews.swift:749-762; MarkdownView's own link path
+    public void Raw_fallback_markdown_link_opens_through_the_real_text_hit_test() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        const string url = "https://example.com/about-update-notes";
+        var checker = new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], ""); Set(checker, nameof(UpdateChecker.Update), AboutUpdateViewsProofLifecycleTests.Release("Raw [release link](" + url + ")"));
+        using var shared = UpdateChecker.OverrideShared(checker); using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
+        var page = new AboutSoftwareUpdateSection(); var window = Show(page);
+        var markdown = Assert.Single(page.GetVisualDescendants().OfType<MarkdownView>());
+        var link = Assert.Single(markdown.GetVisualDescendants().OfType<LinkTextView>());
+        Point? local = null;
+        for (var y = 1; y < link.Bounds.Height && local is null; y++)
+            for (var x = 1; x < link.Bounds.Width; x++)
+                if (link.Link(new Point(x, y))?.AbsoluteString == url) { local = new Point(x, y); break; }
+        Assert.NotNull(local);
+        var previous = ShellWorkspace.OpenWithDefaultApp; string? opened = null; ShellWorkspace.OpenWithDefaultApp = value => opened = value;
+        try
+        {
+            var at = link.TranslatePoint(local.Value, window)!.Value;
+            window.UpdateLayout(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(3); Dispatcher.UIThread.RunJobs(); AvaloniaHeadlessPlatform.ForceRenderTimerTick(3);
+            window.MouseMove(at, RawInputModifiers.None); Dispatcher.UIThread.RunJobs();
+            window.MouseDown(at, MouseButton.Left, RawInputModifiers.None); Dispatcher.UIThread.RunJobs();
+            window.MouseUp(at, MouseButton.Left, RawInputModifiers.None); Dispatcher.UIThread.RunJobs();
+            Assert.Equal(url, opened);
+        }
+        finally { ShellWorkspace.OpenWithDefaultApp = previous; window.Close(); }
     });
 }

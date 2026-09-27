@@ -47,7 +47,11 @@ public sealed class AboutUpdateViewsProofSliderTests(HeadlessSession headless)
         Assert.Equal(RoundedCornerStyle.Circular, SwiftShapes.GetCornerStyle(empty));
         Assert.Equal(Color.FromArgb(18, 0, 0, 0), Assert.IsAssignableFrom<ISolidColorBrush>(empty.Background).Color); // :405 black .07
         Assert.False(fill.IsHitTestVisible); Assert.Equal(opacity, fill.Opacity, 12);
-        var content = Assert.IsType<Grid>(fill.Child); Assert.Equal(new Rect(0, 0, headX, 14), content.Clip!.Bounds);
+        // Inspect the real clip's authored double rectangle, rather than Skia's float path bounds.
+        // :458-462 still requires the exact reveal width; neither values nor tolerances are relaxed.
+        var content = Assert.IsType<Grid>(fill.Child); var clip = Assert.IsType<RectangleGeometry>(content.Clip);
+        Assert.Equal(new Rect(0, 0, headX, 14), clip.Rect);
+        Assert.Equal(Math.Min(headX, 14) / 2, clip.RadiusX); Assert.Equal(clip.RadiusX, clip.RadiusY);
         Assert.False(content.Clip.FillContains(new Point(0, 0))); Assert.True(content.Clip.FillContains(new Point(7, 7))); // radius = 14/2, :458-462
         var gradient = Assert.IsType<Border>(content.Children[0]); Assert.Equal(104, gradient.Bounds.Width);
         var brush = Assert.IsType<LinearGradientBrush>(gradient.Background);

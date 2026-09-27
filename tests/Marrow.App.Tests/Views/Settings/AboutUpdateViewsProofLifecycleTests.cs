@@ -231,4 +231,22 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
             window.Close();
         });
     });
+
+    [Fact]
+    [Trait("Decision", "ED-084")] // PR-UPDATE-061 partial: the phase guard at Swift :801, not system-setting integration
+    public void A_phase_change_before_the_550_millisecond_guard_ends_the_real_sweep() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var progress = UpdateInstallProgressFixtures.NewProgress(); using var running = UpdateInstallProgress.Running.Override(progress);
+        using var checker = UpdateChecker.OverrideShared(runtime.OnMain(() => new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], "")));
+        var page = new AboutSoftwareUpdateSection(); Avalonia.Controls.Window window = null!; TaskHandle task = null!;
+        runtime.OnMain(() => { progress.ArmCelebration(); window = Show(page); });
+        runtime.OnMain(() => { Assert.Equal(UpdateInstallProgress.Phase.Celebrating, progress.UpdateInstallProgressPhase); task = Assert.IsType<TaskHandle>(Field(page, "celebration")); });
+        runtime.AdvanceMilliseconds(100);
+        runtime.OnMain(() => progress.CompleteCelebration());
+        runtime.AdvanceMilliseconds(449); Assert.False(task.Completion.IsCompleted);
+        runtime.AdvanceMilliseconds(1); Assert.True(task.Completion.IsCompleted);
+        runtime.AdvanceMilliseconds(3000);
+        runtime.OnMain(() => { Assert.Equal(UpdateInstallProgress.Phase.Idle, progress.UpdateInstallProgressPhase); Assert.Equal(0, progress.Fraction); window.Close(); });
+    });
 }

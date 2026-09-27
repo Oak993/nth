@@ -73,6 +73,9 @@ public sealed class AboutUpdateViewsModifierTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "UI-UPDATE-005")] // App/Views/Settings/AboutUpdateViews.swift:666-671
+    [Trait("Req", "PR-UPDATE-073")] // App/Views/Settings/AboutUpdateViews.swift:671,675 (with ready pointer/standing proofs)
+    [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:671
+    [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:671
     [InlineData(false)]
     [InlineData(true)]
     public void Ready_background_uses_the_0_point_18_second_ease_in_out_unless_motion_is_reduced(bool reduced) => headless.OnUiThread(() =>

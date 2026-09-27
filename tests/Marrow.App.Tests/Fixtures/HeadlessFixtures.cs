@@ -62,7 +62,7 @@ public sealed class HeadlessSession : IDisposable
     }
 
     // Forces the embedded Inter release files to resolve every weight this assembly's tests draw with (Regular, Bold,
-    // SemiBold) before any test measures text, so a test whose first layout pass needs two glyph typefaces of the
+    // Medium, SemiBold) before any test measures text, so a test whose first layout pass needs two glyph typefaces of the
     // same weight at once (two crossfading pages, each titled in Bold) never races the collection's own first load.
     private static void WarmFonts()
     {

@@ -164,9 +164,11 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
         var snapshotType = typeof(AboutVersionPill).GetNestedType("Snapshot", BindingFlags.NonPublic)!;
         var snapshot = Activator.CreateInstance(snapshotType, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic, null,
             new object?[] { null, true, false, null, null, UpdateInstallProgress.Phase.Idle, true }, null)!;
-        pill.Child = (Control)typeof(AboutVersionPill).GetMethod("Build", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(pill, [snapshot])!;
-        var window = Show(pill); var button = Assert.Single(pill.GetVisualDescendants().OfType<Button>());
-        Assert.False(button.IsHitTestVisible); Assert.False(button.Focusable); Assert.Contains(pill.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Not checked yet");
+        var built = (Control)typeof(AboutVersionPill).GetMethod("Build", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(pill, [snapshot])!;
+        // Attach the returned production subtree directly: attaching pill would re-read the ordinary checker
+        // through Track and overwrite the deliberately impossible snapshot before its assertions.
+        var window = Show(built); var button = Assert.Single(built.GetVisualDescendants().OfType<Button>());
+        Assert.False(button.IsHitTestVisible); Assert.False(button.Focusable); Assert.Contains(built.GetVisualDescendants().OfType<TextBlock>(), t => t.Text == "Not checked yet");
         var standingType = typeof(AboutVersionPill).GetNestedType("Standing", BindingFlags.NonPublic)!;
         var help = typeof(AboutVersionPill).GetMethod("StandingHelp", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [snapshot, Enum.Parse(standingType, "Failed")]);
         Assert.Equal("The last check did not reach GitLab", help); window.Close();
