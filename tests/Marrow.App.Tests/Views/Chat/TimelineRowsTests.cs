@@ -40,6 +40,220 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class TimelineRowsTests(HeadlessSession headless)
 {
+    [Fact]
+    [Trait("Req", "PR-CHAT-154")] // App/Views/Chat/TimelineRows.swift:2008-2064
+    public void Head_steps_keep_every_tool_notice_and_nonblank_reply_and_only_briefs_after_the_first()
+    {
+        using var actor = new TestRuntime();
+        actor.OnMain(() =>
+        {
+            var first = UserEntry(" ", null);
+            var brief = UserEntry("steer it", null);
+            var reply = ReplyEntry("answer");
+            var tool = ToolEntry(Call(ToolCall.Kind.Read, "a"));
+            var notice = NoticeEntry(Notice.Level.Warning, "careful");
+            var all = new[] { first, UserEntry("\n ", null), brief, ReplyEntry("\t"), reply, tool, notice, PlanEntry(ProposedPlan.State.Proposed) };
+            Assert.Equal(new[] { brief, reply, tool, notice }, Assert.IsType<ValueList<TimelineEntry>>(InvokeStatic(typeof(HydraHeadStepsPopover), "Steps", (object)all)));
+            var start = System.DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+            var head = Head(0, HydraHeadInfo.Status.Running, start) with { ToolCalls = 1 };
+            Assert.Equal("Working\u2026 \u00b7 1 tool", InvokeStatic(typeof(HydraHeadStepsPopover), "StatusLine", head));
+            Assert.Equal("Failed \u00b7 2 tools \u00b7 1m 4s", InvokeStatic(typeof(HydraHeadStepsPopover), "StatusLine", head with { HydraHeadInfoStatus = HydraHeadInfo.Status.Failed, ToolCalls = 2, FinishedAt = start.AddSeconds(64) }));
+            Assert.Equal("Stopped", InvokeStatic(typeof(HydraHeadStepsPopover), "StatusLine", head with { HydraHeadInfoStatus = HydraHeadInfo.Status.Stopped, ToolCalls = 0 }));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-154")] // App/Views/Chat/TimelineRows.swift:1884-2006
+    public void Head_steps_mount_at_440_with_a_520_cap_and_update_from_the_heads_own_runtime()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var (store, app, lead) = TeamHarness(Head(0, HydraHeadInfo.Status.Completed) with { Summary = "report text" });
+            using (store) store.Main.OnMain(() =>
+            {
+                var id = app.Threads.Single(thread => thread.IsHydraHead).Id;
+                var runtime = app.Runtime(id);
+                var view = new HydraHeadStepsPopover(id);
+                var host = new Border { Child = view };
+                Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
+                var window = Show(host);
+                Assert.Equal(440, ((Control)view).Width);
+                Assert.Contains("Steps", Texts(view));
+                Assert.Contains("No steps yet.", Texts(view));
+                Assert.Contains("Report", Texts(view));
+                Assert.Contains("report text", Texts(view));
+                Assert.Contains(LogicalQuery.SelfAndDescendants<Decorator>(view), d => d.Padding == new Thickness(16));
+                Assert.Equal(22, Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(view)).Size);
+                var scroll = Assert.Single(LogicalQuery.SelfAndDescendants<PopoverScroll>(view));
+                Assert.True(Assert.IsType<ScrollViewer>(scroll.Child).Height <= 520);
+                runtime.Rehearse(new ProviderEvent.ToolStarted("head-read", Call(ToolCall.Kind.Read, "Read head", ToolCall.Status.Running)));
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Settle(window);
+                Assert.Contains("Reading head", Texts(view));
+                Assert.DoesNotContain("No steps yet.", Texts(view));
+                var label = TextNamed(view, "Reading head");
+                Assert.Equal(2, label.MaxLines);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, label), BrushColor(label.Foreground));
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-155")] // App/Views/Chat/TimelineRows.swift:1564-1577, :2682-2686
+    public void Heads_list_is_an_unfolded_leading_stack_with_eight_point_spacing_and_no_header()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                var entries = new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Agent, "Hank: first")), ToolEntry(Call(ToolCall.Kind.Agent, "Walter: second"))]);
+                var view = new HydraHeadsList(entries, h.Runtime);
+                var window = Show(view);
+                var stack = Assert.IsType<StackPanel>(view.Child);
+                Assert.Equal(8, stack.Spacing);
+                Assert.Equal(HorizontalAlignment.Left, stack.HorizontalAlignment);
+                Assert.Equal(2, stack.Children.Count);
+                Assert.All(stack.Children, child => Assert.IsType<ToolRow>(child));
+                Assert.Contains("Sent out Hank: first", Texts(view));
+                Assert.DoesNotContain("chevron.right", Symbols(view));
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-161")] // App/Views/Chat/TimelineRows.swift:1406-1407, :56-62
+    public void A_menu_can_outlive_its_message_row_without_retaining_the_row_or_entry()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            h.Main.OnMain(() =>
+            {
+                (System.Collections.Generic.IReadOnlyList<RowAction> Menu, System.WeakReference Row, System.WeakReference Entry) Create()
+                {
+                    var entry = ReplyEntry("released message");
+                    var row = new AssistantMessageRow(entry, null, h.Runtime);
+                    var menu = AssistantMessageRow.MessageActions("released message", null, h.Runtime);
+                    return (menu, new System.WeakReference(row), new System.WeakReference(entry));
+                }
+                var kept = Create();
+                System.GC.Collect(); System.GC.WaitForPendingFinalizers(); System.GC.Collect();
+                Assert.False(kept.Row.IsAlive);
+                Assert.False(kept.Entry.IsAlive);
+                Assert.Equal(new[] { "Copy message", "Copy as markdown", "Add to reply" }, kept.Menu.Select(action => action.Title));
+                System.GC.KeepAlive(kept.Menu);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-166")] // App/Views/Chat/TimelineRows.swift:633, :2394, :2152
+    public void Selection_is_owned_by_each_notice_report_and_output_block()
+    {
+        An_info_notice_is_a_bare_line_of_secondary_selectable_text();
+        Output_over_thirty_lines_shows_its_first_thirty_and_a_link_that_shows_all_of_it_then_Show_less();
+        The_report_popover_is_460_wide_with_a_460_point_scroller_at_the_callout_style_with_12_point_markdown();
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-170")] // App/Views/Chat/TimelineRows.swift:2242-2254
+    public void Chat_MCP_contact_is_a_catalog_read_not_a_deletion_path() => An_mcp_title_of_catalog_server_middle_dot_tool_resolves_to_the_entry_and_its_label();
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-211")] // App/Views/Chat/TimelineRows.swift:2117-2119
+    public void Every_tool_kind_can_mount_the_resolved_image_above_its_detail()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            h.Main.OnMain(() =>
+            {
+                var path = System.IO.Path.Combine(h.Project.Path, "screenshot.png");
+                System.IO.File.WriteAllBytes(path, []);
+                foreach (var kind in new[] { ToolCall.Kind.Read, ToolCall.Kind.Command })
+                {
+                    var detail = new ToolDetailView(Call(kind, path) with { Detail = "image detail" }, h.Project.Path);
+                    Assert.Single(LogicalQuery.SelfAndDescendants<ToolImagePreview>(detail));
+                    Assert.Equal(new[] { typeof(ToolImagePreview), typeof(SelectableTextBlock) }, Assert.IsType<StackPanel>(detail.Child).Children.Select(child => child.GetType()));
+                }
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-GIT-122")] // App/Views/Chat/TimelineRows.swift:2695, :2770-2799
+    public void File_revert_has_one_confirmation_with_only_Cancel_and_Revert() => The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts();
+    [Fact]
+    [Trait("Req", "PR-GIT-123")] // App/Views/Chat/TimelineRows.swift:184-206
+    public void Message_revert_posts_the_intent_before_the_STOP_2_dialog() => Edit_from_here_posts_only_the_confirmation_intent_and_a_non_revertable_menu_cannot_post_it();
+    [Fact]
+    [Trait("Req", "PR-GIT-151")] // App/Views/Chat/TimelineRows.swift:2707-2714, :2739-2740
+    public void Legacy_changes_and_singular_file_titles_follow_the_source() { An_older_turn_with_files_but_no_per_file_summary_works_its_changes_out_and_stores_them_while_one_with_none_never_does(); The_file_card_reads_Edited_1_file_or_Edited_N_files_beside_the_badge_and_the_totals_with_a_chevron(); }
+    [Fact]
+    [Trait("Req", "PR-GIT-152")] // App/Views/Chat/TimelineRows.swift:2829-2857
+    public void File_list_is_twelve_then_the_literal_overflow_line() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-088")] // App/Views/Chat/TimelineRows.swift:802-808
+    public void Merge_outcome_splits_once_drops_one_stop_and_keeps_the_leading_URL_separate()
+    {
+        var value = new HydraMergeOutcome(new UserMessage { Text = "Hydra merged..\n HTTPS://example.org/a \n details " });
+        Assert.Equal("Hydra merged.", value.Title); Assert.Equal("HTTPS://example.org/a \n details", value.Body);
+        Assert.NotNull(value.Link); Assert.Equal("details", value.Details);
+        Assert.Equal("Hydra", new HydraMergeOutcome(new UserMessage { Text = "" }).Title);
+    }
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-089")] // App/Views/Chat/TimelineRows.swift:937-952
+    public void Silent_merge_completion_removes_the_pill() => The_merge_pill_shows_the_stage_under_way_with_an_ellipsis_and_goes_once_the_merge_is_over_without_a_note();
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-090")] // App/Views/Chat/TimelineRows.swift:1111-1120
+    public void Generic_merge_report_uses_the_460_point_fallback() => The_report_popover_is_460_wide_with_a_460_point_scroller_at_the_callout_style_with_12_point_markdown();
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-101")] // App/Views/Chat/TimelineRows.swift:954-958, :1056-1079
+    public void Stage_words_have_one_ellipsis_and_no_clock() => The_merge_pill_shows_the_stage_under_way_with_an_ellipsis_and_goes_once_the_merge_is_over_without_a_note();
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-102")] // App/Views/Chat/TimelineRows.swift:963-965, :821-841
+    public void Stage_track_has_seven_source_stages() { Assert.Equal(7, HydraMergeStageExtensions.AllCases.Count); The_track_is_drawn_from_its_three_values_dots_lit_as_the_head_reaches_them_and_the_head_arcing_between_dots(); }
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-103")] // App/Views/Chat/TimelineRows.swift:844-915
+    public void Track_geometry_is_one_three_value_drawing() => The_track_is_drawn_from_its_three_values_dots_lit_as_the_head_reaches_them_and_the_head_arcing_between_dots();
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-104")] // App/Views/Chat/TimelineRows.swift:1020-1027
+    public void Failure_outcome_has_no_success_flourish() => An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled();
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-105")] // App/Views/Chat/TimelineRows.swift:1095-1128
+    public void Outcome_title_without_details_is_disabled_and_has_no_chevron() => An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled();
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-106")] // App/Views/Chat/TimelineRows.swift:1012-1019
+    public void Merge_pill_uses_the_shared_insets_and_accessibility_title() => The_merge_pill_shows_the_stage_under_way_with_an_ellipsis_and_goes_once_the_merge_is_over_without_a_note();
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-107")] // App/Views/Chat/TimelineRows.swift:972-1010
+    public void Morph_slot_is_clipped_with_negative_returned_padding()
+    {
+        headless.OnUiThread(() => { using var h = RuntimeHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource()); h.Main.OnMain(() => {
+            h.Runtime.IsHydraMerging = true;
+            var row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging()); var window = Show(row);
+            Assert.Contains(LogicalQuery.SelfAndDescendants<Control>(row), c => c.ClipToBounds && c.Margin == new Thickness(-2, -6));
+            Close(window);
+        }); });
+    }
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-108")] // App/Views/Chat/TimelineRows.swift:1028-1033
+    public void Merge_report_is_a_task_keyed_to_its_body_not_the_stage() => A_reports_markdown_is_warmed_as_the_pill_appears_per_head_for_a_batch();
+    [Fact]
+    [Trait("Req", "UI-CHAT-007")] // App/Views/Chat/TimelineRows.swift:88-129, :1167-1207
+    public void Sent_bubble_uses_the_exact_path_and_insets() { The_bubble_path_rounds_three_corners_and_draws_the_tail_through_the_exact_control_points(); A_sent_message_is_a_trailing_bubble_with_14_18_and_9_point_insets_96_points_clear_on_the_leading_side_tinted_at_14_percent(); }
+    [Fact]
+    [Trait("Req", "UI-CHAT-008")] // App/Views/Chat/TimelineRows.swift:92-117
+    public void Quote_chip_input_is_leading_only_while_the_ChipChrome_site_is_STOP_1() => The_inherited_quote_reader_consumes_only_leading_blocks_and_rejoins_the_lifted_command();
+    [Fact]
+    [Trait("Req", "UI-CHAT-010")] // App/Views/Chat/TimelineRows.swift:130-161
+    public void Pencil_is_22_square_on_a_reserved_line() => A_revertable_message_keeps_a_22_point_hover_line_with_a_22_point_pencil_that_shows_only_on_hover();
+
     private static Attachment Photo(string path) => new() { Name = "photo.png", Path = path, MimeType = "image/png" };
 
     private static AvaloniaWindow Show(Control control)
