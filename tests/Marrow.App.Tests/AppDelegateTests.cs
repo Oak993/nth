@@ -700,7 +700,7 @@ public sealed class AppDelegateTests
 // :22's OD-0018/ED-103 boot stage still needs P12 evidence and GlassMaterial composition: STOP Boot #1.
 // PR-LAUNCH-029 now has a launch-level test of all seven exclusion predicates and newest-unused selection.
 // PR-LAUNCH-071 and UI-LAUNCH-002 now have tests of the delayed tour / no extra onboarding path.
-// PR-LAUNCH-038: launch's asynchronous bootstrap call is tested; the ten awaited steps are AppModel's dependency
+// PR-LAUNCH-038 has no Req trait: PR-LAUNCH-026 proves the asynchronous start only; the ten awaited steps are AppModel's dependency
 // contract (AppModel.swift:240-287), whose separate tests cover individual steps, not an aggregate ordering trace.
 // PR-LAUNCH-046 still needs the shell-to-UpdateChecker.HandleActivation binding and a decision about launch activation
 // (STOP Boot #2). PR-LAUNCH-028/UI-LAUNCH-001 additionally need WindowManager's center/chrome/material gaps resolved.
@@ -738,7 +738,7 @@ public sealed class AppDelegateTests
 // STOP App.AppDelegate #5 (sweep B, 2026-09-27)
 // Kind: missing dependency
 // Swift: App/AppDelegate.swift:14; App/Views/Chat/TimelineRows.swift:652-707 (B3 52bc792).
-// Records: PR-LAUNCH-084 (rendering half, registration now tested).
+// Records: PR-LAUNCH-084 (no Req trait until a rendering test exists; registration alone is tested).
 // Missing: HydraDelegationBlock's constructor still throws MARROW_STUB at the sweep base. The installed closure is
 // tested before any window, but invoking it cannot render a card until the TimelineRows lane lands its constructor.
 // Needed: App.Views.Chat.TimelineRows.HydraDelegationBlock; that file is explicitly owned by another chat.

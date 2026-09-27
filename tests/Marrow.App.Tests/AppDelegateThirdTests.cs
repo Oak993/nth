@@ -156,7 +156,6 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-LAUNCH-026")] // App/AppDelegate.swift:14, :16
-    [Trait("Req", "PR-LAUNCH-084")] // App/AppDelegate.swift:14; rendering itself remains STOP #5
     public void Launch_installs_the_delegation_block_renderer_before_it_reaches_the_window_manager()
     {
         WithLaunch(null, launch =>
@@ -211,7 +210,6 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-LAUNCH-026")] // App/AppDelegate.swift:27
-    [Trait("Req", "PR-LAUNCH-038")] // App/AppDelegate.swift:27; ten bootstrap steps belong to AppModel.swift:240-287
     public void Launch_starts_the_bootstrap_on_the_window_managers_model_without_waiting_for_it()
     {
         WithLaunch(null, launch =>

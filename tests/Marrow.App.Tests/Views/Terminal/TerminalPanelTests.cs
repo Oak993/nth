@@ -87,6 +87,7 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
             try
             {
                 var directory = TerminalTestFolders.Create("restart tab sweep");
+                var first = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
                 var session = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
                 var running = new TerminalTab(session, true, () => { }, () => fixture.App.Terminals.Restart(session), () => { });
                 Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(running), button => Equals(ToolTip.GetTip(button), "Start a new shell in this tab"));
@@ -99,7 +100,11 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
                 Assert.Equal(SwiftFont.Caption2.FontWeight(SwiftFont.Weight.Bold), SwiftImage.GetFont(icon));
                 Assert.Equal(BrushColor(Chrome.SecondaryText.Brush(icon)), BrushColor(icon.Foreground));
                 restart.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
-                var fresh = Assert.Single(fixture.App.Terminals.Sessions(fixture.Thread.Id));
+                var sessions = fixture.App.Terminals.Sessions(fixture.Thread.Id);
+                Assert.Equal(2, sessions.Count);
+                Assert.Same(first, sessions[0]);
+                var fresh = sessions[1]; // TerminalStore.swift:148-151 replaces at the original index
+                Assert.True(fresh.IsRunning);
                 Assert.NotEqual(session.Id, fresh.Id);
                 Assert.Equal(session.Directory, fresh.Directory);
                 Assert.Equal(session.Title, fresh.Title);
@@ -230,6 +235,64 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
                 Assert.Equal("Renamed shell \U000000B7 the shell has exited", ToolTip.GetTip(tab));
                 Assert.Equal("Renamed shell, the shell has exited", AutomationProperties.GetName(tab));
                 Assert.Equal("Restart Renamed shell", AutomationProperties.GetName(TabButton(tab, "Start a new shell in this tab")));
+            });
+        }
+        finally
+        {
+            h.Main.OnMain(() => { HideTestWindows(); fixture.App.Terminals.TerminateAll(); });
+            Dispatcher.UIThread.RunJobs();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-021")] // App/Views/Terminal/TerminalPanel.swift:140-146
+    [Trait("Req", "PR-TERM-023")] // App/Views/Terminal/TerminalPanel.swift:159-170,179
+    public void A_hovered_tab_keeps_its_identity_and_close_cross_through_title_and_exit_changes() => headless.OnUiThread(() =>
+    {
+        var fixture = MakeFixture();
+        using var h = fixture.Store;
+        try
+        {
+            Control host = null!;
+            TerminalSession session = null!;
+            TerminalTab tab = null!;
+            TerminalTab selectedTab = null!;
+            TerminalHost terminal = null!;
+            Button close = null!;
+            h.Main.OnMain(() =>
+            {
+                var directory = TerminalTestFolders.Create("hover preservation");
+                session = fixture.App.Terminals.Open(fixture.Thread.Id, directory);
+                fixture.App.Terminals.Open(fixture.Thread.Id, directory); // hover the unselected tab
+                host = Build(fixture.App, fixture.Runtime, directory);
+                var tabs = LogicalQuery.SelfAndDescendants<TerminalTab>(host).ToArray();
+                tab = tabs[0];
+                selectedTab = tabs[1];
+                terminal = LogicalQuery.SelfAndDescendants<TerminalHost>(host).Single();
+                close = TabButton(tab, "Close terminal");
+                Assert.Equal(0, close.Opacity);
+                tab.RaiseEvent(new PointerEventArgs(InputElement.PointerEnteredEvent, tab, new Pointer(1, PointerType.Mouse, true), tab, new Point(), 0, new PointerPointProperties(), KeyModifiers.None));
+                Assert.Equal(1, close.Opacity);
+                session.Title = "Hovered renamed shell";
+            });
+            void AssertPreserved()
+            {
+                var tabs = LogicalQuery.SelfAndDescendants<TerminalTab>(host).ToArray();
+                Assert.Same(tab, tabs[0]); // @State isHovering belongs to the surviving tab
+                Assert.Same(selectedTab, tabs[1]);
+                Assert.Same(terminal, LogicalQuery.SelfAndDescendants<TerminalHost>(host).Single());
+                Assert.Same(close, TabButton(tab, "Close terminal"));
+                Assert.Equal(1, close.Opacity);
+                Assert.True(close.IsHitTestVisible);
+                Assert.Equal("Close Hovered renamed shell", AutomationProperties.GetName(close));
+                Assert.Contains("Hovered renamed shell", AllText(tab), StringComparison.Ordinal);
+            }
+            h.Main.OnMain(() => { AssertPreserved(); session.Terminate(); });
+            h.Main.OnMain(() =>
+            {
+                AssertPreserved();
+                Assert.Equal(0.55, tab.Opacity);
+                Assert.NotNull(TabButton(tab, "Start a new shell in this tab"));
             });
         }
         finally

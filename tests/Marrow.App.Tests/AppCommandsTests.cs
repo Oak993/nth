@@ -6,6 +6,7 @@ using Avalonia.Threading;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Palette;
 using Marrow.App.Views.Tour;
 using Marrow.App.Window;
 using Marrow.Core.Models;
@@ -99,13 +100,12 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     public void The_app_name_command_follows_Settings_has_no_default_chord_and_a_recorded_chord_shows_the_cached_main_window() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
-        using var info = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?> { ["CFBundleDisplayName"] = "Marrow" }, isDevelopment: false));
         using var store = ShortcutStore.Shared.Override(FreshStore());
         launch.Harness.Main.OnMain(() =>
         {
             var commands = new AppCommands(launch.Manager.Model);
             var main = commands.Body[1];
-            Assert.Equal("Marrow", main.Title); // :22 AppInfo.name, OD-0012 F1
+            Assert.Equal(AppInfo.Current.Name, main.Title); // :22 AppInfo.name, OD-0012 F1
             Assert.Null(main.Shortcut); // OD-0012 G6
             Assert.False(main.IsDisabled); // :21-25 has no .disabled
             Assert.Equal("New thread", commands.Body[2].Title); // :28 follows the app-name group
@@ -124,6 +124,105 @@ public sealed class AppCommandsTests(HeadlessSession headless)
             Assert.True(window.IsVisible);
             Assert.Single(launch.Events, value => value == "main window built");
             window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-090")] // App/Views/Palette/CommandPalette.swift:176-178,201-206
+    public void The_palettes_Settings_row_opens_the_cached_Settings_window() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var store = ShortcutStore.Shared.Override(FreshStore());
+        CommandPalette palette = null!;
+        AvaloniaWindow main = null!;
+        launch.Harness.Main.OnMain(() =>
+        {
+            palette = new CommandPalette();
+            launch.MainContent.Child = palette;
+            launch.Manager.Model.IsCommandPalettePresented = true;
+            launch.Manager.ShowMain();
+            main = LaunchHarness.WindowOf(launch.MainContent)!;
+            palette.QueryField.Text = "Settings";
+        });
+        launch.Harness.Main.OnMain(() =>
+        {
+            try
+            {
+                Assert.Equal(1, palette.ResultCount);
+                Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(palette.RowsPanel), block => block.Text == "Settings");
+                palette.QueryField.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Enter });
+                var settings = LaunchHarness.WindowOf(launch.SettingsContent);
+                Assert.NotNull(settings);
+                Assert.True(settings.IsVisible);
+                Assert.False(launch.Manager.Model.IsCommandPalettePresented); // :204 close before performing
+                settings.Hide();
+            }
+            finally { main.Hide(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-092")] // App/AppCommands.swift:21-25; App/Window/WindowManager.swift:26-31
+    public void A_recorded_show_main_chord_dispatched_from_the_focused_Settings_window_reuses_main() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var store = ShortcutStore.Shared.Override(FreshStore());
+        launch.Harness.Main.OnMain(() =>
+        {
+            launch.Manager.ShowMain();
+            var main = LaunchHarness.WindowOf(launch.MainContent)!;
+            main.Hide();
+            var input = new TextBox();
+            launch.SettingsContent.Child = input;
+            launch.Manager.ShowSettings();
+            var settings = LaunchHarness.WindowOf(launch.SettingsContent)!;
+            try
+            {
+                Assert.True(input.Focus());
+                Assert.True(input.IsFocused);
+                var rebound = new KeyChord(0x15, ChordModifiers.Control | ChordModifiers.Alt);
+                ShortcutStore.Shared.Current.Set(rebound, AppShortcut.ShowMainWindow);
+                var commands = new AppCommands(launch.Manager.Model);
+                // Test-owned attachment only: production installation is still STOP #6.
+                using var attached = MenuKeyEquivalents.Attach(settings, commands.PerformKeyEquivalent);
+                Press(settings, Key.Y, PhysicalKey.Y, RawInputModifiers.Control | RawInputModifiers.Alt);
+                Assert.Same(main, LaunchHarness.WindowOf(launch.MainContent));
+                Assert.True(main.IsVisible);
+                Assert.Single(launch.Events, value => value == "main window built");
+            }
+            finally { settings.Hide(); main.Hide(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-1")] // baseline evidence only; deliberately no Req trait
+    // UNRESOLVED UNK-0003: documents current table precedence, not an approved parity rule.
+    public void Recorded_show_main_overlaps_currently_win_over_fixed_zoom_and_thread_chords() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        using var store = ShortcutStore.Shared.Override(FreshStore());
+        launch.Harness.Main.OnMain(() =>
+        {
+            var model = launch.Manager.Model;
+            var commands = new AppCommands(model);
+            var overlaps = new[] { new KeyChord(0x0B, ChordModifiers.Control), new KeyChord(0x0C, ChordModifiers.Control), new KeyChord(0x0D, ChordModifiers.Control) }
+                .Concat(Enumerable.Range(0x02, 9).Select(code => new KeyChord(code, ChordModifiers.Control)));
+            foreach (var chord in overlaps)
+            {
+                ShortcutStore.Shared.Current.Set(chord, AppShortcut.ShowMainWindow);
+                var matching = commands.Body.Where(command => command.Shortcut == chord.KeyboardShortcut).ToArray();
+                Assert.Equal(2, matching.Length); // app-name plus fixed zoom or Thread N
+                Assert.Equal(AppInfo.Current.Name, matching[0].Title);
+                model.Settings.AppZoom = 150;
+                var selection = model.SelectedThreadID;
+                Assert.True(commands.PerformKeyEquivalent(chord.KeyboardShortcut!.Value));
+                var main = LaunchHarness.WindowOf(launch.MainContent)!;
+                Assert.True(main.IsVisible);
+                Assert.Equal(150, model.Settings.AppZoom);
+                Assert.Equal(selection, model.SelectedThreadID);
+                main.Hide();
+            }
+            Dispatcher.UIThread.RunJobs();
         });
     });
 
@@ -2528,7 +2627,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // the menus." The menu bar :24 installs answers every key equivalent pressed while any window of the app is key.
 // Requirements: PR-WIN-089 (windows_path: "every chord works with no menu present"), PR-WIN-110 (Ctrl+1 to Ctrl+9
 // select a thread while another window, such as Settings, is key, "through the port's own dispatch of the chord");
-// through them, the chord of every item of this file in the running app.
+// Also explicitly blocked: PR-WIN-090, PR-WIN-092, UI-LAUNCH-007, UI-WIN-006 and UI-WIN-007.
+// Through them, the chord of every item of this file in the running app.
 // What is unclear or missing: WindowManager.Shared, Model and MakeWindow are now implemented, and Port/AppShell.cs
 // hosts them. No production caller attaches MenuKeyEquivalents.Attach to any window (search of src at d62329d42).
 // The remaining blocker is the ED naming the replacement for DroppyCodeApp.swift:24, its owning unit and coverage
@@ -2540,6 +2640,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // Needed to proceed: a decision naming the runtime chord install site, its owning unit and the windows it covers.
 // Done so far: MenuKeyEquivalents.Attach and AppCommands.PerformKeyEquivalent are implemented and tested on the
 // tests' own windows (green); nothing attaches them to a window of the running app.
+// Fixes: PR-WIN-090 now also has a real palette-row action test; PR-WIN-092 has a Settings-focused
+// window test with test-owned dispatch. Both were writable; production attachment remains missing.
 
 // STOP App.AppCommands #7 (repair agent, 2026-09-26)
 // Kind: platform gap
@@ -2582,3 +2684,13 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // and empty loaded-thread deletion (AppModel.swift:855-921). AppModel.cs:850-899 still has all four divergences.
 // STOP #5 still needs ThreadRuntime.CanQueue and QueueDraftAsFollowUp repaired: :1020-1025 still reject an idle draft
 // instead of sending it (Swift ThreadRuntime.swift:771-788). No AppModel or ThreadRuntime file is changed by this sweep.
+
+// STOP App.AppCommands #8 (sweep B fixes, 2026-09-27)
+// Kind: unresolved precedence, UNK-0003.
+// Swift: App/AppCommands.swift:21-25,53-62,95-98; Core/Models/Shortcuts.swift:251-257,320-334 (B3 52bc792).
+// Records: PR-WIN-092, PR-WIN-224, PR-WIN-226; PR-SETTINGS-210 failure_cases.
+// Missing: a decision for a recorded Show Marrow Ctrl+0, Ctrl+-, Ctrl+= or Ctrl+digit overlapping
+// the fixed Actual Size, Zoom or Thread N command. The store accepts these fixed-command overlaps.
+// Current precedence: Body[1] app-name/show-main wins because dispatch takes the first enabled match;
+// Actual Size, Zoom and Thread N therefore do not run. This behavior is documented without a Req trait.
+// Needed: UNK-0003 resolution specifying refusal or dispatch precedence; do not silently choose a rule.
