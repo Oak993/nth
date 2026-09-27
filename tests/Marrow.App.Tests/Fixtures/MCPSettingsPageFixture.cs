@@ -44,6 +44,7 @@ public static class MCPSettingsPageFixture
         window.Show(); Dispatcher.UIThread.RunJobs(); return new MCPSettingsWindowScope(window);
     }
     public static T Read<T>(object target, string name) => (T)target.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.GetValue(target)!;
+    public static T Invoke<T>(object target, string name) => (T)target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.Invoke(target, null)!;
     public static void Call(object target, string name, params object[] args) => target.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.Invoke(target, args);
 }
 
@@ -52,5 +53,6 @@ public sealed class MCPSettingsWindowScope(Avalonia.Controls.Window window) : ID
 {
     public void Dispose() => window.Close();
 }
+
 
 
