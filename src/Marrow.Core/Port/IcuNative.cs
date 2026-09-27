@@ -14,6 +14,7 @@ internal static class IcuNative
     private const int BufferOverflow = 15; // U_BUFFER_OVERFLOW_ERROR
 
     internal const int PropertyAlphabetic = 0;       // UCHAR_ALPHABETIC
+    internal const int PropertyUppercase = 30;       // UCHAR_UPPERCASE (ICU unicode/uchar.h)
     internal const int PropertyWhiteSpace = 31;      // UCHAR_WHITE_SPACE
     internal const int PropertyNumericType = 0x1009; // UCHAR_NUMERIC_TYPE
 

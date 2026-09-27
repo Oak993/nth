@@ -305,7 +305,7 @@ public sealed class SwiftStringComparer : IEqualityComparer<string>, IComparer<s
     public int Compare(string? x, string? y) => x is null ? (y is null ? 0 : -1) : y is null ? 1 : SwiftString.Compare(x, y);
 }
 
-/// <summary>Swift <c>Character</c> properties: each reads the Character's FIRST scalar's Unicode property.</summary>
+/// <summary>Swift <c>Character</c> properties over one extended grapheme cluster.</summary>
 public static class SwiftCharacter
 {
     /// <summary><c>isNumber</c>: Numeric_Type is not None (includes U+00BD, Roman numerals, CJK numerals).</summary>
@@ -319,6 +319,19 @@ public static class SwiftCharacter
     /// <summary><c>isWhitespace</c>: White_Space. Not Foundation's trimming set, which adds U+200B.</summary>
     public static bool IsWhitespace(string character) =>
         IcuNative.HasBinaryProperty(First(character).Value, IcuNative.PropertyWhiteSpace);
+
+    // Source: Swift stdlib swift-6.2-RELEASE, stdlib/public/core/CharacterProperties.swift:223-265.
+    // https://github.com/swiftlang/swift/blob/swift-6.2-RELEASE/stdlib/public/core/CharacterProperties.swift#L223-L265
+    // isUppercase :236-240 takes the single-scalar Uppercase fast path; otherwise _isUppercased && isCased.
+    // For a cluster, isCased :260-264 is !_isUppercased || !_isLowercased, so this becomes upper-equal && lower-different.
+    public static bool IsUppercase(string character)
+    {
+        var scalar = First(character);
+        if (scalar.Utf16SequenceLength == character.Length &&
+            IcuNative.HasBinaryProperty(scalar.Value, IcuNative.PropertyUppercase)) return true;
+        return SwiftString.Equal(character, SwiftString.Uppercased(character)) &&
+            !SwiftString.Equal(character, SwiftString.Lowercased(character));
+    }
 
     private static Rune First(string character) =>
         Rune.DecodeFromUtf16(character, out var rune, out _) == System.Buffers.OperationStatus.Done
