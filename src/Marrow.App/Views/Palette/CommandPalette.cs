@@ -20,7 +20,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Palette;
 
-// Source: DroppyCode/App/Views/Palette/CommandPalette.swift (B2 1fbf81e), :1-211.
+// Source: DroppyCode/App/Views/Palette/CommandPalette.swift (B3 52bc792), :1-211.
 // Records: PR-TERM-071, PR-WIN-159, PR-WIN-160, PR-WIN-161, PR-WIN-162, PR-WIN-163, PR-WIN-164, PR-WIN-165,
 // PR-WIN-166, PR-WIN-167, PR-WIN-168, PR-WIN-169, PR-WIN-170, PR-WIN-171, PR-WIN-172, PR-WIN-173, PR-WIN-174,
 // PR-WIN-175, PR-WIN-176, PR-WIN-177, PR-WIN-178, PR-WIN-179, UI-GIT-025, UI-TERM-033, UI-WIN-028, UI-WIN-029,

@@ -18,7 +18,7 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Views.Palette;
 
-// Source: DroppyCode/App/Views/Palette/CommandPalette.swift (B2 1fbf81e), :1-211.
+// Source: DroppyCode/App/Views/Palette/CommandPalette.swift (B3 52bc792), :1-211.
 [Collection("Headless")]
 public sealed class CommandPaletteTests(HeadlessSession headless)
 {
@@ -730,7 +730,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-159")] // App/Views/Palette/CommandPalette.swift:34-41
-    [Trait("Req", "UI-WIN-028")]
+    [Trait("Req", "UI-WIN-028")] // App/Views/Palette/CommandPalette.swift:34-41
     public void The_scrim_is_darker_in_dark_mode_than_light_mode_and_a_click_on_it_closes_the_palette()
     {
         headless.OnUiThread(() =>
@@ -757,7 +757,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-160")] // App/Views/Palette/CommandPalette.swift:96-98
-    [Trait("Req", "UI-WIN-029")]
+    [Trait("Req", "UI-WIN-029")] // App/Views/Palette/CommandPalette.swift:96-98
     public void The_panel_is_600_wide_72_from_the_top_with_a_24_point_glass_radius()
     {
         headless.OnUiThread(() =>
@@ -783,7 +783,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-161")] // App/Views/Palette/CommandPalette.swift:43-49,64-65
-    [Trait("Req", "UI-WIN-030")]
+    [Trait("Req", "UI-WIN-030")] // App/Views/Palette/CommandPalette.swift:43-49,64-65
     public void The_search_field_has_the_exact_placeholder_and_no_clear_button()
     {
         headless.OnUiThread(() =>
@@ -812,7 +812,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-166")] // App/Views/Palette/CommandPalette.swift:66-76
-    [Trait("Req", "UI-WIN-031")]
+    [Trait("Req", "UI-WIN-031")] // App/Views/Palette/CommandPalette.swift:66-76
     public void A_query_matching_nothing_shows_the_exact_message_with_curly_quotes()
     {
         headless.OnUiThread(() =>
@@ -859,7 +859,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-168")] // App/Views/Palette/CommandPalette.swift:110-141
-    [Trait("Req", "UI-WIN-032")]
+    [Trait("Req", "UI-WIN-032")] // App/Views/Palette/CommandPalette.swift:110-147
     public void A_selected_row_shows_the_accent_tint_and_an_unselected_row_the_secondary_symbol()
     {
         headless.OnUiThread(() =>
@@ -964,7 +964,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-179")] // App/Views/Palette/CommandPalette.swift:133-137
-    [Trait("Req", "UI-WIN-033")]
+    [Trait("Req", "UI-WIN-033")] // App/Views/Palette/CommandPalette.swift:133-137
     public void A_thread_row_never_carries_a_chord()
     {
         headless.OnUiThread(() =>
