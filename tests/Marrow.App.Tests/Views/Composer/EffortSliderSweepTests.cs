@@ -109,19 +109,34 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-132")] // App/Views/Composer/EffortSlider.swift:758-764,1024-1026
-    public void Pair_keeps_effect_identity_across_kind_changes_while_a_solo_track_restarts()
+    [Trait("Decision", "ED-117")] // Crossfade timing rests on ED-117(2)-(6), so Decision ED-117 + Oracle O-34, never Req.
+    [Trait("Oracle", "O-34")] // App/Views/Composer/EffortSlider.swift:758-767,799,1024-1026; PR-132 needs a capture comparison (see STOP).
+    public void Pair_keeps_effect_identity_across_kind_changes_while_a_solo_track_crossfades()
     {
         headless.OnUiThread(() =>
         {
-            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var frames = new ManualFrameSource();
+            var time = new ManualTimeProvider();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var span = TimeSpan.FromSeconds(Animation.Smooth(0.3).Duration); // :799 smooth(duration: 0.3)
             var selected = 0;
             var slider = new EffortSlider(3, new Binding<int>(() => selected, _ => { }), "Low", true);
             var window = Show(slider);
             var before = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
-            selected = 2; slider.UpdateLook(true, "High", null);
+            Assert.Equal(1, before.Opacity);
+            selected = 2; slider.UpdateLook(true, "High", null); // :1024-1026 solo identity is the whole look, so it changes
+            var pairNow = slider.GetVisualDescendants().OfType<TrackEffect>().ToArray();
+            Assert.Equal(2, pairNow.Length); // :765 .transition(.opacity): outgoing retained while the replacement fades in
+            var incoming = Assert.Single(pairNow, e => !ReferenceEquals(e, before));
+            Assert.Equal(0, incoming.Opacity);
+            time.Advance(TimeSpan.FromTicks(span.Ticks / 2)); frames.Advance(TimeSpan.FromTicks(span.Ticks / 2)); Dispatcher.UIThread.RunJobs();
+            Assert.InRange(before.Opacity, 0.01, 0.99);
+            Assert.InRange(incoming.Opacity, 0.01, 0.99);
+            time.Advance(span); frames.Advance(span); Dispatcher.UIThread.RunJobs();
             var after = Assert.Single(slider.GetVisualDescendants().OfType<TrackEffect>());
             Assert.NotSame(before, after);
+            Assert.Equal(1, after.Opacity);
             window.Close();
             var pair = new EffortPairBrand(new HydraPair(ProviderKind.Codex));
             var paired = new EffortSlider(3, new Binding<int>(() => selected, _ => { }), "High", false, pair: pair);
@@ -611,3 +626,13 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
         });
     }
 }
+
+// STOP sweepA-fixes #1
+// Kind: partial proof (capture comparison missing)
+// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:758-767,799,1024-1026 (B3 52bc792)
+// Requirements: PR-COMPOSER-132
+// What is proven: solo identity changes crossfade (outgoing retained while fading out, replacement fading in
+// with smooth 0.3) with intermediate opacities and eventual removal; pair kind changes keep one instance and clock.
+// What is missing: the record's verification_method calls for a capture comparison across a kind change with a pair
+// active; the headless opacity assertions are not that comparison, so Req PR-COMPOSER-132 is dropped.
+// Needed to proceed: a macOS/Windows capture comparison to promote PR-COMPOSER-132 to fully proven.
