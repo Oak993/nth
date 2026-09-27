@@ -35,11 +35,18 @@ internal static class TimelineRowsPrSupport
     internal static AvaloniaWindow Show(Control content)
     {
         var window = new AvaloniaWindow { Width = 900, Height = 700,
-            Content = new VisualLayerManager { EnableOverlayLayer = true, Child = content } };
+            Content = Layers(content) };
         window.Show();
         Settle(window);
         window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
         return window;
+    }
+    private static Control Layers(Control content)
+    {
+        var layers = new VisualLayerManager { EnableOverlayLayer = true, Child = content };
+        // Avalonia 12.1.2 exposes its separate popup layer internally, without an XML-doc entry.
+        typeof(VisualLayerManager).GetProperty("EnablePopupOverlayLayer", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.SetValue(layers, true);
+        return layers;
     }
     internal static void Settle(AvaloniaWindow window)
     {
@@ -51,6 +58,7 @@ internal static class TimelineRowsPrSupport
     }
     internal static void Click(AvaloniaWindow window, Control target)
     {
+        Settle(window);
         var point = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)
             ?? throw new InvalidOperationException("Target is not mounted");
         window.MouseMove(point, RawInputModifiers.None);
