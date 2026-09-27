@@ -566,7 +566,7 @@ internal sealed class MCPCustomEditor : Decorator
         {
             form.Children.Add(Field("Command", MCPSettingsPage.McpFieldSurface(EditorField("npx", () => command, v => command = v))));
             var args = EditorField("", () => argsText, v => argsText = v); args.AcceptsReturn = true; args.TextWrapping = TextWrapping.Wrap; args.Height = 66; args.Padding = new Thickness(6, 4);
-            form.Children.Add(Field("Arguments", new StackPanel { Children = { MCPSettingsPage.McpFieldSurface(args), MCPSettingsPage.Text("One argument per line; empty lines are dropped.", 10.5, Chrome.SecondaryText) } }));
+            form.Children.Add(Field("Arguments", MCPSettingsPage.McpFieldSurface(args), MCPSettingsPage.Text("One argument per line; empty lines are dropped.", 10.5, Chrome.SecondaryText))); // :777-790 editor and hint are two children of field()
         }
         else form.Children.Add(Field("URL", MCPSettingsPage.McpFieldSurface(EditorField("https://\U00002026", () => url, v => url = v)))); // U+2026 HORIZONTAL ELLIPSIS
         var rows = new StackPanel { Spacing = 5 }; variablesHost = rows;
@@ -586,8 +586,11 @@ internal sealed class MCPCustomEditor : Decorator
         var spacer = new Border { MinWidth = 8 }; Grid.SetColumn(spacer, 2); row.Children.Add(spacer); // :717 Spacer(minLength: 8)
         var close = MCPSettingsPage.SquareButton(MCPSettingsPage.Symbol("xmark", 11, Chrome.SecondaryText).Font(SwiftFont.System(11, SwiftFont.Weight.Semibold)), 24, () => Popovers.GetClosePopover(this)?.Invoke()); close.VerticalAlignment = VerticalAlignment.Top; AutomationProperties.SetName(close, "Close"); Grid.SetColumn(close, 3); row.Children.Add(close); return row;
     }
-    // :747-753
-    private static Control Field(string label, Control content) => new StackPanel { Spacing = 5, Children = { MCPSettingsPage.Text(label, 11, Chrome.SecondaryText, SwiftFont.Weight.Semibold), content } };
+    // :747-753. The @ViewBuilder control's views are each a child of the VStack(spacing: 5).
+    private static Control Field(string label, params Control[] content)
+    {
+        var stack = new StackPanel { Spacing = 5, Children = { MCPSettingsPage.Text(label, 11, Chrome.SecondaryText, SwiftFont.Weight.Semibold) } }; stack.Children.AddRange(content); return stack;
+    }
     // :732-742,756-774
     private static TextBox EditorField(string prompt, Func<string> read, Action<string> write, bool secret = false, bool name = false)
     {
@@ -601,13 +604,13 @@ internal sealed class MCPCustomEditor : Decorator
     {
         var prompt = new TextBlock
         {
-            IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center,
+            IsHitTestVisible = false, VerticalAlignment = box.AcceptsReturn ? VerticalAlignment.Top : VerticalAlignment.Center, // :781 TextEditor text starts at the top
             [!TextBlock.TextProperty] = box[!TextBox.PlaceholderTextProperty],
             [!TextBlock.ForegroundProperty] = box[!TextBox.PlaceholderForegroundProperty],
         };
         var presenter = new TextPresenter
         {
-            Name = "PART_TextPresenter", VerticalAlignment = VerticalAlignment.Center,
+            Name = "PART_TextPresenter", VerticalAlignment = box.AcceptsReturn ? VerticalAlignment.Top : VerticalAlignment.Center,
             [!TextPresenter.TextProperty] = box[!TextBox.TextProperty],
             [!TextPresenter.PasswordCharProperty] = box[!TextBox.PasswordCharProperty],
             [!TextPresenter.RevealPasswordProperty] = box[!TextBox.RevealPasswordProperty],
