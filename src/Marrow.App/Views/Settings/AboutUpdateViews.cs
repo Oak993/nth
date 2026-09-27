@@ -9,7 +9,10 @@ using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Shapes;
+using Avalonia.Controls.Templates;
+using Avalonia.Input.GestureRecognizers;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -25,6 +28,21 @@ using Marrow.UI.Port;
 // Source: DroppyCode/App/Views/Settings/AboutUpdateViews.swift (B3 52bc7926), :1-845.
 
 namespace Marrow.App.Views.Settings;
+
+// :280, :755 ScrollView needs a real presenter even without an application-wide control theme.
+internal static class AboutUpdateScroll
+{
+    public static readonly FuncControlTemplate<ScrollViewer> Template = new((viewer, scope) =>
+    {
+        var presenter = new ScrollContentPresenter
+        {
+            Name = "PART_ContentPresenter",
+            [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty],
+        };
+        presenter.GestureRecognizers.Add(new ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
+        return presenter.RegisterInNameScope(scope);
+    });
+}
 
 /// <summary>The three sections a release's notes are written in.</summary>
 public enum ReleaseNoteCategory
@@ -451,6 +469,7 @@ internal sealed class UpdateReleaseSectionPopover : Decorator
         var scroll = new ScrollViewer
         {
             Content = bullets,
+            Template = AboutUpdateScroll.Template,
             MaxHeight = 320,
             VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
@@ -586,6 +605,7 @@ public sealed class UpdateProgressSlider : Decorator
     public UpdateProgressSlider(double fraction, double trackHeight = 14, double headDiameter = 20)
     {
         this.fraction = fraction;
+        Height = headDiameter; // :435 .frame(height: headDiameter)
         track = new ProgressTrack(fraction, trackHeight, headDiameter, FillColors, Sparkles);
         Child = track;
         AutomationProperties.SetName(this, "Updating Marrow");
@@ -693,8 +713,8 @@ internal sealed class ProgressTrack : Panel
         this.fraction = fraction;
         this.trackHeight = trackHeight;
         this.headDiameter = headDiameter;
-        track = new Border { HorizontalAlignment = HorizontalAlignment.Stretch };
-        fill = new FillCanvas(fraction, trackHeight, colors, sparkles);
+        track = new Border { HorizontalAlignment = HorizontalAlignment.Stretch }.Capsule(RoundedCornerStyle.Circular); // :402-405 Capsule()
+        fill = new FillCanvas(fraction, trackHeight, colors, sparkles) { IsHitTestVisible = false }; // :409 allowsHitTesting(false)
         var inner = new Ellipse
         {
             Width = headDiameter * 0.64,
@@ -794,6 +814,7 @@ internal sealed class FillCanvas : Decorator
         AutomationProperties.SetAccessibilityView(gradient, AccessibilityView.Raw);
         AutomationProperties.SetAccessibilityView(sparkleCanvas, AccessibilityView.Raw);
         content = new Grid { Children = { gradient, sparkleCanvas } };
+        AutomationProperties.SetAccessibilityView(content, AccessibilityView.Raw); // :439 children ignored
         Child = content;
         BuildSparkles();
         SetFraction(fraction, 0, trackHeight);
@@ -904,6 +925,9 @@ public sealed class AboutUpdateChromeAccessory : Decorator
 
 internal sealed class AboutIdentityPill : Decorator
 {
+    // :565-566 the fixed capsule must not stretch with its accessory host.
+    protected override Size MeasureOverride(Size availableSize) => PlainControls.MeasureFixed(this, Child, availableSize);
+
     public AboutIdentityPill()
     {
         var version = AppInfo.Current.Version;
@@ -1078,12 +1102,19 @@ internal sealed class AboutVersionPill : Decorator
             });
         }
 
-        var button = PlainControls.Button(face, () =>
+        // :682 add the button trait only while ready; hit testing alone does not change the role.
+        var button = new PillButton(isReady)
+        {
+            Content = face,
+            Padding = default,
+            Template = PlainControls.Button(face, () => { }).Template,
+        };
+        button.Click += (_, _) =>
         {
             if (snapshot.UpdateAvailable && snapshot.Update is { } update &&
                 snapshot.Phase is UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed)
                 AppUpdater.Shared.Install(update);
-        });
+        };
         button.IsHitTestVisible = isReady;
         button.Focusable = isReady;
         button.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -1094,6 +1125,18 @@ internal sealed class AboutVersionPill : Decorator
             ? "Update & restart"
             : $"Marrow {AppInfo.Current.Version}, {Title(standing).ToLowerInvariant()}");
         return button.ChromeGlassCapsule();
+    }
+
+    private sealed class PillButton(bool ready) : Button
+    {
+        protected override AutomationPeer OnCreateAutomationPeer() => ready
+            ? new ButtonAutomationPeer(this)
+            : new StandingPeer(this);
+
+        private sealed class StandingPeer(Control owner) : ControlAutomationPeer(owner)
+        {
+            protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
+        }
     }
 
     private static Standing ResolveStanding(Snapshot snapshot)
@@ -1223,6 +1266,7 @@ public sealed class AboutSoftwareUpdateSection : Decorator
             var scroll = new ScrollViewer
             {
                 Content = markdown,
+                Template = AboutUpdateScroll.Template,
                 MaxHeight = 240,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
