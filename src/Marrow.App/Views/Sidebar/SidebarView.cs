@@ -5,6 +5,8 @@ using System.Globalization;
 using System.Linq;
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Presenters;
@@ -82,18 +84,17 @@ using Marrow.UI.Sound;
 // full (parts 6 and 7), but each leaves its own `.contextMenu` unattached: SwiftUI's `.contextMenu` re-evaluates its
 // content fresh every time the menu opens, and no ED or platform-adaptation entry names a Windows/Avalonia
 // foundation for that per-open refresh. Attaching one fixed at construction time would go stale the first time the
-// underlying state changed without the row being rebuilt: an invented, silently wrong behaviour.
+// underlying state changed without the row being rebuilt: an invented, silently wrong behaviour. Re-checked at B3
+// (review pass, 2026-09-27): ED-193 through ED-211 (the whole B3 batch) and every helper in src/Marrow.UI/Chrome
+// still name no per-open-refresh mechanism for a context menu of any kind; this STOP's missing foundation is
+// unchanged, not stale.
 // Needed to proceed: an engineering or platform-adaptation decision naming that foundation (then PR-SIDEBAR-130's
 // own request field and popover follow, extending SidebarMenuRequests' Rename/Delete precedent).
 // Done so far: nothing claimed for PR-SIDEBAR-130 or -133, or for the right-click interaction alone of
 // UI-SIDEBAR-033/-037; no test names them.
-// Still MARROW_STUB and named where they stand: RenameThreadPopover and renamePopover (STOP #6 above); ProjectRow's,
-// SidebarHelperRow's and HeadCardsRow's own `.contextMenu` attachment (STOP #7 above); ThreadRow and
-// SidebarThreadRow's own constructor, including windowFrame and glide (STOP App.Views.Sidebar.SidebarView #8,
-// opened part 8; full note in SidebarViewTests.cs's own header); itemView's helper, head-card and stub arms
-// (HelperItemView :347, HeadCardsItemView :368, HelperStubItemView :372), unassembled since part 1 and not yet
-// named by any STOP; FrameHolder.Note (:2436-2439), unassembled since part 1 and unreachable until SidebarThreadRow's
-// own constructor exists to call it; and the empty-needle case of the search match (STOP #1 in SidebarViewTests.cs).
+// Window sweep assembles SidebarThreadRow, ThreadRow, the three helper dispatch arms and FrameHolder.Note.
+// Still unwritten: rename presentation (STOP #6), the shared right-click menu attachment (STOP #7 and narrowed
+// STOP #8), and the empty-needle search match (STOP #1). Row state, frame reports and glides are now live.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
 // with `Control Body(Control content)`; a Shape is a sealed record with `Geometry Path(Rect in)`; a caseless enum is a
 // static class; an enum with associated values is an abstract record (R-ENUM-2), an unlabelled payload named Value; a
@@ -106,11 +107,7 @@ using Marrow.UI.Sound;
 // `kind` property is SidebarItemKind (R-NAME-3, type SidebarItem.Kind). The file's two library extensions (:1058-1062
 // on ChatThread, :1064-1076 on AnyTransition) go in SidebarViewExtensions, as C# 14 extension blocks (ED-164): the
 // file's own name belongs to the view.
-// Not declared yet (private, read only by the bodies the implementing unit writes): SidebarView's other @State storage
-// (:13-30 and :42: the rename, delete and archive popovers' state, menuRequests, listFrame) and its remaining private
-// helpers (:207-306, :487-494, :870-897), the rows' @State storage, their private helpers (ProjectRow.actions
-// :1205-1229, SidebarHelperRow.makeActions :1422-1424, SidebarThreadRow :1895-2000), HelperConnector.style (:1642, a
-// StrokeStyle with a dash pattern, no port type yet) and MinuteClock.tick (:2671).
+// Window sweep also supplies the list's window frame, fold/rename intents and the row's private state and handlers.
 // The rows' custom `==` (SidebarHelperRow :1413-1420, SidebarThreadRow :1882-1891) stand for `.equatable()`; a
 // Control keeps reference equality, so they are not declared as Equals (NEEDS DECISION, as group 3 reports).
 
@@ -190,6 +187,9 @@ public sealed class SidebarView : Decorator
 
     // :43-46 @State private var rowFrames = RowFrames(): every open thread row's frame in the list, out of observation.
     private readonly RowFrames rowFrames = new();
+
+    // :50, :140 The scroll viewport in the window's coordinate space; deliberately not observable.
+    private readonly FrameHolder listFrame = new();
 
     // :47-49 @State private var dragPeers: DragPeers? (read only by actions: a field, R-VIEW-2).
     private DragPeers? dragPeers;
@@ -280,6 +280,11 @@ public sealed class SidebarView : Decorator
             VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
         };
         Add(scroll, new GridLength(1, GridUnitType.Star));
+        scroll.LayoutUpdated += (_, _) =>
+        {
+            if (TopLevel.GetTopLevel(scroll) is { } window && scroll.TranslatePoint(default, window) is { } origin)
+                listFrame.Note(new Rect(origin, scroll.Bounds.Size)); // :140, :1903-1905
+        };
 
         // :124 .pointerStyle(drag.id != nil ? .grabActive : nil). B3 replaced B2's NSCursor.closedHand.push()/pop()
         // pair (dragChanged :775, dragEnded :805) with this state-driven style; SwiftUI applies and clears the
@@ -695,20 +700,49 @@ public sealed class SidebarView : Decorator
 
     // :347-367 the helper arm: the helper row inside the delete and archive popovers (part 4).
     private Control HelperItemView(SidebarItem item, SidebarItem.Kind.Helper helper) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:347");
+        ReportsHeightAndRides(ArchivePopover(helper.Value, DeletePopover(helper.Value,
+            new SidebarHelperRow(helper.Value, helper.IsLast, menuRequests,
+                () => Fold(helper.Value.ParentThreadID), () => RequestRename(helper.Value), () => RequestDeletion(helper.Value.Id)))),
+            item.Id, helper.Value.ParentThreadID);
 
     // :368-371 the head-card arm, which rides a dragged parent (parts 3 and 5).
     private Control HeadCardsItemView(SidebarItem item, SidebarItem.Kind.HeadCards cards) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:368");
+        ReportsHeightAndRides(new HeadCardsRow(cards.Parent, cards.Heads, menuRequests, () => Fold(cards.Parent.Id)), item.Id, cards.Parent.Id);
 
     // :372-375 the folded-helpers arm, which rides a dragged parent (parts 3 and 5).
     private Control HelperStubItemView(SidebarItem item, SidebarItem.Kind.HelperStub stub) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:372");
+        ReportsHeightAndRides(new HelperStubRow(stub.Parent, stub.Helpers, () => Fold(stub.Parent.Id)), item.Id, stub.Parent.Id);
+
+    // :347-375 Height reports stay in the non-observable table; every dependent rides the same live parent drag.
+    private Control ReportsHeightAndRides(Control content, string itemID, Guid? parentID)
+    {
+        var host = new Decorator { Child = content };
+        host.SizeChanged += (_, e) => rowHeights.Note(itemID, e.NewSize.Height);
+        host.Track(() => state.Drag, drag => new RidesWithDraggedParent(parentID, drag).Body(host));
+        return host;
+    }
+
+    // :487-490 A helper connector or the parent's chevron toggles the fold on the panel spring.
+    private void Fold(Guid? parentID)
+    {
+        if (parentID is { } id) Transaction.WithAnimation(Chrome.PanelSlide, () => Model.ToggleHelpersFold(id));
+    }
+
+    // :354-358, :882-887 Rename takes the live title, unlike the posted context-menu snapshot.
+    private void RequestRename(ChatThread snapshot)
+    {
+        var live = LiveRenameTarget(Model, snapshot);
+        state.RenameText = live.Title;
+        state.Renaming = live;
+    }
 
     // :870-897 threadRow(_:projectName:projectIcon:hasHelpers:isDragged:), the popovers around SidebarThreadRow (parts 3
     // and 4).
     private Control ThreadRow(ChatThread thread, string? projectName, ProjectIcon? projectIcon, bool hasHelpers, bool isDragged = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:870 (STOP #8)");
+        ArchivePopover(thread, DeletePopover(thread, new SidebarThreadRow(thread, projectName, projectIcon, menuRequests,
+            () => RequestRename(thread), () => RequestDeletion(thread.Id), isDragged,
+            inPopover ? null : listFrame, hasHelpers ? () => Fold(thread.Id) : null)));
+    // :872 The rename presentation wrapper alone remains unwritten under genuine STOP #6; its intent is wired.
 
     // MARK: Rows
 
@@ -1617,12 +1651,18 @@ internal sealed class RenameThreadPopover : Decorator
     /// <param name="title">:988 <c>let title: String</c>.</param>
     /// <param name="onRename">:989 <c>let onRename: (String) -> Void</c>.</param>
     /// <param name="onCancel">:990 <c>let onCancel: () -> Void</c>.</param>
-    // :995-1000 init; :1002-1024 body. STOP #6 (this unit): `.textFieldStyle(.roundedBorder)` (:1009) and
-    // `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` (:1017, :1019-1022) have no Windows chrome anywhere
+    // :995-1000 init; :1002-1024 body. STOP #6 (this unit): `.textFieldStyle(.roundedBorder)` (:1007) and
+    // `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` (:1013, :1015-1017) have no Windows chrome anywhere
     // in this port yet, and no ED/PA decision (this packet's part 4 list: ED-008, ED-009, ED-010, ED-041, ED-051,
     // ED-059, ED-062, ED-149, ED-187, OD-0001, OD-0005, OD-0008, OD-0009, OD-0010, PA-0019) or engineering_decisions.md
-    // entry names either style. Every other row-level popover this part ports (Delete, Archive) reuses PopoverItem or
-    // the already-decided `.glass`/`.glassProminent` recipe (OD-0005); this one alone needs a new, undecided pair.
+    // entry names either style. B3 re-citation (review pass, 2026-09-27): the B2 line numbers this comment used to
+    // cite (:1008, :1014, :1016) drifted by one line at B3 (AM-0003); re-verified directly against
+    // E:/Droppy/reference/droppy-code-v1.7.0's SidebarView.swift and corrected above. Also re-checked at B3:
+    // ED-193 through ED-211 (the whole B3 batch) and every helper in src/Marrow.UI/Chrome name no roundedBorder,
+    // bordered/borderedProminent button, or text-field recipe either; both STOPs stay open on that same missing
+    // foundation, not a stale one. Every other row-level popover this part ports (Delete, Archive) reuses
+    // PopoverItem or the already-decided `.glass`/`.glassProminent` recipe (OD-0005); this one alone needs a new,
+    // undecided pair.
     public RenameThreadPopover(string title, Action<string> onRename, Action onCancel) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:995 (STOP #6)");
 }
@@ -2687,12 +2727,24 @@ internal sealed class SidebarThreadRow : Decorator
     /// <param name="isDragged">:1702 <c>var isDragged = false</c>.</param>
     /// <param name="listFrame">:1704 <c>var listFrame: FrameHolder?</c>.</param>
     /// <param name="onToggleFold">:1706 <c>var onToggleFold: (() -> Void)?</c>.</param>
-    // :1716-1872 body. The full body needs settle()/reopen(), archiveWithGenie(), makeActions(), RowGlideAnimator and
-    // ThreadActions.makeContextMenu, none of which exist yet (parts 4+ of this unit; the test file's own header
-    // already defers an attached, populated row to "parts 2 to 5"). Part 3 proves every record of this part that has
-    // no missing collaborator, each as its own static piece below (Fill, BackgroundFill, TrailingClearance,
-    // ShowsCheck, SelectThread, NoteHover, ApplyDraggedLift, BuildSettleCheckOverlay, BuildTrailingOverlay); the
-    // constructor itself stays MARROW_STUB until a later part assembles them with the pieces still missing.
+    // :1709-1714 Local row state and its unobserved geometry. The model's per-thread cell supplies live values.
+    private sealed class ViewState : MainActorModel
+    {
+        private bool hovering, menuPresented, settling;
+        public bool IsHovering { get => Read(hovering); set => Set(ref hovering, value); }
+        public bool IsMenuPresented { get => Read(menuPresented); set => Set(ref menuPresented, value); }
+        public bool IsSettling { get => Read(settling); set => Set(ref settling, value); }
+    }
+
+    private readonly ViewState state = new();
+    private readonly FrameHolder windowFrame = new();
+    private readonly Border shape = new();
+    private readonly Border pinnedOverlay = new() { IsHitTestVisible = false };
+    private readonly Panel overlays = new();
+    private readonly Button selectButton;
+    private AppModel Model => AppEnvironment.GetAppModel(this); // :1683
+
+    // :1716-1872 body; :1899-1901 makeActions. Only the shared context-menu foundation (STOP #7) is unavailable.
     public SidebarThreadRow(
         ChatThread snapshot,
         string? projectName,
@@ -2702,8 +2754,148 @@ internal sealed class SidebarThreadRow : Decorator
         Action onDelete,
         bool isDragged = false,
         FrameHolder? listFrame = null,
-        Action? onToggleFold = null) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:1716 (STOP #8)");
+        Action? onToggleFold = null)
+    {
+        ChatThread Thread() => Model.Thread(snapshot.Id) ?? snapshot; // :1689
+        void SettleRow() => Settle(Model, Thread(), state.IsSettling, Model.Settings.SettleSound, value => state.IsSettling = value); // :1904-1910
+        void ReopenRow() => Reopen(Model, Thread(), () =>
+        {
+            if (listFrame is null) return; // :1934
+            GlideAtScale(RowGlideAnimator.Shared.Current, RowGlideAnimator.Glide.Direction.Reopen, listFrame.Frame,
+                windowFrame.Frame, Thread(), projectName, projectIcon, Model.IsSelected(snapshot.Id), state.IsHovering,
+                Model.ExistingRuntime(snapshot.Id), ActualThemeVariant, TopLevel.GetTopLevel(this)?.RenderScaling ?? 2); // :1933-1978
+        });
+        void ArchiveRow() => ArchiveWithGenie(GenieAnimator.Shared.Current, Model, Thread(), projectName, projectIcon,
+            Model.IsSelected(snapshot.Id), Model.ExistingRuntime(snapshot.Id), windowFrame.Frame, ActualThemeVariant); // :1988-1999
+        IReadOnlyList<RowAction> MakeActions() => ThreadActions.Make(Model, Thread(), onRename, onDelete, SettleRow, ReopenRow); // :1899-1901
+
+        shape.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
+        pinnedOverlay.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
+        var fill = new AnimatedColor(shape);
+        shape.Background = fill.Brush;
+        selectButton = new ThreadButton(() => Model.IsSelected(snapshot.Id), () => Thread().IsSettled)
+        {
+            Content = new Panel { Children = { shape, pinnedOverlay } },
+            Template = new FuncControlTemplate<Button>((button, scope) => new ContentPresenter
+            {
+                Name = "PART_ContentPresenter",
+                [!ContentPresenter.ContentProperty] = button[!ContentControl.ContentProperty],
+            }.RegisterInNameScope(scope)),
+        };
+        selectButton.Click += (_, _) => SelectThread(Model, Thread()); // :1736-1738
+        overlays.Children.Add(selectButton);
+        Child = ApplyDraggedLift(overlays, () => isDragged); // :1838-1849
+        var menuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
+        Control? check = null, trailing = null, fold = null;
+        bool? selectedBefore = null;
+        this.Track(() =>
+        {
+            var thread = Thread();
+            var selected = Model.IsSelected(thread.Id); // :1721
+            var hover = state.IsHovering;
+            var actions = (hover || state.IsMenuPresented) && !isDragged; // :1724
+            return (thread, selected, hover, actions, settling: state.IsSettling,
+                settles: Model.Settings.ThreadFinishAction == ThreadFinishAction.Settle,
+                hidden: RowGlideAnimator.Shared.Current.IsHiding(thread.Id),
+                mergeStage: MergeStage(Model.ExistingRuntime(thread.Id))); // :1735
+        }, value =>
+        {
+            var (thread, selected, hover, actions, settling, settles, hidden, mergeStage) = value;
+            var settled = thread.IsSettled;
+            var detailed = projectName is not null && !settled;
+            var showsFold = actions && onToggleFold is not null;
+            shape.Child = new ThreadRowFace(thread, projectName, selected,
+                TrailingClearance(settled, detailed, actions || settling, showsFold), () => new ThreadBadge(thread), projectIcon, mergeStage); // :1739-1749
+            var colors = BackgroundFill(thread.IsPinned, selected, hover);
+            fill.Set(colors.Background, selectedBefore is not null && selectedBefore != selected ? Chrome.Hover : Transaction.Current); // :1750-1754
+            selectedBefore = selected;
+            pinnedOverlay.Background = colors.PinnedOverlay?.Brush(pinnedOverlay); // :1756-1758
+            if (check is not null) overlays.Children.Remove(check);
+            if (trailing is not null) overlays.Children.Remove(trailing);
+            if (fold is not null) overlays.Children.Remove(fold);
+            check = BuildSettleCheckOverlay(settled, settles, actions, settling, settling, settled ? ReopenRow : SettleRow); // :1763-1771
+            if (check is not null) overlays.Children.Add(check);
+            trailing = BuildTrailingOverlay(thread, actions, detailed, settled, projectIcon is not null, settles, ArchiveRow,
+                actions ? MakeActions() : [], menuPresented); // :1772-1801 actions are built only when visible
+            overlays.Children.Add(trailing);
+            fold = BuildFoldOverlay(showsFold, onToggleFold, thread.FoldsHelpers); // :1804-1814
+            if (fold is not null) overlays.Children.Add(fold);
+            SetHidden(hidden); // :1834-1838
+            AutomationProperties.SetName(selectButton, thread.Title); // :1871-1872
+        });
+        overlays.OnHover(hovering => // :1816 hover includes the overlaid check and accessory buttons
+        {
+            Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering); // :1816-1818
+            NoteHover(Model, Thread(), hovering); // :1819
+            ReportFrame();
+        });
+        void ReportFrame()
+        {
+            var animator = RowGlideAnimator.Shared.Current;
+            if (!isDragged && !state.IsHovering && animator.Glides.Count == 0) return; // :1827
+            if (TopLevel.GetTopLevel(this) is not { } window || this.TranslatePoint(default, window) is not { } origin) return;
+            var frame = new Rect(origin, Bounds.Size); // :1903-1905 window space, not the list space
+            windowFrame.Note(frame); // :1828,2433-2440 suppress only the holder write, never the following Land
+            animator.Land(Thread().Id, snapshot.IsSettled, frame); // :1830 snapshot describes this row's destination
+        }
+        LayoutUpdated += (_, _) => ReportFrame();
+        OnChange<AppModel.FinishRequest?>? finish = null;
+        AttachedToVisualTree += (_, _) => finish ??= new OnChange<AppModel.FinishRequest?>(() => Model.AppModelFinishRequest,
+            (_, _) => FinishRequestReceived(Model, Thread(), Thread().IsSettled, SettleRow, ReopenRow)); // :1863-1870
+        DetachedFromVisualTree += (_, _) => { finish?.Dispose(); finish = null; StopReveal(); };
+        // :1853-1861 .contextMenu alone remains unwritten: genuine shared STOP #7 (per-open refresh/capture foundation).
+        // The ellipsis uses MakeActions and its own handlers; ThreadActions.MakeContextMenu remains snapshot-only.
+    }
+
+    // :1834-1838 Instant hide; reveal eases over the same 0.12s handover as the covering ghost.
+    private bool? wasHidden;
+    private IFrameSource? revealSource;
+    private Action<TimeSpan>? revealFrame;
+    private void SetHidden(bool hidden)
+    {
+        if (wasHidden == hidden) return;
+        var initial = wasHidden is null;
+        wasHidden = hidden;
+        StopReveal();
+        if (initial || hidden) { Opacity = hidden ? 0 : 1; return; }
+        var from = Opacity;
+        var start = SwiftClock.Now;
+        var animation = Animation.EaseOut(0.12);
+        var source = FrameClock.Source.Current;
+        Action<TimeSpan>? tick = null;
+        tick = _ =>
+        {
+            var seconds = (SwiftClock.Now - start).TotalSeconds;
+            Opacity = seconds >= animation.Duration ? 1 : from + (1 - from) * animation.Progress(seconds);
+            if (seconds >= animation.Duration) revealFrame = null;
+            else source.RequestFrame(tick!);
+        };
+        revealSource = source;
+        revealFrame = tick;
+        source.RequestFrame(tick);
+    }
+    private void StopReveal()
+    {
+        if (revealFrame is { } pending) revealSource?.CancelFrame(pending);
+        revealFrame = null;
+    }
+
+    // :1871-1872 Same selectable button foundation as SidebarRow; expose the live selection and settled value.
+    private sealed class ThreadButton(Func<bool> selected, Func<bool> settled) : Button
+    {
+        protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this, selected, settled);
+        private sealed class Peer(ThreadButton owner, Func<bool> selected, Func<bool> settled) : ButtonAutomationPeer(owner), ISelectionItemProvider, IValueProvider
+        {
+            bool ISelectionItemProvider.IsSelected => selected();
+            ISelectionProvider? ISelectionItemProvider.SelectionContainer => null;
+            void ISelectionItemProvider.AddToSelection() { }
+            void ISelectionItemProvider.RemoveFromSelection() { }
+            void ISelectionItemProvider.Select() => owner.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            bool IValueProvider.IsReadOnly => true;
+            string IValueProvider.Value => settled() ? "Settled" : "";
+            void IValueProvider.SetValue(string? value) { }
+        }
+    }
 
     // :1874-1877 private static func fill(isSelected: Bool, isHovering: Bool) -> Double. PR-SIDEBAR-063.
     internal static double Fill(bool isSelected, bool isHovering)
@@ -2959,6 +3151,25 @@ internal sealed class SidebarThreadRow : Decorator
         ThreadRuntime? runtime,
         ThemeVariant colorScheme)
     {
+        GlideAtScale(animator, direction, listFrame, windowFrame, thread, projectName, projectIcon,
+            isSelected, isHovering, runtime, colorScheme, 2); // detached caller: PR-SIDEBAR-135 minimum/fallback
+    }
+
+    // :1933-1978 PR-SIDEBAR-135 windows_path: render at this row's window DPI, with minimum scale 2.
+    private static void GlideAtScale(
+        RowGlideAnimator animator,
+        RowGlideAnimator.Glide.Direction direction,
+        Rect listFrame,
+        Rect windowFrame,
+        ChatThread thread,
+        string? projectName,
+        ProjectIcon? projectIcon,
+        bool isSelected,
+        bool isHovering,
+        ThreadRuntime? runtime,
+        ThemeVariant colorScheme,
+        double windowScale)
+    {
         var from = windowFrame; // :1930
         var bounds = listFrame; // :1931
         var settled = direction == RowGlideAnimator.Glide.Direction.Settle; // :1933
@@ -2977,11 +3188,11 @@ internal sealed class SidebarThreadRow : Decorator
         var departureClearance = TrailingClearance(thread.IsSettled, projectName is not null, showsActions: true); // :1952
         var arrivalClearance = TrailingClearance(settled, !settled && projectName is not null, showsActions: false); // :1953
         var departure = animator.Render(
-            new ThreadRowFace(thread, projectName, isSelected, departureClearance, Badge, projectIcon), from.Size, colorScheme); // :1954-1957
+            new ThreadRowFace(thread, projectName, isSelected, departureClearance, Badge, projectIcon), from.Size, colorScheme, Math.Max(2, windowScale)); // :1954-1957
         if (departure is null) return; // :1958 guard let departure = ..., let arrival = ... else { return }
         var arrival = animator.Render(
             new ThreadRowFace(arriving, projectName, isSelected, arrivalClearance, Badge, projectIcon),
-            new Size(from.Width, arrivalHeight), colorScheme); // :1959-1961
+            new Size(from.Width, arrivalHeight), colorScheme, Math.Max(2, windowScale)); // :1959-1961
         if (arrival is null) return;
         animator.Launch( // :1962-1970
             thread.Id,
@@ -3645,8 +3856,10 @@ internal sealed class FrameHolder
     public Rect Frame { get; set; }
 
     // :2436-2439 func note(_ frame: CGRect)
-    public void Note(Rect frame) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:2436");
+    public void Note(Rect frame)
+    {
+        if (Frame != frame) Frame = frame; // :2437-2439 writes never invalidate observation
+    }
 }
 
 /// <summary>:2442-2452 <c>private final class RowHeights</c>: every row's measured height.</summary>

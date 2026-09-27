@@ -210,7 +210,7 @@ public sealed class ProviderRegistryNotificationTests
         Assert.Equal([true, false], states);
     }
 
-    [Fact]
+<    [Fact]
     [Trait("Req", "PR-PROVREG-166")] // Services/Providers/ProviderRegistry.swift:687-694
     public void Clearing_an_empty_key_removes_nonempty_limits_but_preserves_the_known_fetch_timestamp()
     {
@@ -252,7 +252,7 @@ public sealed class ProviderRegistryNotificationTests
         var registry = Registry();
         var states = new List<string?>();
         registry.PropertyChanged += (_, change) => { if (change.PropertyName == nameof(ProviderRegistry.RedeemingReset)) states.Add(registry.RedeemingReset); };
-        Assert.Throws<ResetCreditError>(() => runtime.Loop.Run(() => registry.ConsumeResetCredit(ProviderKind.Codex, creditID)));
+<        Assert.Throws<ResetCreditError>(() => runtime.Loop.Run(() => registry.ConsumeResetCredit(ProviderKind.Codex, creditID)));
         Assert.Equal([activeID, null], states); // :730 creditID ?? provider.rawValue, then :731 defer nil.
     }
 
