@@ -96,12 +96,8 @@ public sealed class TerminalHostView
 /// DEVIATION OD-0008 C5. DroppyCode/App/Views/Terminal/TerminalStore.swift:28's
 /// <c>LoginEnvironment.userShell()</c> (Core/Support/Shell.swift:429-439: SHELL, then the password database, then
 /// "/bin/zsh") is replaced by PowerShell 7 if installed, otherwise Windows PowerShell (OD-0008 C5, resolving
-/// UNK-0005). ENGINEERING DECISION (PR-TERM-039 open_question: "installed" is not fixed by the ruling or the
-/// source): read the same way <see cref="LoginEnvironment.Which"/> already answers "is X on PATH" for this port's
-/// other shell resolution (Core/Support/Shell.cs) - a PATH lookup for pwsh.exe. Windows PowerShell
-/// (%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe) ships with every supported Windows 11 install, so
-/// it needs no existence check; CreateProcessW's own search order (porting/port_impacts.md) resolves the bare name.
-/// This decision is not yet recorded as an ED; escalate before ship.
+/// UNK-0005). ED-222 settles PR-TERM-039: <see cref="LoginEnvironment.Which"/> searches PATH first for pwsh.exe,
+/// then for powershell.exe; if neither is found, use the absolute System32 WindowsPowerShell path.
 /// </summary>
 public static class WindowsShell
 {

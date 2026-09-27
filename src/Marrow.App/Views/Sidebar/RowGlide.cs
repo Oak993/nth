@@ -11,7 +11,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Sidebar;
 
-// Source: DroppyCode/App/Views/Sidebar/RowGlide.swift (B2 1fbf81e), :1-253.
+// Source: DroppyCode/App/Views/Sidebar/RowGlide.swift (B3 52bc792), :1-252.
 //
 // A thread row's glide to its new place in the sidebar: down to the settled rows as it settles, back up among
 // the open ones as it reopens (:4-11).
@@ -168,12 +168,15 @@ public sealed class RowGlideAnimator : MainActorModel
     // handed to Launch; SidebarView.swift is a different unit. ENGINEERING DECISION: colorScheme (SwiftUI
     // ColorScheme) maps to Avalonia's ThemeVariant, applied over the content the same way `.environment(\.colorScheme,
     // colorScheme)` scopes it in Swift.
-    public IImage? Render(Control face, Size size, ThemeVariant colorScheme)
+    public IImage? Render(Control face, Size size, ThemeVariant colorScheme) =>
+        Render(face, size, colorScheme, platform.MainScreenBackingScaleFactor ?? 2); // :135 existing caller contract
+
+    // :127-134 PR-SIDEBAR-135 windows_path: SidebarThreadRow supplies its own window's DPI (minimum 2).
+    internal IImage? Render(Control face, Size size, ThemeVariant colorScheme, double scale)
     {
         face.Width = size.Width; // :133 .frame(width: size.width, height: size.height, alignment: .topLeading)
         face.Height = size.Height;
         var scope = new ThemeVariantScope { RequestedThemeVariant = colorScheme, Child = face }; // :134
-        var scale = platform.MainScreenBackingScaleFactor ?? 2; // :135
         return platform.RenderImage(scope, scale); // :136
     }
 }

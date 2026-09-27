@@ -550,6 +550,10 @@ public sealed class LinkTextView : Decorator
         return measuredHeight;
     }
 
+    // :515-549 layout()/viewDidEndLiveResize(): ED-223. Avalonia measures this paragraph only through its
+    // MeasureOverride pass, with no layout-driven second measurement. The Swift deferral and half-point
+    // threshold guard that absent second path, so neither is added here (PR-THEME-152).
+
     // NSLayoutManager.boundingRect(forGlyphRange:in:) over the range's glyphs, one box per line; null with no text.
     private Rect[]? RangeRects(int location, int length)
     {

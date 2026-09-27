@@ -104,6 +104,15 @@ public sealed class WallpaperCard : Decorator
 
         Control? pictureBranch = null;
         Control? emptyBranch = null;
+        var initialized = false;
+        void InsertBranch(Control branch)
+        {
+            branch.Transition(SwiftTransition.Scale(0.96).Combined(SwiftTransition.Opacity)
+                .Animation(Animation.Spring(0.45, 0.2))); // :91 overrides the store's transaction in both directions.
+            if (initialized) SwiftTransition.Insert(swap, 0, branch);
+            else swap.Children.Insert(0, branch); // .animation(value:) does not animate initial presentation.
+            initialized = true;
+        }
         void SyncBranch()
         {
             if (store.Image is not null)
@@ -115,8 +124,7 @@ public sealed class WallpaperCard : Decorator
                     emptyBranch = null;
                 }
                 pictureBranch = BuildPictureBranch(content); // :28-59
-                SwiftTransition.Insert(swap, 0,
-                    pictureBranch.Transition(SwiftTransition.Scale(0.96).Combined(SwiftTransition.Opacity))); // :59
+                InsertBranch(pictureBranch); // :59
             }
             else
             {
@@ -127,8 +135,7 @@ public sealed class WallpaperCard : Decorator
                     pictureBranch = null;
                 }
                 emptyBranch = BuildEmptyBranch(); // :60-75
-                SwiftTransition.Insert(swap, 0,
-                    emptyBranch.Transition(SwiftTransition.Scale(0.96).Combined(SwiftTransition.Opacity))); // :74
+                InsertBranch(emptyBranch); // :74
             }
         }
         SyncBranch();
@@ -158,7 +165,8 @@ public sealed class WallpaperCard : Decorator
                 rect.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :81
                 rect.Background = Chrome.Accent.Opacity(0.18).Brush(rect); // :82
                 highlight = rect;
-                SwiftTransition.Insert(content, content.Children.Count, highlight.Transition(SwiftTransition.Opacity)); // :84
+                SwiftTransition.Insert(content, content.Children.Count,
+                    highlight.Transition(SwiftTransition.Opacity.Animation(Animation.Snappy(0.2)))); // :84,90
             }
             else if (highlight is { } gone)
             {
@@ -260,9 +268,7 @@ public sealed class WallpaperCard : Decorator
     // :35-58 `GeometryReader { geo in ... }`: a stand-in for the app window, 60% of the preview's size, centred.
     private static Control MockWindow(Panel previewFrame)
     {
-        // :39-42 `mockShape.fill(.clear).glassEffect(in: mockShape)`. ED-180: the glass effect is recorded as data on
-        // the layer (no compositor draws it yet), reproducing the source-defined shape under the black overlay
-        // (PR-THEME-068 deviation, OD-0005 shader half).
+        // :39-42 `mockShape.fill(.clear).glassEffect(in: mockShape)`, drawn under the source black overlay (OD-0005).
         var glass = new Border { Background = Brushes.Transparent, IsHitTestVisible = false };
         glass.RoundedRectangle(8, RoundedCornerStyle.Continuous);
         SwiftGlass.SetEffect(glass, GlassEffect.Regular(GlassShape.RoundedRectangle(8, RoundedCornerStyle.Continuous)));

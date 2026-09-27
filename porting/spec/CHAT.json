@@ -299,7 +299,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Implement the same tolerant per-key read. A strict schema validator here would silently lose a user's turn history.",
       "verification_method": "restart test: write with the new shape, read a fixture missing touchedPaths, tokenSpends and hydraMerged",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -383,7 +383,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same shape and same required/optional split.",
       "verification_method": "restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
