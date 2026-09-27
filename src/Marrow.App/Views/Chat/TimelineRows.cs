@@ -121,6 +121,45 @@ public static class TimelineRows
     // wherever its text is shown. Snapshots only: the popover builder must not capture the row. PR-CHAT-089.
     public static Control MessageMenu(this Control view, string text, ThreadRuntime runtime) =>
         view.RightClickPopover(() => AssistantMessageRow.MessageActions(text, LastCodeBlock(text), runtime)); // :1421-1427
+
+    // :2739-2756, :264-284 and the other standard pill labels in this file.
+    internal static TextBlock ChatText(string text, SwiftFont.TextStyle style = SwiftFont.TextStyle.Callout,
+        SwiftFont.Weight weight = SwiftFont.Weight.Regular, SwiftColor? color = null, bool singleLine = false)
+    {
+        var label = new TextBlock { Text = text, TextWrapping = singleLine ? TextWrapping.NoWrap : TextWrapping.Wrap };
+        ChatFont.Chat(style, weight).Apply(label);
+        label.Foreground = (color ?? SwiftColor.Primary).Brush(label);
+        if (singleLine) { label.MaxLines = 1; label.TextTrimming = TextTrimming.CharacterEllipsis; }
+        return label;
+    }
+
+    // :280-284, :458-460, :570-572, :2754-2756.
+    internal static SwiftImage Chevron() => SwiftImage.SystemName("chevron.right")
+        .Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
+
+    // :313-316, :464-467, :579-582, :691-694.
+    internal static Border Pill(Control child, SwiftColor? fill = null, Thickness? padding = null)
+    {
+        var pill = new Border { Child = child, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top,
+            Padding = padding ?? new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical) };
+        pill.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous);
+        pill.Background = (fill ?? Chrome.Accent.Opacity(0.1)).Brush(pill);
+        return pill;
+    }
+
+    // :2298-2306, :2789-2793. Same glass button recipe as RequestCards / FollowUpEditor (OD-0005).
+    internal static Button GlassCommand(string title, Action action, bool prominent, bool small = false)
+    {
+        var label = new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center };
+        SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(label);
+        var frame = new Border { Child = label, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0),
+            Height = Chrome.CapsuleContentHeight };
+        frame.Capsule(RoundedCornerStyle.Continuous);
+        var effect = GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive();
+        if (prominent) { effect = effect.Tint(Chrome.Accent, 0.3); frame.Background = Chrome.Accent.Opacity(0.3).Brush(frame); }
+        SwiftGlass.SetEffect(frame, effect);
+        return PlainControls.Button(frame, action);
+    }
 }
 
 /// <summary>:59-62 <c>@Observable private final class MessageMenuRequests</c> (R-OBS-1).</summary>
@@ -398,44 +437,174 @@ public sealed class UserMessageRow : Decorator
 /// <summary>:236-388 <c>struct HydraReportRow: View</c>.</summary>
 public sealed class HydraReportRow : Decorator
 {
+    private sealed class ViewState : MainActorModel // :239
+    {
+        private bool showing;
+        public bool IsShowingReport { get => Read(showing); set => Set(ref showing, value); }
+    }
+    private readonly ViewState state = new();
     /// <param name="message">:237 <c>let message: UserMessage</c>.</param>
     // :241-329 body
-    public HydraReportRow(UserMessage message) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:241");
+    public HydraReportRow(UserMessage message)
+    {
+        var personas = (message.HydraHeads ?? ValueList<long>.Empty).Select(index => HydraRoster.Persona(at: index)).ToList();
+        var parts = SwiftString.Split(message.Text, "\n", maxSplits: 1);
+        var title = personas.Count == 0 ? WithoutTrailingStop(parts.FirstOrDefault() ?? "Hydra") : ReportSummary(personas.Select(p => p.Name).ToList(), message.Text);
+        var body = personas.Count == 0 ? (parts.Count > 1 ? parts[1] : "").Trimmed() : message.Text;
+        var link = personas.Count == 0 ? LeadingURL(body) : null;
+        var details = link is null ? body : WithoutFirstLine(body);
+        var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        if (personas.Count == 0) label.Children.Add(Mark(18));
+        else
+        {
+            var glyphs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = -4 };
+            foreach (var persona in personas) glyphs.Children.Add(new HydraGlyph(persona, 18));
+            label.Children.Add(glyphs);
+        }
+        label.Children.Add(TimelineRows.ChatText(title, weight: SwiftFont.Weight.Medium, color: Chrome.PrimaryText.Opacity(0.9), singleLine: true));
+        if (details.Length != 0) label.Children.Add(TimelineRows.Chevron());
+        var box = state;
+        var button = PlainControls.Button(label, () => { if (details.Length != 0) box.IsShowingReport = !box.IsShowingReport; });
+        button.IsEnabled = details.Length != 0;
+        ToolTip.SetTip(button, details.Length == 0 ? null : "Show the message");
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var report = button.BadgePopover(new Binding<bool>(() => box.IsShowingReport, value => box.IsShowingReport = value), () =>
+        {
+            if (link is not null && MergeRequestLink.Create(link) is { } request && HydraMergeNote.Parse(details, request) is { } note)
+                return new HydraMergePopover(note);
+            return personas.Count != 0 ? new HydraReportsPopover(title, body, personas) : new HydraReportPopover(body);
+        });
+        row.Children.Add(report);
+        if (link is not null) row.Children.Add(OpenLink(link));
+        Child = TimelineRows.Pill(row);
+        this.Task(() => body, async _ =>
+        {
+            if (details.Length == 0) return;
+            var texts = personas.Count == 0 ? new[] { body } : HydraReportDigest.Parse(body).Heads.Select(head => head.Body).ToArray();
+            await SwiftTry.IgnoreAsync(() => MarkdownView.Warm(texts));
+        });
+        Padding = new Thickness(0, 0, 96, 0);
+        AutomationProperties.SetName(this, title);
+    }
+
+    // :265-268, :660-663 and :719-721.
+    internal static HydraMarkImage Mark(double side)
+    {
+        var mark = new HydraMarkImage { Width = side, Height = side };
+        if (mark.Child is SwiftImage image) image.Foreground = Chrome.SecondaryText.Brush(image);
+        return mark;
+    }
+
+    // :304-311 and :1130-1135.
+    internal static Button OpenLink(SwiftURL link)
+    {
+        var open = PlainControls.Button(TimelineRows.ChatText("Open", SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold, Chrome.SecondaryText),
+            () => Marrow.Services.Port.Workspace.Open.Current(link));
+        ToolTip.SetTip(open, "Open in the browser");
+        return open;
+    }
 
     // :332-334 nonisolated static func withoutTrailingStop(_:) -> String
-    public static string WithoutTrailingStop(string title) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:332");
+    public static string WithoutTrailingStop(string title) => SwiftString.HasSuffix(title, ".") ? SwiftString.DropLast(title) : title;
 
     // :340-352 private static func reportSummary(names:text:) -> String
-    private static string ReportSummary(IReadOnlyList<string> names, string text) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:340");
+    private static string ReportSummary(IReadOnlyList<string> names, string text)
+    {
+        var outcomes = ReportOutcomes(text);
+        var done = names.Where(name => !outcomes.ContainsKey(name)).ToList();
+        var parts = new List<string>();
+        if (done.Count != 0) parts.Add(List(done) + (done.Count == 1 ? " is done" : " are done"));
+        foreach (var name in names.Where(outcomes.ContainsKey)) parts.Add(name + " " + outcomes[name]);
+        return TextCleanup.SingleLine(string.Join(", ", parts), limit: 140);
+    }
 
     // :355-358 private static func list(_:) -> String
-    private static string List(IReadOnlyList<string> names) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:355");
+    private static string List(IReadOnlyList<string> names) => names.Count <= 1 ? names.FirstOrDefault() ?? "" : string.Join(", ", names.SkipLast(1)) + " and " + names[^1];
 
     // :362-373 private static func reportOutcomes(in:) -> [String: String]
-    private static ValueMap<string, string> ReportOutcomes(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:362");
+    private static ValueMap<string, string> ReportOutcomes(string @in)
+    {
+        var outcomes = new Dictionary<string, string>(SwiftStringComparer.Instance);
+        foreach (var raw in SwiftString.ComponentsSeparatedByNewlines(@in).Where(line => line.Length != 0))
+        {
+            var line = FoundationText.Trim(raw);
+            var colon = line.IndexOf(':', StringComparison.Ordinal);
+            if (!SwiftString.HasPrefix(line, "## ") || colon < 3) continue;
+            var name = FoundationText.Trim(line[3..colon]);
+            var lower = SwiftString.Lowercased(line[colon..]);
+            if (lower.Contains("(failed", StringComparison.Ordinal)) outcomes[name] = "failed";
+            else if (lower.Contains("(stopped", StringComparison.Ordinal)) outcomes[name] = "stopped";
+        }
+        return new ValueMap<string, string>(outcomes);
+    }
 
     // :376-381 nonisolated static func leadingURL(in:) -> URL?
-    public static SwiftURL? LeadingURL(string @in) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:376");
+    public static SwiftURL? LeadingURL(string @in)
+    {
+        var first = SwiftString.ComponentsSeparatedByNewlines(@in).FirstOrDefault(line => line.Length != 0);
+        if (first is null) return null;
+        var line = FoundationText.Trim(first);
+        var lower = SwiftString.Lowercased(line);
+        if ((!SwiftString.HasPrefix(lower, "http://") && !SwiftString.HasPrefix(lower, "https://")) || SwiftString.Characters(line).Any(SwiftCharacter.IsWhitespace)) return null;
+        return SwiftURL.Create(line);
+    }
 
     // :384-387 nonisolated static func withoutFirstLine(_:) -> String
-    public static string WithoutFirstLine(string body) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:384");
+    public static string WithoutFirstLine(string body)
+    {
+        var index = 0;
+        foreach (var character in SwiftString.Characters(body))
+        {
+            if (character.Any(FoundationText.IsNewline)) return body[index..].Trimmed();
+            index += character.Length;
+        }
+        return "";
+    }
 }
 
 /// <summary>:393-434 <c>struct HydraHeadsWorkingRow: View</c>.</summary>
 public sealed class HydraHeadsWorkingRow : Decorator
 {
+    private readonly ValueList<int> requestedHeads;
+    private readonly StackPanel headsColumn = new() { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Left };
+    private readonly Dictionary<long, (HydraHeadInfo Head, Control View)> shownHeads = [];
     /// <param name="heads">:395 <c>let heads: [Int]</c>.</param>
     /// <param name="runtime">:396 <c>let runtime: ThreadRuntime</c>.</param>
     // :398-418 body
-    public HydraHeadsWorkingRow(ValueList<int> heads, ThreadRuntime runtime) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:398");
+    public HydraHeadsWorkingRow(ValueList<int> heads, ThreadRuntime runtime)
+    {
+        requestedHeads = heads;
+        var column = headsColumn;
+        Child = column;
+        Padding = new Thickness(0, 0, 96, 0);
+        // STOP #4: AppModel.Helpers still has the B2 predicate excluding all Hydra heads.
+        // B3 :401-403 requires the corrected helper cells before this lookup can be wired.
+    }
+
+    // :401-418 body after the environment lookup; independently usable while STOP #4 is unresolved.
+    internal void ApplyTeam(IReadOnlyList<ChatThread> team)
+    {
+        var column = headsColumn;
+        var heads = requestedHeads;
+        var shown = shownHeads;
+            var infos = team.Where(thread => thread.IsHydraHead).Select(thread => thread.Hydra).OfType<HydraHeadInfo>()
+                .GroupBy(info => info.Index).ToDictionary(group => group.Key, group => group.First());
+            var finished = heads.Where(index => infos.ContainsKey(index)).Select(index => infos[index]).ToList();
+            Transaction.WithAnimation(Animation.Smooth(duration: 0.3), () =>
+            {
+                foreach (var index in shown.Keys.Where(index => finished.All(head => head.Index != index)).ToArray())
+                { SwiftTransition.Remove(column, shown[index].View); shown.Remove(index); }
+                for (var i = 0; i < finished.Count; i++)
+                {
+                    var head = finished[i];
+                    if (shown.TryGetValue(head.Index, out var prior) && prior.Head == head) continue;
+                    if (prior.View is not null) SwiftTransition.Remove(column, prior.View);
+                    var pill = new FinishedHeadPill(head).Transition(SwiftTransition.SettleGlide);
+                    shown[head.Index] = (head, pill);
+                    SwiftTransition.Insert(column, Math.Min(i, column.Children.Count), pill);
+                }
+            });
+    }
 
     // :420-433 static func finishedHeads(in:) -> [HydraHeadInfo]: the finished heads whose report has not reached the
     // lead yet: a finished head whose batch still has a head at work, or, with no batch, a head that finished since the
@@ -462,8 +631,26 @@ public sealed class FinishedHeadPill : Decorator
 {
     /// <param name="head">:439 <c>let head: HydraHeadInfo</c>.</param>
     // :443-475 body
-    public FinishedHeadPill(HydraHeadInfo head) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:443");
+    public FinishedHeadPill(HydraHeadInfo head)
+    {
+        var suffix = head.HydraHeadInfoStatus == HydraHeadInfo.Status.Failed ? " failed" : head.HydraHeadInfoStatus == HydraHeadInfo.Status.Stopped ? " was stopped" : " finished working";
+        var text = new TextBlock { MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis };
+        (HydraNameStyle.Text(head.Persona, Chrome.PrimaryText.Opacity(0.75)) + new StyledText(suffix))
+            .Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)).Render(text);
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        row.Children.Add(new HydraGlyph(head.Persona, 18, status: head.HydraHeadInfoStatus));
+        row.Children.Add(text); row.Children.Add(TimelineRows.Chevron());
+        var box = new ReportState();
+        var button = PlainControls.Button(TimelineRows.Pill(row), () => box.Showing = !box.Showing);
+        ToolTip.SetTip(button, "Show the report");
+        Child = button.BadgePopover(new Binding<bool>(() => box.Showing, value => box.Showing = value), () => new HydraHeadReportPopover(head));
+        AutomationProperties.SetName(this, head.Persona.Name + suffix);
+    }
+    private sealed class ReportState : MainActorModel // :441
+    {
+        private bool showing;
+        public bool Showing { get => Read(showing); set => Set(ref showing, value); }
+    }
 }
 
 /// <summary>:480-521 <c>private struct HydraShimmer: ViewModifier</c>.</summary>
@@ -473,8 +660,34 @@ public sealed record HydraShimmer
     private const double Sweep = 1.8;
 
     // :486-520 func body(content:)
-    public Control Body(Control content) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:486");
+    public Control Body(Control content)
+    {
+        if (Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion) return content;
+        var band = new Border { HorizontalAlignment = HorizontalAlignment.Left, IsHitTestVisible = false };
+        var layer = new Panel { IsHitTestVisible = false, OpacityMask = new VisualBrush(content) { Stretch = Stretch.Fill } };
+        layer.Children.Add(band);
+        var root = new Panel { Children = { content, layer } };
+        var width = 0.0;
+        DateTimeOffset date = SwiftDate.Now;
+        void Draw()
+        {
+            var side = Math.Max(24, width / 3);
+            band.Width = side;
+            var phase = SwiftDate.ReferenceSeconds(date) % Sweep / Sweep;
+            band.RenderTransform = new TranslateTransform(-side + phase * (width + side), 0);
+            var primary = Chrome.PrimaryText;
+            band.Background = new LinearGradientBrush
+            {
+                StartPoint = new RelativePoint(0, 0.5, RelativeUnit.Relative), EndPoint = new RelativePoint(1, 0.5, RelativeUnit.Relative),
+                GradientStops = new GradientStops { new(primary.Opacity(0).Resolve(band.ActualThemeVariant), 0),
+                    new(primary.Opacity(0.9).Resolve(band.ActualThemeVariant), 0.5), new(primary.Opacity(0).Resolve(band.ActualThemeVariant), 1) }
+            };
+        }
+        content.SizeChanged += (_, e) => { width = e.NewSize.Width; Draw(); };
+        band.ActualThemeVariantChanged += (_, _) => Draw();
+        root.TimelineView(() => new AnimationTimelineSchedule(1.0 / 30.0, ScrollActivity.Shared.Current.IsScrolling), now => { date = now; Draw(); });
+        return root;
+    }
 }
 
 /// <summary>:527-596 <c>struct HydraBriefRow: View</c>.</summary>
@@ -484,8 +697,43 @@ public sealed class HydraBriefRow : Decorator
     /// <param name="entry">:529 <c>let entry: TimelineEntry</c>.</param>
     /// <param name="runtime">:530 <c>let runtime: ThreadRuntime</c>.</param>
     // :537-595 body
-    public HydraBriefRow(UserMessage message, TimelineEntry entry, ThreadRuntime runtime) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:537");
+    public HydraBriefRow(UserMessage message, TimelineEntry entry, ThreadRuntime runtime)
+    {
+        var box = new BriefState();
+        (int Count, bool Output)? scanned = null;
+        Padding = new Thickness(96, 0, 0, 0);
+        void Build()
+        {
+            var persona = runtime.Thread?.Hydra?.Persona ?? HydraRoster.Persona(at: 0);
+            var count = runtime.Entries.Count;
+            var output = scanned is { } prior && prior.Count == count ? prior.Output
+                : entry.TurnID is not null && runtime.Entries.Any(candidate => candidate.TurnID == entry.TurnID && candidate.Id != entry.Id);
+            scanned = (count, output);
+            var cooking = !output && runtime.IsRunning;
+            var title = cooking ? persona.Name + " is starting to cook\u2026" : persona.Name + "'s brief";
+            var column = new StackPanel { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Right };
+            if (message.Attachments.Count != 0) column.Children.Add(new AttachmentStrip(message.Attachments));
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            row.Children.Add(new HydraGlyph(persona, 18, isRunning: cooking));
+            var text = TimelineRows.ChatText(title, weight: SwiftFont.Weight.Medium, color: Chrome.PrimaryText.Opacity(0.9), singleLine: true);
+            row.Children.Add(cooking ? new HydraShimmer().Body(text) : text);
+            row.Children.Add(TimelineRows.Chevron());
+            var pill = TimelineRows.Pill(row); pill.HorizontalAlignment = HorizontalAlignment.Right;
+            var button = PlainControls.Button(pill, () => box.Showing = !box.Showing);
+            button.Focusable = false;
+            ToolTip.SetTip(button, "Show the brief");
+            AutomationProperties.SetName(button, title);
+            column.Children.Add(button.BadgePopover(new Binding<bool>(() => box.Showing, value => box.Showing = value), () => new HydraBriefPopover(persona, runtime.Thread?.Hydra?.Task, message.Text)));
+            Child = column;
+        }
+        Build();
+        this.Track(() => (runtime.Entries.Count, runtime.IsRunning, runtime.Thread?.Hydra), _ => Build());
+    }
+    private sealed class BriefState : MainActorModel // :532
+    {
+        private bool showing;
+        public bool Showing { get => Read(showing); set => Set(ref showing, value); }
+    }
 }
 
 /// <summary>:607-640 <c>private struct HydraReportPopover: View</c>.</summary>
@@ -494,8 +742,24 @@ public sealed class HydraReportPopover : Decorator
     /// <param name="text">:608 <c>let text: String</c>.</param>
     /// <param name="width">:609 <c>var width: CGFloat = 460</c>.</param>
     // :612-617 @MainActor init(text:width:); :619-639 body
-    public HydraReportPopover(string text, double width = 460) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:613");
+    public HydraReportPopover(string text, double width = 460)
+    {
+        var blocks = MarkdownView.Blocks(text);
+        var column = new StackPanel { Spacing = 10 };
+        column.Font(SwiftFont.System(SwiftFont.TextStyle.Callout));
+        MarkdownView.SetMarkdownPointSize(column, 12);
+        MarkdownView.SetMarkdownDimmed(column, false);
+        MarkdownView.SetMarkdownBlockSelection(column, true);
+        foreach (var block in blocks)
+        {
+            var view = new MarkdownBlockView(block);
+            MarkdownView.SetMarkdownPointSize(view, 12); MarkdownView.SetMarkdownDimmed(view, false);
+            MarkdownView.SetMarkdownBlockSelection(view, true);
+            column.Children.Add(view);
+        }
+        Child = new PopoverScroll(() => new Border { Padding = new Thickness(16, 14), Child = column }, maxHeight: 460, width: width);
+        Width = width;
+    }
 }
 
 /// <summary>:648-783 <c>struct HydraDelegationBlock: View</c>.</summary>
@@ -504,24 +768,97 @@ public sealed class HydraDelegationBlock : Decorator
     /// <param name="json">:649 <c>let json: String</c>.</param>
     /// <param name="sent">:650 <c>var sent = false</c>.</param>
     // :652-707 body
-    public HydraDelegationBlock(string json, bool sent = false) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:652");
+    public HydraDelegationBlock(string json, bool sent = false)
+    {
+        var reading = Reading(json);
+        var delegations = reading.Delegations;
+        var streaming = !reading.IsComplete && !sent;
+        var column = new StackPanel { Spacing = 6 };
+        var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+        header.Children.Add(HydraReportRow.Mark(16));
+        header.Children.Add(TimelineRows.ChatText(Title(delegations, streaming, sent), weight: SwiftFont.Weight.Medium));
+        if (sent)
+        {
+            // Framework .green: same HIG Default mapping as AppTheme.FrameworkGreen (ED-186), not theme success.
+            var check = SwiftImage.SystemName("checkmark.circle.fill").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)).ForegroundStyle(SwiftColor.Rgb(0x34C759));
+            AutomationProperties.SetName(check, "sent");
+            header.Children.Add(check.Transition(SwiftTransition.Scale().Combined(SwiftTransition.Opacity)));
+        }
+        column.Children.Add(header);
+        if (delegations.Count != 0)
+        {
+            var rows = new StackPanel { Spacing = 5 };
+            foreach (var delegation in delegations) rows.Children.Add(HeadRow(delegation));
+            if (streaming)
+            {
+                var next = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+                next.Children.Add(new Control { Width = 16, Height = 16 });
+                next.Children.Add(TimelineRows.ChatText("Writing the next brief\u2026", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
+                rows.Children.Add(next);
+            }
+            column.Children.Add(rows);
+        }
+        var pill = TimelineRows.Pill(column);
+        if (sent)
+        {
+            var sweep = new DotFieldSweep { Tint = Chrome.AccentNSColor, Clip = new RectangleGeometry(new Rect()) };
+            pill.SizeChanged += (_, e) => sweep.Clip = new RectangleGeometry(new Rect(e.NewSize), TimelineMetrics.PillRadius, TimelineMetrics.PillRadius);
+            Child = new Panel { Children = { pill, sweep } };
+        }
+        else Child = pill;
+        this.Transition(SwiftTransition.Opacity);
+    }
+
+    // :711-741
+    private static Control HeadRow(HydraDelegation delegation)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+        if (Persona(delegation.Name) is { } persona)
+        {
+            var glyph = new HydraGlyph(persona, 16); AutomationProperties.SetName(glyph, persona.Name); row.Children.Add(glyph);
+        }
+        else row.Children.Add(HydraReportRow.Mark(16));
+        row.Children.Add(TimelineRows.ChatText(delegation.Task, SwiftFont.TextStyle.Caption, color: Chrome.PrimaryText.Opacity(0.75), singleLine: true));
+        if (ProjectName(delegation.Project) is { } project)
+        {
+            var tag = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3, Margin = new Thickness(2, 0, 0, 0) };
+            tag.Children.Add(SwiftImage.SystemName("arrow.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.SecondaryText));
+            tag.Children.Add(TimelineRows.ChatText(project, SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Medium, Chrome.SecondaryText, true));
+            AutomationProperties.SetName(tag, "in " + project); row.Children.Add(tag);
+        }
+        return row.Transition(SwiftTransition.Opacity);
+    }
 
     // :745-753 private static func title(for:streaming:sent:) -> String
-    private static string Title(IReadOnlyList<HydraDelegation> @for, bool streaming, bool sent) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:745");
+    private static string Title(IReadOnlyList<HydraDelegation> @for, bool streaming, bool sent)
+    {
+        if (streaming || @for.Count == 0) return "Summoning heads";
+        var verb = sent ? "Summoned" : "Summoning";
+        if (@for.Count == 1) return verb + " " + (Persona(@for[0].Name)?.Name ?? "a head");
+        return verb + $" {@for.Count} heads";
+    }
 
     // :756-759 private static func persona(named:) -> HydraPersona?
-    private static HydraPersona? Persona(string? named) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:756");
+    private static HydraPersona? Persona(string? named) => named is null || named.Trimmed().Length == 0 ? null : HydraRoster.Persona(named: named);
 
     // :762-766 private static func projectName(_:) -> String?
-    private static string? ProjectName(string? project) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:762");
+    private static string? ProjectName(string? project)
+    {
+        var value = project?.Trimmed();
+        if (string.IsNullOrEmpty(value)) return null;
+        var name = value.Contains('/', StringComparison.Ordinal) ? SwiftPath.LastPathComponent(value) : value;
+        return name.Length == 0 ? value : name;
+    }
 
     // :776-782 @MainActor private static func reading(of:) -> HydraPrompts.StreamedDelegations
-    private static HydraPrompts.StreamedDelegations Reading(string of) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:777");
+    private static readonly RecentCache<string, HydraPrompts.StreamedDelegations> readingCache = new(200); // :771
+    private static HydraPrompts.StreamedDelegations Reading(string of)
+    {
+        MainActor.AssumeIsolated();
+        if (readingCache.TryGetValue(of, out var cached)) return cached;
+        var reading = HydraPrompts.StreamedDelegationsInBody(of);
+        readingCache.Insert(reading, of); return reading;
+    }
 }
 
 /// <summary>:786-789 <c>enum HydraMergePhase: Equatable</c> (R-ENUM-2).</summary>
@@ -545,13 +882,23 @@ public sealed record HydraMergeOutcome
     public string Details { get; init; } // :800
 
     // :802-808 init(_ message: UserMessage)
-    public HydraMergeOutcome(UserMessage message) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:802");
+    public HydraMergeOutcome(UserMessage message)
+    {
+        var parts = SwiftString.Split(message.Text, "\n", maxSplits: 1);
+        Title = HydraReportRow.WithoutTrailingStop(parts.FirstOrDefault() ?? "Hydra");
+        Body = (parts.Count > 1 ? parts[1] : "").Trimmed();
+        Link = HydraReportRow.LeadingURL(Body);
+        Details = Link is null ? Body : HydraReportRow.WithoutFirstLine(Body);
+    }
 }
 
 /// <summary>:821-841 <c>struct HydraMergeTrack: View</c>.</summary>
 public sealed class HydraMergeTrack : Decorator
 {
+    private readonly HydraMergeTrackBody body;
+    private int step, count;
+    private Mode mode;
+    private double done, rest;
     /// <summary>:822 <c>enum Mode { case running, done, resting }</c>.</summary>
     public enum Mode
     {
@@ -564,16 +911,58 @@ public sealed class HydraMergeTrack : Decorator
     /// <param name="count">:825 <c>let count: Int</c>.</param>
     /// <param name="mode">:826 <c>let mode: Mode</c>.</param>
     // :830-840 body
-    public HydraMergeTrack(int step, int count, Mode mode) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:830");
+    public HydraMergeTrack(int step, int count, Mode mode)
+    {
+        this.step = step; this.count = count; this.mode = mode;
+        done = mode == Mode.Running ? 0 : 1; rest = mode == Mode.Resting ? 1 : 0;
+        body = new HydraMergeTrackBody(step, done, rest, count, !EnvironmentValues.GetAccessibilityReduceMotion(this));
+        Child = body;
+        DetachedFromVisualTree += (_, _) => animation?.Cancel();
+    }
 
-    public void Update(int step, int count, Mode mode) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:830");
+    // :838-839: one interpolated triple, preserving its presented values on retargeting.
+    public void Update(int step, int count, Mode mode)
+    {
+        if (this.count != count) { this.count = count; body.SetCount(count); }
+        if (this.step == step && this.mode == mode) return;
+        var from = body.AnimatableData;
+        var newDone = mode == Mode.Running ? 0.0 : 1.0;
+        var newRest = mode == Mode.Resting ? 1.0 : 0.0;
+        var duration = this.mode != mode ? 0.45 : 0.5;
+        this.step = step; this.mode = mode;
+        // A single progress driver draws all three scalars with the same smooth timing.
+        animation?.Cancel();
+        var start = SwiftClock.Now;
+        var frames = FrameClock.Source.Current;
+        var curve = Animation.Smooth(duration);
+        Action<TimeSpan>? tick = null;
+        tick = _ =>
+        {
+            var elapsed = (SwiftClock.Now - start).TotalSeconds;
+            var progress = elapsed + 0.001 >= duration ? 1 : curve.Progress(elapsed);
+            body.AnimatableData = (from.Position + (step - from.Position) * progress,
+                (from.Outcome.Done + (newDone - from.Outcome.Done) * progress, from.Outcome.Resting + (newRest - from.Outcome.Resting) * progress));
+            if (progress == 1) animation = null; else frames.RequestFrame(tick!);
+        };
+        animation = new TrackAnimation(frames, tick);
+        frames.RequestFrame(tick);
+    }
+    private TrackAnimation? animation;
+    private sealed record TrackAnimation(IFrameSource Frames, Action<TimeSpan> Tick)
+    {
+        public void Cancel() => Frames.CancelFrame(Tick);
+    }
 }
 
 /// <summary>:844-916 <c>private struct HydraMergeTrackBody: View, Animatable</c>.</summary>
 public sealed class HydraMergeTrackBody : Decorator
 {
+    private double position, done, rest;
+    private int count;
+    private readonly bool hops;
+    private readonly Canvas canvas = new();
+    private readonly Canvas dots = new();
+    private readonly HydraMarkImage head;
     private const double Dot = 4;          // :861
     private const double Gap = 3;          // :862
     private const double HeadSize = 12;    // :863
@@ -587,34 +976,253 @@ public sealed class HydraMergeTrackBody : Decorator
     /// <param name="count">:853 <c>let count: Int</c>.</param>
     /// <param name="hops">:854 <c>let hops: Bool</c>.</param>
     // :884-915 body
-    public HydraMergeTrackBody(double position, double done, double rest, int count, bool hops) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:884");
+    public HydraMergeTrackBody(double position, double done, double rest, int count, bool hops)
+    {
+        this.position = position; this.done = done; this.rest = rest; this.count = count; this.hops = hops;
+        head = HydraReportRow.Mark(HeadSize);
+        canvas.Children.Add(dots); canvas.Children.Add(head);
+        Child = canvas;
+        SetCount(count); Draw();
+    }
+
+    // :897-906
+    internal void SetCount(int value)
+    {
+        count = value; dots.Children.Clear();
+        for (var i = 0; i < count; i++)
+        {
+            var dot = new Panel { Width = Dot, Height = Dot };
+            var baseDot = new Avalonia.Controls.Shapes.Ellipse(); baseDot.Fill = Chrome.Overlay(0.28).Brush(baseDot);
+            var lit = new Avalonia.Controls.Shapes.Ellipse(); lit.Fill = Chrome.Accent.Brush(lit);
+            dot.Children.Add(baseDot); dot.Children.Add(lit);
+            Canvas.SetLeft(dot, i * (Dot + Gap)); Canvas.SetTop(dot, Height - Dot);
+            dots.Children.Add(dot);
+        }
+        Draw();
+    }
 
     public (double Position, (double Done, double Resting) Outcome) AnimatableData
     {
-        get => throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:856");
-        set => throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:856");
+        get => (position, (done, rest));
+        set { position = value.Position; done = value.Outcome.Done; rest = value.Outcome.Resting; Draw(); }
     }
 
     // :872-874 private static func dotCentre(_:) -> CGFloat
-    private static double DotCentre(double i) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:872");
+    private static double DotCentre(double i) => i * (Dot + Gap) + Dot / 2;
+
+    // :877-915
+    private void Draw()
+    {
+        var width = count * Dot + (count - 1) * Gap;
+        base.Width = width + (RestingSize - width) * rest; base.Height = Height;
+        canvas.Width = width; canvas.Height = Height;
+        var arc = hops ? Lift * Math.Abs(Math.Sin(Math.PI * position)) : 0;
+        var side = HeadSize + (RestingSize - HeadSize) * rest;
+        head.Width = side; head.Height = side;
+        Canvas.SetLeft(head, (DotCentre(position) - HeadSize / 2) * (1 - rest));
+        Canvas.SetTop(head, -arc * (1 - rest) + (Height - RestingSize) / 2 * rest);
+        var pop = hops ? 1 + 0.18 * Math.Sin(Math.PI * Math.Min(done, 1)) : 1;
+        head.RenderTransform = new ScaleTransform(pop, pop);
+        dots.Opacity = 1 - rest;
+        for (var i = 0; i < dots.Children.Count; i++)
+        {
+            var dot = (Panel)dots.Children[i];
+            dot.Children[1].Opacity = Math.Max(position + 0.35 >= i ? 1 : 0, Math.Clamp(done * (count + 1) - i, 0, 1));
+        }
+    }
 }
 
 /// <summary>:926-1162 <c>struct HydraMergeRow: View</c>.</summary>
 public sealed class HydraMergeRow : Decorator
 {
+    private sealed class ViewState : MainActorModel // :930-931
+    {
+        private HydraMergePhase phase;
+        private bool showingReport, flourish;
+        public ViewState(HydraMergePhase phase) => this.phase = phase;
+        public HydraMergePhase Phase { get => Read(phase); set => Set(ref phase, value); }
+        public bool IsShowingReport { get => Read(showingReport); set => Set(ref showingReport, value); }
+        public bool Flourish { get => Read(flourish); set => Set(ref flourish, value); }
+    }
+    private readonly ViewState state;
+    private readonly ThreadRuntime runtime;
+    private readonly Panel host = new();
+    private Border? pill;
+    private HydraMergeTrack? track;
+    private MorphSlot? slot;
+    private HydraMergeOutcome? outcome;
+    private string? shownStage;
+    private bool? wasMerging;
     // :935 private static let change = Animation.smooth(duration: 0.3)
     private static Animation Change => Animation.Smooth(duration: 0.3);
 
     /// <param name="runtime">:927 <c>let runtime: ThreadRuntime</c>.</param>
     /// <param name="phase">:928 <c>let phase: HydraMergePhase</c>.</param>
     // :937-952 body
-    public HydraMergeRow(ThreadRuntime runtime, HydraMergePhase phase) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:937");
+    public HydraMergeRow(ThreadRuntime runtime, HydraMergePhase phase)
+    {
+        this.runtime = runtime; state = new ViewState(phase);
+        Child = host;
+        Padding = new Thickness(0, 0, 96, 0);
+        Build();
+        this.Track(() => (state.Phase, runtime.IsHydraMerging, runtime.HydraMergeStage, runtime.HydraMergeStep, state.Flourish), _ => Build());
+        this.Task(() => state.Phase, async _ =>
+        {
+            if (state.Phase is not HydraMergePhase.Outcome message) return;
+            var note = new HydraMergeOutcome(message.Value);
+            if (note.Details.Length != 0) await SwiftTry.IgnoreAsync(() => MarkdownView.Warm([note.Body]));
+        });
+    }
 
-    public void Update(HydraMergePhase phase) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:937");
+    public void Update(HydraMergePhase phase) => state.Phase = phase;
+
+    // :937-1042
+    private void Build()
+    {
+        var next = state.Phase is HydraMergePhase.Outcome message ? new HydraMergeOutcome(message.Value) : null;
+        var merging = next is null;
+        if (merging && !runtime.IsHydraMerging)
+        {
+            if (pill is { } old)
+                Transaction.WithAnimation(Animation.Spring(Chrome.GlideSpring), () => SwiftTransition.Remove(host, old));
+            pill = null; track = null; slot = null; wasMerging = null;
+            return;
+        }
+        if (wasMerging == true && !merging && next is not null && next.Title.Contains("Hydra merged", StringComparison.Ordinal))
+        {
+            state.Flourish = true;
+            var box = state;
+            MainActor.Spawn(async () => { await SwiftTry.IgnoreAsync(() => SwiftTask.Sleep(TimeSpan.FromMilliseconds(1100))); box.Flourish = false; });
+        }
+        var changed = wasMerging != merging;
+        wasMerging = merging;
+        outcome = next;
+        var stage = (runtime.HydraMergeStage ?? "Merging") + "\u2026";
+        var count = HydraMergeStageExtensions.AllCases.Count;
+        var mode = next is null ? HydraMergeTrack.Mode.Running : state.Flourish ? HydraMergeTrack.Mode.Done : HydraMergeTrack.Mode.Resting;
+        var step = mode == HydraMergeTrack.Mode.Running ? (int)(runtime.HydraMergeStep ?? HydraMergeStage.Gathering) : count - 1;
+        if (pill is null)
+        {
+            track = new HydraMergeTrack(step, count, mode);
+            track.PointerReleased += (_, e) =>
+            {
+                if (outcome is { Details.Length: > 0 }) state.IsShowingReport = !state.IsShowingReport;
+                e.Handled = true;
+            };
+            slot = new MorphSlot();
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            row.Children.Add(track); row.Children.Add(slot);
+            pill = TimelineRows.Pill(row);
+            pill.Transition(SwiftTransition.SettleGlide);
+            SwiftTransition.Insert(host, host.Children.Count, pill);
+        }
+        else track!.Update(step, count, mode);
+        AutomationProperties.SetName(pill, next?.Title ?? "Merging the team's work: " + stage);
+        if (changed || merging && shownStage != stage)
+        {
+            var still = next is null ? MergingLabel(stage) : OutcomeLabel(next);
+            var live = next is null ? MergingContent(stage) : OutcomeControls(next);
+            slot!.Replace(still, live, Change);
+            shownStage = stage;
+        }
+    }
+
+    // :1044-1094. The visible stage moves in its own slot with its own fresh shimmer/mask.
+    private static Control MergingLabel(string stage) => TimelineRows.ChatText(stage, weight: SwiftFont.Weight.Medium);
+
+    private static Control MergingContent(string stage)
+    {
+        var text = TimelineRows.ChatText(stage, weight: SwiftFont.Weight.Medium, color: Chrome.PrimaryText.Opacity(0.9));
+        var visible = new HydraShimmer().Body(text).Transition(SwiftTransition.Asymmetric(
+            SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 5)), SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: -5))));
+        var slot = new MorphSlot();
+        slot.Replace(MergingLabel(stage), visible, Change);
+        return slot;
+    }
+
+    // :1099-1137
+    private Control OutcomeControls(HydraMergeOutcome note)
+    {
+        var box = state;
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var title = PlainControls.Button(OutcomeTitle(note), () => { if (note.Details.Length != 0) box.IsShowingReport = !box.IsShowingReport; });
+        title.IsEnabled = note.Details.Length != 0;
+        ToolTip.SetTip(title, note.Details.Length == 0 ? null : "Show the message");
+        row.Children.Add(title);
+        if (note.Link is { } link) row.Children.Add(HydraReportRow.OpenLink(link));
+        row.Children.Add(PlainControls.Popover(title, new Binding<bool>(() => box.IsShowingReport, value => box.IsShowingReport = value), () =>
+        {
+            Control detail = note.Link is { } url && MergeRequestLink.Create(url) is { } request && HydraMergeNote.Parse(note.Details, request) is { } merge
+                ? new HydraMergePopover(merge) : new HydraReportPopover(note.Body);
+            return detail.PresentedChrome();
+        }));
+        return row.Transition(SwiftTransition.Opacity);
+    }
+
+    // :1140-1161
+    private static Control OutcomeLabel(HydraMergeOutcome note)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        row.Children.Add(OutcomeTitle(note));
+        if (note.Link is not null) row.Children.Add(TimelineRows.ChatText("Open", SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold, Chrome.SecondaryText));
+        return row;
+    }
+    private static Control OutcomeTitle(HydraMergeOutcome note)
+    {
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        row.Children.Add(TimelineRows.ChatText(note.Title, weight: SwiftFont.Weight.Medium, color: Chrome.PrimaryText.Opacity(0.9), singleLine: true));
+        if (note.Details.Length != 0) row.Children.Add(TimelineRows.Chevron());
+        return row;
+    }
+
+    // :973-1009: the still copy alone sizes the slot; fading children neither widen nor shrink it.
+    private sealed class MorphSlot : Panel
+    {
+        private readonly Panel visible = new();
+        private Control? still, live;
+        private readonly AnimatedDouble width;
+        private double presentedWidth;
+        private bool measured;
+        private Animation? resize;
+        public MorphSlot()
+        {
+            ClipToBounds = true; Margin = new Thickness(-2, -6);
+            Children.Add(visible);
+            width = new AnimatedDouble(value => { presentedWidth = value; InvalidateMeasure(); });
+        }
+        public void Replace(Control size, Control drawn, Animation animation)
+        {
+            if (still is not null) Children.Remove(still);
+            still = size; still.Opacity = 0; still.IsHitTestVisible = false;
+            Children.Insert(0, still);
+            resize = measured ? animation : null;
+            Transaction.WithAnimation(measured ? animation : null, () =>
+            {
+                if (live is not null) SwiftTransition.Remove(visible, live);
+                live = drawn; SwiftTransition.Insert(visible, visible.Children.Count, drawn);
+            });
+            InvalidateMeasure();
+        }
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            still?.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            var desired = still?.DesiredSize ?? default;
+            if (!measured || targetWidth != desired.Width)
+            {
+                targetWidth = desired.Width; width.Set(targetWidth, resize); measured = true; resize = null;
+            }
+            foreach (var child in visible.Children) child.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
+            return new Size(presentedWidth + 4, desired.Height + 12);
+        }
+        private double targetWidth;
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            still?.Arrange(new Rect(2, 6, still.DesiredSize.Width, still.DesiredSize.Height));
+            visible.Arrange(new Rect(2, 6, Math.Max(0, finalSize.Width - 4), Math.Max(0, finalSize.Height - 12)));
+            foreach (var child in visible.Children) child.Arrange(new Rect(new Point(), child.DesiredSize));
+            return finalSize;
+        }
+    }
 }
 
 /// <summary>:1167-1207 <c>struct UserBubble: Shape</c>.</summary>
@@ -1988,23 +2596,81 @@ public static class ToolPresentation
 /// <summary>:2257-2338 <c>struct PlanCard: View</c>.</summary>
 public sealed class PlanCard : Decorator
 {
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isShowingPlan;
+        public bool IsShowingPlan { get => Read(isShowingPlan); set => Set(ref isShowingPlan, value); }
+    }
+    private readonly ViewState state = new(); // :2261
+    private readonly TimelineEntry entry;
+    private readonly ThreadRuntime runtime;
     /// <param name="entry">:2258 <c>let entry: TimelineEntry</c>.</param>
     /// <param name="runtime">:2259 <c>let runtime: ThreadRuntime</c>.</param>
     // :2263-2316 body
-    public PlanCard(TimelineEntry entry, ThreadRuntime runtime) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2263");
+    public PlanCard(TimelineEntry entry, ThreadRuntime runtime)
+    {
+        this.entry = entry;
+        this.runtime = runtime;
+        void Build(TimelineItem.Content content)
+        {
+            if (content is not TimelineItem.Content.Plan item) { Child = null; return; }
+            var plan = item.Value;
+            var box = state;
+            Child = new ChatBadge(Title(plan.ProposedPlanState), new Binding<bool>(() => box.IsShowingPlan, value => box.IsShowingPlan = value),
+                glyph: () => plan.ProposedPlanState == ProposedPlan.State.Drafting
+                    ? new Border { Child = new WorkingSpinner(3) { Width = 14 }, Width = 14 }
+                    : SwiftImage.SystemName("list.bullet.clipboard").ForegroundStyle(Chrome.Accent),
+                detail: () => Detail(plan), caption: Caption(plan.ProposedPlanState), showsChevron: plan.Markdown.Length != 0,
+                needsAttention: NeedsAttention(plan.ProposedPlanState), isEnabled: plan.Markdown.Length != 0);
+        }
+        Build(entry.Item.TimelineItemContent);
+        this.Track(() => entry.Item.TimelineItemContent, Build);
+    }
+
+    // :2279-2313
+    private Control Detail(ProposedPlan plan)
+    {
+        var column = new StackPanel { Spacing = 12 };
+        var header = new DockPanel();
+        var copy = new CopyButton(plan.Markdown) { HorizontalAlignment = HorizontalAlignment.Right };
+        DockPanel.SetDock(copy, Dock.Right);
+        header.Children.Add(copy);
+        header.Children.Add(TimelineRows.ChatText("Plan", SwiftFont.TextStyle.Headline));
+        column.Children.Add(header);
+        column.Children.Add(new PopoverScroll(() => new MarkdownView(plan.Markdown, plan.ProposedPlanState == ProposedPlan.State.Drafting)
+            { Margin = new Thickness(16, 0) }, maxHeight: 420));
+        if (plan.ProposedPlanState == ProposedPlan.State.Proposed)
+        {
+            var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            var box = state;
+            var target = runtime;
+            var id = entry.Id;
+            buttons.Children.Add(TimelineRows.GlassCommand("Implement plan", () => { box.IsShowingPlan = false; target.ImplementPlan(id); }, true));
+            buttons.Children.Add(TimelineRows.GlassCommand("Dismiss", () => { box.IsShowingPlan = false; target.DismissPlan(id); }, false));
+            void Busy(bool busy)
+            {
+                buttons.IsEnabled = !busy;
+                ToolTip.SetShowOnDisabled(buttons, true);
+                ToolTip.SetTip(buttons, busy ? "Wait for the current turn to finish" : null);
+                foreach (var button in buttons.Children) ToolTip.SetTip(button, busy ? "Wait for the current turn to finish" : null);
+            }
+            Busy(runtime.PendingPlanApproval is not null || runtime.IsRunning);
+            buttons.Track(() => runtime.PendingPlanApproval is not null || runtime.IsRunning, Busy);
+            column.Children.Add(buttons);
+        }
+        return new Border { Padding = new Thickness(16), Width = 520, Child = column };
+    }
 
     // :2318-2324 private static func title(for:) -> String
-    private static string Title(ProposedPlan.State @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2318");
+    private static string Title(ProposedPlan.State @for) => @for switch
+    { ProposedPlan.State.Drafting => "Writing a plan", ProposedPlan.State.Proposed => "Plan ready", ProposedPlan.State.Accepted or ProposedPlan.State.Dismissed => "Plan", _ => throw new UnreachableException() };
 
     // :2326-2333 private static func caption(for:) -> String?
-    private static string? Caption(ProposedPlan.State @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2326");
+    private static string? Caption(ProposedPlan.State @for) => @for switch
+    { ProposedPlan.State.Drafting => null, ProposedPlan.State.Proposed => "Implement or dismiss", ProposedPlan.State.Accepted => "Approved", ProposedPlan.State.Dismissed => "Dismissed", _ => throw new UnreachableException() };
 
     // :2335-2337 private static func needsAttention(for:) -> Bool
-    private static bool NeedsAttention(ProposedPlan.State @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2335");
+    private static bool NeedsAttention(ProposedPlan.State @for) => @for == ProposedPlan.State.Proposed;
 }
 
 /// <summary>:2340-2383 <c>struct TodoListRow: View</c>.</summary>
@@ -2012,12 +2678,52 @@ public sealed class TodoListRow : Decorator
 {
     /// <param name="entry">:2341 <c>let entry: TimelineEntry</c>.</param>
     // :2343-2374 body
-    public TodoListRow(TimelineEntry entry) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2343");
+    public TodoListRow(TimelineEntry entry)
+    {
+        Padding = new Thickness(0, 0, 96, 0); // :2371
+        var column = new StackPanel { Spacing = 7 };
+        var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        header.Children.Add(SwiftImage.SystemName("checklist").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption)).ForegroundStyle(Chrome.SecondaryText));
+        var count = TimelineRows.ChatText("", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText);
+        header.Children.Add(count);
+        column.Children.Add(header);
+        var card = TimelineRows.Pill(column, SwiftColor.Quaternary.Opacity(0.32), new Thickness(14));
+        var rows = new List<(StackPanel Row, SwiftImage Icon, TextBlock Text)>();
+        void Build(TimelineItem.Content content)
+        {
+            if (content is not TimelineItem.Content.Todos todos || todos.Value.Count == 0) { Child = null; return; }
+            var steps = todos.Value;
+            count.Text = $"{steps.Count(step => step.TodoStepStatus == TodoStep.Status.Done)} of {steps.Count} done";
+            while (rows.Count > steps.Count) { column.Children.Remove(rows[^1].Row); rows.RemoveAt(rows.Count - 1); }
+            while (rows.Count < steps.Count)
+            {
+                var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                var icon = SwiftImage.SystemName("circle").Font(ChatFont.Chat(SwiftFont.TextStyle.Callout));
+                var text = TimelineRows.ChatText("");
+                row.Children.Add(icon); row.Children.Add(text);
+                rows.Add((row, icon, text)); column.Children.Add(row);
+            }
+            for (var i = 0; i < steps.Count; i++)
+            {
+                var step = steps[i]; var row = rows[i];
+                var icon = SwiftImage.SystemName(Symbol(step.TodoStepStatus)).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout));
+                icon.Foreground = (step.TodoStepStatus == TodoStep.Status.Pending ? SwiftColor.Tertiary : Chrome.Accent).Brush(icon);
+                row.Row.Children[0] = icon;
+                rows[i] = (row.Row, icon, row.Text);
+                row.Text.Text = step.Text;
+                var done = step.TodoStepStatus == TodoStep.Status.Done;
+                row.Text.Foreground = (done ? SwiftColor.Secondary : SwiftColor.Primary).Brush(row.Text);
+                row.Text.TextDecorations = done ? new TextDecorationCollection { new TextDecoration { Location = TextDecorationLocation.Strikethrough, Stroke = SwiftColor.Secondary.Brush(row.Text) } } : null;
+            }
+            Child = card;
+        }
+        Build(entry.Item.TimelineItemContent);
+        this.Track(() => entry.Item.TimelineItemContent, value => Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => Build(value)));
+    }
 
     // :2376-2382 private static func symbol(for:) -> String
-    private static string Symbol(TodoStep.Status @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2376");
+    private static string Symbol(TodoStep.Status @for) => @for switch
+    { TodoStep.Status.Pending => "circle", TodoStep.Status.Active => "circle.dotted.circle", TodoStep.Status.Done => "checkmark.circle.fill", _ => throw new UnreachableException() };
 }
 
 /// <summary>:2385-2431 <c>struct NoticeRow: View</c>.</summary>
@@ -2025,20 +2731,37 @@ public sealed class NoticeRow : Decorator
 {
     /// <param name="entry">:2386 <c>let entry: TimelineEntry</c>.</param>
     // :2388-2404 body
-    public NoticeRow(TimelineEntry entry) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2388");
+    public NoticeRow(TimelineEntry entry)
+    {
+        void Build(TimelineItem.Content content)
+        {
+            if (content is not TimelineItem.Content.Notice item) { Child = null; return; }
+            var notice = item.Value;
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            row.Children.Add(SwiftImage.SystemName(Symbol(notice.NoticeLevel)).Font(ChatFont.Chat(SwiftFont.TextStyle.Callout)).ForegroundStyle(Color(notice.NoticeLevel)));
+            var message = new SelectableTextBlock { Text = notice.Message, TextWrapping = TextWrapping.Wrap };
+            ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(message);
+            message.Foreground = (notice.NoticeLevel == Notice.Level.Info ? SwiftColor.Secondary : SwiftColor.Primary).Brush(message);
+            row.Children.Add(message);
+            var pill = TimelineRows.Pill(row, Background(notice.NoticeLevel), notice.NoticeLevel == Notice.Level.Info ? default(Thickness) : null);
+            pill.HorizontalAlignment = HorizontalAlignment.Stretch;
+            Child = pill;
+        }
+        Build(entry.Item.TimelineItemContent);
+        this.Track(() => entry.Item.TimelineItemContent, Build);
+    }
 
     // :2406-2412 private static func symbol(for:) -> String
-    private static string Symbol(Notice.Level @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2406");
+    private static string Symbol(Notice.Level @for) => @for switch
+    { Notice.Level.Info => "info.circle", Notice.Level.Warning => "exclamationmark.triangle", Notice.Level.Error => "exclamationmark.octagon", _ => throw new UnreachableException() };
 
     // :2416-2422 private static func color(for:) -> Color
-    private static SwiftColor Color(Notice.Level @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2416");
+    private static SwiftColor Color(Notice.Level @for) => @for switch
+    { Notice.Level.Info => SwiftColor.Secondary, Notice.Level.Warning => Chrome.Warning, Notice.Level.Error => Chrome.Danger, _ => throw new UnreachableException() };
 
     // :2424-2430 private static func background(for:) -> Color
-    private static SwiftColor Background(Notice.Level @for) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2424");
+    private static SwiftColor Background(Notice.Level @for) => @for switch
+    { Notice.Level.Info => SwiftColor.Clear, Notice.Level.Warning => Chrome.Warning.Opacity(0.1), Notice.Level.Error => Chrome.Danger.Opacity(0.1), _ => throw new UnreachableException() };
 }
 
 /// <summary>:2433-2456 <c>struct TurnEndRow: View</c>.</summary>
@@ -2047,14 +2770,19 @@ public sealed class TurnEndRow : Decorator
     /// <param name="summary">:2434 <c>let summary: TurnSummary</c>.</param>
     /// <param name="hasReply">:2437 <c>let hasReply: Bool</c>.</param>
     // :2439-2446 body
-    public TurnEndRow(TurnSummary summary, bool hasReply) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2439");
+    public TurnEndRow(TurnSummary summary, bool hasReply)
+    {
+        if (!hasReply) Child = TimelineRows.ChatText(Label(summary), SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText);
+    }
 
     // :2448-2455 static func label(for:) -> String: read by the reply's hover line (:1369) and the finished turn's header
     // (:2610), both part 1.
     public static string Label(TurnSummary @for)
     {
-        var duration = RelativeTime.Duration(TimeSpan.FromSeconds(@for.Duration)); // :2449
+        // ED-197 / O-65: Components.Duration is still B2 in this checkout. Call its approved B3 formatter directly.
+        var seconds = Math.Max(0, SwiftNumber.TruncatingToInt(SwiftNumber.Rounded(@for.Duration)));
+        var duration = SwiftFormatters.DurationUnits(seconds,
+            [SwiftFormatters.DurationUnit.Seconds, SwiftFormatters.DurationUnit.Minutes, SwiftFormatters.DurationUnit.Hours], SwiftFormatters.CurrentLocale.Current); // :2449; Components.swift:37-40
         return @for.Status switch // :2450-2454
         {
             TurnStatus.Completed or TurnStatus.Running => "Worked for " + duration,
@@ -2069,8 +2797,21 @@ public sealed class MutedRoundGlyph : Decorator
 {
     /// <param name="symbol">:2464 <c>let symbol: String</c>.</param>
     // :2467-2477 body
-    public MutedRoundGlyph(string symbol) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2467");
+    public MutedRoundGlyph(string symbol)
+    {
+        var glyph = SwiftImage.SystemName(symbol).Font(Chrome.IconFont);
+        var disc = new Border { Width = 28, Height = 28, CornerRadius = new CornerRadius(14), Child = glyph };
+        var foreground = new AnimatedColor(glyph);
+        var fill = new AnimatedColor(disc);
+        foreground.Set(Chrome.SecondaryText, null); fill.Set(Chrome.Overlay(0.1), null);
+        glyph.Foreground = foreground.Brush; disc.Background = fill.Brush;
+        disc.OnHover(over => Transaction.WithAnimation(Chrome.Hover, () =>
+        {
+            foreground.Set(over ? Chrome.PrimaryText : Chrome.SecondaryText, Transaction.Current);
+            fill.Set(Chrome.Overlay(over ? 0.18 : 0.1), Transaction.Current);
+        }));
+        Child = disc;
+    }
 }
 
 /// <summary>:2480-2716 <c>struct TurnFinishedBlock: View</c>.</summary>
@@ -2429,11 +3170,116 @@ public sealed class TurnFinishedBlock : Decorator
 /// <summary>:2718-2859 <c>private struct TurnFileCard: View</c>.</summary>
 public sealed class TurnFileCard : Decorator
 {
+    private sealed class ViewState : MainActorModel // :2731-2733
+    {
+        private bool showingFiles, confirmingRevert, needsReviewAnchor;
+        public bool IsShowingFiles { get => Read(showingFiles); set => Set(ref showingFiles, value); }
+        public bool IsConfirmingRevert { get => Read(confirmingRevert); set => Set(ref confirmingRevert, value); }
+        public bool NeedsReviewAnchor { get => Read(needsReviewAnchor); set => Set(ref needsReviewAnchor, value); }
+    }
+    private readonly ViewState state = new();
+    private readonly WeakView reviewAnchor = new(); // :2730
+    private readonly FileChangeSummary changes;
+    private readonly Action onRevert;
     /// <param name="changes">:2721 <c>let changes: FileChangeSummary</c>.</param>
     /// <param name="canUndo">:2722 <c>let canUndo: Bool</c>.</param>
     /// <param name="onRevert">:2724 <c>let onRevert: () -> Void</c>.</param>
     /// <param name="onReview">:2726 <c>let onReview: (NSView) -> Void</c>.</param>
     // :2735-2827 body
-    public TurnFileCard(FileChangeSummary changes, bool canUndo, Action onRevert, Action<Control> onReview) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Chat/TimelineRows.swift:2735");
+    public TurnFileCard(FileChangeSummary changes, bool canUndo, Action onRevert, Action<Control> onReview)
+    {
+        this.changes = changes;
+        this.onRevert = onRevert;
+        var box = state;
+        var title = changes.Files.Count == 1 ? "Edited 1 file" : $"Edited {changes.Files.Count} files";
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Center };
+        var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var badge = SwiftImage.Named("badge-edit").ForegroundStyle(Chrome.SecondaryText);
+        badge.Width = 18; badge.Height = 18;
+        titleRow.Children.Add(badge);
+        titleRow.Children.Add(TimelineRows.ChatText(title, weight: SwiftFont.Weight.Medium, color: Chrome.PrimaryText.Opacity(0.9)));
+        titleRow.Children.Add(new DiffStatLabel { Additions = checked((int)changes.Additions), Deletions = checked((int)changes.Deletions) });
+        if (changes.Files.Count != 0) titleRow.Children.Add(TimelineRows.Chevron());
+        var files = PlainControls.Button(titleRow, () => box.IsShowingFiles = !box.IsShowingFiles);
+        files.IsEnabled = changes.Files.Count != 0;
+        ToolTip.SetTip(files, "Show the files this turn changed");
+        row.Children.Add(files);
+        row.Children.Add(new Control { Width = 20, Height = 1 }); // :2768
+        if (canUndo)
+        {
+            var revert = PlainControls.Button(new MutedRoundGlyph("arrow.uturn.backward"), () => box.IsConfirmingRevert = true);
+            revert.Focusable = false;
+            ToolTip.SetTip(revert, "Revert this turn's files and conversation");
+            row.Children.Add(revert);
+            row.Children.Add(PlainControls.Popover(revert,
+                new Binding<bool>(() => box.IsConfirmingRevert, value => box.IsConfirmingRevert = value), RevertConfirmation));
+        }
+        var anchorBox = new WeakReference<WeakView>(reviewAnchor);
+        var review = PlainControls.Button(new MutedRoundGlyph("plusminus"), () =>
+        {
+            if (anchorBox.TryGetTarget(out var weak) && weak.Value is { } view) onReview(view);
+        });
+        review.Focusable = false;
+        ToolTip.SetTip(review, "Show this turn's changes");
+        review.OnHover(over => { if (over && !box.NeedsReviewAnchor) box.NeedsReviewAnchor = true; });
+        var anchor = new Decorator { IsHitTestVisible = false };
+        anchor.Track(() => box.NeedsReviewAnchor, needed =>
+        {
+            if (needed && anchor.Child is null) anchor.Child = new AttachmentAnchorCapture(view =>
+            {
+                if (anchorBox.TryGetTarget(out var weak)) weak.Value = view;
+            });
+        });
+        row.Children.Add(PlainControls.Background(review, anchor));
+        row.Children.Add(PlainControls.Popover(files, new Binding<bool>(() => box.IsShowingFiles, value => box.IsShowingFiles = value), () => FilesPopover().PresentedChrome()));
+        Child = TimelineRows.Pill(row, SwiftColor.Quaternary.Opacity(0.32), new Thickness(TimelineMetrics.PillLeading, 6, 6, 6));
+        AutomationProperties.SetName(this, title);
+    }
+
+    // :2777-2798
+    private Control RevertConfirmation()
+    {
+        var column = new StackPanel { Spacing = 10 };
+        var heading = new TextBlock { Text = "Revert up to this point?" };
+        SwiftFont.System(14, SwiftFont.Weight.Semibold).Apply(heading);
+        column.Children.Add(heading);
+        var message = new TextBlock { Text = "Files go back to how they were before this turn, and the turn leaves the conversation.", TextWrapping = TextWrapping.Wrap };
+        SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(message);
+        message.Foreground = Chrome.SecondaryText.Brush(message);
+        column.Children.Add(message);
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        var box = state;
+        var action = onRevert;
+        buttons.Children.Add(TimelineRows.GlassCommand("Cancel", () => box.IsConfirmingRevert = false, false, true));
+        var go = TimelineRows.GlassCommand("Revert", () => { box.IsConfirmingRevert = false; action(); }, true, true);
+        go.IsDefault = true;
+        buttons.Children.Add(go);
+        column.Children.Add(buttons);
+        return new Border { Width = 300, Padding = new Thickness(16), Child = column }.PresentedChrome();
+    }
+
+    // :2829-2858
+    private Control FilesPopover()
+    {
+        var column = new StackPanel { Spacing = 0 };
+        foreach (var file in changes.Files.Take(12))
+        {
+            var row = new DockPanel { Margin = new Thickness(12, 7) };
+            Control stats = file.IsBinary ? TimelineRows.ChatText("Binary", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText)
+                : new DiffStatLabel { Additions = checked((int)file.Additions), Deletions = checked((int)file.Deletions) };
+            stats.Margin = new Thickness(8, 0, 0, 0);
+            DockPanel.SetDock(stats, Dock.Right);
+            row.Children.Add(stats);
+            var path = new MiddleTruncatingTextBlock { FullText = file.Path, Text = file.Path, MaxLines = 1 };
+            ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(path);
+            row.Children.Add(path);
+            column.Children.Add(row);
+        }
+        if (changes.Files.Count > 12)
+        {
+            var more = TimelineRows.ChatText(changes.Files.Count == 13 ? "and 1 more file" : $"and {changes.Files.Count - 12} more files", color: Chrome.SecondaryText);
+            more.Margin = new Thickness(12, 7); column.Children.Add(more);
+        }
+        return column;
+    }
 }

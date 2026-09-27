@@ -111,7 +111,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 
     private static void Hover(AvaloniaWindow window, Control control)
     {
-        var point = control.TranslatePoint(new Point(2, 2), window) ?? throw new Xunit.Sdk.XunitException("not in the window");
+        // The circular source hit shapes exclude the top-left corner. Enter the actual control's centre.
+        var point = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window) ?? throw new Xunit.Sdk.XunitException("not in the window");
         window.MouseMove(point, RawInputModifiers.None);
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
     }
@@ -1902,8 +1903,11 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
             store.PrepareBootstrap(model);
             var runtime = store.Main.OnMain(() => model.Runtime(thread.Id));
             store.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
-            FileChangeSummary? Stored(System.Guid turn) => store.Main.OnMain(() =>
-                Assert.IsType<TimelineItem.Content.TurnEnd>(runtime.Entries.Single(entry => entry.TurnID == turn && entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd).Item.TimelineItemContent).Value.Changes);
+            FileChangeSummary? Stored(System.Guid turn)
+            {
+                FileChangeSummary? Read() => Assert.IsType<TimelineItem.Content.TurnEnd>(runtime.Entries.Single(entry => entry.TurnID == turn && entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd).Item.TimelineItemContent).Value.Changes;
+                return MainActor.IsIsolated ? Read() : store.Main.OnMain(Read);
+            }
             AvaloniaWindow? window = null;
             store.Main.OnMain(() =>
             {
@@ -2299,12 +2303,14 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 Assert.Contains(LogicalQuery.SelfAndDescendants<Decorator>(sheet), decorator => decorator.Padding == new Thickness(16));
                 var heading = TextNamed(detail, "Plan");
                 Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Headline)), heading.FontSize);
-                Assert.Single(LogicalQuery.SelfAndDescendants<CopyButton>(detail));
+                // :2281-2284 the header's one copy button. Markdown's code block has its own copy control (:1220).
+                Assert.Single(LogicalQuery.SelfAndDescendants<CopyButton>((Control)heading.Parent!));
+                Assert.Single(LogicalQuery.SelfAndDescendants<CopyButton>(detail), copy => copy.GetLogicalAncestors().OfType<MarkdownView>().Any());
                 var scroll = Assert.Single(LogicalQuery.SelfAndDescendants<PopoverScroll>(detail));
                 var markdown = Assert.Single(LogicalQuery.SelfAndDescendants<MarkdownView>(scroll));
                 Assert.Equal("```\nstep one\n```", markdown.Text);
                 Assert.Equal(new Thickness(16, 0), markdown.Margin);
-                Assert.True(LogicalQuery.SelfAndDescendants<ScrollViewer>(scroll).Single().Height <= 420);
+                Assert.True(Assert.IsType<ScrollViewer>(scroll.Child).Height <= 420);
                 Assert.Equal(["Implement plan", "Dismiss"], LogicalQuery.SelfAndDescendants<Button>(detail).Select(button => Texts(button).FirstOrDefault(text => text.Length != 0)).Where(text => text is "Implement plan" or "Dismiss"));
                 Close(window);
 
@@ -2559,8 +2565,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-116 TurnEndRow
 
     [Fact]
-    [Trait("Req", "PR-CHAT-116")] // App/Views/Chat/TimelineRows.swift:2448-2455; UI/Common/Components.swift:37-40
-    [Trait("Decision", "ED-197")]
+    [Trait("Decision", "ED-197")] // App/Views/Chat/TimelineRows.swift:2448-2455; UI/Common/Components.swift:37-40; PR-CHAT-116
     [Trait("Oracle", "O-65")]
     public void The_B3_duration_rounds_half_seconds_away_from_zero_before_the_narrow_unit_formatter()
     {
@@ -2912,7 +2917,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 var window = Show(popover);
                 Assert.Equal(460, popover.Width);
                 var scroll = Assert.Single(LogicalQuery.SelfAndDescendants<PopoverScroll>(popover));
-                Assert.True(LogicalQuery.SelfAndDescendants<ScrollViewer>(scroll).Single().Height <= 460);
+                Assert.True(Assert.IsType<ScrollViewer>(scroll.Child).Height <= 460);
                 var blocks = LogicalQuery.SelfAndDescendants<MarkdownBlockView>(popover).ToList();
                 Assert.Equal(MarkdownView.Blocks(text).Count, blocks.Count);
                 var stack = Assert.IsType<StackPanel>(blocks[0].Parent);
@@ -3146,7 +3151,8 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness();
-            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
             using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
             HydraMergeRow? row = null;
             AvaloniaWindow? window = null;
@@ -3173,6 +3179,10 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 Assert.Contains("Merging\U00002026", Texts(row!)); // U+2026 HORIZONTAL ELLIPSIS
                 h.Runtime.IsHydraMerging = false;
             });
+            // :949-952 removal uses the glide spring. Complete its source-defined transition before asserting absence.
+            frames.Advance(System.TimeSpan.Zero);
+            h.Main.AdvanceMilliseconds(2000);
+            frames.Advance(System.TimeSpan.FromMilliseconds(2000));
             h.Main.OnMain(() =>
             {
                 Settle(window!);
@@ -3439,6 +3449,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                     var host = new Border { Child = row };
                     Marrow.App.Port.AppEnvironment.SetAppModel(host, app);
                     var window = Show(host);
+                    // STOP #4 is only the external helpers(of:) lookup. Test the owned :404-418 body with real
+                    // children of this fixture's lead, not a replacement implementation of AppModel.Helpers.
+                    row.ApplyTeam(app.Children(runtime.ThreadID));
                     var pills = LogicalQuery.SelfAndDescendants<FinishedHeadPill>(row).ToList();
                     Assert.Equal(["Walter finished working", "Hank failed"], pills.Select(pill => AutomationProperties.GetName(pill)));
                     var column = LogicalQuery.SelfAndDescendants<StackPanel>(row).First();
@@ -3566,3 +3579,13 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // bottom gap are untested.
 // Needed to proceed: unit App.Views.Chat.ThreadTimeline (TimelineGroup.Build).
 // Done so far: the folded turn (header, tooltip, rule, answer selection) is tested above and passes.
+//
+// STOP App.Views.Chat.TimelineRows #4 (part 2, 2026-09-27)
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:401-403; App/AppModel.swift:396-400 (B3 52bc792).
+// Records: PR-CHAT-152; UI-CHAT-028.
+// Missing: AppModel.Helpers has the B2 predicate !IsHydraHead, whereas B3 helpers(of:) includes every
+// unarchived head, in its panel or not. Using that API would silently render no finished heads.
+// Needed: the App.AppModel owner must port the B3 per-parent helper-cell predicate and newest-first order.
+// Only the environment lookup is unwritten. ApplyTeam tests the :404-418 dictionary, requested order,
+// missing-index omission, pill rendering and layout against actual fixture children without faking Helpers.
