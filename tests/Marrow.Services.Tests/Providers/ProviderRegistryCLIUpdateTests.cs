@@ -473,8 +473,10 @@ public sealed class ProviderRegistryCLIUpdateTests
         using var seam = ExecutableSeam(ProviderKind.Claude, script);
 
         var task = runtime.Loop.Run(() => Task.FromResult(registry.UpdateCLIIfDue(ProviderKind.Claude, force: true)));
-        var deadline = DateTime.UtcNow.AddSeconds(5);
-        while (!File.Exists(marker) && DateTime.UtcNow < deadline) await Task.Delay(10);
+        // Swift :30 @MainActor, :508 await LoginEnvironment.load(), :510-511 insert/defer remove.
+        // Keep pumping the actor until the offline probe starts: a fresh environment load suspends
+        // before insertion, so waiting off the loop alone never lets its continuation reach the probe.
+        await Task.Run(() => runtime.Loop.RunUntil(() => File.Exists(marker), TimeSpan.FromSeconds(5)));
         Assert.True(File.Exists(marker), "the stand-in never started (or finished too fast to observe)");
         Assert.True(registry.UpdatingCLIs.Contains(ProviderKind.Claude));
 
