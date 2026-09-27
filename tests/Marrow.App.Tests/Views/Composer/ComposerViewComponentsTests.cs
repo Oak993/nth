@@ -107,29 +107,35 @@ public sealed class ComposerViewComponentsTests(HeadlessSession headless)
     {
         using var harness = Harness(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
-        harness.Main.OnMain(() =>
+        Avalonia.Controls.Window? window = null;
+        Avalonia.Controls.Window? pickerWindow = null;
+        Control content = null!;
+        try
         {
+          harness.Main.OnMain(() =>
+          {
             var option = harness.App.Providers.Models(ProviderKind.Claude).First();
             harness.App.Settings.AddToModelList(new ModelPin(ProviderKind.Claude, option.Id));
             if (hasHistory) typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Turns))!.SetValue(harness.Runtime,
                 new ValueList<TurnRecord>([new() { Index = 1, Status = TurnStatus.Interrupted }]));
             var slot = new ModelEffortSlot(harness.Runtime, harness.Thread, false);
-            var window = Show(slot, harness.App);
-            Avalonia.Controls.Window? pickerWindow = null;
-            try
-            {
+            window = Show(slot, harness.App);
                 var button = Assert.Single(slot.GetVisualDescendants().OfType<Button>());
                 button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();
-                var content = Assert.IsAssignableFrom<Control>(presenter.Calls[^1].Popup.Child);
+                content = Assert.IsAssignableFrom<Control>(presenter.Calls[^1].Popup.Child);
                 presenter.Calls[^1].Popup.Child = null; // The recording presenter does not host the panel; transfer it to the headless window.
                 pickerWindow = Show(content, harness.App);
                 Assert.Single(content.GetVisualDescendants().OfType<Button>(), button => Equals(ToolTip.GetTip(button), "Choose a model"))
                     .RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();
+          }); // Return to the manual main loop so the observed ShowsModels change can build its rows.
+          harness.Main.OnMain(() =>
+          {
+                pickerWindow!.UpdateLayout(); Dispatcher.UIThread.RunJobs();
                 var row = Assert.Single(content.GetVisualDescendants().OfType<ModelListRow>());
                 Assert.Equal(!hasHistory, Assert.Single(row.GetVisualDescendants().OfType<Button>()).IsEnabled);
                 if (hasHistory) Assert.Contains(row.GetVisualDescendants().OfType<TextBlock>(), text => text.Text == "New chats only");
-            }
-            finally { pickerWindow?.Close(); window.Close(); }
-        });
+          });
+        }
+        finally { harness.Main.OnMain(() => { pickerWindow?.Close(); window?.Close(); }); }
     });
 }
