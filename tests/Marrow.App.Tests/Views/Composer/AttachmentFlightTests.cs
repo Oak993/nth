@@ -13,6 +13,25 @@ namespace Marrow.App.Tests.Views.Composer;
 public sealed class AttachmentFlightTests(HeadlessSession headless)
 {
     [Fact]
+    [Trait("Req", "PR-COMPOSER-084")] // App/Views/Composer/AttachmentFlight.swift:146-171 screen conversion and layout reporting
+    public void Review_screen_frame_reader_reports_window_offset_and_control_size() => headless.OnUiThread(() =>
+    {
+        var reports = new List<Rect>();
+        var reader = new ScreenFrameReader(reports.Add)
+        {
+            Width = 40, Height = 20, Margin = new Thickness(12, 18, 0, 0),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+        };
+        var window = new Avalonia.Controls.Window { Width = 300, Height = 200, Position = new PixelPoint(100, 200), Content = reader };
+        window.Show(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var origin = window.PointToScreen(new Point(12, 18));
+        Assert.Contains(new Rect(origin.X / window.RenderScaling, origin.Y / window.RenderScaling, 40, 20), reports);
+        reader.Width = 50; window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Equal(50, reports[^1].Width);
+        window.Close();
+    });
+    [Fact]
     [Trait("Decision", "ED-155")]
     public void The_flight_window_extended_style_is_noactivate_layered_toolwindow_transparent()
     {
@@ -174,7 +193,7 @@ public sealed class AttachmentFlightTests(HeadlessSession headless)
         Assert.Equal(2, platform.Created.Count);
         runtime.Advance(AttachmentFlight.SettlingDuration);
         runtime.OnMain(() => frames.Advance(AttachmentFlight.SettlingDuration));
-        Assert.Equal(0, firstLanding);
+        Assert.Equal(1, firstLanding); // Swift :111-116 captures the old flight and never cancels its completion.
         Assert.Equal(1, platform.Created[1].Surface.OrderOuts);
     }
 
