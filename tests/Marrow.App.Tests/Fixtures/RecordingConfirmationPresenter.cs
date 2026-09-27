@@ -1,4 +1,5 @@
 using Marrow.App.Port;
+using Marrow.Core.Port;
 
 namespace Marrow.App.Tests.Fixtures;
 
@@ -16,6 +17,7 @@ public sealed class RecordingConfirmationPresenter : IAlertPresenter
         Shown.Add(request);
         AlertSession? session = null;
         session = new AlertSession(request, () => session!.Closed());
+        session.BindLifetime(SwiftTask.CancellationToken);
         sessions.Add(session);
         return session.Completion;
     }
