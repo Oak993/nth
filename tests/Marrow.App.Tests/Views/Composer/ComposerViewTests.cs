@@ -3305,16 +3305,6 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // row selects it and Return commits that row (PR-COMPOSER-055), and the failure note and the retry row with its
 // label, symbol and place (PR-COMPOSER-050).
 
-// STOP App.Views.Composer.ComposerView #6
-// Kind: missing dependency
-// Swift: DroppyCode/App/Views/Composer/ComposerView.swift:637,688 (B3 52bc792)
-// Records: PR-COMPOSER-077 (active styling), PR-COMPOSER-090 (model content), UI-COMPOSER-011.
-// Missing: UI.Common.Components ChipButtonStyleHelper has no implementation or callable styling API;
-// ModelEffortButton in App.Views.Composer.EffortSlider still throws MARROW_STUB at Swift:59.
-// Needed: owning units implement the chip style and ModelEffortButton. No dependency file was edited.
-// Only those calls remain unwritten. Attach action/popup/focus and trailing-row layout are implemented and tested.
-// ModelEffortSlot has no substitute content. Rendering a model chip is not claimed verified.
-
 // STOP App.Views.Composer.ComposerView #7
 // Kind: missing dependency
 // Swift: DroppyCode/App/Views/Composer/ComposerView.swift:941 (B3 52bc792)
