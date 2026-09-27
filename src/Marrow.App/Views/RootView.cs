@@ -62,7 +62,7 @@ public sealed class RootView : Decorator
     private readonly DetailView detailView = new();
     private readonly Border detailClip;
     private readonly Border detailPadded;
-    private readonly Panel detailSlot = new();
+    private readonly Panel detailSlot = new OverlayPanel();
     private readonly WindowBackdrop backdrop;
     private readonly WindowChromeProbe chromeProbe = new();
     private readonly WindowChromeConfigurator chromeConfig = new();
@@ -70,13 +70,15 @@ public sealed class RootView : Decorator
     private readonly Panel outerRoot = new();
     private readonly Panel paletteHost = new();
     private CommandPalette? palette;
-    private Control? floatingPanel;
+    private FloatingSidebarPanel? floatingPanel;
     private Size detailSize;
     private bool? lastFloats;
     private bool lastOnlyFloats;
     private Size lastFloatDetailSize = new(-1, -1);
     private bool alertShowing;
     private Avalonia.Controls.Window? alertDialog;
+    private TextBlock? alertMessage;
+    private AppAlert? displayedAlert;
 
     // :80-91 R-VIEW-9: record the owned modal request in headless tests, keeping the real dialog's content.
     internal static Ambient<Func<Avalonia.Controls.Window, Avalonia.Controls.Window, System.Threading.Tasks.Task>> PresentAlertDialog { get; } =
@@ -125,7 +127,7 @@ public sealed class RootView : Decorator
         trailingHandle.VerticalAlignment = VerticalAlignment.Stretch;
         trailingHandle.Margin = new Thickness(0, Chrome.TrafficLightTop + Chrome.TrafficLightDiameter, 0, 0); // :30
 
-        var sidebarSlot = new Panel { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Stretch };
+        var sidebarSlot = new OverlayPanel { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Stretch };
         sidebarSlot.Children.Add(sidebarClip);
         sidebarSlot.Children.Add(trailingHandle);
 
@@ -185,9 +187,8 @@ public sealed class RootView : Decorator
 
         // :66-68 clipped to the window's own rounded shape only after the backdrop is painted, so the glass and its
         // edge stop at the window's own curve (PR-WIN-062, "Clip the composited window to the same squircle... so
-        // the DWM shadow follows the same curve" - WindowChrome.cs's own Configure/PlaceTrafficLights already own
-        // the platform window's frame and region; this Border is the composited content's own clip, the Avalonia
-        // half of that windows_path). .ignoresSafeArea() (:68) has nothing to do here: Windows reserves no OS-drawn
+        // the DWM shadow follows the same curve" - the native region/DWM preference and four-corner capture
+        // remain STOP #4 in RootViewTests.cs; this Border is only the composited-content part of that contract). .ignoresSafeArea() (:68) has nothing to do here: Windows reserves no OS-drawn
         // safe area over this fully custom-chromed window, the identical call WindowChrome.cs's own top-of-file
         // note already makes for the titlebar container it has no counterpart for.
         windowClip = new Border
@@ -272,13 +273,7 @@ public sealed class RootView : Decorator
         RebuildFloatingOverlay(animated);
     }
 
-    // :45-50 the floating panel overlay: rebuilt fresh from the current inputs every time this or detailPadded's own
-    // SizeChanged handler calls in, skipping the rebuild when nothing it reads actually changed. FloatingSidebarPanel
-    // (Views/Sidebar/FloatingSidebarPanel.cs) carries no Update method of its own (R-VIEW-1's per-render
-    // reconstruction is that unit's own design, not this one's to revisit): a resize that lands mid-drag on the
-    // panel's own title or resize handle loses that drag's transient @State a real SwiftUI re-render would have
-    // kept identity-preserved - ENGINEERING GAP, the same shape as NewThreadPrompt.cs's own noted
-    // minimumScaleFactor gap, and unreachable outside that one simultaneous gesture.
+    // :44-51 A size update changes only the panel area; its SidebarView and transient state keep identity.
     private void RebuildFloatingOverlay(bool animated)
     {
         AppModel model;
@@ -289,7 +284,12 @@ public sealed class RootView : Decorator
         var floats = model.Settings.SidebarFloats && (onlyFloats || !model.Sidebar.IsVisible); // :13
         var shouldShow = floats && detailSize != default; // :46 detailSize != .zero
 
-        if (shouldShow == (floatingPanel is not null) && onlyFloats == lastOnlyFloats && detailSize == lastFloatDetailSize) return;
+        if (shouldShow == (floatingPanel is not null) && onlyFloats == lastOnlyFloats)
+        {
+            if (detailSize != lastFloatDetailSize) floatingPanel?.UpdateArea(detailSize);
+            lastFloatDetailSize = detailSize;
+            return;
+        }
         lastOnlyFloats = onlyFloats;
         lastFloatDetailSize = detailSize;
 
@@ -365,7 +365,18 @@ public sealed class RootView : Decorator
         try { model = AppEnvironment.GetAppModel(this); }
         catch (InvalidOperationException) { return; }
         if (model.Alert is not { } alert) { alertDialog?.Close(); return; } // :83-84 false presentation binding
-        if (alertShowing) return;
+        if (alertShowing)
+        {
+            // :81,90 A replacement non-nil alert updates the presentation that is already shown.
+            if (alertDialog is { IsVisible: true } shown)
+            {
+                shown.Title = alert.Title;
+                alertMessage!.Text = alert.Message;
+                displayedAlert = alert;
+            }
+            return;
+        }
+        displayedAlert = alert;
         alertShowing = true;
         _ = ShowAlert(model, alert);
     }
@@ -391,15 +402,21 @@ public sealed class RootView : Decorator
         }
         finally
         {
+            var dismissed = displayedAlert;
             alertDialog = null;
+            alertMessage = null;
+            displayedAlert = null;
             alertShowing = false;
-            model.Alert = null; // :83-84 dismissal writes the false presentation binding
+            if (ReferenceEquals(model.Alert, dismissed))
+                model.Alert = null; // :83-84 dismissal clears only the alert actually displayed
+            else if (model.Alert is not null)
+                UpdateAlert(); // a newer alert arriving after close must not be cleared unseen
         }
     }
 
     // :80-91 The plain Windows alert form already used by Port/AlertPresenter, with the source's one cancel button.
     // Keep the closeable window in this RootView so model.alert controls presentation in both directions.
-    private static Avalonia.Controls.Window BuildAlertDialog(AppAlert alert)
+    private Avalonia.Controls.Window BuildAlertDialog(AppAlert alert)
     {
         var dialog = new Avalonia.Controls.Window
         {
@@ -412,12 +429,30 @@ public sealed class RootView : Decorator
         button.Click += (_, _) => dialog.Close();
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
         buttons.Children.Add(button);
+        alertMessage = new TextBlock { Text = alert.Message, TextWrapping = TextWrapping.Wrap, MaxWidth = 360 };
         dialog.Content = new StackPanel
         {
             Margin = new Thickness(20), Spacing = 16,
-            Children = { new TextBlock { Text = alert.Message, TextWrapping = TextWrapping.Wrap, MaxWidth = 360 }, buttons },
+            Children = { alertMessage, buttons },
         };
         return dialog;
+    }
+
+    // :22-31,44-51 SwiftUI overlays never contribute to the underlying view's measured size.
+    private sealed class OverlayPanel : Panel
+    {
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            foreach (var child in Children.ToArray()) child.Measure(availableSize);
+            return Children.Count == 0 ? default : Children[0].DesiredSize;
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            // Arranging the base reports its area and may insert/remove the floating overlay.
+            foreach (var child in Children.ToArray()) child.Arrange(new Rect(finalSize));
+            return finalSize;
+        }
     }
 
     // PORT-ONLY: Avalonia's drag-and-drop pipeline only fires Drop when a DragOver handler has already accepted the
@@ -425,7 +460,8 @@ public sealed class RootView : Decorator
     // needing this on macOS).
     private void OnDragOver(object? sender, DragEventArgs e)
     {
-        e.DragEffects = DragDropEffects.Copy; // :77-79 dropDestination(for: URL.self) accepts a URL drag unconditionally
+        e.DragEffects = e.DataTransfer.Items.Any(item => item.TryGetFile()?.TryGetLocalPath() is not null)
+            ? DragDropEffects.Copy : DragDropEffects.None; // :77-79 only a file URL can reach HandleDrop
         e.Handled = true;
     }
 

@@ -2761,9 +2761,9 @@ internal sealed class SidebarThreadRow : Decorator
         void ReopenRow() => Reopen(Model, Thread(), () =>
         {
             if (listFrame is null) return; // :1934
-            Glide(RowGlideAnimator.Shared.Current, RowGlideAnimator.Glide.Direction.Reopen, listFrame.Frame,
+            GlideAtScale(RowGlideAnimator.Shared.Current, RowGlideAnimator.Glide.Direction.Reopen, listFrame.Frame,
                 windowFrame.Frame, Thread(), projectName, projectIcon, Model.IsSelected(snapshot.Id), state.IsHovering,
-                Model.ExistingRuntime(snapshot.Id), ActualThemeVariant); // :1933-1978
+                Model.ExistingRuntime(snapshot.Id), ActualThemeVariant, TopLevel.GetTopLevel(this)?.RenderScaling ?? 2); // :1933-1978
         });
         void ArchiveRow() => ArchiveWithGenie(GenieAnimator.Shared.Current, Model, Thread(), projectName, projectIcon,
             Model.IsSelected(snapshot.Id), Model.ExistingRuntime(snapshot.Id), windowFrame.Frame, ActualThemeVariant); // :1988-1999
@@ -2823,7 +2823,6 @@ internal sealed class SidebarThreadRow : Decorator
             SetHidden(hidden); // :1834-1838
             AutomationProperties.SetName(selectButton, thread.Title); // :1871-1872
         });
-        Rect? reported = null;
         overlays.OnHover(hovering => // :1816 hover includes the overlaid check and accessory buttons
         {
             Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering); // :1816-1818
@@ -2836,9 +2835,7 @@ internal sealed class SidebarThreadRow : Decorator
             if (!isDragged && !state.IsHovering && animator.Glides.Count == 0) return; // :1827
             if (TopLevel.GetTopLevel(this) is not { } window || this.TranslatePoint(default, window) is not { } origin) return;
             var frame = new Rect(origin, Bounds.Size); // :1903-1905 window space, not the list space
-            if (reported == frame) return;
-            reported = frame;
-            windowFrame.Note(frame); // :1828
+            windowFrame.Note(frame); // :1828,2433-2440 suppress only the holder write, never the following Land
             animator.Land(Thread().Id, snapshot.IsSettled, frame); // :1830 snapshot describes this row's destination
         }
         LayoutUpdated += (_, _) => ReportFrame();
@@ -3154,6 +3151,25 @@ internal sealed class SidebarThreadRow : Decorator
         ThreadRuntime? runtime,
         ThemeVariant colorScheme)
     {
+        GlideAtScale(animator, direction, listFrame, windowFrame, thread, projectName, projectIcon,
+            isSelected, isHovering, runtime, colorScheme, 2); // detached caller: PR-SIDEBAR-135 minimum/fallback
+    }
+
+    // :1933-1978 PR-SIDEBAR-135 windows_path: render at this row's window DPI, with minimum scale 2.
+    private static void GlideAtScale(
+        RowGlideAnimator animator,
+        RowGlideAnimator.Glide.Direction direction,
+        Rect listFrame,
+        Rect windowFrame,
+        ChatThread thread,
+        string? projectName,
+        ProjectIcon? projectIcon,
+        bool isSelected,
+        bool isHovering,
+        ThreadRuntime? runtime,
+        ThemeVariant colorScheme,
+        double windowScale)
+    {
         var from = windowFrame; // :1930
         var bounds = listFrame; // :1931
         var settled = direction == RowGlideAnimator.Glide.Direction.Settle; // :1933
@@ -3172,11 +3188,11 @@ internal sealed class SidebarThreadRow : Decorator
         var departureClearance = TrailingClearance(thread.IsSettled, projectName is not null, showsActions: true); // :1952
         var arrivalClearance = TrailingClearance(settled, !settled && projectName is not null, showsActions: false); // :1953
         var departure = animator.Render(
-            new ThreadRowFace(thread, projectName, isSelected, departureClearance, Badge, projectIcon), from.Size, colorScheme); // :1954-1957
+            new ThreadRowFace(thread, projectName, isSelected, departureClearance, Badge, projectIcon), from.Size, colorScheme, Math.Max(2, windowScale)); // :1954-1957
         if (departure is null) return; // :1958 guard let departure = ..., let arrival = ... else { return }
         var arrival = animator.Render(
             new ThreadRowFace(arriving, projectName, isSelected, arrivalClearance, Badge, projectIcon),
-            new Size(from.Width, arrivalHeight), colorScheme); // :1959-1961
+            new Size(from.Width, arrivalHeight), colorScheme, Math.Max(2, windowScale)); // :1959-1961
         if (arrival is null) return;
         animator.Launch( // :1962-1970
             thread.Id,
