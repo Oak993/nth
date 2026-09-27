@@ -411,11 +411,11 @@ public sealed class ChatView : Decorator
         if (scene.Subagent is { } helper && scene.IsMeasured)
             Mount(new FloatingPanelID.Subagent(), (helper, project), () => MakeSubagentPanel(helper, holds));
         if (scene.ShowsHydra)
-            Mount(new FloatingPanelID.Hydra(), (workingDirectory, project), () => MakeHydraPanel(scene.Heads, new FloatingPanelID.Hydra(), hydraDrag, runtime.HydraPanelDock, holds, popped: false));
+            Mount(new FloatingPanelID.Hydra(), (scene.Heads, workingDirectory, project), () => MakeHydraPanel(scene.Heads, new FloatingPanelID.Hydra(), hydraDrag, runtime.HydraPanelDock, holds, popped: false));
         if (scene.Popped is { } head && scene.ShowsPopped)
-            Mount(new FloatingPanelID.Popped(), (head.Id, workingDirectory, project), () => MakeHydraPanel([head], new FloatingPanelID.Popped(), poppedDrag, runtime.HydraPoppedPanelDock, holds, popped: true));
+            Mount(new FloatingPanelID.Popped(), (head, workingDirectory, project), () => MakeHydraPanel([head], new FloatingPanelID.Popped(), poppedDrag, runtime.HydraPoppedPanelDock, holds, popped: true));
         foreach (var autoHead in scene.AutoPopped)
-            Mount(new FloatingPanelID.Auto(autoHead.Id), (workingDirectory, project), () => MakeHydraPanel([autoHead], new FloatingPanelID.Auto(autoHead.Id), autoDrags.GetValueOrDefault(autoHead.Id) ?? autoDrag, runtime.HydraPanelDock.AcrossTheColumn, holds, popped: true));
+            Mount(new FloatingPanelID.Auto(autoHead.Id), (autoHead, workingDirectory, project), () => MakeHydraPanel([autoHead], new FloatingPanelID.Auto(autoHead.Id), autoDrags.GetValueOrDefault(autoHead.Id) ?? autoDrag, runtime.HydraPanelDock.AcrossTheColumn, holds, popped: true));
         if (scene.Usage is { } usage && scene.ShowsUsage)
             Mount(new FloatingPanelID.Usage(), usage, () => MakeUsagePanel(usage, holds));
         foreach (var id in mountedPanels.Keys.Where(id => !wanted.Contains(id)).ToArray())
