@@ -2,6 +2,8 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Templates;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media;
@@ -38,7 +40,7 @@ public abstract class SettingsRestFixture(HeadlessSession headless)
         window.MouseMove(point); window.MouseDown(point, MouseButton.Left); window.MouseUp(point, MouseButton.Left); Drain(window);
     }
     protected static void Seed(AppModel model, Marrow.Core.Models.ProviderKind provider, ProviderStatus status) => typeof(ProviderRegistry).GetProperty("Statuses")!.SetValue(model.Providers, model.Providers.Statuses.Mutating(map => map[provider] = status));
-    protected void With(Func<Control> make, Action<Control, AppModel, AppModelHarness, HostWindow> check, Action<AppModel>? seed = null, Action<AppModelHarness>? before = null, double height = 1600)
+    protected void With(Func<Control> make, Action<Control, AppModel, AppModelHarness, HostWindow> check, Action<AppModel>? seed = null, Action<AppModelHarness>? before = null, double height = 1600, bool nativePopup = false)
     {
         headless.OnUiThread(() =>
         {
@@ -46,15 +48,27 @@ public abstract class SettingsRestFixture(HeadlessSession headless)
             using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             using var wallpaper = WallpaperStore.Shared.Override((WallpaperStore)Activator.CreateInstance(typeof(WallpaperStore), nonPublic: true)!);
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var motion = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform());
             using var updates = UpdateChecker.OverrideShared(new UpdateChecker(AppInfo.Current, [], ""));
-            using var popovers = Presentation.Presenter.Override(new RecordingPresenter());
+            using var popovers = Presentation.Presenter.Override(nativePopup ? new SettingsRestPopupPresenter() : new RecordingPresenter());
             before?.Invoke(h); var model = new AppModel(); seed?.Invoke(model);
             var host = new Border { Padding = new Thickness(40) }; AppEnvironment.SetAppModel(host, model);
             var view = make(); host.Child = view;
             var window = new HostWindow { Width = 900, Height = height, Content = host, Background = Brushes.Black };
+            window.Template = new FuncControlTemplate<HostWindow>((owner, scope) => Layers(new VisualLayerManager
+            {
+                EnableOverlayLayer = true, EnableAdornerLayer = true,
+                Child = new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope),
+            }));
             try { window.Show(); Drain(window); check(view, model, h, window); }
             finally { window.Close(); Dispatcher.UIThread.RunJobs(); SettingsNavigation.Shared.RequestedPage = null; }
         });
+    }
+    private static VisualLayerManager Layers(VisualLayerManager manager)
+    {
+        // Avalonia 12.1.2 exposes its window popup layer enablement internally; match its native window template.
+        typeof(VisualLayerManager).GetProperty("EnablePopupOverlayLayer", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(manager, true);
+        return manager;
     }
     protected static void Ink(Control control, IBrush? brush, SwiftColor expected) => Assert.Equal(expected.Resolve(control.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(brush).Color);
     protected static void Font(TextBlock text, double size, FontWeight weight = default)

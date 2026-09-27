@@ -4,6 +4,7 @@ using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Models;
@@ -28,6 +29,7 @@ public sealed class SettingsRestHeaderTests(HeadlessSession headless) : Settings
             var grid = Assert.IsType<Grid>(button.Content); Assert.Equal(4, grid.ColumnDefinitions.Count); Assert.Equal(GridUnitType.Star, grid.ColumnDefinitions[2].Width.GridUnitType);
             var icon = Assert.Single(Nodes<ProviderIcon>(view)); Assert.Equal(16, icon.Size); Assert.Equal(ProviderKind.Commandcode, icon.Provider);
             var name = Assert.Single(Nodes<TextBlock>(view)); Assert.Equal("Command Code", name.Text); Font(name, 13, FontWeight.SemiBold); Ink(name, name.Foreground, SwiftColor.Secondary); Assert.Equal(new Thickness(8, 0, 0, 0), name.Margin);
+            Assert.Contains(name, button.GetVisualDescendants()); Assert.True(name.Bounds.Width > 0);
             var arrow = Assert.Single(Nodes<SwiftImage>(view), image => image.SymbolName is not null); Assert.Equal("chevron.right", arrow.SymbolName); Assert.Equal(SwiftFont.System(11, SwiftFont.Weight.Semibold), SwiftImage.GetFont(arrow)); Ink(arrow, arrow.Foreground, Chrome.SecondaryText);
             void State(bool open) { Assert.Equal(open ? "Hide the provider settings" : "Show the provider settings", ToolTip.GetTip(button)); Assert.Equal(open ? "Expanded" : "Collapsed", AutomationProperties.GetItemStatus(button)); Assert.Equal("Command Code", AutomationProperties.GetName(button)); Assert.Equal("Shows or hides the provider settings", AutomationProperties.GetHelpText(button)); Assert.Equal(1, AutomationProperties.GetHeadingLevel(button)); }
             State(false); Assert.Equal(0, Assert.IsType<RotateTransform>(arrow.RenderTransform).Angle);
