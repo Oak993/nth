@@ -12,6 +12,8 @@ using Avalonia.Threading;
 using Marrow.UI.Port;
 using Marrow.UI.Tests.Fixtures;
 using Xunit;
+using Pattern = Marrow.UI.Tests.Fixtures.GlassBackdropPattern;
+using Scene = Marrow.UI.Tests.Fixtures.GlassScene;
 
 namespace Marrow.UI.Tests.Port;
 
@@ -158,6 +160,19 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-WIN-180")] // UI/Chrome/Chrome.swift:179-182; addendum edge refraction; P1 band 46 / strength 26
+    public void EdgeRefractionBendsABroadGradientOutward() => headless.OnUiThread(() =>
+    {
+        using var scene = new Scene(new Pattern { Gradient = true }, Surface(GlassShape.RoundedRectangle(16, RoundedCornerStyle.Continuous)));
+        var pixels = scene.Pixels("glass-material-refraction.png");
+        // An affine gradient survives blur. A 0.18 frost wash alone gives ~50/~170 here;
+        // these engineering thresholds require displacement beyond the rim/shadow contribution.
+        Assert.True(pixels(54, 80).R < 42, "The left edge must sample farther left than plain frost.");
+        Assert.True(pixels(201, 80).R > 180, "The right edge must sample farther right than plain frost.");
+        Assert.InRange(pixels(128, 80).R, (byte)98, (byte)122); // deep interior retains the undistorted gradient
+    });
+
+    [Fact]
     [Trait("Req", "PR-WIN-180")] // UI/Chrome/Chrome.swift:165 Capsule; ThreadChangesTab.swift:15,38 top-only corners
     public void UnevenCornersAreKeptAndVisibilityRemovesTheUnderlay() => headless.OnUiThread(() =>
     {
@@ -203,54 +218,4 @@ public sealed class GlassMaterialTests(HeadlessSession headless)
         return glass;
     }
 
-    private sealed class Pattern : Control
-    {
-        public bool Flat { get; init; }
-        public bool IsolatedStroke { get; init; }
-        public bool Blue { get; set; }
-        public int RenderCount { get; private set; }
-        public override void Render(DrawingContext context)
-        {
-            RenderCount++;
-            context.DrawRectangle(Blue ? Brushes.Blue : Flat ? Brushes.Gray : Brushes.Black, null, new Rect(Bounds.Size));
-            if (Flat) return;
-            if (IsolatedStroke) context.DrawRectangle(Brushes.White, null, new Rect(127, 0, 2, 160));
-            else for (var x = 0; x < 256; x += 4) context.DrawRectangle(Brushes.White, null, new Rect(x, 0, 2, 160));
-        }
-    }
-
-    private sealed class Scene : IDisposable
-    {
-        private readonly Window window;
-        public Window Window => window;
-        public Scene(Control backdrop, Control glass)
-        {
-            window = new Window { Width = 256, Height = 160, RequestedThemeVariant = ThemeVariant.Dark,
-                Content = new Panel { Children = { backdrop, glass } } };
-            window.Show();
-        }
-        public static void Drain()
-        {
-            Dispatcher.UIThread.RunJobs();
-            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-            Dispatcher.UIThread.RunJobs();
-        }
-        public Func<int, int, Color> Pixels()
-        {
-            for (var i = 0; i < 4; i++) Drain();
-            using var bitmap = window.CaptureRenderedFrame()!;
-            var size = bitmap.PixelSize;
-            var bytes = new byte[size.Width * size.Height * 4];
-            var handle = GCHandle.Alloc(bytes, GCHandleType.Pinned);
-            try { bitmap.CopyPixels(new PixelRect(size), handle.AddrOfPinnedObject(), bytes.Length, size.Width * 4); }
-            finally { handle.Free(); }
-            var rgba = bitmap.Format == Avalonia.Platform.PixelFormat.Rgba8888;
-            return (x, y) =>
-            {
-                var p = (y * size.Width + x) * 4;
-                return Color.FromArgb(bytes[p + 3], bytes[p + (rgba ? 0 : 2)], bytes[p + 1], bytes[p + (rgba ? 2 : 0)]);
-            };
-        }
-        public void Dispose() => window.Close();
-    }
 }
