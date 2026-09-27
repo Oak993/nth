@@ -24,7 +24,6 @@ using Marrow.UI.Sound;
 namespace Marrow.App.Views.Settings;
 
 // Source: DroppyCode/App/Views/Settings/MCPSettingsPage.swift (B3 52bc792), :1-1141.
-// Partial: :55-57 native grid transitions await shared keyed animation support (STOP #4 in follow-up tests).
 // DEVIATION OD-0012 F1: Marrow; OD-0008 B3/B4: Credential Manager / this PC.
 public sealed class MCPSettingsPage : Decorator
 {
@@ -46,7 +45,10 @@ public sealed class MCPSettingsPage : Decorator
     private MCPCustomSection? customs;
     private string? customsQuery;
     // PORT-ONLY identity cache for :49-59's ForEach/LazyVGrid. Retaining a card keeps its onChange armed.
-    private sealed record CategoryView(ChromeSection Section, Grid Grid, ForEach<MCPCatalogEntry, string> Cards);
+    private sealed record CategoryView(ChromeSection Section, Grid Grid, ForEach<MCPCatalogEntry, string> Cards)
+    {
+        public ValueSet<string> Celebrating { get; set; } = new([], SwiftStringComparer.Instance);
+    }
     private readonly Dictionary<MCPCategory, CategoryView> categories = new();
     private TextBlock? deletionReport; // OD-0008 A12 / OD-0012 E6
     // :7,35-63
@@ -96,16 +98,36 @@ public sealed class MCPSettingsPage : Decorator
         foreach (var group in MCPCatalog.ByCategory)
         {
             var visible = group.Entries.Where(e => (!model.Mcp.State(e.Id).IsConnected || view.Celebrating.Contains(e.Id)) && Matches(e, query)).ToArray(); // :25-33
-            if (visible.Length == 0) continue;
-            visibleCategories.Add(group.Category);
+            if (visible.Length == 0 && !categories.ContainsKey(group.Category)) continue;
             if (!categories.TryGetValue(group.Category, out var category))
             {
                 var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*"), ColumnSpacing = 10, RowSpacing = 10 };
-                var cards = new ForEach<MCPCatalogEntry, string>(grid, e => e.Id, e => new MCPServerCard(e, view.Celebrating.Contains(e.Id)), (control, e) => ((MCPServerCard)control).UpdateCelebrating(view.Celebrating.Contains(e.Id)));
-                categories[group.Category] = category = new CategoryView(new ChromeSection(group.Category.Title(), () => grid), grid, cards);
+                var cards = new ForEach<MCPCatalogEntry, string>(grid, e => e.Id,
+                    e => new MCPServerCard(e, view.Celebrating.Contains(e.Id)).Transition(SwiftTransition.Scale(0.9).Combined(SwiftTransition.Opacity)), // :55
+                    (control, e) => ((MCPServerCard)control).UpdateCelebrating(view.Celebrating.Contains(e.Id)));
+                // ED-218: the last row's removal must finish before its containing category leaves the tree.
+                grid.Children.CollectionChanged += (_, _) =>
+                {
+                    if (grid.Children.Count == 0 && stateChanges is not null)
+                        MainActor.Post(() => { if (stateChanges is not null) Rebuild(); });
+                };
+                categories[group.Category] = category = new CategoryView(new ChromeSection(group.Category.Title(), () => grid), grid, cards) { Celebrating = view.Celebrating };
             }
-            category.Cards.Apply(visible); category.Grid.RowDefinitions.Clear();
-            for (var i = 0; i < category.Grid.Children.Count; i++) { if (i % 2 == 0) category.Grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto)); Grid.SetColumn(category.Grid.Children[i], i % 2); Grid.SetRow(category.Grid.Children[i], i / 2); }
+            // :57 .animation(_, value: celebrating) also applies when a states-triggered rebuild was already queued.
+            var gridAnimation = category.Celebrating.Equals(view.Celebrating) ? Transaction.Current : Animation.Spring(duration: 0.35);
+            category.Celebrating = view.Celebrating;
+            if (EnvironmentValues.GetAccessibilityReduceMotion(this)) gridAnimation = null;
+            Transaction.WithAnimation(gridAnimation, () =>
+            {
+                category.Cards.Apply(visible); category.Grid.RowDefinitions.Clear();
+                // Exiting controls keep their old grid slot while active rows take their new slots and glide (:55-57).
+                var active = category.Cards.Controls;
+                for (var i = 0; i < active.Count; i++) { Grid.SetColumn(active[i], i % 2); Grid.SetRow(active[i], i / 2); }
+                var rowCount = category.Grid.Children.Count == 0 ? 0 : category.Grid.Children.Max(control => Grid.GetRow(control)) + 1;
+                for (var i = 0; i < rowCount; i++) category.Grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
+            });
+            if (category.Grid.Children.Count == 0) continue;
+            visibleCategories.Add(group.Category);
             children.Add(category.Section); // :49-59
         }
         foreach (var gone in categories.Keys.Where(category => !visibleCategories.Contains(category)).ToArray()) categories.Remove(gone);
