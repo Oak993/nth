@@ -4208,7 +4208,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Equal("arrowshape.turn.up.right", forward.Symbol);
             forward.Action(); // :2211 Task { await model.forwardThread(thread.id) }
         });
-<        // AppModel.swift:624-646 awaits document loading and continuation installation before selecting the new thread.
+        // AppModel.swift:624-646 awaits document loading and continuation installation before selecting the new thread.
         // Fixed a race (was about 1 in 4 failures): AppModel.ForwardThread (AppModel.cs:722-742) awaits
         // sourceRuntime.EnsureLoaded() and newRuntime.InstallContinuation(continuation), each a real, variable-
         // duration async hop off this loop (I/O-bound), not a single microtask, so poll the real completion

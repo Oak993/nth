@@ -390,7 +390,7 @@ public sealed class HydraHeadPopoversTests(HeadlessSession headless)
     [Trait("Decision", "ED-197")]
     public void Duration_matches_the_migrated_RelativeTime_duration_and_drops_zero_seconds()
     {
-<        // The previous test encoded Components' unmigrated gap. That gap is now closed:
+        // The previous test encoded Components' unmigrated gap. That gap is now closed:
         // HydraHeadPopovers.swift:124-126 calls RelativeTime.duration, and Components.swift:37-41
         // formats narrow {seconds, minutes, hours} with at most two units (ED-197).
         // Both paths must produce the source-derived "1m" at exactly 60 seconds, with no zero seconds unit.
