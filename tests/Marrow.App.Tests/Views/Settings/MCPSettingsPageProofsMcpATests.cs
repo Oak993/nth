@@ -1,3 +1,4 @@
+using static Marrow.App.Tests.Fixtures.MCPProofsMcpARound2Input;
 using BindingFlags = System.Reflection.BindingFlags;
 using System.Text.Json;
 using Avalonia;
@@ -13,6 +14,7 @@ using Avalonia.Platform;
 using Avalonia.Platform.Storage;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.Core.Models;
@@ -68,13 +70,10 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
     // ED-059/091 + OD-0009: fixed nominal sizes, Inter and Cascadia Mono; no app zoom in the font.
     private static void Font(TextBlock block, double size, FontWeight weight = FontWeight.Normal, bool mono = false)
     {
-        Assert.Equal(size, block.FontSize); Assert.Equal(weight, block.FontWeight);
+        Assert.Equal(size, block.FontSize); Assert.Equal(weight, block.FontWeight); Assert.Equal(FontStyle.Normal,block.FontStyle); Assert.Equal(TextAlignment.Start,block.TextAlignment); // Swift leading is logical text start.
         Assert.Equal(SwiftFont.System(size, design: mono ? SwiftFont.Design.Monospaced : SwiftFont.Design.Default).Resolve().FontFamily, block.FontFamily);
     }
     private static TextBlock Text(Control root, string text) => Nodes<TextBlock>(root).Single(t => t.Text == text);
-    private static void Hover(Control control, bool entered) => control.RaiseEvent(new PointerEventArgs(
-        entered ? InputElement.PointerEnteredEvent : InputElement.PointerExitedEvent, control,
-        new Pointer(1, PointerType.Mouse, true), control, default, 0, default, default));
     // Simulate the platform Opened notification; invoke the REAL PlainControls.Popover factory handler.
     private static Control OpenContent(Popup popup)
     {
@@ -92,7 +91,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-2")] // MCPSettingsPage.swift:328-348,505-507; ED-180 source-defined surroundings only
     // STOP opencode-proofs-mcp-a #3: UI-MCP-024 UI-MCP-025 UI-MCP-028 UI-MCP-029 UI-MCP-030 UI-MCP-037.
     // Native .controlSize(.small) metrics/type have no approved measured mapping (OD-0001).
-    // F.GlassMaterial is not landed; ED-180 calls the material tracked incomplete work, not a completed substitute.
+    // Native small-control geometry and typography still have no measured approved mapping; the material has now landed on impl/b2.
     public void Actions_keep_source_labels_primary_colour_and_glass_effect_data_in_each_branch(string label, bool oauth, bool failed, bool custom)
     {
         Ui((model, _, _, _) =>
@@ -104,7 +103,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             Assert.Contains(Nodes<Border>(button), b => SwiftGlass.GetEffect(b) is { IsInteractive: true } effect && (effect.TintColor is not null) == (label == "Fix it"));
             if (label == "Fix it")
             {
-                Click(button); Assert.True(MCPSetupPanel.Shared.IsPresenting(Entry())); var panel = typeof(FloatingGuidePanel).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(MCPSetupPanel.Shared); Click(button); Assert.Same(panel, typeof(FloatingGuidePanel).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(MCPSetupPanel.Shared)); MCPSetupPanel.Shared.Close();
+                PointerClick(button); Assert.True(MCPSetupPanel.Shared.IsPresenting(Entry())); var panel = typeof(FloatingGuidePanel).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(MCPSetupPanel.Shared); PointerClick(button); Assert.Same(panel, typeof(FloatingGuidePanel).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(MCPSetupPanel.Shared)); MCPSetupPanel.Shared.Close();
             }
         });
     }
@@ -138,21 +137,22 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             var original = (IWindowImpl)platformField.GetValue(mainWindow)!; var proxy = System.Reflection.DispatchProxy.Create<IWindowImpl, MCPProofsMcpAWindowProxy>();
             ((MCPProofsMcpAWindowProxy)proxy).Original = original; ((MCPProofsMcpAWindowProxy)proxy).Launcher = launcher; platformField.SetValue(mainWindow, proxy);
             var lifetimeField = typeof(Application).GetField("_applicationLifetime", BindingFlags.Instance | BindingFlags.NonPublic)!;
-            desktop.MainWindow = mainWindow; lifetimeField.SetValue(Application.Current, desktop);
+            desktop.MainWindow = mainWindow; lifetimeField.SetValue(Application.Current, desktop); var inputWindows = new List<IDisposable>();
             try
             {
-                var plain = Entry(); var card = new MCPServerCard(plain); using var plainWindow = Attach(card, model); Click(Button(card, "Connect")); Assert.IsType<MCPConnectionState.Connecting>(model.Mcp.State(plain.Id)); model.Mcp.Disconnect(plain);
+                void Show(Control content) => inputWindows.Add(Attach(content, model));
+                var plain = Entry(); var card = new MCPServerCard(plain); Show(card); PointerClick(Button(card, "Connect")); Assert.IsType<MCPConnectionState.Connecting>(model.Mcp.State(plain.Id)); model.Mcp.Disconnect(plain);
                 var keyed = Entry("keyed") with { KeysURL = "https://example.invalid/keys", Fields = new[] { new MCPField("TOKEN", "API Key", "Paste", MCPField.Kind.Secret) } };
-                Assert.True(keyed.NeedsInput); var keyCard = new MCPServerCard(keyed); using var keyWindow = Attach(keyCard, model); Click(Button(keyCard, "Connect"));
+                Assert.True(keyed.NeedsInput); var keyCard = new MCPServerCard(keyed); Show(keyCard); PointerClick(Button(keyCard, "Connect"));
                 Assert.IsType<MCPConnectionState.NotConnected>(model.Mcp.State(keyed.Id)); Assert.Equal(new Uri("https://example.invalid/keys"), Assert.Single(launcher.Requests));
                 var panel = (Avalonia.Controls.Window)typeof(FloatingGuidePanel).GetField("panel", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(MCPKeyPanel.Shared)!;
                 Assert.True(panel.IsVisible); Assert.Single(Nodes<MCPKeyPanelView>(Assert.IsAssignableFrom<Control>(panel.Content))); MCPKeyPanel.Shared.Close();
-                var custom = Custom(); var row = new MCPCustomRow(custom); using var rowWindow = Attach(row, model); Click(Button(row, "Connect")); Assert.IsType<MCPConnectionState.Connecting>(model.Mcp.State(custom.Id)); model.Mcp.Disconnect(custom.CatalogEntry());
-                var keyedCustom = Custom(1); Assert.True(keyedCustom.CatalogEntry().NeedsInput); var keyedRow = new MCPCustomRow(keyedCustom); using var keyedRowWindow = Attach(keyedRow, model); Click(Button(keyedRow, "Connect"));
+                var custom = Custom(); var row = new MCPCustomRow(custom); Show(row); PointerClick(Button(row, "Connect")); Assert.IsType<MCPConnectionState.Connecting>(model.Mcp.State(custom.Id)); model.Mcp.Disconnect(custom.CatalogEntry());
+                var keyedCustom = Custom(1); Assert.True(keyedCustom.CatalogEntry().NeedsInput); var keyedRow = new MCPCustomRow(keyedCustom); Show(keyedRow); PointerClick(Button(keyedRow, "Connect"));
                 Assert.IsType<MCPConnectionState.NotConnected>(model.Mcp.State(keyedCustom.Id)); Assert.True(panel.IsVisible); Assert.Single(launcher.Requests); MCPKeyPanel.Shared.Close();
                 Dispatcher.UIThread.RunJobs();
             }
-            finally { MCPKeyPanel.Shared.Close(); lifetimeField.SetValue(Application.Current, previous); platformField.SetValue(mainWindow, original); }
+            finally { MCPKeyPanel.Shared.Close(); foreach (var inputWindow in inputWindows) inputWindow.Dispose(); lifetimeField.SetValue(Application.Current, previous); platformField.SetValue(mainWindow, original); }
         });
     }
 
@@ -167,17 +167,17 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             runtime.OnMain(() => { Assert.True(model.Settings.ConfirmBeforeDeleting); Assert.Null(model.Mcp.SaveCustom(server)); Connection(model, new MCPConnection(server.Id)); Assert.True(model.Mcp.SaveCustomValues(new[] { ("TOKEN", "fixture-secret", true) }, server.Id, null)); });
             var row = new MCPCustomRow(server); using var window = runtime.OnMain(() => Attach(row, model));
             var beforeCustom = File.ReadAllBytes(MCPPaths.CustomsURL); var beforeConnection = File.ReadAllBytes(MCPPaths.ConnectionsURL);
-            runtime.OnMain(() => { Click(Button(Invoke<Control>(row, "BuildMenu"), "Delete")); });
+            runtime.OnMain(() => { PointerClick(Button(Invoke<Control>(row, "BuildMenu"), "Delete")); });
             Assert.Single(model.Mcp.Customs); var confirmation = Read<Control>(row, "DeleteConfirmation");
             using var confirmationWindow = runtime.OnMain(() => Attach(confirmation, model)); // measure the real middle-truncating label
             Assert.Equal(new[] { "Delete this server?", "“Example” and the values it keeps in Credential Manager will be removed.", "Delete server" }, Texts(confirmation));
             Colour(Assert.Single(Nodes<MiddleTruncatingText>(Button(confirmation, "Delete server"))).Foreground, Chrome.Danger, confirmation);
             runtime.OnMain(() => Popovers.GetClosePopover(confirmation)!.Invoke());
             Assert.Equal(beforeCustom, File.ReadAllBytes(MCPPaths.CustomsURL)); Assert.Equal(beforeConnection, File.ReadAllBytes(MCPPaths.ConnectionsURL)); Assert.Equal("fixture-secret", MCPKeychain.Value(server.Id, "TOKEN"));
-            runtime.OnMain(() => Click(Button(Invoke<Control>(row, "BuildMenu"), "Delete")));
-            confirmation = Read<Control>(row, "DeleteConfirmation"); runtime.OnMain(() => Click(Button(confirmation, "Delete server")));
+            runtime.OnMain(() => PointerClick(Button(Invoke<Control>(row, "BuildMenu"), "Delete")));
+            confirmation = Read<Control>(row, "DeleteConfirmation"); using var confirmationWindow2 = runtime.OnMain(() => Attach(confirmation, model)); runtime.OnMain(() => PointerClick(Button(confirmation, "Delete server")));
             Assert.Empty(model.Mcp.Customs); Assert.Null(MCPKeychain.Value(server.Id, "TOKEN")); Assert.DoesNotContain(server.Id, File.ReadAllText(MCPPaths.CustomsURL), StringComparison.Ordinal); Assert.DoesNotContain(server.Id, File.ReadAllText(MCPPaths.ConnectionsURL), StringComparison.Ordinal);
-            runtime.OnMain(() => { Assert.Null(model.Mcp.SaveCustom(server)); Assert.True(model.Mcp.SaveCustomValues(new[] { ("TOKEN", "fixture-secret", true) }, server.Id, null)); model.Settings.ConfirmBeforeDeleting = false; Click(Button(Invoke<Control>(row, "BuildMenu"), "Delete")); });
+            runtime.OnMain(() => { Assert.Null(model.Mcp.SaveCustom(server)); Assert.True(model.Mcp.SaveCustomValues(new[] { ("TOKEN", "fixture-secret", true) }, server.Id, null)); model.Settings.ConfirmBeforeDeleting = false; PointerClick(Button(Invoke<Control>(row, "BuildMenu"), "Delete")); });
             Assert.Empty(model.Mcp.Customs); Assert.Null(MCPKeychain.Value(server.Id, "TOKEN")); Assert.DoesNotContain(server.Id, File.ReadAllText(MCPPaths.CustomsURL), StringComparison.Ordinal);
         });
     }
@@ -191,21 +191,21 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             var backend = new MCPSettingsRefusingCredentialBackend { Refuse = true };
             using var secrets = SecretStore.Shared.Override(new SecretStore(backend));
             var editor = new MCPCustomEditor(null); using var window = Attach(editor, model); var closes = 0; Popovers.SetClosePopover(editor, () => closes++);
-            Click(Button(editor, "Add server")); Assert.Equal(0, closes); Assert.Empty(model.Mcp.Customs); Assert.Contains("The server needs a name.", Texts(editor));
-            Field(editor, "My server").Text = "Example"; Field(editor, "npx").Text = "offline-fixture"; Click(Button(editor, "Add environment variable"));
+            PointerClick(Button(editor, "Add server")); Assert.Equal(0, closes); Assert.Empty(model.Mcp.Customs); Assert.Contains("The server needs a name.", Texts(editor));
+            Field(editor, "My server").Text = "Example"; Field(editor, "npx").Text = "offline-fixture"; PointerClick(Button(editor, "Add environment variable"));
             Field(editor, "KEY").Text = " TOKEN "; Field(editor, "value").Text = "fixture-secret";
-            Click(Nodes<Button>(editor).Single(b => ToolTip.GetTip(b) as string == "Stored in mcp.json; click to keep it in the Credential Manager instead"));
-            Click(Button(editor, "Add environment variable")); // blank key must be dropped, Swift :877-878
-            Click(Button(editor, "Add server")); Assert.Equal(0, closes); Assert.Contains("The Credential Manager could not save a value. Keep this editor open and try again.", Texts(editor));
+            PointerClick(Nodes<Button>(editor).Single(b => ToolTip.GetTip(b) as string == "Stored in mcp.json; click to keep it in the Credential Manager instead"));
+            PointerClick(Button(editor, "Add environment variable")); // blank key must be dropped, Swift :877-878
+            PointerClick(Button(editor, "Add server")); Assert.Equal(0, closes); Assert.Contains("The Credential Manager could not save a value. Keep this editor open and try again.", Texts(editor));
             var saved = Assert.Single(model.Mcp.Customs); Assert.Equal("TOKEN", Assert.Single(saved.Env).Key); Assert.Equal(saved.Id, Read<string>(editor, "savedID"));
-            backend.Refuse = false; Field(editor, "My server").Text = "Renamed"; Click(Button(editor, "Add server"));
+            backend.Refuse = false; Field(editor, "My server").Text = "Renamed"; PointerClick(Button(editor, "Add server"));
             Assert.Equal(1, closes); saved = Assert.Single(model.Mcp.Customs); Assert.Equal("custom-example", saved.Id); Assert.Equal("Renamed", saved.Name); Assert.Equal("fixture-secret", MCPKeychain.Value(saved.Id, "TOKEN"));
             State(model, saved.Id, new MCPConnectionState.Connected(2));
             var edit = new MCPCustomEditor(saved); using var editWindow = Attach(edit, model); var closedAfterValues = false;
             Popovers.SetClosePopover(edit, () => { closedAfterValues = true; Assert.Equal("after-edit", model.Mcp.StoredValue(saved.Id, "MODE", false)); Assert.IsType<MCPConnectionState.Connecting>(model.Mcp.State(saved.Id)); });
             Field(edit, "KEY").Text = " MODE "; Field(edit, "value").Text = "after-edit";
-            Click(Nodes<Button>(edit).Single(b => ToolTip.GetTip(b) as string == "Kept in the Credential Manager"));
-            Field(edit, "npx").Text = "changed-offline-fixture"; Click(Button(edit, "Save"));
+            PointerClick(Nodes<Button>(edit).Single(b => ToolTip.GetTip(b) as string == "Kept in the Credential Manager"));
+            Field(edit, "npx").Text = "changed-offline-fixture"; PointerClick(Button(edit, "Save"));
             Assert.True(closedAfterValues); Assert.Equal("changed-offline-fixture", Assert.Single(model.Mcp.Customs).Command); Assert.Null(MCPKeychain.Value(saved.Id, "TOKEN"));
             Assert.NotEmpty(Read<object>(model.Mcp, "probes") as System.Collections.IDictionary ?? throw new InvalidOperationException("Probe dictionary missing"));
             model.Mcp.Disconnect(model.Mcp.Entry(saved.Id)!); // cancel before the queued fake command can start
@@ -223,13 +223,13 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             key.Text = " RENAMED "; Assert.Same(row, Field(editor, "KEY").Parent!.Parent); // :796 ForEach identity is UUID, never the edited key
             var toggle = Nodes<Button>(editor).Single(b => ToolTip.GetTip(b) as string == "Stored in mcp.json; click to keep it in the Credential Manager instead");
             var glyph = Assert.Single(Nodes<SwiftImage>(toggle)); Assert.Equal("lock.open", glyph.SymbolName); Colour(glyph.Foreground, Chrome.SecondaryText, glyph);
-            var before = File.ReadAllBytes(MCPPaths.ConnectionsURL); Click(toggle);
+            var before = File.ReadAllBytes(MCPPaths.ConnectionsURL); PointerClick(toggle);
             Assert.Same(row, Field(editor, "KEY").Parent!.Parent); Assert.NotEqual(default(char), Field(editor, "value").PasswordChar); Assert.Equal("fixture-value", Field(editor, "value").Text);
             Assert.Equal(before, File.ReadAllBytes(MCPPaths.ConnectionsURL)); Assert.Null(MCPKeychain.Value(server.Id, "RENAMED"));
             glyph = Assert.Single(Nodes<SwiftImage>(toggle)); Assert.Equal("lock.fill", glyph.SymbolName); Colour(glyph.Foreground, Chrome.Accent, glyph); Assert.Equal("Kept in the Credential Manager", ToolTip.GetTip(toggle));
-            Click(Button(editor, "Save")); var saved = Assert.Single(model.Mcp.Customs); Assert.Equal("fixture-value", MCPKeychain.Value(saved.Id, "RENAMED")); Assert.Null(model.Mcp.StoredValue(saved.Id, "RENAMED", false)); Assert.Null(model.Mcp.StoredValue(saved.Id, "KEY0", false)); Assert.DoesNotContain("fixture-value", File.ReadAllText(MCPPaths.ConnectionsURL), StringComparison.Ordinal);
-            var edit = new MCPCustomEditor(saved); using var editWindow = Attach(edit, model); var unlock = Nodes<Button>(edit).Single(b => ToolTip.GetTip(b) as string == "Kept in the Credential Manager"); Click(unlock); Assert.Equal(default(char), Field(edit, "value").PasswordChar); Assert.Equal("fixture-value", Field(edit, "value").Text); Assert.Equal("fixture-value", MCPKeychain.Value(saved.Id, "RENAMED"));
-            Click(Button(edit, "Save")); Assert.Null(MCPKeychain.Value(saved.Id, "RENAMED")); Assert.Equal("fixture-value", model.Mcp.StoredValue(saved.Id, "RENAMED", false)); Assert.Contains("fixture-value", File.ReadAllText(MCPPaths.ConnectionsURL), StringComparison.Ordinal);
+            PointerClick(Button(editor, "Save")); var saved = Assert.Single(model.Mcp.Customs); Assert.Equal("fixture-value", MCPKeychain.Value(saved.Id, "RENAMED")); Assert.Null(model.Mcp.StoredValue(saved.Id, "RENAMED", false)); Assert.Null(model.Mcp.StoredValue(saved.Id, "KEY0", false)); Assert.DoesNotContain("fixture-value", File.ReadAllText(MCPPaths.ConnectionsURL), StringComparison.Ordinal);
+            var edit = new MCPCustomEditor(saved); using var editWindow = Attach(edit, model); var unlock = Nodes<Button>(edit).Single(b => ToolTip.GetTip(b) as string == "Kept in the Credential Manager"); PointerClick(unlock); Assert.Equal(default(char), Field(edit, "value").PasswordChar); Assert.Equal("fixture-value", Field(edit, "value").Text); Assert.Equal("fixture-value", MCPKeychain.Value(saved.Id, "RENAMED"));
+            PointerClick(Button(edit, "Save")); Assert.Null(MCPKeychain.Value(saved.Id, "RENAMED")); Assert.Equal("fixture-value", model.Mcp.StoredValue(saved.Id, "RENAMED", false)); Assert.Contains("fixture-value", File.ReadAllText(MCPPaths.ConnectionsURL), StringComparison.Ordinal);
         });
     }
 
@@ -288,7 +288,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
                 Assert.Equal(FontWeight.Medium, SwiftImage.GetFont(glyph)!.Resolve().FontWeight);
                 Colour(glyph.Foreground, Chrome.SecondaryText.Opacity(0.55), glyph);
                 Assert.False(Read<bool>(info, "IsPresented"));
-                runtime.OnMain(() => Hover(button, true)); Colour(glyph.Foreground, Chrome.SecondaryText, glyph);
+                runtime.OnMain(() => PointerHover(button, true)); Colour(glyph.Foreground, Chrome.SecondaryText, glyph);
                 runtime.AdvanceMilliseconds(219); Assert.False(Read<bool>(info, "IsPresented"));
                 runtime.AdvanceMilliseconds(1); Assert.True(Read<bool>(info, "IsPresented")); Dispatcher.UIThread.RunJobs();
                 Assert.Contains(presenter.Calls, c => c.Popup == popup && c.Presented);
@@ -303,13 +303,13 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
                     Assert.All(Nodes<SwiftImage>(facts), i => { Assert.Equal(14, i.Width); Assert.Equal(12, SwiftImage.GetFont(i)!.Resolve().FontSize); Colour(i.Foreground, Chrome.Accent, i); });
                     Assert.All(Nodes<TextBlock>(facts), t => { Font(t, 12); Colour(t.Foreground, Chrome.PrimaryText.Opacity(0.9), t); });
                 }
-                runtime.OnMain(() => Hover(button, false)); runtime.AdvanceMilliseconds(319); Assert.True(Read<bool>(info, "IsPresented"));
-                runtime.OnMain(() => Hover(content, true)); runtime.AdvanceMilliseconds(1); Assert.True(Read<bool>(info, "IsPresented"));
-                runtime.OnMain(() => Hover(content, false)); runtime.AdvanceMilliseconds(319); Assert.True(Read<bool>(info, "IsPresented"));
+                runtime.OnMain(() => PointerHover(button, false)); runtime.AdvanceMilliseconds(319); Assert.True(Read<bool>(info, "IsPresented"));
+                runtime.OnMain(() => PointerHover(content, true)); runtime.AdvanceMilliseconds(1); Assert.True(Read<bool>(info, "IsPresented"));
+                runtime.OnMain(() => PointerHover(content, false)); runtime.AdvanceMilliseconds(319); Assert.True(Read<bool>(info, "IsPresented"));
                 runtime.AdvanceMilliseconds(1); Assert.False(Read<bool>(info, "IsPresented")); Dispatcher.UIThread.RunJobs();
                 Colour(glyph.Foreground, Chrome.SecondaryText.Opacity(0.55), glyph);
-                runtime.OnMain(() => Click(button)); Assert.True(Read<bool>(info, "IsPresented")); Colour(glyph.Foreground, Chrome.SecondaryText, glyph);
-                runtime.OnMain(() => Click(button)); Assert.False(Read<bool>(info, "IsPresented"));
+                runtime.OnMain(() => PointerClick(button)); Assert.True(Read<bool>(info, "IsPresented")); Colour(glyph.Foreground, Chrome.SecondaryText, glyph);
+                runtime.OnMain(() => PointerClick(button)); Assert.False(Read<bool>(info, "IsPresented"));
             }
             var corner = Assert.Single(Nodes<MCPInfoButton>(card));
             Assert.Equal(new Thickness(10), corner.Margin); Assert.Equal(HorizontalAlignment.Right, corner.HorizontalAlignment); Assert.Equal(VerticalAlignment.Bottom, corner.VerticalAlignment);
@@ -350,7 +350,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             {
                 var border = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, 11, 10, 11), border.Padding);
                 var grid = Assert.IsType<Grid>(border.Child); Assert.Equal(12, grid.ColumnSpacing);
-                Assert.Contains(grid.Children.OfType<Border>(), b => b.MinWidth == 12); // :164 Spacer(minLength: 12)
+                Assert.Contains(grid.Children.OfType<Border>(), b => b.MinWidth == 12); runtime.OnMain(() => SpacerOrder(grid, grid.Children[1], grid.Children[3], 12)); // :164 Spacer(minLength: 12)
                 var icon = Assert.Single(Nodes<MCPIcon>(row)); Assert.Equal(22, icon.Child!.Width); Assert.Equal(26, Assert.IsType<Border>(icon.Parent).Width); Assert.Equal(HorizontalAlignment.Center, icon.HorizontalAlignment);
                 var copy = Assert.Single(grid.Children.OfType<StackPanel>()); Assert.Equal(2, copy.Spacing);
                 var name = Assert.IsType<TextBlock>(copy.Children[0]); var detail = Assert.IsType<TextBlock>(copy.Children[1]);
@@ -379,7 +379,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             var options = Nodes<Button>(row).Single(b => ToolTip.GetTip(b) as string == "Server options");
             Assert.Equal(22, options.Width); Assert.Equal(22, options.Height); Assert.Equal(0, options.BorderThickness.Left); Assert.Null(options.Background);
             var glyph = Assert.Single(Nodes<SwiftImage>(options)); Assert.Equal("ellipsis.circle", glyph.SymbolName); Assert.Equal(13, SwiftImage.GetFont(glyph)!.Resolve().FontSize); Colour(glyph.Foreground, Chrome.SecondaryText, glyph);
-            runtime.OnMain(() => Click(options));
+            runtime.OnMain(() => PointerClick(options));
             var menuPopup = Nodes<Popup>(row)[0]; var toolsPopup = Nodes<Popup>(row)[1];
             Assert.Same(options, menuPopup.PlacementTarget); Assert.Equal(PlacementMode.Bottom, menuPopup.Placement);
             Assert.True(presenter.Calls.Last(c => c.Popup == menuPopup).Presented);
@@ -393,7 +393,8 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             }
             var divider = Assert.IsType<Border>(Assert.Single(Nodes<PopoverDivider>(menu)).Child); Assert.Equal(1, divider.Height); Assert.Equal(new Thickness(8, 5), divider.Margin); Colour(divider.Background, Chrome.PrimaryText.Opacity(0.22), divider); // shared port separator method
             // Run only the click work item; PopoverItem.swift:271 closes synchronously, :273 queues action.
-            runtime.Loop.Enqueue(() => Click(Button(menu, "Refresh"))); runtime.Loop.RunUntil(() => true);
+            var refreshedClick = false; runtime.Loop.Enqueue(() => { }); // a predecessor deterministically exposes the old head-of-queue flake
+            runtime.Loop.Enqueue(() => { PointerClick(Button(menu, "Refresh")); refreshedClick = true; }); runtime.Loop.RunUntil(() => refreshedClick);
             Assert.False(Read<bool>(Read<object>(row, "view"), "Menu"));
             runtime.Loop.RunUntil(() => !presenter.Calls.Last(c => c.Popup == menuPopup).Presented);
             Assert.False(presenter.Calls.Last(c => c.Popup == menuPopup).Presented);
@@ -401,8 +402,9 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             runtime.Loop.RunUntil(() => model.Mcp.State(entry.Id) is MCPConnectionState.Connecting);
             Assert.Equal("keep", model.Mcp.Connection(entry.Id)!.Values["MODE"]); runtime.OnMain(() => model.Mcp.Disconnect(entry));
             options = Nodes<Button>(row).Single(b => ToolTip.GetTip(b) as string == "Server options"); menuPopup = Nodes<Popup>(row)[0]; toolsPopup = Nodes<Popup>(row)[1];
-            runtime.OnMain(() => Click(options)); menu = runtime.OnMain(() => OpenContent(menuPopup));
-            runtime.Loop.Enqueue(() => Click(Button(menu, "Show tools"))); runtime.Loop.RunUntil(() => true);
+            runtime.OnMain(() => PointerClick(options)); menu = runtime.OnMain(() => OpenContent(menuPopup));
+            var toolsClick = false; runtime.Loop.Enqueue(() => { });
+            runtime.Loop.Enqueue(() => { PointerClick(Button(menu, "Show tools")); toolsClick = true; }); runtime.Loop.RunUntil(() => toolsClick);
             Assert.False(Read<bool>(Read<object>(row, "view"), "Menu"));
             runtime.Loop.RunUntil(() => !presenter.Calls.Last(c => c.Popup == menuPopup).Presented);
             Assert.False(presenter.Calls.Last(c => c.Popup == menuPopup).Presented);
@@ -428,7 +430,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
                 var menu = Invoke<Control>(row, "BuildMenu"); var button = Button(menu, "Disconnect");
                 Assert.True(button.IsEnabled); var title = Assert.Single(Nodes<MiddleTruncatingText>(button)); Font(title, 13); Colour(title.Foreground, Chrome.Danger, title);
                 Colour(Assert.Single(Nodes<SwiftImage>(button)).Foreground, Chrome.Danger, button);
-                runtime.OnMain(() => Click(button));
+                runtime.OnMain(() => PointerClick(button));
                 Assert.IsType<MCPConnectionState.NotConnected>(model.Mcp.State(entry.Id)); Assert.False(model.Mcp.Drafts.ContainsKey(entry.Id)); Exported(entry.Id, false);
                 Assert.DoesNotContain(entry.Id, File.ReadAllText(MCPPaths.ConnectionsURL), StringComparison.Ordinal);
                 Assert.Equal(refuse ? "fixture-secret" : null, MCPKeychain.Value(entry.Id, field.Key));
@@ -485,7 +487,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
                 var layers = Assert.IsType<Panel>(card.Child); var surface = Assert.IsType<Border>(layers.Children[0]); Assert.Equal(new Thickness(14), surface.Padding); Assert.Equal(new CornerRadius(14), surface.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(surface)); Colour(surface.Background, Chrome.PrimaryText.Opacity(0.05), surface);
                 Assert.Equal(HorizontalAlignment.Stretch, card.HorizontalAlignment); Assert.Equal(VerticalAlignment.Stretch, card.VerticalAlignment);
                 var stack = Assert.IsType<StackPanel>(surface.Child); Assert.Equal(8, stack.Spacing); Assert.Equal(VerticalAlignment.Top, stack.VerticalAlignment);
-                var header = Assert.IsType<Grid>(stack.Children[0]); Assert.Equal(10, header.ColumnSpacing); Assert.Contains(header.Children.OfType<Border>(), b => b.MinWidth == 8);
+                var header = Assert.IsType<Grid>(stack.Children[0]); Assert.Equal(10, header.ColumnSpacing); Assert.Contains(header.Children.OfType<Border>(), b => b.MinWidth == 8); SpacerOrder(header, header.Children[1], header.Children[3], 8);
                 Assert.All(header.Children.Where(c => c is not Border), c => Assert.Equal(VerticalAlignment.Top, c.VerticalAlignment));
                 var name = Text(card, "Example"); var vendor = Text(card, "Vendor"); Font(name, 13, FontWeight.SemiBold); Font(vendor, 11); Colour(name.Foreground, Chrome.PrimaryText, name); Colour(vendor.Foreground, Chrome.SecondaryText, vendor); Assert.Equal(1, Assert.IsType<StackPanel>(name.Parent).Spacing);
                 var summary = Text(card, "Summary"); Font(summary, 12); Colour(summary.Foreground, Chrome.SecondaryText, summary); Assert.Equal(2, summary.MaxLines); Assert.Equal(TextWrapping.Wrap, summary.TextWrapping); Assert.Equal(TextTrimming.None, summary.TextTrimming);
@@ -549,11 +551,11 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             var note = Text(section, "Servers of your own: a command that runs on this PC, or a remote address, with the variables they need."); Font(note, 12); Colour(note.Foreground, Chrome.SecondaryText, note); Assert.Equal(new Thickness(16, 11), note.Margin); Assert.Equal(TextWrapping.Wrap, note.TextWrapping); Assert.Equal(TextTrimming.None, note.TextTrimming);
             Assert.Equal(new Thickness(16, 0, 0, 0), Assert.Single(Nodes<ChromeRowDivider>(section)).Margin);
             var add = Button(section, "Add server"); var surface = Assert.IsType<Border>(add.Content); Assert.Equal(new Thickness(16, 11, 10, 11), surface.Padding); Colour(surface.Background, SwiftColor.Clear, surface);
-            var row = Assert.IsType<Grid>(surface.Child); Assert.Equal(12, row.ColumnSpacing); Assert.Contains(row.Children.OfType<Border>(), b => b.MinWidth == 12);
+            var row = Assert.IsType<Grid>(surface.Child); Assert.Equal(12, row.ColumnSpacing); Assert.Contains(row.Children.OfType<Border>(), b => b.MinWidth == 12); var lastSpacer = row.Children.OfType<Border>().Single(b => b.MinWidth == 12); Assert.True(Grid.GetColumn(row.Children[1]) < Grid.GetColumn(lastSpacer)); Assert.True(lastSpacer.Bounds.X >= row.Children[1].Bounds.Right); Assert.True(lastSpacer.Bounds.Width >= 12);
             var label = Text(add, "Add server"); Font(label, 13, FontWeight.Medium); Colour(label.Foreground, Chrome.PrimaryText, label);
             var glyph = Assert.Single(Nodes<SwiftImage>(add)); Assert.Equal("plus.circle", glyph.SymbolName); Assert.Equal(13, SwiftImage.GetFont(glyph)!.Resolve().FontSize); Colour(glyph.Foreground, Chrome.Accent, glyph); Assert.Equal(26, Assert.IsType<Border>(glyph.Parent).Width); Assert.Equal(HorizontalAlignment.Center, glyph.HorizontalAlignment);
             var rows = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(Assert.Single(Nodes<ChromeCard>(section)).Child).Child).Children[0]); Assert.Same(add.Parent, rows.Children[^1]);
-            runtime.OnMain(() => Click(add)); var popup = Assert.Single(Nodes<Popup>(section)); Assert.Same(add, popup.PlacementTarget); Assert.Equal(PlacementMode.Bottom, popup.Placement); Assert.True(presenter.Calls.Last(c => c.Popup == popup).Presented); runtime.OnMain(() => { Assert.Single(Nodes<MCPCustomEditor>(OpenContent(popup))); Dispatcher.UIThread.RunJobs(); });
+            runtime.OnMain(() => PointerClick(add)); var popup = Assert.Single(Nodes<Popup>(section)); Assert.Same(add, popup.PlacementTarget); Assert.Equal(PlacementMode.Bottom, popup.Placement); Assert.True(presenter.Calls.Last(c => c.Popup == popup).Presented); runtime.OnMain(() => { Assert.Single(Nodes<MCPCustomEditor>(OpenContent(popup))); Dispatcher.UIThread.RunJobs(); });
             runtime.OnMain(() => Assert.Null(model.Mcp.SaveCustom(Custom()))); Assert.DoesNotContain(note.Text, Texts(section)); Assert.NotNull(Button(section, "Add server"));
             var search = new MCPCustomSection("not-a-match"); using var second = runtime.OnMain(() => Attach(search, model)); Assert.Null(search.Child);
         });
@@ -569,7 +571,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             foreach (var state in new MCPConnectionState[] { new MCPConnectionState.NotConnected(), new MCPConnectionState.Connecting(), new MCPConnectionState.Connected(4), new MCPConnectionState.Failed("Fixture failure"), new MCPConnectionState.NeedsSetup(new MCPSetupGuide("Setup", "Reason", new[] { "Step" }, "Open", "https://example.invalid", null)) })
             {
                 State(model, server.Id, state); var row = new MCPCustomRow(server); using var window = Attach(row, model);
-                var border = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, 11, 10, 11), border.Padding); var grid = Assert.IsType<Grid>(border.Child); Assert.Equal(12, grid.ColumnSpacing); Assert.Contains(grid.Children.OfType<Border>(), b => b.MinWidth == 12);
+                var border = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, 11, 10, 11), border.Padding); var grid = Assert.IsType<Grid>(border.Child); Assert.Equal(12, grid.ColumnSpacing); Assert.Contains(grid.Children.OfType<Border>(), b => b.MinWidth == 12); SpacerOrder(grid, grid.Children[1], grid.Children[3], 12);
                 var copy = Assert.Single(grid.Children.OfType<StackPanel>(), s => s.Spacing == 2); var name = Assert.IsType<TextBlock>(copy.Children[0]); var status = Assert.IsType<TextBlock>(copy.Children[1]); Font(name, 13, FontWeight.SemiBold); Colour(name.Foreground, Chrome.PrimaryText, name); Font(status, 11); Colour(status.Foreground, state is MCPConnectionState.Failed ? Chrome.Danger : Chrome.SecondaryText, status);
                 Assert.Equal(state switch { MCPConnectionState.Connected => "4 tools · Custom", MCPConnectionState.Failed => "Fixture failure", _ => server.Summary }, status.Text);
                 Assert.Equal(state is MCPConnectionState.Failed ? 3 : 0, status.MaxLines);
@@ -595,14 +597,14 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
                 var toggle = Assert.Single(Nodes<SmallSwitch>(owner)); var slot = Assert.IsType<SettingsSwitch>(toggle.Parent);
                 var options = Nodes<Button>(owner).Single(b => ToolTip.GetTip(b) as string == "Server options");
                 Assert.True(Grid.GetColumn(slot) < Grid.GetColumn(Assert.IsType<Panel>(options.Parent))); // :165-169,516-520 switch before options / in the action slot
-                runtime.OnMain(() => model.Mcp.SetEnabled(true, entry)); Exported(entry.Id, true);
+                runtime.OnMain(() => model.Mcp.SetEnabled(true, entry)); Exported(entry.Id, true); toggle = Assert.Single(Nodes<SmallSwitch>(owner));
                 var drawing = new DrawingGroup(); using (var context = drawing.Open()) toggle.Render(context);
                 Colour(Assert.IsType<GeometryDrawing>(drawing.Children[0]).Brush, Chrome.AccentNSColor, toggle); // shared switch's theme accent, Chrome.swift:90
-                runtime.OnMain(() => toggle.RaiseEvent(new KeyEventArgs { RoutedEvent = InputElement.KeyDownEvent, Key = Key.Space }));
+                runtime.OnMain(() => KeyboardSpace(toggle));
                 Assert.False(model.Mcp.Connection(entry.Id)!.IsEnabled); Assert.IsType<MCPConnectionState.Connected>(model.Mcp.State(entry.Id)); Exported(entry.Id, false);
                 using (var persisted = JsonDocument.Parse(File.ReadAllText(MCPPaths.ConnectionsURL))) Assert.False(persisted.RootElement.EnumerateArray().Single().GetProperty("isEnabled").GetBoolean());
                 Dispatcher.UIThread.RunJobs(); toggle = Assert.Single(Nodes<SmallSwitch>(owner));
-                runtime.OnMain(() => toggle.RaiseEvent(new PointerPressedEventArgs(toggle, new Pointer(2, PointerType.Mouse, true), toggle, new Point(2, 2), 0, new PointerPointProperties(RawInputModifiers.LeftMouseButton, PointerUpdateKind.LeftButtonPressed), KeyModifiers.None)));
+                runtime.OnMain(() => PointerAt(toggle, new Point(toggle.Bounds.Width/2,toggle.Bounds.Height/2)));
                 Assert.True(model.Mcp.Connection(entry.Id)!.IsEnabled); Exported(entry.Id, true);
                 using (var persisted = JsonDocument.Parse(File.ReadAllText(MCPPaths.ConnectionsURL))) Assert.True(persisted.RootElement.EnumerateArray().Single().GetProperty("isEnabled").GetBoolean());
                 if (custom) { runtime.OnMain(() => ObservableState(model, server.Id, new MCPConnectionState.NotConnected())); Assert.Empty(Nodes<SettingsSwitch>(owner)); Assert.NotNull(Button(owner, "Connect")); }
