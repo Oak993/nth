@@ -148,10 +148,7 @@ public sealed class ThreadRuntimeSweepTests
     // which this prompt explicitly excludes. Runtime CLI notice messages already have dedicated passing tests.
     // Needed: the TimelineRows chat's rendering implementation and verification; no row change made here.
 
-    // STOP App.Runtime.ThreadRuntime #2
-    // Kind: missing dependency. Swift: App/Runtime/ThreadRuntime.swift:3696-3706; Core/Models/Timeline.swift:306,329.
-    // Records: PR-RUNTIME-160, PR-RUNTIME-251. The snapshot carries spends and the event marks dirty without
-    // scheduling, but TurnRecordConverter still explicitly omits tokenSpends on encode/decode. TokenSpend itself
-    // now has Codable; wiring it into Timeline.cs belongs to Core.Models.Timeline, outside this prompt's units.
-    // Needed: that unit's converter implementation. Keep the disk regression assertion above intact and red.
+    // Former STOP #2 resolved by the merged Core.Models.Timeline converter, included from impl/b2.
+    // Swift: App/Runtime/ThreadRuntime.swift:3696-3706; Core/Models/Timeline.swift:306,329.
+    // PR-RUNTIME-160/251 retain the unchanged snapshot/disk regression above; no converter edit in this unit.
 }
