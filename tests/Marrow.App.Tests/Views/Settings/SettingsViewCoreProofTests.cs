@@ -16,7 +16,6 @@ using Avalonia.VisualTree;
 using Avalonia.Headless;
 using Avalonia.Media.Imaging;
 using SkiaSharp;
-using System.Diagnostics;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
@@ -69,7 +68,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
             using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             using var wallpaper = WallpaperStore.Shared.Override((WallpaperStore)Activator.CreateInstance(typeof(WallpaperStore), nonPublic: true)!);
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
-            using var updates = UpdateChecker.OverrideShared(new UpdateChecker(AppInfo.Current, [], ""));
+            using var updates = UpdateChecker.OverrideShared(new UpdateChecker(ReleaseFeed.Running("1.0.0"), [], ""));
             var model = new AppModel(); seed?.Invoke(model);
             var host = new Border(); AppEnvironment.SetAppModel(host, model); var view = make(); host.Child = view;
             var window = new Avalonia.Controls.Window { Content = host, Width = 780, Height = 580 };
@@ -153,6 +152,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     // interactive press response have not landed (SwiftGlass.cs MARROW_DEFERRED ED-180; engineering_decisions ED-180).
     // ED-180 explicitly calls this incomplete work, so these partial tests intentionally have no Req traits.
     [Fact]
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     public void Worktree_section_has_ordered_associated_rows_divider_no_PR_control_and_real_reveal() => WithView(() => new SourceControlSettingsPage(), (view, _, _) =>
     {
         // SettingsView.swift:836-846: Worktrees row, Divider, Pull requests row with EmptyView.
@@ -188,6 +188,9 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     {
         var sidebar = Field<Control>(view, "sidebar"); Assert.Single(Nodes<WindowDragArea>(sidebar));
         var spacer = Nodes<Border>(sidebar).Single(b => b.Height == 14 && b.Margin.Top == 16); Assert.Null(spacer.Background); Assert.Equal(212, sidebar.Width);
+        var drag = Nodes<WindowDragArea>(sidebar).Single(); // :192 background drag area covers the reserved strip.
+        var stripCentre = spacer.TranslatePoint(new Point(spacer.Bounds.Width / 2, spacer.Bounds.Height / 2), drag)!.Value;
+        Assert.True(new Rect(drag.Bounds.Size).Contains(stripCentre)); Assert.True(drag.IsHitTestVisible);
         var field = Nodes<TextBox>(Nodes<SidebarSearchField>(view).Single()).Single(); Assert.DoesNotContain("No results", Text(sidebar));
         field.Text = "no-such-setting"; Sync(); var rows = Field<StackPanel>(view, "rows");
         var block = Assert.Single(rows.Children.OfType<StackPanel>()); Assert.Equal(6, block.Spacing); Assert.Equal(new Thickness(8, 14, 8, 0), block.Margin);
@@ -204,7 +207,8 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-003")] // App/Views/Settings/SettingsView.swift:141-145; UI/Chrome/Chrome.swift:775-823
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
+    // UI-SETTINGS-003 source properties/interactions only; native focus-ring paint awaits STOP #5 below.
     public void Sidebar_search_pins_shared_metrics_fonts_colours_focus_and_keyboard_actions() => WithView(() => new SettingsView(), (view, _, _) =>
     {
         var search = Assert.Single(Nodes<SidebarSearchField>(view)); var field = Assert.Single(Nodes<TextBox>(search));
@@ -224,7 +228,8 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-004")] // App/Views/Settings/SettingsView.swift:148-164,179-182; UI/Chrome/Chrome.swift:710-745
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
+    // UI-SETTINGS-004 source properties/interactions only; continuous curve awaits STOP #6 below.
     public void Sidebar_rows_pin_selected_hover_and_frozen_geometry_fonts_colours_and_click() => WithView(() => new SettingsView(), (view, _, h) =>
     {
         var rows = Field<StackPanel>(view, "rows"); Assert.Equal(1, rows.Spacing); Assert.Equal(10, Nodes<SidebarRow>(rows).Length);
@@ -241,7 +246,10 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         var models = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("Models")); var modelsButton = Nodes<Button>(models).Single(); var background = (Border)modelsButton.Content!;
         Hover(modelsButton, true); Sync(); Frame(h, 50); Assert.NotEqual(SwiftColor.Clear.Resolve(background.ActualThemeVariant), ColorOf(background.Background)); Frame(h, 51); Assert.Equal(Chrome.Overlay(0.06).Resolve(background.ActualThemeVariant), ColorOf(background.Background));
         Click(modelsButton); Sync(); Assert.Single(Nodes<ModelsSettingsPage>(view));
+        var general = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("General")); var generalButton = Nodes<Button>(general).Single();
         Field<SettingsScrollTracker>(view, "scrollTracker").Note(); Sync(); Assert.False(rows.IsHitTestVisible);
+        Press(generalButton); Assert.Single(Nodes<ModelsSettingsPage>(view)); // :182 real pointer hit testing blocks the click.
+        Assert.Equal(SwiftColor.Clear.Resolve(general.ActualThemeVariant), ColorOf(((Border)generalButton.Content!).Background));
         Field<SettingsScrollTracker>(view, "scrollTracker").Coast(); Sync(); Assert.True(rows.IsHitTestVisible);
     });
 
@@ -261,6 +269,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     });
 
     [Theory]
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     [InlineData(SettingsPage.Models, "Search models")]
     [InlineData(SettingsPage.Mcp, "Search servers")]
     public void Pane_search_capsules_pin_shared_style_and_filter_real_content(SettingsPage route, string prompt) => WithView(() => new SettingsView(), (view, _, _) =>
@@ -279,12 +288,19 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-014")] // App/Views/Settings/SettingsView.swift:327-331; UI/Chrome/ChromeVisualPicker.swift:10-106
-    [Trait("Req", "UI-SETTINGS-015")] // App/Views/Settings/SettingsView.swift:344-348; UI/Chrome/ChromeVisualPicker.swift:10-106
-    public void Workspace_and_working_line_tiles_pin_ring_symbols_captions_states_and_actual_selection() => WithView(() => new GeneralSettingsPage(), (view, model, h) =>
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
+    // UI-SETTINGS-014/015 source properties/interactions only; continuous curve awaits STOP #6 below.
+    public void Workspace_tiles_pin_ring_symbols_captions_states_and_actual_selection() => WithView(() => new GeneralSettingsPage(), (view, model, h) =>
     {
         CheckTiles(Row(view, "Workspace"), ["Local", "New worktree"], ["folder", "arrow.triangle.branch"], h);
         Assert.Equal(WorkspaceMode.Worktree, model.Settings.DefaultWorkspaceMode);
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-2")]
+    // UI-SETTINGS-015 source properties/interactions only; continuous curve awaits STOP #6 below.
+    public void Working_line_tiles_pin_ring_symbols_captions_states_and_actual_selection() => WithView(() => new GeneralSettingsPage(), (view, model, h) =>
+    {
         Assert.True(model.Settings.ShowsWorkingCard); // AppSettings.swift:721 defaults.object(...) ?? true.
         CheckTiles(Row(view, "Working line"), ["Card", "Line"], ["rectangle.fill", "minus"], h);
         Assert.False(model.Settings.ShowsWorkingCard);
@@ -313,10 +329,17 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     [Trait("Req", "UI-SETTINGS-005")] // App/Views/Settings/SettingsView.swift:159-163; AboutUpdateViews.swift:527-535; OD-0008 C6, OD-0012 I1
     public void About_dot_has_top_trailing_anchor_accent_accessibility_and_empty_feed_makes_no_HTTP_request() => WithView(() => new SettingsView(), (view, _, _) =>
     {
-        using var requests = new HttpRequests();
+        using var requests = new SettingsCoreHttpRequests();
+        // Validate the observer against the real transport using a closed ephemeral loopback port.
+        using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start(); var port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port; listener.Stop();
+        using var client = new System.Net.Http.HttpClient();
+        try { HeadlessSession.RunDispatcherUntil(client.GetAsync($"http://127.0.0.1:{port}/"), AppModelHarness.Bound); }
+        catch (System.Net.Http.HttpRequestException) { }
+        Assert.NotEmpty(requests.Requests); requests.Requests.Clear();
         Assert.Equal("", UpdateChecker.DefaultFeed); Assert.Empty(Nodes<UpdateAvailableDot>(view));
         var check = UpdateChecker.Shared.Check(); HeadlessSession.RunDispatcherUntil(check, AppModelHarness.Bound); Sync();
-        Assert.Empty(requests.Requests); Assert.Null(UpdateChecker.Shared.Update); Assert.Empty(Nodes<UpdateAvailableDot>(view));
+        Assert.Empty(requests.Requests); Assert.Equal("No update feed is set.", UpdateChecker.Shared.LastError); Assert.Null(UpdateChecker.Shared.Update); Assert.Empty(Nodes<UpdateAvailableDot>(view)); // OD-0012 I1 empty-feed failure branch.
         typeof(UpdateChecker).GetProperty("Update")!.SetValue(UpdateChecker.Shared, new AvailableUpdate { Version = "999.0.0", Tag = "v999.0.0", DownloadURL = SwiftURL.Create("https://fixture.invalid/download")!, PageURL = SwiftURL.Create("https://fixture.invalid/release")!, Notes = "" }); Sync();
         var dot = Assert.Single(Nodes<UpdateAvailableDot>(view)); Assert.Equal(HorizontalAlignment.Right, dot.HorizontalAlignment); Assert.Equal(VerticalAlignment.Top, dot.VerticalAlignment);
         var about = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("About")); Assert.Single(Nodes<SidebarIconBadge>(about)); Assert.Same(dot, Nodes<UpdateAvailableDot>(about).Single());
@@ -326,30 +349,18 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         Assert.Empty(Nodes<Button>(dot)); typeof(UpdateChecker).GetProperty("Update")!.SetValue(UpdateChecker.Shared, null); Sync(); Assert.Empty(Nodes<UpdateAvailableDot>(view));
     });
 
-    // Observe the real .NET HTTP transport, including URLSession's private shared HttpClient. No replacement checker.
-    private sealed class HttpRequests : IObserver<DiagnosticListener>, IObserver<KeyValuePair<string, object?>>, IDisposable
-    {
-        private readonly List<IDisposable> subscriptions = [];
-        public List<object> Requests { get; } = [];
-        public HttpRequests() => subscriptions.Add(DiagnosticListener.AllListeners.Subscribe(this));
-        public void OnNext(DiagnosticListener listener) { if (listener.Name == "HttpHandlerDiagnosticListener") subscriptions.Add(listener.Subscribe(this)); }
-        public void OnNext(KeyValuePair<string, object?> e) { if (e.Key == "System.Net.Http.HttpRequestOut.Start" && e.Value is not null) Requests.Add(e.Value); }
-        public void OnError(Exception error) => throw error;
-        public void OnCompleted() { }
-        public void Dispose() { foreach (var subscription in subscriptions) subscription.Dispose(); }
-    }
-
     [Fact]
-    [Trait("Req", "UI-SETTINGS-012")] // App/Views/Settings/SettingsView.swift:296-305,408-409; WindowManager.swift:180-189
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
+    // UI-SETTINGS-012 source properties/interactions only; native small-switch appearance awaits STOP #5.
     public void Small_switch_renders_accent_without_label_and_real_pointer_and_focused_space_toggle() => WithView(() => new GeneralSettingsPage(), (view, model, _) =>
     {
         var row = Row(view, "Show thinking"); var switchView = Nodes<SettingsSwitch>(row).Single(); var toggle = Nodes<SmallSwitch>(row).Single();
-        Assert.Empty(Text(switchView)); Assert.Equal(28, toggle.Width); Assert.Equal(16, toggle.Height); Assert.True(toggle.Focusable);
+        Assert.Empty(Text(switchView)); Assert.Equal(toggle.Bounds.Width, switchView.Bounds.Width); Assert.True(toggle.Focusable); // :301 labelsHidden, no label width.
         model.Settings.ShowReasoning = false; Sync(); Assert.Equal(ToggleState.Off, ((IToggleProvider)ControlAutomationPeer.CreatePeerForElement(toggle)!).ToggleState);
         Press(toggle); Assert.True(model.Settings.ShowReasoning); Assert.True(toggle.Focus()); Assert.True(Key(toggle, Avalonia.Input.Key.Space).Handled); Assert.False(model.Settings.ShowReasoning);
         Key(toggle, Avalonia.Input.Key.Space); Assert.True(model.Settings.ShowReasoning);
         // Native small-switch geometry is a documented port approximation; source tint is exact and read from rendered pixels.
-        using var bitmap = new RenderTargetBitmap(new PixelSize(28, 16)); using (var dc = bitmap.CreateDrawingContext()) toggle.Render(dc);
+        using var bitmap = new RenderTargetBitmap(new PixelSize((int)toggle.Bounds.Width, (int)toggle.Bounds.Height)); using (var dc = bitmap.CreateDrawingContext()) toggle.Render(dc);
         using var stream = new MemoryStream(); bitmap.Save(stream, new PngBitmapEncoderOptions()); using var pixels = SKBitmap.Decode(stream.ToArray());
         var accent = Chrome.Accent.Resolve(toggle.ActualThemeVariant); Assert.Contains(pixels.Pixels, p => p.Red == accent.R && p.Green == accent.G && p.Blue == accent.B && p.Alpha == accent.A);
         var disabled = Row(view, "Sound when settling"); model.Settings.ThreadFinishAction = ThreadFinishAction.Archive; Sync(); Assert.False(disabled.IsEnabled); Assert.Equal(0.5, disabled.Opacity);
@@ -357,12 +368,13 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     public void Provider_refresh_pins_capsule_metrics_symbol_dim_and_starts_the_real_single_flight() => WithView(() => new ProvidersRefreshButton(), (view, model, _) =>
     {
         // SettingsView.swift:566-580; Chrome.swift:315-316,343,355. UI-SETTINGS-011 subset, STOP #2.
         Assert.Single(Nodes<ChromeCapsule>(view)); Assert.Single(Nodes<ChromeIconButton>(view)); CheckGlass(view, true);
         Assert.Single(Nodes<Border>(view), b => b.Padding.Top == 2 && b.Padding.Bottom == 2);
-        var icon = Nodes<SwiftImage>(view).Single(); Glyph(icon, SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), Chrome.PrimaryText.Opacity(0.92));
+        var icon = Nodes<SwiftImage>(view).Single(); Assert.Equal("arrow.clockwise", icon.SymbolName); Glyph(icon, SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), Chrome.PrimaryText.Opacity(0.92));
         Assert.Single(Nodes<Panel>(view), p => p.Width == 28 && p.Height == 28); Assert.Empty(Text(view));
         var button = Nodes<Button>(view).Single(); Assert.True(button.IsEnabled); Assert.Equal("Check providers again", ToolTip.GetTip(button));
         using var executable = ProviderRegistry.SetCLIUpdaterExecutableForTesting(_ => null); // ED-211: final missing-executable result, never real PATH.
@@ -378,6 +390,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     public void Permissions_capsule_pins_metrics_fonts_hover_open_symbols_checkmark_and_selection() => WithView(() => new GeneralSettingsPage(), (view, model, h) =>
     {
         // SettingsView.swift:323-325; Chrome.swift:896-928; Provider.swift:161-195. UI-SETTINGS-013 subset, STOP #2.
@@ -397,6 +410,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     }, model => model.Settings.DefaultRuntimeMode = RuntimeMode.Supervised);
 
     [Fact]
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     public void Marks_button_and_popover_pin_small_glass_style_anchor_width_names_and_paths() => WithView(() => new ProjectMarksRow(), (view, model, h) =>
     {
         // SettingsView.swift:1130-1154 .buttonStyle(.glass).controlSize(.small), popover arrowEdge .bottom,width400.
@@ -412,7 +426,19 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     // padding and material. No native small glass-button parity mapping exists in ED/PA. Await that shared control;
     // tests above prove the project rows/anchor but intentionally do not invent a point size for the native font.
 
+    // STOP opencode-proofs-settings-core #5
+    // UI-SETTINGS-003 UI-SETTINGS-012: Chrome.swift:789 / SettingsView.swift:296-305 delegate focus ring / small
+    // switch appearance to the native control. PlainControls.TextField has no FocusAdorner template in this
+    // theme-free app, and SmallSwitch explicitly documents its invented track/knob sizes. No ED/PA approves
+    // complete appearance parity. Needed: shared native-control/focus-adornment mapping or approved visual method.
+    // Pointer/Space, labelsHidden, disabled state and rendered exact accent are still exercised above.
+    // STOP opencode-proofs-settings-core #6
+    // UI-SETTINGS-004 UI-SETTINGS-014 UI-SETTINGS-015: Chrome.swift:722 / ChromeVisualPicker.swift:92,95,99 request
+    // continuous corners. SwiftShapes.cs MARROW_DEFERRED ED-181 still draws circular arcs; the oracle-backed
+    // continuous curve has not landed. Exact radius/style descriptors and states/interactions are proven above.
+
     [Fact]
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     public void Theme_capsule_pins_swatch_menu_names_sections_checkmark_hover_and_immediate_selection() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
     {
         // SettingsView.swift:1159-1210; AppTheme.swift:44-73,109-176. UI-SETTINGS-017 subset; STOP #2.
@@ -434,6 +460,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     // This bare Avalonia Slider has no production template, so no thumb/track exists to receive real pointer drag
     // in the headless host or paint its accent. Await shared small-slider template/style (not invented OS metrics).
     [Fact]
+    [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     public void Transparency_pins_source_row_glyphs_threshold_reset_geometry_and_live_value_binding() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
     {
         // SettingsView.swift:524-563,427-429; UI-SETTINGS-018 subset, STOP #4.
@@ -456,16 +483,16 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         {
             var section = Nodes<ProviderSettingsSection>(view).Single(s => Field<ProviderKind>(s, "provider") == kind);
             var reveal = Nodes<ChromeRevealLayout>(section).Single(); Assert.Equal(0, reveal.Fraction); Assert.False(reveal.IsEnabled); Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(reveal));
-            Click(Button(Nodes<CollapsibleProviderHeader>(section).Single(), kind.DisplayName)); Sync(); Frame(h, 1000); Assert.Equal(1, reveal.Fraction); Assert.True(reveal.IsEnabled); // Chrome.pane .spring(response:.32,dampingFraction:.86), ED-011 settling <1s.
+            Click(Button(Nodes<CollapsibleProviderHeader>(section).Single(), kind.DisplayName)); Sync(); Frame(h, Chrome.PanelSlide.Duration * 1000 + 1); Assert.Equal(1, reveal.Fraction); Assert.True(reveal.IsEnabled); // Chrome.swift:100-104 .spring(response:.32,dampingFraction:.9), ED-011 settling.
             var grid = Nodes<Grid>(section).Single(g => g.ColumnDefinitions.Count == 3 && g.ColumnDefinitions[0].Width.Value == 22); Assert.Equal(12, grid.ColumnSpacing); Assert.Equal(new Thickness(16, 11, 10, 11), grid.Margin);
             var mark = Nodes<ProviderIcon>(grid).Single(); Assert.Equal(18, mark.Size); var markImage = Nodes<SwiftImage>(mark).Single(); Assert.Equal(18, markImage.Width); Assert.Equal(Chrome.PrimaryText.Resolve(markImage.ActualThemeVariant), ColorOf(markImage.Foreground)); Assert.Equal(22, grid.ColumnDefinitions[0].Width.Value); // :652 .foregroundStyle(Chrome.primaryText).
             var labels = (StackPanel)grid.Children[1]; Assert.Equal(2, labels.Spacing);
-            Seed(model, kind, new ProviderStatus { IsChecking = true }); Sync(); Assert.Equal("Checking…", Text(labels).First()); Assert.Equal(13, Nodes<TextBlock>(labels).First().FontSize);
+            Seed(model, kind, new ProviderStatus { IsChecking = true }); Sync(); Assert.Equal("Checking…", Text(labels).First()); Assert.Equal(13, Nodes<TextBlock>(labels).First().FontSize); Foreground(Nodes<TextBlock>(labels).First(), Chrome.PrimaryText);
             Seed(model, kind, kind == ProviderKind.Commandcode ? new ProviderStatus { Version = "1.2.3" } : new ProviderStatus { ApiKeyConfigured = true }); Sync();
             Assert.Equal(kind == ProviderKind.Commandcode ? "Version 1.2.3" : "Native API · api.deepseek.com", Text(labels)[1]); Assert.Equal(11, Nodes<TextBlock>(labels)[1].FontSize); Foreground(Nodes<TextBlock>(labels)[1], Chrome.SecondaryText);
             Seed(model, kind, new ProviderStatus()); Sync(); Assert.Single(Nodes<TextBlock>(labels));
             var toggle = Nodes<SmallSwitch>(grid).Single(); var enabled = model.Settings.IsEnabled(kind); Key(toggle, Avalonia.Input.Key.Space); Assert.Equal(!enabled, model.Settings.IsEnabled(kind));
-            Click(Button(Nodes<CollapsibleProviderHeader>(section).Single(), kind.DisplayName)); Sync(); Frame(h, 1000); Assert.Equal(0, reveal.Fraction); Assert.False(reveal.IsEnabled); Assert.False(reveal.IsHitTestVisible); Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(reveal));
+            Click(Button(Nodes<CollapsibleProviderHeader>(section).Single(), kind.DisplayName)); Sync(); Frame(h, Chrome.PanelSlide.Duration * 1000 + 1); Assert.Equal(0, reveal.Fraction); Assert.False(reveal.IsEnabled); Assert.False(reveal.IsHitTestVisible); Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(reveal));
         }
     });
 
@@ -481,6 +508,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         // The actual menu's Delete action (not the private deletion method) is driven through its production button.
         Click(Button(menu, "Delete")); Sync(); Assert.Single(model.Mcp.Customs); var popup = presenter.Calls.Last(c => c.Presented).Popup; var confirmation = Opened(popup);
         Assert.Contains("Delete this server?", Text(confirmation)); Assert.Contains("“Example” and the values it keeps in Credential Manager will be removed.", Text(confirmation)); Assert.Equal("Delete server", Text(Nodes<PopoverItem>(confirmation).Single()).First());
+        Foreground(Nodes<MiddleTruncatingText>(Nodes<PopoverItem>(confirmation).Single()).Single(), Chrome.Danger); // MCPSettingsPage.swift:554-568 destructive confirmation, Popovers.swift:315-317.
         Popovers.GetClosePopover(confirmation)!.Invoke(); Sync(); Assert.Single(model.Mcp.Customs);
         Click(Button(menu, "Delete")); Sync(); confirmation = Opened(presenter.Calls.Last(c => c.Presented).Popup); Click(Button(confirmation, "Delete server")); Sync(); Assert.Empty(model.Mcp.Customs);
         Assert.Null(model.Mcp.SaveCustom(server)); Sync(); row = Nodes<MCPCustomRow>(view).Single(); menu = (Control)typeof(MCPCustomRow).GetMethod("BuildMenu", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(row, null)!;
