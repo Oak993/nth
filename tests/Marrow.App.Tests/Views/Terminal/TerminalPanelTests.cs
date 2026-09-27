@@ -584,37 +584,36 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
 
 }
 
-// STOP App.Views.Terminal.TerminalPanel #1 (helper Claude, 2026-09-25)
-// Kind: platform gap, deviation pending owner acceptance
-// Swift: DroppyCode/App/Views/Terminal/TerminalPanel.swift:339-346
-// Requirements: PR-TERM-031, PR-TERM-032
-// What is unclear or missing: the source's Escape-at-prompt shortcut needs TerminalSession.ForegroundJobIsTheShell,
-// which IS implemented (TerminalStore.cs:127-133, ProcessDescendants.HasLiveDescendant) - that specific dependency
-// is resolved. What still blocks this is the terminal render surface itself (see STOP #2): the Swift source reads
-// the Escape key from the SwiftTerm NSView's own key-monitor/first-responder plumbing, and no Windows terminal
-// control exists yet to attach an equivalent KeyDown handler to. Wiring the handler with nothing beneath it to
-// receive keys would be inert and untestable.
-// Readings or options: (a) implement now against a placeholder, producing behavior nothing can exercise; (b) wait
-// for the real terminal control unit, then wire this alongside it.
-// Needed to proceed: the terminal rendering unit from STOP #2.
-// Done so far: ForegroundJobIsTheShell's dependency is confirmed resolved; the gate is purely the missing surface.
-//
-// STOP App.Views.Terminal.TerminalPanel #2 (helper Claude, 2026-09-25)
+// STOP App.Views.Terminal.TerminalPanel #1 (sweep B recheck 2026-09-27, base d62329d42)
+// Kind: missing dependency / platform gap
+// Swift: App/Views/Terminal/TerminalPanel.swift:195-197,214-221 (B3 52bc792; older note used B1 :339-346).
+// Records: PR-TERM-031, PR-TERM-032.
+// Landed: TerminalSession.ForegroundJobIsTheShell, via ProcessDescendants.HasLiveDescendant (ED-046 approximation).
+// Missing: TerminalSession.View remains a non-Control TerminalHostView with no keyboard input/rendered ANSI grid.
+// No real first responder can receive Escape, and no hosted-session key-monitor lifecycle exists to install/remove.
+// Needed: the terminal renderer's Avalonia input/focus surface, then this host's unmodified-Escape gate, consumption,
+// weak view ownership and per-session attach/detach disposal. The foreground-job approximation still awaits owner
+// acceptance as described by ED-046; it does not prevent tab-chip tests or supply the missing input surface.
+
+// STOP App.Views.Terminal.TerminalPanel #2 (sweep B recheck 2026-09-27, base d62329d42)
 // Kind: missing dependency
-// Swift: DroppyCode/App/Views/Terminal/TerminalPanel.swift:313-443
-// Requirements: PR-TERM-019, PR-TERM-021, PR-TERM-022, PR-TERM-023, PR-TERM-024, PR-TERM-025, PR-TERM-026,
-// PR-TERM-027, PR-TERM-033, PR-TERM-034, PR-TERM-036
-// What is unclear or missing: Marrow.App.Views.Terminal.Port.TerminalHost.cs (:1-5) documents TerminalHostView as
-// carrying no rendering: "SwiftTerm, a third-party macOS terminal-emulator control with no Windows twin in this
-// tree yet (a future UI unit hosts the visible ANSI grid the panel embeds)". TerminalSession.View is that
-// placeholder, not an Avalonia Control, so this unit cannot embed a real terminal surface, apply live-resize
-// throttling to it, or give it real keyboard focus. TerminalHost (in TerminalPanel.cs) places an empty Border
-// where the real surface will go, once that unit exists.
-// Readings or options: (a) build a minimal terminal-rendering control inside this unit to unblock these records ->
-// scope creep into a separate, larger unit (rendering an ANSI grid) that is not what TerminalPanel.swift itself is
-// about; (b) leave the placeholder and document the gap, as done here.
-// Needed to proceed: the terminal-rendering unit that gives TerminalHostView (or its successor) a real Avalonia
-// Control surface.
-// Done so far: every requirement not touching the actual rendered grid (tab bar, new/close/hide buttons, resize
-// handle mechanics and its 140/760 clamp, the empty state, height persistence, EnsureTerminal on attach) is
-// implemented and tested above.
+// Swift: App/Views/Terminal/TerminalPanel.swift:191-318 (B3 52bc792; older note used B1 :313-443).
+// Records: PR-TERM-019, PR-TERM-033, PR-TERM-034, PR-TERM-036, UI-TERM-010.
+// Missing: Views/Terminal/Port/TerminalHost.cs TerminalHostView still carries no rendering and is not an Avalonia
+// Control. TerminalHost.Child is an empty Border; TerminalHostContainer merely exposes Child as HostedView. There
+// is no long-lived grid/scrollback surface to reparent, focus, sync in a 50 ms beat, or give a final settled size, and
+// no per-window resize-observer registration/teardown for that surface.
+// Needed: the terminal-rendering unit's Control with input/focus, reparenting and grid-size sync, then the host's
+// two resize observers, pending-beat cancellation and frame/autoresize parity. Escape is the separate STOP #1.
+// RESOLVED HERE: PR-TERM-021 through PR-TERM-027 were incorrectly grouped under the renderer STOP; tab chips are
+// independent of it. Source-derived tests now cover spacing/fonts/truncation, restart-in-place, cross hit testing,
+// padding selection, foreground/background, dead-chip opacity, exact labels, button/selection UI Automation, and
+// live session title/exit changes. Implementation fills the omitted font/foreground/automation and tracked reads.
+
+// STOP App.Views.Terminal.TerminalPanel #3 (sweep B discovered during test cleanup, 2026-09-27)
+// Kind: dependency defect
+// Swift: UI/Chrome/DragHandle.swift:127-133 detach handling, reached by TerminalPanel's :122-129 shared handle.
+// Missing: Marrow.UI.Chrome.DragHandleView.OnDetachedFromVisualTree calls RefreshHover after its visual root is
+// removed; RefreshHover's PointToClient throws ArgumentException("Visual does not belong to a visual tree").
+// Needed: the DragHandle unit repairs its detach path. This sweep does not change that unit. Test windows are hidden
+// and queued layout drained while the headless font manager is alive; no tests or source expectations are skipped.

@@ -2,6 +2,8 @@ using System;
 using System.Linq;
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -155,8 +157,15 @@ public sealed class TerminalPanel : Decorator
             () =>
             {
                 var current = AppEnvironment.GetAppModel(this);
-                return (current, current.Terminals.Sessions(runtime.ThreadID).ToArray(),
-                    current.Terminals.Selected(runtime.ThreadID));
+                var sessions = current.Terminals.Sessions(runtime.ThreadID).ToArray();
+                // :143-184 TerminalTab.body reads the observable session, so a title/exit change redraws the chip
+                // even when the session array and selection have not changed. Collect those reads in the tracker.
+                foreach (var session in sessions)
+                {
+                    _ = session.Title;
+                    _ = session.IsRunning;
+                }
+                return (current, sessions, current.Terminals.Selected(runtime.ThreadID));
             },
             state => RebuildBody(state.Item1, state.Item2, state.Item3));
 
@@ -339,6 +348,7 @@ internal sealed class TerminalTab : Border
     private readonly bool isSelected;
     private bool isHovering;
     private readonly Button closeButton;
+    private readonly Action select;
 
     public TerminalTab(
         TerminalSession session,
@@ -349,6 +359,7 @@ internal sealed class TerminalTab : Border
     {
         this.session = session;
         this.isSelected = isSelected;
+        this.select = select; // :177-179 the whole capsule selects, including its automation button
 
         var row = new StackPanel
         {
@@ -358,14 +369,18 @@ internal sealed class TerminalTab : Border
 
         var terminalIcon = SwiftImage.SystemName("terminal");
         terminalIcon.Font(SwiftFont.Caption);
+        terminalIcon.ForegroundStyle(isSelected ? SwiftColor.Primary : SwiftColor.Secondary); // :175
         row.Children.Add(terminalIcon);
 
         var title = new TextBlock
         {
             Text = session.Title,
+            MaxLines = 1, // :146 .lineLimit(1)
             TextTrimming = TextTrimming.CharacterEllipsis,
             VerticalAlignment = VerticalAlignment.Center,
         };
+        SwiftFont.Callout.Apply(title); // :172 .font(.callout), inherited by the title
+        title.Foreground = (isSelected ? SwiftColor.Primary : SwiftColor.Secondary).Brush(title); // :175
         row.Children.Add(title);
 
         if (!session.IsRunning)
@@ -403,6 +418,23 @@ internal sealed class TerminalTab : Border
             if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
                 select();
         };
+    }
+
+    // :182-184 .accessibilityElement(children: .contain), button and optional selected traits.
+    protected override AutomationPeer OnCreateAutomationPeer() => new TabPeer(this);
+
+    private sealed class TabPeer(TerminalTab owner) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
+        // :182 .contain: expose the row's children instead of an unnamed layout-panel peer.
+        protected override IReadOnlyList<AutomationPeer>? GetChildrenCore() => ((StackPanel)owner.Child!).Children
+            .Select(CreatePeerForElement).OfType<AutomationPeer>().ToArray();
+        bool ISelectionItemProvider.IsSelected => owner.isSelected;
+        ISelectionProvider? ISelectionItemProvider.SelectionContainer => null;
+        void ISelectionItemProvider.AddToSelection() => owner.select();
+        void ISelectionItemProvider.RemoveFromSelection() { } // selecting another tab owns deselection
+        void ISelectionItemProvider.Select() => owner.select();
+        void IInvokeProvider.Invoke() => owner.select(); // :178 onTapGesture(perform: select)
     }
 
     private void SetHover(bool hovering)
