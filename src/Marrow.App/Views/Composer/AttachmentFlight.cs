@@ -7,7 +7,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Composer;
 
-// Source: DroppyCode/App/Views/Composer/AttachmentFlight.swift (B2 1fbf81e), :1-207.
+// Source: DroppyCode/App/Views/Composer/AttachmentFlight.swift (B3 52bc792), :1-207.
 
 /// <summary>The one armed picker drop, consumed by the next new attachment cell.</summary>
 public sealed class AttachmentDrops
@@ -52,8 +52,6 @@ public sealed class AttachmentFlight(IAttachmentFlightPlatform? platform = null)
 
     private readonly IAttachmentFlightPlatform platform = platform ?? new WindowsAttachmentFlightPlatform();
     private IAttachmentFlightSurface? window;
-    private IFrameSource? frameSource;
-    private Action<TimeSpan>? pendingFrame;
 
     // :98-102, ED-011: the critically damped envelope reaches 1/1000 at this time.
     public static TimeSpan SettlingDuration { get; } = TimeSpan.FromSeconds(Math.Log(1000) / (26.0 / (2 * 1.0)));
@@ -65,8 +63,7 @@ public sealed class AttachmentFlight(IAttachmentFlightPlatform? platform = null)
         if (platform.ReduceMotion) return; // :55, UPSTREAM DEFECT 51, reproduced
         if (window is not null)
         {
-            if (pendingFrame is not null) frameSource?.CancelFrame(pendingFrame);
-            pendingFrame = null;
+            // :56-59 Hiding an old flight does not cancel its independently captured :111-116 completion.
             window.OrderOut();
             window = null;
         }
@@ -88,12 +85,10 @@ public sealed class AttachmentFlight(IAttachmentFlightPlatform? platform = null)
 
         // :93-121 All three properties use the same mass, stiffness, damping and clock.
         var source = FrameClock.Source.Current;
-        frameSource = source;
         var began = SwiftClock.Now;
         Action<TimeSpan>? tick = null;
         tick = _ =>
         {
-            if (!ReferenceEquals(window, surface)) return;
             var elapsed = SwiftClock.Now - began;
             var complete = elapsed >= SettlingDuration;
             var t = complete ? SettlingDuration.TotalSeconds : Math.Max(0, elapsed.TotalSeconds);
@@ -111,14 +106,12 @@ public sealed class AttachmentFlight(IAttachmentFlightPlatform? platform = null)
             surface.Apply(current, fromRadius + (toRadius - fromRadius) * progress);
             if (complete)
             {
-                pendingFrame = null;
                 surface.OrderOut();
                 window = null;
                 onLanded?.Invoke(); // :111-115
             }
             else source.RequestFrame(tick!);
         };
-        pendingFrame = tick;
         source.RequestFrame(tick);
         surface.Show(); // :122
     }

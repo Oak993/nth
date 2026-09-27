@@ -365,6 +365,39 @@ public sealed class HydraDelegationStreamTests
         Assert.Equal("go", parser.Delegations[0].Prompt);
     }
 
+    [Theory]
+    [InlineData("```hyd```hydra\n[]")]
+    [InlineData("```hydra-se```hydra\n[]")]
+    [InlineData("```hydra\r```hydra\n[]")]
+    [InlineData("```hydra```hydra\n[]")]
+    [Trait("Req", "PR-HYDRA-095")] // Core/Models/HydraDelegationStream.swift:166-177,187 reset the mismatching backtick to opener 1
+    public void Review_mismatching_backtick_starts_the_next_real_fence(string input)
+    {
+        var parser = new HydraDelegationStreamParser(Guid.NewGuid(), "e1");
+        parser.Ingest(input);
+        Assert.True(parser.IsComplete);
+        Assert.Empty(parser.Delegations);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-095")] // Core/Models/HydraDelegationStream.swift:199-202,220 only depth-zero line-start backticks finish
+    public void Review_backtick_completion_requires_line_start_and_zero_object_depth()
+    {
+        var parser = new HydraDelegationStreamParser(Guid.NewGuid(), "e1");
+        parser.Ingest("```hydra\n[ x`");
+        Assert.False(parser.IsComplete);
+        parser.Ingest("\n`");
+        Assert.True(parser.IsComplete);
+        var nested = new HydraDelegationStreamParser(Guid.NewGuid(), "e1");
+        nested.Ingest("```hydra\n[{\n`");
+        Assert.False(nested.IsComplete);
+        var insideString = new HydraDelegationStreamParser(Guid.NewGuid(), "e1");
+        insideString.Ingest("```hydra\n[{\"prompt\":\"has a ` backtick\"}");
+        Assert.False(insideString.IsComplete);
+        Assert.Equal("has a ` backtick", Assert.Single(insideString.Delegations).Prompt);
+        insideString.Ingest("]"); Assert.True(insideString.IsComplete);
+    }
+
     [Trait("Req", "PR-HYDRA-095")] // DroppyCode/Core/Models/HydraDelegationStream.swift:169 (the -sent suffix)
     [Fact]
     public void The_parser_recognises_the_hydra_sent_opener()

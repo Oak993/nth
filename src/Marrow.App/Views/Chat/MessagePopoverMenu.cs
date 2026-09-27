@@ -11,7 +11,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/MessagePopoverMenu.swift (B2 1fbf81e), :1-83.
+// Source: DroppyCode/App/Views/Chat/MessagePopoverMenu.swift (B3 52bc792), :1-83.
 // Record: PR-CHAT-087.
 
 /// <summary>:4-21 RightClickPopoverModifier: a ViewModifier that wraps content with a RightClickCatcher,
@@ -42,17 +42,13 @@ internal sealed class RightClickPopoverModifier
         RightClickCatcher.AttachTo(content, point =>
         {
             // :9 anchor = point
-            var presented = true;
-            if (presented == shown) return;
-            shown = presented;
-
-            if (presented)
+            // :9,11 Every click replaces the anchor and re-evaluates actions, including while open.
+            popover.PlacementRect = new Rect(point, new Size(1, 1));
+            popover.PlacementTarget = content;
+            popover.Child = new PopoverMenu(() => new RowActionItems(actions()));
+            if (!shown)
             {
-                // Set PlacementRect to a 1x1 rect at the anchor point
-                // :15 CGRect(origin: anchor ?? .zero, size: CGSize(width: 1, height: 1))
-                popover.PlacementRect = new Rect(point, new Size(1, 1));
-                popover.PlacementTarget = content; // :15 attachment to the content (the view tree)
-                popover.Child = new PopoverMenu(() => new RowActionItems(actions()));
+                shown = true;
                 Presentation.Presenter.Current.SetPresented(popover, true);
             }
         });
@@ -93,6 +89,14 @@ internal static class RightClickCatcher
     /// events that occur inside the content's bounds. Also swallows the corresponding release events.</summary>
     public static void AttachTo(Control content, Action<Point> onRightClick)
     {
+        // PR-CHAT-087 windows_path: the Windows context-menu key is a secondary trigger.
+        content.AddHandler(InputElement.KeyDownEvent, (_, e) =>
+        {
+            if (e.Key != Key.Apps) return;
+            onRightClick(new Point(content.Bounds.Width / 2, content.Bounds.Height / 2));
+            e.Handled = true;
+        }, RoutingStrategies.Tunnel, handledEventsToo: true);
+
         // :30-40 RightClickCatcher NSViewRepresentable wrapping RightClickCatcherView
         // ED-183: Attach the handler as a tunnel-phase PointerPressedEvent handler on the content.
         content.AddHandler(InputElement.PointerPressedEvent, (sender, e) =>

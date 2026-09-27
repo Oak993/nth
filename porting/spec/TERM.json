@@ -951,7 +951,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PowerShell 7 if installed, otherwise Windows PowerShell (OD-0008 C5, resolving UNK-0005). The SHELL / password-database / /bin/zsh chain is not ported for the terminal.",
       "verification_method": "contract fixture on a machine with and without PowerShell 7, asserting the launched executable",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1098,7 +1098,7 @@
       "cancellation": "The user can interrupt the running command with the shell's own keys; the app offers no cancel control.",
       "windows_path": "PowerShell 7 if installed, otherwise Windows PowerShell (OD-0008 C5). The -l/-i/-c triple and the trailing exec are POSIX shell syntax and are not carried; the concrete vector that runs the command then stays interactive is an open engineering decision.",
       "verification_method": "contract fixture asserting the four-element vector and the exact fourth element for a command containing a space and a quote",
-      "status": "IMPLEMENTED",
+      "status": "SPECIFIED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1958,7 +1958,7 @@
       ],
       "preconditions": "The editor is open.",
       "action": "A command field is empty or holds only spaces.",
-      "expected_result": "That field gains a 1-point border in the theme danger colour at 0.65 opacity, with a 6-point continuous corner radius. While any script is incomplete the Save button is disabled and its tooltip is exactly \"Every script needs a command.\"; when every script has a command the tooltip is exactly \"Save these scripts\" with no trailing period. The test trims only spaces, not newlines or tabs, so a command of a single tab counts as complete.",
+      "expected_result": "That field gains a 1-point border in the theme danger colour at 0.65 opacity, with a 6-point continuous corner radius. While any script is incomplete the Save button is disabled and its tooltip is exactly \"Every script needs a command.\"; when every script has a command the tooltip is exactly \"Save these scripts\" with no trailing period. The test trims Foundation's .whitespaces set (Unicode general category Zs plus U+0009 CHARACTER TABULATION; R-STR-7), not newlines: a command of only spaces or tabs is incomplete, while a command holding a line feed counts as complete. Corrected 2026-09-27: the earlier text said a single tab counts as complete, contradicting Foundation's documented .whitespaces set.",
       "side_effects": [],
       "persistence": "None.",
       "failure_cases": [
@@ -3929,7 +3929,7 @@
       "typography": ".font(.system(.callout, design: .monospaced)) - the monospaced callout text style, 12 points at the default size per B1's chatBaseSize table (B1:DroppyCode/UI/Common/ChatZoom.swift:52, a file B2 deleted); ED-059 sets the port at that size (the face is Cascadia Mono under OD-0009), fixed per style and scaled only through the app zoom (DroppyCode/UI/Common/AppZoom.swift); visual size parity stays UNVERIFIED under OD-0001.",
       "colors": "Rounded-border field default; the error outline is the theme danger hue at 0.65 opacity, 1 point wide.",
       "states": [
-        "incomplete: the command is empty after trimming spaces, so the danger outline is drawn and Save is disabled",
+        "incomplete: the command is empty after trimming Foundation's .whitespaces (spaces and tabs, not newlines), so the danger outline is drawn and Save is disabled",
         "complete: no overlay"
       ],
       "interactions": [
@@ -3940,7 +3940,7 @@
         "DroppyCode/App/Views/Chat/ChatView.swift:1726-1729",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:52 - `case .callout: 12` (ED-059: upstream's table of the size each text style is laid out at; the file is deleted at B2)"
       ],
-      "notes": "The trim is trimmingCharacters(in: .whitespaces), not .whitespacesAndNewlines, so a tab-only command counts as complete. The comment at :1684-1685 records that such a script used to be dropped on save without a word.",
+      "notes": "The trim is trimmingCharacters(in: .whitespaces), not .whitespacesAndNewlines: .whitespaces holds Unicode Zs plus the tab, so a tab-only command is incomplete and a command holding a line feed is complete (corrected 2026-09-27; R-STR-7). The comment at :1684-1685 records that such a script used to be dropped on save without a word.",
       "b2_change": "B1 DroppyCode/App/Views/Chat/ChatView.swift:1687 `.font(.system(size: 12, design: .monospaced))` -> B2 DroppyCode/App/Views/Chat/ChatView.swift:1683 `.font(.system(.callout, design: .monospaced))`, 12 points at the default size per B1 DroppyCode/UI/Common/ChatZoom.swift:45-57 chatBaseSize (file deleted at B2; the B2 size is macOS's text-style metric, UNVERIFIED per UNK-0003). Placeholder, overlay and trim rule unchanged; lines moved."
     },
     {

@@ -12,7 +12,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Composer;
 
-// Source: DroppyCode/App/Views/Composer/ThreadChangesTab.swift (B2 1fbf81e), :1-75
+// Source: DroppyCode/App/Views/Composer/ThreadChangesTab.swift (B3 52bc792), :1-75
 
 /// <summary>
 /// The thread's changes as a small tab rising from the top of the chat box. The composer draws
@@ -134,8 +134,7 @@ public sealed class ThreadChangesTab : Button
     private void SetAccessibilityLabel()
     {
         // :44 .accessibilityLabel(Text(verbatim: "\(stats.files.count) files changed, \(stats.additions) added, \(stats.deletions) removed"))
-        var fileWord = stats.Files.Count == 1 ? "file" : "files";
-        var label = $"{stats.Files.Count} {fileWord} changed, {stats.Additions} added, {stats.Deletions} removed";
+        var label = System.FormattableString.Invariant($"{stats.Files.Count} files changed, {stats.Additions} added, {stats.Deletions} removed");
         AutomationProperties.SetName(this, label);
     }
 

@@ -1439,3 +1439,78 @@ non-empty image with the intent its Contents.json declares. The 8 tour-* screens
 macOS window controls and "DroppyCode" text (OD-0012 F1). TourView keeps a visible STOP naming OD-0027 until the captures exist.
 ENGINEERING DECISION.
 
+ED-216 [UI] One dialog seam for every SwiftUI `.alert`, `.confirmationDialog` and NSAlert (TimelineRows STOP 2). SOURCE FACT: six
+sites in 1.7.0:
+- TimelineRows.swift:191-196, confirmationDialog "Edit from this message?": "Revert and keep file changes", then "Revert files too"
+  (role .destructive), and a message;
+- SettingsView.swift:920-934, confirmationDialog "Delete \"<title>\"?" or "Delete the archived thread?": "Delete thread"
+  (.destructive), and a message;
+- RootView.swift:80-91, .alert(model.alert.title): "OK" (role .cancel), message model.alert.message;
+- ChatView.swift:1231-1237, .alert("Rename thread"): TextField("Title"), "Rename", "Cancel" (.cancel);
+- ChatView.swift:1381-1385, .alert("New branch"): TextField("Branch name"), "Create", "Cancel" (.cancel);
+- AppUpdater.swift:274-280, NSAlert "Update Failed", warning style, runModal (already on the seam).
+Apple documents that every dialog action dismisses the dialog after it runs; that a confirmation dialog includes a standard dismiss
+action unless a button has the cancel role, which then takes its place; and that an alert without actions gets a standard "OK".
+Today the port has AlertPresentation (src/Marrow.App/Port/AlertPresenter.cs, the updater's plain OK alert) and a private window in
+SettingsView.cs:761-772 with no Cancel button. DECISION: AlertPresentation becomes the one seam for all six sites:
+- AlertButton gains a Role (None, Cancel, Destructive; SwiftUI ButtonRole), and Show takes the title, an optional message, the
+  buttons in declared order, optional text fields (label plus a two-way value) and a kind (Alert or ConfirmationDialog);
+- a ConfirmationDialog with no cancel-role button gets a "Cancel" button with that role;
+- an Alert with no buttons gets "OK";
+- every button runs its action, then closes the dialog;
+- Escape and the window's close box run the cancel-role button, or just close when there is none;
+- destructive titles draw in Chrome.Danger;
+- buttons sit right-aligned in declared order with the cancel-role button moved last (the Windows convention);
+- Return activates the first button with no role, and a dialog with no such button has no Return default;
+- the title is the window title and a bold first line, and the message and fields follow;
+- the dialog is modal, centred on the owner window, and returns a Task that completes on close.
+The seam keeps its test override (the Ambient Presenter): tests record the request and press buttons by title, never open a
+window. SettingsView's private window, TimelineRows STOP 2, RootView and ChatView all move onto it. ENGINEERING DECISION. macOS's
+button order, default-button choice and the look of the sheet stay UNVERIFIED under OD-0001.
+
+ED-217 [UI] Two-line middle truncation (TimelineRows STOP 6). SOURCE FACT: TimelineRows.swift:1969-1973 sets `.lineLimit(2)` and
+`.truncationMode(.middle)` on a tool row's label. Every other `.truncationMode(.middle)` site in 1.7.0 is single-line, and those are
+served by src/Marrow.UI/Port/MiddleTruncatingText.cs (MiddleTruncatingTextBlock), which is single-line. DECISION:
+MiddleTruncatingTextBlock gains a line limit. With a limit of 2, the text wraps normally. When it needs more than two lines, the first
+line keeps its normal wrap and the second holds the rest of the text, elided in its own middle to fit the width: the start of the
+remainder, U+2026, then the end of the whole string. This is TextKit's rule of truncating only the last line; its exact
+middle-truncation of a wrapped paragraph on macOS stays UNVERIFIED under OD-0001. A limit of 1 behaves exactly as today. Tests:
+- text that fits in one line or in two is unchanged;
+- an overflowing string keeps a whole first line, and its second line ends with the string's own last characters, with one U+2026;
+- a limit of 1 is unchanged from today.
+ENGINEERING DECISION.
+
+ED-218 [UI][FOUNDATION] ForEach rows enter and leave through their transitions, and surviving rows glide (MCPSettingsPage STOP #4).
+SOURCE FACT: 1.7.0 has 136 ForEach sites and 88 .transition(...) sites, many of them rows inside a ForEach under withAnimation or
+.animation(_:value:). Examples: MCPSettingsPage.swift:55-57 (the connected grid); TimelineRows.swift:410-414 (FinishedHeadPill with
+.settleGlide under .smooth(duration: 0.3)). In SwiftUI, an inserted row plays its insertion transition and a removed row its removal
+transition, under the transaction's animation; rows that survive but move animate from their old frame to their new one under the same
+transaction. The port's ForEach (src/Marrow.UI/Port/ViewLifetime.cs:88-130) inserts and removes Panel children directly, so none of that
+happens. 52 call sites work around it by calling SwiftTransition.Insert/Remove by hand. DECISION: ForEach.Apply does it itself:
+- a new row goes in through SwiftTransition.Insert, and a vanished row leaves through SwiftTransition.Remove (it is disposed when its
+  removal ends), whenever the row carries a transition (SwiftTransition's attached value) or Transaction.Current is animated;
+- rows with no transition and no animated transaction behave exactly as today, so existing callers and tests are unchanged;
+- when Transaction.Current is animated, each surviving row whose laid-out position changes is moved FLIP-style: record its bounds
+  before Apply; after the next layout pass, set a RenderTransform translation from the old position to the new one and animate it to
+  zero with the transaction's curve. Size changes are not animated by this mechanism;
+- reduce motion (Transaction.Current already carries it) and window live resize (WindowLiveResize) turn the glide off, as the
+  sources gate animations elsewhere.
+The 52 hand-written call sites may move to the new ForEach later, but none has to. Tests (headless, clock-driven):
+- insert and remove play the row's transition and the removed row is disposed after it;
+- a reorder under an animated transaction starts each moved row at its old offset and ends at zero;
+- no transition and no animation behaves exactly as before.
+ENGINEERING DECISION; SwiftUI's exact interpolation of a moved row stays UNVERIFIED under OD-0001.
+
+ED-219 [WIN][LAUNCH] The Dock unread badge becomes a taskbar overlay badge (AppModel.updateDockBadge). SOURCE FACT: AppModel.swift:1270-1273
+sets `NSApp.dockTile.badgeLabel` to the number of threads with hasUnread that are neither archived nor in a panel, or nil when there are
+none. The port (AppModel.cs UpdateDockBadge) keeps the count but shows nothing, with a comment that the taskbar cannot show text; no
+decision recorded that. Windows has ITaskbarList3::SetOverlayIcon, a small icon drawn over the app's taskbar button, which is how
+Windows apps show unread counts. DECISION:
+- the port sets the main window's taskbar overlay icon to a badge drawn in code: the count in white on a filled red circle
+  (NSColor.systemRed at macOS's light values, the Dock badge's own colours), rendered at the system small-icon size for the current DPI;
+- above 99 the badge text stays the decimal count, shrunk to fit, exactly as the source's String(unread) (no "99+" is invented);
+- nil clears the overlay;
+- the accessible description is the count as text;
+- the COM call goes through a seam, so tests record the count and rendered pixels and never touch the real taskbar.
+ENGINEERING DECISION.
+
