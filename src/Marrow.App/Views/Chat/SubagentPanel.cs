@@ -734,9 +734,10 @@ internal sealed class PanelPlacementView : Border
         var fromSize = presentedSize;
         var toSize = size;
         var start = clock.GetTimestamp();
-        // Chrome.swift:99-104. Keep the platform object, reading its live setting at each new settle.
-        var animation = motionPlatform.AccessibilityDisplayShouldReduceMotion
-            ? Animation.EaseOut(0.18) : Animation.Spring(response: 0.32, dampingFraction: 0.9);
+        // Chrome.swift:99-104. Reuse Chrome's curves and read the platform's live setting at each settle.
+        // Retain the injected platform object across posted observation callbacks, whose context can differ.
+        using var motion = Chrome.ReduceMotionPlatform.Override(motionPlatform);
+        var animation = Chrome.PanelSlide;
         frames = FrameClock.Source.Current;
         Action<TimeSpan>? tick = null;
         tick = _ =>
