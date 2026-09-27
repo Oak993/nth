@@ -10,6 +10,8 @@
 #   which-id              - replies with the JSON-RPC request's own id echoed into the text content, so a test
 #                           can prove a relaunched connection's ids restart at 1 (PR-MCP-237) without any other
 #                           observable channel (the id MCPHub assigns is otherwise invisible to the caller).
+#   initialize-id         - reports the actual initialize id this process received, independently of
+#                           which-id's counter observation (MCPHub.swift:288,295; MCPWire.swift:126,164-168).
 #   string-id-then-real   - first sends a reply for this request whose "id" is a JSON STRING holding the same
 #                           digits, which RPCID.Create/Handle must NOT match to the waiting int-keyed request
 #                           (PR-MCP-186 b3_note, "a string id no longer matches"); then, after a short delay,
@@ -37,6 +39,7 @@ while ($true) {
 
     switch ($method) {
         'initialize' {
+            $initializeId = $id
             Send @{ jsonrpc = '2.0'; id = $id; result = @{ protocolVersion = '2025-06-18' } }
         }
         'notifications/initialized' {
@@ -71,6 +74,8 @@ while ($true) {
                 exit 7
             } elseif ($toolName -eq 'which-id') {
                 Send @{ jsonrpc = '2.0'; id = $id; result = @{ content = @(@{ type = 'text'; text = ("id:" + $id) }) } }
+            } elseif ($toolName -eq 'initialize-id') {
+                Send @{ jsonrpc = '2.0'; id = $id; result = @{ content = @(@{ type = 'text'; text = ("initialize-id:" + $initializeId) }) } }
             } elseif ($toolName -eq 'string-id-then-real') {
                 Send @{ jsonrpc = '2.0'; id = [string]$id; result = @{ content = @(@{ type = 'text'; text = 'WRONG-STRING-ID' }) } }
                 Start-Sleep -Milliseconds 150
