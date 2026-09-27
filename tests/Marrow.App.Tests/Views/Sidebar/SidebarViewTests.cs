@@ -6627,7 +6627,18 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Same(content, Assert.Single(LogicalQuery.SelfAndDescendants<SettingsView>(settings)));
             });
         }
-        finally { harness.Main.OnMain(() => { settings?.Close(); if (view is not null) Close(view); SettingsNavigation.Shared.RequestedPage = oldPage; Dispatcher.UIThread.RunJobs(); }); }
+        finally
+        {
+            harness.Main.OnMain(() =>
+            {
+                // WindowManager.swift:98 orders Settings out instead of destroying it. Detach this fixture's
+                // content explicitly so its global navigation observer cannot consume a later test's request.
+                if (settings is not null) { settings.Content = null; settings.Close(); }
+                if (view is not null) Close(view);
+                SettingsNavigation.Shared.RequestedPage = oldPage;
+                Dispatcher.UIThread.RunJobs();
+            });
+        }
     });
 }
 
