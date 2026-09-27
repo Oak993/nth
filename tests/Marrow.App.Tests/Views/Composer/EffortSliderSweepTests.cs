@@ -351,7 +351,6 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-147")] // App/Views/Composer/EffortSlider.swift:384-419
     [Trait("Req", "PR-COMPOSER-148")] // App/Views/Composer/EffortSlider.swift:409-410
     [Trait("Req", "UI-COMPOSER-042")] // App/Views/Composer/EffortSlider.swift:384-419
     public void Pair_row_has_two_lines_a_fused_mark_and_a_retained_checkmark_column()
@@ -448,7 +447,6 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-COMPOSER-110")] // App/Views/Composer/EffortSlider.swift:521-534
-    [Trait("Req", "PR-COMPOSER-113")] // App/Views/Composer/EffortSlider.swift:527-534
     [InlineData("low", "high", "Low")]
     [InlineData("invalid", "high", "High")]
     [InlineData(null, "invalid", "Medium")]
@@ -630,6 +628,97 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             window.Close();
         });
     }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-113")] // App/Views/Composer/EffortSlider.swift:527-529,730
+    public void A_single_level_never_reads_as_maximum()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var window = Show(Card(["high"], null, null)); // one stop: count > 1 fails, so never maximum
+            var title = Assert.Single(window.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "High");
+            Assert.Equal(EffortPalette.Title.Resolve(title.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(title.Foreground).Color);
+            var slider = Assert.Single(window.GetVisualDescendants().OfType<EffortSlider>());
+            var fill = Assert.Single(slider.GetVisualDescendants().OfType<Border>(), b => b.Name == "EffortFill");
+            Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background); // plain fill, no brand gradient
+            Assert.Empty(slider.GetVisualDescendants().OfType<TrackEffect>()); // plain solo draws no effect
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-147")] // App/Views/Composer/EffortSlider.swift:364-367; App/Views/Chat/HydraButton.swift:676-693
+    public void Pair_efforts_cover_the_five_cases_with_dot_separators()
+    {
+        static string? Efforts(string? lead, string? heads) =>
+            Marrow.App.Views.Chat.HydraPairSummary.Efforts(new HydraPair(ProviderKind.Codex) { OrchestratorEffort = lead, WorkerEffort = heads });
+        Assert.Equal("High effort", Efforts("high", "high")); // both match: capitalised single effort
+        Assert.Equal("Lead high, heads medium effort", Efforts("high", "medium")); // differ
+        Assert.Equal("Lead high effort", Efforts("high", null)); // lead only
+        Assert.Equal("Heads medium effort", Efforts(null, "medium")); // heads only
+        Assert.Null(Efforts(null, null)); // neither: absent
+        var pair = new HydraPair(ProviderKind.Codex) { OrchestratorEffort = "high", WorkerEffort = "high" };
+        var providers = Marrow.App.Views.Chat.HydraPairSummary.Providers(pair); // "Codex"
+        var efforts = Marrow.App.Views.Chat.HydraPairSummary.Efforts(pair); // "High effort"
+        Assert.Equal("Codex · High effort", string.Join(" · ", new[] { providers, efforts }.Where(v => v is not null)));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-121")] // App/Views/Composer/EffortSlider.swift:219-226,230-235
+    public void Reset_with_an_unoffered_pair_effort_clears_and_restart_reads_it_back()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness(withRuntime: false);
+            var pair = new HydraPair(ProviderKind.Codex) { OrchestratorEffort = "high" }; // "test-model" offers nothing, so nil wins
+            var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "test-model", "high", RuntimeMode.Supervised, true) { HydraEnabled = true, HydraPairID = pair.Id };
+            harness.WriteLibrary([], [thread]);
+            var model = new AppModel();
+            model.Settings.HydraEnabled = true;
+            model.Settings.AddHydraPair(pair);
+            var panel = new ModelEffortPanel(thread.Id, false);
+            var window = Host(panel, model);
+            Assert.Single(panel.GetVisualDescendants().OfType<Button>(), b => Equals(ToolTip.GetTip(b), "Reset to default"))
+                .RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Null(model.Thread(thread.Id)!.Effort); // unoffered pair effort ignored, nil used
+            Assert.False(model.Thread(thread.Id)!.FastMode);
+            var restarted = new AppModel(); // same in-memory store: the restart test
+            Assert.Equal(new ModelPreference(), restarted.Settings.Preference(ProviderKind.Codex, "test-model"));
+            Assert.Null(restarted.Settings.LastEffort(ProviderKind.Codex));
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-122")] // App/Views/Composer/EffortSlider.swift:626-638,204-217,230-235
+    [Trait("Req", "PR-COMPOSER-124")] // App/Views/Composer/EffortSlider.swift:230-235; App/AppSettings.swift:859-862,899-902
+    public void A_chosen_preference_survives_restart_for_a_new_chat()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness(withRuntime: false);
+            var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "old", null, RuntimeMode.Supervised);
+            harness.WriteLibrary([], [thread]);
+            var model = new AppModel();
+            model.Settings.SetPreference(new ModelPreference { Effort = "high", FastMode = true }, ProviderKind.Codex, "new");
+            var option = new ModelOption("new", "New", null, new ValueList<string>(["low", "high"]), "low", fastTier: "fast");
+            var panel = new ModelEffortPanel(thread.Id, false);
+            var window = Host(panel, model);
+            typeof(ModelEffortPanel).GetMethod("Choose", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                .Invoke(panel, [new ModelCatalog.Entry(ProviderKind.Codex, option), thread]); // production write-through + remember
+            window.Close();
+            var restarted = new AppModel(); // restart: same store
+            Assert.Equal(new ModelPreference { Effort = "high", FastMode = true }, restarted.Settings.Preference(ProviderKind.Codex, "new"));
+            Assert.Equal("new", restarted.Settings.LastModel(ProviderKind.Codex));
+            Assert.Equal("high", restarted.Settings.LastEffort(ProviderKind.Codex));
+            var fresh = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "new", null, RuntimeMode.Supervised); // a new chat on that model
+            Assert.Equal("high", restarted.Settings.Preference(fresh.Provider, fresh.Model).Effort); // the stored choice applies
+        });
+    }
 }
 
 // STOP sweepA-fixes #1
@@ -653,3 +742,14 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 // mode with pause behavior; this theory runs 40 ms and does not establish the full ten-second, pause, narrow-fill
 // and reduce-motion matrix, so Req PR-COMPOSER-133 is dropped.
 // Needed to proceed: the ten-second instrumented run in each mode with pause/reduce-motion coverage to promote PR-133.
+//
+// STOP sweepA-fixes #3
+// Kind: partial proof (catalog fixture gap)
+// Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:219-239,521-534,626-637,384-419 (B3 52bc792)
+// Requirements: PR-COMPOSER-121, PR-COMPOSER-122, PR-COMPOSER-124, PR-COMPOSER-113, PR-COMPOSER-147
+// What is proven: reset without a pair plus restart; reset with an unoffered pair effort (nil branch) plus restart;
+// Choose write-through plus restart plus new-chat preference read-back; the 0.2 s snappy transaction; a one-effort
+// model never reading as maximum with plain track and no effect; the five-case efforts() contract with U+00B7 joins.
+// What is missing: the offered-branch reset (pair lead effort the model actually offers) needs a catalog fixture with
+// a model whose efforts contain the lead effort; the test registry carries no such entry, so that branch is not exercised.
+// Needed to proceed: a catalog fixture (or provider stub) exposing an offerable lead effort to promote PR-121 to fully proven.
