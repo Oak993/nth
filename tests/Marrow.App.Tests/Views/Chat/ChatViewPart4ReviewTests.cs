@@ -21,6 +21,56 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     private static ThreadRuntime Runtime(AppModel model, Project project) => model.Runtime(model.NewThread(project)!.Id);
 
     [Fact]
+    [Trait("Req", "PR-CHAT-174")] // App/Views/Chat/ChatView.swift:1255-1259
+    public void The_threads_popover_factory_uses_the_sidebar_width_and_fixed_five_hundred_sixty_height()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                var build = typeof(ThreadsButton).GetMethod("BuildSidebarPopover", BindingFlags.NonPublic | BindingFlags.Static);
+                Assert.NotNull(build);
+                var popup = (Control)build.Invoke(null, [model, (Action)(() => { })])!;
+                var sidebar = Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.App.Views.Sidebar.SidebarView>(popup));
+                Assert.Equal(model.Sidebar.Width, sidebar.Width);
+                Assert.Equal(560, sidebar.Height);
+                Assert.IsType<WindowBackdrop>(popup); // :1258 presentedChrome shared recipe.
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-GIT-128")] // App/Views/Chat/ChatView.swift:1159-1162,1477-1488
+    [Trait("Req", "UI-GIT-026")] // App/Views/Chat/ChatView.swift:1477-1478
+    public void A_git_status_change_updates_the_actions_help_and_removing_the_repository_removes_the_menu()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            ChatChromeRow row = null!;
+            var git = new GitStatusModel();
+            h.Main.OnMain(() =>
+            {
+                var project = model.AddProject(new Project("P", h.NewFolder("project")).Url);
+                typeof(GitStatusModel).GetProperty(nameof(GitStatusModel.IsRepository))!.SetValue(git, true);
+                row = new ChatChromeRow(model, Runtime(model, project), new ChromeScrollModel(), "Title", project, project.Path, git) { IsVisible = false };
+                var window = new Avalonia.Controls.Window { Content = row };
+                ChatHeadlessFixtures.Track(window); window.Show();
+                Assert.Equal("Commit, push and open pull requests", ToolTip.GetTip(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(Assert.Single(LogicalQuery.SelfAndDescendants<GitActionsMenu>(row))))));
+                typeof(GitStatusModel).GetProperty(nameof(GitStatusModel.Status))!.SetValue(git, new Marrow.Services.Git.GitStatus { ChangedFiles = 1 });
+            });
+            h.Main.RunUntilIdle();
+            Assert.Equal("1 changed files", ToolTip.GetTip(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(Assert.Single(LogicalQuery.SelfAndDescendants<GitActionsMenu>(row))))));
+            h.Main.OnMain(() => typeof(GitStatusModel).GetProperty(nameof(GitStatusModel.IsRepository))!.SetValue(git, false));
+            h.Main.RunUntilIdle();
+            Assert.Empty(LogicalQuery.SelfAndDescendants<GitActionsMenu>(row));
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-CHAT-176")] // App/Views/Chat/ChatView.swift:1147-1151,1203-1214
     [Trait("Req", "UI-CHAT-076")] // App/Views/Chat/ChatView.swift:1203-1214
     public void Updating_the_title_input_cuts_to_the_new_text_without_replacing_its_button()
