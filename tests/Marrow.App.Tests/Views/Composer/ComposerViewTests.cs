@@ -3415,19 +3415,17 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // Done so far: the sites are written; the arrival rule on appear and the 640 by 540 size are tested and pass.
 //
 // STOP App.Views.Composer.ComposerView #4
-// Kind: untestable
+// Kind: historical dependency blocker, resolved; command-observer proof gaps resolved by notify2-proofs.
 // Swift: DroppyCode/App/Views/Composer/ComposerView.swift:204-215 (B3 52bc792)
 // Requirements: PR-COMPOSER-051, PR-COMPOSER-052
-// What is unclear or missing: the .task(id: commandKey) load and the three observers (commands landing, an error
-// landing while the list is open, the command list becoming visible) run only on a pill that is on screen and whose
-// thread resolves, because commandKey is empty without a resolved thread (:265). Such a pill draws ComposerControls
-// (:160-173), whose constructor is still MARROW_STUB (part 3 of this unit), so it cannot be put on screen in a test
-// yet. The focus test the observers make (hasFocus, ComposerTextView.swift:33-36) also needs the pill on screen.
-// Needed to proceed: part 3 of this unit (ComposerControls and the views under it); the tests for these wirings are
-// then written against a focused, on-screen pill.
-// Done so far: the sites are written. Tested off screen: loadCommands itself (:269-273, PR-COMPOSER-051: the thread's
-// provider and the working directory reach the registry, and nothing loads without a directory). On screen, with a
-// thread that does not resolve, the file index task (:216-218) is exercised by every @ test.
+// Resolution: ComposerControls is implemented, and a resolved thread's pill can be mounted and focused. The
+// B3_delayed_listing_refreshes_the_focused_open_panel_with_commands_or_a_late_error cases now hold an offline
+// CLI listing until the panel is already open, then prove the presented command/error content and retained focus.
+// B3_opening_the_command_panel_starts_a_stale_load_and_reopening_uses_the_fresh_cache proves the visible observer
+// starts the listing without a direct LoadCommands call, then reopens from the fresh cache without a new listing.
+// The delayed cases also reach the commandKey task on mount (:204). Existing PR-COMPOSER-051 tests retain the
+// thread-provider/directory and missing-directory assertions. Nothing remains blocked at these observer sites.
+// This uses the R-VIEW-9 recording presenter; native popup hit-testing and scrolling remain separately in STOP #5.
 //
 // STOP App.Views.Composer.ComposerView #5
 // Kind: untestable
