@@ -19,7 +19,7 @@ public sealed class MCPSettingsPageTransitionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "UI-MCP-002")] // App/Views/Settings/MCPSettingsPage.swift:55-57
+    [Trait("Req", "UI-MCP-018")] // App/Views/Settings/MCPSettingsPage.swift:55-57
     [Trait("Req", "PR-MCP-203")] // App/Views/Settings/MCPSettingsPage.swift:64-74
     public void Entering_celebration_glides_the_grid_even_when_a_state_rebuild_was_already_queued() => headless.OnUiThread(() =>
     {
@@ -49,7 +49,7 @@ public sealed class MCPSettingsPageTransitionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "UI-MCP-002")] // App/Views/Settings/MCPSettingsPage.swift:55-57
+    [Trait("Req", "UI-MCP-018")] // App/Views/Settings/MCPSettingsPage.swift:55-57
     [Trait("Req", "PR-MCP-203")] // App/Views/Settings/MCPSettingsPage.swift:64-74
     public void A_card_exits_with_scale_point_nine_and_opacity_while_the_next_row_glides_on_the_grid_spring() => headless.OnUiThread(() =>
     {
@@ -98,7 +98,7 @@ public sealed class MCPSettingsPageTransitionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "UI-MCP-002")] // App/Views/Settings/MCPSettingsPage.swift:49-57
+    [Trait("Req", "UI-MCP-018")] // App/Views/Settings/MCPSettingsPage.swift:49-57
     [Trait("Req", "PR-MCP-203")] // App/Views/Settings/MCPSettingsPage.swift:64-74
     public void The_last_catalog_card_keeps_its_category_attached_until_its_removal_transition_finishes() => headless.OnUiThread(() =>
     {

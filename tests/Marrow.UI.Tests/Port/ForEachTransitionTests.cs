@@ -11,7 +11,7 @@ public sealed class ForEachTransitionTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "UI-MCP-002")] // App/Views/Settings/MCPSettingsPage.swift:55-57
+    [Trait("Req", "UI-MCP-018")] // App/Views/Settings/MCPSettingsPage.swift:55-57
     public void Scale_opacity_insertion_and_removal_use_frames_and_dispose_only_after_the_exit() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
@@ -31,7 +31,7 @@ public sealed class ForEachTransitionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "UI-MCP-002")] // App/Views/Settings/MCPSettingsPage.swift:55-57
+    [Trait("Req", "UI-MCP-018")] // App/Views/Settings/MCPSettingsPage.swift:55-57
     public void A_transition_with_its_own_animation_runs_without_a_transaction() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks();
@@ -143,7 +143,7 @@ public sealed class ForEachTransitionTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "UI-MCP-002")] // App/Views/Settings/MCPSettingsPage.swift:55-57
+    [Trait("Req", "UI-MCP-018")] // App/Views/Settings/MCPSettingsPage.swift:55-57
     public void A_grid_spring_glide_uses_the_critical_spring_curve_on_the_shared_clock() => headless.OnUiThread(() =>
     {
         using var clocks = new AnimationClocks(); using var host = new ForEachHost();

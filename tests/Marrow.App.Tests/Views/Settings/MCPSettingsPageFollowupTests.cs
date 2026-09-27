@@ -106,8 +106,8 @@ public sealed class MCPSettingsPageFollowupTests(HeadlessSession headless)
         });
     }
     [Fact]
-    [Trait("Req", "PR-MCP-204")] // App/Views/Settings/MCPSettingsPage.swift:145-168
-    [Trait("Req", "UI-MCP-009")] // App/Views/Settings/MCPSettingsPage.swift:159-167
+    [Trait("Req", "UI-MCP-008")] // App/Views/Settings/MCPSettingsPage.swift:152-203
+    [Trait("Rule", "R-OBS-6")] // App/Views/Settings/MCPSettingsPage.swift:159-162
     public void Connected_row_refreshes_version_when_connections_change_without_a_state_change()
     {
         headless.OnUiThread(() =>
@@ -116,6 +116,16 @@ public sealed class MCPSettingsPageFollowupTests(HeadlessSession headless)
             runtime.OnMain(() => { model = new AppModel(); State(model, "github", new MCPConnectionState.Connected(2)); row = new MCPConnectedRow(MCPCatalog.Entry("github")!); window = Attach(row, model); });
             try
             {
+                runtime.OnMain(() =>
+                {
+                    // :153-162,200-202: the row and its name/detail retain their source geometry and typography.
+                    Assert.Contains("2 tools \u00B7 GitHub", Texts(row));
+                    var surface = Assert.IsType<Border>(row.Child); Assert.Equal(new Avalonia.Thickness(16, 11, 10, 11), surface.Padding);
+                    var layout = Assert.IsType<Grid>(surface.Child); Assert.Equal(12, layout.ColumnSpacing);
+                    var slot = Assert.IsType<Border>(Assert.Single(Nodes<MCPIcon>(row)).Parent); Assert.Equal(26, slot.Width); Assert.Equal(22, Assert.Single(Nodes<MCPIcon>(row)).Child!.Width);
+                    var copy = Nodes<StackPanel>(row).Single(p => p.Spacing == 2); var name = Assert.IsType<TextBlock>(copy.Children[0]); var detail = Assert.IsType<TextBlock>(copy.Children[1]);
+                    Assert.Equal(13, name.FontSize); Assert.Equal(Avalonia.Media.FontWeight.SemiBold, name.FontWeight); Assert.Equal(11, detail.FontSize);
+                });
                 runtime.OnMain(() => { var property = typeof(MCPStore).GetProperty(nameof(MCPStore.Connections))!; Assert.NotNull(property.GetSetMethod(true)); property.SetValue(model.Mcp, new Dictionary<string, MCPConnection>(model.Mcp.Connections) { ["github"] = new MCPConnection("github") { ServerVersion = "fixture-2", Tools = new[] { new MCPToolSummary("read", null), new MCPToolSummary("write", null) } } }); });
                 runtime.OnMain(() => Assert.Contains("2 tools \u00B7 fixture-2", Texts(row))); // U+00B7 MIDDLE DOT
             }
@@ -123,7 +133,7 @@ public sealed class MCPSettingsPageFollowupTests(HeadlessSession headless)
         });
     }
     [Fact]
-    [Trait("Req", "PR-MCP-073")] // App/Views/Settings/MCPSettingsPage.swift:564-566; Services/MCP/MCPStore.swift:186-193
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:564-566; Services/MCP/MCPStore.swift:186-193
     [Trait("Req", "PR-MCP-228")] // Services/MCP/MCPStore.swift:115-128; OD-0012 E6
     public void Confirmed_custom_delete_reports_a_refused_deletion_after_the_row_disappears()
     {
