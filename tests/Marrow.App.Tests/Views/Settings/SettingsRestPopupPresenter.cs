@@ -10,5 +10,10 @@ namespace Marrow.App.Tests.Views.Settings;
 // keeps real popup hit testing and light-dismiss input, rather than fabricating routed click events.
 public sealed class SettingsRestPopupPresenter : IPopoverPresenter
 {
-    public void SetPresented(Popup popup, bool presented) { popup.ShouldUseOverlayLayer = true; if (presented) { Assert.NotNull(popup.PlacementTarget); Assert.True(OverlayLayer.GetOverlayLayer(popup.PlacementTarget) is not null, "Popup anchor detached: " + popup.PlacementTarget.GetType().Name); Assert.True(OverlayLayer.GetOverlayLayer(Avalonia.Controls.TopLevel.GetTopLevel(popup.PlacementTarget)!) is not null, "TopLevel overlay missing"); } popup.IsOpen = presented; if (presented && popup.Host is OverlayPopupHost host) host.Template = new FuncControlTemplate<OverlayPopupHost>((owner, scope) => new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope)); }
+    public void SetPresented(Popup popup, bool presented) { popup.ShouldUseOverlayLayer = true; if (presented) { Assert.NotNull(popup.PlacementTarget); Assert.True(OverlayLayer.GetOverlayLayer(popup.PlacementTarget) is not null, "Popup anchor detached: " + popup.PlacementTarget.GetType().Name); Assert.True(OverlayLayer.GetOverlayLayer(Avalonia.Controls.TopLevel.GetTopLevel(popup.PlacementTarget)!) is not null, "TopLevel overlay missing"); } popup.IsOpen = presented; if (presented && typeof(Popup).GetProperty("Host", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(popup) is OverlayPopupHost host) Configure(host);
+    }
+    private static void Configure(OverlayPopupHost host)
+    {
+        Assert.NotNull(host.Content);
+        host.Template = new FuncControlTemplate<OverlayPopupHost>((owner, scope) => new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope)); }
 }
