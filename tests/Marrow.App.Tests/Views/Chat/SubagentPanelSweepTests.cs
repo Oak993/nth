@@ -44,7 +44,8 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
                 OnResize = (_, _) => { }, OnResizeEnd = () => { }, OnReset = () => { },
             };
             var placed = new PlacedPanel(new PanelDragState(), new Point(20, 72), new Size(400, 300), content, resize);
-            var window = new Avalonia.Controls.Window { Content = placed };
+            // Measure the source's fractional animation frame, before platform pixel rounding.
+            var window = new Avalonia.Controls.Window { Content = placed, UseLayoutRounding = false };
             AppEnvironment.SetWindowLiveResize(placed, new WindowLiveResize(window));
             window.Show();
             Dispatcher.UIThread.RunJobs();
@@ -230,6 +231,7 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
     // Records: PR-HYDRA-230. JumpToLatestButton still throws MARROW_STUB in the excluded ChatView.cs.
     // Needed: its ChatView unit implementation before an end-to-end public panel can be constructed.
     // These tests substitute only that unrelated control; transcript/composer/close behavior stays real.
+    // PR-HYDRA-230 is PARTIAL: the passing seam test does not award full record credit.
     private static SubagentPanel MakePanel(ChatThread thread, Project project, Action close)
     {
         var constructor = typeof(SubagentPanel).GetConstructors(BindingFlags.Instance | BindingFlags.NonPublic)
