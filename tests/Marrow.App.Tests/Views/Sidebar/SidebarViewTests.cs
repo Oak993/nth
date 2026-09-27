@@ -152,6 +152,23 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // nothing claims the row's own constructor, ThreadRow, PR-SIDEBAR-134/135, or the lift end to end on a real row, and
 // no test in this file builds one.
 
+// STOP ledger opencode-App.Views.Sidebar.SidebarView (this unit's TODO records that stay blocked; each names
+// the missing dependency and the exact production site in SidebarView.cs; STOP #2/PR-SIDEBAR-013 is CLOSED above):
+// #1 PR-SIDEBAR-005 (empty-query half): which String.contains overload macOS binds for an empty needle needs a
+//    macOS oracle item or recorded decision; site :743 Contains (SidebarView.cs, the throwing empty-needle arm).
+//    Non-empty Return and no-result are proven by Return_selects_the_first_thread_of_the_first_search_result and
+//    Return_with_no_result_changes_nothing.
+// #2 PR-SIDEBAR-019: surviving rows' positional slide needs a UI/Port layout-animation foundation plus an ED;
+//    site ListPassNow/ApplyList (SidebarView.cs:460-484; entering/leaving fades ride panelSlide, stayers jump).
+// #3 PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030: `.roundedBorder`/`.bordered`/`.borderedProminent`
+//    chrome needs an ED/owner ruling; sites RenamePopover (:239) and RenameThreadPopover (:995).
+// #4 PR-SIDEBAR-130, PR-SIDEBAR-133 and the right-click interaction of UI-SIDEBAR-033/UI-SIDEBAR-037: SwiftUI's
+//    per-open `.contextMenu` re-evaluation needs an ED/PA foundation; site ProjectRow's header (the static menu
+//    ITEMS are proven: UI-SIDEBAR-014/-015/-016 and the non-right-click halves of UI-SIDEBAR-033/-037).
+// #5 PR-SIDEBAR-134, PR-SIDEBAR-135, UI-SIDEBAR-017 and the end-to-end half of UI-SIDEBAR-060: SidebarThreadRow's own
+//    constructor and ThreadRow wiring need a follow-up assembly unit; sites :870 ThreadRow and :1716 the constructor.
+//    UI-SIDEBAR-060's pointer/slide/lift-pieces/release are proven at the seam level by the five trait tests.
+
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
 {

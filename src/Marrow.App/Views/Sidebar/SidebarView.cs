@@ -476,6 +476,8 @@ public sealed class SidebarView : Decorator
         // :117-119 R-VIEW-4: a change of any of the three values animates the pass with Chrome.panelSlide; otherwise the
         // change's own transaction applies. The entering and leaving rows ride it. STOP #3 (test file): the rows that
         // stay have no layout animation in the port, so they move without the slide.
+        // STOP opencode-App.Views.Sidebar.SidebarView #2: the surviving rows' positional slide needs a UI/Port
+        // layout-animation foundation plus an ED. Names PR-SIDEBAR-019.
         var animation = lastMotion is not null && lastMotion != pass.Motion ? Chrome.PanelSlide : Transaction.Current;
         lastMotion = pass.Motion;
         Transaction.WithAnimation(animation, () => ApplyEntries(pass.Items is { } items
@@ -707,6 +709,9 @@ public sealed class SidebarView : Decorator
 
     // :870-897 threadRow(_:projectName:projectIcon:hasHelpers:isDragged:), the popovers around SidebarThreadRow (parts 3
     // and 4).
+    // STOP opencode-App.Views.Sidebar.SidebarView #5: SidebarThreadRow's own constructor (and this ThreadRow
+    // wiring) is still unassembled; needs a follow-up unit. Names PR-SIDEBAR-134, PR-SIDEBAR-135, UI-SIDEBAR-017
+    // and the end-to-end half of UI-SIDEBAR-060.
     private Control ThreadRow(ChatThread thread, string? projectName, ProjectIcon? projectIcon, bool hasHelpers, bool isDragged = false) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:870 (STOP #8)");
 
@@ -1298,6 +1303,8 @@ public sealed class SidebarView : Decorator
     // needle is STOP #1 (SidebarViewTests.cs): which overload the source binds, and so its answer, is unsettled.
     private static bool Contains(string text, string needle)
     {
+        // STOP opencode-App.Views.Sidebar.SidebarView #1: empty-needle `contains` needs a macOS oracle item or a
+        // recorded decision (which String.contains overload the source binds). Names PR-SIDEBAR-005's empty-query half.
         if (needle.Length == 0)
             throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:743 (STOP #1: String.contains with an empty needle)");
         return text.Contains(needle, StringComparison.Ordinal);
@@ -1356,6 +1363,9 @@ public sealed class SidebarView : Decorator
     /// <summary>:239-252 renamePopover(for:on:). STOP #6 (RenameThreadPopover, this unit): the content this wraps has
     /// no chrome yet, so this wrapper stays unwritten rather than calling a MARROW_STUB constructor from a live
     /// path. PR-SIDEBAR-091.</summary>
+    // STOP opencode-App.Views.Sidebar.SidebarView #3: `.textFieldStyle(.roundedBorder)` and
+    // `.buttonStyle(.bordered)/(.borderedProminent)` need an ED/owner ruling naming the Windows chrome.
+    // Names PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030.
     private Control RenamePopover(ChatThread thread, Control row) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:239 (STOP #6)");
 
@@ -1623,6 +1633,7 @@ internal sealed class RenameThreadPopover : Decorator
     // ED-059, ED-062, ED-149, ED-187, OD-0001, OD-0005, OD-0008, OD-0009, OD-0010, PA-0019) or engineering_decisions.md
     // entry names either style. Every other row-level popover this part ports (Delete, Archive) reuses PopoverItem or
     // the already-decided `.glass`/`.glassProminent` recipe (OD-0005); this one alone needs a new, undecided pair.
+    // STOP opencode-App.Views.Sidebar.SidebarView #3 (same need as RenamePopover above).
     public RenameThreadPopover(string title, Action<string> onRename, Action onCancel) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:995 (STOP #6)");
 }
@@ -1687,6 +1698,9 @@ internal static class SidebarViewExtensions
 /// directly. PR-SIDEBAR-133 (the AppKit context menu itself, live on a right-click) stays out of scope: SwiftUI's
 /// <c>.contextMenu</c> (:1138-1161) re-evaluates isActive, hasOverride and pairsSnapshot fresh every time the menu
 /// opens, and no ED or platform-adaptation entry names a Windows/Avalonia foundation for that per-open refresh
+// STOP opencode-App.Views.Sidebar.SidebarView #4: the per-open-refresh foundation needs an ED/PA decision.
+// Names PR-SIDEBAR-130 (Remove confirmation gated behind the live menu), PR-SIDEBAR-133 (the live menu itself)
+// and the right-click interaction of UI-SIDEBAR-033/UI-SIDEBAR-037.
 /// (porting/engineering_decisions.md and porting/platform_adaptations.md have no ".contextMenu" or "ContextMenu"
 /// entry; RowActionMenuButtons' own header comment already anticipates "a caller" installing its Items on a live
 /// ContextMenu.Items, but no unit has done so yet). Attaching a menu fixed at construction time would go stale the
@@ -2693,6 +2707,7 @@ internal sealed class SidebarThreadRow : Decorator
     // no missing collaborator, each as its own static piece below (Fill, BackgroundFill, TrailingClearance,
     // ShowsCheck, SelectThread, NoteHover, ApplyDraggedLift, BuildSettleCheckOverlay, BuildTrailingOverlay); the
     // constructor itself stays MARROW_STUB until a later part assembles them with the pieces still missing.
+    // STOP opencode-App.Views.Sidebar.SidebarView #5 (same need as ThreadRow above).
     public SidebarThreadRow(
         ChatThread snapshot,
         string? projectName,
