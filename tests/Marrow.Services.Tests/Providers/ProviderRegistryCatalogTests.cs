@@ -99,12 +99,12 @@ public sealed class ProviderRegistryCatalogTests
         // true the instant this call returns; RefreshAll's own children hop through MainActor.Invoke
         // (R-TASK-5), which needs TestRuntime's manual loop pumped to progress, so the method has not run
         // to completion synchronously.
-        var first = runtime.Loop.Run(() => Task.FromResult(registry.RefreshEverything()));
+        var first = registry.RefreshEverything();
         Assert.True(registry.IsRefreshing);
 
         // A second call while the first is still out returns immediately (:316's guard) without touching
         // anything; it is already completed the moment it is observed.
-        var second = runtime.Loop.Run(() => Task.FromResult(registry.RefreshEverything()));
+        var second = registry.RefreshEverything();
         Assert.True(second.IsCompletedSuccessfully);
 
         // Pump the manual main loop on a background thread until the first call settles (R-TEST-5): its
@@ -116,7 +116,7 @@ public sealed class ProviderRegistryCatalogTests
         // every one of those detached reads finishes at its own "executable not found"/"empty key" branch
         // (PR-PROVREG-166, PR-PROVREG-169) without throwing. Phase 3 finds nothing "installed" to load a
         // catalog for, so the whole call completes normally.
-        await Task.Run(() => runtime.Loop.Run(() => first));
+        await first;
         Assert.True(first.IsCompletedSuccessfully);
         // The defer (:318) clears the flag once every phase has completed.
         Assert.False(registry.IsRefreshing);
@@ -171,7 +171,7 @@ public sealed class ProviderRegistryCatalogTests
         // enormously stale or fresh either way, so this alone would not distinguish correctness; the
         // decisive signal is the companion test below, which shows a FRESH date suppresses the call
         // entirely under otherwise identical conditions.
-        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCatalog(ProviderKind.Cursor, force: false)));
+        await registry.LoadCatalog(ProviderKind.Cursor, force: false);
         Assert.Empty(registry.LoadingCatalogs); // defer always clears it, whichever path was taken
     }
 
@@ -192,7 +192,7 @@ public sealed class ProviderRegistryCatalogTests
 
         // Not seeded (cursor is not one of the seven always/sentinel-tested providers), not stale (5
         // minutes old), not empty: the guard at :478 returns before any process is touched.
-        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCatalog(ProviderKind.Cursor, force: false)));
+        await registry.LoadCatalog(ProviderKind.Cursor, force: false);
         // The cached row is untouched: still exactly the one seeded above.
         Assert.Single(registry.Catalogs[ProviderKind.Cursor]);
         Assert.Equal("cursor-model", registry.Catalogs[ProviderKind.Cursor][0].Id);
@@ -569,10 +569,10 @@ public sealed class ProviderRegistryCatalogTests
         // opencode-go/ fallback: only from provider .opencode, one-way.
         var withGo = new ProviderRegistry(Settings());
         // Seed both catalogs directly through a live update so the fallback has something to find.
-        runtime.Loop.Run(() => MainActor.Run(() => withGo.UpdateCatalog(new ValueList<ModelOption>([new ModelOption("opencode-go/go-1", "Go One")]), ProviderKind.OpencodeGo)));
+        withGo.UpdateCatalog(new ValueList<ModelOption>([new ModelOption("opencode-go/go-1", "Go One")]), ProviderKind.OpencodeGo);
         Assert.Equal("opencode-go/go-1", withGo.Model("opencode-go/go-1", ProviderKind.Opencode)?.Id);
         // The reverse direction never consults Zen.
-        runtime.Loop.Run(() => MainActor.Run(() => withGo.UpdateCatalog(new ValueList<ModelOption>([new ModelOption("opencode/zen-1", "Zen One")]), ProviderKind.Opencode)));
+        withGo.UpdateCatalog(new ValueList<ModelOption>([new ModelOption("opencode/zen-1", "Zen One")]), ProviderKind.Opencode);
         Assert.Null(withGo.Model("opencode/zen-1", ProviderKind.OpencodeGo));
     }
 
@@ -586,11 +586,11 @@ public sealed class ProviderRegistryCatalogTests
         settings.LastModels[ProviderKind.Cursor] = "cursor-model[effort=high]";
         var registry = MakeRegistry(runtime, settings);
 
-        runtime.Loop.Run(() => MainActor.Run(() => registry.UpdateCatalog(new ValueList<ModelOption>(
+        registry.UpdateCatalog(new ValueList<ModelOption>(
         [
             new ModelOption("cursor-model", "Cursor Model"),
             new ModelOption("cursor-default", "Cursor Default", isDefault: true),
-        ]), ProviderKind.Cursor)));
+        ]), ProviderKind.Cursor);
 
         // The stored id resolves through Model's bracket-prefix fallback (:435-439, :446-448).
         Assert.Equal("cursor-model", registry.DefaultModel(ProviderKind.Cursor)?.Id);
@@ -601,11 +601,11 @@ public sealed class ProviderRegistryCatalogTests
         Assert.Equal("removed-model", settings.LastModel(ProviderKind.Cursor));
 
         // Without a stored match or default row, the first catalog row is selected.
-        runtime.Loop.Run(() => MainActor.Run(() => registry.UpdateCatalog(new ValueList<ModelOption>(
+        registry.UpdateCatalog(new ValueList<ModelOption>(
         [
             new ModelOption("cursor-first", "Cursor First"),
             new ModelOption("cursor-second", "Cursor Second"),
-        ]), ProviderKind.Cursor)));
+        ]), ProviderKind.Cursor);
         settings.LastModels.Remove(ProviderKind.Cursor);
         Assert.Equal("cursor-first", registry.DefaultModel(ProviderKind.Cursor)?.Id);
 
@@ -627,12 +627,12 @@ public sealed class ProviderRegistryCatalogTests
         settings.Paths[ProviderKind.Cursor] = script;
         var registry = MakeRegistry(runtime, settings);
 
-        var first = runtime.Loop.Run(() => Task.FromResult(registry.LoadCatalog(ProviderKind.Cursor, force: true)));
+        var first = registry.LoadCatalog(ProviderKind.Cursor, force: true);
         Assert.Contains(ProviderKind.Cursor, registry.LoadingCatalogs);
         // A second call, even forced, while the first is in flight, returns immediately (:460).
-        var second = runtime.Loop.Run(() => Task.FromResult(registry.LoadCatalog(ProviderKind.Cursor, force: true)));
+        var second = registry.LoadCatalog(ProviderKind.Cursor, force: true);
         Assert.True(second.IsCompleted);
-        await Task.Run(() => runtime.Loop.Run(() => first));
+        await first;
         Assert.Empty(registry.LoadingCatalogs); // the defer always clears it
     }
 
@@ -648,9 +648,9 @@ public sealed class ProviderRegistryCatalogTests
 
         // Cursor is never seeded/stale after the first ask (empty, unresolved executable each time), so
         // an unforced retry keeps trying: the attempt is never marked because nothing was ever delivered.
-        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCatalog(ProviderKind.Cursor)));
+        await registry.LoadCatalog(ProviderKind.Cursor);
         Assert.Empty(registry.Models(ProviderKind.Cursor));
-        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCatalog(ProviderKind.Cursor))); // would be a no-op if (wrongly) marked attempted
+        await registry.LoadCatalog(ProviderKind.Cursor); // would be a no-op if (wrongly) marked attempted
         Assert.Empty(registry.Models(ProviderKind.Cursor));
     }
 
@@ -672,7 +672,7 @@ public sealed class ProviderRegistryCatalogTests
         // catalog and no stored date it still enters loadingCatalogs before the executable fails to
         // resolve, proving the probe was attempted rather than short-circuited by :478.
         Assert.NotEmpty(registry.Models(ProviderKind.Claude));
-        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCatalog(ProviderKind.Claude)));
+        await registry.LoadCatalog(ProviderKind.Claude);
         Assert.Empty(registry.LoadingCatalogs); // cleared by defer; reaching here at all proves entry
 
         // Copilot: seeded only while its catalog is exactly [copilotAuto]; replace it with something else
@@ -736,7 +736,7 @@ public sealed class ProviderRegistryCatalogTests
         // CodexSession.ListModels &c. are MARROW_STUB and throw NotImplementedException synchronously;
         // the try? at each arm (:486-490) must swallow that to nil rather than letting it escape
         // loadCatalog, matching the same requirement already proven for Cursor/Grok/Devin/OpenCode above.
-        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCatalog(provider, force: true)));
+        await registry.LoadCatalog(provider, force: true);
         Assert.Empty(registry.LoadingCatalogs);
         Assert.Equal(before, registry.Models(provider)); // nothing was delivered: the catalog is unchanged
     }
@@ -752,7 +752,7 @@ public sealed class ProviderRegistryCatalogTests
         var settings = Settings();
         settings.Paths[ProviderKind.Cursor] = Path.Combine(TempDir(), "does-not-exist.exe");
         var registry = MakeRegistry(runtime, settings);
-        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCatalog(ProviderKind.Cursor, force: true)));
+        await registry.LoadCatalog(ProviderKind.Cursor, force: true);
         Assert.Empty(registry.LoadingCatalogs);
         Assert.Empty(registry.Catalogs.TryGetValue(ProviderKind.Cursor, out var list) ? list : ValueList<ModelOption>.Empty);
         // Not marked attempted: an immediate unforced retry would still probe (proven by PR-PROVREG-150's
