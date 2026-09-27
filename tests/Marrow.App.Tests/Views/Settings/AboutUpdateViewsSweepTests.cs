@@ -45,7 +45,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:580-707
-    [Trait("Req", "PR-UPDATE-072")] // App/Views/Settings/AboutUpdateViews.swift:620-624
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:620-624
     [Trait("Req", "PR-UPDATE-075")] // App/Views/Settings/AboutUpdateViews.swift:678-707
     [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:628-707
     [Trait("Req", "UI-UPDATE-002")] // App/Views/Settings/AboutUpdateViews.swift:596-624,649-660
@@ -87,7 +87,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-UPDATE-073")] // App/Views/Settings/AboutUpdateViews.swift:580-583,644-675
-    [Trait("Req", "UI-UPDATE-005")] // App/Views/Settings/AboutUpdateViews.swift:644-688
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:644-688
     public void Newer_stored_release_makes_the_pill_an_enabled_blue_install_button_with_exact_help()
     {
         headless.OnUiThread(() =>
@@ -115,7 +115,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Req", "PR-UPDATE-074")] // App/Views/Settings/AboutUpdateViews.swift:628-641,693-696
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:628-641,693-696
     [Trait("Req", "UI-UPDATE-006")] // App/Views/Settings/AboutUpdateViews.swift:628-641
     [InlineData(false)]
     [InlineData(true)]
@@ -146,11 +146,11 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Req", "PR-SETTINGS-240")] // App/Views/Settings/AboutUpdateViews.swift:824-844
-    [Trait("Req", "PR-UPDATE-076")] // App/Views/Settings/AboutUpdateViews.swift:836-844
-    [Trait("Req", "UI-SETTINGS-071")] // App/Views/Settings/AboutUpdateViews.swift:826-833
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:824-844
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:836-844
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:826-833
     [Trait("Req", "UI-UPDATE-021")] // App/Views/Settings/AboutUpdateViews.swift:824-844
-    [Trait("Req", "UI-UPDATE-022")] // App/Views/Settings/AboutUpdateViews.swift:826-833
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:826-833
     [InlineData(false, null, false, "Marrow checks GitLab for new versions a few times a day. Not checked yet.")]
     [InlineData(false, "Fixture error", false, "Fixture error Not checked yet.")]
     [InlineData(false, null, true, "Marrow 9.0.0 is ready to install. Not checked yet.")]
@@ -178,8 +178,8 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-240")] // App/Views/Settings/AboutUpdateViews.swift:826-829,837
-    [Trait("Req", "PR-UPDATE-076")] // App/Views/Settings/AboutUpdateViews.swift:837
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:826-829,837
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:837
     public void Check_now_runs_a_foreground_check_and_then_includes_the_relative_checked_stamp()
     {
         headless.OnUiThread(() =>
@@ -209,8 +209,8 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SETTINGS-246")] // App/Views/Settings/AboutUpdateViews.swift:259-299
-    [Trait("Req", "UI-UPDATE-015")] // App/Views/Settings/AboutUpdateViews.swift:259-299
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:259-299
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:259-299
     public void Release_popover_lists_bullets_in_order_and_the_smaller_rollup_last()
     {
         headless.OnUiThread(() =>
@@ -294,7 +294,7 @@ public sealed class AboutUpdateViewsSweepTests(HeadlessSession headless)
     [Theory]
     [Trait("Req", "PR-SETTINGS-243")] // App/Views/Settings/AboutUpdateViews.swift:731-744,794-818
     [Trait("Req", "PR-UPDATE-060")] // App/Views/Settings/AboutUpdateViews.swift:731-736,798-803
-    [Trait("Req", "PR-UPDATE-061")] // App/Views/Settings/AboutUpdateViews.swift:794-818 (windows_path specifies the shared no-op haptic shim)
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:794-818 (windows_path specifies the shared no-op haptic shim)
     [Trait("Req", "PR-UPDATE-063")] // App/Views/Settings/AboutUpdateViews.swift:738-744
     [InlineData(false, 2600)]
     [InlineData(true, 1450)]

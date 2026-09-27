@@ -48,7 +48,7 @@ public sealed class AboutUpdateViewsModifierTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Req", "UI-UPDATE-005")] // App/Views/Settings/AboutUpdateViews.swift:660-663
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:660-663
     [Trait("Req", "UI-UPDATE-006")] // App/Views/Settings/AboutUpdateViews.swift:631-635
     [InlineData(false)]
     [InlineData(true)]
@@ -72,7 +72,7 @@ public sealed class AboutUpdateViewsModifierTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Req", "UI-UPDATE-005")] // App/Views/Settings/AboutUpdateViews.swift:666-671
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:666-671
     [Trait("Req", "PR-UPDATE-073")] // App/Views/Settings/AboutUpdateViews.swift:671,675 (with ready pointer/standing proofs)
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:671
     [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:671

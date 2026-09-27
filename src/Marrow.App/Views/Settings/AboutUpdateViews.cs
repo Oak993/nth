@@ -323,6 +323,8 @@ public sealed class UpdateReleaseSectionCards : Decorator
                 PlacementTarget = button,
                 IsLightDismissEnabled = true,
             };
+            // STOP opencode-proofs-aboutupdate #5 UI-UPDATE-015: real outside-click dismissal and presentedChrome
+            // need a native popup/overlay presenter; the ED-071 headless presenter only records requests.
             popover.Opened += (_, _) => popover.Child = section is null
                 ? new Border()
                 : new UpdateReleaseSectionPopover(section, version).PresentedChrome();
@@ -420,6 +422,8 @@ public sealed class UpdateReleaseSectionCards : Decorator
 
 internal sealed class UpdateReleaseSectionPopover : Decorator
 {
+    // STOP opencode-proofs-aboutupdate #1 PR-SETTINGS-246: capture comparison with and without rollup needs
+    // matching About-page macOS reference captures; OD-0001/0004 provide none for this view.
     public UpdateReleaseSectionPopover(UpdateReleaseNotesDigest.Section section, string version)
     {
         var headerIcon = SwiftImage.Named(section.Category.AssetName) // :261 the same ED-215 release artwork.
@@ -1015,6 +1019,8 @@ internal sealed class AboutVersionPill : Decorator
     {
         if (snapshot.Phase is not (UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed))
         {
+            // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-074: exact source geometry and every phase are
+            // tested; capture comparison needs matching macOS reference captures (OD-0001/0004).
             var slider = new SmoothedUpdateProgressSlider(
                 progress.UpdateInstallProgressFractionTarget,
                 response: EnvironmentValues.GetAccessibilityReduceMotion(this)
@@ -1041,6 +1047,8 @@ internal sealed class AboutVersionPill : Decorator
             return padded.ChromeGlassCapsule();
         }
 
+        // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-072: all standing properties are tested, but the
+        // required capture comparison has no matching macOS reference (OD-0001/0004).
         var isReady = snapshot.UpdateAvailable && snapshot.Update is not null;
         var wasReady = previousReady;
         previousReady = isReady;
@@ -1125,6 +1133,8 @@ internal sealed class AboutVersionPill : Decorator
         AutomationProperties.SetName(button, isReady
             ? "Update & restart"
             : $"Marrow {AppInfo.Current.Version}, {Title(standing).ToLowerInvariant()}");
+        // STOP opencode-proofs-aboutupdate #3 UI-UPDATE-005: glass press response awaits F.GlassMaterial;
+        // ED-180 currently stores the interactive flag and material metadata, without rendering the response.
         return button.ChromeGlassCapsule();
     }
 
@@ -1326,6 +1336,10 @@ public sealed class AboutSoftwareUpdateSection : Decorator
 
     private void StartCelebrationSweep()
     {
+        // STOP opencode-proofs-aboutupdate #2 PR-UPDATE-061: HostedEnvironment does not bind Windows animation
+        // effects to accessibilityReduceMotion (ED-084). Injected environment timing is not system-setting proof.
+        // The record's every-step phase-abort clause is also stronger than pinned Swift :795-818: only :801
+        // checks the phase in this task; finish/complete guard their own writes. No unstated guards are invented.
         celebration?.Cancel();
         var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
         celebration = MainActor.Spawn(async () =>
@@ -1389,6 +1403,11 @@ public sealed class AboutUpdateCheckRow : Decorator
     {
         var detail = Detail(snapshot);
         var label = new TextBlock { Text = snapshot.IsChecking ? "Checking…" : "Check now" };
+        // STOP opencode-proofs-aboutupdate #4 PR-SETTINGS-240 UI-SETTINGS-071 UI-UPDATE-022: the shared
+        // .buttonStyle(.glass).controlSize(.small) renderer/metrics are absent; 9x5 and callout below have no
+        // pinned system-small oracle or approved adaptation. Interaction and trailing-row proofs are retained.
+        // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-076: foreground/no-notify and every string are tested,
+        // but the required capture comparison has no matching About-row macOS reference (OD-0001/0004).
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium).Apply(label);
         var face = new Border { Padding = new Thickness(9, 5), Child = label };
         var button = PlainControls.Button(face, () =>
