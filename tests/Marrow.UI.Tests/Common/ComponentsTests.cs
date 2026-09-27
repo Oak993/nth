@@ -1,7 +1,6 @@
-// Source: DroppyCode/UI/Common/Components.swift (B3 52bc792), :1-168.
+// Source: DroppyCode/UI/Common/Components.swift (B2 1fbf81e), :1-198.
 
 using Marrow.Core.Port;
-using Marrow.Testing;
 using Marrow.Core.Support;
 using Marrow.UI.Common;
 using System;
@@ -11,7 +10,6 @@ using Xunit;
 
 namespace Marrow.UI.Tests.Common;
 
-[Collection("Headless")]
 public sealed class ComponentsTests
 {
     #region PR-SIDEBAR-074 RelativeTime Tests
@@ -23,8 +21,7 @@ public sealed class ComponentsTests
         var date = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
         var now = new DateTimeOffset(2026, 1, 1, 12, 0, 30, TimeSpan.Zero);
 
-        using var runtime = new TestRuntime();
-        var result = runtime.OnMain(() => RelativeTime.Short(date, now));
+        var result = RelativeTime.Short(date, now);
 
         Assert.Equal("now", result);
     }
@@ -36,8 +33,7 @@ public sealed class ComponentsTests
         var date = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
         var now = new DateTimeOffset(2026, 1, 1, 12, 5, 30, TimeSpan.Zero);
 
-        using var runtime = new TestRuntime();
-        var result = runtime.OnMain(() => RelativeTime.Short(date, now));
+        var result = RelativeTime.Short(date, now);
 
         Assert.Equal("5m", result);
     }
@@ -49,8 +45,7 @@ public sealed class ComponentsTests
         var date = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
         var now = new DateTimeOffset(2026, 1, 1, 12, 1, 59, TimeSpan.Zero);
 
-        using var runtime = new TestRuntime();
-        var result = runtime.OnMain(() => RelativeTime.Short(date, now));
+        var result = RelativeTime.Short(date, now);
 
         Assert.Equal("1m", result);
     }
@@ -62,8 +57,7 @@ public sealed class ComponentsTests
         var date = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
         var now = new DateTimeOffset(2026, 1, 1, 18, 30, 0, TimeSpan.Zero);
 
-        using var runtime = new TestRuntime();
-        var result = runtime.OnMain(() => RelativeTime.Short(date, now));
+        var result = RelativeTime.Short(date, now);
 
         Assert.Equal("6h", result);
     }
@@ -75,8 +69,7 @@ public sealed class ComponentsTests
         var date = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
         var now = new DateTimeOffset(2026, 1, 5, 18, 0, 0, TimeSpan.Zero);
 
-        using var runtime = new TestRuntime();
-        var result = runtime.OnMain(() => RelativeTime.Short(date, now));
+        var result = RelativeTime.Short(date, now);
 
         Assert.Equal("4d", result);
     }
@@ -88,8 +81,7 @@ public sealed class ComponentsTests
         var date = new DateTimeOffset(2025, 12, 15, 12, 0, 0, TimeSpan.Zero);
         var now = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
-        using var runtime = new TestRuntime();
-        var result = runtime.OnMain(() => RelativeTime.Short(date, now));
+        var result = RelativeTime.Short(date, now);
 
         // Format should be month abbreviated (Dec) and day (15)
         Assert.Matches(@"^[A-Z][a-z]{2} \d{1,2}$", result);
@@ -102,9 +94,8 @@ public sealed class ComponentsTests
         var date = new DateTimeOffset(2025, 12, 15, 12, 0, 0, TimeSpan.Zero);
         var now = new DateTimeOffset(2026, 1, 1, 12, 0, 0, TimeSpan.Zero);
 
-        using var runtime = new TestRuntime();
-        var result1 = runtime.OnMain(() => RelativeTime.Short(date, now));
-        var result2 = runtime.OnMain(() => RelativeTime.Short(date, now));
+        var result1 = RelativeTime.Short(date, now);
+        var result2 = RelativeTime.Short(date, now);
 
         Assert.Equal(result1, result2);
     }
@@ -113,7 +104,6 @@ public sealed class ComponentsTests
     [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:37-42
     public void RelativeTime_Duration_0Seconds_Returns0s()
     {
-        using var runtime = new TestRuntime();
         var result = RelativeTime.Duration(TimeSpan.FromSeconds(0));
         Assert.Equal("0s", result);
     }
@@ -122,7 +112,6 @@ public sealed class ComponentsTests
     [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:37-42
     public void RelativeTime_Duration_Under1Minute_ReturnsSeconds()
     {
-        using var runtime = new TestRuntime();
         var result = RelativeTime.Duration(TimeSpan.FromSeconds(45));
         Assert.Equal("45s", result);
     }
@@ -131,7 +120,6 @@ public sealed class ComponentsTests
     [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:37-42
     public void RelativeTime_Duration_1Minute30Seconds_ReturnsMinutesAndSeconds()
     {
-        using var runtime = new TestRuntime();
         var result = RelativeTime.Duration(TimeSpan.FromSeconds(90));
         Assert.Equal("1m 30s", result);
     }
@@ -140,7 +128,6 @@ public sealed class ComponentsTests
     [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:37-42
     public void RelativeTime_Duration_Over1Hour_ReturnsHoursMinutes()
     {
-        using var runtime = new TestRuntime();
         var result = RelativeTime.Duration(TimeSpan.FromSeconds(3725));
         Assert.Equal("1h 2m", result);
     }
@@ -149,7 +136,6 @@ public sealed class ComponentsTests
     [Trait("Req", "PR-SIDEBAR-074")] // DroppyCode/UI/Common/Components.swift:37-42
     public void RelativeTime_Duration_NegativeInterval_Returns0s()
     {
-        using var runtime = new TestRuntime();
         var result = RelativeTime.Duration(TimeSpan.FromSeconds(-10));
         Assert.Equal("0s", result);
     }
@@ -232,7 +218,7 @@ public sealed class ComponentsTests
     #region ProviderIcon Tests
 
     [Fact]
-    [Trait("Req", "PR-CHAT-181")] // DroppyCode/UI/Common/Components.swift:109-117
+    [Trait("Req", "PR-CHAT-181")] // Indirectly tests infrastructure
     public void ProviderIcon_Initializes()
     {
         // Provider icons are tested indirectly through Workspace

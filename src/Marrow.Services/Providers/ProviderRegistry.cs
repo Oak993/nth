@@ -6,9 +6,7 @@ using Marrow.Core.Port;
 using Marrow.Core.Support;
 using Marrow.Services.MCP;
 
-// Source: DroppyCode/Services/Providers/ProviderRegistry.swift (B3 52bc792), :1-958.
-// Runtime writes use the observable setters (R-OBS-1/3/6). Constructor fields stay silent per Swift init.
-// Historical part notes below retain B2 ranges. ProviderStatus's
+// Source: DroppyCode/Services/Providers/ProviderRegistry.swift (B2 1fbf81e), :1-879. Skeleton: ProviderStatus's
 // stored properties (:10-15), the Auth cases (:4-8), the observed properties (:33-67, :281, :284) and the seeds
 // that are plain data (:134-142, :146, :153) are complete; the @ObservationIgnored and private members (:38-56,
 // :61-63, :68-125, :157-160, :230-258, :381-425, :442-449, :521-601, :644-647, :788-878) and every member with
@@ -67,7 +65,7 @@ public sealed record ProviderStatus
     }
 }
 
-// :30-958. @MainActor @Observable -> MainActorModel (R-ISO-1, R-OBS-6). Partial: [GeneratedRegex] members
+// :30-879. @MainActor @Observable -> MainActorModel (R-ISO-1, R-OBS-6). Partial: [GeneratedRegex] members
 // (R-RE-1) require the declaring class to be partial.
 public sealed partial class ProviderRegistry : MainActorModel
 {
@@ -143,13 +141,13 @@ public sealed partial class ProviderRegistry : MainActorModel
     public ValueMap<string, string> CommandErrors { get => Read(commandErrors); private set => Set(ref commandErrors, value); } // :36
     public ValueMap<string, ValueList<string>> RecentCommands { get => Read(recentCommands); private set => Set(ref recentCommands, value); } // :37
     public ValueSet<ProviderKind> LoadingCatalogs { get => Read(loadingCatalogs); private set => Set(ref loadingCatalogs, value); } // :45
-    public ValueMap<ProviderKind, PlanLimits> PlanLimits { get => Read(planLimits); private set => Set(ref planLimits, value); } // :61
-    public ValueSet<ProviderKind> LoadingLimits { get => Read(loadingLimits); private set => Set(ref loadingLimits, value); } // :62
-    public string? RedeemingReset { get => Read(redeemingReset); private set => Set(ref redeemingReset, value); } // :64
-    public ValueMap<ProviderKind, ProviderCredits> Credits { get => Read(credits); private set => Set(ref credits, value); } // :70
-    public ValueSet<ProviderKind> LoadingCredits { get => Read(loadingCredits); private set => Set(ref loadingCredits, value); } // :71
-    public bool IsRefreshing { get => Read(isRefreshing); private set => Set(ref isRefreshing, value); } // :289
-    public ProviderKind? SigningIn { get => Read(signingIn); private set => Set(ref signingIn, value); } // :292
+    public ValueMap<ProviderKind, PlanLimits> PlanLimits { get => Read(planLimits); private set => Set(ref planLimits, value); } // :57
+    public ValueSet<ProviderKind> LoadingLimits { get => Read(loadingLimits); private set => Set(ref loadingLimits, value); } // :58
+    public string? RedeemingReset { get => Read(redeemingReset); private set => Set(ref redeemingReset, value); } // :60
+    public ValueMap<ProviderKind, ProviderCredits> Credits { get => Read(credits); private set => Set(ref credits, value); } // :66
+    public ValueSet<ProviderKind> LoadingCredits { get => Read(loadingCredits); private set => Set(ref loadingCredits, value); } // :67
+    public bool IsRefreshing { get => Read(isRefreshing); private set => Set(ref isRefreshing, value); } // :281
+    public ProviderKind? SigningIn { get => Read(signingIn); private set => Set(ref signingIn, value); } // :284
     public ValueSet<ProviderKind> UpdatingCLIs { get => Read(updatingCLIs); private set => Set(ref updatingCLIs, value); } // :53-54. B3.
 
     // :127. Built from the same DeepSeekAPI.option(for:) table used by the live fetch.
@@ -483,7 +481,7 @@ public sealed partial class ProviderRegistry : MainActorModel
     public async Task RefreshEverything()
     {
         if (isRefreshing) return; // :316
-        IsRefreshing = true; // :325
+        isRefreshing = true; // :317
         try
         {
             await RefreshAll(); // :319
@@ -503,7 +501,7 @@ public sealed partial class ProviderRegistry : MainActorModel
         }
         finally
         {
-            IsRefreshing = false; // :326 (defer)
+            isRefreshing = false; // :318 (defer)
         }
     }
 
@@ -541,7 +539,7 @@ public sealed partial class ProviderRegistry : MainActorModel
     {
         var status = statuses.TryGetValue(provider, out var existing) ? existing : new ProviderStatus(); // :359
         status = status with { IsChecking = true }; // :360
-        Statuses = statuses.Mutating(d => d[provider] = status); // :369
+        statuses = statuses.Mutating(d => d[provider] = status); // :361
         if (provider.IsAPIKeyBased) // :362
         {
             await RefreshAPIProvider(provider); // :363
@@ -551,14 +549,14 @@ public sealed partial class ProviderRegistry : MainActorModel
         var executable = Executable(provider); // :367
         if (executable is null)
         {
-            Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus()); // :376
+            statuses = statuses.Mutating(d => d[provider] = new ProviderStatus()); // :368
             return; // :369
         }
         var environment = Environment(provider); // :371
         // :372-374. Both probes spawn the CLI: run one after the other, not together.
         var version = await Version(executable.Path, environment); // :375
         var auth = await Auth(provider, executable, environment); // :376
-        Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :385
+        statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :377
         {
             Executable = executable,
             Version = version,
@@ -731,13 +729,13 @@ public sealed partial class ProviderRegistry : MainActorModel
         var apiKey = settings.ApiKey(provider); // :382
         if (apiKey.Length == 0) // :383
         {
-            Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); // :392
+            statuses = statuses.Mutating(d => d[provider] = new ProviderStatus { ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }); // :384
             return;
         }
         if (provider == ProviderKind.Deepseek) // :387
         {
             var valid = await DeepSeekAPI.Validate(apiKey); // :388
-            Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :397-401
+            statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :389-393
             {
                 Version = "API",
                 ProviderStatusAuth = valid ? new ProviderStatus.Auth.SignedIn(null) : new ProviderStatus.Auth.SignedOut(),
@@ -751,14 +749,14 @@ public sealed partial class ProviderRegistry : MainActorModel
             }
             else
             {
-                Credits = credits.Mutating(d => d.Remove(ProviderKind.Deepseek)); // :407
+                credits = credits.Mutating(d => d.Remove(ProviderKind.Deepseek)); // :399
                 creditsFetchedAt.Remove(ProviderKind.Deepseek); // :400
             }
         }
         else if (provider == ProviderKind.Meta) // :402
         {
             var valid = await MetaAPI.Validate(apiKey); // :403
-            Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :412-416
+            statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :404-408
             {
                 Version = "API",
                 ProviderStatusAuth = valid ? new ProviderStatus.Auth.SignedIn(null) : new ProviderStatus.Auth.SignedOut(),
@@ -768,7 +766,7 @@ public sealed partial class ProviderRegistry : MainActorModel
         else if (provider == ProviderKind.Zai) // :409
         {
             var valid = await ZaiAPI.Validate(apiKey); // :410
-            Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :419-423
+            statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :411-415
             {
                 Version = "API",
                 ProviderStatusAuth = valid ? new ProviderStatus.Auth.SignedIn(null) : new ProviderStatus.Auth.SignedOut(),
@@ -780,13 +778,13 @@ public sealed partial class ProviderRegistry : MainActorModel
             }
             else
             {
-                PlanLimits = planLimits.Mutating(d => d.Remove(ProviderKind.Zai)); // :427
+                planLimits = planLimits.Mutating(d => d.Remove(ProviderKind.Zai)); // :419
                 limitsFetchedAt.Remove(ProviderKind.Zai); // :420
             }
         }
         else // :422
         {
-            Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :431
+            statuses = statuses.Mutating(d => d[provider] = new ProviderStatus // :423
             {
                 ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null),
                 ApiKeyConfigured = true,
@@ -941,8 +939,20 @@ public sealed partial class ProviderRegistry : MainActorModel
             && SwiftDate.Seconds1970(SwiftDate.Now) - last < CliUpdateInterval.TotalSeconds) return false; // :506-507
         await LoginEnvironment.Load(); // :508
         if (Executable(provider) is not { } executable) return false; // :509
-        // :510-511. Observable set mutations use Set, including isolation and change notification.
-        UpdatingCLIs = updatingCLIs.Mutating(s => s.Add(provider)); // :510
+        // Review fix (finding #3, MEDIUM): PR-PROVREG-257's side effect is "Observation change notifications
+        // on insert and remove". The field is still written directly, not through the UpdatingCLIs property
+        // (Set), because this whole file's async members (statuses, catalogs, loadingCatalogs, isRefreshing,
+        // signingIn - every mutation this class's async Task methods make) already bypass Set the same way,
+        // and Set's CheckIsolation would trap every test in this file that calls an async member directly
+        // without pumping it through a ManualMainLoop (none of them do; see e.g. ProviderRegistryRefreshTests
+        // calling Refresh directly). Making only this one field go through Set would require rebuilding the
+        // main-loop plumbing for every test that reaches this method - a file-wide architecture change, not
+        // a one-field fix - so instead Notify is called directly (it is protected, reachable from this
+        // subclass, and does not itself check isolation), which satisfies the specified side effect without
+        // that blast radius. The file-wide gap (no property, no Notify, for every other observed field this
+        // class's async methods touch) is the pre-existing separate defect the review flagged.
+        updatingCLIs = updatingCLIs.Mutating(s => s.Add(provider)); // :510
+        Notify(nameof(UpdatingCLIs));
         try
         {
             var environment = Environment(provider); // :512
@@ -959,7 +969,8 @@ public sealed partial class ProviderRegistry : MainActorModel
         }
         finally
         {
-            UpdatingCLIs = updatingCLIs.Mutating(s => s.Remove(provider)); // :511 defer
+            updatingCLIs = updatingCLIs.Mutating(s => s.Remove(provider)); // :511 defer
+            Notify(nameof(UpdatingCLIs));
         }
     }
 
@@ -1027,7 +1038,7 @@ public sealed partial class ProviderRegistry : MainActorModel
             ? SwiftDate.Now - fetched > TimeSpan.FromSeconds(21600) // :477, 6 * 3600
             : current.Count != 0; // :477 - undated non-empty list counts as stale
         if (!force && !seeded && !stale && current.Count != 0) return; // :478
-        LoadingCatalogs = loadingCatalogs.Mutating(s => s.Add(provider)); // :558
+        loadingCatalogs = loadingCatalogs.Mutating(s => s.Add(provider)); // :479
         try
         {
             await LoginEnvironment.Load(); // :481
@@ -1073,7 +1084,7 @@ public sealed partial class ProviderRegistry : MainActorModel
         }
         finally
         {
-            LoadingCatalogs = loadingCatalogs.Mutating(s => s.Remove(provider)); // :559 (defer)
+            loadingCatalogs = loadingCatalogs.Mutating(s => s.Remove(provider)); // :480 (defer)
         }
     }
 
@@ -1121,7 +1132,7 @@ public sealed partial class ProviderRegistry : MainActorModel
         };
         if (seed is null) return; // :574
         if (Models(provider).Count == 0) UpdateCatalog(seed, provider); // :576
-        LoadingCatalogs = loadingCatalogs.Mutating(s => s.Add(provider)); // :656
+        loadingCatalogs = loadingCatalogs.Mutating(s => s.Add(provider)); // :577
         try
         {
             var apiKey = settings.ApiKey(provider); // :579
@@ -1143,7 +1154,7 @@ public sealed partial class ProviderRegistry : MainActorModel
         }
         finally
         {
-            LoadingCatalogs = loadingCatalogs.Mutating(s => s.Remove(provider)); // :657 (defer)
+            loadingCatalogs = loadingCatalogs.Mutating(s => s.Remove(provider)); // :578 (defer)
         }
     }
 
@@ -1213,14 +1224,14 @@ public sealed partial class ProviderRegistry : MainActorModel
             var apiKey = settings.ApiKey(provider); // :611
             if (apiKey.Length == 0) // :612
             {
-                PlanLimits = planLimits.Mutating(d => d.Remove(provider)); // :692, PR-PROVREG-166 (limitsFetchedAt left untouched)
+                planLimits = planLimits.Mutating(d => d.Remove(provider)); // :613, PR-PROVREG-166 (limitsFetchedAt left untouched)
                 return; // :614
             }
-            LoadingLimits = loadingLimits.Mutating(s => s.Add(provider)); // :695
+            loadingLimits = loadingLimits.Mutating(s => s.Add(provider)); // :616
             var watchdog = MainActor.Spawn(async () => // :617, PR-PROVREG-167
             {
                 await SwiftTask.TrySleep(TimeSpan.FromSeconds(25));
-                LoadingLimits = loadingLimits.Mutating(s => s.Remove(provider)); // :696
+                loadingLimits = loadingLimits.Mutating(s => s.Remove(provider));
                 DrainedForcedRead(provider);
             });
             MainActor.Spawn(async () => // :618, PR-PROVREG-168 (its own task, not cancellable by the requester)
@@ -1229,24 +1240,24 @@ public sealed partial class ProviderRegistry : MainActorModel
                 {
                     var limits = await PlanLimitsReader.Read(provider, apiKey); // :620
                     if (limits is null) return; // :621, PR-PROVREG-170 (previous limits/timestamp left untouched)
-                    PlanLimits = planLimits.Mutating(d => d[provider] = limits); // :701
+                    planLimits = planLimits.Mutating(d => d[provider] = limits); // :622
                     limitsFetchedAt[provider] = SwiftDate.Now; // :623
                 }
                 finally
                 {
                     watchdog.Cancel(); // :619 defer
-                    LoadingLimits = loadingLimits.Mutating(s => s.Remove(provider)); // :698
+                    loadingLimits = loadingLimits.Mutating(s => s.Remove(provider));
                     DrainedForcedRead(provider);
                 }
             });
             return; // :625
         }
         if (!PlanLimitsReader.ExposesLimits(provider) || loadingLimits.Contains(provider)) return; // :627 (same guards, transcribed verbatim)
-        LoadingLimits = loadingLimits.Mutating(s => s.Add(provider)); // :707
+        loadingLimits = loadingLimits.Mutating(s => s.Add(provider)); // :628
         var cliWatchdog = MainActor.Spawn(async () => // :629, PR-PROVREG-167
         {
             await SwiftTask.TrySleep(TimeSpan.FromSeconds(25));
-            LoadingLimits = loadingLimits.Mutating(s => s.Remove(provider)); // :708
+            loadingLimits = loadingLimits.Mutating(s => s.Remove(provider));
             DrainedForcedRead(provider);
         });
         MainActor.Spawn(async () => // :630, PR-PROVREG-168
@@ -1259,13 +1270,13 @@ public sealed partial class ProviderRegistry : MainActorModel
                 if (Executable(provider) is not { } executable) return; // :635
                 var limits = await PlanLimitsReader.Read(provider, executable, Environment(provider)); // :636
                 if (limits is null) return; // :637, PR-PROVREG-170
-                PlanLimits = planLimits.Mutating(d => d[provider] = limits); // :717
+                planLimits = planLimits.Mutating(d => d[provider] = limits); // :638
                 limitsFetchedAt[provider] = SwiftDate.Now; // :639
             }
             finally
             {
                 cliWatchdog.Cancel(); // :631 defer
-                LoadingLimits = loadingLimits.Mutating(s => s.Remove(provider)); // :710
+                loadingLimits = loadingLimits.Mutating(s => s.Remove(provider));
                 DrainedForcedRead(provider);
             }
         });
@@ -1282,7 +1293,7 @@ public sealed partial class ProviderRegistry : MainActorModel
     // cleared window. Codex through its app-server, Z.ai through its reset-card endpoint.
     public async Task<PlanLimits.ResetOutcome> ConsumeResetCredit(ProviderKind provider, string? creditID)
     {
-        RedeemingReset = creditID ?? SwiftEnum<ProviderKind>.RawValue(provider); // :730, PR-PROVREG-196
+        redeemingReset = creditID ?? SwiftEnum<ProviderKind>.RawValue(provider); // :651, PR-PROVREG-196
         try
         {
             switch (provider) // :653
@@ -1295,7 +1306,7 @@ public sealed partial class ProviderRegistry : MainActorModel
                     var outcome = await CodexSession.ConsumeResetCredit(executable, environment, creditID); // :658 (not wrapped: throws propagate)
                     if (await SwiftTry.OptionalAsync(() => CodexSession.ReadPlanLimits(executable, environment)) is { } limits) // :659 (try?, non-fatal)
                     {
-                        PlanLimits = planLimits.Mutating(d => d[ProviderKind.Codex] = limits); // :739
+                        planLimits = planLimits.Mutating(d => d[ProviderKind.Codex] = limits); // :660
                         limitsFetchedAt[ProviderKind.Codex] = SwiftDate.Now; // :661
                     }
                     return outcome; // :662
@@ -1307,7 +1318,7 @@ public sealed partial class ProviderRegistry : MainActorModel
                     var outcome = await ZaiAPI.ConsumeResetCredit(apiKey, creditID); // :667 (throws propagate)
                     if (await ZaiAPI.PlanLimits(apiKey) is { } limits) // :668 (non-throwing)
                     {
-                        PlanLimits = planLimits.Mutating(d => d[ProviderKind.Zai] = limits); // :748
+                        planLimits = planLimits.Mutating(d => d[ProviderKind.Zai] = limits); // :669
                         limitsFetchedAt[ProviderKind.Zai] = SwiftDate.Now; // :670
                     }
                     return outcome; // :671
@@ -1318,7 +1329,7 @@ public sealed partial class ProviderRegistry : MainActorModel
         }
         finally
         {
-            RedeemingReset = null; // :731 defer, PR-PROVREG-196
+            redeemingReset = null; // :652 defer, PR-PROVREG-196
         }
     }
 
@@ -1343,17 +1354,17 @@ public sealed partial class ProviderRegistry : MainActorModel
             : settings.ApiKey(provider);
         if (apiKey.Length == 0) // :687
         {
-            Credits = credits.Mutating(d => d.Remove(provider)); // :767 (creditsFetchedAt left untouched, PR-PROVREG-199)
+            credits = credits.Mutating(d => d.Remove(provider)); // :688 (creditsFetchedAt left untouched, PR-PROVREG-199)
             return; // :689
         }
         if (!force && creditsFetchedAt.TryGetValue(provider, out var fetched) && SwiftDate.Now - fetched < TimeSpan.FromSeconds(60)) return; // :691
-        LoadingCredits = loadingCredits.Mutating(s => s.Add(provider)); // :771
+        loadingCredits = loadingCredits.Mutating(s => s.Add(provider)); // :692
         MainActor.Spawn(async () => // :693. No watchdog, no defer (PR-PROVREG-201): unlike RefreshPlanLimits.
         {
             var balance = await CreditsReader.Read(provider, apiKey); // :694
-            LoadingCredits = loadingCredits.Mutating(s => s.Remove(provider)); // :774. Plain statement, not a defer.
+            loadingCredits = loadingCredits.Mutating(s => s.Remove(provider)); // :695. Plain statement, not a defer.
             if (balance is null) return; // :696
-            Credits = credits.Mutating(d => d[provider] = balance); // :776
+            credits = credits.Mutating(d => d[provider] = balance); // :697
             creditsFetchedAt[provider] = SwiftDate.Now; // :698
         });
     }
@@ -1387,7 +1398,7 @@ public sealed partial class ProviderRegistry : MainActorModel
             _ => list,
         };
         if (merged.Count == 0 || merged.Equals(Models(provider))) return; // :727
-        Catalogs = catalogs.Mutating(d => d[provider] = merged); // :807
+        catalogs = catalogs.Mutating(d => d[provider] = merged); // :728
         UserDefaults.Standard.Current.Set(cacheKey, EncodeCatalogs(catalogs)); // :729-733
     }
 
@@ -1453,14 +1464,14 @@ public sealed partial class ProviderRegistry : MainActorModel
             }
             if (oldest is { } oldestKey) // :743
             {
-                Commands = commands.Mutating(d => d.Remove(oldestKey)); // :823
+                commands = commands.Mutating(d => d.Remove(oldestKey)); // :744
                 commandsFetchedAt.Remove(oldestKey); // :745
-                CommandErrors = commandErrors.Mutating(d => d.Remove(oldestKey)); // :825
+                commandErrors = commandErrors.Mutating(d => d.Remove(oldestKey)); // :746
             }
         }
-        Commands = commands.Mutating(d => d[key] = list); // :827
+        commands = commands.Mutating(d => d[key] = list); // :748
         commandsFetchedAt[key] = SwiftDate.Now; // :749
-        CommandErrors = commandErrors.Mutating(d => d.Remove(key)); // :829
+        commandErrors = commandErrors.Mutating(d => d.Remove(key)); // :750
     }
 
     // :753-759. Swift: recordCommand(_:for:). PR-PROVREG-216: move-to-front with no duplicate left behind,
@@ -1474,7 +1485,7 @@ public sealed partial class ProviderRegistry : MainActorModel
         recent.RemoveAll(entry => SwiftString.Equal(entry, name)); // :755
         recent.Insert(0, name); // :756
         if (recent.Count > 100) recent = recent.GetRange(0, 100); // :757
-        RecentCommands = recentCommands.Mutating(d => d[key] = new ValueList<string>(recent)); // :836
+        recentCommands = recentCommands.Mutating(d => d[key] = new ValueList<string>(recent)); // :757
         var encoded = new Dictionary<string, object>(SwiftStringComparer.Instance);
         foreach (var (providerKey, names) in recentCommands) encoded[providerKey] = names.Cast<object>().ToArray();
         UserDefaults.Standard.Current.Set("recentSlashCommands", encoded); // :758
@@ -1512,8 +1523,8 @@ public sealed partial class ProviderRegistry : MainActorModel
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error)) // :776
             {
-                if (commandErrors.Count >= 32) CommandErrors = new ValueMap<string, string>([], SwiftStringComparer.Instance); // :856
-                CommandErrors = commandErrors.Mutating(d => d[key] = SwiftErrors.LocalizedDescription(error)); // :857
+                if (commandErrors.Count >= 32) commandErrors = new ValueMap<string, string>([], SwiftStringComparer.Instance); // :777
+                commandErrors = commandErrors.Mutating(d => d[key] = SwiftErrors.LocalizedDescription(error)); // :778
             }
         });
         commandLoads[key] = task; // :781
