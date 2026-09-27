@@ -379,7 +379,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-PROVREG-001")] // App/Views/Settings/SettingsView.swift:9,23,38,55,72
-    [Trait("Req", "UI-PROVREG-002")] // App/Views/Settings/SettingsView.swift:254-255,566-579
+    // Partial UI-PROVREG-002 only: STOP opencode-proofs-settings-prov #2, API-key edits also probe (:789-794).
     [Trait("Req", "UI-PROVREG-003")] // App/Views/Settings/SettingsView.swift:585-615,646-766
     [Trait("Req", "UI-PROVREG-004")] // App/Views/Settings/SettingsView.swift:651-653
     [Trait("Req", "UI-PROVREG-005")] // App/Views/Settings/SettingsView.swift:650-656

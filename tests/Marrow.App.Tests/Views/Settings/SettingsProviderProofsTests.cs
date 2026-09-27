@@ -128,6 +128,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Assert.Equal(collapsed ? AccessibilityView.Raw : AccessibilityView.Content, AutomationProperties.GetAccessibilityView(reveal));
         foreach (var control in Nodes<Control>(reveal).Where(x => x is Button or SmallSwitch or TextBox)) Assert.Equal(!collapsed, control.IsEffectivelyEnabled);
         if (collapsed) { Assert.Equal(0, reveal.Fraction); Layout(section); Assert.Equal(0, reveal.Bounds.Height); }
+        else if (reveal.Fraction == 1) { Layout(section); Assert.Equal(Assert.Single(Nodes<ChromeCard>(reveal)).Bounds.Height, reveal.Bounds.Height); }
     }
     private static void Open(Control section, AppModelHarness h) { Click(Header(section)); Sync(); Frames(h, 1000); Layout(section); Collapsed(section, false); Assert.Equal(1, Assert.Single(Nodes<ChromeRevealLayout>(section)).Fraction); }
     private static void Close(Control section, AppModelHarness h) { Click(Header(section)); Sync(); Frames(h, 1000); Layout(section); Collapsed(section, true); }
@@ -171,7 +172,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     private static byte[] Draw(Control control)
     {
         using var bitmap = new RenderTargetBitmap(new PixelSize((int)control.Width, (int)control.Height));
-        using (var context = bitmap.CreateDrawingContext()) control.Render(context);
+        bitmap.Render(control);
         using var stream = new MemoryStream(); bitmap.Save(stream, new PngBitmapEncoderOptions()); return stream.ToArray();
     }
     [Fact]
@@ -202,15 +203,16 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-PROVREG-002")] // App/Views/Settings/SettingsView.swift:254-255,566-604; Services/Providers/ProviderRegistry.swift:315-333
     [Trait("Req", "UI-PROVREG-003")] // App/Views/Settings/SettingsView.swift:254-255,585-614: scrolling keeps every eager card mounted.
     public void Refresh_is_the_only_probe_and_is_symbol_only_disabled_and_single_flight() => WithView(() => new SettingsView(), (view, model, h) =>
     {
         SettingsNavigation.Shared.RequestedPage = SettingsPage.General; Sync(); Assert.Empty(Nodes<ProvidersRefreshButton>(view));
         Assert.Empty(model.Providers.Statuses); SettingsNavigation.Shared.RequestedPage = SettingsPage.Providers; Sync();
         Layout(view); Assert.Empty(model.Providers.Statuses);
+        var codex = Section(view, ProviderKind.Codex); Open(codex, h); var keptField = Nodes<TextBox>(codex).Single(); keptField.Text = Path.Combine(h.Scratch, "scroll-preserved-cli.exe"); Sync();
         var scroll = Nodes<ScrollViewer>(Field<Control>(view, "detail")).Single(); var scrollWindow = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(scroll)); Layout(scroll); using var scrollFrame = scrollWindow.CaptureRenderedFrame();
         var wheelPoint = scroll.TranslatePoint(new Point(scroll.Bounds.Width / 2, scroll.Bounds.Height / 2), scrollWindow)!.Value; Assert.NotNull(scrollWindow.InputHitTest(wheelPoint)); scrollWindow.MouseMove(wheelPoint); scrollWindow.MouseWheel(wheelPoint, new Vector(0, -3)); Layout(view); Assert.True(scroll.Offset.Y > 0, $"Wheel hit {scrollWindow.InputHitTest(wheelPoint)?.GetType().Name}; extent={scroll.Extent}, viewport={scroll.Viewport}, presenter={scroll.GetVisualDescendants().OfType<ScrollContentPresenter>().Single().Offset}."); Assert.Equal(14, Nodes<ProviderSettingsSection>(view).Length); Assert.Empty(model.Providers.Statuses);
+        Assert.Same(codex, Section(view, ProviderKind.Codex)); Assert.Same(keptField, Nodes<TextBox>(codex).Single()); Assert.Equal(Path.Combine(h.Scratch, "scroll-preserved-cli.exe"), keptField.Text);
         var refresh = Assert.Single(Nodes<ProvidersRefreshButton>(view)); Assert.Single(Nodes<ChromeCapsule>(refresh)); Assert.Single(Nodes<ChromeIconButton>(refresh)); Assert.Empty(Text(refresh));
         var symbol = Assert.Single(Nodes<SwiftImage>(refresh)); Assert.Equal("arrow.clockwise", symbol.SymbolName); Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), SwiftImage.GetFont(symbol));
         Assert.Single(Nodes<Border>(refresh), x => x.Padding == new Thickness(3, 2));
@@ -236,12 +238,12 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     {
         using var reduceMotion = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reduce });
         var stack = Assert.IsType<StackPanel>(((ProvidersSettingsPage)view).Child); Assert.Equal(20, stack.Spacing);
-        var all = Nodes<ProviderSettingsSection>(view); Assert.Equal(14, all.Length);
+        var all = Nodes<ProviderSettingsSection>(view); Assert.Equal(14, all.Length); Assert.All(all, section => Leading(section, stack));
         Assert.Equal(new[] { "Codex", "Claude", "Cursor", "OpenCode Zen", "OpenCode Go", "Grok", "DeepSeek", "Meta", "Z.ai", "Devin", "Antigravity", "Copilot", "Command Code", "Pi" }, all.Select(section => AutomationProperties.GetName(Header(section))));
         foreach (var section in all)
         {
-            var group = Assert.IsType<StackPanel>(section.Child); Assert.Equal(10, group.Spacing); Assert.Equal(22, Header(section).Height); Collapsed(section, true); Assert.Equal(32, section.Bounds.Height);
-            var title = Nodes<TextBlock>(Nodes<CollapsibleProviderHeader>(section).Single()).Single(); Assert.Equal(13, title.FontSize); Assert.Equal(FontWeight.SemiBold, title.FontWeight); ColorIs(title, title.Foreground, SwiftColor.Secondary);
+            var group = Assert.IsType<StackPanel>(section.Child); Assert.Equal(10, group.Spacing); Assert.IsType<CollapsibleProviderHeader>(group.Children[0]); Assert.IsType<ChromeRevealLayout>(group.Children[1]); Assert.All(group.Children, child => Leading(child, group)); Assert.Equal(22, Header(section).Height); Collapsed(section, true); Assert.Equal(32, section.Bounds.Height);
+            var title = Nodes<TextBlock>(Nodes<CollapsibleProviderHeader>(section).Single()).Single(); Inter(title); Assert.Equal(13, title.FontSize); Assert.Equal(FontWeight.SemiBold, title.FontWeight); ColorIs(title, title.Foreground, SwiftColor.Secondary);
             var card = Assert.Single(Nodes<ChromeCard>(section)); Assert.False(card.Lazy); var shape = Assert.IsType<Border>(card.Child); Assert.Equal(new CornerRadius(16), shape.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(shape)); ColorIs(shape, shape.Background, SwiftColor.LabelColor.Opacity(0.03)); Assert.Equal(0, Assert.IsType<StackPanel>(shape.Child).Spacing);
         }
         var meta = Section(view, ProviderKind.Meta); var cardBefore = Assert.Single(Nodes<ChromeCard>(meta));
@@ -264,7 +266,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         for (var i = 0; i < sections.Length; i++)
         {
             var section = sections[i]; HeaderMetrics(section); var icon = Assert.IsType<ProviderIcon>(StatusRow(section).Children[0]); Assert.Equal(18, icon.Size);
-            var image = Assert.IsType<SwiftImage>(icon.Child); Assert.Equal(18, image.Width); Assert.Equal(18, image.Height); Assert.Equal(ContentMode.Fit, image.AspectContentMode); Assert.Equal(assets[i], image.AssetName); ColorIs(image, image.Foreground, SwiftColor.LabelColor); seen.Add(image.AssetName!);
+            var image = Assert.IsType<SwiftImage>(icon.Child); Assert.Equal(18, image.Width); Assert.Equal(18, image.Height); Assert.True(image.IsResizable); Assert.Equal(ContentMode.Fit, image.AspectContentMode); Assert.Equal(assets[i], image.AssetName); ColorIs(image, image.Foreground, SwiftColor.LabelColor); seen.Add(image.AssetName!);
             Assert.Empty(Nodes<Button>(icon)); Open(section, h); var before = Draw(image);
             var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(image));
             var point = image.TranslatePoint(new Point(9, 9), window)!.Value; Assert.NotNull(window.InputHitTest(point));
@@ -286,6 +288,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             (new(), "Not installed"),
             (new() { Executable = executable, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn("fixture@example.invalid") }, "Signed in as fixture@example.invalid"),
             (new() { Executable = executable, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) }, "Signed in"),
+            (new() { Executable = executable, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn("**fixture** `literal` [text](https://example.invalid)") }, "Signed in as **fixture** `literal` [text](https://example.invalid)"),
             (new() { Executable = executable, ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }, "Not signed in"),
             (new() { Executable = executable, Version = "1.2.3-beta+1" }, "Installed · 1.2.3-beta+1"),
             (new() { Executable = executable }, "Installed") })
@@ -294,6 +297,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             Seed(model, ProviderKind.Codex, status with { IsChecking = true }); Sync(); Assert.Equal("Checking…", Assert.IsType<TextBlock>(Labels(section).Children[0]).Text);
         }
         Seed(model, ProviderKind.Codex, new ProviderStatus { Version = " 1.2.3+raw " }); Sync(); var version = Assert.IsType<TextBlock>(Labels(section).Children[1]); Assert.Equal("Version  1.2.3+raw ", version.Text); Assert.Equal(11, version.FontSize); Assert.Equal(FontWeight.Normal, version.FontWeight); ColorIs(version, version.Foreground, SwiftColor.LabelColor.Opacity(0.7));
+        Seed(model, ProviderKind.Codex, new ProviderStatus { Version = "" }); Sync(); Assert.Equal(new[] { "Not installed", "Version " }, Text(Labels(section)));
         Close(section, h); Seed(model, ProviderKind.Codex, new ProviderStatus()); Sync(); Assert.Single(Labels(section).Children);
         foreach (var kind in new[] { ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai }) { Seed(model, kind, new ProviderStatus { Version = "API" }); Sync(); Assert.Single(Labels(Section(view, kind)).Children); }
     });
@@ -545,6 +549,7 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     public void Default_expansion_and_every_collapsed_gate_follow_auth_until_the_real_header_is_clicked() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
     {
         var host = Assert.IsType<Border>(view.Parent);
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases) model.Settings.SetEnabled(false, kind); // :594-610, cards include disabled providers.
         foreach (var kind in SwiftEnum<ProviderKind>.AllCases) Seed(model, kind, new ProviderStatus { ApiKeyConfigured = true, Executable = SwiftURL.Create(new Uri(Path.Combine(h.Scratch, "not-launched.exe")).AbsoluteUri)!, ProviderStatusAuth = new ProviderStatus.Auth.SignedIn(null) });
         host.Child = new ProvidersSettingsPage(); Sync(); Layout(host);
         foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
@@ -636,6 +641,31 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
         Wait(() => server.Requests.Count == 9 && !model.Providers.LoadingLimits.Contains(ProviderKind.Commandcode) && !model.Providers.LoadingCredits.Contains(ProviderKind.Commandcode));
         Assert.Equal(6, server.Requests.Count(x => x.Target == "/alpha/billing/credits")); Assert.Equal(3, server.Requests.Count(x => x.Target == "/alpha/billing/subscriptions"));
         Assert.All(server.Requests, x => Assert.Equal(new[] { "Bearer fixture-command-key" }, x.HeaderValues("Authorization")));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-PROVREG-005")] // App/Views/Settings/SettingsView.swift:655-656; ProviderRegistry.swift:19-26
+    public void Checking_never_evaluates_the_production_summary_getter() => WithView(() => new ProvidersSettingsPage(), (view, model, _) =>
+    {
+        var reads = 0; var seam = typeof(ProviderStatus).GetProperty("SummaryReading", BindingFlags.Static | BindingFlags.NonPublic); Assert.NotNull(seam);
+        using var observing = Assert.IsType<Ambient<Action>>(seam.GetValue(null)).Override(() => reads++);
+        Seed(model, ProviderKind.Codex, new ProviderStatus { IsChecking = true }); Sync();
+        Assert.Equal("Checking…", Text(Labels(Section(view, ProviderKind.Codex)))[0]); Assert.Equal(0, reads);
+        Seed(model, ProviderKind.Codex, new ProviderStatus()); Sync(); Assert.Equal(1, reads); Assert.Equal("Not installed", Text(Labels(Section(view, ProviderKind.Codex)))[0]);
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-2")] // Partial UI-PROVREG-002, STOP #2: SettingsView.swift:789-794 contradicts the ONLY-control clause.
+    public void Key_edit_really_probes_after_six_hundred_ms_without_clicking_any_refresh_control() => WithView(() => new ProvidersSettingsPage(), (view, model, h) =>
+    {
+        using var server = new LoopbackFeedServer(request => CannedResponse.Json(request.Target == "/models" ? """{"data":[]}""" : Balance));
+        using var endpoint = Endpoints(typeof(DeepSeekAPI), server);
+        var section = Section(view, ProviderKind.Deepseek); Open(section, h);
+        var field = Assert.Single(Nodes<TextBox>(section)); PointerClick(field); Assert.True(field.Focus());
+        Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(field)).KeyTextInput("fixture-edit-key"); Sync();
+        Frames(h, 599); Assert.Empty(server.Requests); Frames(h, 1);
+        Wait(() => server.Requests.Any(x => x.Target == "/models") && !model.Providers.Status(ProviderKind.Deepseek).IsChecking);
+        Assert.True(model.Providers.Status(ProviderKind.Deepseek).ApiKeyConfigured); Assert.Empty(Nodes<ProvidersRefreshButton>(view));
     });
 
 }
