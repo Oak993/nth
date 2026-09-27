@@ -3,22 +3,20 @@ using Marrow.Services.MCP;
 namespace Marrow.Services.Tests.Fixtures;
 
 /// <summary>
-/// Overrides USERPROFILE for the duration of a test so MCPSessionOverrides.CopilotUserServerNames
-/// resolves its ~/.copilot/mcp-config.json path (LoginEnvironment.HomeDirectory) under a scratch folder.
+/// Redirects the config path under a scratch home without changing or reading the real user profile.
 /// </summary>
 public sealed class HomeEnvironmentOverride : IDisposable
 {
-    private readonly string? originalHome;
+    private readonly CopilotConfigOverride config;
 
     public HomeEnvironmentOverride(string homeDir)
     {
-        originalHome = Environment.GetEnvironmentVariable("USERPROFILE");
-        Environment.SetEnvironmentVariable("USERPROFILE", homeDir);
+        config = new CopilotConfigOverride(Path.Combine(homeDir, ".copilot", "mcp-config.json"));
     }
 
     public void Dispose()
     {
-        Environment.SetEnvironmentVariable("USERPROFILE", originalHome);
+        config.Dispose();
     }
 }
 

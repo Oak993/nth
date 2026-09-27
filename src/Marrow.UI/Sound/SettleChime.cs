@@ -1,8 +1,9 @@
 using Marrow.UI.Port;
+using Marrow.Core.Port;
 
 namespace Marrow.UI.Sound;
 
-// Source: DroppyCode/UI/Sound/SettleChime.swift (B2 1fbf81e), :1-36. Record PR-THEME-082.
+// Source: DroppyCode/UI/Sound/SettleChime.swift (B3 52bc792), :1-36. Record PR-THEME-082.
 
 /// <summary>
 /// The small sound of a thread settling: two soft wooden notes stepping down, the way a checkbox ticks
@@ -23,6 +24,8 @@ public static class SettleChime
     /// </summary>
     // :11-15.
     private static readonly Lazy<SwiftSound?> Sound = new(CreateSound, LazyThreadSafetyMode.ExecutionAndPublication);
+    // :11-15 PORT-ONLY scoped voice seam (Ambient, ED-065); default retains the original once-only static lazy.
+    private static readonly Ambient<Lazy<SwiftSound?>> Voice = new(() => Sound);
 
     private static SwiftSound? CreateSound()
     {
@@ -38,8 +41,8 @@ public static class SettleChime
         // A replay from the top, so settling two threads in a row ticks twice. Both calls are optional-
         // chained in Swift (:19-20): when Sound.Value is null (the voice could not be created), both are
         // silent no-ops.
-        Sound.Value?.Stop(); // :19
-        Sound.Value?.Play(); // :20
+        Voice.Current.Value?.Stop(); // :19
+        Voice.Current.Value?.Play(); // :20
     }
 
     /// <summary>E5 down to C5, the second note right behind the first: a small landing.</summary>

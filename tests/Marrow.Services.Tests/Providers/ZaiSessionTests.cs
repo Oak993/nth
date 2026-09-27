@@ -9,6 +9,16 @@ namespace Marrow.Services.Tests.Providers;
 // Source: DroppyCode/Services/Providers/ZaiSession.swift (B2 1fbf81e), :1-106.
 public sealed class ZaiSessionTests
 {
+    [Theory]
+    [InlineData("\u0130 does not yet include access to glm-air.", "glm-air")]
+    [InlineData("does not yet include access to x . ", "x")]
+    [InlineData("does not yet include ACCESS TO ' . \n glm-air . ' \n", "glm-air")]
+    [Trait("Req", "PR-PROVAPI-078")] // Services/Providers/ZaiSession.swift:101-105 search original indices and trim the character-set union
+    public void Review_refused_model_keeps_original_positions_and_trims_interleaved_boundaries(string message, string model)
+    {
+        Assert.Equal($"Your Z.ai Coding Plan does not include {model}. Pick GLM-5.3 or GLM-5.3 Flash for the model, or move up a plan tier.",
+            Friendly(message, statusCode: 429));
+    }
     private static SessionConfiguration MakeSessionConfiguration(string? apiKey = "sk-test") => new()
     {
         Provider = ProviderKind.Zai,
