@@ -28,8 +28,8 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
 {
     private readonly List<AvaloniaWindow> windows = [];
 
-    // Close attached windows before the headless session disposes its font manager. Otherwise queued layout after
-    // session teardown tries to resolve Inter from the disposed collection (the earlier font STOP described this).
+    // Hide test windows and drain layout before the headless session disposes its font manager. Closing currently
+    // hits DragHandleView.RefreshHover after detach (an external defect); see STOP #3. Assertions remain unchanged.
     private void HideTestWindows()
     {
         foreach (var window in windows) window.Hide();
@@ -612,7 +612,7 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
 
 // STOP App.Views.Terminal.TerminalPanel #3 (sweep B discovered during test cleanup, 2026-09-27)
 // Kind: dependency defect
-// Swift: UI/Chrome/DragHandle.swift:127-133 detach handling, reached by TerminalPanel's :122-129 shared handle.
+// Swift: UI/Chrome/DragHandle.swift:127-151 detach/hover handling, reached by TerminalPanel's :122-129 shared handle.
 // Missing: Marrow.UI.Chrome.DragHandleView.OnDetachedFromVisualTree calls RefreshHover after its visual root is
 // removed; RefreshHover's PointToClient throws ArgumentException("Visual does not belong to a visual tree").
 // Needed: the DragHandle unit repairs its detach path. This sweep does not change that unit. Test windows are hidden
