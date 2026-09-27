@@ -1,5 +1,8 @@
 using System.Globalization;
 using System.Linq;
+using Avalonia.Controls;
+using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Avalonia.Threading;
 using Marrow.App;
 using Marrow.App.Tests.Fixtures;
@@ -105,7 +108,7 @@ public sealed class TourPagesTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-UPDATE-093")] // App/Views/Tour/TourPages.swift:26-28
-    public void Closing_the_tour_marks_it_seen()
+    public void Clicking_the_checkmark_marks_the_tour_seen_and_closes_it()
     {
         headless.OnUiThread(() =>
         {
@@ -116,10 +119,33 @@ public sealed class TourPagesTests(HeadlessSession headless)
             h.Main.OnMain(() =>
             {
                 TourPages.Present(model);
-                TourWindowController.Shared.Close();
+                var window = TourWindowController.Shared.Present(TourPages.Pages);
+                var view = Assert.IsType<TourView>(window.Content);
+                var checkmark = view.GetVisualDescendants().OfType<Button>().Single(button =>
+                    button.GetVisualDescendants().OfType<SwiftImage>().Any(image => image.SymbolName == "checkmark"));
+                checkmark.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                Assert.False(window.IsVisible);
             });
 
             Assert.True(h.Main.OnMain(() => model.Settings.HasSeenTour));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-093")] // App/Views/Tour/TourPages.swift:26-28; App/Views/Tour/TourWindowController.swift:103-106,139-148
+    public void Closing_the_window_without_the_checkmark_does_not_mark_the_tour_seen()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = new AppModelHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                TourPages.Present(model);
+                TourWindowController.Shared.Close();
+                Assert.False(model.Settings.HasSeenTour);
+            });
         });
     }
 

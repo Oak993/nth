@@ -28,6 +28,7 @@ public sealed class WindowsUpdateInstallBoundaryTests
         try
         {
             Assert.True(Directory.Exists(path));
+            Assert.Matches(@"^MarrowUpdate-[0-9A-F]{8}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{4}-[0-9A-F]{12}$", Path.GetFileName(path)); // :301 UUID().uuidString; R-UUID-1
             var security = new DirectoryInfo(path).GetAccessControl();
             Assert.True(security.AreAccessRulesProtected, "inherited rules must not reach the staging folder");
             var user = WindowsIdentity.GetCurrent().User!;

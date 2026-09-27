@@ -1,4 +1,4 @@
-// Source: DroppyCode/UI/Chrome/HydraPairMark.swift (B2 1fbf81e), :5-23.
+// Source: DroppyCode/UI/Chrome/HydraPairMark.swift (B3 52bc792), :5-23.
 
 using Avalonia;
 using Avalonia.Automation;
@@ -76,6 +76,7 @@ public sealed class HydraPairMark : Decorator
 
         // :12-13 Lead provider icon at leadSize with primary text color
         var leadIcon = SwiftImage.Named(lead.IconName)
+            .Resizable().AspectRatio(ContentMode.Fit) // Components.swift:9-12 ProviderIcon
             .ForegroundStyle(Chrome.PrimaryText);
         leadIcon.Width = leadSize;
         leadIcon.Height = leadSize;
@@ -92,6 +93,7 @@ public sealed class HydraPairMark : Decorator
         // :17-18 Heads provider icon at (leadSize * 0.75).rounded() with primary text at 0.8 opacity
         var headsSize = SwiftNumber.Rounded(leadSize * 0.75);
         var headsIcon = SwiftImage.Named(heads.IconName)
+            .Resizable().AspectRatio(ContentMode.Fit) // Components.swift:9-12 ProviderIcon
             .ForegroundStyle(Chrome.PrimaryText.Opacity(0.8));
         headsIcon.Width = headsSize;
         headsIcon.Height = headsSize;
