@@ -12,6 +12,7 @@ using Avalonia.Layout;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Marrow.App.Runtime;
+using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Composer;
@@ -39,6 +40,77 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class TimelineRowsTests(HeadlessSession headless)
 {
+    [Theory]
+    [InlineData("Revert and keep file changes", false)]
+    [InlineData("Revert files too", true)]
+    [Trait("Req", "PR-CHAT-082")] // App/Views/Chat/TimelineRows.swift:184-206
+    [Trait("Req", "PR-GIT-123")] // App/Views/Chat/TimelineRows.swift:191-206; App/Runtime/ThreadRuntime.swift:1852-1854
+    [Trait("Req", "UI-CHAT-014")] // App/Views/Chat/TimelineRows.swift:191-196; ED-216
+    [Trait("Req", "UI-GIT-051")] // App/Views/Chat/TimelineRows.swift:191-196; ED-216
+    public void Edit_from_here_records_the_shared_dialog_and_routes_each_restore_files_choice(string title, bool restoreFiles) => headless.OnUiThread(() =>
+    {
+        using var h = RuntimeHarness();
+        var presenter = new RecordingConfirmationPresenter();
+        using var seam = AlertPresentation.Presenter.Override(presenter);
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            h.Runtime.RehearseTurn("prompt");
+            h.Runtime.Rehearse(new ProviderEvent.TurnCompleted(TurnStatus.Failed, null));
+            var entry = h.Runtime.Entries.First(item => item.Item.TimelineItemContent is TimelineItem.Content.User);
+            var row = new UserMessageRow(entry, h.Runtime, true);
+            window = Show(row);
+            var requests = Assert.IsType<MessageMenuRequests>(typeof(UserMessageRow).GetField("menuRequests", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(row));
+            requests.ConfirmRevert = true;
+            Settle(window);
+        });
+        h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return presenter.Shown.Count == 1; }, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            var dialog = Assert.Single(presenter.Shown);
+            Assert.Equal(AlertKind.ConfirmationDialog, dialog.Kind);
+            Assert.Equal("Edit from this message?", dialog.Title);
+            Assert.Equal("This message and everything after it leave the thread, and your prompt returns to the composer.", dialog.Message);
+            Assert.Same(window, dialog.Owner);
+            Assert.Equal(["Revert and keep file changes", "Revert files too", "Cancel"], dialog.Buttons.Select(button => button.Title));
+            Assert.Equal([AlertButtonRole.None, AlertButtonRole.Destructive, AlertButtonRole.Cancel], dialog.Buttons.Select(button => button.Role));
+            Assert.Single(h.Runtime.Turns);
+            presenter.Press(title);
+        });
+        h.Main.OnMain(() =>
+        {
+            // No checkpoint: restoring must refuse, while keeping files trims this failed Codex turn without a CLI.
+            Assert.Equal(restoreFiles ? 1 : 0, h.Runtime.Turns.Count);
+            Close(window!);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-082")] // App/Views/Chat/TimelineRows.swift:184-196; ED-216
+    public void Cancel_closes_the_shared_revert_dialog_and_allows_the_same_row_to_ask_again() => headless.OnUiThread(() =>
+    {
+        using var h = RuntimeHarness();
+        var presenter = new RecordingConfirmationPresenter();
+        using var seam = AlertPresentation.Presenter.Override(presenter);
+        MessageMenuRequests? requests = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var row = new UserMessageRow(UserEntry("prompt", Guid.NewGuid()), h.Runtime, true);
+            window = Show(row);
+            requests = Assert.IsType<MessageMenuRequests>(typeof(UserMessageRow).GetField("menuRequests", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(row));
+            requests.ConfirmRevert = true;
+            Settle(window);
+        });
+        h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return presenter.Shown.Count == 1; }, AppModelHarness.Bound);
+        h.Main.OnMain(() => presenter.Cancel());
+        h.Main.Loop.RunUntilIdle();
+        h.Main.OnMain(() => { requests!.ConfirmRevert = true; Settle(window!); });
+        h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return presenter.Shown.Count == 2; }, AppModelHarness.Bound);
+        h.Main.OnMain(() => { presenter.Press("Cancel", 1); Close(window!); });
+    });
+
     [Fact]
     [Trait("Req", "PR-CHAT-078")] // App/Views/Chat/TimelineRows.swift:97-114
     [Trait("Req", "UI-CHAT-008")] // App/Views/Chat/TimelineRows.swift:97-114
