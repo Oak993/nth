@@ -282,6 +282,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
                 var glyph = Assert.Single(Nodes<SwiftImage>(button)); var popup = Assert.Single(Nodes<Popup>(info));
                 Assert.Equal(owner == lead ? "About connected servers" : "About Example", AutomationProperties.GetName(button));
                 Assert.Equal(22, button.Width); Assert.Equal(22, button.Height); Assert.False(button.Focusable);
+                runtime.OnMain(() => Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick()); // hit testing reads the composed scene, as ChromeTests.Show documents
                 Assert.NotNull(button.InputHitTest(new Point(1, 1))); Assert.NotNull(button.InputHitTest(new Point(21, 21))); // :932 .contentShape(.rect), including corners outside the glyph
                 Assert.Equal("info.circle", glyph.SymbolName); Assert.Equal(12, SwiftImage.GetFont(glyph)!.Resolve().FontSize);
                 Assert.Equal(FontWeight.Medium, SwiftImage.GetFont(glyph)!.Resolve().FontWeight);
