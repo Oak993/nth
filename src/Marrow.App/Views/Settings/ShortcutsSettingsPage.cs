@@ -17,7 +17,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Views.Settings;
 
-// Source: DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift (B2 1fbf81e), :1-676.
+// Source: DroppyCode/App/Views/Settings/ShortcutsSettingsPage.swift (B3 52bc792), :1-676.
 //
 // Every key combination Droppy Code answers to: two recordable sections (Threads, Window and panels) followed by
 // one fixed Composer section, one recorder per row (:4-16). DEVIATION OD-0008 B7 throughout: chords and modifier
@@ -287,6 +287,8 @@ public sealed class ShortcutRecorder : Decorator
         var label = new TextBlock { MaxLines = 1, TextWrapping = TextWrapping.NoWrap, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
         var content = new Panel { Width = ShortcutRowMetrics.ControlWidth, Height = ShortcutRowMetrics.ControlHeight, Children = { label } }; // :181
         var background = new AnimatedColor(content);
+        var foreground = new AnimatedColor(label);
+        label.Foreground = foreground.Brush;
         var scale = new ScaleTransform(1, 1);
         var border = new Border { Child = content, RenderTransform = scale, RenderTransformOrigin = RelativePoint.Center }
             .RoundedRectangle(8, RoundedCornerStyle.Continuous); // :255
@@ -310,11 +312,12 @@ public sealed class ShortcutRecorder : Decorator
                 : isSet
                     ? Chrome.Overlay(isPressed ? 0.34 : isHovering ? 0.30 : 0.24) // :245
                     : Chrome.Overlay(isPressed ? 0.14 : isHovering ? 0.11 : 0.07); // :246
-            background.Set(fill, isPressed ? Animation.EaseOut(0.08) : Chrome.Hover); // :261-263
+            var animation = isPressed ? Animation.EaseOut(0.08) : Transaction.Current ?? Chrome.Hover;
+            background.Set(fill, animation); // :185,261-263 chord changes carry the outer spring
             var ink = !border.IsEnabled
                 ? Chrome.SecondaryText.Opacity(0.6) // :250
                 : isSet || isRecording ? Chrome.PrimaryText : Chrome.SecondaryText; // :251
-            label.Foreground = ink.Brush(label);
+            foreground.Set(ink, animation);
             scale.ScaleX = scale.ScaleY = isPressed ? 0.97 : 1; // :260
 
             if (chord is { } c) // :164-174
@@ -391,7 +394,8 @@ public sealed class ShortcutRecorder : Decorator
             Refresh();
         });
         border.DetachedFromVisualTree += (_, _) => { input.Detach(); session.Cancel(); }; // :201 .onDisappear
-        this.Track(() => store.Chord(shortcut), _ => Refresh()); // :185 the store drives the label directly (:159)
+        this.Track(() => store.Chord(shortcut), _ =>
+            Transaction.WithAnimation(Animation.Spring(0.3, 0.8, 0), Refresh)); // :185
 
         Child = new Panel { Children = { button, popup } };
     }
@@ -456,7 +460,8 @@ public sealed class ShortcutInputSource
         {
             if (e.Key == Key.Escape && e.KeyModifiers == KeyModifiers.None) { session.Cancel(); e.Handled = true; return; } // :600-603
             var isRepeat = !heldKeys.Add(e.Key); // :597 event.isARepeat
-            session.HandleKeyDown(KeyCode(e.Key), ToChordModifiers(e.KeyModifiers), isRepeat);
+            if (KeyCode(e.PhysicalKey) is { } code)
+                session.HandleKeyDown(code, ToChordModifiers(e.KeyModifiers), isRepeat);
         }
         e.Handled = true; // NSEvent.addLocalMonitorForEvents returning nil for every handled event
     }
@@ -468,7 +473,7 @@ public sealed class ShortcutInputSource
         else
         {
             heldKeys.Remove(e.Key);
-            session.HandleKeyUp(KeyCode(e.Key));
+            if (KeyCode(e.PhysicalKey) is { } code) session.HandleKeyUp(code);
         }
         e.Handled = true;
     }
@@ -480,7 +485,85 @@ public sealed class ShortcutInputSource
 
     private static bool IsModifierKey(Key key) => key is Key.LeftCtrl or Key.RightCtrl or Key.LeftAlt or Key.RightAlt or Key.LeftShift or Key.RightShift or Key.LWin or Key.RWin;
 
-    private static long KeyCode(Key key) => (long)key; // PORT-ONLY: an opaque, stable id; KeyNames.Label keys off the Windows scan-code table it owns, not this cast.
+    // :598 NSEvent.keyCode -> Windows Set-1 physical scan code (ED-099).
+    // The table is shared in meaning with MenuKeyEquivalents, copied here to keep the unit's edit scope.
+    private static long? KeyCode(PhysicalKey key) => key switch
+    {
+        PhysicalKey.A => 0x1E,
+        PhysicalKey.S => 0x1F,
+        PhysicalKey.D => 0x20,
+        PhysicalKey.F => 0x21,
+        PhysicalKey.H => 0x23,
+        PhysicalKey.G => 0x22,
+        PhysicalKey.Z => 0x2C,
+        PhysicalKey.X => 0x2D,
+        PhysicalKey.C => 0x2E,
+        PhysicalKey.V => 0x2F,
+        PhysicalKey.B => 0x30,
+        PhysicalKey.Q => 0x10,
+        PhysicalKey.W => 0x11,
+        PhysicalKey.E => 0x12,
+        PhysicalKey.R => 0x13,
+        PhysicalKey.Y => 0x15,
+        PhysicalKey.T => 0x14,
+        PhysicalKey.Digit1 => 0x02,
+        PhysicalKey.Digit2 => 0x03,
+        PhysicalKey.Digit3 => 0x04,
+        PhysicalKey.Digit4 => 0x05,
+        PhysicalKey.Digit6 => 0x07,
+        PhysicalKey.Digit5 => 0x06,
+        PhysicalKey.Equal => 0x0D,
+        PhysicalKey.Digit9 => 0x0A,
+        PhysicalKey.Digit7 => 0x08,
+        PhysicalKey.Minus => 0x0C,
+        PhysicalKey.Digit8 => 0x09,
+        PhysicalKey.Digit0 => 0x0B,
+        PhysicalKey.BracketRight => 0x1B,
+        PhysicalKey.O => 0x18,
+        PhysicalKey.U => 0x16,
+        PhysicalKey.BracketLeft => 0x1A,
+        PhysicalKey.I => 0x17,
+        PhysicalKey.P => 0x19,
+        PhysicalKey.L => 0x26,
+        PhysicalKey.J => 0x24,
+        PhysicalKey.Quote => 0x28,
+        PhysicalKey.K => 0x25,
+        PhysicalKey.Semicolon => 0x27,
+        PhysicalKey.Backslash => 0x2B,
+        PhysicalKey.Comma => 0x33,
+        PhysicalKey.Slash => 0x35,
+        PhysicalKey.N => 0x31,
+        PhysicalKey.M => 0x32,
+        PhysicalKey.Period => 0x34,
+        PhysicalKey.Backquote => 0x29,
+        PhysicalKey.Enter => 0x1C, // Return
+        PhysicalKey.Tab => 0x0F,
+        PhysicalKey.Space => 0x39,
+        PhysicalKey.Backspace => 0x0E, // macOS Delete (51)
+        PhysicalKey.Escape => 0x01,
+        PhysicalKey.Delete => 0xE053, // macOS forward delete (117)
+        PhysicalKey.ArrowLeft => 0xE04B,
+        PhysicalKey.ArrowRight => 0xE04D,
+        PhysicalKey.ArrowDown => 0xE050,
+        PhysicalKey.ArrowUp => 0xE048,
+        PhysicalKey.Home => 0xE047,
+        PhysicalKey.End => 0xE04F,
+        PhysicalKey.PageUp => 0xE049,
+        PhysicalKey.PageDown => 0xE051,
+        PhysicalKey.F1 => 0x3B,
+        PhysicalKey.F2 => 0x3C,
+        PhysicalKey.F3 => 0x3D,
+        PhysicalKey.F4 => 0x3E,
+        PhysicalKey.F5 => 0x3F,
+        PhysicalKey.F6 => 0x40,
+        PhysicalKey.F7 => 0x41,
+        PhysicalKey.F8 => 0x42,
+        PhysicalKey.F9 => 0x43,
+        PhysicalKey.F10 => 0x44,
+        PhysicalKey.F11 => 0x57,
+        PhysicalKey.F12 => 0x58,
+        _ => null,
+    };
 
     private static ChordModifiers ToChordModifiers(KeyModifiers modifiers)
     {
@@ -554,6 +637,8 @@ public sealed class KeycapView : Decorator
     private readonly Control label;
     private readonly TranslateTransform faceOffset = new();
     private readonly TranslateTransform labelOffset = new();
+    private readonly List<AnimatedColor> inks = [];
+    private readonly AnimatedColor lipColorAnimation;
 
     public KeycapView(Keycap cap, KeycapTint tint)
     {
@@ -602,6 +687,14 @@ public sealed class KeycapView : Decorator
         AutomationProperties.SetName(frame, accessibilityLabel);
 
         Child = frame;
+        foreach (var text in Descendants<TextBlock>(this))
+        {
+            var inkAnimation = new AnimatedColor(text);
+            inks.Add(inkAnimation);
+            text.Foreground = inkAnimation.Brush;
+        }
+        lipColorAnimation = new AnimatedColor(lip);
+        lip.Background = lipColorAnimation.Brush;
         Apply();
     }
 
@@ -626,18 +719,21 @@ public sealed class KeycapView : Decorator
     public void Update(Keycap next, KeycapTint nextTint)
     {
         var glyphChanged = cap.Symbol != next.Symbol; // :395 .id(cap.symbol)
+        var tintChanged = tint != nextTint;
+        var colorsChanged = tintChanged || cap.Phase != next.Phase;
         cap = next;
         tint = nextTint;
         if (glyphChanged && !cap.IsModifier && label is Border { Child: TextBlock text }) text.Text = cap.Symbol;
         else if (glyphChanged && cap.IsModifier) { } // modifier caps never swap glyph in place; a new KeycapRow row is used instead.
-        Apply();
+        if (tintChanged) Transaction.WithAnimation(Animation.EaseOut(0.14), () => Apply(colorsChanged)); // :465
+        else Apply(colorsChanged);
     }
 
     public Keycap RepresentedCap => cap; // PORT-ONLY: lets the popover re-tint an existing row without a parallel list.
 
     private bool IsPressed => cap.Phase == KeycapPhase.Pressed; // :337
 
-    private void Apply()
+    private void Apply(bool colorsChanged = true)
     {
         var pressed = IsPressed;
         Opacity = pressed ? 1 : 0.36; // :345
@@ -651,7 +747,8 @@ public sealed class KeycapView : Decorator
             KeycapTint.Accepted => KeycapColors.Accepted,
             _ => throw new UnreachableException(),
         };
-        foreach (var text in Descendants<TextBlock>(this)) text.Foreground = ink.Brush(this);
+        if (colorsChanged)
+            foreach (var inkAnimation in inks) inkAnimation.Set(ink, Transaction.Current); // :465
         var lipColor = !pressed
             ? new SwiftColor(1, 0.10) // :410
             : tint switch // :411-415
@@ -661,7 +758,7 @@ public sealed class KeycapView : Decorator
                 KeycapTint.Accepted => KeycapColors.Accepted.Opacity(0.9),
                 _ => throw new UnreachableException(),
             };
-        lip.Background = lipColor.Brush(lip);
+        if (colorsChanged) lipColorAnimation.Set(lipColor, Transaction.Current); // :465
     }
 
     private static IEnumerable<T> Descendants<T>(Visual root) where T : Visual =>
@@ -746,8 +843,11 @@ public sealed class ShortcutRecordingPopoverContent : Decorator
         ApplyCaps();
         ApplyMessage();
         ApplyActions();
-        this.Track(() => session.Caps, _ => ApplyCaps());
-        this.Track(() => session.Tint, _ => { foreach (var v in capRows.Values) v.Update(v.RepresentedCap, session.Tint); ApplyMessage(); });
+        this.Track(() => session.Caps, _ => Transaction.WithAnimation(
+            EnvironmentValues.GetAccessibilityReduceMotion(this) ? Animation.EaseOut(0.12) : Animation.Spring(0.3, 0.8, 0),
+            ApplyCaps)); // :430,464
+        this.Track(() => session.Tint, _ => Transaction.WithAnimation(Animation.EaseOut(0.14),
+            () => { foreach (var v in capRows.Values) v.Update(v.RepresentedCap, session.Tint); ApplyMessage(); })); // :465
         this.Track(() => session.Message, _ => ApplyMessage());
         this.Track(() => session.Actions, _ => ApplyActions());
     }
@@ -762,7 +862,7 @@ public sealed class ShortcutRecordingPopoverContent : Decorator
         var scale = new ScaleTransform(1, 1);
         glass.RenderTransform = scale;
         glass.RenderTransformOrigin = RelativePoint.Center;
-        scale.Transitions = [new Avalonia.Animation.DoubleTransition { Property = ScaleTransform.ScaleXProperty, Duration = TimeSpan.FromMilliseconds(80) }, new Avalonia.Animation.DoubleTransition { Property = ScaleTransform.ScaleYProperty, Duration = TimeSpan.FromMilliseconds(80) }];
+        // :478 The action pill's press scale has no animation modifier.
         glass.AddHandler(InputElement.PointerPressedEvent, (_, _) => { scale.ScaleX = scale.ScaleY = 0.97; }, RoutingStrategies.Tunnel); // :478
         glass.PointerReleased += (_, _) => { scale.ScaleX = scale.ScaleY = 1; };
         glass.PointerCaptureLost += (_, _) => { scale.ScaleX = scale.ScaleY = 1; };
