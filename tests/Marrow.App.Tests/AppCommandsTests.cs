@@ -198,7 +198,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Rule", "R-TEST-1")] // baseline evidence only; deliberately no Req trait
-    // UNRESOLVED UNK-0003: documents current table precedence, not an approved parity rule.
+    // UNRESOLVED (STOP App.AppCommands #8): documents current table precedence, not an approved parity rule.
     public void Recorded_show_main_overlaps_currently_win_over_fixed_zoom_and_thread_chords() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
@@ -2791,12 +2791,16 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // STOP #5 still needs ThreadRuntime.CanQueue and QueueDraftAsFollowUp repaired: :1020-1025 still reject an idle draft
 // instead of sending it (Swift ThreadRuntime.swift:771-788). No AppModel or ThreadRuntime file is changed by this sweep.
 
-// STOP App.AppCommands #8 (sweep B fixes, 2026-09-27)
-// Kind: unresolved precedence, UNK-0003.
+// STOP App.AppCommands #8 (sweep B fixes, 2026-09-27; citation corrected 2026-09-27)
+// Kind: unresolved precedence; no covering record.
 // Swift: App/AppCommands.swift:21-25,53-62,95-98; Core/Models/Shortcuts.swift:251-257,320-334 (B3 52bc792).
 // Records: PR-WIN-092, PR-WIN-224, PR-WIN-226; PR-SETTINGS-210 failure_cases.
 // Missing: a decision for a recorded Show Marrow Ctrl+0, Ctrl+-, Ctrl+= or Ctrl+digit overlapping
 // the fixed Actual Size, Zoom or Thread N command. The store accepts these fixed-command overlaps.
 // Current precedence: Body[1] app-name/show-main wins because dispatch takes the first enabled match;
 // Actual Size, Zoom and Thread N therefore do not run. This behavior is documented without a Req trait.
-// Needed: UNK-0003 resolution specifying refusal or dispatch precedence; do not silently choose a rule.
+// Needed: an ED or owner ruling naming the Windows refusal or dispatch precedence for a recorded
+// chord overlapping a fixed command. UNK-0003 (macOS reference runtime for visual parity) does not
+// cover it: its scope is macOS-delegated appearance (system materials, vibrancy, control metrics,
+// glyph rasterization, default fonts), not command dispatch order. No ED, OD or PA record settles
+// this either. Do not silently choose a rule.
