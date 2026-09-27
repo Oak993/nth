@@ -1343,15 +1343,23 @@
     "Core.Support.Text"
    ],
    "records_total": 26,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-CHAT-013",
+    "PR-CHAT-017"
+   ],
+   "parts": [
+    [
+     "PR-CHAT-013",
+     "PR-CHAT-017"
+    ]
+   ],
    "packets": [
     "T-M2-055",
     "T-M2-056",
     "T-M2-057"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "Core.Models.TokenSpend",
@@ -1374,13 +1382,19 @@
     "Core.Models.Provider"
    ],
    "records_total": 3,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-USAGE-086"
+   ],
+   "parts": [
+    [
+     "PR-USAGE-086"
+    ]
+   ],
    "packets": [
     "T-M2-058"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "Core.Support.HangWatchdog",
@@ -1599,8 +1613,16 @@
    ],
    "intra_deps": [],
    "records_total": 30,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-UPDATE-021",
+    "PR-UPDATE-023"
+   ],
+   "parts": [
+    [
+     "PR-UPDATE-021",
+     "PR-UPDATE-023"
+    ]
+   ],
    "packets": [
     "T-M8-005",
     "T-M8-006",
@@ -1608,7 +1630,7 @@
     "T-M8-008"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "Core.Models.HydraCookbook",
@@ -2365,8 +2387,14 @@
    ],
    "intra_deps": [],
    "records_total": 61,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-STORE-076"
+   ],
+   "parts": [
+    [
+     "PR-STORE-076"
+    ]
+   ],
    "packets": [
     "T-M3-016",
     "T-M3-017",
@@ -2377,7 +2405,7 @@
     "T-M3-022"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "UI.Chrome.Chrome",
@@ -2594,14 +2622,28 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-COMPOSER-102",
+    "PR-COMPOSER-103",
+    "PR-COMPOSER-104",
+    "PR-COMPOSER-105",
+    "UI-COMPOSER-017"
+   ],
+   "parts": [
+    [
+     "PR-COMPOSER-102",
+     "PR-COMPOSER-103",
+     "PR-COMPOSER-104",
+     "PR-COMPOSER-105",
+     "UI-COMPOSER-017"
+    ]
+   ],
    "packets": [
     "T-M7-086",
     "T-M7-087"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "App.Views.Settings.SettingsScrollTracker",
@@ -2731,15 +2773,23 @@
    ],
    "intra_deps": [],
    "records_total": 23,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-TERM-039",
+    "PR-TERM-123"
+   ],
+   "parts": [
+    [
+     "PR-TERM-039",
+     "PR-TERM-123"
+    ]
+   ],
    "packets": [
     "T-M7-219",
     "T-M7-220",
     "T-M7-221"
    ],
    "risk": "HIGH",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "App.Views.Tour.TourView",
@@ -3010,8 +3060,14 @@
    ],
    "intra_deps": [],
    "records_total": 34,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-WIN-037"
+   ],
+   "parts": [
+    [
+     "PR-WIN-037"
+    ]
+   ],
    "packets": [
     "T-M5-024",
     "T-M5-025",
@@ -3019,7 +3075,7 @@
     "T-M5-027"
    ],
    "risk": "HIGH",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "UI.Common.AttachmentPreview",
@@ -3200,8 +3256,14 @@
    ],
    "intra_deps": [],
    "records_total": 28,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-UPDATE-054"
+   ],
+   "parts": [
+    [
+     "PR-UPDATE-054"
+    ]
+   ],
    "packets": [
     "T-M8-001",
     "T-M8-002",
@@ -3209,7 +3271,7 @@
     "T-M8-004"
    ],
    "risk": "HIGH",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "App.Views.Composer.DownloadsPopover",
@@ -3288,13 +3350,19 @@
    ],
    "intra_deps": [],
    "records_total": 5,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-UPDATE-095"
+   ],
+   "parts": [
+    [
+     "PR-UPDATE-095"
+    ]
+   ],
    "packets": [
     "T-M7-227"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "Services.MCP.MCPExternalSync",
@@ -3807,14 +3875,20 @@
     "UI.Markdown.StreamVeil"
    ],
    "records_total": 12,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-THEME-152"
+   ],
+   "parts": [
+    [
+     "PR-THEME-152"
+    ]
+   ],
    "packets": [
     "T-M5-049",
     "T-M5-050"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "UI.Markdown.LinkPopover",
@@ -4445,15 +4519,21 @@
     "Services.Providers.ProviderRegistry"
    ],
    "records_total": 18,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-PROVCLI-260"
+   ],
+   "parts": [
+    [
+     "PR-PROVCLI-260"
+    ]
+   ],
    "packets": [
     "T-M4-067",
     "T-M4-068",
     "T-M4-069"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "Services.Providers.CopilotSession",
@@ -5467,10 +5547,14 @@
    ],
    "records_total": 295,
    "records_todo": [
+    "PR-RUNTIME-160",
+    "PR-RUNTIME-251",
     "PR-RUNTIME-253"
    ],
    "parts": [
     [
+     "PR-RUNTIME-160",
+     "PR-RUNTIME-251",
      "PR-RUNTIME-253"
     ]
    ],
@@ -6116,8 +6200,20 @@
     "App.Window.WindowManager"
    ],
    "records_total": 30,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-HYDRA-168",
+    "PR-HYDRA-169",
+    "UI-HYDRA-019",
+    "UI-HYDRA-026"
+   ],
+   "parts": [
+    [
+     "PR-HYDRA-168",
+     "PR-HYDRA-169",
+     "UI-HYDRA-019",
+     "UI-HYDRA-026"
+    ]
+   ],
    "packets": [
     "T-M7-025",
     "T-M7-026",
@@ -6125,7 +6221,7 @@
     "T-M7-028"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "App.Views.Chat.HydraProgressBar",
@@ -6358,14 +6454,20 @@
     "App.AppModel"
    ],
    "records_total": 4,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "UI-CHAT-045"
+   ],
+   "parts": [
+    [
+     "UI-CHAT-045"
+    ]
+   ],
    "packets": [
     "T-M7-040",
     "T-M7-041"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "App.Views.Chat.SubagentPanel",
@@ -6677,15 +6779,21 @@
     "App.Window.WindowManager"
    ],
    "records_total": 13,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-CHAT-073"
+   ],
+   "parts": [
+    [
+     "PR-CHAT-073"
+    ]
+   ],
    "packets": [
     "T-M7-054",
     "T-M7-055",
     "T-M7-056"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "App.Views.Chat.TimelineRows",
@@ -8122,8 +8230,14 @@
     "App.Runtime.ThreadRuntime"
    ],
    "records_total": 31,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-GIT-137"
+   ],
+   "parts": [
+    [
+     "PR-GIT-137"
+    ]
+   ],
    "packets": [
     "T-M7-115",
     "T-M7-116",
@@ -8131,7 +8245,7 @@
     "T-M7-118"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "App.Views.Palette.CommandPalette",
@@ -8413,14 +8527,20 @@
     "App.Views.Chat.HydraButton"
    ],
    "records_total": 3,
-   "records_todo": [],
-   "parts": [],
+   "records_todo": [
+    "PR-SETTINGS-178"
+   ],
+   "parts": [
+    [
+     "PR-SETTINGS-178"
+    ]
+   ],
    "packets": [
     "T-M7-135",
     "T-M7-136"
    ],
    "risk": "STANDARD",
-   "status": "DONE"
+   "status": "TODO"
   },
   {
    "id": "App.Views.Settings.HydraSettingsPage",
@@ -8673,26 +8793,15 @@
    "records_todo": [
     "PR-MCP-073",
     "PR-MCP-199",
-    "PR-MCP-200",
-    "PR-MCP-201",
     "PR-MCP-202",
     "PR-MCP-203",
     "PR-MCP-204",
-    "PR-MCP-205",
-    "PR-MCP-206",
-    "PR-MCP-207",
     "PR-MCP-208",
-    "PR-MCP-209",
     "PR-MCP-210",
-    "PR-MCP-211",
-    "PR-MCP-212",
     "PR-MCP-213",
-    "PR-MCP-224",
     "PR-MCP-229",
     "PR-MCP-230",
     "PR-MCP-231",
-    "PR-THEME-088",
-    "UI-MCP-001",
     "UI-MCP-002",
     "UI-MCP-003",
     "UI-MCP-004",
@@ -8772,30 +8881,17 @@
     [
      "PR-MCP-073",
      "PR-MCP-199",
-     "PR-MCP-200",
-     "PR-MCP-201",
      "PR-MCP-202",
      "PR-MCP-203",
      "PR-MCP-204",
-     "PR-MCP-205",
-     "PR-MCP-206",
-     "PR-MCP-207",
      "PR-MCP-208",
-     "PR-MCP-209",
      "PR-MCP-210",
-     "PR-MCP-211",
-     "PR-MCP-212",
      "PR-MCP-213",
-     "PR-MCP-224",
      "PR-MCP-229",
      "PR-MCP-230",
      "PR-MCP-231",
-     "PR-THEME-088",
-     "UI-MCP-001",
      "UI-MCP-002",
-     "UI-MCP-003"
-    ],
-    [
+     "UI-MCP-003",
      "UI-MCP-004",
      "UI-MCP-005",
      "UI-MCP-006",
@@ -8806,7 +8902,9 @@
      "UI-MCP-011",
      "UI-MCP-012",
      "UI-MCP-013",
-     "UI-MCP-014",
+     "UI-MCP-014"
+    ],
+    [
      "UI-MCP-015",
      "UI-MCP-016",
      "UI-MCP-017",
@@ -8819,9 +8917,7 @@
      "UI-MCP-024",
      "UI-MCP-025",
      "UI-MCP-026",
-     "UI-MCP-027"
-    ],
-    [
+     "UI-MCP-027",
      "UI-MCP-028",
      "UI-MCP-029",
      "UI-MCP-030",
@@ -8832,7 +8928,9 @@
      "UI-MCP-035",
      "UI-MCP-036",
      "UI-MCP-037",
-     "UI-MCP-038",
+     "UI-MCP-038"
+    ],
+    [
      "UI-MCP-039",
      "UI-MCP-040",
      "UI-MCP-041",
@@ -8845,9 +8943,7 @@
      "UI-MCP-048",
      "UI-MCP-049",
      "UI-MCP-050",
-     "UI-MCP-051"
-    ],
-    [
+     "UI-MCP-051",
      "UI-MCP-052",
      "UI-MCP-053",
      "UI-MCP-054",
@@ -8858,7 +8954,9 @@
      "UI-MCP-059",
      "UI-MCP-060",
      "UI-MCP-061",
-     "UI-MCP-062",
+     "UI-MCP-062"
+    ],
+    [
      "UI-MCP-063",
      "UI-MCP-064",
      "UI-MCP-065",
@@ -10420,6 +10518,7 @@
     "PR-LAUNCH-071",
     "PR-LAUNCH-084",
     "PR-UPDATE-024",
+    "PR-UPDATE-025",
     "PR-WIN-068",
     "PR-WIN-072",
     "PR-WIN-073",
@@ -10444,6 +10543,7 @@
      "PR-LAUNCH-071",
      "PR-LAUNCH-084",
      "PR-UPDATE-024",
+     "PR-UPDATE-025",
      "PR-WIN-068",
      "PR-WIN-072",
      "PR-WIN-073",
