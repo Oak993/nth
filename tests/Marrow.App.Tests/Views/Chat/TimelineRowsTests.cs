@@ -588,6 +588,36 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-108")] // App/Views/Chat/TimelineRows.swift:1028-1033
     public void Merge_report_is_a_task_keyed_to_its_body_not_the_stage() => A_reports_markdown_is_warmed_as_the_pill_appears_per_head_for_a_batch();
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-108")] // App/Views/Chat/TimelineRows.swift:1028-1033
+    public void The_merge_row_warms_its_report_body_and_the_next_body_without_opening_a_popover()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var nonce = System.Guid.NewGuid().ToString("N");
+            var body = "```\nfirst " + nonce + "\n```";
+            var nextBody = "```\nnext " + nonce + "\n```";
+            HydraMergeRow row = null!;
+            AvaloniaWindow window = null!;
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal([body, nextBody], MarkdownView.WarmTexts([body, nextBody]));
+                row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Outcome(new UserMessage { Text = "Held back.\n" + body }));
+                window = Show(row);
+            });
+            h.Main.Loop.RunUntil(() => MarkdownView.WarmTexts([body]).Count == 0, AppModelHarness.Bound);
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal([nextBody], MarkdownView.WarmTexts([nextBody]));
+                row.Update(new HydraMergePhase.Outcome(new UserMessage { Text = "Held back again.\n" + nextBody }));
+            });
+            h.Main.Loop.RunUntil(() => MarkdownView.WarmTexts([nextBody]).Count == 0, AppModelHarness.Bound);
+            h.Main.OnMain(() => Close(window));
+        });
+    }
     [Fact]
     [Trait("Req", "UI-CHAT-007")] // App/Views/Chat/TimelineRows.swift:88-129, :1167-1207
     public void Sent_bubble_uses_the_exact_path_and_insets() { The_bubble_path_rounds_three_corners_and_draws_the_tail_through_the_exact_control_points(); A_sent_message_is_a_trailing_bubble_with_14_18_and_9_point_insets_96_points_clear_on_the_leading_side_tinted_at_14_percent(); }
@@ -3130,6 +3160,14 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
         Assert.Equal("Worked for 3s", TurnEndRow.Label(Summary(System.Guid.NewGuid(), 2.5)));
         Assert.Equal("Worked for 0s", TurnEndRow.Label(Summary(System.Guid.NewGuid(), -2.5)));
+        // :2023 uses the same Components.swift:37-40 formatter for a finished head.
+        using var actor = new TestRuntime();
+        actor.OnMain(() =>
+        {
+            var start = System.DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+            var head = Head(0, HydraHeadInfo.Status.Completed, start, start.AddSeconds(2.5));
+            Assert.Equal("Done \u00b7 3s", InvokeStatic(typeof(HydraHeadStepsPopover), "StatusLine", head));
+        });
     }
 
     [Fact]
@@ -4157,3 +4195,12 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Only that modifier is unwritten; exact title/body, width, padding, glass styles, default Revert and close-first
 // actions are implemented and tested. Generic .green is allowed by ED-092 (1), with the existing AppTheme
 // FrameworkGreen mapping precedent; its visual appearance remains UNVERIFIED under OD-0001.
+//
+// STOP App.Views.Chat.TimelineRows #6 (part 6, 2026-09-27)
+// Kind: missing dependency
+// Swift: DroppyCode/App/Views/Chat/TimelineRows.swift:1972-1973 `.lineLimit(2).truncationMode(.middle)`.
+// Records: PR-CHAT-154; UI-CHAT-055.
+// Missing: a multiline middle-truncation adapter; MiddleTruncatingTextBlock elides a single measured line only.
+// Needed: the text-foundation owner must provide a two-line middle-truncation primitive (or an approved mapping).
+// Only the middle truncation modifier is unwritten; the constrained, wrapping, two-line text column, font, color,
+// icon baseline and stat are implemented. No tail/head truncation substitute is asserted as source behavior.
