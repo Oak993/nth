@@ -11,7 +11,7 @@ public sealed class ForEachEnvironmentTests(HeadlessSession headless)
 {
     [Fact]
     [Trait("Decision", "ED-218")]
-    [Trait("Req", "PR-WIN-017")] // App/Window/WindowManager.swift:113-140,170-172
+    [Trait("Rule", "R-VIEW-6")] // App/Window/WindowManager.swift:113-140,170-172; inherited environment bridge only
     public void App_live_resize_environment_is_read_live_by_UI_without_an_App_dependency() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -26,4 +26,10 @@ public sealed class ForEachEnvironmentTests(HeadlessSession headless)
             resize.IsPaneResizing = false; Assert.False((bool)read.Invoke(null, [leaf])!);
         });
     });
+
+    // STOP ForEach transitions #2
+    // Kind: partial record verification. Swift: WindowManager.swift:118-140. Records: PR-WIN-017.
+    // Missing: this bridge test toggles a pane flag; it does not exercise native resizing of two windows
+    // or a move-only drag. Needed: WindowManager's owned native hook/interaction verification (its STOP #3).
+    // ED-218 and R-VIEW-6 describe this subset; all bridge assertions are retained.
 }
