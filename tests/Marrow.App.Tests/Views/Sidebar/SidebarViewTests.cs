@@ -3441,6 +3441,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // arbitrary corner radius, padding and colours with no source number or owner ruling behind them.
     // Needed to proceed: an engineering decision (or owner ruling) naming the Windows chrome for
     // `.textFieldStyle(.roundedBorder)` and for `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)`.
+    // The ellipsis popover's Rename action currently silently does nothing: it cannot present the missing
+    // rename form. This no-op is part of STOP #6, not a completed rename path.
     // Done so far: nothing implemented at RenameThreadPopover or SidebarView.RenamePopover; both stay MARROW_STUB.
     // liveRenameTarget (PR-SIDEBAR-093, the ellipsis path's live-thread lookup, :882-887) does not depend on this
     // site and is proven below. Nothing is claimed for UI-SIDEBAR-028, -029 or -030, and no test names them.
@@ -6392,6 +6394,131 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         watch.Cancel();
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-134")] // App/Views/Sidebar/SidebarView.swift:1820-1833,2433-2440
+    public void Scrolling_unhovered_undragged_rows_with_no_glide_never_writes_the_window_frame() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Idle scroll", 0);
+        var model = Model(harness, [project], [thread]);
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        harness.Main.OnMain(() =>
+        {
+            var row = LiveThreadRow(thread);
+            var stack = new StackPanel { Children = { row, new Border { Height = 1500 } } };
+            var scroll = new Avalonia.Controls.Presenters.ScrollContentPresenter { Content = stack, CanVerticallyScroll = true };
+            var window = WindowOf(Hosted(model, scroll));
+            try
+            {
+                window.UpdateLayout();
+                var first = Frame(row, window);
+                var holder = Field(row, "windowFrame")!;
+                Assert.Equal(default(Rect), Get(holder, "Frame"));
+                foreach (var offset in new[] { 20d, 80d, 140d })
+                {
+                    scroll.Offset = new Vector(0, offset);
+                    window.UpdateLayout();
+                    Dispatcher.UIThread.RunJobs();
+                    Assert.NotEqual(first, Frame(row, window)); // real viewport scroll changed geometry
+                    Assert.Equal(default(Rect), Get(holder, "Frame")); // gated write stays absent
+                    Assert.Empty(animator.Glides);
+                }
+            }
+            finally { window.Hide(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-134")] // App/Views/Sidebar/SidebarView.swift:1820-1833,2433-2440 Note suppression must not suppress Land
+    public void A_frame_returning_to_its_last_recorded_position_still_lands_a_pending_glide() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Returned frame", 0);
+        var model = Model(harness, [project], [thread]);
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        Rect recorded = default;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                row = LiveThreadRow(thread);
+                window = WindowOf(Hosted(model, row));
+                window.UpdateLayout();
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+            });
+            harness.Main.OnMain(() =>
+            {
+                recorded = (Rect)Get(Field(row, "windowFrame")!, "Frame")!;
+                Assert.NotEqual(default, recorded);
+                window.MouseMove(new Point(window.Bounds.Width - 1, window.Bounds.Height - 1));
+            });
+            harness.Main.OnMain(() =>
+            {
+                row.Margin = new Thickness(0, 20, 0, 0);
+                window.UpdateLayout(); // gate false: holder still remembers old position
+                Assert.Equal(recorded, Get(Field(row, "windowFrame")!, "Frame"));
+                animator.Launch(thread.Id, RowGlideAnimator.Glide.Direction.Reopen, new Rect(0, 300, 200, 24),
+                    new Rect(0, -28, 200, 28), new Rect(0, 0, 200, 400), new FaceSample(200, 24), new FaceSample(200, 28), 0, 0);
+                row.Margin = new Thickness(0);
+                window.UpdateLayout(); // geometry changed back; holder equality must not prevent land
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(recorded, Frame(row, window));
+                Assert.True(Assert.Single(animator.Glides).HasLanded);
+                Assert.Equal(recorded, Assert.Single(animator.Glides).To);
+            });
+        }
+        finally { harness.Main.OnMain(() => { window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
+    [Theory]
+    [InlineData(1.0, 2.0)]
+    [InlineData(1.5, 2.0)]
+    [InlineData(2.5, 2.5)]
+    [Trait("Req", "PR-SIDEBAR-135")] // App/Views/Sidebar/SidebarView.swift:1933-1978; App/Views/Sidebar/RowGlide.swift:127-134 windows_path DPI minimum 2
+    public void Glide_faces_use_their_own_windows_DPI_scale_with_a_two_times_minimum(double windowScale, double expectedScale) => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "DPI reopen", 0) with { IsSettled = true };
+        var model = Model(harness, [project], [thread]);
+        var platform = new SidebarSweepPlatform(); // main-screen fallback deliberately remains 2 at every window DPI
+        var animator = new RowGlideAnimator(platform);
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var holder = Activator.CreateInstance(Private("FrameHolder"))!;
+                SetProp(holder, "Frame", new Rect(0, 40, 200, 400));
+                row = LiveThreadRow(thread, "Alpha", listFrame: holder);
+                window = WindowOf(Hosted(model, row));
+                window.SetRenderScaling(windowScale);
+                window.UpdateLayout();
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+            });
+            harness.Main.OnMain(() => Click(ButtonNamed(row, "Reopen thread")));
+            harness.Main.OnMain(() =>
+            {
+                Assert.Single(animator.Glides);
+                Assert.Equal(2, platform.Renders.Count);
+                Assert.All(platform.Renders, render => Assert.Equal(expectedScale, render.Scale));
+            });
+        }
+        finally { harness.Main.OnMain(() => { window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
     // ---- UI-SIDEBAR-060: the release spring dragEnded's write runs inside ----
 
     [Fact]
@@ -6421,3 +6548,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     }
 }
+
+// STOP App.Views.Sidebar.SidebarView #9 (Window review fixes)
+// Kind: missing capture oracle.
+// Swift: App/Views/Sidebar/SidebarView.swift:1933-1978 (B3 52bc792). Record: PR-SIDEBAR-135, partial.
+// Missing: capture comparison of departure and arrival faces against pinned 1.7.0 renders, with the source
+// thread states, clearances and DPI. Headless can render Windows controls but supplies no macOS reference faces.
+// Needed: pinned reference captures plus comparison evidence for both faces. DPI and two-face contracts are tested.

@@ -849,6 +849,182 @@ public sealed class RootViewTests(HeadlessSession headless)
         });
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:14-43 overlay at 22-31 takes no layout space
+    public void The_sidebar_resize_overlay_does_not_reserve_detail_width(bool visible, bool onlyFloating) => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        var model = launch.Manager.Model;
+        AvaloniaWindow window = null!;
+        RootView root = null!;
+        try
+        {
+            launch.Harness.Main.OnMain(() =>
+            {
+                model.Settings.SidebarFloats = onlyFloating;
+                model.Settings.SidebarOnlyFloats = onlyFloating;
+                if (model.Sidebar.IsVisible != visible) model.Sidebar.Toggle();
+                var host = Assert.IsType<Border>(Build(model, () => new RootView()));
+                root = Assert.IsType<RootView>(host.Child);
+                window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+                window.Width = 900;
+                window.Height = 600;
+            });
+            launch.Harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                var expectedX = visible && !onlyFloating ? model.Sidebar.RenderedWidth : 0;
+                Assert.Equal(expectedX, root.DetailClip.TranslatePoint(default, root)!.Value.X);
+                Assert.Equal(root.Bounds.Width - expectedX, root.DetailClip.Bounds.Width);
+                Assert.Equal(window.ClientSize.Width, root.Bounds.Width);
+            });
+        }
+        finally { launch.Harness.Main.OnMain(() => { window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:44-51; App/Views/Sidebar/FloatingSidebarPanel.swift:23-35
+    public void Resizing_the_detail_keeps_the_floating_panel_sidebar_and_search_state() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        var model = launch.Manager.Model;
+        AvaloniaWindow window = null!;
+        RootView root = null!;
+        FloatingSidebarPanel panel = null!;
+        SidebarView sidebar = null!;
+        TextBox search = null!;
+        try
+        {
+            launch.Harness.Main.OnMain(() =>
+            {
+                model.Settings.SidebarFloats = true;
+                model.Settings.SidebarOnlyFloats = true;
+                var host = Assert.IsType<Border>(Build(model, () => new RootView()));
+                root = Assert.IsType<RootView>(host.Child);
+                window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+                window.Width = 900;
+                window.Height = 700;
+                window.UpdateLayout();
+            });
+            launch.Harness.Main.OnMain(() =>
+            {
+                panel = Assert.Single(LogicalQuery.SelfAndDescendants<FloatingSidebarPanel>(root));
+                sidebar = Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(panel));
+                search = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(sidebar));
+                search.Text = "kept query";
+                window.Width = 1100;
+                window.Height = 800;
+                root.Measure(new Size(1100, 800));
+                root.Arrange(new Rect(0, 0, 1100, 800));
+            });
+            launch.Harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(1100, root.DetailClip.Bounds.Width); // force a real detail-area geometry change
+                Assert.Same(panel, Assert.Single(LogicalQuery.SelfAndDescendants<FloatingSidebarPanel>(root)));
+                Assert.Same(sidebar, Assert.Single(LogicalQuery.SelfAndDescendants<SidebarView>(panel)));
+                Assert.Same(search, Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(sidebar)));
+                Assert.Equal("kept query", search.Text);
+                Assert.Equal(root.DetailClip.Bounds.Size, panel.Bounds.Size); // new area, same instance
+            });
+        }
+        finally { launch.Harness.Main.OnMain(() => { window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
+    [Theory]
+    [InlineData("escape")]
+    [InlineData("ok")]
+    [InlineData("return")]
+    [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91; ED-216 lone cancel-role OK still takes Return
+    public void A_replaced_alert_updates_the_owned_dialog_and_production_dismissal_clears_the_model(string dismissal) => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        var property = typeof(RootView).GetProperty("PresentAlertDialog", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        var presentation = Assert.IsType<Ambient<Func<AvaloniaWindow, AvaloniaWindow, Task>>>(property.GetValue(null));
+        AvaloniaWindow dialog = null!;
+        AvaloniaWindow window = null!;
+        var presentations = 0;
+        using var seam = presentation.Override((shown, owner) =>
+        {
+            presentations++;
+            dialog = shown;
+            var completion = new TaskCompletionSource();
+            shown.Closed += (_, _) => completion.TrySetResult();
+            shown.Show();
+            return completion.Task;
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var host = Build(model, () => new RootView());
+                window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(host));
+                model.Alert = new AppAlert { Title = "First title", Message = "First message" };
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal("First title", dialog.Title);
+                Assert.Contains("First message", AllText(dialog), StringComparison.Ordinal);
+                model.Alert = new AppAlert { Title = "Replacement title", Message = "Replacement message" };
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(1, presentations); // update the existing owned dialog
+                Assert.Equal("Replacement title", dialog.Title);
+                Assert.Contains("Replacement message", AllText(dialog), StringComparison.Ordinal);
+                Assert.DoesNotContain("First message", AllText(dialog), StringComparison.Ordinal);
+                var ok = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(dialog));
+                Assert.True(ok.IsDefault);
+                Assert.True(ok.IsCancel);
+                if (dismissal == "ok") ok.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                else if (dismissal == "escape") dialog.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, "\u001b");
+                else dialog.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, "\r");
+            });
+            harness.Main.OnMain(() =>
+            {
+                Assert.False(dialog.IsVisible);
+                Assert.Null(model.Alert); // false presentation binding, :83-84
+            });
+        }
+        finally { harness.Main.OnMain(() => { dialog?.Close(); window?.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-064")] // App/Views/RootView.swift:77-79 dropDestination(for: URL.self)
+    public void Drag_over_accepts_local_file_URLs_and_rejects_text_only_drags() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        harness.Main.OnMain(() =>
+        {
+            var host = Assert.IsType<Border>(Build(model, () => new RootView()));
+            var root = Assert.IsType<RootView>(host.Child);
+            var window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(root));
+            try
+            {
+                using var textData = new DataTransfer();
+                textData.Add(DataTransferItem.CreateText("not a file URL"));
+                var textDrag = new DragEventArgs(DragDrop.DragOverEvent, textData, root, default, KeyModifiers.None);
+                root.RaiseEvent(textDrag);
+                Assert.Equal(DragDropEffects.None, textDrag.DragEffects);
+                var path = Path.Combine(harness.Scratch, "drag-over.txt");
+                File.WriteAllText(path, "file");
+                var file = window.StorageProvider.TryGetFileFromPathAsync(new Uri(path)).GetAwaiter().GetResult()!;
+                using var files = new DataTransfer();
+                files.Add(DataTransferItem.CreateFile(file));
+                var fileDrag = new DragEventArgs(DragDrop.DragOverEvent, files, root, default, KeyModifiers.None);
+                root.RaiseEvent(fileDrag);
+                Assert.Equal(DragDropEffects.Copy, fileDrag.DragEffects);
+            }
+            finally { window.Hide(); Dispatcher.UIThread.RunJobs(); }
+        });
+    });
+
     // A dropped folder always selects the thread it creates (:104-105 newThread(in: lastProject)), and a dropped
     // file attaches only when a thread is ALREADY selected (:106-108): either shape, live through a fully attached
     // RootView, reactively rebuilds DetailView with a thread selected, whose "a thread is selected" branch is still
@@ -900,3 +1076,18 @@ public sealed class RootViewTests(HeadlessSession headless)
 // owned cancel-default model alert with both binding directions, window-wide genie/glide/palette overlay stack).
 // The empty-library WelcomeView and project-with-no-selection NoThreadView are real. SidebarView's real rows are
 // now assembled by this sweep; only its genuine rename/context-menu presentation STOP sites remain.
+
+// STOP App.Views.RootView #3 (Window review fixes, ED-216)
+// Kind: missing shared-dialog seam extension.
+// Swift: App/Views/RootView.swift:80-91 (B3 52bc792). Record: PR-WIN-066.
+// Missing: ED-216's extended AlertPresentation seam, being implemented by TimelineRows in Port/AlertPresenter.cs.
+// Needed: migrate this owned dialog to that seam when it lands; the title must be the window title AND a bold
+// first line before the message, with cancel-role OK, owner-modal presentation and both binding directions.
+// Keep the lone cancel-role OK as the Return default per ED-216 amendment. AlertPresenter.cs is not edited here.
+
+// STOP App.Views.RootView #4 (Window review fixes)
+// Kind: platform/capture gap.
+// Swift: App/Views/RootView.swift:64-68 (B3 52bc792). Record: PR-WIN-062 (partial composited-clip proof only).
+// Missing: window region or DWM corner preference so the native shadow follows the curve, and a four-corner capture.
+// Needed: the native window-chrome owner supplies that region/preference and a four-corner capture verifies it.
+// This review explicitly defers implementing PR-WIN-062's remaining native/capture portion.
