@@ -67,11 +67,9 @@ public sealed class UsageFloatingPanel : Decorator
         strip.VerticalAlignment = VerticalAlignment.Top;
         contentWithStrip.Children.Add(strip);
 
-        // :53-63 .background { glass regular + Chrome.glassTint overlay }. The regular glass material itself is
-        // OD-0005 (Acrylic where the window shows the desktop; the app-drawn material otherwise), applied by the
-        // window's own backdrop layer; this per-panel layer is the source-defined tint, exactly as HydraPanel.cs
-        // (B3 52bc7926) :85-96 renders its own analogous background.
+        // :53-63 .background { glass regular + Chrome.glassTint overlay }, sampling the app's own backdrop.
         var glassLayer = new Border();
+        SwiftGlass.SetEffect(glassLayer, GlassEffect.Regular(GlassShape.RoundedRectangle(HydraPanel.CornerRadius, RoundedCornerStyle.Continuous))); // :25,59
 
         var panelContents = new Grid();
         panelContents.Children.Add(glassLayer);

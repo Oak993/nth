@@ -1318,6 +1318,57 @@ public sealed class ClaudeSessionTests
         runtime.RunUntilIdle();
     }
 
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-442")] // ClaudeSession.swift:301-309, Core/Support/PendingReplies.swift:31-35,:38-43
+    public async Task Control_reply_before_cancellation_is_returned_and_survives_the_late_cancel()
+    {
+        using var runtime = new TestRuntime();
+        using var storage_runtime = new StorageScratchFolder();
+        // Same live stand-in shape as the cancelled-while-waiting test: the handshake answers marrow-1,
+        // the next request (marrow-2) is captured but left unanswered, so the manual reply below is the
+        // only one for that id. ClaudeSession.swift:301-309 registers marrow-2 before sending
+        // (PendingReplies.swift:17-20 stores the waiter before send() runs).
+        var script = new ClaudeScript("control-reply-before-cancel");
+        script.SetResponse(MinimalResponse);
+        File.WriteAllText(Path.Combine(script.ControlDirectory, "reply-limit.txt"), "1");
+        var session = new ClaudeSession(Config(script));
+        RunStart(runtime, session); // consumes id marrow-1; the stand-in keeps reading
+
+        var handle = MainActor.SpawnThrowing(() => session.Control(JSONValue.FromDictionaryLiteral(("subtype", "interrupt"))));
+        runtime.RunUntilIdle(); // registers marrow-2 and runs send(); the live stand-in leaves it unanswered
+        Assert.Contains("\"request_id\":\"marrow-2\"", script.CapturedLine(1, 1), StringComparison.Ordinal);
+        runtime.RunUntilIdle();
+        Assert.False(handle.Value.IsCompleted); // still waiting
+
+        // The distinct reply for marrow-2 arrives BEFORE the cancellation takes effect.
+        // PendingReplies.swift:38-43 resolve() removes the waiter and resumes with the value; the later
+        // onCancel task (PendingReplies.swift:31-35) then finds nothing and does nothing, so no second
+        // resume (which would trap) occurs. The record's verification_method (PROVCLI.json PR-PROVCLI-442)
+        // requires this third outcome: "a reply that arrives before the cancellation is returned".
+        var expected = JSONValue.FromDictionaryLiteral(("ok", true), ("marker", "reply-wins-442"));
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "control_response"),
+            ("response", JSONValue.FromDictionaryLiteral(("request_id", "marrow-2"), ("response", expected)))));
+        // Cancel the SAME caller after the reply but before its continuation is pumped: the entry is
+        // already gone, so the cancel finds nothing and the already-resolved reply wins.
+        handle.Cancel();
+        runtime.RunUntilIdle();
+
+        Assert.True(handle.Value.IsCompletedSuccessfully);
+        Assert.Equal(expected, await handle.Value);
+
+        // A duplicate late reply for the same id still finds nothing and leaves the success unchanged.
+        session.Handle(JSONValue.FromDictionaryLiteral(
+            ("type", "control_response"),
+            ("response", JSONValue.FromDictionaryLiteral(("request_id", "marrow-2"), ("response", JSONValue.FromDictionaryLiteral())))));
+        runtime.RunUntilIdle();
+        Assert.True(handle.Value.IsCompletedSuccessfully);
+        Assert.Equal(expected, await handle.Value);
+
+        session.Stop();
+        runtime.RunUntilIdle();
+    }
+
     // ---- PR-PROVCLI-044 ----
 
     [Fact]

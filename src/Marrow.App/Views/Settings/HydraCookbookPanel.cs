@@ -246,7 +246,8 @@ public sealed class HydraCookbookRow : Decorator
                 var addContent = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
                 addContent.Children.Add(SwiftImage.SystemName("plus"));
                 addContent.Children.Add(new TextBlock { Text = "Add" });
-                var addButton = new Button { Content = addContent }; // MARROW_DEFERRED ED-180: .buttonStyle(.glassProminent).controlSize(.small)
+                var addButton = new Button { Content = addContent }; // :126-127 .buttonStyle(.glassProminent).controlSize(.small)
+                SwiftGlass.StyleButton(addButton, prominent: true);
                 addButton.Click += (_, _) =>
                     Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.AddHydraPair(actionPair)); // :121-123
                 trailing = addButton;

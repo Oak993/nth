@@ -24,7 +24,8 @@ using Marrow.UI.Port;
 
 // Source: DroppyCode/App/Views/Chat/TimelineRows.swift (B3 52bc792), :1-2859.
 // All six parts, including the inherited cloud bodies, audited against the pinned 1.7.0 source.
-// Only the small control-size modifier remains unwritten, deferred by ED-180 (TimelineRowsTests STOP #5).
+// The small control-size modifier remains unwritten pending an approved metric mapping (TimelineRowsTests STOP #5).
+// Additional record-verification gaps are explicit in TimelineRowsTests STOP #6-11; passing subsets are not full parity.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; a Shape is a record whose Path(in:) returns an Avalonia Geometry; NSView is Control;
 // a parameter without a default that follows one with a default moves before it and callers name their arguments.
@@ -2197,7 +2198,7 @@ public sealed class ToolRow : Decorator
         var mcp = ToolPresentation.McpParts(call); // :1772
         var isBadge = head is not null || departing is not null || mcp is not null; // :1773
 
-        var run = new StackPanel { Orientation = Orientation.Horizontal, Spacing = isBadge ? 8 : TimelineMetrics.IconSpacing }; // :1775
+        var run = new ToolLinePanel(isBadge ? 8 : TimelineMetrics.IconSpacing); // :1775
         if (head is { } linked) // :1776-1777
             run.Children.Add(new HydraGlyph(linked.Persona, size: 18, isRunning: running && linked.HydraHeadInfoStatus == HydraHeadInfo.Status.Running, status: linked.HydraHeadInfoStatus));
         else if (departing is { } leaving) // :1778-1780
@@ -2308,6 +2309,44 @@ public sealed class ToolRow : Decorator
         DockPanel.SetDock(withHead, Dock.Left);
         row.Children.Add(withHead);
         return row;
+    }
+
+    // :1774-1810 HStack gives the text the remaining proposal, while the glyph, stats and chevron keep their size.
+    // Its desired width stays content-sized so a short subject's chevron remains beside the words, not at the edge.
+    private sealed class ToolLinePanel(double spacing) : Panel
+    {
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            var reserved = spacing * Math.Max(0, Children.Count - 1);
+            var height = 0d;
+            for (var index = 0; index < Children.Count; index++)
+            {
+                if (index == 1) continue;
+                var child = Children[index];
+                child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+                reserved += child.DesiredSize.Width;
+                height = Math.Max(height, child.DesiredSize.Height);
+            }
+            var label = Children[1];
+            label.Measure(new Size(Math.Max(0, availableSize.Width - reserved), availableSize.Height));
+            return new Size(reserved + label.DesiredSize.Width, Math.Max(height, label.DesiredSize.Height));
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            var reserved = spacing * Math.Max(0, Children.Count - 1)
+                + Children.Where((_, index) => index != 1).Sum(child => child.DesiredSize.Width);
+            var x = 0d;
+            for (var index = 0; index < Children.Count; index++)
+            {
+                var child = Children[index];
+                var width = index == 1 ? Math.Min(child.DesiredSize.Width, Math.Max(0, finalSize.Width - reserved)) : child.DesiredSize.Width;
+                var height = Math.Min(child.DesiredSize.Height, finalSize.Height);
+                child.Arrange(new Rect(x, (finalSize.Height - height) / 2, width, height));
+                x += width + spacing;
+            }
+            return finalSize;
+        }
     }
 
     // :1847-1853 private func helpText(opensDiff:opensImage:opensHead:showsOutput:) -> String

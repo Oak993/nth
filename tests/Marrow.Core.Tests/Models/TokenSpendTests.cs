@@ -13,13 +13,6 @@ namespace Marrow.Core.Tests.Models;
 // totalTokens unconditionally and sums each optional breakdown only when both sides carry a value).
 public sealed class TokenSpendTests
 {
-    // STOP Core.Models.TokenSpend #1
-    // Kind: caller outside assigned units
-    // Swift: Core/Models/Timeline.swift:306 synthesized TurnRecord Codable; TokenSpend.swift:15-22
-    // Records: PR-USAGE-086
-    // Missing: Timeline.cs's TurnRecord converter still omits tokenSpends, independently of TokenSpend's writer.
-    // Needed: Timeline unit must wire its property to this now-tested Codable writer/decoder; it is outside GROUP2.
-    // Done: standalone TokenSpend serialization and Write round trips; no claim about thread-document round trips.
     [Theory]
     [InlineData(false, "{\"provider\":\"claude\",\"totalTokens\":1200}")]
     [InlineData(true, "{\"provider\":\"claude\",\"totalTokens\":1200,\"inputTokens\":800,\"outputTokens\":300,\"cachedInputTokens\":100,\"model\":\"opus\",\"agentID\":\"head-1\"}")]

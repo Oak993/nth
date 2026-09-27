@@ -32,6 +32,7 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        WindowsToastStartup.RestoreDevRoot(args); // ED-212/ED-220: retain protocol launch's instance identity
 #if DEBUG
         // ED-212, review fix: a mistyped or since-deleted MARROW_DEV_DATA_ROOT must not silently fall back to the
         // developer's own real %LOCALAPPDATA%\Marrow Code (DevDataRoot.LocalApplicationData's contract for every
@@ -48,11 +49,17 @@ public static class Program
 
         if (!DroppyCodeApp.TryAcquireSingleInstanceLock(out var singleInstanceLock))
         {
+            // Bind only transport in the short-lived second process: no registration, data store or toast posting.
+            ToastLaunchTransport.Current.SetProcessDefault(new WindowsToastLaunchTransport());
+            if (DroppyCodeApp.ForwardNotificationArguments(args)) return 0;
+            // A recognized toast whose transport failed must not reopen the main window (especially an update).
+            if (args.Any(argument => ToastActivation.Decode(WindowsToastStartup.Identity, argument) is not null)) return 1;
             ReopenSignal.Send(DroppyCodeApp.ReopenSignalName); // ED-002: the running instance runs the reopen path
             return 0;
         }
         using var instanceLock = singleInstanceLock;
         using var reopen = ReopenSignal.Create(DroppyCodeApp.ReopenSignalName);
+        WindowsToastStartup.Bind(); // ED-220: process AUMID/our per-user scheme before any window exists
 
         // UserDefaults.standard (ED-079, ED-156: %LOCALAPPDATA%\Marrow Code\UserDefaults.json, OD-0008 C7), synchronized
         // on a normal exit (AppShell's afterWillTerminate) and from the unhandled-exception handler.
@@ -81,6 +88,9 @@ public static class Program
         // SwiftUI's default @Environment(\.openURL): the system opens the link (MarkdownView.swift:1110, :1148).
         InlineText.OpenUrl = url => Marrow.Services.Port.Workspace.Open.Current(url);
 
+        var shell = new AppShell(new AppDelegate(), exit: () => lifetime.Shutdown(), afterWillTerminate: () => settings.Synchronize());
+        using var notifications = DroppyCodeApp.ListenForNotificationArguments(shell.Delegate);
+
         DroppyCodeApp.RunPrologue(); // DroppyCodeApp.swift:7-19
 
         // ED-083, R-VIEW-10: frames come from TopLevel.RequestAnimationFrame, which in Avalonia 12.1.2 asks the one
@@ -90,10 +100,10 @@ public static class Program
         // any window exists (PR-LAUNCH-001).
         FrameClock.Source.SetProcessDefault(new AvaloniaFrameSource(new AvaloniaWindow()));
 
-        var shell = new AppShell(new AppDelegate(), exit: () => lifetime.Shutdown(), afterWillTerminate: () => settings.Synchronize());
         lifetime.Startup += (_, _) =>
         {
             shell.FinishLaunching();
+            DroppyCodeApp.ReceiveNotificationArguments(shell.Delegate, args); // ED-220: cold protocol activation
             reopen.Listen(() => shell.Reopen(lifetime.Windows));
         };
         lifetime.ShutdownRequested += (_, e) => shell.ShutdownRequested(e);

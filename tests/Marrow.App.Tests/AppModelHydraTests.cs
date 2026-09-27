@@ -19,6 +19,64 @@ namespace Marrow.App.Tests;
 public sealed class AppModelHydraTests
 {
     [Fact]
+    [Trait("Req", "PR-HYDRA-104")] // App/AppModel+Hydra.swift:205-210
+    public void A_pair_worker_model_without_effort_uses_the_leads_effort_scale()
+    {
+        using var h=new AppModelHarness();var (model,_,thread)=MakeModel(h,model:"lead-model",effort:"max");
+        h.Main.OnMain(()=> {
+            model.Providers.UpdateCatalog(new ValueList<ModelOption>([
+                new ModelOption("lead-model","Lead") {Efforts=new ValueList<string>(["low","medium","max"])},
+                new ModelOption("worker-model","Worker") {Efforts=new ValueList<string>(["low","high","max"])}]),ProviderKind.Codex);
+            var pair=new HydraPair(ProviderKind.Codex) {WorkerModel="worker-model"};model.Settings.AddHydraPair(pair);
+            model.Settings.HydraTempersHeadEffort=true;
+            var launch=model.HydraLaunch(thread with {HydraPairID=pair.Id});
+            Assert.Equal("worker-model",launch!.WorkerModel);Assert.Equal("medium",launch.WorkerEffort);
+        });
+    }
+
+    [Theory]
+    [InlineData(TurnStatus.Completed,false)] [InlineData(TurnStatus.Failed,true)]
+    [Trait("Req", "PR-HYDRA-121")] // App/AppModel+Hydra.swift:669-671,680-700
+    public void Process_session_is_stopped_synchronously_before_retry_or_landing(TurnStatus status,bool retry)
+    {
+        using var h=new AppModelHarness();var project=AppModelSamples.Project("Project",h.NewFolder("project"));
+        var head=HydraHeadThread(project,Guid.NewGuid(),HydraHeadInfo.Status.Running,0);var turn=Guid.NewGuid();
+        h.WriteLibrary([project],[head]);WriteThreadDocument(head.Id,retry ? [UserItem(null,"original brief"),NoticeItem(turn,Notice.Level.Error,"database is locked")] : [],[ClosedTurn(turn,1,status)]);
+        var model=h.MakeModel();var runtime=LoadRuntime(h,model,head.Id);
+        h.Main.OnMain(()=> {
+            var session=new TestProviderSession();SetRuntimeField(runtime,"session",session);
+            model.HydraHeadTurnFinished(head,status);
+            // This assertion runs before MainActor.Spawn's retry/landing continuation can run.
+            Assert.Null(typeof(ThreadRuntime).GetField("session",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(runtime));
+            if(retry) Assert.Equal(1L,model.HydraHeadRetries[head.Id]);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-121")] // App/AppModel+Hydra.swift:669-671
+    public void Memory_only_api_session_is_retained_when_a_head_finishes()
+    {
+        using var h=new AppModelHarness();var project=AppModelSamples.Project("Project",h.NewFolder("project"));
+        var head=HydraHeadThread(project,Guid.NewGuid(),HydraHeadInfo.Status.Running,0) with {Provider=ProviderKind.Deepseek};
+        h.WriteLibrary([project],[head]);WriteThreadDocument(head.Id,[],[ClosedTurn(Guid.NewGuid(),1,TurnStatus.Completed)]);
+        var model=h.MakeModel();var runtime=LoadRuntime(h,model,head.Id);var session=new TestProviderSession();
+        h.Main.OnMain(()=> {SetRuntimeField(runtime,"session",session);model.HydraHeadTurnFinished(head,TurnStatus.Completed);});
+        Assert.Same(session,typeof(ThreadRuntime).GetField("session",BindingFlags.Instance|BindingFlags.NonPublic)!.GetValue(runtime));
+    }
+
+    [Theory]
+    [InlineData(TurnStatus.Completed)] [InlineData(TurnStatus.Interrupted)] [InlineData(TurnStatus.Running)]
+    [Trait("Req", "PR-HYDRA-121")] // App/AppModel+Hydra.swift:656-663;589
+    public void Nonfailed_head_with_no_assistant_message_overwrites_an_old_report_with_empty_text(TurnStatus status)
+    {
+        using var h=new AppModelHarness();var project=AppModelSamples.Project("Project",h.NewFolder("project"));
+        var head=HydraHeadThread(project,Guid.NewGuid(),HydraHeadInfo.Status.Running,0);
+        head=head with {Hydra=head.Hydra! with {Summary="old failure text"}};
+        h.WriteLibrary([project],[head]);WriteThreadDocument(head.Id,[],[ClosedTurn(Guid.NewGuid(),1,status)]);
+        var model=h.MakeModel();_=LoadRuntime(h,model,head.Id);h.Main.OnMain(()=>model.HydraHeadTurnFinished(head,status));h.Main.Loop.RunUntilIdle();
+        Assert.Equal("",model.Thread(head.Id)!.Hydra!.Summary);
+    }
+    [Fact]
     [Trait("Req", "PR-HYDRA-042")] // AppModel+Hydra.swift:141-143
     [Trait("Req", "PR-HYDRA-060")] // AppModel+Hydra.swift:141-143; this file's half of the native-or-API-key union (the other half, ThreadRuntime.KeepsHydraPolicyInSystemPrompt, is proven in Marrow.App.Tests/Runtime/ThreadRuntimeSecondTests.cs)
     public void Hydra_is_native_for_exactly_Claude_Codex_and_Copilot()
@@ -1631,7 +1689,7 @@ public sealed class AppModelHydraTests
         h.Main.OnMain(() => model.FinishHydraHead(head.Id, TurnStatus.Interrupted, "second report"));
 
         Assert.Equal(
-            "Stalled: no edits for 10 minutes; stopped by Droppy Code. Resend with a sharper brief.\n\npartial report",
+            "Stalled: no edits for 10 minutes; stopped by Marrow. Resend with a sharper brief.\n\npartial report", // Swift :126; OD-0012 F1 branding.
             model.Thread(head.Id)!.Hydra!.Summary);
         Assert.DoesNotContain(head.Id, stalled);
         ResetWatchdog();

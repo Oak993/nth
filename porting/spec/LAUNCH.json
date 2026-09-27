@@ -2243,7 +2243,7 @@
       "cancellation": "The task is never awaited, stored or cancelled by bootstrap; it runs to completion (or is abandoned at process exit) independently of the rest of the bootstrap sequence.",
       "windows_path": "Direct port: fire-and-forget task, claude then codex, gated by ProviderRegistry.updateCLIIfDue's own installed/capture-run/custom-path/interval checks.",
       "verification_method": "unit test on the bootstrap sequencer asserting this step starts an un-awaited task and that bootstrap's tenth step (the orphan sweep) begins without waiting for it",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
