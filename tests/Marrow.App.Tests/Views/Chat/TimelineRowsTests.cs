@@ -1758,6 +1758,68 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     private static ToolRow ToolRowFor(ThreadRuntime runtime, ToolCall call, System.Guid? turn = null) =>
         new(ToolEntry(call, turn), runtime);
 
+    [Theory]
+    [InlineData(ToolCall.Kind.Read, true)]
+    [InlineData(ToolCall.Kind.Edit, true)]
+    [InlineData(ToolCall.Kind.Agent, true)]
+    [InlineData(ToolCall.Kind.Mcp, true)]
+    [InlineData(ToolCall.Kind.Read, false)]
+    [InlineData(ToolCall.Kind.Edit, false)]
+    [InlineData(ToolCall.Kind.Agent, false)]
+    [InlineData(ToolCall.Kind.Mcp, false)]
+    // Partial geometry regression for UI-CHAT-024, not a complete visual-capture proof (STOP #10).
+    // App/Views/Chat/TimelineRows.swift:1774-1810, :1832-1844; ToolRow is one line, unlike :1969-1973 head steps.
+    public void Mounted_tool_labels_get_finite_remaining_width_and_keep_their_suffix_and_adjacent_controls(ToolCall.Kind kind, bool longTitle)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            h.Main.OnMain(() =>
+            {
+                var subject = longTitle ? string.Concat(Enumerable.Repeat("nested-directory/", 12)) + "final-file.cs" : "a.cs";
+                var title = kind == ToolCall.Kind.Agent ? "Pip: " + subject
+                    : kind == ToolCall.Kind.Mcp ? "Context7 \u00b7 " + subject : subject;
+                var call = Call(kind, title, ToolCall.Status.Failed) with { Output = "output", ExitCode = 2 };
+                if (kind == ToolCall.Kind.Edit)
+                    call = call with { Edits = new ValueList<FileEdit>([new FileEdit(subject, "diff", 3, 2)]) };
+                var row = ToolRowFor(h.Runtime, call);
+                var host = new Border { Width = 320, Child = row };
+                var window = Show(host);
+                try
+                {
+                    Settle(window);
+                    var label = Assert.Single(LogicalQuery.SelfAndDescendants<MiddleTruncatingTextBlock>(row));
+                    Assert.Equal(1, label.LineLimit); // :1794, not the two-line head-step label.
+                    Assert.InRange(label.Bounds.Width, 1, 320);
+                    var drawn = Assert.IsType<string>(label.Text);
+                    if (longTitle)
+                    {
+                        Assert.Contains("\u2026", drawn, StringComparison.Ordinal);
+                        Assert.NotEqual(label.FullText, drawn);
+                        Assert.StartsWith(label.FullText[..3], drawn, StringComparison.Ordinal);
+                        Assert.EndsWith("final-file.cs", drawn, StringComparison.Ordinal);
+                    }
+                    else Assert.Equal(label.FullText, drawn);
+                    var run = Assert.IsAssignableFrom<Panel>(label.Parent);
+                    var labelIndex = run.Children.IndexOf(label);
+                    for (var index = labelIndex + 1; index < run.Children.Count; index++)
+                    {
+                        var previous = run.Children[index - 1];
+                        var next = run.Children[index];
+                        Assert.Equal(kind is ToolCall.Kind.Agent or ToolCall.Kind.Mcp ? 8 : TimelineMetrics.IconSpacing,
+                            next.Bounds.Left - previous.Bounds.Right, precision: 3); // :1775, :1799-1810
+                        var origin = next.TranslatePoint(default, row)!.Value;
+                        Assert.InRange(origin.X + next.Bounds.Width, 0, 308); // :1844 trailing 12
+                    }
+                    Assert.Contains("exit 2", Texts(row));
+                    var outcome = TextNamed(row, "exit 2");
+                    Assert.InRange(outcome.TranslatePoint(default, row)!.Value.X + outcome.Bounds.Width, 0, 308);
+                }
+                finally { Close(window); }
+            });
+        });
+    }
+
     [Fact]
     [Trait("Req", "PR-CHAT-097")] // App/Views/Chat/TimelineRows.swift:1674-1677, :1707-1709
     public void A_call_with_nothing_to_open_is_a_line_of_text_not_a_control_and_has_no_chevron()
