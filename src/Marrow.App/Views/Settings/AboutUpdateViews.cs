@@ -37,6 +37,7 @@ internal static class AboutUpdateScroll
         var presenter = new ScrollContentPresenter
         {
             Name = "PART_ContentPresenter",
+            Background = Brushes.Transparent, // The ScrollView takes wheel input across its viewport, including text gaps.
             [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty],
         };
         presenter.GestureRecognizers.Add(new ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
@@ -837,7 +838,7 @@ internal sealed class FillCanvas : Decorator
         var headX = UpdateProgressSlider.HeadX(value, availableWidth, trackHeight);
         var revealWidth = Math.Max(headX, trackHeight / 2);
         content.Clip = availableWidth > 0 && height > 0
-            ? SwiftShapes.RoundedRectangleGeometry(new Rect(0, 0, Math.Min(revealWidth, availableWidth), height), height / 2, RoundedCornerStyle.Circular)
+            ? new RectangleGeometry(new Rect(0, 0, Math.Min(revealWidth, availableWidth), height), Math.Min(revealWidth, height) / 2, Math.Min(revealWidth, height) / 2) // :458-462 circular clip, exact authored rectangle
             : null;
         UpdateSparkles(currentTime);
     }
