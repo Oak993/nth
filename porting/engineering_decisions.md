@@ -1368,3 +1368,44 @@ non-empty image with the intent its Contents.json declares. The 8 tour-* screens
 macOS window controls and "DroppyCode" text (OD-0012 F1). TourView keeps a visible STOP naming OD-0027 until the captures exist.
 ENGINEERING DECISION.
 
+ED-216 [UI] One dialog seam for every SwiftUI `.alert`, `.confirmationDialog` and NSAlert (TimelineRows STOP 2). SOURCE FACT: six
+sites in 1.7.0:
+- TimelineRows.swift:191-196, confirmationDialog "Edit from this message?": "Revert and keep file changes", then "Revert files too"
+  (role .destructive), and a message;
+- SettingsView.swift:920-934, confirmationDialog "Delete \"<title>\"?" or "Delete the archived thread?": "Delete thread"
+  (.destructive), and a message;
+- RootView.swift:80-91, .alert(model.alert.title): "OK" (role .cancel), message model.alert.message;
+- ChatView.swift:1231-1237, .alert("Rename thread"): TextField("Title"), "Rename", "Cancel" (.cancel);
+- ChatView.swift:1381-1385, .alert("New branch"): TextField("Branch name"), "Create", "Cancel" (.cancel);
+- AppUpdater.swift:274-280, NSAlert "Update Failed", warning style, runModal (already on the seam).
+Apple documents that every dialog action dismisses the dialog after it runs; that a confirmation dialog includes a standard dismiss
+action unless a button has the cancel role, which then takes its place; and that an alert without actions gets a standard "OK".
+Today the port has AlertPresentation (src/Marrow.App/Port/AlertPresenter.cs, the updater's plain OK alert) and a private window in
+SettingsView.cs:761-772 with no Cancel button. DECISION: AlertPresentation becomes the one seam for all six sites:
+- AlertButton gains a Role (None, Cancel, Destructive; SwiftUI ButtonRole), and Show takes the title, an optional message, the
+  buttons in declared order, optional text fields (label plus a two-way value) and a kind (Alert or ConfirmationDialog);
+- a ConfirmationDialog with no cancel-role button gets a "Cancel" button with that role;
+- an Alert with no buttons gets "OK";
+- every button runs its action, then closes the dialog;
+- Escape and the window's close box run the cancel-role button, or just close when there is none;
+- destructive titles draw in Chrome.Danger;
+- buttons sit right-aligned in declared order with the cancel-role button moved last (the Windows convention);
+- Return activates the first button with no role, and a dialog with no such button has no Return default;
+- the title is the window title and a bold first line, and the message and fields follow;
+- the dialog is modal, centred on the owner window, and returns a Task that completes on close.
+The seam keeps its test override (the Ambient Presenter): tests record the request and press buttons by title, never open a
+window. SettingsView's private window, TimelineRows STOP 2, RootView and ChatView all move onto it. ENGINEERING DECISION. macOS's
+button order, default-button choice and the look of the sheet stay UNVERIFIED under OD-0001.
+
+ED-217 [UI] Two-line middle truncation (TimelineRows STOP 6). SOURCE FACT: TimelineRows.swift:1969-1973 sets `.lineLimit(2)` and
+`.truncationMode(.middle)` on a tool row's label. Every other `.truncationMode(.middle)` site in 1.7.0 is single-line, and those are
+served by src/Marrow.UI/Port/MiddleTruncatingText.cs (MiddleTruncatingTextBlock), which is single-line. DECISION:
+MiddleTruncatingTextBlock gains a line limit. With a limit of 2, the text wraps normally. When it needs more than two lines, the first
+line keeps its normal wrap and the second holds the rest of the text, elided in its own middle to fit the width: the start of the
+remainder, U+2026, then the end of the whole string. This is TextKit's rule of truncating only the last line; its exact
+middle-truncation of a wrapped paragraph on macOS stays UNVERIFIED under OD-0001. A limit of 1 behaves exactly as today. Tests:
+- text that fits in one line or in two is unchanged;
+- an overflowing string keeps a whole first line, and its second line ends with the string's own last characters, with one U+2026;
+- a limit of 1 is unchanged from today.
+ENGINEERING DECISION.
+
