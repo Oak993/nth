@@ -231,6 +231,7 @@ public sealed class HydraPanel : Decorator
             capsule.Children.Add(new HydraNameText(info.Persona, 12.5, SwiftFont.Weight.Medium, Chrome.PrimaryText.Opacity(0.92)));
             // :141-145 The provider's mark, so the strip says whose model is at work on stage.
             var providerIcon = new ProviderIcon { Provider = selected.Provider, Size = 12 };
+            providerIcon.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, Chrome.SecondaryText.Brush(providerIcon)); // :144 .foregroundStyle(Chrome.secondaryText)
             ToolTip.SetTip(providerIcon,
                 WindowManager.Shared.Model.Providers.Model(selected.Model, selected.Provider)?.ShortName
                 ?? selected.Provider.DisplayName);
@@ -570,6 +571,7 @@ internal sealed class HydraHeadRow : Decorator
         var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
         label.Children.Add(new HydraNameText(info.Persona, 13, SwiftFont.Weight.Medium, Chrome.PrimaryText));
         var providerIcon = new ProviderIcon { Provider = head.Provider, Size = 11 };
+        providerIcon.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, Chrome.SecondaryText.Brush(providerIcon)); // :323 .foregroundStyle(Chrome.secondaryText)
         ToolTip.SetTip(providerIcon,
             WindowManager.Shared.Model.Providers.Model(head.Model, head.Provider)?.ShortName
             ?? head.Provider.DisplayName);

@@ -922,7 +922,7 @@ public sealed class HydraTests
     {
         Assert.Equal(
             [
-                "Gathering the team\u2019s files", // U+2019 RIGHT SINGLE QUOTATION MARK
+                "Gathering the team's files", // SOURCE FACT: Hydra.swift:521 bytes 74 65 61 6d 27 73 - ASCII apostrophe U+0027 (od -c)
                 "Writing the commit",
                 "Writing the commit message",
                 "Pushing the branch",
