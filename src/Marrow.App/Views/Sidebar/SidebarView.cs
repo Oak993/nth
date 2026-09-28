@@ -205,6 +205,7 @@ public sealed class SidebarView : Decorator
 
     // The list's rows by the id their ForEach keys them with (R-VIEW-8), and the ids ScrollViewReader can reach.
     private readonly Dictionary<string, ListRow> listRows = new(StringComparer.Ordinal);
+    private readonly ForEach<ListEntry, string> layoutMotion;
     private readonly Dictionary<string, Control> scrollTargets = new(StringComparer.Ordinal);
     private ListMotion? lastMotion;
     private Action<TimeSpan>? scrollFrame;
@@ -272,6 +273,8 @@ public sealed class SidebarView : Decorator
             Spacing = 1, // :103
             Margin = new Thickness(Chrome.ListInset, 12, Chrome.ListInset, 8), // :120-122
         };
+        // :117-119 ED-218: the shared keyed layout glide also carries this caller's update-or-rebuild pass.
+        layoutMotion = new ForEach<ListEntry, string>(list, entry => entry.Key, entry => entry.Make(), (_, _) => { });
         scroll = new ScrollViewer
         {
             Template = ListScrollTemplate, // :139 .scrollIndicators(.never)
@@ -479,8 +482,7 @@ public sealed class SidebarView : Decorator
     private void ApplyList(ListPass pass)
     {
         // :117-119 R-VIEW-4: a change of any of the three values animates the pass with Chrome.panelSlide; otherwise the
-        // change's own transaction applies. The entering and leaving rows ride it. STOP #3 (test file): the rows that
-        // stay have no layout animation in the port, so they move without the slide.
+        // change's own transaction applies. ED-218 carries both the fades and surviving rows' positional motion.
         var animation = lastMotion is not null && lastMotion != pass.Motion ? Chrome.PanelSlide : Transaction.Current;
         lastMotion = pass.Motion;
         Transaction.WithAnimation(animation, () => ApplyEntries(pass.Items is { } items
@@ -557,7 +559,11 @@ public sealed class SidebarView : Decorator
     // The ForEach diff (R-VIEW-8) over the list: a vanished id's row leaves with its transition, a new id's row
     // enters with its own, a surviving id keeps its control and takes the new value, and the rows follow the order.
     // Every transition here is an opacity one, so no row is wrapped and each control is the list's own child.
-    private void ApplyEntries(List<ListEntry> entries)
+    private void ApplyEntries(List<ListEntry> entries) => layoutMotion.ApplyLayout(
+        () => listRows.ToDictionary(pair => pair.Key, pair => pair.Value.Control, StringComparer.Ordinal),
+        () => ReconcileEntries(entries));
+
+    private void ReconcileEntries(List<ListEntry> entries)
     {
         var wanted = new List<ListEntry>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
@@ -738,6 +744,9 @@ public sealed class SidebarView : Decorator
 
     // :870-897 threadRow(_:projectName:projectIcon:hasHelpers:isDragged:), the popovers around SidebarThreadRow (parts 3
     // and 4).
+    // STOP opencode-App.Views.Sidebar.SidebarView #5: SidebarThreadRow's own constructor (and this ThreadRow
+    // wiring) is still unassembled; needs a follow-up unit. Names PR-SIDEBAR-134, PR-SIDEBAR-135, UI-SIDEBAR-017
+    // and the end-to-end half of UI-SIDEBAR-060.
     private Control ThreadRow(ChatThread thread, string? projectName, ProjectIcon? projectIcon, bool hasHelpers, bool isDragged = false) =>
         ArchivePopover(thread, DeletePopover(thread, new SidebarThreadRow(thread, projectName, projectIcon, menuRequests,
             () => RequestRename(thread), () => RequestDeletion(thread.Id), isDragged,
@@ -1332,6 +1341,8 @@ public sealed class SidebarView : Decorator
     // needle is STOP #1 (SidebarViewTests.cs): which overload the source binds, and so its answer, is unsettled.
     private static bool Contains(string text, string needle)
     {
+        // STOP opencode-App.Views.Sidebar.SidebarView #1: empty-needle `contains` needs a macOS oracle item or a
+        // recorded decision (which String.contains overload the source binds). Names PR-SIDEBAR-005's empty-query half.
         if (needle.Length == 0)
             throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:743 (STOP #1: String.contains with an empty needle)");
         return text.Contains(needle, StringComparison.Ordinal);
@@ -1390,6 +1401,9 @@ public sealed class SidebarView : Decorator
     /// <summary>:239-252 renamePopover(for:on:). STOP #6 (RenameThreadPopover, this unit): the content this wraps has
     /// no chrome yet, so this wrapper stays unwritten rather than calling a MARROW_STUB constructor from a live
     /// path. PR-SIDEBAR-091.</summary>
+    // STOP opencode-App.Views.Sidebar.SidebarView #3: `.textFieldStyle(.roundedBorder)` and
+    // `.buttonStyle(.bordered)/(.borderedProminent)` need an ED/owner ruling naming the Windows chrome.
+    // Names PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030.
     private Control RenamePopover(ChatThread thread, Control row) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:239 (STOP #6)");
 
@@ -1663,6 +1677,7 @@ internal sealed class RenameThreadPopover : Decorator
     // foundation, not a stale one. Every other row-level popover this part ports (Delete, Archive) reuses
     // PopoverItem or the already-decided `.glass`/`.glassProminent` recipe (OD-0005); this one alone needs a new,
     // undecided pair.
+    // STOP opencode-App.Views.Sidebar.SidebarView #3 (same need as RenamePopover above).
     public RenameThreadPopover(string title, Action<string> onRename, Action onCancel) =>
         throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:995 (STOP #6)");
 }
@@ -1727,6 +1742,9 @@ internal static class SidebarViewExtensions
 /// directly. PR-SIDEBAR-133 (the AppKit context menu itself, live on a right-click) stays out of scope: SwiftUI's
 /// <c>.contextMenu</c> (:1138-1161) re-evaluates isActive, hasOverride and pairsSnapshot fresh every time the menu
 /// opens, and no ED or platform-adaptation entry names a Windows/Avalonia foundation for that per-open refresh
+// STOP opencode-App.Views.Sidebar.SidebarView #4: the per-open-refresh foundation needs an ED/PA decision.
+// Names PR-SIDEBAR-130 (Remove confirmation gated behind the live menu), PR-SIDEBAR-133 (the live menu itself)
+// and the right-click interaction of UI-SIDEBAR-033/UI-SIDEBAR-037.
 /// (porting/engineering_decisions.md and porting/platform_adaptations.md have no ".contextMenu" or "ContextMenu"
 /// entry; RowActionMenuButtons' own header comment already anticipates "a caller" installing its Items on a live
 /// ContextMenu.Items, but no unit has done so yet). Attaching a menu fixed at construction time would go stale the
@@ -2264,7 +2282,7 @@ internal sealed class HeadCardsRow : Decorator
     // .animation(.snappy(duration: 0.18), value: cardRows) and :1541 .animation(Chrome.panelSlide, value:
     // heads.map(\.id)), neither of which was wired to anything but a bare property assignment before this fix).
     // REVIEW FIX.
-    private sealed class AnimatedDouble(Action<double> apply)
+    internal sealed class AnimatedDouble(Action<double> apply)
     {
         private double current;
         private bool primed;
@@ -2304,7 +2322,7 @@ internal sealed class HeadCardsRow : Decorator
             frames.RequestFrame(tick);
         }
 
-        private void Stop()
+        internal void Stop()
         {
             if (pending is { } frame) source?.CancelFrame(frame);
             pending = null;
@@ -3756,6 +3774,8 @@ internal sealed class SettledHeader : Decorator
         var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Semibold)); // :2376-2377, OD-0010 Lucide chevron-right
         chevron.RenderTransformOrigin = RelativePoint.Center;
         chevron.ForegroundStyle(Chrome.SecondaryText); // :2392 cascades to every child of the HStack
+        var rotation = new HeadCardsRow.AnimatedDouble(angle => chevron.RenderTransform = new RotateTransform(angle)); // :2378-2379
+        DetachedFromVisualTree += (_, _) => rotation.Stop(); // cancel the frame callback when this header leaves
 
         var title = new TextBlock { Text = "Settled" }; // :2380
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(title); // :2381
@@ -3767,7 +3787,9 @@ internal sealed class SettledHeader : Decorator
         countText.Foreground = Chrome.SecondaryText.Brush(countText); // :2392
 
         // :2375 HStack(alignment: .firstTextBaseline, spacing: 5). Bottom alignment approximates the mixed-size
-        // baseline (chevron 10 pt, title/count 12 pt); no record measures the sub-pixel baseline offset.
+        // baseline (chevron 10 pt, title/count 12 pt).
+        // STOP opencode-App.Views.Sidebar.SidebarView #13: UI-SIDEBAR-040 needs a shared firstTextBaseline layout
+        // guide for SwiftImage alongside text. The current shared symbol API exposes no such guide or ED/PA recipe.
         var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Children = { chevron, title, countText } };
         foreach (var part in header.Children) if (part is Layoutable layoutable) layoutable.VerticalAlignment = VerticalAlignment.Bottom;
 
@@ -3784,7 +3806,7 @@ internal sealed class SettledHeader : Decorator
         button.HorizontalAlignment = HorizontalAlignment.Stretch;
         button.Track(() => Model.Settings.SettledCollapsed, collapsed => // :2369
         {
-            chevron.RenderTransform = new RotateTransform(collapsed ? 0 : 90); // :2378-2379
+            rotation.Set(collapsed ? 0 : 90, Chrome.PanelSlide); // :2378-2379 .animation(Chrome.panelSlide, value:)
             ToolTip.SetTip(button, collapsed ? "Show settled threads" : "Hide settled threads"); // :2401
             AutomationProperties.SetName(button, $"Settled, {count} threads"); // :2402, always the plural "threads"
             AutomationProperties.SetItemStatus(button, collapsed ? "Collapsed" : "Expanded"); // :2403, as ActivityViewToggle maps .accessibilityValue
