@@ -633,7 +633,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The MCP page component receives the query as a prop from the settings shell.",
       "verification_method": "interaction test asserting the query reaches the MCP page and is cleared on page change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -655,7 +655,7 @@
       "cancellation": "Leaving a page tears down its view, cancelling any task bound to its lifetime.",
       "windows_path": "A router keyed on the page id, unmounting the previous page so its effects are cleaned up.",
       "verification_method": "interaction test asserting only one page component is mounted at a time",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6576,7 +6576,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The settings shell hands the MCP page its query and nothing else; the MCP area owns everything inside it, including the confirmed custom-server Delete (OD-0008 A1).",
       "verification_method": "coverage check that the MCP area's spec covers every control on that page; interaction test that the custom-server Delete asks first while confirmBeforeDeleting is on",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7144,7 +7144,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:138-140"
       ],
-      "notes": "Pure spacing for the window buttons. By owner ruling OD-0008 C4 the Windows caption buttons stay on the leading edge as round buttons at the source geometry, so the 14 + 16 reservation holds them exactly as on macOS. ED-063 (probe P7, porting/probes/p7/RESULT.md): on Avalonia 12.1.2 app-drawn caption controls declared only through Win32Properties.SetNonClientHitTestResult do nothing and right-click opens no system menu, so the window keeps WindowDecorations.Full with ExtendClientAreaToDecorationsHint, declares its leading-edge controls and drag region through SetNonClientHitTestResult, and a WndProc hook performs the controls' actions (WM_NCLBUTTONDOWN on a control swallowed, the SC_* command posted on WM_NCLBUTTONUP) and shows the system menu on WM_CONTEXTMENU and SC_KEYMENU. ED-063 records this for the main window; the settings window's caption controls are configured by the same WindowChrome.configure (WindowManager.swift:101), so the same hook serves them."
+      "notes": "Pure spacing for the window buttons. By owner ruling OD-0008 C4 the Windows caption buttons stay on the leading edge as round buttons at the source geometry, so the 14 + 16 reservation holds them exactly as on macOS. ED-063 (probe P7, porting/probes/p7/RESULT.md): on Avalonia 12.1.2 app-drawn caption controls declared only through Win32Properties.SetNonClientHitTestResult do nothing and right-click opens no system menu, so the window keeps WindowDecorations.Full with ExtendClientAreaToDecorationsHint, declares its leading-edge controls and drag region through SetNonClientHitTestResult, and a WndProc hook performs the controls' actions (WM_NCLBUTTONDOWN on a control swallowed, the SC_* command posted on WM_NCLBUTTONUP) and shows the system menu on WM_CONTEXTMENU and SC_KEYMENU. ED-063 records this for the main window; the settings window's caption controls are configured by the same WindowChrome.configure (WindowManager.swift:101), so the same hook serves them.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-003",
@@ -7225,7 +7226,8 @@
         "decision": "OD-0008 C6; OD-0012 I1",
         "upstream": "DroppyCode/App/UpdateChecker.swift:93-96 updateAvailable is true when Droppy's feed (:70) returned a newer release, and SettingsView.swift:159-163 then draws UpdateAvailableDot()",
         "port": "No Droppy feed is queried. The update feed is an internal value, empty by default, with no settings UI; while it is empty no network request is made, the check reports \"No update feed is set.\" and the dot never shows (OD-0012 I1); once a feed is set the dot follows updateAvailable as upstream."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-006",
@@ -7247,7 +7249,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51, :53 chatBaseSize - .body 13, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Keep the full stop on the second line and the absence of one on the first.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:161-172 -> 1fbf81e6 :166-177; heading `.system(size: 13, weight: .semibold)` -> `.system(.body, weight: .semibold)`, sentence `.system(size: 11)` -> `.system(.subheadline)`."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:161-172 -> 1fbf81e6 :166-177; heading `.system(size: 13, weight: .semibold)` -> `.system(.body, weight: .semibold)`, sentence `.system(size: 11)` -> `.system(.subheadline)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-007",
@@ -7267,7 +7270,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:198-204"
       ],
-      "notes": "Accessibility label is the verbatim \"No archived threads\". SF Symbol name \"archivebox\"."
+      "notes": "Accessibility label is the verbatim \"No archived threads\". SF Symbol name \"archivebox\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-008",
@@ -7293,7 +7297,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50 chatBaseSize - .title3 15 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Progress is quantised to 26 steps, so the fade is stepped, not continuous. Reproduce the quantisation.",
-      "spec_fix": "typography gave the B1 literal `.system(size: 15, weight: .semibold)` -> at B2 ChromeCompactTitle is `.system(.title3, weight: .semibold)` (DroppyCode/UI/Chrome/Chrome.swift:638), 15pt by B1:DroppyCode/UI/Common/ChatZoom.swift:50 (ED-059)"
+      "spec_fix": "typography gave the B1 literal `.system(size: 15, weight: .semibold)` -> at B2 ChromeCompactTitle is `.system(.title3, weight: .semibold)` (DroppyCode/UI/Chrome/Chrome.swift:638), 15pt by B1:DroppyCode/UI/Common/ChatZoom.swift:50 (ED-059)",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-009",
@@ -8346,7 +8351,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:648-675"
       ],
       "notes": "All fourteen providers get a section whether installed or not. The middle dot in the native-API line is U+00B7 with a space either side.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:639-666 -> 1fbf81e6 :671-698. The display name is no longer a ChromeSection title but the collapsible header (UI-PROVREG-045), and the row is inside a ChromeRevealLayout."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:639-666 -> 1fbf81e6 :671-698. The display name is no longer a ChromeSection title but the collapsible header (UI-PROVREG-045), and the row is inside a ChromeRevealLayout.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-050",
