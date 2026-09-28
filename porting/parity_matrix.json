@@ -7,9 +7,9 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3659,
+      "IMPLEMENTED": 3660,
       "RETIRED": 15,
-      "SPECIFIED": 290,
+      "SPECIFIED": 289,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
       "DISCOVERED": 6
     },
@@ -92080,7 +92080,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order and the same leading-only divider inset. port_impacts.md:392 C2 records this order as a resolved conflict: the update section sits ABOVE the app card and the check row sits INSIDE it between the tour row and the body text.",
       "verification_method": "capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
