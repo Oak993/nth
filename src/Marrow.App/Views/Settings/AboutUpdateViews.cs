@@ -9,7 +9,10 @@ using Avalonia.Automation.Peers;
 using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Shapes;
+using Avalonia.Controls.Templates;
+using Avalonia.Input.GestureRecognizers;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Media;
@@ -25,6 +28,82 @@ using Marrow.UI.Port;
 // Source: DroppyCode/App/Views/Settings/AboutUpdateViews.swift (B3 52bc7926), :1-845.
 
 namespace Marrow.App.Views.Settings;
+
+// :280, :755 ScrollView needs a real presenter even without an application-wide control theme.
+internal static class AboutUpdateScroll
+{
+    // Round 3: :749-762 carries no .scrollIndicators modifier, unlike the sites this presenter/gesture recipe is
+    // otherwise shared with (SidebarView :139 and ThreadTimeline :363 .scrollIndicators(.never); MCPSettingsPage
+    // :781-787's TextEditor is likewise hidden; this template's own popover use at VerticalScrollBarVisibility.Hidden),
+    // so SwiftUI keeps the platform default (visible-while-scrolling) indicator there. Avalonia's own ScrollBar
+    // self-binds Value/Maximum/ViewportSize/Visibility from the ScrollViewer that owns a "PART_VerticalScrollBar"
+    // named part (Avalonia.Controls.Primitives.ScrollBar.AttachToScrollViewer, confirmed by decompiling
+    // Avalonia.Controls 12.1.2 -- no XAML/source ships with the package). The app has no application-wide control
+    // theme to give that ScrollBar a stock visual (see MCPSettingsPage.EditorScrollTemplate; OD-0001 also makes any
+    // native scroll-indicator appearance UNVERIFIED regardless of which theme supplied it), so its own template
+    // here is the smallest real indicator: a track-width bar sized and positioned from the ScrollBar's own bound
+    // range. ENGINEERING DECISION: the bar's thickness, colour and 24px minimum thumb length are not sourced from
+    // the Swift; they exist only so the indicator that :752's default asks for is not literally invisible.
+    private static readonly FuncControlTemplate<ScrollBar> IndicatorTemplate = new((bar, scope) =>
+    {
+        var thumb = new Border
+        {
+            Name = "PART_Thumb",
+            Width = 3,
+            CornerRadius = new CornerRadius(1.5),
+            Background = new SolidColorBrush(Color.FromArgb(140, 128, 128, 128)),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+            IsHitTestVisible = false,
+            IsVisible = false,
+        };
+        void Update()
+        {
+            var viewport = bar.ViewportSize;
+            var maximum = bar.Maximum;
+            var extent = maximum + viewport;
+            var trackHeight = bar.Bounds.Height;
+            if (double.IsNaN(viewport) || extent <= 0 || trackHeight <= 0) { thumb.IsVisible = false; return; }
+            var barHeight = Math.Clamp(trackHeight * (viewport / extent), Math.Min(24, trackHeight), trackHeight);
+            var barOffset = maximum > 0 ? (trackHeight - barHeight) * (bar.Value / maximum) : 0;
+            thumb.IsVisible = true;
+            thumb.Height = barHeight;
+            thumb.Margin = new Thickness(0, barOffset, 0, 0);
+        }
+        bar.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == RangeBase.ValueProperty || e.Property == RangeBase.MaximumProperty ||
+                e.Property == ScrollBar.ViewportSizeProperty || e.Property == Visual.BoundsProperty)
+                Update();
+        };
+        return thumb.RegisterInNameScope(scope);
+    });
+
+    public static readonly FuncControlTemplate<ScrollViewer> Template = new((viewer, scope) =>
+    {
+        var presenter = new ScrollContentPresenter
+        {
+            Name = "PART_ContentPresenter",
+            Background = Brushes.Transparent, // The ScrollView takes wheel input across its viewport, including text gaps.
+            [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty],
+        };
+        presenter.GestureRecognizers.Add(new ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
+
+        var verticalBar = new ScrollBar
+        {
+            Name = "PART_VerticalScrollBar",
+            Orientation = Orientation.Vertical,
+            Template = IndicatorTemplate,
+            Width = 5,
+            HorizontalAlignment = HorizontalAlignment.Right,
+        };
+
+        var grid = new Grid();
+        grid.Children.Add(presenter.RegisterInNameScope(scope));
+        grid.Children.Add(verticalBar.RegisterInNameScope(scope));
+        return grid;
+    });
+}
 
 /// <summary>The three sections a release's notes are written in.</summary>
 public enum ReleaseNoteCategory
@@ -300,10 +379,12 @@ public sealed class UpdateReleaseSectionCards : Decorator
             var button = BuildCard(category, section);
             var popover = new Popup
             {
-                Placement = PlacementMode.Bottom,
+                Placement = PlacementMode.Top, // :244 arrowEdge: .top, the arrow on the card's top edge (popover above it)
                 PlacementTarget = button,
                 IsLightDismissEnabled = true,
             };
+            // STOP opencode-proofs-aboutupdate #5 UI-UPDATE-015: real outside-click dismissal and presentedChrome
+            // need a native popup/overlay presenter; the ED-071 headless presenter only records requests.
             popover.Opened += (_, _) => popover.Child = section is null
                 ? new Border()
                 : new UpdateReleaseSectionPopover(section, version).PresentedChrome();
@@ -394,6 +475,7 @@ public sealed class UpdateReleaseSectionCards : Decorator
         ToolTip.SetTip(button, section is null
             ? "Nothing here"
             : $"Every change in {category.SectionTitle.ToLowerInvariant()}");
+        ToolTip.SetShowOnDisabled(button, true); // :237-239 the .disabled absent card still shows its .help("Nothing here")
         AutomationProperties.SetName(button, category.SectionTitle);
         return button;
     }
@@ -401,6 +483,8 @@ public sealed class UpdateReleaseSectionCards : Decorator
 
 internal sealed class UpdateReleaseSectionPopover : Decorator
 {
+    // STOP opencode-proofs-aboutupdate #1 PR-SETTINGS-246: capture comparison with and without rollup needs
+    // matching About-page macOS reference captures; OD-0001/0004 provide none for this view.
     public UpdateReleaseSectionPopover(UpdateReleaseNotesDigest.Section section, string version)
     {
         var headerIcon = SwiftImage.Named(section.Category.AssetName) // :261 the same ED-215 release artwork.
@@ -451,6 +535,7 @@ internal sealed class UpdateReleaseSectionPopover : Decorator
         var scroll = new ScrollViewer
         {
             Content = bullets,
+            Template = AboutUpdateScroll.Template,
             MaxHeight = 320,
             VerticalScrollBarVisibility = ScrollBarVisibility.Hidden,
             HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
@@ -586,6 +671,7 @@ public sealed class UpdateProgressSlider : Decorator
     public UpdateProgressSlider(double fraction, double trackHeight = 14, double headDiameter = 20)
     {
         this.fraction = fraction;
+        Height = headDiameter; // :435 .frame(height: headDiameter)
         track = new ProgressTrack(fraction, trackHeight, headDiameter, FillColors, Sparkles);
         Child = track;
         AutomationProperties.SetName(this, "Updating Marrow");
@@ -693,8 +779,8 @@ internal sealed class ProgressTrack : Panel
         this.fraction = fraction;
         this.trackHeight = trackHeight;
         this.headDiameter = headDiameter;
-        track = new Border { HorizontalAlignment = HorizontalAlignment.Stretch };
-        fill = new FillCanvas(fraction, trackHeight, colors, sparkles);
+        track = new Border { HorizontalAlignment = HorizontalAlignment.Stretch }.Capsule(RoundedCornerStyle.Circular); // :402-405 Capsule()
+        fill = new FillCanvas(fraction, trackHeight, colors, sparkles) { IsHitTestVisible = false }; // :409 allowsHitTesting(false)
         var inner = new Ellipse
         {
             Width = headDiameter * 0.64,
@@ -794,6 +880,7 @@ internal sealed class FillCanvas : Decorator
         AutomationProperties.SetAccessibilityView(gradient, AccessibilityView.Raw);
         AutomationProperties.SetAccessibilityView(sparkleCanvas, AccessibilityView.Raw);
         content = new Grid { Children = { gradient, sparkleCanvas } };
+        AutomationProperties.SetAccessibilityView(content, AccessibilityView.Raw); // :439 children ignored
         Child = content;
         BuildSparkles();
         SetFraction(fraction, 0, trackHeight);
@@ -816,7 +903,7 @@ internal sealed class FillCanvas : Decorator
         var headX = UpdateProgressSlider.HeadX(value, availableWidth, trackHeight);
         var revealWidth = Math.Max(headX, trackHeight / 2);
         content.Clip = availableWidth > 0 && height > 0
-            ? SwiftShapes.RoundedRectangleGeometry(new Rect(0, 0, Math.Min(revealWidth, availableWidth), height), height / 2, RoundedCornerStyle.Circular)
+            ? new RectangleGeometry(new Rect(0, 0, Math.Min(revealWidth, availableWidth), height), Math.Min(revealWidth, height) / 2, Math.Min(revealWidth, height) / 2) // :458-462 circular clip, exact authored rectangle
             : null;
         UpdateSparkles(currentTime);
     }
@@ -904,6 +991,24 @@ public sealed class AboutUpdateChromeAccessory : Decorator
 
 internal sealed class AboutIdentityPill : Decorator
 {
+    // Icon (20) + the HStack's :553 spacing (6) + the capsule's own left/right padding (:560-561, 8+12): the fixed
+    // width the text's row never gives up, so a compressed offer can be translated into the text's own constraint.
+    private const double NonTextWidth = 20 + 6 + (Chrome.CapsuleHorizontalPadding - 4) + Chrome.CapsuleHorizontalPadding;
+
+    private readonly TextBlock text;
+
+    // :566-567 .frame(height:) and the vertical padding fix the height only; there is no .fixedSize here (unlike
+    // AboutVersionPill's :635 fixedSize), so the width is whatever the parent offers, up to the natural width. Avalonia's
+    // horizontal StackPanel measures its children unconstrained on that axis (unlike SwiftUI's HStack, which shrinks a
+    // flexible Text), so the offered width has to be pushed onto the text directly for :562's lineLimit(1) to truncate.
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        text.MaxWidth = double.IsPositiveInfinity(availableSize.Width)
+            ? double.PositiveInfinity
+            : Math.Max(0, availableSize.Width - NonTextWidth);
+        return PlainControls.MeasureFixed(this, Child, availableSize, horizontal: false, vertical: true);
+    }
+
     public AboutIdentityPill()
     {
         var version = AppInfo.Current.Version;
@@ -915,11 +1020,12 @@ internal sealed class AboutIdentityPill : Decorator
         icon.Height = 20;
         AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw);
 
-        var text = new TextBlock
+        text = new TextBlock
         {
             Text = $"v{version}",
             MaxLines = 1,
             TextWrapping = TextWrapping.NoWrap,
+            TextTrimming = TextTrimming.CharacterEllipsis, // :562 lineLimit(1) truncates the tail once the capsule is compressed
         };
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(text);
         text.Foreground = Chrome.PrimaryText.Brush(text);
@@ -990,6 +1096,8 @@ internal sealed class AboutVersionPill : Decorator
     {
         if (snapshot.Phase is not (UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed))
         {
+            // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-074: exact source geometry and every phase are
+            // tested; capture comparison needs matching macOS reference captures (OD-0001/0004).
             var slider = new SmoothedUpdateProgressSlider(
                 progress.UpdateInstallProgressFractionTarget,
                 response: EnvironmentValues.GetAccessibilityReduceMotion(this)
@@ -1016,6 +1124,8 @@ internal sealed class AboutVersionPill : Decorator
             return padded.ChromeGlassCapsule();
         }
 
+        // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-072: all standing properties are tested, but the
+        // required capture comparison has no matching macOS reference (OD-0001/0004).
         var isReady = snapshot.UpdateAvailable && snapshot.Update is not null;
         var wasReady = previousReady;
         previousReady = isReady;
@@ -1078,22 +1188,49 @@ internal sealed class AboutVersionPill : Decorator
             });
         }
 
-        var button = PlainControls.Button(face, () =>
+        // :682 add the button trait only while ready; hit testing alone does not change the role.
+        var button = new PillButton(isReady)
         {
-            if (snapshot.UpdateAvailable && snapshot.Update is { } update &&
-                snapshot.Phase is UpdateInstallProgress.Phase.Idle or UpdateInstallProgress.Phase.Failed)
+            Content = face,
+            Padding = default,
+            Template = PlainControls.Button(face, () => { }).Template,
+        };
+        button.Click += (_, _) =>
+        {
+            // :639 `guard let update = checker.update, isReady` reads the live checker and progress when the click
+            // lands (:581-583 isReady), not the snapshot this face was built from.
+            if (checker.Update is { } update && checker.UpdateAvailable && !progress.ShowsProgressUI)
                 AppUpdater.Shared.Install(update);
-        });
+        };
         button.IsHitTestVisible = isReady;
         button.Focusable = isReady;
         button.HorizontalAlignment = HorizontalAlignment.Stretch;
-        ToolTip.SetTip(button, isReady
-            ? $"Installs Marrow {snapshot.Update?.Version ?? string.Empty} and relaunches"
-            : StandingHelp(snapshot, standing));
         AutomationProperties.SetName(button, isReady
             ? "Update & restart"
             : $"Marrow {AppInfo.Current.Version}, {Title(standing).ToLowerInvariant()}");
-        return button.ChromeGlassCapsule();
+        // STOP opencode-proofs-aboutupdate #3 UI-UPDATE-005: glass press response awaits F.GlassMaterial;
+        // ED-180 currently stores the interactive flag and material metadata, without rendering the response.
+        var glass = button.ChromeGlassCapsule();
+        // :674-680 `.help` is applied after `.allowsHitTesting(isReady)` and `.chromeGlassCapsule()`, and :676-677 says
+        // the seal still says what it means: the tooltip belongs to the whole capsule, which takes the hover even while
+        // the button takes no hits. It does nothing with a press, so a standing stays inert.
+        var tipHost = new Border { Background = Brushes.Transparent, Child = glass };
+        ToolTip.SetTip(tipHost, isReady
+            ? $"Installs Marrow {snapshot.Update?.Version ?? string.Empty} and relaunches"
+            : StandingHelp(snapshot, standing));
+        return tipHost;
+    }
+
+    private sealed class PillButton(bool ready) : Button
+    {
+        protected override AutomationPeer OnCreateAutomationPeer() => ready
+            ? new ButtonAutomationPeer(this)
+            : new StandingPeer(this);
+
+        private sealed class StandingPeer(Control owner) : ControlAutomationPeer(owner)
+        {
+            protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Text;
+        }
     }
 
     private static Standing ResolveStanding(Snapshot snapshot)
@@ -1223,6 +1360,7 @@ public sealed class AboutSoftwareUpdateSection : Decorator
             var scroll = new ScrollViewer
             {
                 Content = markdown,
+                Template = AboutUpdateScroll.Template,
                 MaxHeight = 240,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled,
@@ -1281,6 +1419,10 @@ public sealed class AboutSoftwareUpdateSection : Decorator
 
     private void StartCelebrationSweep()
     {
+        // STOP opencode-proofs-aboutupdate #2 PR-UPDATE-061: HostedEnvironment does not bind Windows animation
+        // effects to accessibilityReduceMotion (ED-084). Injected environment timing is not system-setting proof.
+        // The record's every-step phase-abort clause is also stronger than pinned Swift :795-818: only :801
+        // checks the phase in this task; finish/complete guard their own writes. No unstated guards are invented.
         celebration?.Cancel();
         var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
         celebration = MainActor.Spawn(async () =>
@@ -1344,6 +1486,11 @@ public sealed class AboutUpdateCheckRow : Decorator
     {
         var detail = Detail(snapshot);
         var label = new TextBlock { Text = snapshot.IsChecking ? "Checking…" : "Check now" };
+        // STOP opencode-proofs-aboutupdate #4 PR-SETTINGS-240 UI-SETTINGS-071 UI-UPDATE-022: the shared
+        // .buttonStyle(.glass).controlSize(.small) renderer/metrics are absent; 9x5 and callout below have no
+        // pinned system-small oracle or approved adaptation. Interaction and trailing-row proofs are retained.
+        // STOP opencode-proofs-aboutupdate #1 PR-UPDATE-076: foreground/no-notify and every string are tested,
+        // but the required capture comparison has no matching About-row macOS reference (OD-0001/0004).
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium).Apply(label);
         var face = new Border { Padding = new Thickness(9, 5), Child = label };
         var button = PlainControls.Button(face, () =>

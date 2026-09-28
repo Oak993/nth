@@ -1082,7 +1082,7 @@ namespace Marrow.UI.Chrome
             iconSlot.Width = Chrome.IconSize; // :713 .frame(width:, alignment: .center)
             iconSlot.HorizontalAlignment = HorizontalAlignment.Center;
 
-            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap }; // :714, :718-719
+            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :714, :718-719 .lineLimit(1).truncationMode(.tail)
             void ApplyText()
             {
                 SwiftFont.System(SwiftFont.TextStyle.Body, weight: isSelected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
@@ -1639,13 +1639,13 @@ namespace Marrow.UI.Chrome
                 textStack.Children.Add(detailText);
             }
             var controlView = control(); // :1073
-            controlView.Margin = new Thickness(12, 0, 0, 0); // :1072 Spacer(minLength: 12)
             controlView.HorizontalAlignment = HorizontalAlignment.Right;
             controlView.VerticalAlignment = VerticalAlignment.Center;
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") }; // :1062 HStack(spacing: 16)
+            // :1062, :1072 HStack has two 16-point gaps around Spacer(minLength: 12).
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,16,12,16,Auto") };
             textStack.HorizontalAlignment = HorizontalAlignment.Stretch;
             Grid.SetColumn(textStack, 0);
-            Grid.SetColumn(controlView, 1);
+            Grid.SetColumn(controlView, 4);
             row.Children.Add(textStack);
             row.Children.Add(controlView);
             row.VerticalAlignment = VerticalAlignment.Center;

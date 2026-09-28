@@ -410,4 +410,68 @@ public sealed class MessagePopoverMenuTests(HeadlessSession headless)
         Assert.DoesNotContain(presenter.Calls, call => call.Presented);
         window.Close();
     });
+
+    // ---- fix/links round 3 (verify-links-r3.md problem 1): the rest of a claimed click belongs to the catcher ----
+    // :62-67 hitTest gives a secondary press to the catcher view, and AppKit sends the rest of that click (its drags
+    // and its release) to the view that took the mouse-down, so the text inside never tracks it. The port marked the
+    // press handled but left the mouse device's capture on the element under the pointer: a SelectableTextBlock there
+    // extended a selection from a stale start on the first move with the left button down.
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-087")] // App/Views/Chat/MessagePopoverMenu.swift:62-67,74-76
+    public void A_control_left_click_that_moves_presents_the_popover_and_leaves_the_text_selection_alone() => headless.OnUiThread(() =>
+    {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var text = new SelectableTextBlock
+        {
+            Text = "Selectable message text",
+            FontSize = 14,
+            Background = Brushes.Transparent,
+            HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Top,
+        };
+        var view = Message(text).RightClickPopover(actions: () => MessageActionsSample.Make(canRevert: false, []));
+        var window = Show(Column(view));
+        var start = text.Text!.IndexOf("message", StringComparison.Ordinal);
+        text.SelectionStart = start;
+        text.SelectionEnd = start + "message".Length;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal("message", text.SelectedText); // set up
+
+        window.MouseDown(new Point(30, 26), MouseButton.Left, RawInputModifiers.Control);
+        window.MouseMove(new Point(35, 26), RawInputModifiers.LeftMouseButton | RawInputModifiers.Control);
+        window.MouseUp(new Point(35, 26), MouseButton.Left, RawInputModifiers.Control);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Single(presenter.Calls, call => call.Presented);
+        Assert.Equal(start, text.SelectionStart);
+        Assert.Equal(start + "message".Length, text.SelectionEnd);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-087")] // App/Views/Chat/MessagePopoverMenu.swift:62-67,69-71,81
+    // :81 swallows the right release. AppKit delivers it to the catcher that took the right mouse-down, wherever the
+    // pointer is by then, so a release after dragging onto the row below never reaches that row.
+    public void A_right_press_dragged_onto_the_next_row_still_has_its_release_claimed() => headless.OnUiThread(() =>
+    {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var sibling = Message();
+        var siblingReleases = 0;
+        sibling.PointerReleased += (_, _) => siblingReleases += 1;
+        var view = Message().RightClickPopover(actions: () => MessageActionsSample.Make(canRevert: false, []));
+        var window = Show(Column(view, sibling));
+
+        // The message spans window y 20 to 80; the sibling spans 80 to 140.
+        window.MouseDown(new Point(40, 45), MouseButton.Right, RawInputModifiers.None);
+        window.MouseMove(new Point(40, 100), RawInputModifiers.RightMouseButton);
+        window.MouseUp(new Point(40, 100), MouseButton.Right, RawInputModifiers.None);
+        Dispatcher.UIThread.RunJobs();
+
+        Assert.Single(presenter.Calls, call => call.Presented);
+        Assert.Equal(0, siblingReleases);
+        window.Close();
+    });
 }

@@ -33,8 +33,16 @@ public sealed class HeadlessSession : IDisposable
     public void OnUiThread(Action body) => Session.Dispatch(() =>
     {
         MainActor.Bind(AvaloniaMainExecutor.Instance);
-        body();
+        inBody = true;
+        try { body(); }
+        finally { inBody = false; }
     }, CancellationToken.None).GetAwaiter().GetResult();
+
+    /// <summary>Whether the caller runs inside an <see cref="OnUiThread"/> body, where this test's dispatcher may be
+    /// pumped (the session makes a new one for the next test).</summary>
+    public static bool IsInBody => inBody;
+
+    [ThreadStatic] private static bool inBody;
 
     /// <summary>
     /// From inside an <see cref="OnUiThread"/> body: runs the headless dispatcher in a nested frame until
@@ -62,11 +70,11 @@ public sealed class HeadlessSession : IDisposable
     }
 
     // Forces the embedded Inter release files to resolve every weight this assembly's tests draw with (Regular, Bold,
-    // SemiBold) before any test measures text, so a test whose first layout pass needs two glyph typefaces of the
+    // Medium, SemiBold) before any test measures text, so a test whose first layout pass needs two glyph typefaces of the
     // same weight at once (two crossfading pages, each titled in Bold) never races the collection's own first load.
     private static void WarmFonts()
     {
-        foreach (var weight in new[] { FontWeight.Normal, FontWeight.SemiBold, FontWeight.Bold })
+        foreach (var weight in new[] { FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold })
         {
             var block = new TextBlock { Text = "Warm", FontFamily = new FontFamily("fonts:Inter#Inter"), FontWeight = weight };
             block.Measure(Size.Infinity);

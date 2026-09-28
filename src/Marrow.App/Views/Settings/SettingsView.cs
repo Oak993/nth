@@ -183,7 +183,7 @@ public sealed class SettingsView : Decorator
         });
         this.Track(() => state.Page, _ => { RebuildSidebar(); RebuildDetail(); });
         this.Track(() => UpdateChecker.Shared.UpdateAvailable, _ => RebuildSidebar());
-        this.Track(() => AppEnvironment.GetAppModel(this).ArchivedThreads.Count, _ => { if (state.Page == SettingsPage.Archive) RebuildDetail(); });
+        this.Track(() => { var model = AppEnvironment.GetAppModel(this); _ = model.Threads; return model.ArchivedThreads.Count; }, _ => { if (state.Page == SettingsPage.Archive) RebuildDetail(); }); // :198 observe the collection behind the computed archive count.
         rows.Track(() => scrollTracker.IsFrozen, value => rows.IsHitTestVisible = !value); // :182
         DetachedFromVisualTree += (_, _) => scrollTracker.End(); // :117
     }
@@ -242,7 +242,7 @@ public sealed class SettingsView : Decorator
         var chromeRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 10, MinHeight = Chrome.CapsuleHeight, Children = { new ChromeCompactTitle(state.Page.Title, scrollChrome), accessories } }; Grid.SetColumn(accessories, 1);
         var chrome = new StackPanel { Spacing = 10, MinHeight = Chrome.CapsuleHeight, Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0), VerticalAlignment = VerticalAlignment.Top, Children = { chromeRow } }; // :246-267. Grid's star track is Swift's flexible title frame.
         if (state.Page == SettingsPage.Models) accessories.Children.Add(new ChromeSearchField(new Binding<string>(() => state.ModelSearch, value => { state.ModelSearch = value; ((ModelsSettingsPage)content).SetQuery(value); }), "Search models")); // :248-250
-        if (state.Page == SettingsPage.Mcp) accessories.Children.Add(new ChromeSearchField(new Binding<string>(() => state.McpSearch, value => state.McpSearch = value), "Search servers")); // :251-253
+        if (state.Page == SettingsPage.Mcp) accessories.Children.Add(new ChromeSearchField(new Binding<string>(() => state.McpSearch, value => { state.McpSearch = value; ((MCPSettingsPage)content).SetQuery(value); }), "Search servers")); // :251-253
         if (state.Page == SettingsPage.Providers) accessories.Children.Add(new ProvidersRefreshButton()); // :254-256
         if (state.Page == SettingsPage.Archive) accessories.Children.Add(new ArchiveDeleteAllButton()); // :257-259
         if (state.Page == SettingsPage.About) accessories.Children.Add(new AboutUpdateChromeAccessory()); // :260-262
@@ -553,7 +553,7 @@ internal sealed class ProviderSettingsSection : Decorator
         {
             state.BinaryPath = model.Settings.BinaryPath(provider); if (provider.AcceptsAPIKey) state.ApiKey = model.Settings.ApiKeyInput(provider); // :768-771
             var statusRow = new Grid { ColumnDefinitions = new ColumnDefinitions("22,*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11) }; // :650,653,673-675
-            var icon = new ProviderIcon { Provider = provider, Size = 18 }; statusRow.Children.Add(icon); // :651
+            var icon = new ProviderIcon { Provider = provider, Size = 18 }; icon.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, Chrome.PrimaryText.Brush(icon)); statusRow.Children.Add(icon); // :651-652 .foregroundStyle(Chrome.primaryText)
             var labels = new StackPanel { Spacing = 2 }; Grid.SetColumn(labels, 1); statusRow.Children.Add(labels); // :654
             var toggle = new SettingsSwitch(new Binding<bool>(() => model.Settings.IsEnabled(provider), value => model.Settings.SetEnabled(value, provider))); Grid.SetColumn(toggle, 2); statusRow.Children.Add(toggle); // :668-671
             cardRows.Children.Add(statusRow);
@@ -561,7 +561,7 @@ internal sealed class ProviderSettingsSection : Decorator
             var usageSlot = new StackPanel(); cardRows.Children.Add(usageSlot);
             statusRow.Track(() => { _ = model.Providers.Statuses; return model.Providers.Status(provider); }, status =>
             {
-                labels.Children.Clear(); labels.Children.Add(new TextBlock { Text = status.IsChecking ? "Checking\u2026" : status.Summary }.Font(SwiftFont.System(13))); // :655-656
+                labels.Children.Clear(); labels.Children.Add(new TextBlock { Text = status.IsChecking ? "Checking\u2026" : status.Summary, Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(13))); // :655-656
                 var detailText = !provider.IsAPIKeyBased && status.Version is { } version ? "Version " + version : provider.IsAPIKeyBased && status.ApiKeyConfigured && provider.ApiHost is { } host ? "Native API \u00b7 " + host : null; // :657-664
                 if (detailText is not null) labels.Children.Add(new TextBlock { Text = detailText, Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(11)));
             });
@@ -678,14 +678,14 @@ internal sealed class SourceControlSettingsPage : Decorator
                     [!ContentPresenter.ContentProperty] = scroll[!ContentControl.ContentProperty],
                     Background = Brushes.Transparent,
                 }.RegisterInNameScope(names)),
-                Name = "PART_ScrollViewer", HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden,
+                Name = "PART_ScrollViewer", Background = Brushes.Transparent, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden,
                 Content = new TextPresenter
                 {
                     Name = "PART_TextPresenter", [!TextPresenter.TextProperty] = owner[!TextBox.TextProperty], [!TextPresenter.TextWrappingProperty] = owner[!TextBox.TextWrappingProperty],
                     [!TextPresenter.CaretIndexProperty] = owner[!TextBox.CaretIndexProperty], [!TextPresenter.SelectionStartProperty] = owner[!TextBox.SelectionStartProperty], [!TextPresenter.SelectionEndProperty] = owner[!TextBox.SelectionEndProperty],
                 }.RegisterInNameScope(scope),
             }.RegisterInNameScope(scope));
-            var placeholder = new TextBlock { Text = "For example: use conventional commit prefixes", Margin = new Thickness(5, 0), Foreground = Chrome.SecondaryText.Brush(this), IsHitTestVisible = false }.Font(SwiftFont.System(SwiftFont.TextStyle.Body)); // :825-830
+            var placeholder = new TextBlock { Text = "For example: use conventional commit prefixes", HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(5, 0), Foreground = Chrome.SecondaryText.Brush(this), IsHitTestVisible = false }.Font(SwiftFont.System(SwiftFont.TextStyle.Body)); // :820 ZStack(alignment:.topLeading), :825-830.
             placeholder.Track(() => settings.CommitInstructions.Length == 0, value => placeholder.IsVisible = value);
             sections.Children.Add(new ChromeSection("Commit message instructions", () => new ChromeCard(() => new Border { Padding = new Thickness(12), Child = new Panel { Children = { editor, placeholder } } }))); // :818-834
             sections.Children.Add(new ChromeSection("Worktrees and pull requests", () => new ChromeCard(() => new StackPanel { Children =

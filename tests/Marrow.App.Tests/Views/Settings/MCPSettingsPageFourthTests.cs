@@ -72,7 +72,7 @@ public sealed class MCPSettingsPageFourthTests(HeadlessSession headless)
         });
     }
     [Fact]
-    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:864-889; subset only, PR-MCP-208 STOP #8 in MCPSettingsPageTests
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:864-889; subset only, PR-MCP-208 complemented by MCPSettingsPageProofsMcpATests
     public void Credential_failure_keeps_editor_open_and_retry_replaces_saved_definition_without_duplicating()
     {
         Ui((model,_)=>{var backend=new MCPSettingsRefusingCredentialBackend();using var secrets=SecretStore.Shared.Override(new SecretStore(backend));var editor=new MCPCustomEditor(null);using var window=Attach(editor,model);var closed=false;Popovers.SetClosePopover(editor,()=>closed=true);
