@@ -70,14 +70,13 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-027")] // App/Views/Chat/ThreadTimeline.swift:136
-    public void Oc_Empty_running_takes_timeline_branch_with_working_block() => OnMain(() =>
+    public void Oc_Empty_running_takes_timeline_branch_with_working_block() => WithTimeline((view, runtime, _, _, _) =>
     {
-        Assert.Empty(Blocks([]));
-        var running = Blocks([], true);
-        var working = Assert.Single(running);
-        var w = Assert.IsType<DisplayBlock.Working>(working);
-        Assert.Equal("working-", w.Id);
-        Assert.Null(w.TurnID);
+        typeof(ThreadRuntime).GetProperty("Phase")!.GetSetMethod(true)!.Invoke(runtime, [RuntimePhase.Running]);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Empty(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(view));
+        Assert.NotEmpty(LogicalQuery.SelfAndDescendants<ScrollViewer>(view));
+        Assert.NotEmpty(LogicalQuery.SelfAndDescendants<WorkingIndicator>(view));
     });
 
     [Fact]
