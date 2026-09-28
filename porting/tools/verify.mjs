@@ -336,13 +336,22 @@ check('B', 'every cited source path exists in the pinned inventory', () => {
   // checked against the archived B1 inventory instead, never waved through.
   const b1Path = rel('porting/baselines/B1/source_inventory.json');
   const b1Known = existsSync(b1Path) ? new Set(JSON.parse(readFileSync(b1Path, 'utf8')).items.map((i) => i.path)) : new Set();
+  // "B2:<path>:<line>" is the same for the B2 pin (1.6.2), which B3 replaced (AM-0003): a file B3 deleted keeps its
+  // B2 citation, checked against the archived B2 inventory.
+  const b2Path = rel('porting/baselines/B2/source_inventory.json');
+  const b2Known = existsSync(b2Path) ? new Set(JSON.parse(readFileSync(b2Path, 'utf8')).items.map((i) => i.path)) : new Set();
   const scan = (records, field) => {
     for (const r of records) {
       for (const e of r[field] || []) {
         for (const match of String(e).matchAll(re)) {
           const p = match[1];
-          if (String(e).slice(Math.max(0, match.index - 3), match.index) === 'B1:') {
+          const prefix = String(e).slice(Math.max(0, match.index - 3), match.index);
+          if (prefix === 'B1:') {
             if (!b1Known.has(p)) bogus.set(r.id, `B1:${p}${match[2] || ''} (not in the B1 inventory)`);
+            continue;
+          }
+          if (prefix === 'B2:') {
+            if (!b2Known.has(p)) bogus.set(r.id, `B2:${p}${match[2] || ''} (not in the B2 inventory)`);
             continue;
           }
           // A porting/... citation is this port's own derived artifact, not a claim about the

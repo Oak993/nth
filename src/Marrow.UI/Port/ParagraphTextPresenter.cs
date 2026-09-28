@@ -419,6 +419,9 @@ public sealed class ParagraphTextPresenter : Control
     public override void Render(DrawingContext context)
     {
         EnsureLayout();
+        // LinkParagraphView.swift:299-332,444-451: NSTextView takes presses throughout its text area,
+        // including the space above a glyph; drawing text alone leaves those points out of Avalonia's hit scene.
+        context.FillRectangle(Brushes.Transparent, new Rect(Bounds.Size));
         if (SelectionEnd > SelectionStart && SelectionBrush is { } highlight)
             foreach (var rect in RangeRects(SelectionStart, SelectionEnd - SelectionStart))
                 context.FillRectangle(highlight, rect);

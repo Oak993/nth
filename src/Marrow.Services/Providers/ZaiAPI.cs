@@ -20,6 +20,9 @@ namespace Marrow.Services.Providers;
 // :6-207
 public static class ZaiAPI
 {
+    // PORT-ONLY R-TEST-10: scoped loopback endpoint boundary for production registry/view proofs.
+    // Identity by default; requests, headers, response parsing and timing remain the pinned Swift path.
+    internal static Ambient<Func<Uri, Uri>> Endpoint { get; } = new(() => url => url);
     public static readonly Uri BaseURL = new("https://api.z.ai/api/coding/paas/v4");                  // :7
     public static readonly Uri ChatURL = new("https://api.z.ai/api/coding/paas/v4/chat/completions"); // :8
     public static readonly Uri ModelsURL = new("https://api.z.ai/api/coding/paas/v4/models");         // :9
@@ -38,12 +41,12 @@ public static class ZaiAPI
     // :20-22
     public static async Task<bool> Validate(string apiKey, Uri? modelsUrl = null) =>
         // :21
-        await OpenAICompatibleAPI.Validate(modelsUrl ?? ModelsURL, apiKey);
+        await OpenAICompatibleAPI.Validate(modelsUrl ?? Endpoint.Current(ModelsURL), apiKey);
 
     // :24-26
     public static async Task<ValueList<ModelOption>> ListModels(string apiKey, Uri? modelsUrl = null) =>
         // :25
-        await OpenAICompatibleAPI.ListModels(modelsUrl ?? ModelsURL, apiKey, Option);
+        await OpenAICompatibleAPI.ListModels(modelsUrl ?? Endpoint.Current(ModelsURL), apiKey, Option);
 
     /// <summary>
     /// Only the two 5.3 Coding Plan models are offered. Older GLM ids are routed to 5.3 by Z.ai, so they are
@@ -93,7 +96,7 @@ public static class ZaiAPI
     {
         var key = apiKey.Trimmed(); // :56
         if (key.Length == 0) return null; // :57
-        var request = OpenAICompatibleAPI.BearerRequest(quotaUrl ?? QuotaURL, key); // :58
+        var request = OpenAICompatibleAPI.BearerRequest(quotaUrl ?? Endpoint.Current(QuotaURL), key); // :58
         // :59-61
         var result = await SwiftTry.OptionalValueAsync(() => URLSession.Shared.Data(request));
         if (result is not { } exchange || exchange.Response is not HTTPURLResponse http || http.StatusCode != 200 ||
@@ -204,7 +207,7 @@ public static class ZaiAPI
     // :134-155
     public static async Task<PlanLimits.ResetCredits?> ResetCredits(string apiKey, Uri? resetListUrl = null)
     {
-        var request = new URLRequest(resetListUrl ?? ResetListURL, timeoutInterval: 15); // :135
+        var request = new URLRequest(resetListUrl ?? Endpoint.Current(ResetListURL), timeoutInterval: 15); // :135
         request = request.SetValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization"); // :136
         request = request.SetValue("application/json", forHTTPHeaderField: "Accept"); // :137
         // :138-141
@@ -251,7 +254,7 @@ public static class ZaiAPI
         {
             throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome());
         }
-        var request = new URLRequest(resetUseUrl ?? ResetUseURL, timeoutInterval: 20) { HttpMethod = "POST" }; // :161-162
+        var request = new URLRequest(resetUseUrl ?? Endpoint.Current(ResetUseURL), timeoutInterval: 20) { HttpMethod = "POST" }; // :161-162
         request = request.SetValue("Bearer " + apiKey, forHTTPHeaderField: "Authorization"); // :163
         request = request.SetValue("application/json", forHTTPHeaderField: "Content-Type"); // :164
         request = request.SetValue("application/json", forHTTPHeaderField: "Accept"); // :165

@@ -18,7 +18,8 @@ public sealed class WindowsToastStartupTests
         Assert.Equal(appId, ToastBuildIdentity.ForLaunch(debug: false, dev: false, [argument]).AppId);
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; ED-002, ED-212, ED-220 (6)
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-064; STOP opencode-App.AppDelegate #6. // App/AppDelegate.swift:77-92; ED-002, ED-212, ED-220 (6)
     public void Activation_keeps_its_origin_root_even_if_another_dev_instance_registered_the_shared_scheme()
     {
         var origin = new ToastBuildIdentity("MarrowCode.Marrow.Dev", "marrow-code-dev") { DevRoot = "C:\\First Dev Root" };
@@ -57,8 +58,9 @@ public sealed class WindowsToastStartupTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; ED-002 / ED-220 (6)
-    [Trait("Req", "PR-LAUNCH-065")] // App/AppDelegate.swift:83-91; ED-002 / ED-220 (6)
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-064; STOP opencode-App.AppDelegate #6. // App/AppDelegate.swift:77-92; ED-002 / ED-220 (6)
+    // Partial proof PR-LAUNCH-065; STOP opencode-App.AppDelegate #6. // App/AppDelegate.swift:83-91; ED-002 / ED-220 (6)
     public void DroppyCodeApp_cold_and_second_launch_forward_the_update_without_ordinary_reopen()
     {
         using var runtime = new TestRuntime();

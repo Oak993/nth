@@ -663,7 +663,7 @@
       "cancellation": "not cancellable",
       "windows_path": "PLATFORM BOUNDARY: register the Windows toast activation handler at the same point in the launch sequence (now third), before the main window is shown. The URLCache reconfiguration and the MarkdownDelegationCard wiring are ordinary app-layer steps with Windows equivalents (an HTTP cache policy and a Markdown rendering hook); see the new records for each.",
       "verification_method": "unit test on the launch sequencer's call order: URLCache reconfiguration, then MarkdownDelegationCard wiring, then the notification delegate",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -711,7 +711,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Not ported: NOT_APPLICABLE_WITH_EVIDENCE under ED-061 (dead_code.md entries 28, 33, 38, 42 and 44); ED-001 decides the capture subsystem and the CaptureRun indirection are not ported.",
       "verification_method": "code review and Gate C scan: the Windows tree contains no capture-run code (no --website-captures or --tour-captures handling, no CaptureRun, WebsiteCaptures or TourCaptures identifier)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -769,7 +769,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Direct port; the literal \"New thread\" and all seven predicates are reproduced.",
       "verification_method": "unit test over a seeded library covering each excluding predicate",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "depends_on_unknown": null
     },
@@ -996,7 +996,7 @@
       "cancellation": "The bootstrap task itself is never cancelled or awaited by the launch path.",
       "windows_path": "Direct port of the order. The login-environment step is replaced consciously - platform_adaptations PA-0009 records that Windows has no login-shell argv[0] semantics.",
       "verification_method": "unit test on the bootstrap sequencer asserting step order",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1669,7 +1669,7 @@
       "cancellation": "not applicable",
       "windows_path": "PLATFORM BOUNDARY: the same suppression gate must be applied before handing a toast to the Windows notification pipeline. port_impacts.md entry 116 - all four notification gates must ship; if the port uses the OS toast pipeline unconditionally, fold this gate's condition into the earlier gate and record the departure.",
       "verification_method": "interaction test: a turn finishing in the open, front chat produces no toast; the same turn in a background chat produces one",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2215,7 +2215,7 @@
       "cancellation": "not cancellable",
       "windows_path": "This wires the hook point that DroppyCode/UI/Markdown/MarkdownView.swift already defines and that the delegation-card view itself (the ported HydraDelegationBlock) already renders; only this one wiring statement needs a Windows equivalent, at the same point in the startup sequence, before the main window is shown.",
       "verification_method": "unit test on the launch sequencer asserting the Markdown delegation-card hook is wired before the main window is created; interaction test that a hydra-sent fenced block renders as the delegation card, not a code block",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2461,7 +2461,8 @@
         "decision": "OD-0008 C3",
         "upstream": "DroppyCode/App/AppCommands.swift:12-15 - 'CommandGroup(replacing: .appSettings) { Button(\"Settings…\") { WindowManager.shared.showSettings() }'",
         "port": "No menu bar. Every command the source defines stays on its shortcut and in the command palette; text fields keep standard Ctrl+C/V/X/Z/A"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-LAUNCH-008",

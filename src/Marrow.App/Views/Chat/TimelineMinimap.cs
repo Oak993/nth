@@ -380,10 +380,8 @@ public sealed class TimelineMinimapRail : Decorator
             if (isPressing) UpdateScrub(point, ended: false);
             else SetHovered(localMetrics.EntryID(point, entries));
         };
-        localHitArea.PointerExited += (_, _) =>
-        {
-            if (!isPressing) SetHovered(null);
-        };
+        // :218-219 `case .ended: hoveredID = nil` - unconditional, no press-state guard.
+        localHitArea.PointerExited += (_, _) => SetHovered(null);
         localHitArea.PointerPressed += (_, e) =>
         {
             if (e.GetCurrentPoint(localHitArea).Properties.PointerUpdateKind != PointerUpdateKind.LeftButtonPressed) return;

@@ -4563,7 +4563,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:648 and :763-766 the collapsible section"
       ],
       "notes": "The separator is U+00B7 with a single space either side. These three providers never show a 'Version <n>' line, because that branch is gated on the provider not being API-key based.",
-      "b2_change": "Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The label's own font stays `.font(.system(size: 11))` (B2 DroppyCode/App/Views/Settings/SettingsView.swift:686). The card moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:652-656 to B2 :684-688 and now sits inside a collapsible section (B2 :671, :786-789), so the line shows only while that section is expanded."
+      "b2_change": "Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The label's own font stays `.font(.system(size: 11))` (B2 DroppyCode/App/Views/Settings/SettingsView.swift:686). The card moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:652-656 to B2 :684-688 and now sits inside a collapsible section (B2 :671, :786-789), so the line shows only while that section is expanded.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-002",
@@ -4594,7 +4595,8 @@
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:694 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at platform.deepseek.com.\"",
         "port": "Stored in your Credential Manager. Get one at platform.deepseek.com."
       },
-      "b2_change": "ChromeRow title `.font(.system(size: 13))` -> `.font(.system(.body))` (B1 Chrome.swift:1025 -> B2 :1058) and detail `.font(.system(size: 11))` -> `.font(.system(.subheadline))` (B1 :1029 -> B2 :1062); B1's DroppyCode/UI/Common/ChatZoom.swift:44-55 (dd2b86ef) listed .body as 13 and .subheadline as 11, but that file is deleted at B2, so the pinned source no longer states a point size; the resolved sizes are delegated to macOS rendering and UNVERIFIED under UNK-0003. B2 also scales the whole window by the app zoom (DroppyCode/App/Window/WindowManager.swift:175, levels 75 to 200 percent at DroppyCode/UI/Common/AppZoom.swift:6). Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719 and now sits inside a collapsible section (B2 :671, :786-789), so 'Always present' became 'present whenever the section is expanded'."
+      "b2_change": "ChromeRow title `.font(.system(size: 13))` -> `.font(.system(.body))` (B1 Chrome.swift:1025 -> B2 :1058) and detail `.font(.system(size: 11))` -> `.font(.system(.subheadline))` (B1 :1029 -> B2 :1062); B1's DroppyCode/UI/Common/ChatZoom.swift:44-55 (dd2b86ef) listed .body as 13 and .subheadline as 11, but that file is deleted at B2, so the pinned source no longer states a point size; the resolved sizes are delegated to macOS rendering and UNVERIFIED under UNK-0003. B2 also scales the whole window by the app zoom (DroppyCode/App/Window/WindowManager.swift:175, levels 75 to 200 percent at DroppyCode/UI/Common/AppZoom.swift:6). Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719 and now sits inside a collapsible section (B2 :671, :786-789), so 'Always present' became 'present whenever the section is expanded'.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-003",
@@ -4620,7 +4622,8 @@
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:694 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at dev.meta.ai.\"",
         "port": "Stored in your Credential Manager. Get one at dev.meta.ai."
       },
-      "b2_change": "B1 state 'Always present for this provider' -> B2 present only while the provider's collapsible section is expanded (B2 DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789); row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719. Typography and colours follow UI-PROVAPI-002, which records the ChromeRow text-style and Chrome.secondaryText changes."
+      "b2_change": "B1 state 'Always present for this provider' -> B2 present only while the provider's collapsible section is expanded (B2 DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789); row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719. Typography and colours follow UI-PROVAPI-002, which records the ChromeRow text-style and Chrome.secondaryText changes.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-004",
@@ -4646,7 +4649,8 @@
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:694 `? \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\"`, which reads \"Stored in your Keychain. Get one at z.ai/manage-apikey/apikey-list.\"",
         "port": "Stored in your Credential Manager. Get one at z.ai/manage-apikey/apikey-list."
       },
-      "b2_change": "B1 state 'Always present for this provider' -> B2 present only while the provider's collapsible section is expanded (B2 DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789); row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719. Typography and colours follow UI-PROVAPI-002, which records the ChromeRow text-style and Chrome.secondaryText changes."
+      "b2_change": "B1 state 'Always present for this provider' -> B2 present only while the provider's collapsible section is expanded (B2 DroppyCode/App/Views/Settings/SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789); row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:680-687 to B2 :712-719. Typography and colours follow UI-PROVAPI-002, which records the ChromeRow text-style and Chrome.secondaryText changes.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-005",
@@ -4707,7 +4711,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "The symbol names are inverted relative to the state: 'eye.slash' is shown while the key is visible. The toggle is per card and is not persisted, so reopening Settings hides the key again. The two SF Symbols are Apple-licensed artwork and cannot ship; on Windows they map to Lucide per OD-0010 (UNK-0007 resolved by OD-0010) through porting/icons/sf-symbols-to-lucide.json: 'eye' to Lucide `eye`, 'eye.slash' to Lucide `eye-off`.",
-      "b2_change": "Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The button moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:699-707 to B2 :731-739 with its own code unchanged. It now sits inside the provider's collapsible section (B2 :671, :786-789), so it is visible and clickable only while that section is expanded."
+      "b2_change": "Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The button moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:699-707 to B2 :731-739 with its own code unchanged. It now sits inside the provider's collapsible section (B2 :671, :786-789), so it is visible and clickable only while that section is expanded.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-007",
@@ -4737,7 +4742,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "The button label is built as 'Get a ' plus the provider display name plus ' key'. These providers never show the 'Binary path', 'Install' or 'Sign in' rows, because all three are gated on the provider not being API-key based.",
-      "b2_change": "ChromeRow title `.font(.system(size: 13))` -> `.font(.system(.body))` (B1 Chrome.swift:1025 -> B2 :1058) and detail `.font(.system(size: 11))` -> `.font(.system(.subheadline))` (B1 :1029 -> B2 :1062); B1's DroppyCode/UI/Common/ChatZoom.swift:44-55 (dd2b86ef) listed .body as 13 and .subheadline as 11, but that file is deleted at B2, so the pinned source no longer states a point size; the resolved sizes are delegated to macOS rendering and UNVERIFIED under UNK-0003. B2 also scales the whole window by the app zoom (DroppyCode/App/Window/WindowManager.swift:175, levels 75 to 200 percent at DroppyCode/UI/Common/AppZoom.swift:6). Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:710-719 to B2 :742-751 with its own code unchanged. The row now also sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present, because the provider is then not signed in (:594-596, :608)."
+      "b2_change": "ChromeRow title `.font(.system(size: 13))` -> `.font(.system(.body))` (B1 Chrome.swift:1025 -> B2 :1058) and detail `.font(.system(size: 11))` -> `.font(.system(.subheadline))` (B1 :1029 -> B2 :1062); B1's DroppyCode/UI/Common/ChatZoom.swift:44-55 (dd2b86ef) listed .body as 13 and .subheadline as 11, but that file is deleted at B2, so the pinned source no longer states a point size; the resolved sizes are delegated to macOS rendering and UNVERIFIED under UNK-0003. B2 also scales the whole window by the app zoom (DroppyCode/App/Window/WindowManager.swift:175, levels 75 to 200 percent at DroppyCode/UI/Common/AppZoom.swift:6). Chrome.secondaryText changed from `Color(nsColor: .secondaryLabelColor)` (B1 DroppyCode/UI/Chrome/Chrome.swift:77) to `primaryText.opacity(0.7)` (B2 Chrome.swift:79, commented at :77-78 as clearing the 4.5:1 contrast floor that secondaryLabelColor's 50% alpha misses). The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:710-719 to B2 :742-751 with its own code unchanged. The row now also sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present, because the provider is then not signed in (:594-596, :608).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-008",
@@ -4765,7 +4771,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "The Meta install URL ends with a trailing slash and must be reproduced as written.",
-      "b2_change": "The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:710-719 to B2 :742-751 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present (:594-596, :608); at B1 it was on screen whenever it was present."
+      "b2_change": "The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:710-719 to B2 :742-751 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present (:594-596, :608); at B1 it was on screen whenever it was present.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-009",
@@ -4793,7 +4800,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "The install URL is the key list page, which differs from the apiKeySource string only in carrying a scheme.",
-      "b2_change": "The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:710-719 to B2 :742-751 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present (:594-596, :608); at B1 it was on screen whenever it was present."
+      "b2_change": "The row moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:710-719 to B2 :742-751 with its own code unchanged, and now sits inside the provider's collapsible section (B2 :671, :786-789), which starts collapsed whenever this row is present (:594-596, :608); at B1 it was on screen whenever it was present.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-010",
@@ -4818,7 +4826,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:594-596 `let configured: (ProviderKind) -> Bool = { provider in` / `if case .signedIn = model.providers.status(provider).auth { return true }` / `return false`; :608 `get: { providerExpansion[provider] ?? configured(provider) },`"
       ],
       "notes": "Shared control on the common provider card rather than one this area owns; listed here because it is the gate on these three providers and a porter reading only this area would otherwise miss it. Its own requirement belongs to the settings area.",
-      "b2_change": "The switch moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:658-663 to B2 :690-695 and now sits in the card header inside the provider's collapsible section (B2 :671, :786-789), so it is visible and operable only while that section is expanded; it is not part of the section's own header button (:647-670)."
+      "b2_change": "The switch moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:658-663 to B2 :690-695 and now sits in the card header inside the provider's collapsible section (B2 :671, :786-789), so it is visible and operable only while that section is expanded; it is not part of the section's own header button (:647-670).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-011",
@@ -5258,7 +5267,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:630-634 showsUsage"
       ],
       "notes": "This area supplies the strings and the numbers; the plan limits view's own geometry belongs to the settings area. Counts are formatted in en_US with comma grouping and no decimals regardless of the user's locale.",
-      "b2_change": "The usage block moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:667-679 to B2 :699-711 and now sits inside the provider's collapsible section (B2 :671, :786-789)."
+      "b2_change": "The usage block moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:667-679 to B2 :699-711 and now sits inside the provider's collapsible section (B2 :671, :786-789).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVAPI-030",
@@ -5285,7 +5295,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:630-634 showsUsage"
       ],
       "notes": "DeepSeek is the only one of the three that exposes credits, and Z.ai the only one that exposes plan limits; Meta exposes neither, so its card shows no usage block at all.",
-      "b2_change": "The usage block moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:667-679 to B2 :699-711 and now sits inside the provider's collapsible section (B2 :671, :786-789)."
+      "b2_change": "The usage block moved from B1 DroppyCode/App/Views/Settings/SettingsView.swift:667-679 to B2 :699-711 and now sits inside the provider's collapsible section (B2 :671, :786-789).",
+      "status": "IMPLEMENTED"
     }
   ]
 }

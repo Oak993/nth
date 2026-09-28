@@ -3832,7 +3832,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:373-379"
       ],
-      "notes": "Title has no trailing punctuation."
+      "notes": "Title has no trailing punctuation.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-043",
@@ -3850,7 +3851,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:374-377"
       ],
-      "notes": "One semicolon, three apostrophes, no trailing full stop. Reproduce character for character."
+      "notes": "One semicolon, three apostrophes, no trailing full stop. Reproduce character for character.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-USAGE-044",

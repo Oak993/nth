@@ -2323,6 +2323,34 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         Assert.Equal(["kept.txt"], Search(store, index, "kept"));
     }
 
+    // The building map is a static shared by every composer (:1125-1126), and a build leaves it only when its task,
+    // spawned on the main actor (:1146-1152), runs to its end there. A test that ends with its composer's build still
+    // under way must not leave that build to a main loop nobody pumps again: every later composer in the directory
+    // joins it (:1140-1141), and once two such builds are left, every composer in a new directory waits on one of
+    // them (:1142-1144). Here prepare runs alone, so its build is registered and its start is still queued when the
+    // harness goes.
+    [Fact]
+    [Trait("Rule", "R-TEST-5")] // App/Views/Composer/ComposerView.swift:1125-1126, :1140-1152
+    public void A_build_still_queued_when_its_harness_is_disposed_is_finished_so_a_later_composer_is_served_from_it()
+    {
+        string directory;
+        using (var store = IndexStore())
+        {
+            directory = store.NewFolder("left");
+            Touch(directory, "left.txt");
+            var index = store.Main.OnMain(() => new FileIndex());
+            System.Threading.Tasks.Task? preparing = null;
+            store.Main.Loop.Enqueue(() => preparing = index.Prepare(directory));
+            store.Main.Loop.RunUntil(() => preparing is not null, AppModelHarness.Bound);
+            Assert.False(preparing!.IsCompleted);
+        }
+        // :1133-1135 the index built before the folder went is served at once, and nothing waits on the build.
+        using var later = IndexStore();
+        var served = later.Main.OnMain(() => new FileIndex());
+        later.Main.Loop.Run(() => served.Prepare(directory), TimeSpan.FromSeconds(20));
+        Assert.Equal(["left.txt"], Search(later, served, "left"));
+    }
+
     [Fact]
     [Trait("Req", "PR-COMPOSER-057")] // App/Views/Composer/ComposerView.swift:1257-1262
     public void In_a_git_repository_the_index_holds_the_tracked_and_the_untracked_unignored_files()

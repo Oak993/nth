@@ -15,6 +15,13 @@ namespace Marrow.UI.Port;
 /// <summary>PORT-ONLY. SwiftUI view forms with no Avalonia counterpart of the same shape.</summary>
 public static class PlainControls
 {
+    // A native Popup needs a non-null child before IsOpen is set, but an outer popover whose body contains another
+    // popover must not mount that nested popup before the outer body has opened (MCPSettingsPage.swift:632-638).
+    private sealed class DeferredPopoverContent : Border
+    {
+        public DeferredPopoverContent() { Width = 1; Height = 1; Background = Brushes.Transparent; }
+    }
+
     // ENGINEERING DECISION: `.buttonStyle(.plain)` draws the label and nothing else, so the template is the content
     // alone; the Avalonia Button keeps Button semantics (click on release, keyboard activation, the Invoke pattern).
     private static readonly FuncControlTemplate<Button> PlainButtonTemplate = new((button, scope) =>
@@ -47,7 +54,7 @@ public static class PlainControls
             if (e.Property == TextBox.TextProperty) ShowPrompt();
         };
         ShowPrompt();
-        return new Panel { Children = { prompt, presenter } };
+        return new Panel { Background = Brushes.Transparent, Children = { prompt, presenter } }; // A native plain TextField accepts input across its frame, including while empty (Chrome.swift:789-792).
     });
 
     /// <summary><c>Button(action:) { label }.buttonStyle(.plain)</c>.</summary>
@@ -105,8 +112,10 @@ public static class PlainControls
     /// App.Views.Sidebar.SidebarView.cs), presented through <see cref="Presentation.Presenter"/> whenever the binding
     /// changes. The content is built each time the popover shows and dropped when it closes, as SwiftUI builds a
     /// popover's content only while it is presented. A dismissal from outside writes false back to the binding.
+    /// When <paramref name="buildBeforeOpen"/> is false, a one-pixel transparent child reserves the native popup
+    /// slot until <c>Opened</c>; this is for a presented body that owns a nested popup of its own.
     /// </summary>
-    public static Popup Popover(Control anchor, Binding<bool> isPresented, Func<Control> content, PlacementMode placement = PlacementMode.Bottom)
+    public static Popup Popover(Control anchor, Binding<bool> isPresented, Func<Control> content, PlacementMode placement = PlacementMode.Bottom, bool buildBeforeOpen = true)
     {
         var popup = new Popup
         {
@@ -114,7 +123,11 @@ public static class PlainControls
             PlacementTarget = anchor,
             IsLightDismissEnabled = true,
         };
-        popup.Opened += (_, _) => popup.Child ??= content();
+        popup.Opened += (_, _) =>
+        {
+            if (popup.Child is DeferredPopoverContent) popup.Child = content();
+            else popup.Child ??= content();
+        };
         popup.Closed += (_, _) =>
         {
             popup.Child = null;
@@ -125,6 +138,11 @@ public static class PlainControls
         {
             if (presented == shown) return;
             shown = presented;
+            if (presented)
+            {
+                if (buildBeforeOpen) popup.Child ??= content(); // Build before native Popup.Open captures its child; lazy per presentation.
+                else if (popup.Child is null) popup.Child = new DeferredPopoverContent();
+            }
             Presentation.Presenter.Current.SetPresented(popup, presented);
         });
         return popup;

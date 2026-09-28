@@ -524,6 +524,11 @@ public sealed class CollapsibleProviderHeader : Decorator
         Grid.SetColumn(chevron, 3);
         headerContent.Children.Add(chevron);
 
+        // :423-436 rotation shares the disclosure transaction; equal notifications must not restart it.
+        var lastExpanded = isExpanded.Value;
+        var rotation = new SettingsScalarAnimation(chevron, lastExpanded ? 90 : 0, value => chevron.RenderTransform = new RotateTransform(value));
+        chevron.RenderTransform = new RotateTransform(lastExpanded ? 90 : 0);
+
         var header = new Button
         {
             Content = headerContent,
@@ -535,7 +540,7 @@ public sealed class CollapsibleProviderHeader : Decorator
         };
         header.Click += (_, _) =>
         {
-            Transaction.WithAnimation(Chrome.PanelSlide, () => isExpanded.Value = !isExpanded.Value); // :423-424
+            Transaction.WithAnimation(Chrome.PanelSlide, () => { isExpanded.Value = !isExpanded.Value; UpdateHeader(); }); // :423-436
             // isExpanded is a Binding<bool> whose source (ModelsSettingsPage.providerExpansion, a plain
             // Dictionary field, or SettingsView's own equivalent) is not an ObservableModel property, so
             // this.Track(() => isExpanded.Value, ...) below never observes this write (ObservationTracking only
@@ -550,7 +555,7 @@ public sealed class CollapsibleProviderHeader : Decorator
         void UpdateHeader()
         {
             var expanded = isExpanded.Value;
-            chevron.RenderTransform = new RotateTransform(expanded ? 90 : 0); // :436
+            if (expanded != lastExpanded) { lastExpanded = expanded; rotation.Set(expanded ? 90 : 0, Transaction.Current); } // :436
             ToolTip.SetTip(header, expanded ? "Hide the " + subject : "Show the " + subject); // :442
             AutomationProperties.SetName(header, provider.DisplayName); // :443 .accessibilityLabel
             // :444 .accessibilityValue(Text(isExpanded ? "Expanded" : "Collapsed")): Avalonia's AutomationProperties

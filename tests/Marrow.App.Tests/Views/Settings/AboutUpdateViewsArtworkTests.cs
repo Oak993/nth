@@ -34,7 +34,7 @@ public sealed class AboutUpdateViewsArtworkTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-012")] // App/Views/Settings/AboutUpdateViews.swift:214-217
     [Trait("Req", "UI-UPDATE-013")] // App/Views/Settings/AboutUpdateViews.swift:214-217
     [Trait("Req", "UI-UPDATE-014")] // App/Views/Settings/AboutUpdateViews.swift:214-217
-    [Trait("Req", "UI-UPDATE-015")] // App/Views/Settings/AboutUpdateViews.swift:261-265
+    [Trait("Rule", "R-TEST-1")] // App/Views/Settings/AboutUpdateViews.swift:261-265
     [InlineData(ReleaseNoteCategory.NewFeatures, "UpdateNewFeaturesIcon")]
     [InlineData(ReleaseNoteCategory.BugFixes, "UpdateBugFixesIcon")]
     [InlineData(ReleaseNoteCategory.Refinements, "UpdateRefinementsIcon")]

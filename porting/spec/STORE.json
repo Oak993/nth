@@ -4268,7 +4268,8 @@
         "decision": "OD-0012 F1",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:838 - ChromeRow(title: \"Worktrees\", detail: Storage.worktreesDirectory.path), which prints <home>/.droppy-code/worktrees (Text.swift:6)",
         "port": "The row prints %USERPROFILE%\\.marrow\\worktrees: every remaining \"Droppy Code\" / \"droppy-code\" the app shows or sends out becomes \"Marrow\" / \"marrow\"; droppy-code.json and DROPPY_CODE_PROJECT_ROOT are the only exceptions"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-002",
@@ -4294,7 +4295,8 @@
         "decision": "OD-0005",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:839-840 - `Button(\"Reveal\") { ... }` with `.buttonStyle(.glass)`, macOS Liquid Glass",
         "port": "Where the window shows the desktop, a Windows system material of the Acrylic class, without lensing, refraction or chromatic fringing; where the app draws its own backdrop, the full source-defined material is reproduced. An owner-approved deviation, not parity."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-STORE-003",

@@ -2627,7 +2627,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same guard in both places.",
       "verification_method": "unit test with a one-effort model",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2808,7 +2808,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same two-branch logic and the same persistence.",
       "verification_method": "unit test of reset with and without a pair, plus a restart test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2829,7 +2829,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same animation duration and the same write-through.",
       "verification_method": "interaction test plus a restart test of the remembered effort",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2878,7 +2878,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same key names and shapes in the Windows settings store, so a migration can carry them.",
       "verification_method": "restart test: set an effort, restart, open a new chat on that model",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3395,7 +3395,7 @@
       "cancellation": "not cancellable",
       "windows_path": "All strings verbatim, U+00B7 separators included. Note \"Lead high, heads medium effort\" lowercases the effort names while the matching case capitalises the first letter. Chrome.secondaryText is primaryText at 0.7 (B2 DroppyCode/UI/Chrome/Chrome.swift:79 `static let secondaryText = primaryText.opacity(0.7)`), per ED-062.",
       "verification_method": "unit test of efforts() and detail() across the five cases",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

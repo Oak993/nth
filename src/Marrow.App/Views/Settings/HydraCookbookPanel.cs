@@ -14,8 +14,15 @@ using Marrow.UI.Port;
 
 // Source: DroppyCode/App/Views/Settings/HydraCookbookPanel.swift (B3 52bc792), :1-134.
 // The resolve logic itself (isReady/provider(for:)/missingProvider/resolve/model(named:)/version(of:)) is
-// DroppyCode/App/HydraCookbook+Resolve.swift:1-69, not yet its own unit; ported here as a private static class
-// since nothing else in the tree calls it yet (R-FILE-1 would give it its own twin once another caller exists).
+// DroppyCode/App/HydraCookbook+Resolve.swift:1-69, ported as the single shared implementation in
+// src/Marrow.App/HydraCookbook+Resolve.cs (extension(HydraCookbook) members of Marrow.App.HydraCookbookResolve),
+// called here the same way the Swift source calls it (HydraCookbook.resolve/missingProvider/isReady). This
+// file used to carry its own private duplicate of that logic, removed by fix/cookbook. The two C# copies were
+// NOT behaviour-identical: on an equal-version tie between catalog rows that share an id, the private copy's
+// Aggregate returned the later row, while Swift :54-58 (max(by:), where equal ids give equal firstIndex so
+// neither row orders before the other) and the shared copy keep the first row. The chosen row decides the
+// efforts (:38,:42 and Core HydraCookbook.swift :45-48), so the private copy could drop them. Pinned by
+// HydraCookbookPanelResolverTests.An_equal_version_tie_between_catalog_rows_sharing_an_id_keeps_the_first_row_as_the_swift_max_does.
 // B3 (AM-0003): both Swift files are byte-identical to B2 (last touched 5c63f538a/2afcd6c37, long before
 // 52bc7926; line counts unchanged at 134 and 69) -- this file needs no code change for B3. The recipe data
 // this panel renders (Core/Models/HydraCookbook.swift) DID change at B3 (five titles renamed to "Opus 5.5"
@@ -65,8 +72,16 @@ public sealed class HydraCookbookPanel : Decorator
             if (registry is null || settings is null) return;
             listContent.Children.Clear();
 
-            var ready = HydraCookbookResolve.RecipesWithPair(registry, settings); // :11-13
-            var waiting = HydraCookbookResolve.RecipesMissingProvider(registry, settings); // :14-16
+            var ready = HydraCookbook.Recipes // :11-13
+                .Select(recipe => (recipe, pair: HydraCookbook.Resolve(recipe, registry, settings)))
+                .Where(entry => entry.pair is not null)
+                .Select(entry => (entry.recipe, Pair: entry.pair!))
+                .ToList();
+            var waiting = HydraCookbook.Recipes // :14-16
+                .Select(recipe => (recipe, provider: HydraCookbook.MissingProvider(recipe, registry, settings)))
+                .Where(entry => entry.provider is not null)
+                .Select(entry => (entry.recipe, Provider: entry.provider!.Value))
+                .ToList();
 
             if (ready.Count == 0) // :33-38
             {
@@ -124,7 +139,7 @@ public sealed class HydraCookbookPanel : Decorator
             if (registry is null || settings is null) return;
             foreach (var provider in SwiftEnum<ProviderKind>.AllCases)
             {
-                if (HydraCookbookResolve.IsReady(provider, registry, settings))
+                if (HydraCookbook.IsReady(provider, registry, settings))
                     await registry.LoadCatalog(provider);
             }
         });
@@ -259,101 +274,4 @@ public sealed class HydraCookbookRow : Decorator
         Child = row;
         }
     }
-}
-
-// DroppyCode/App/HydraCookbook+Resolve.swift:1-69. Compatibility helpers used by this panel;
-// equal-version models retain their original registry order (:55-58).
-internal static class HydraCookbookResolve
-{
-    // :8-10 static func isReady(_ provider:registry:settings:) -> Bool
-    public static bool IsReady(ProviderKind provider, ProviderRegistry registry, AppSettings settings) =>
-        settings.IsEnabled(provider) && registry.Status(provider).IsInstalled;
-
-    // :14-19 static func provider(for side:registry:settings:) -> ProviderKind?
-    private static ProviderKind? Provider(HydraPairRecipe.Side side, ProviderRegistry registry, AppSettings settings)
-    {
-        foreach (var provider in side.Providers)
-        {
-            if (IsReady(provider, registry, settings) &&
-                (side.Models.Count == 0 || Model(side.Models, provider, registry) is not null))
-                return provider;
-        }
-        return null;
-    }
-
-    // :23-28 static func missingProvider(for recipe:registry:settings:) -> ProviderKind?
-    public static ProviderKind? MissingProvider(HydraPairRecipe recipe, ProviderRegistry registry, AppSettings settings)
-    {
-        foreach (var side in new[] { recipe.Lead, recipe.Heads })
-        {
-            if (!side.Providers.Any(provider => IsReady(provider, registry, settings)))
-                return side.Providers.Count > 0 ? side.Providers[0] : null;
-        }
-        return null;
-    }
-
-    // :32-45 static func resolve(_:registry:settings:) -> HydraPair?
-    public static HydraPair? Resolve(HydraPairRecipe recipe, ProviderRegistry registry, AppSettings settings)
-    {
-        if (Provider(recipe.Lead, registry, settings) is not { } leadProvider ||
-            Provider(recipe.Heads, registry, settings) is not { } headsProvider)
-            return null;
-
-        var lead = Model(recipe.Lead.Models, leadProvider, registry);
-        var heads = Model(recipe.Heads.Models, headsProvider, registry);
-        return new HydraPair(leadProvider)
-        {
-            OrchestratorModel = lead?.Id,
-            OrchestratorEffort = HydraCookbook.Effort(recipe.Lead.Effort, lead ?? registry.DefaultModel(leadProvider)),
-            WorkerProvider = headsProvider != leadProvider ? headsProvider : null,
-            WorkerModel = heads?.Id,
-            WorkerEffort = HydraCookbook.Effort(recipe.Heads.Effort, heads ?? registry.DefaultModel(headsProvider)),
-            MaxHeads = recipe.MaxHeads,
-        };
-    }
-
-    // :49-62 static func model(named:for:registry:) -> ModelOption?
-    private static ModelOption? Model(IReadOnlyList<string> names, ProviderKind provider, ProviderRegistry registry)
-    {
-        var options = registry.Models(provider);
-        foreach (var name in names)
-        {
-            var matches = options.Where(option =>
-                SwiftString.LocalizedCaseInsensitiveContains(option.Name, name) ||
-                SwiftString.LocalizedCaseInsensitiveContains(option.Id, name)).ToList();
-            if (matches.Count == 0) continue;
-            return matches.Aggregate((lhs, rhs) =>
-            {
-                var lhsVersion = Version(lhs.Name) ?? -1;
-                var rhsVersion = Version(rhs.Name) ?? -1;
-                if (lhsVersion != rhsVersion) return lhsVersion > rhsVersion ? lhs : rhs;
-                var lhsIndex = options.ToList().FindIndex(option => option.Id == lhs.Id);
-                var rhsIndex = options.ToList().FindIndex(option => option.Id == rhs.Id);
-                return lhsIndex < rhsIndex ? lhs : rhs;
-            });
-        }
-        return null;
-    }
-
-    // :65-68 private static func version(of name:) -> Double?
-    private static double? Version(string name)
-    {
-        var match = System.Text.RegularExpressions.Regex.Match(name, @"[0-9]+(?:\.[0-9]+)?");
-        return match.Success ? double.Parse(match.Value, System.Globalization.CultureInfo.InvariantCulture) : null;
-    }
-
-    // Used by HydraCookbookPanel to build the ready/waiting lists (:11-16 the two compactMap lets in body).
-    public static IReadOnlyList<(HydraPairRecipe Recipe, HydraPair Pair)> RecipesWithPair(ProviderRegistry registry, AppSettings settings) =>
-        HydraCookbook.Recipes
-            .Select(recipe => (recipe, pair: Resolve(recipe, registry, settings)))
-            .Where(entry => entry.pair is not null)
-            .Select(entry => (entry.recipe, entry.pair!))
-            .ToList();
-
-    public static IReadOnlyList<(HydraPairRecipe Recipe, ProviderKind Provider)> RecipesMissingProvider(ProviderRegistry registry, AppSettings settings) =>
-        HydraCookbook.Recipes
-            .Select(recipe => (recipe, provider: MissingProvider(recipe, registry, settings)))
-            .Where(entry => entry.provider is not null)
-            .Select(entry => (entry.recipe, entry.provider!.Value))
-            .ToList();
 }
