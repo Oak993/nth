@@ -19,11 +19,9 @@ namespace Marrow.App.Tests;
 // implementation. B3 lines: the file gained :2 and :10-14 over B2, so B2's
 // :2-8 are B3's :3-9 and B2's :9-87 are B3's :15-93 (git diff 1fbf81e 52bc792 -- DroppyCode/App/AppDelegate.swift).
 //
-// Two records these members serve carry no Req trait in this unit, because the half of each that is not written here
-// is a STOP note below: UI-LAUNCH-005's two tap interactions are userNotificationCenter(_:didReceive:) (:77-92, STOP
-// #3), and PR-WIN-073's action is the main window's close button and Alt+F4 (OD-0008 C1, C2), whose wiring is STOP #4.
-// The tests of the presentation states and of the quit deferral name PR-LAUNCH-063, PR-LAUNCH-049 and PR-LAUNCH-050,
-// whose expected results they prove whole; PR-LAUNCH-074 is the record of the close wiring.
+// The current opencode STOP ledger is in AppDelegateProofTests.cs. Callback routing and close wiring have landed.
+// UI-LAUNCH-005 still needs safe native-toast pointer proof; PR-LAUNCH-050/PR-WIN-073 still need ED-004's session-end
+// reason ruling/binding. Their partial assertions remain unchanged, without a whole-record Req claim.
 //
 // MCPHub's list of live server processes is process-wide (MCPHub.swift:21-30, a private static let): these tests add
 // recording processes to it, and every ApplicationWillTerminate they run ends everything in it (:60). R-TEST-5, so
@@ -97,7 +95,8 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:45-53
     public void A_quit_during_a_merge_is_answered_terminate_later_and_replies_true_at_the_first_250_ms_poll_after_the_merge_ends()
     {
         using var h = new AppModelHarness();
@@ -123,7 +122,8 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:47-51
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:47-51
     public void A_quit_during_a_merge_that_never_ends_replies_true_exactly_when_4_minutes_have_passed()
     {
         using var h = new AppModelHarness();
@@ -143,7 +143,8 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53; App/AppModel+HydraMerge.swift:36
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:45-53; App/AppModel+HydraMerge.swift:36
     public void A_quit_waits_while_any_live_chat_is_merging_even_when_the_merging_chat_changes_during_the_wait()
     {
         using var h = new AppModelHarness();
@@ -177,7 +178,8 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:45-53
     public void The_deferred_quit_replies_from_a_later_main_turn_and_checks_the_merge_before_its_first_sleep()
     {
         using var h = new AppModelHarness();
@@ -201,7 +203,8 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:48-51
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:48-51
     public void A_merge_that_ends_before_the_first_poll_is_seen_at_250_ms_and_not_sooner()
     {
         using var h = new AppModelHarness();
@@ -222,7 +225,8 @@ public sealed class AppDelegateTests
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:47-51
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:47-51
     public void The_four_minute_cap_is_counted_from_the_quit_and_not_from_an_earlier_time()
     {
         using var h = new AppModelHarness();
@@ -687,23 +691,22 @@ public sealed class AppDelegateTests
     }
 }
 
-// STOP App.AppDelegate #1 (sweep B recheck 2026-09-27, base d62329d42)
-// Kind: missing dependency
+// HISTORICAL CLOSED App.AppDelegate #1 (opencode audit 2026-09-27, base acd0780fe)
+// Kind: former missing dependency; Windows toast registration/delivery landed under ED-220.
 // Swift: App/AppDelegate.swift:9-34 (B3 52bc792).
 // Records: PR-LAUNCH-025, PR-WIN-068; PR-LAUNCH-028 and UI-LAUNCH-001 also retain Boot #1's boot/chrome blockers.
-// Missing: only :15's Windows toast delivery/activation binding here. Port/UpdateNotificationCenter.cs still defaults
-// to NoUpdateToastCenter, AppModel.Notify does not deliver, and no activation callback is registered before ShowMain.
-// Needed: the Windows toast unit with delegate registration and payload delivery, before launch shows any window.
+// AppDelegateProofTests and WindowsToastTests now prove registration/delivery before windows. The former dependency
+// is closed; the distinct ED-103 boot stage is current STOP opencode-App.AppDelegate #1.
 // Landed: WindowManager.Shared/Model/ShowMain/ShowSettings, Port/AppShell and Program; :13's 8 MiB URLCache write,
 // :14's Markdown hook, :16-17, :22-33 are written and tested in AppDelegateThirdTests. CaptureRun :18-21 is deliberately
 // not ported (PR-LAUNCH-027 NOT_APPLICABLE_WITH_EVIDENCE, ED-001/ED-061), rather than an unresolved dependency.
 // :22's OD-0018/ED-103 boot stage still needs P12 evidence and GlassMaterial composition: STOP Boot #1.
 // PR-LAUNCH-029 now has a launch-level test of all seven exclusion predicates and newest-unused selection.
 // PR-LAUNCH-071 and UI-LAUNCH-002 now have tests of the delayed tour / no extra onboarding path.
-// PR-LAUNCH-038 has no Req trait: PR-LAUNCH-026 proves the asynchronous start only; the ten awaited steps are AppModel's dependency
-// contract (AppModel.swift:240-287), whose separate tests cover individual steps, not an aggregate ordering trace.
+// PR-LAUNCH-038 now has aggregate compiled step/await order and safe runtime proof in AppDelegateProofTests, together
+// with the existing offline blocked updater stand-in test in AppModelBootstrapSweepTests.
 // PR-LAUNCH-046 still needs the shell-to-UpdateChecker.HandleActivation binding and a decision about launch activation
-// (STOP Boot #2). PR-LAUNCH-028/UI-LAUNCH-001 additionally need WindowManager's center/chrome/material gaps resolved.
+// (STOP Boot #2). ED-225 centering landed; PR-LAUNCH-028/UI-LAUNCH-001 still need ED-103 stage/material evidence.
 
 // STOP App.AppDelegate #2 — RESOLVED except the separate minimized-window reading in STOP Boot #5.
 // Kind: dependency landed
@@ -714,18 +717,14 @@ public sealed class AppDelegateTests
 // restoring a minimized main window in WindowManager.Present needs the source/oracle reading Boot #5 names. This sweep
 // may not modify WindowManager.cs. The callback itself no longer lacks a dependency.
 
-// STOP App.AppDelegate #3 (sweep B recheck 2026-09-27, base d62329d42)
-// Kind: missing dependency
+// HISTORICAL CLOSED App.AppDelegate #3 (opencode audit 2026-09-27, base acd0780fe)
+// Kind: former missing dependency; response delivery, activation and routing landed under ED-220.
 // Swift: App/AppDelegate.swift:77-92 (B3 52bc792).
 // Records: PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024, PR-WIN-076, UI-LAUNCH-005, update-tap half of UI-LAUNCH-003.
 // Landed: WindowManager.Shared.ShowMain and ShowSettings(.About), which can now open real windows.
-// Missing: the Windows toast response delivery/activation unit (including the UNNotificationResponse payload form)
-// and the application-wide NSApp.activate binding at :89. Port/ApplicationLifecycle.cs exposes IsActive and quit
-// replies but no Activate; WindowManager.Present activates a particular window, earlier/later in this sequence.
-// Needed: that activation binding plus the toast response dispatcher. The route must show main unless update exists,
-// select a parseable threadID, activate, then open About for update, in exactly that order. Do not move activation
-// before selection by treating ShowMain's activation as :89. No callback/test is invented around absent bindings.
-// willPresent :63-75 is already tested under PR-LAUNCH-063; actual system banner delivery is still absent.
+// WindowsToastTests and WindowsToastStartupTests cover the implemented callback sequence. The current remaining
+// blocker is safe pointer/hit-testing proof of the system notification ingress (opencode #6), not missing routing.
+// willPresent :63-75 also has real poster-seam proof under PR-LAUNCH-063.
 
 // STOP App.AppDelegate #4 — close wiring RESOLVED; session-end reason text remains STOP Boot #3.
 // Kind: dependency landed / decision still missing
@@ -735,10 +734,8 @@ public sealed class AppDelegateTests
 // Missing: the reason string for ShutdownBlockReasonCreate (ED-004 supplies none; Swift has no user-facing string).
 // Needed: an owner/ED string; then the shell owner implements that one call. No WindowManager/shell edit in this lane.
 
-// STOP App.AppDelegate #5 (sweep B, 2026-09-27)
-// Kind: missing dependency
+// HISTORICAL CLOSED App.AppDelegate #5 (opencode audit 2026-09-27, base acd0780fe)
+// Kind: former missing dependency; HydraDelegationBlock now renders.
 // Swift: App/AppDelegate.swift:14; App/Views/Chat/TimelineRows.swift:652-707 (B3 52bc792).
-// Records: PR-LAUNCH-084 (no Req trait until a rendering test exists; registration alone is tested).
-// Missing: HydraDelegationBlock's constructor still throws MARROW_STUB at the sweep base. The installed closure is
-// tested before any window, but invoking it cannot render a card until the TimelineRows lane lands its constructor.
-// Needed: App.Views.Chat.TimelineRows.HydraDelegationBlock; that file is explicitly owned by another chat.
+// Records: PR-LAUNCH-084. AppDelegateProofTests now renders hydra, hydra-sent and hydra-leaving through the installed
+// hook before registration/windows, preserving json and sent, and rejects the plain CodeBlock fallback.

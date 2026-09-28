@@ -16,6 +16,7 @@ public sealed class AppModelBootstrapSweepTests
     [InlineData(true, true)]
     [InlineData(true, false)]
     [InlineData(false, true)]
+    [Trait("Req", "PR-LAUNCH-038")] // App/AppModel.swift:275-286 ninth step is un-awaited; sequence proof in AppDelegateProofTests
     [Trait("Req", "PR-LAUNCH-085")] // App/AppModel.swift:275-286
     public async Task Installed_updaters_run_Claude_then_Codex_without_holding_the_orphan_sweep(bool claudeInstalled, bool codexInstalled)
     {
