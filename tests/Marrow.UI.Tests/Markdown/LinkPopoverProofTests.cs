@@ -5,6 +5,8 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Primitives.PopupPositioning;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
@@ -67,6 +69,95 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
             Assert.Equal(PopupAnchor.Bottom, popup.PlacementAnchor);
             Assert.Equal(PopupGravity.Bottom, popup.PlacementGravity);
             Assert.Equal(rect, popup.PlacementRect);
+        }
+        finally
+        {
+            LinkPopover.Shared.Close();
+            window.Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-042")] // :20 behavior = .transient: an outside click light-dismisses the popover
+    public void The_popup_is_light_dismiss_enabled() => headless.OnUiThread(() =>
+        Assert.True(LinkPopover.Shared.PopoverForTests.IsLightDismissEnabled));
+
+    [Fact]
+    [Trait("Req", "UI-THEME-042")] // :22 popover.delegate = self: a light dismiss (Popup.Closed) still resyncs isShown and stops the escape monitor
+    public void The_popups_own_closed_event_resyncs_shown_state_and_stops_the_escape_monitor() => headless.OnUiThread(() =>
+    {
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var anchor = new Border { Width = 10, Height = 10 };
+        var window = Show(anchor);
+        var sawKey = false;
+        window.AddHandler(InputElement.KeyDownEvent, (_, e) => { if (e.Key == Key.Escape) sawKey = true; });
+        try
+        {
+            LinkPopover.Shared.Show(SwiftURL.Create("https://example.com/x")!, null, new Rect(0, 0, 10, 10), anchor);
+
+            // A real light dismiss cannot open this class's own themeless Popup in headless (see
+            // LinkPopoverTests.cs's header comment), so raise the Popup's own Closed event directly: the exact
+            // event the constructor wires to PopoverDidClose() (:22). A backing-field auto-event of type
+            // EventHandler<EventArgs>, per Avalonia's own shape for Popup.Closed.
+            var field = typeof(Popup).GetField(nameof(Popup.Closed), System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+            var handler = (EventHandler<EventArgs>)field.GetValue(LinkPopover.Shared.PopoverForTests)!;
+            handler(LinkPopover.Shared.PopoverForTests, EventArgs.Empty);
+
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Single(recorder.Calls); // Closed already resynced isShown/escape monitor: Escape finds no active monitor, no second SetPresented
+            Assert.True(sawKey); // :49 stopEscapeMonitor -> no handler left to swallow the key
+        }
+        finally
+        {
+            LinkPopover.Shared.Close();
+            window.Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-042")] // :35-37 popover.setFixedContent(content, size): the frame handed to the popup is the content's own measured size
+    public void Show_sizes_the_popup_frame_to_the_contents_own_measured_size() => headless.OnUiThread(() =>
+    {
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var anchor = new Border { Width = 10, Height = 10 };
+        var window = Show(anchor);
+        try
+        {
+            LinkPopover.Shared.Show(SwiftURL.Create("https://example.com/x")!, null, new Rect(0, 0, 10, 10), anchor);
+            var frame = Assert.IsType<Border>(LinkPopover.Shared.PopoverForTests.Child);
+            var content = (LinkPopoverContent)frame.Child!;
+            content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity)); // the same constraint Show() itself used
+            Assert.Equal(content.DesiredSize.Width, frame.Width);
+            Assert.Equal(content.DesiredSize.Height, frame.Height);
+        }
+        finally
+        {
+            LinkPopover.Shared.Close();
+            window.Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-043")] // :29 mergeTarget is null ? null : MergeRequestLink.Create(url) - no merge target means no merge row, even for a merge-shaped URL, through the real Show() entry point
+    public void Show_with_no_merge_target_produces_no_merge_row_even_for_a_merge_shaped_url() => headless.OnUiThread(() =>
+    {
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var url = SwiftURL.Create("https://gitlab.com/g/p/-/merge_requests/7")!; // merge-shaped: MergeRequestLink.Create(url) would succeed if reached
+        var anchor = new Border { Width = 10, Height = 10 };
+        var window = Show(anchor);
+        try
+        {
+            LinkPopover.Shared.Show(url, null, new Rect(0, 0, 10, 10), anchor);
+            var frame = Assert.IsType<Border>(LinkPopover.Shared.PopoverForTests.Child);
+            var content = (LinkPopoverContent)frame.Child!;
+            var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child);
+            Assert.Equal(2, stack.Children.Count); // Open Link, Copy Link only - no Merge row, no divider
+            Assert.All(stack.Children, child => Assert.IsType<PopoverItem>(child));
         }
         finally
         {
