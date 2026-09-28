@@ -5380,6 +5380,124 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() => Assert.Equal(1d, row.Opacity));
     });
 
+    // ---- PR-SIDEBAR-130, PR-SIDEBAR-133, UI-SIDEBAR-014, UI-SIDEBAR-015, UI-SIDEBAR-016: the live context menu ----
+
+    // Real hit-testing through the actual pointer pipeline (ROUND3.md item 2's own instruction): MouseUp with the
+    // right button raises Avalonia's own ContextRequestedEvent (Control.OnPointerReleased), which ContextMenu.Open
+    // answers by running this constructor's own Opening handler synchronously (rebuilding Items from the live model)
+    // and only then setting Popup.IsOpen, whose own property-changed handler tries to create a native popup host.
+    // Avalonia 12.1.2 cannot do that in headless mode on this machine ("Unable to create IPopupImpl and no overlay
+    // layer is found for the target control"): the same exception already independently confirmed empirically for
+    // two other units' own real Popups (Marrow.App.Tests/Fixtures/HeadlessFixtures.cs's own R-VIEW-9 comment;
+    // Marrow.UI.Tests/Markdown/LinkPopoverTests.cs, ProseRunViewTests.cs), a pre-existing, environment-wide gap this
+    // job's own scope (SidebarView.cs, ROUND3.md item 2) does not touch. Opening has already run and mutated Items
+    // by the time this throws, so the menu's Items still show the real right-click's own fresh read; only the
+    // popup's own visible surface never renders here.
+    private static void PointerRightClick(Control control)
+    {
+        var window = WindowOf(control);
+        window.UpdateLayout();
+        var point = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
+        window.MouseMove(point);
+        window.MouseDown(point, MouseButton.Right);
+        try
+        {
+            window.MouseUp(point, MouseButton.Right);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("no overlay layer is found for the target control", StringComparison.Ordinal))
+        {
+        }
+    }
+
+    // ShownProjectRow returns the outer ProjectRow (a Decorator); ContextMenu is set on its own Child (the inner
+    // SidebarRow this constructor builds and wraps), not on ProjectRow itself.
+    private static ContextMenu ContextMenuOf(Control row) => ((Decorator)row).Child!.ContextMenu!;
+
+    private static string MenuItemTitle(object item) => item switch
+    {
+        MenuItem { Header: TextBlock tb } => tb.Text ?? "",
+        MenuItem { Header: Control header } => LogicalQuery.SelfAndDescendants<TextBlock>(header).First().Text ?? "",
+        _ => "",
+    };
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // App/Views/Sidebar/SidebarView.swift:1138-1162,1168-1203,1205-1229: a real right-click opens the live context menu, rebuilt fresh (not stale) on every open
+    public void A_real_right_click_opens_the_project_rows_context_menu_rebuilt_fresh_on_every_open() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        // The row's own hover Track animates its fill on pointer entry/exit (Chrome.cs :1119), which a real right-click's
+        // own MouseMove/MouseDown/MouseUp pointer traffic triggers same as a left-click's would.
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 0);
+            model.Settings.SetProjectActive(true, project.Id); // :1096, :1141 isActive true; also gives hasOverride (:1142)
+        });
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var menu = ContextMenuOf(row); // :1138, Control.ContextMenu opens on ContextRequestedEvent
+            var titles = menu.Items.Cast<object>().Select(MenuItemTitle).ToArray();
+            // :1170-1186, :1188-1195, :1196-1200 (ContextMenuActions): the weak-model-captured items, snapshot-built at open time.
+            Assert.Contains("New thread", titles);
+            Assert.Contains("New thread in worktree", titles);
+            Assert.Contains("Reveal in File Explorer", titles); // OD-0008 B1
+            Assert.Contains("Remove project", titles);
+            Assert.Contains("Deactivate project", titles); // :1189 isActive true
+            Assert.DoesNotContain("Activate project", titles);
+            Assert.Contains("Follow global setting", titles); // :1196-1200 hasOverride true
+        });
+        // The row itself is never rebuilt between the two right-clicks below (still the same `row`/ProjectRow
+        // instance): a menu whose Items were fixed once, at construction or at the first open, would show the same
+        // "Deactivate project"/"Activate project" wording both times - exactly the "invented, silently wrong
+        // behaviour" STOP #7 (SidebarViewTests.cs) rejected. Flipping the live model state between opens and
+        // re-reading through a second real right-click is the only way to tell a per-open-fresh read (:1141, this
+        // constructor's own ContextMenu.Opening) apart from a stale one.
+        harness.Main.OnMain(() => model.Settings.SetProjectActive(false, project.Id));
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var menu = ContextMenuOf(row);
+            var titles = menu.Items.Cast<object>().Select(MenuItemTitle).ToArray();
+            Assert.Contains("Activate project", titles); // :1189 isActive now false: the flipped wording
+            Assert.DoesNotContain("Deactivate project", titles);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-015")] // App/Views/Sidebar/SidebarView.swift:1149-1161: the pair submenu is present only when hydraPickerPairs is non-empty, read fresh at open time
+    public void The_pair_submenu_is_absent_with_no_pairs_and_appears_once_one_exists_without_rebuilding_the_row() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // see the sibling test above
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 0));
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var menu = ContextMenuOf(row);
+            Assert.DoesNotContain(menu.Items.Cast<object>(), item => item is MenuItem { Header: Control h } && // :1154 pairsSnapshot.isEmpty
+                LogicalQuery.SelfAndDescendants<TextBlock>(h).Any(t => t.Text == "Start new chats on"));
+        });
+        // A pair enters HydraPickerPairs once its provider counts as installed and is enabled
+        // (AppModel+HydraPairs.cs :11); ProviderRegistry.CountsAsInstalled and AppSettings.IsEnabled both default
+        // true with no status/disabled entry for the provider (ProviderRegistry.cs :306, AppSettings.cs :1282), so
+        // adding the pair alone is enough here, with no separate installed/enabled fixture.
+        harness.Main.OnMain(() => model.Settings.AddHydraPair(new HydraPair(ProviderKind.Claude)));
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row); // same row, still not rebuilt: :1151 must re-read HydraPickerPairs fresh at this open
+            var menu = ContextMenuOf(row);
+            Assert.Contains(menu.Items.Cast<object>(), item => item is MenuItem { Header: Control h } &&
+                LogicalQuery.SelfAndDescendants<TextBlock>(h).Any(t => t.Text == "Start new chats on")); // :1156-1160
+        });
+    });
+
     [Fact]
     [Trait("Req", "UI-SIDEBAR-009")] // App/Views/Sidebar/SidebarView.swift:1127-1132, :521-523
     public void The_collapsed_count_label_shows_only_while_collapsed_with_a_positive_count() => headless.OnUiThread(() =>

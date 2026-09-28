@@ -21,6 +21,7 @@ using Avalonia.Styling;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
+using Marrow.App.Views.Chat;
 using Marrow.App.Views.Settings;
 using Marrow.App.Window;
 using Marrow.Core.Models;
@@ -1744,21 +1745,20 @@ internal static class SidebarViewExtensions
     }
 }
 
-/// <summary>:1078-1230 <c>private struct ProjectRow: View</c>. Part 6. The row's own body (PR-SIDEBAR-126 the
-/// click-to-expand and its togglesExpansion guard, PR-SIDEBAR-127 the icon and the accessory's three branches,
-/// PR-SIDEBAR-128 opacity by activation) and the context menu's own ITEMS (PR-SIDEBAR-129, below) are now provable
-/// directly. PR-SIDEBAR-133 (the AppKit context menu itself, live on a right-click) stays out of scope: SwiftUI's
-/// <c>.contextMenu</c> (:1138-1161) re-evaluates isActive, hasOverride and pairsSnapshot fresh every time the menu
-/// opens, and no ED or platform-adaptation entry names a Windows/Avalonia foundation for that per-open refresh
-// STOP opencode-App.Views.Sidebar.SidebarView #4: the per-open-refresh foundation needs an ED/PA decision.
-// Names PR-SIDEBAR-130 (Remove confirmation gated behind the live menu), PR-SIDEBAR-133 (the live menu itself)
-// and the right-click interaction of UI-SIDEBAR-033/UI-SIDEBAR-037.
-/// (porting/engineering_decisions.md and porting/platform_adaptations.md have no ".contextMenu" or "ContextMenu"
-/// entry; RowActionMenuButtons' own header comment already anticipates "a caller" installing its Items on a live
-/// ContextMenu.Items, but no unit has done so yet). Attaching a menu fixed at construction time would go stale the
-/// first time isActive or hasOverride changed without the row itself being rebuilt - an invented, silently wrong
-/// behaviour, worse than the honest gap. See STOP #7 (SidebarViewTests.cs, narrowed this part) and PR-SIDEBAR-130
-/// (STOP #7's own: the confirmation this same menu's "Remove project" item would need).</summary>
+/// <summary>:1078-1230 <c>private struct ProjectRow: View</c>. Part 6, then Job SB (ROUND3.md item 2). The row's own
+/// body (PR-SIDEBAR-126 the click-to-expand and its togglesExpansion guard, PR-SIDEBAR-127 the icon and the
+/// accessory's three branches, PR-SIDEBAR-128 opacity by activation), the context menu's own ITEMS (PR-SIDEBAR-129)
+/// and, as of Job SB, the live AppKit-style context menu itself (PR-SIDEBAR-130, PR-SIDEBAR-133, UI-SIDEBAR-014,
+/// UI-SIDEBAR-015, UI-SIDEBAR-016) opened by a real right-click are now provable directly.
+// CLOSED STOP opencode-App.Views.Sidebar.SidebarView #4, for ProjectRow only (Job SB, ROUND3.md item 2): the
+// per-open-refresh foundation ENGINEERING DECISION and the attachment itself are at this constructor's own
+// ContextMenu.Opening wiring, below (full citation there). SidebarHelperRow's and HeadCardsRow's own .contextMenu
+// sites, and the right-click interaction of UI-SIDEBAR-033/UI-SIDEBAR-037, are unchanged by this and stay under
+// STOP #7 (SidebarViewTests.cs).
+/// (porting/engineering_decisions.md and porting/platform_adaptations.md had no ".contextMenu" or "ContextMenu"
+/// entry before this pass; RowActionMenuButtons' own header comment already anticipated "a caller" installing its
+/// Items on a live ContextMenu.Items - this constructor is that caller, for ProjectRow). See STOP #7
+/// (SidebarViewTests.cs, narrowed further by this closure) for the still-open helper/head-card sites.</summary>
 internal sealed class ProjectRow : Decorator
 {
     // :1091 @State private var isMenuPresented = false
@@ -1870,6 +1870,33 @@ internal sealed class ProjectRow : Decorator
             if (overlay.Children.Count > 1) overlay.Children.RemoveAt(overlay.Children.Count - 1);
             overlay.Children.Add(built);
         });
+        // :1138-1161 .contextMenu: SwiftUI re-evaluates this closure's captures (project, isActive, hasOverride,
+        // pairsSnapshot) fresh every time the menu opens, not once at construction. ENGINEERING DECISION (closes
+        // STOP #7/#4 for ProjectRow only; SidebarHelperRow's and HeadCardsRow's own .contextMenu sites are unchanged
+        // and stay under STOP #7): Avalonia's ContextMenu.Opening event (Avalonia.Controls.ContextMenu, fires each
+        // time IsOpen goes false->true, System.ComponentModel.CancelEventHandler; Avalonia.Controls.xml) is the
+        // Windows/Avalonia per-open hook STOP #7 named as the missing foundation; RowActionMenuButtons' own header ED
+        // already names Avalonia's ContextMenu as the NSMenu counterpart a caller installs Items on
+        // (UI/Chrome/Popovers.cs :532-535), leaving only this attachment. Setting Control.ContextMenu makes a real
+        // right-click open it automatically (Avalonia.Input.InputElement.ContextRequestedEvent), the Windows
+        // counterpart of AppKit's right-click-opens-NSMenu. Rebuilding Items inside Opening, reading Model directly
+        // rather than this row's own `current`/Track-cached fields, reproduces the source's fresh per-open read
+        // (:1139-1142, :1151) exactly, including a right-click during a stale `current` (before its own Track above
+        // next fires).
+        var contextMenu = new ContextMenu();
+        contextMenu.Opening += (_, _) =>
+        {
+            var projectSnapshot = Model.Project(snapshot.Id) ?? current; // :1139-1140, :1085
+            var activeSnapshot = Model.Settings.IsProjectActive(projectSnapshot.Id); // :1141
+            var overrideSnapshot = Model.Settings.HasProjectActivationOverride(projectSnapshot.Id); // :1142
+            var pairsSnapshot = Model.HydraPickerPairs // :1151-1153
+                .Select(pair => new ProjectPairChoice { Id = pair.Id, Title = HydraPairSummary.Title(pair, Model.Providers) })
+                .ToList();
+            contextMenu.Items.Clear();
+            foreach (var item in BuildContextMenuItems(projectSnapshot, activeSnapshot, overrideSnapshot, Model, pairsSnapshot))
+                contextMenu.Items.Add(item);
+        };
+        row.ContextMenu = contextMenu; // :1138 .contextMenu { ... }; UI-SIDEBAR-014/-015/-016, PR-SIDEBAR-130/-133
         Child = row;
     }
 
@@ -1890,10 +1917,10 @@ internal sealed class ProjectRow : Decorator
     // :5 @Environment(AppModel.self) private var model (this file's own convention: SidebarView.cs:337)
     private AppModel Model => AppEnvironment.GetAppModel(this); // :1079
 
-    // :1168-1203 private static func contextMenuActions(project:isActive:hasOverride:model:) -> [RowAction]. Part 6.
-    // The weak-model capture mirrors ThreadActions.MakeContextMenu's own reasoning (the AppKit menu outlives the
-    // right-click): its own caller is not yet wired (see this class's own header), but this piece is proven directly.
-    // PR-SIDEBAR-127, PR-SIDEBAR-129; OD-0008 B1 ("Reveal in File Explorer" replaces "Reveal in Finder").
+    // :1168-1203 private static func contextMenuActions(project:isActive:hasOverride:model:) -> [RowAction]. Part 6,
+    // wired to the live ContextMenu at Job SB (this class's own constructor, ContextMenu.Opening). The weak-model
+    // capture mirrors ThreadActions.MakeContextMenu's own reasoning (the AppKit menu outlives the right-click).
+    // PR-SIDEBAR-127, PR-SIDEBAR-129, PR-SIDEBAR-130; OD-0008 B1 ("Reveal in File Explorer" replaces "Reveal in Finder").
     private static ValueList<RowAction> ContextMenuActions(Project project, bool isActive, bool hasOverride, AppModel model)
     {
         var projectID = project.Id; // :1169
@@ -1947,8 +1974,8 @@ internal sealed class ProjectRow : Decorator
     }
 
     // :1138-1161 the context menu's own content, assembled from an already-resolved snapshot the way this file's
-    // static pieces always take their collaborators explicitly (BuildTrailingOverlay, BuildFoldOverlay); a caller
-    // installs the result on a live ContextMenu.Items once one exists (see this class's own header comment). Part 6.
+    // static pieces always take their collaborators explicitly (BuildTrailingOverlay, BuildFoldOverlay); this
+    // class's own constructor installs the result on a live ContextMenu.Items, freshly, on every open (Job SB).
     // PR-SIDEBAR-129, UI-SIDEBAR-014, UI-SIDEBAR-015, UI-SIDEBAR-016.
     private static IReadOnlyList<Control> BuildContextMenuItems(
         Project project, bool isActive, bool hasOverride, AppModel model, IReadOnlyList<ProjectPairChoice> pairs)
