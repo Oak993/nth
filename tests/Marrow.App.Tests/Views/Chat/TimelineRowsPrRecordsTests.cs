@@ -478,4 +478,110 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.Empty(none.GetVisualDescendants().OfType<TurnFileCard>());
         Close(noneWindow);
     });
+
+    // ---- PR-CHAT-098: a tool row's chevron points down for a popover/head and right (rotating) for an in-place
+    // expansion, beside the subject, and is absent otherwise (:1799-1810).
+    // Not claimed as PROVEN this session: two of its three branches are proven below, but the third (showsOutput ->
+    // chevron.right) cannot be observed on this container. Rendering a ToolRow whose call has non-empty Output
+    // throws System.InvalidOperationException "Could not create glyphTypeface. Font family: Cascadia Mono" from
+    // Avalonia's Skia text formatter (confirmed reproducible, not order-dependent: fails alone, and a warm-up
+    // Measure() of the same FontFamily beforehand does not avoid it, unlike Inter's own warm-up in
+    // HeadlessFixtures.WarmFonts). The embedded CascadiaMono-*.ttf files are genuine, valid, Microsoft-signed
+    // TrueType data (`file` confirms this), so the font asset itself is not the problem; nothing in this codebase's
+    // existing tests renders actual Cascadia Mono glyph text anywhere (only SwiftFontTests.cs checks the
+    // FontFamily's name/key metadata, never lays text out with it), so this looks like a standing Linux-headless
+    // Skia font-loading gap for this specific embedded font, not something introduced by this session. Filed as
+    // STOP cloud-TimelineRows-pr #14: same class of container limitation as icu.dll, but for Cascadia Mono glyph
+    // rendering; it will also block PR-CHAT-101 and PR-CHAT-100's monospaced-digit "exit N" text once reached.
+
+    private static string[] Symbols(Avalonia.Controls.Control control) =>
+        control.GetVisualDescendants().OfType<SwiftImage>().Select(image => image.SymbolName ?? "").ToArray();
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // two of three branches of PR-CHAT-098; see STOP #14 above for the third.
+    public void A_call_that_sent_out_a_head_draws_chevron_down() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the head's glyph animates while running
+        ToolRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var entry = new TimelineEntry(new TimelineItem(null, new TimelineItem.Content.Tool(
+                new ToolCall { ToolCallKind = ToolCall.Kind.Agent, Title = "Pip: task", ToolCallStatus = ToolCall.Status.Running })));
+            h.Runtime.RehearseHydraHead(entry.Id, Guid.NewGuid());
+            row = new ToolRow(entry, h.Runtime);
+            var host = new Border { Child = row };
+            Marrow.App.Port.AppEnvironment.SetAppModel(host, h.App);
+            window = Show(host);
+        });
+        h.Main.OnMain(() =>
+        {
+            Assert.Contains("chevron.down", Symbols(row!));
+            Assert.DoesNotContain("chevron.right", Symbols(row!));
+            Close(window!);
+        });
+    });
+
+    // WINDOWS-ONLY here: throws on this container as soon as the row's showsOutput branch tries to lay out its
+    // Cascadia Mono content; see STOP #14 above. Kept for the Windows re-run: it is the only test in this file that
+    // exercises the chevron.right / rotation branch.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_call_that_shows_output_draws_chevron_right_rotating_ninety_degrees_when_expanded() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        ToolRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var entry = new TimelineEntry(new TimelineItem(null, new TimelineItem.Content.Tool(
+                new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "run a thing", ToolCallStatus = ToolCall.Status.Completed, Output = "some output" })));
+            row = new ToolRow(entry, h.Runtime);
+            var host = new Border { Child = row };
+            Marrow.App.Port.AppEnvironment.SetAppModel(host, h.App);
+            window = Show(host);
+        });
+        h.Main.OnMain(() =>
+        {
+            Assert.Contains("chevron.right", Symbols(row!));
+            Assert.DoesNotContain("chevron.down", Symbols(row!));
+            var chevron = row!.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "chevron.right");
+            var before = ((RotateTransform?)chevron.RenderTransform)?.Angle ?? 0;
+            Assert.Equal(0, before);
+            var button = row!.GetVisualDescendants().OfType<Button>().First();
+            Click(window!, button);
+        });
+        h.Main.OnMain(() =>
+        {
+            var chevron = row!.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "chevron.right");
+            var after = ((RotateTransform?)chevron.RenderTransform)?.Angle ?? 0;
+            Assert.Equal(90, after);
+            Close(window!);
+        });
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // two of three branches of PR-CHAT-098; see STOP #14 above for the third.
+    public void A_call_with_nothing_to_show_draws_no_chevron() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        ToolRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var entry = new TimelineEntry(new TimelineItem(null, new TimelineItem.Content.Tool(
+                new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "run a thing", ToolCallStatus = ToolCall.Status.Completed })));
+            row = new ToolRow(entry, h.Runtime);
+            var host = new Border { Child = row };
+            Marrow.App.Port.AppEnvironment.SetAppModel(host, h.App);
+            window = Show(host);
+        });
+        h.Main.OnMain(() =>
+        {
+            Assert.DoesNotContain("chevron.right", Symbols(row!));
+            Assert.DoesNotContain("chevron.down", Symbols(row!));
+            Close(window!);
+        });
+    });
 }
