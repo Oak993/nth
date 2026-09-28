@@ -334,6 +334,74 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-039")] // App/Views/Chat/ThreadTimeline.swift:1520-1526 (a turn contributes exactly one tick, from the FIRST user message)
+    public void Oc_Minimap_takes_the_first_user_message_of_a_turn() => OnMain(() =>
+    {
+        var turn = Assert.IsType<DisplayBlock.Turn>(Blocks(new[] { User("u1", Turn, "alpha first"), User("u2", Turn, "beta second") }).Single());
+        var entry = Assert.Single(TimelineMinimap.Entries([turn]));
+        Assert.Equal(turn.Id, entry.Id);
+        Assert.Equal("alpha first", entry.Title);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-039")] // App/Views/Chat/ThreadTimeline.swift:1520-1526 (non-turn and non-single group blocks get no tick)
+    public void Oc_Minimap_skips_group_and_working_blocks() => OnMain(() =>
+    {
+        var blocks = Blocks(new[] { Reply("r"), Tool("t") }, true, "merge", new HeadPills { Later = new([1]) });
+        Assert.Contains(blocks, block => block is DisplayBlock.Group);
+        Assert.Contains(blocks, block => block is DisplayBlock.Working);
+        Assert.Empty(TimelineMinimap.Entries(blocks));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-039")] // App/Views/Chat/ThreadTimeline.swift:1520-1526 (a turn without any user message gets no tick)
+    public void Oc_Minimap_skips_a_turn_with_no_user_message() => OnMain(() =>
+    {
+        var turn = Assert.IsType<DisplayBlock.Turn>(Blocks(new[] { Reply("r1", Turn), Reply("r2", Turn) }).Single());
+        Assert.False(turn.HasUserMessage);
+        Assert.Empty(TimelineMinimap.Entries([turn]));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-039")] // App/Views/Chat/ThreadTimeline.swift:1520-1526 (every other arm carries no tick)
+    public void Oc_Minimap_skips_merging_heads_and_working_arms() => OnMain(() =>
+    {
+        var single = Assert.Single(TimelineMinimap.Entries([Assert.IsType<DisplayBlock.Group>(Blocks(new[] { User("plain") }).Single())]));
+        Assert.Equal("plain", single.Id);
+        Assert.Empty(TimelineMinimap.Entries([new DisplayBlock.Merging("m")]));
+        Assert.Empty(TimelineMinimap.Entries([new DisplayBlock.HeadsWorking(new([1]), false)]));
+        Assert.Empty(TimelineMinimap.Entries([new DisplayBlock.Working(null, new ValueList<TimelineEntry>([]))]));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-039")] // App/Views/Chat/ThreadTimeline.swift:1520-1526 (long titles keep the first eight words plus one ellipsis)
+    public void Oc_Minimap_title_keeps_eight_words_plus_ellipsis() => OnMain(() =>
+    {
+        var turn = Assert.IsType<DisplayBlock.Turn>(Blocks(new[] { User("u", Turn, "w1 w2 w3 w4 w5 w6 w7 w8 w9 w10") }).Single());
+        Assert.Equal("w1 w2 w3 w4 w5 w6 w7 w8\U00002026", Assert.Single(TimelineMinimap.Entries([turn])).Title);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-039")] // App/Views/Chat/ThreadTimeline.swift:1520-1526 (ticks follow block order)
+    public void Oc_Minimap_ticks_follow_block_order() => OnMain(() =>
+    {
+        var first = Guid.NewGuid(); var second = Guid.NewGuid();
+        var blocks = Blocks(new[] { User("u1", first, "alpha"), User("u2", second, "beta") });
+        Assert.Equal(new[] { "alpha", "beta" }, TimelineMinimap.Entries(blocks).Select(entry => entry.Title).ToArray());
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-039")] // App/Views/Chat/ThreadTimeline.swift:1520-1526 (the outline marks only blocks with user messages)
+    public void Oc_Outline_marks_only_blocks_with_user_messages() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { User("u", Turn), Reply("r") }));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var tracking = Field<TimelineScrollTracking>(view, "tracking");
+        var userIDs = (System.Collections.Generic.HashSet<string>)typeof(TimelineScrollTracking).GetField("userBlockIDs", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(tracking)!;
+        Assert.Equal("turn-" + Turn.ToString("D").ToUpperInvariant() + "-u", Assert.Single(userIDs));
+    });
+
+    [Fact]
     [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:77-81,257-278,595-608,703-707,1804-1811
     public void Oc_Window_constants_identity_anchor_paging_cancel_and_eager_drop() => WithTimeline((view, _, _, _, h) =>
     {
