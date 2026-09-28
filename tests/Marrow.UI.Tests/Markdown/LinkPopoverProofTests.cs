@@ -10,6 +10,7 @@ using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Threading;
 using Avalonia.VisualTree;
 using Marrow.Core.Models;
@@ -186,6 +187,42 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
         finally
         {
             window.Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-043")] // :100-102 the host is lowercased before the cache lookup, and a cache hit is assigned to state.favicon without a network fetch; :81 favicon != nil -> the image, not the placeholder
+    public void The_merge_row_shows_the_cached_favicon_once_loaded_with_the_host_lowercased_first() => headless.OnUiThread(() =>
+    {
+        var host = "gitlab.com";
+        var fakeIcon = new Avalonia.Media.Imaging.WriteableBitmap(new Avalonia.PixelSize(4, 4), new Avalonia.Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        var memoryField = typeof(FaviconCache).GetField("memory", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!;
+        var memory = (System.Collections.Generic.Dictionary<string, IImage>)memoryField.GetValue(null)!;
+        memory[host] = fakeIcon; // seed the cache directly (R-TEST-10: no network fetch)
+        try
+        {
+            var url = SwiftURL.Create("https://GitLab.com/g/p/-/merge_requests/7")!; // mixed-case host: proves lowercasing runs before the cache lookup
+            var request = MergeRequestLink.Create(url)!;
+            var content = new LinkPopoverContent(url, request, _ => { });
+            var window = Show(content);
+            try
+            {
+                Dispatcher.UIThread.RunJobs(); // the cache-hit branch (:101-102) assigns state.Favicon synchronously inside the Task, but still through MainActor
+                var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child);
+                var mergeItem = (PopoverItem)stack.Children[0];
+                var image = mergeItem.GetVisualDescendants().OfType<Image>().Single();
+                Assert.Same(fakeIcon, image.Source); // :81 favicon != nil -> image, and it is the one this host's cache entry holds
+                Assert.Empty(mergeItem.GetVisualDescendants().OfType<SwiftImage>()); // the placeholder glyph is gone once a favicon is set
+            }
+            finally
+            {
+                window.Close();
+            }
+        }
+        finally
+        {
+            memory.Remove(host);
         }
     });
 
