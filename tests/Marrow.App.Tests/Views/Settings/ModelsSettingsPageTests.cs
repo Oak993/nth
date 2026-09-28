@@ -280,9 +280,8 @@ public sealed class ModelsSettingsPageTests(HeadlessSession headless)
 // "installed", by the same test-safety design AppModelHarness.PrepareBootstrap documents for CLI providers), so
 // the page never constructs a ProviderModelsSection in these tests - exercising it needs either a scripted registry
 // seam this session did not build, or accepting a real (but safe, no-network) catalog load, not attempted given
-// time; (2) PR-SETTINGS-189's effort/fast-mode popover needs App.Views.Composer.EffortSlider's EffortSliderCard,
-// itself 39 MARROW_STUB sites and out of this unit's scope - left unwired in the implementation with a comment,
-// matching the WindowManager/FloatingSidebarPanel precedent for a real cross-unit dependency gap. The drag-reorder
+// time; (2) PR-SETTINGS-189's effort/fast-mode popover was left unwired here while EffortSliderCard was still a
+// stub; Job STUBS wired it (ModelsSettingsPage.cs PinnedModelRow) and proves it in ModelsSettingsPagePopoverTests.cs. The drag-reorder
 // implementation itself (DragChanged/DragEnded/RowDrag<ModelPin> wiring) follows the packet's own binding "Rulings
 // for this unit" section and FollowUpQueueTab's already-proven RowDrag<Guid> pattern closely, but was not driven by
 // a live pointer-drag test in the time available.
