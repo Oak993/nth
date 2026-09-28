@@ -437,7 +437,7 @@ internal sealed class SettingsScalarAnimation
         Action<TimeSpan>? tick = null;
         tick = _ =>
         {
-            var elapsed = (SwiftClock.Now - start).TotalSeconds; var finished = elapsed >= animation.Duration;
+            var elapsed = (SwiftClock.Now - start).TotalSeconds; var finished = (SwiftClock.Now - start).Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(animation.Duration).Ticks; // ED-117 (2): frame-clock completion tolerance.
             Value = finished ? target : from + (target - from) * animation.Progress(elapsed); apply(Value);
             if (finished) pending = null; else frames.RequestFrame(tick!);
         };
@@ -681,6 +681,12 @@ internal sealed class SourceControlSettingsPage : Decorator
             var editor = PlainControls.TextField("", new Binding<string>(() => settings.CommitInstructions, value => settings.CommitInstructions = value)); editor.AcceptsReturn = true; editor.TextWrapping = TextWrapping.Wrap; editor.MinHeight = 90; SwiftFont.System(SwiftFont.TextStyle.Body).Apply(editor); // :821-824
             editor.Template = new FuncControlTemplate<TextBox>((owner, scope) => new ScrollViewer // :821-824. Plain transparent multiline editor, with its native caret/selection and scrolling.
             {
+                Template = new FuncControlTemplate<ScrollViewer>((scroll, names) => new ScrollContentPresenter
+                {
+                    Name = "PART_ContentPresenter", CanHorizontallyScroll = false, CanVerticallyScroll = true,
+                    [!ContentPresenter.ContentProperty] = scroll[!ContentControl.ContentProperty],
+                    Background = Brushes.Transparent,
+                }.RegisterInNameScope(names)),
                 Name = "PART_ScrollViewer", Background = Brushes.Transparent, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden,
                 Content = new TextPresenter
                 {
@@ -862,7 +868,7 @@ internal sealed class MadeByDroppyRow : Decorator
         var logo = SwiftImage.Named("droppy-logo").Resizable().AspectRatio(ContentMode.Fit); logo.Width = 40; logo.Height = 40; AutomationProperties.SetAccessibilityView(logo, AccessibilityView.Raw); // :1070-1073
         var labels = new StackPanel { Spacing = 2, Children = { new TextBlock { Text = "Made by Droppy", Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(13, SwiftFont.Weight.Semibold)), new TextBlock { Text = "Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(11)) } }; // :1074-1080 OD-0012 F3
         var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Opacity = 0.9, Children = { new TextBlock { Text = "getdroppy.app", Foreground = Chrome.Accent.Brush(this) }.Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), SwiftImage.SystemName("arrow.up.right").Font(SwiftFont.System(10, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.Accent) } };
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 12, Chrome.RowControlTrailingPadding + 4, 12) }; Grid.SetColumn(labels, 1); Grid.SetColumn(trailing, 2); row.Children.Add(logo); row.Children.Add(labels); row.Children.Add(trailing);
+        var row = new Grid { Background = Brushes.Transparent, ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 12, Chrome.RowControlTrailingPadding + 4, 12) }; Grid.SetColumn(labels, 1); Grid.SetColumn(trailing, 2); row.Children.Add(logo); row.Children.Add(labels); row.Children.Add(trailing); // :1093 .contentShape(.rect): the whole row, including its gaps, is one hit target.
         var hover = new SettingsScalarAnimation(trailing, 0.9, value => trailing.Opacity = value); // :1094-1096
         var button = PlainControls.Button(row, () => Marrow.Services.Port.Workspace.Open.Current(url)); button.OnHover(hovering => hover.Set(hovering ? 1 : 0.9, Chrome.Hover)); ToolTip.SetTip(button, "Open getdroppy.app"); AutomationProperties.SetName(button, "Made by Droppy. Open getdroppy.app"); Child = button; // :1081-1101
     }
@@ -924,6 +930,12 @@ internal sealed class ThemePickerButton : Decorator
             var theme = selection.Value; label.Children.Clear(); var swatch = theme.Swatch(); swatch.Width = 14; swatch.Height = 14; label.Children.Add(swatch); label.Children.Add(new TextBlock { Text = theme.DisplayName(), MaxLines = 1 }.Font(SwiftFont.System(12.5, SwiftFont.Weight.Medium))); label.Children.Add(SwiftImage.SystemName("chevron.down").Font(SwiftFont.System(8, SwiftFont.Weight.Bold)).ForegroundStyle(Chrome.SecondaryText));
         }
         var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented);
+        // :1185 .contentShape(Capsule(style: .continuous)): the hit-test shape covers the whole padded frame (not just painted content) and survives label replacement.
+        button.Template = new FuncControlTemplate<Button>((owner, scope) => new Border
+        {
+            Background = Brushes.Transparent,
+            Child = new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope),
+        }.Capsule(RoundedCornerStyle.Continuous));
         var foreground = new AnimatedColor(label); Avalonia.Controls.Documents.TextElement.SetForeground(label, foreground.Brush);
         label.Track(() => state.IsHovering || state.IsPresented, full => foreground.Set(Chrome.PrimaryText.Opacity(full ? 1 : 0.92), Transaction.Current)); // :1188
         button.OnHover(value => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = value));

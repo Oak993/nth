@@ -187,14 +187,14 @@ public sealed class MCPSettingsPage : Decorator
     private static readonly AttachedProperty<Func<Control>?> PopoverBuilderProperty =
         AvaloniaProperty.RegisterAttached<MCPSettingsPage, Popup, Func<Control>?>("PopoverBuilder");
     internal static Control PopoverContent(Popup popup) => popup.GetValue(PopoverBuilderProperty)!();
-    internal static Popup Popover(Control anchor, Binding<bool> presented, Func<Control> content, Control environment)
+    internal static Popup Popover(Control anchor, Binding<bool> presented, Func<Control> content, Control environment, bool buildBeforeOpen = true)
     {
         Control Build()
         {
             var body = content(); if (environment.GetValue(AppEnvironment.AppModelProperty) is { } model) AppEnvironment.SetAppModel(body, model);
             Popovers.SetClosePopover(body, () => presented.Value = false); return body.PresentedChrome();
         }
-        var popup = PlainControls.Popover(anchor, presented, Build); popup.SetValue(PopoverBuilderProperty, Build); return popup;
+        var popup = PlainControls.Popover(anchor, presented, Build, buildBeforeOpen: buildBeforeOpen); popup.SetValue(PopoverBuilderProperty, Build); return popup;
     }
     // :352-358,534-540
     internal static void Begin(Control owner, MCPCatalogEntry entry)
@@ -436,7 +436,9 @@ internal sealed class MCPCustomSection : Decorator
             var addText = MCPSettingsPage.Text("Add server", 13, Chrome.PrimaryText, SwiftFont.Weight.Medium); Grid.SetColumn(addText, 1); addRow.Children.Add(addText);
             var spacer = new Border { MinWidth = 12 }; Grid.SetColumn(spacer, 2); addRow.Children.Add(spacer);
             var add = PlainControls.Button(new Border { Background = Brushes.Transparent, Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = addRow }, () => state.Adding = true);
-            stack.Children.Add(new Panel { Children = { add, MCPSettingsPage.Popover(add, new Binding<bool>(() => state.Adding, v => state.Adding = v), () => new MCPCustomEditor(null), this) } });
+            // The editor contains its own GlassPickerButton popover (:632-638). Keep that nested popup out of the
+            // logical tree until this outer .popover has opened, while retaining a native child slot (:419-440).
+            stack.Children.Add(new Panel { Children = { add, MCPSettingsPage.Popover(add, new Binding<bool>(() => state.Adding, v => state.Adding = v), () => new MCPCustomEditor(null), this, buildBeforeOpen: false) } });
             Child = new ChromeSection("Custom", () => new ChromeCard(() => stack, lazy: true));
         });
     }
@@ -484,7 +486,8 @@ internal sealed class MCPCustomRow : Decorator
         Grid.SetColumn(action, 3); row.Children.Add(action); var menu = MCPSettingsPage.Options(() => view.Menu = !view.Menu);
         var menus = new Panel { Children = { menu,
             MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Menu, v => view.Menu = v), BuildMenu, this),
-            MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Editing, v => view.Editing = v), () => new MCPCustomEditor(server), this),
+            // :548-573, :632-638 — the editor is a nested-popover body, so defer only its materialization.
+            MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Editing, v => view.Editing = v), () => new MCPCustomEditor(server), this, buildBeforeOpen: false),
             MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Confirming, v => view.Confirming = v), () => DeleteConfirmation!, this),
         } }; Grid.SetColumn(menus, 4); row.Children.Add(menus);
         Child = new Border { Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = row };
