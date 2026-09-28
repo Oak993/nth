@@ -1639,13 +1639,13 @@ namespace Marrow.UI.Chrome
                 textStack.Children.Add(detailText);
             }
             var controlView = control(); // :1073
-            controlView.Margin = new Thickness(12, 0, 0, 0); // :1072 Spacer(minLength: 12)
             controlView.HorizontalAlignment = HorizontalAlignment.Right;
             controlView.VerticalAlignment = VerticalAlignment.Center;
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") }; // :1062 HStack(spacing: 16)
+            // :1062, :1072 HStack has two 16-point gaps around Spacer(minLength: 12).
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,16,12,16,Auto") };
             textStack.HorizontalAlignment = HorizontalAlignment.Stretch;
             Grid.SetColumn(textStack, 0);
-            Grid.SetColumn(controlView, 1);
+            Grid.SetColumn(controlView, 4);
             row.Children.Add(textStack);
             row.Children.Add(controlView);
             row.VerticalAlignment = VerticalAlignment.Center;

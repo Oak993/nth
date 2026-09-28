@@ -70,11 +70,11 @@ public sealed class HeadlessSession : IDisposable
     }
 
     // Forces the embedded Inter release files to resolve every weight this assembly's tests draw with (Regular, Bold,
-    // SemiBold) before any test measures text, so a test whose first layout pass needs two glyph typefaces of the
+    // Medium, SemiBold) before any test measures text, so a test whose first layout pass needs two glyph typefaces of the
     // same weight at once (two crossfading pages, each titled in Bold) never races the collection's own first load.
     private static void WarmFonts()
     {
-        foreach (var weight in new[] { FontWeight.Normal, FontWeight.SemiBold, FontWeight.Bold })
+        foreach (var weight in new[] { FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold })
         {
             var block = new TextBlock { Text = "Warm", FontFamily = new FontFamily("fonts:Inter#Inter"), FontWeight = weight };
             block.Measure(Size.Infinity);
