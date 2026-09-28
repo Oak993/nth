@@ -41,6 +41,72 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     public void Each_tool_kind_has_its_fixed_glyph(ToolCall.Kind kind, string symbol) =>
         Assert.Equal(symbol, ToolPresentation.Symbol(kind));
 
+    // ---- PR-CHAT-099: ToolStatusIcon - a mini spinner while running, a red cross when failed, a raised hand when
+    // declined, the kind's (or an override) glyph when completed, all in a caption-size 16-point-wide column (:2067-2092) ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-099")]
+    public void Running_shows_an_indeterminate_progress_control() => headless.OnUiThread(() =>
+    {
+        var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "run", ToolCallStatus = ToolCall.Status.Running };
+        var icon = new ToolStatusIcon(call);
+        var column = Assert.IsType<Border>(icon.Child);
+        Assert.Equal(TimelineMetrics.IconWidth, column.Width);
+        Assert.IsType<ProgressBar>(column.Child);
+        Assert.True(((ProgressBar)column.Child!).IsIndeterminate);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-099")]
+    public void Failed_shows_a_red_cross() => headless.OnUiThread(() =>
+    {
+        var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "run", ToolCallStatus = ToolCall.Status.Failed };
+        var icon = new ToolStatusIcon(call);
+        var column = Assert.IsType<Border>(icon.Child);
+        var glyph = Assert.IsType<SwiftImage>(column.Child);
+        Assert.Equal("xmark.circle.fill", glyph.SymbolName);
+        Assert.Equal(ChromeTokens.Danger.Resolve(glyph.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(glyph.Foreground).Color);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-099")]
+    public void Declined_shows_a_raised_hand() => headless.OnUiThread(() =>
+    {
+        var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "run", ToolCallStatus = ToolCall.Status.Declined };
+        var icon = new ToolStatusIcon(call);
+        var column = Assert.IsType<Border>(icon.Child);
+        var glyph = Assert.IsType<SwiftImage>(column.Child);
+        Assert.Equal("hand.raised.slash", glyph.SymbolName);
+        Assert.Equal(ChromeTokens.Warning.Resolve(glyph.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(glyph.Foreground).Color);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-099")]
+    public void Completed_shows_the_kinds_own_glyph_unless_an_override_is_given() => headless.OnUiThread(() =>
+    {
+        var call = new ToolCall { ToolCallKind = ToolCall.Kind.Read, Title = "read", ToolCallStatus = ToolCall.Status.Completed };
+        var plain = (SwiftImage)((Border)new ToolStatusIcon(call).Child!).Child!;
+        Assert.Equal("doc.text", plain.SymbolName); // the kind's own glyph (:2222-2233), no override given
+        Assert.Equal(ChromeTokens.SecondaryText.Resolve(plain.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(plain.Foreground).Color);
+
+        var overridden = (SwiftImage)((Border)new ToolStatusIcon(call, symbol: "photo").Child!).Child!;
+        Assert.Equal("photo", overridden.SymbolName); // :1784 a read that looked at an image uses the photo glyph
+    });
+
+    [Theory]
+    [Trait("Req", "PR-CHAT-099")]
+    [InlineData(ToolCall.Status.Running)]
+    [InlineData(ToolCall.Status.Failed)]
+    [InlineData(ToolCall.Status.Declined)]
+    [InlineData(ToolCall.Status.Completed)]
+    public void Every_status_icon_is_at_caption_size_in_a_sixteen_point_column(ToolCall.Status status) => headless.OnUiThread(() =>
+    {
+        var call = new ToolCall { ToolCallKind = ToolCall.Kind.Command, Title = "run", ToolCallStatus = status };
+        var column = (Border)new ToolStatusIcon(call).Child!;
+        Assert.Equal(16.0, column.Width); // TimelineMetrics.IconWidth, :2090
+        Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption), column.GetValue(SwiftImage.FontProperty)); // :2089, set on the column
+    });
+
     // ---- PR-CHAT-102: DiffDetailCache - parsed once per distinct diff, cached sixty deep (:2169-2182) ----
 
     [Fact]
