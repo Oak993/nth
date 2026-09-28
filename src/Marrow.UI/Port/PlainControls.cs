@@ -49,7 +49,7 @@ public static class PlainControls
             if (e.Property == TextBox.TextProperty) ShowPrompt();
         };
         ShowPrompt();
-        return new Panel { Children = { prompt, presenter } };
+        return new Panel { Background = Brushes.Transparent, Children = { prompt, presenter } }; // A native plain TextField accepts input across its frame, including while empty (Chrome.swift:789-792).
     });
 
     /// <summary><c>Button(action:) { label }.buttonStyle(.plain)</c>.</summary>

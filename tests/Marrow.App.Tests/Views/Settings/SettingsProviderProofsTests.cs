@@ -136,14 +136,16 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     {
         // Chrome.swift:1055-1087 HStack spacing 16 + Spacer(minLength:12), VStack spacing 2, padding 16/10/11.
         var border = Assert.IsType<Border>(row.Child); Assert.Equal(new Thickness(16, 11, 10, 11), border.Padding);
-        var grid = Assert.IsType<Grid>(border.Child); Assert.Equal(16, grid.ColumnSpacing); Assert.Equal(VerticalAlignment.Center, grid.VerticalAlignment);
+        var grid = Assert.IsType<Grid>(border.Child); Assert.Equal(VerticalAlignment.Center, grid.VerticalAlignment);
         var labels = Assert.IsType<StackPanel>(grid.Children[0]); Assert.Equal(2, labels.Spacing);
         Layout(row); Leading(labels, grid);
         var texts = labels.Children.Cast<TextBlock>().ToArray(); foreach (var text in texts) { Inter(text); Leading(text, labels); }
         if (detail is not null) { Assert.Equal(2, texts[1].Bounds.Y - texts[0].Bounds.Bottom, 6); Assert.Equal(0, texts[1].MaxLines); Assert.Equal(double.PositiveInfinity, texts[1].MaxHeight); }
         Assert.Equal(title, texts[0].Text); Assert.Equal(13, texts[0].FontSize); Assert.Equal(FontWeight.Normal, texts[0].FontWeight); ColorIs(texts[0], texts[0].Foreground, SwiftColor.LabelColor);
         if (detail is not null) { Assert.Equal(detail, texts[1].Text); Assert.Equal(11, texts[1].FontSize); Assert.Equal(FontWeight.Normal, texts[1].FontWeight); Assert.Equal(TextWrapping.Wrap, texts[1].TextWrapping); Assert.Equal(TextTrimming.None, texts[1].TextTrimming); ColorIs(texts[1], texts[1].Foreground, SwiftColor.LabelColor.Opacity(0.7)); }
-        Assert.Equal(3, grid.ColumnDefinitions.Count); Assert.Equal(new GridLength(12), grid.ColumnDefinitions[1].Width); var control = grid.Children[1]; Assert.Equal(2, Grid.GetColumn(control)); Assert.Equal(new Thickness(0), control.Margin); Assert.Equal(HorizontalAlignment.Right, control.HorizontalAlignment); Assert.Equal(VerticalAlignment.Center, control.VerticalAlignment);
+        var control = grid.Children.Single(x => !ReferenceEquals(x, labels));
+        Assert.Equal(44, control.Bounds.Left - labels.Bounds.Right, 6); // :1062,1072: rendered 16 + 12 + 16 gap around Spacer(minLength: 12).
+        Assert.Equal(grid.Bounds.Width, control.Bounds.Right, 6); Assert.Equal(new Thickness(0), control.Margin); Assert.Equal(HorizontalAlignment.Right, control.HorizontalAlignment); Assert.Equal(VerticalAlignment.Center, control.VerticalAlignment);
     }
     private static void Divider(ChromeRowDivider divider)
     {

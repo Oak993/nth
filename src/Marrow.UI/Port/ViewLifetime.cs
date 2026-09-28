@@ -121,20 +121,46 @@ public sealed class ForEach<TItem, TId> where TId : notnull
         };
     }
 
-    public void Apply(IReadOnlyList<TItem> items)
+    public void Apply(IReadOnlyList<TItem> items) => ApplyLayout(() => rows, () => ApplyRows(items));
+
+    /// <summary>ED-218: reuse the same keyed surviving-row glide with a caller's update-or-rebuild reconciliation.</summary>
+    public void ApplyLayout<TKey>(Func<IReadOnlyDictionary<TKey, Control>> controls, Action reconcile) where TKey : notnull
     {
         // ED-218 (MCPSettingsPage.swift:55-57): capture layout positions plus any unfinished glide before mutation.
         CancelLayout();
         var animation = Transaction.Current;
-        var before = new Dictionary<Control, Point>();
+        var before = new Dictionary<TKey, Point>();
         if (animation is not null && CanGlide())
-            foreach (var row in rows.Values)
+            foreach (var pair in controls())
             {
-                var control = SwiftTransition.Container(row);
+                var control = SwiftTransition.Container(pair.Value);
                 if (control.Bounds.Width > 0 || control.Bounds.Height > 0)
-                    before[control] = control.Bounds.Position + (glides.TryGetValue(control, out var glide) ? glide.Offset : default(Vector));
+                    before[pair.Key] = control.Bounds.Position + (glides.TryGetValue(control, out var glide) ? glide.Offset : default(Vector));
             }
         StopGlides();
+        reconcile();
+        if (before.Count == 0 || animation is null) return;
+        nextLayout = (_, _) =>
+        {
+            CancelLayout();
+            if (!CanGlide()) return;
+            foreach (var pair in controls())
+            {
+                var control = SwiftTransition.Container(pair.Value);
+                if (!before.TryGetValue(pair.Key, out var from)) continue;
+                var offset = from - control.Bounds.Position;
+                if (offset == default(Vector)) continue;
+                glides[control] = new RowGlide(control, offset, animation, CanGlide, () => glides.Remove(control));
+            }
+        };
+        panel.LayoutUpdated += nextLayout;
+        panel.InvalidateArrange();
+    }
+
+
+    private void ApplyRows(IReadOnlyList<TItem> items)
+    {
+        var animation = Transaction.Current;
         var next = new List<Control>(items.Count);
         var seen = new HashSet<TId>();
         foreach (var item in items)
@@ -167,21 +193,6 @@ public sealed class ForEach<TItem, TId> where TId : notnull
             else if (SwiftTransition.HasTransition(row) || animation is not null) SwiftTransition.Insert(panel, i, row);
             else panel.Children.Insert(i, row);
         }
-        if (before.Count == 0 || animation is null) return;
-        nextLayout = (_, _) =>
-        {
-            CancelLayout();
-            if (!CanGlide()) return;
-            foreach (var control in Controls)
-            {
-                if (!before.TryGetValue(control, out var from)) continue;
-                var offset = from - control.Bounds.Position;
-                if (offset == default(Vector)) continue;
-                glides[control] = new RowGlide(control, offset, animation, CanGlide, () => glides.Remove(control));
-            }
-        };
-        panel.LayoutUpdated += nextLayout;
-        panel.InvalidateArrange();
     }
 
     private bool CanGlide() => !EnvironmentValues.GetAccessibilityReduceMotion(panel) && !EnvironmentValues.GetWindowIsLiveResizing(panel);

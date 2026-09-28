@@ -41,7 +41,7 @@ public sealed class MCPSettingsPageSecondTests(HeadlessSession headless)
     }
     [Fact]
     [Trait("Req", "UI-MCP-006")] // App/Views/Settings/MCPSettingsPage.swift:38-47
-    [Trait("Req", "UI-MCP-007")] // App/Views/Settings/MCPSettingsPage.swift:40-45
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:40-45
     public void Connected_card_has_source_radius_and_dividers_and_header_style()
     {
         Ui((model, _) => { State(model, "github", new MCPConnectionState.Connected(1)); State(model, "gitlab", new MCPConnectionState.Connected(2)); var page = new MCPSettingsPage("absent"); using var window = Attach(page, model);
@@ -119,8 +119,8 @@ public sealed class MCPSettingsPageSecondTests(HeadlessSession headless)
         });
     }
     [Fact]
-    [Trait("Req", "UI-MCP-024")] // App/Views/Settings/MCPSettingsPage.swift:324-330
-    [Trait("Req", "UI-MCP-025")] // App/Views/Settings/MCPSettingsPage.swift:324-330
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:324-330
+    [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:324-330
     public void Not_connected_actions_use_correct_connect_or_sign_in_label_and_regular_glass()
     {
         Ui((model, _) => { foreach(var oauth in new[]{false,true}) { var card=new MCPServerCard(Entry(transport:oauth?new MCPTransport.Oauth("https://example.invalid"):null)); using var window=Attach(card,model); var button=Button(card,oauth?"Sign in":"Connect"); Assert.Contains(Nodes<Border>(button),b=>SwiftGlass.GetEffect(b) is { TintColor:null, IsInteractive:true }); } });

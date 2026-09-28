@@ -1,8 +1,14 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Documents;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.UI.Markdown;
@@ -632,4 +638,563 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
             ShellWorkspace.RevealInFileExplorer = previousReveal;
         }
     }
+
+    // ---- real pointer input on the paragraph path (PR-THEME-145, PR-THEME-146) ----
+    // fix/links: a verifier probe drove window.MouseDown/MouseUp over a LinkParagraphView and found a left click on a
+    // link opened nothing and a click on a head mention never reached onOpenHead (the press only moved the selection).
+    // These tests press the real headless pointer, so the press travels the same route a user's click does.
+
+    // A real layout pass and real pointer input need a hosting window (as LinkHoverTests.Show).
+    private static Window ShowForPointer(Control content)
+    {
+        var window = new Window { Width = 400, Height = 300, Content = content };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        return window;
+    }
+
+    // The text layout's own box for one character of the first Run whose text contains `text`, `into` characters in.
+    // Offsets follow the block's inline sequence: a Run counts its characters, an InlineUIContainer one.
+    private static Rect CharacterRect(SelectableTextBlock block, string text, int into = 1)
+    {
+        var offset = 0;
+        foreach (var inline in block.Inlines!)
+        {
+            if (inline is Run run)
+            {
+                var value = run.Text ?? "";
+                var found = value.IndexOf(text, StringComparison.Ordinal);
+                if (found >= 0) return block.TextLayout.HitTestTextRange(offset + found + into, 1).First();
+                offset += value.Length;
+            }
+            else if (inline is InlineUIContainer)
+            {
+                offset++;
+            }
+        }
+        throw new InvalidOperationException("no run holds " + text);
+    }
+
+    private static void Settle(Window window)
+    {
+        window.UpdateLayout();
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void Press(Window window, Control host, Point at, MouseButton button, RawInputModifiers modifiers)
+    {
+        var point = host.TranslatePoint(at, window)!.Value;
+        window.MouseDown(point, button, modifiers);
+        window.MouseUp(point, button, modifiers);
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-145")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:444-451, :90-100, :228-231 (B3)
+    // :444-451 a press off a head mention goes to super.mouseDown, NSTextView's own link click, which asks the
+    // delegate's clickedOnLink (:90-100) to open the URL through MarkdownLinkOpener.open; a URL with a scheme fails the
+    // :228-229 guard and goes to NSWorkspace.shared.open(url) unchanged (:230).
+    public void A_real_left_click_on_a_link_opens_it_through_MarkdownLinkOpener() => headless.OnUiThread(() =>
+    {
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var opened = new List<string>();
+        ShellWorkspace.OpenWithDefaultApp = opened.Add;
+        ShellWorkspace.RevealInFileExplorer = path => opened.Add("reveal " + path);
+        var paragraph = new LinkParagraphView("see [link](https://link-click.invalid/x) here");
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        var window = ShowForPointer(paragraph);
+        try
+        {
+            var point = CharacterRect(block, "link").Center;
+            Assert.Equal(SwiftURL.Create("https://link-click.invalid/x"), view.Link(point)); // set up: the point is on the link
+
+            Press(window, block, point, MouseButton.Left, RawInputModifiers.None);
+
+            Assert.Equal(["https://link-click.invalid/x"], opened);
+        }
+        finally
+        {
+            window.Close();
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-145")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:444-451, :203-216 (B3); Core/Models/Hydra.swift:445
+    // :446-449 a press on a head mention calls onOpenHead with the mention's .hydraHead URL (:210, :216 target.url,
+    // Hydra.swift:445 droppycode-head://<UUID>) and returns without super.mouseDown, so the selection stays as it was.
+    public void A_real_click_on_a_head_mention_opens_the_head_and_leaves_the_selection_alone() => headless.OnUiThread(() =>
+    {
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var opened = new List<string>();
+        ShellWorkspace.OpenWithDefaultApp = opened.Add;
+        ShellWorkspace.RevealInFileExplorer = path => opened.Add("reveal " + path);
+        var target = new HydraMentionTarget { ThreadID = Guid.NewGuid(), Task = "t", Status = HydraHeadInfo.Status.Running };
+        var persona = new HydraPersona("Hank", "dragon-test-asset", 0xFF0000);
+        var targets = new Dictionary<string, HydraMentionTarget> { ["Hank"] = target };
+        var heads = new List<SwiftURL>();
+        var paragraph = new LinkParagraphView("Ping Hank now", mentions: [persona], targets: targets, onOpenHead: heads.Add);
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        var window = ShowForPointer(paragraph);
+        try
+        {
+            block.SelectAll();
+            Settle(window); // the layout and render pass a user's next click comes after
+            var start = block.SelectionStart;
+            var end = block.SelectionEnd;
+            Assert.NotEqual(start, end); // set up: a selection the click must leave alone
+            var point = CharacterRect(block, "Hank").Center;
+            Assert.Equal(target.Url, view.HeadMention(point)?.Url); // set up: the point is on the head mention
+
+            Press(window, block, point, MouseButton.Left, RawInputModifiers.None);
+
+            Assert.Equal([target.Url], heads);
+            Assert.Equal(start, block.SelectionStart);
+            Assert.Equal(end, block.SelectionEnd);
+            Assert.Empty(opened);
+        }
+        finally
+        {
+            window.Close();
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-146")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:458-461, :463-471 (B3)
+    // :458-461 "Control-click reaches the menu path; a link opens the popover there too": menu(for:) presents the link
+    // popover (:463-471 LinkPopover.shared.show) and returns no menu, so the click is not a link open. The port's
+    // counterpart of a control-click is a Ctrl+left press (LinkTextView.OnPointerPressed).
+    public void A_real_ctrl_left_click_on_a_link_presents_the_link_popover_and_opens_nothing() => headless.OnUiThread(() =>
+    {
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var opened = new List<string>();
+        ShellWorkspace.OpenWithDefaultApp = opened.Add;
+        ShellWorkspace.RevealInFileExplorer = path => opened.Add("reveal " + path);
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var paragraph = new LinkParagraphView("see [link](https://link-click.invalid/x) here");
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        var window = ShowForPointer(paragraph);
+        try
+        {
+            var point = CharacterRect(block, "link").Center;
+            Assert.True(view.HasLink(point)); // set up: the point is on the link
+
+            Press(window, block, point, MouseButton.Left, RawInputModifiers.Control);
+
+            var call = Assert.Single(recorder.Calls);
+            Assert.True(call.Presented);
+            Assert.Empty(opened);
+        }
+        finally
+        {
+            LinkPopover.Shared.Close();
+            window.Close();
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-146")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:430-435, :453-456, :463-471 (B3)
+    // :453-456 rightMouseDown presents the link popover and goes no further, "so the click never moves the selection"
+    // (:432-434); nothing is opened.
+    public void A_real_right_click_on_a_link_presents_the_link_popover_and_leaves_the_selection_alone() => headless.OnUiThread(() =>
+    {
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var opened = new List<string>();
+        ShellWorkspace.OpenWithDefaultApp = opened.Add;
+        ShellWorkspace.RevealInFileExplorer = path => opened.Add("reveal " + path);
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var paragraph = new LinkParagraphView("see [link](https://link-click.invalid/x) here");
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        var window = ShowForPointer(paragraph);
+        try
+        {
+            block.SelectAll();
+            Settle(window); // the layout and render pass a user's next click comes after
+            var start = block.SelectionStart;
+            var end = block.SelectionEnd;
+            Assert.NotEqual(start, end); // set up: a selection the click must leave alone
+            var point = CharacterRect(block, "link").Center;
+            Assert.True(view.HasLink(point)); // set up: the point is on the link
+
+            Press(window, block, point, MouseButton.Right, RawInputModifiers.None);
+
+            var call = Assert.Single(recorder.Calls);
+            Assert.True(call.Presented);
+            Assert.Empty(opened);
+            Assert.Equal(start, block.SelectionStart);
+            Assert.Equal(end, block.SelectionEnd);
+        }
+        finally
+        {
+            LinkPopover.Shared.Close();
+            window.Close();
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-145")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:313, :444-451 (B3)
+    // :313 isSelectable = true, and :450 a press off a head mention goes to super.mouseDown, NSTextView's own text
+    // behaviour: a drag across prose selects the characters it crosses and opens nothing.
+    public void A_real_drag_across_prose_still_selects_it_and_opens_nothing() => headless.OnUiThread(() =>
+    {
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var opened = new List<string>();
+        ShellWorkspace.OpenWithDefaultApp = opened.Add;
+        ShellWorkspace.RevealInFileExplorer = path => opened.Add("reveal " + path);
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var heads = new List<SwiftURL>();
+        var paragraph = new LinkParagraphView("first words and more", onOpenHead: heads.Add);
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        var window = ShowForPointer(paragraph);
+        try
+        {
+            // One point into each character: the caret goes before it.
+            var fromRect = CharacterRect(block, "words", into: 0);
+            var toRect = CharacterRect(block, "more", into: 1);
+            var from = block.TranslatePoint(new Point(fromRect.X + 1, fromRect.Center.Y), window)!.Value;
+            var to = block.TranslatePoint(new Point(toRect.X + 1, toRect.Center.Y), window)!.Value;
+            window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
+            window.MouseMove(to, RawInputModifiers.LeftMouseButton);
+            window.MouseUp(to, MouseButton.Left, RawInputModifiers.None);
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal("words and m", block.SelectedText);
+            Assert.Empty(opened);
+            Assert.Empty(heads);
+            Assert.Empty(recorder.Calls);
+        }
+        finally
+        {
+            window.Close();
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-145")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:444-451, :90-100 (B3)
+    // :450 a press on prose (no head mention under it) goes to super.mouseDown; with no link under the point there is
+    // no clickedOnLink (:90-100), so nothing is opened, no head is opened and no popover is shown.
+    public void A_real_click_on_plain_prose_opens_nothing() => headless.OnUiThread(() =>
+    {
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var opened = new List<string>();
+        ShellWorkspace.OpenWithDefaultApp = opened.Add;
+        ShellWorkspace.RevealInFileExplorer = path => opened.Add("reveal " + path);
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var target = new HydraMentionTarget { ThreadID = Guid.NewGuid(), Task = "t", Status = HydraHeadInfo.Status.Running };
+        var persona = new HydraPersona("Hank", "dragon-test-asset", 0xFF0000);
+        var targets = new Dictionary<string, HydraMentionTarget> { ["Hank"] = target };
+        var heads = new List<SwiftURL>();
+        var paragraph = new LinkParagraphView("plain words then Hank and [link](https://link-click.invalid/x)",
+            mentions: [persona], targets: targets, onOpenHead: heads.Add);
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        var window = ShowForPointer(paragraph);
+        try
+        {
+            var point = CharacterRect(block, "plain").Center;
+            Assert.False(view.HasLink(point)); // set up: prose, not a link
+            Assert.Null(view.HeadMention(point)); // set up: prose, not a head mention
+
+            Press(window, block, point, MouseButton.Left, RawInputModifiers.None);
+
+            Assert.Empty(opened);
+            Assert.Empty(heads);
+            Assert.Empty(recorder.Calls);
+        }
+        finally
+        {
+            window.Close();
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+        }
+    });
+
+    // ---- fix/links round 2: which button opens a head, and a right-click outside the selection ----
+    // The verifier found that a right or middle press on a head mention called onOpenHead, and that a right-click on a
+    // link still moved a selection that did not hold the link (the earlier right-click test clicked inside SelectAll).
+
+    // Presses `button` with `modifiers` on the head mention in "Ping Hank now" (no link in the paragraph), with the
+    // opener seams stubbed and the popover presenter recorded. Returns what onOpenHead received, what was opened, how
+    // many popover calls were recorded, and the head mention's own URL.
+    private static (List<SwiftURL> Heads, List<string> Opened, int Popovers, SwiftURL Target) PressOnHeadMention(
+        MouseButton button, RawInputModifiers modifiers)
+    {
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var opened = new List<string>();
+        ShellWorkspace.OpenWithDefaultApp = opened.Add;
+        ShellWorkspace.RevealInFileExplorer = path => opened.Add("reveal " + path);
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var target = new HydraMentionTarget { ThreadID = Guid.NewGuid(), Task = "t", Status = HydraHeadInfo.Status.Running };
+        var persona = new HydraPersona("Hank", "dragon-test-asset", 0xFF0000);
+        var targets = new Dictionary<string, HydraMentionTarget> { ["Hank"] = target };
+        var heads = new List<SwiftURL>();
+        var paragraph = new LinkParagraphView("Ping Hank now", mentions: [persona], targets: targets, onOpenHead: heads.Add);
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        var window = ShowForPointer(paragraph);
+        try
+        {
+            var point = CharacterRect(block, "Hank").Center;
+            Assert.Equal(target.Url, view.HeadMention(point)?.Url); // set up: the point is on the head mention
+            Assert.False(view.HasLink(point)); // set up: not a link, so no press here presents the link popover
+
+            Press(window, block, point, button, modifiers);
+
+            return (heads, opened, recorder.Calls.Count, target.Url);
+        }
+        finally
+        {
+            LinkPopover.Shared.Close();
+            window.Close();
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-145")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:444-456, :463-471 (B3)
+    // Only mouseDown (:444-451, the left button) looks for a head mention and calls onOpenHead. rightMouseDown
+    // (:453-456) asks presentLinkPopover (:463-471), which finds no link here and returns false, and then goes to
+    // super.rightMouseDown. Neither path calls onOpenHead.
+    public void A_real_right_press_on_a_head_mention_does_not_open_the_head() => headless.OnUiThread(() =>
+    {
+        var (heads, opened, popovers, _) = PressOnHeadMention(MouseButton.Right, RawInputModifiers.None);
+
+        Assert.Empty(heads);
+        Assert.Empty(opened);
+        Assert.Equal(0, popovers);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-145")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:275-550, :444-451 (B3)
+    // LinkTextView (:275-550) overrides mouseDown (:444-451) and rightMouseDown (:453-456) but not otherMouseDown, so
+    // a middle press goes to NSTextView's own handling and never reaches the head check. onOpenHead is not called.
+    public void A_real_middle_press_on_a_head_mention_does_not_open_the_head() => headless.OnUiThread(() =>
+    {
+        var (heads, opened, popovers, _) = PressOnHeadMention(MouseButton.Middle, RawInputModifiers.None);
+
+        Assert.Empty(heads);
+        Assert.Empty(opened);
+        Assert.Equal(0, popovers);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-145")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:444-451 (B3); App/Views/Chat/MessagePopoverMenu.swift:63-65, :73-79 (B3)
+    // The source treats a control-click as a .leftMouseDown carrying the control flag and handles it in
+    // mouseDown(with:) (MessagePopoverMenu.swift:63-65, :73-79). LinkTextView.mouseDown checks for a head mention
+    // before anything else (:446-449), so a control-click on a head opens it. Guards the round 2 fix: the head branch
+    // is limited to a left press, and a Ctrl+left press is still a left press.
+    public void A_real_ctrl_left_click_on_a_head_mention_still_opens_the_head() => headless.OnUiThread(() =>
+    {
+        var (heads, opened, popovers, target) = PressOnHeadMention(MouseButton.Left, RawInputModifiers.Control);
+
+        Assert.Equal([target], heads);
+        Assert.Empty(opened);
+        Assert.Equal(0, popovers);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-146")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:430-435, :453-456, :463-471 (B3)
+    // :453-456 rightMouseDown presents the link popover (:463-471) and returns without super.rightMouseDown, "so the
+    // click never moves the selection" (:432-434). Here the selection is prose after the link and does not hold the
+    // click point, so a click that moved the selection to the point would show.
+    public void A_real_right_click_on_a_link_outside_the_selection_leaves_the_selection_alone() => headless.OnUiThread(() =>
+    {
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var opened = new List<string>();
+        ShellWorkspace.OpenWithDefaultApp = opened.Add;
+        ShellWorkspace.RevealInFileExplorer = path => opened.Add("reveal " + path);
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var paragraph = new LinkParagraphView("see [link](https://link-click.invalid/x) here and more words");
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        var window = ShowForPointer(paragraph);
+        try
+        {
+            var start = block.Inlines!.Text!.IndexOf("more", StringComparison.Ordinal);
+            var end = start + "more".Length;
+            block.SelectionStart = start;
+            block.SelectionEnd = end;
+            Settle(window); // the layout and render pass a user's next click comes after
+            Assert.Equal("more", block.SelectedText); // set up: a selection that does not hold the link
+            var point = CharacterRect(block, "link").Center;
+            Assert.True(view.HasLink(point)); // set up: the point is on the link
+
+            Press(window, block, point, MouseButton.Right, RawInputModifiers.None);
+
+            var call = Assert.Single(recorder.Calls);
+            Assert.True(call.Presented);
+            Assert.Empty(opened);
+            Assert.Equal(start, block.SelectionStart);
+            Assert.Equal(end, block.SelectionEnd);
+        }
+        finally
+        {
+            LinkPopover.Shared.Close();
+            window.Close();
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+        }
+    });
+
+    // ---- fix/links round 3: a press LinkTextView handles must not leave the text block tracking a drag ----
+    // The round 2 verifier found that a handled press (a head, a link, a Ctrl+left popover) left the mouse device's
+    // implicit capture on the SelectableTextBlock. Avalonia 12.1.2's SelectableTextBlock.OnPointerMoved extends the
+    // selection whenever it holds the capture with the left button down, from a SelectionStart its own press handler
+    // never set. A real mouse or trackpad nearly always moves a pixel between down and up, so these clicks move 1 px,
+    // with the button held, before the release. ENGINEERING DECISION: a 1 px move is still a click, so its outcome must
+    // be the still click's; AppKit's own drag threshold is not in the pinned source, and none is modelled here.
+
+    // Builds a fresh paragraph through `make` (given the list onOpenHead fills), selects "more", then clicks `button`
+    // with `modifiers` on the centre of the text `on`, moving `moveBy` px right between the press and the release.
+    private static (List<string> Opened, int Popovers, List<SwiftURL> Heads, int SelectionStart, int SelectionEnd, int MoreStart)
+        ClickWithMoreSelected(
+        Func<List<SwiftURL>, LinkParagraphView> make, string on, MouseButton button, RawInputModifiers modifiers, double moveBy)
+    {
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        var opened = new List<string>();
+        ShellWorkspace.OpenWithDefaultApp = opened.Add;
+        ShellWorkspace.RevealInFileExplorer = path => opened.Add("reveal " + path);
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var heads = new List<SwiftURL>();
+        var paragraph = make(heads);
+        var view = (LinkTextView)paragraph.Child!;
+        var block = (SelectableTextBlock)view.Child!;
+        var window = ShowForPointer(paragraph);
+        try
+        {
+            var start = block.Inlines!.Text!.IndexOf("more", StringComparison.Ordinal);
+            block.SelectionStart = start;
+            block.SelectionEnd = start + "more".Length;
+            Settle(window); // the layout and render pass a user's next click comes after
+            Assert.Equal("more", block.SelectedText); // set up: a selection that does not hold the click point
+
+            var press = block.TranslatePoint(CharacterRect(block, on).Center, window)!.Value;
+            var release = press + new Vector(moveBy, 0);
+            var held = modifiers | button switch
+            {
+                MouseButton.Left => RawInputModifiers.LeftMouseButton,
+                MouseButton.Right => RawInputModifiers.RightMouseButton,
+                _ => RawInputModifiers.MiddleMouseButton,
+            };
+            window.MouseDown(press, button, modifiers);
+            if (moveBy != 0) window.MouseMove(release, held);
+            window.MouseUp(release, button, modifiers);
+            Dispatcher.UIThread.RunJobs();
+
+            return (opened, recorder.Calls.Count, heads, block.SelectionStart, block.SelectionEnd, start);
+        }
+        finally
+        {
+            LinkPopover.Shared.Close();
+            window.Close();
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+        }
+    }
+
+    private static LinkParagraphView LinkParagraph(List<SwiftURL> heads) =>
+        new("see [link](https://link-click.invalid/x) here and more words", onOpenHead: heads.Add);
+
+    private static readonly HydraMentionTarget JitterHead =
+        new() { ThreadID = Guid.NewGuid(), Task = "t", Status = HydraHeadInfo.Status.Running };
+
+    private static LinkParagraphView HeadParagraph(List<SwiftURL> heads) =>
+        new("Ping Hank now and more words",
+            mentions: [new HydraPersona("Hank", "dragon-test-asset", 0xFF0000)],
+            targets: new Dictionary<string, HydraMentionTarget> { ["Hank"] = JitterHead },
+            onOpenHead: heads.Add);
+
+    [Fact]
+    [Trait("Req", "PR-THEME-145")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:444-451 (B3)
+    // :446-449 mouseDown calls onOpenHead and returns without super.mouseDown, so NSTextView never tracks the press and
+    // the selection cannot move, however the pointer moves before the release.
+    public void A_head_click_that_moves_a_pixel_opens_the_head_once_and_leaves_the_selection_alone() => headless.OnUiThread(() =>
+    {
+        var click = ClickWithMoreSelected(HeadParagraph, "Hank", MouseButton.Left, RawInputModifiers.None, moveBy: 1);
+
+        Assert.Equal([JitterHead.Url], click.Heads);
+        Assert.Empty(click.Opened);
+        Assert.Equal(0, click.Popovers);
+        Assert.Equal(click.MoreStart, click.SelectionStart);
+        Assert.Equal(click.MoreStart + "more".Length, click.SelectionEnd);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-145")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:444-451, :90-100 (B3)
+    // :450 a press off a head mention goes to NSTextView's own link click, which opens through clickedOnLink (:90-100).
+    // A 1 px move is still that click: the link opens once and the selection ends where the still click leaves it.
+    public void A_link_click_that_moves_a_pixel_opens_the_link_once_like_a_still_click() => headless.OnUiThread(() =>
+    {
+        var still = ClickWithMoreSelected(LinkParagraph, "link", MouseButton.Left, RawInputModifiers.None, moveBy: 0);
+        var moved = ClickWithMoreSelected(LinkParagraph, "link", MouseButton.Left, RawInputModifiers.None, moveBy: 1);
+
+        Assert.Equal(["https://link-click.invalid/x"], moved.Opened);
+        Assert.Equal(still.Opened, moved.Opened);
+        Assert.Equal(0, moved.Popovers);
+        Assert.Equal((still.SelectionStart, still.SelectionEnd), (moved.SelectionStart, moved.SelectionEnd));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-146")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:458-461, :463-471 (B3)
+    // :458-461 a control-click on a link presents the link popover (:463-471) and opens nothing. A 1 px move is still
+    // that click: one popover, nothing opened, and the selection ends where the still click leaves it.
+    public void A_ctrl_left_click_on_a_link_that_moves_a_pixel_presents_the_popover_like_a_still_click() => headless.OnUiThread(() =>
+    {
+        var still = ClickWithMoreSelected(LinkParagraph, "link", MouseButton.Left, RawInputModifiers.Control, moveBy: 0);
+        var moved = ClickWithMoreSelected(LinkParagraph, "link", MouseButton.Left, RawInputModifiers.Control, moveBy: 1);
+
+        Assert.Equal(1, moved.Popovers);
+        Assert.Empty(moved.Opened);
+        Assert.Equal((still.SelectionStart, still.SelectionEnd), (moved.SelectionStart, moved.SelectionEnd));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-146")] // DroppyCode/UI/Markdown/LinkParagraphView.swift:430-435, :453-456 (B3)
+    // :453-456 rightMouseDown presents the popover and returns without super.rightMouseDown "so the click never moves
+    // the selection" (:432-434), also when the pointer moves a pixel before the release. Guards the round 3 fix: the
+    // released capture must not let the right release reach SelectableTextBlock's selection handling.
+    public void A_right_click_on_a_link_that_moves_a_pixel_leaves_the_selection_alone() => headless.OnUiThread(() =>
+    {
+        var click = ClickWithMoreSelected(LinkParagraph, "link", MouseButton.Right, RawInputModifiers.None, moveBy: 1);
+
+        Assert.Equal(1, click.Popovers);
+        Assert.Empty(click.Opened);
+        Assert.Equal(click.MoreStart, click.SelectionStart);
+        Assert.Equal(click.MoreStart + "more".Length, click.SelectionEnd);
+    });
 }

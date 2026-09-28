@@ -9,7 +9,10 @@ namespace Marrow.App.Tests;
 public sealed class AppModelHydraMergeReviewTests
 {
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-077")] // App/AppModel+HydraMerge.swift:660-663
+    // STOP opencode-App.AppModel_HydraMerge #2: PR-HYDRAMERGE-077, Swift :657-663 / Git.swift presentPaths.
+    // Missing outside-unit dependency: a permitted fixture producing truncated successful cat-file output.
+    // ED-207 ShellObserver observes real entry only; GitProbes hooks cannot replace batch output. Keep this partial proof.
+    [Trait("Rule", "R-FS-1")] // App/AppModel+HydraMerge.swift:660-663
     public void An_untracked_reported_directory_is_not_silently_spent()
     {
         using var f = new HydraMergeReviewFixture(origin: false, touched: "newdir");
@@ -43,7 +46,9 @@ public sealed class AppModelHydraMergeReviewTests
     }
 
     [Fact]
-    [Trait("Req", "PR-HYDRAMERGE-063")] // App/AppModel+HydraMerge.swift:805-817
+    // STOP opencode-App.AppModel_HydraMerge #1: PR-HYDRAMERGE-063, Swift :797-808 / Git.swift presentPaths.
+    // Missing outside-unit dependency: truncated successful cat-file output to reproduce positional unanswered-tail removal.
+    // ED-207 prohibits output substitution; observer exceptions are not proof of this successful-stream defect.
     [Trait("Rule", "R-ERR-1")] // App/AppModel+HydraMerge.swift:815-817
     public async Task Sync_propagates_the_original_trap()
     {

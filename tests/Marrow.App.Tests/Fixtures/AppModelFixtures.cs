@@ -1,4 +1,8 @@
+using System.Collections;
+using System.Reflection;
 using System.Text;
+using Avalonia.Threading;
+using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -190,11 +194,73 @@ public sealed class AppModelHarness : IDisposable
 
     public void Dispose()
     {
-        for (var index = scopes.Count - 1; index >= 0; index--) scopes[index].Dispose();
-        Runtime?.Dispose();
-        try { Directory.Delete(baseFolder, recursive: true); }
-        catch (IOException) { }
-        catch (UnauthorizedAccessException) { }
+        try { FinishFileIndexBuilds(); }
+        finally
+        {
+            for (var index = scopes.Count - 1; index >= 0; index--) scopes[index].Dispose();
+            Runtime?.Dispose();
+            try { Directory.Delete(baseFolder, recursive: true); }
+            catch (IOException) { }
+            catch (UnauthorizedAccessException) { }
+        }
+    }
+
+    private static readonly FieldInfo FileIndexBuilding =
+        typeof(FileIndex).GetField("Building", BindingFlags.NonPublic | BindingFlags.Static)
+        ?? throw new MissingFieldException(nameof(FileIndex), "Building");
+
+    /// <summary>
+    /// R-TEST-5. FileIndex's building map is a static shared by every composer (ComposerView.swift:1125-1126), and a
+    /// build leaves it only when its task, spawned on the main actor, runs to its end there (:1146-1152). A composer
+    /// mounted in this harness whose build of one of its folders is still under way when the test ends would never
+    /// finish it: this manual loop is never pumped again, and the headless session makes a new dispatcher for every
+    /// test (AvaloniaTestIsolationLevel.PerTest). Every later composer in that folder would join the dead build
+    /// (:1140-1141), and with two left, a composer in any new folder waits on one of them (:1142-1144). So the builds
+    /// of this harness's folders are run to their end here, on the loop (and, on the headless UI thread, the dispatcher)
+    /// they were spawned on, before the folders are deleted.
+    /// </summary>
+    private void FinishFileIndexBuilds()
+    {
+        var building = (IDictionary)FileIndexBuilding.GetValue(null)!;
+        var prefix = Path.TrimEndingDirectorySeparator(Path.GetFullPath(baseFolder)) + Path.DirectorySeparatorChar;
+        var pending = new List<Task>();
+        // The map is main-actor state; a harness of a test class running in parallel reads it here while a headless
+        // test's composer may be writing it, so a read that meets a write is taken again.
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                pending.Clear();
+                foreach (DictionaryEntry entry in building)
+                {
+                    if (entry.Key is string directory && entry.Value is TaskHandle { Completion.IsCompleted: false } build
+                        && Path.GetFullPath(directory).StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                        pending.Add(build.Completion);
+                }
+                break;
+            }
+            catch (InvalidOperationException) when (attempt < 100) { }
+        }
+        if (pending.Count == 0) return;
+        var finished = Task.WhenAll(pending);
+        var onUiThread = HeadlessSession.IsInBody;
+        var loop = Runtime?.Loop ?? MainActor.Executor.Current as ManualMainLoop;
+        if (loop is not null)
+        {
+            loop.RunUntil(() =>
+            {
+                if (onUiThread) Dispatcher.UIThread.RunJobs();
+                return finished.IsCompleted;
+            }, Bound);
+        }
+        else if (onUiThread)
+        {
+            HeadlessSession.RunDispatcherUntil(finished, Bound);
+        }
+        else if (!finished.Wait(Bound))
+        {
+            throw new TimeoutException("A FileIndex build of this harness's folders did not finish.");
+        }
     }
 }
 

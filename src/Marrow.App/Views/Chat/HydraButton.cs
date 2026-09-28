@@ -842,7 +842,10 @@ public static class HydraPairSummary
         if (lead is not null && heads is not null)
         {
             if (SwiftString.Equal(lead, heads))
-                return SwiftString.Uppercased(SwiftString.Prefix(lead, 1)) + SwiftString.DropFirst(lead, 1) + " effort";
+                // :687 lead.capitalized: each word of the lowercased effort title (including "extra high").
+                // UNVERIFIED O-07: invariant TextInfo word boundaries outside the pinned effort titles may
+                // differ from NSString.capitalized; all catalog titles, including "extra high", agree.
+                return CultureInfo.InvariantCulture.TextInfo.ToTitleCase(lead) + " effort";
             return $"Lead {lead}, heads {heads} effort";
         }
 

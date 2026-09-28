@@ -145,6 +145,12 @@ internal static class RightClickCatcher
 
         // ED-183: Set e.Handled = true to prevent the event from reaching the underlying content
         e.Handled = true;
+
+        // :62-67 hitTest gave the press to the catcher view, and AppKit sends the rest of that click (its drags and its
+        // release, swallowed at :81) to the same view. The mouse device has already captured the pointer for the element
+        // under it, where a SelectableTextBlock extends a selection from a stale start on the next move with the left
+        // button down; capturing it for the catcher routes the moves and the release to the catcher instead.
+        e.Pointer.Capture(content);
     }
 
     /// <summary>:82 rightMouseUp: swallowed (no-op). Also swallows the release from control+click.</summary>

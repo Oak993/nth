@@ -128,4 +128,69 @@ public sealed class EffortSliderComponentsTests(HeadlessSession headless)
         try { AssertArtwork(Assert.Single(card.GetVisualDescendants().OfType<ProviderIcon>()), 12); }
         finally { window.Close(); }
     });
+
+    private static AppModel CatalogModel(AppModelHarness harness, ChatThread thread)
+    {
+        // ProviderRegistry.LoadCatalog awaits the process-global pool read on first use. Complete that
+        // prerequisite before showing the chip; RunJobs alone cannot drain it. No retry or timeout change.
+        Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+        harness.WriteLibrary([], [thread]); var model = new AppModel();
+        foreach (var provider in SwiftEnum<ProviderKind>.AllCases) // fail closed: no provider CLI can resolve
+            if (!provider.IsAPIKeyBased) model.Settings.SetBinaryPath(Path.Combine(harness.Scratch, "missing.exe"), provider);
+        return model;
+    }
+
+    // Swift :60 `let registry = model.providers` is read by the body; :138 `.task(id: thread.provider) { await
+    // registry.loadCatalog(thread.provider) }` closes over that registry, so the task never looks the environment up.
+    // ProviderRegistry.swift:538-559: a Codex load with no executable marks the provider loading, then clears it.
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-145")] // App/Views/Composer/EffortSlider.swift:60,138
+    [Trait("Rule", "R-VIEW-3")]
+    public void A_live_model_chip_loads_its_providers_catalog_once() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness(withRuntime: false);
+        var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "test-model", null, RuntimeMode.Supervised);
+        var model = CatalogModel(harness, thread);
+        var states = new List<bool>();
+        model.Providers.PropertyChanged += (_, change) =>
+        {
+            if (change.PropertyName == nameof(model.Providers.LoadingCatalogs)) states.Add(model.Providers.LoadingCatalogs.Contains(ProviderKind.Codex));
+        };
+        var window = Show(new ModelEffortButton(thread, false), model);
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal([true, false], states); // one load: :558 insert, :559 defer remove
+        }
+        finally { window.Close(); }
+    });
+
+    // ComposerView.swift:688 (ModelEffortSlot) and the composer's control row replace the chip in the port when their
+    // inputs change. A chip replaced in the same main turn it appeared in leaves its :138 task queued and cancelled
+    // (R-VIEW-3). That task reads the registry its body captured (:60), so it has nothing to look up once the chip has
+    // left the tree, and nothing may escape onto the main loop: an escaping error there ends the app (SwiftTask.cs Run).
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-145")] // App/Views/Composer/EffortSlider.swift:60,138
+    [Trait("Rule", "R-VIEW-3")]
+    public void A_model_chip_replaced_before_its_catalog_task_starts_throws_nothing_on_the_main_loop() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness(withRuntime: false);
+        var thread = new ChatThread(Guid.NewGuid(), ProviderKind.Codex, "test-model", null, RuntimeMode.Supervised);
+        var model = CatalogModel(harness, thread);
+        var slot = new Border();
+        var window = Show(slot, model);
+        try
+        {
+            var first = new ModelEffortButton(thread, false);
+            slot.Child = first;                                // appears: its .task is enqueued, not yet started
+            Assert.True(first.IsAttachedToVisualTree());
+            slot.Child = new ModelEffortButton(thread, true);  // replaced in the same turn: the first task is cancelled
+            Assert.False(first.IsAttachedToVisualTree());
+            Assert.Null(Record.Exception(() => Dispatcher.UIThread.RunJobs()));
+            Assert.Empty(model.Providers.LoadingCatalogs);     // every load that ran cleared its mark (:559)
+        }
+        finally { window.Close(); }
+    });
 }

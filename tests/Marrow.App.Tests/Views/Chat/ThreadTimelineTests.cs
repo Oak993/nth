@@ -172,10 +172,8 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
         var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([]), new([]), true); var badge = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), new([]), new([]), false); var cardShell = LogicalQuery.SelfAndDescendants<Border>(card).Single(border => border.Width == 380); Assert.Equal(new Thickness(14, 11), cardShell.Padding); var badgeShell = LogicalQuery.SelfAndDescendants<Border>(badge).Single(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical)); Assert.True(double.IsNaN(badgeShell.Width)); Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card)); Assert.Equal("Show these steps", ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(card).Single()));
     });
 
-    // STOP App.Views.Chat.ThreadTimeline #2
-    // Kind: dependency. Swift: ThreadTimeline.swift:2104,2173-2176. Records: PR-CHAT-117/121/125 (live tool summary and work rows only).
-    // Missing: TimelineRows.WorkGroupSummary.Text and WorkSteps constructors are MARROW_STUB.
-    // Needed: those external members; card/badge shell, title/time/bar and thinking expansion remain owned and implementable.
+    // STOP App.Views.Chat.ThreadTimeline #2 (resolved): TimelineRows.WorkGroupSummary.Text and WorkSteps are ported; the
+    // live tool summary (ThreadTimeline.swift:2104) and the opened work rows (:2169-2172) are proven in ThreadTimelineProofTests.
 
     [Fact]
     [Trait("Req", "PR-CHAT-126")] // App/Views/Chat/ThreadTimeline.swift:2301-2314

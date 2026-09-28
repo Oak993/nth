@@ -967,7 +967,8 @@ public void Files_line_for_zero_files_keeps_both_zero_totals()
 }
 
 [Fact]
-[Trait("Req", "PR-HYDRAMERGE-063")] // AppModel+HydraMerge.swift:722-748
+// STOP opencode-App.AppModel_HydraMerge #1: partial happy-path proof; truncated successful cat-file stream needs the Services.Git fixture seam (ED-207).
+[Trait("Rule", "R-FS-1")] // AppModel+HydraMerge.swift:778-818
 public async Task Sync_default_branch_fast_forwards_and_checks_out_remote_changes()
 {
     using var h = new AppModelHarness();
@@ -2108,16 +2109,16 @@ public void Reported_paths_drop_empty_and_build_output_and_keep_inside_paths_rel
         Assert.False(blocking.ContainsKey("orphaned.txt"));
     }
 
-    // UNRESOLVED: PR-HYDRAMERGE-077 and PR-HYDRAMERGE-078 need a controlled sibling-claim fixture, including tracked/deleted paths and an injected git cat-file stream failure. The supplied fixtures do not expose the required git-command seam.
+    // CLOSED: sibling/filter/booking fixture gaps are covered in OwnershipTests and Part1Tests; only Req-077 cat-file truncation remains STOP #2 above.
     // UNRESOLVED: PR-HYDRAMERGE-085 needs a safe, controllable application-foreground/notification seam; the supplied material does not identify one.
-    // UNRESOLVED: PR-HYDRAMERGE-111 needs a controllable in-flight Hydra landing and a way to change readiness while it is awaited; the supplied fixtures do not expose either.
-    // UNRESOLVED: PR-HYDRAMERGE-117 needs representative competing leads, head landing records, and controllable runtime readiness to exercise ranked-out claims. The packet does not provide enough model construction details to build those states safely.
+    // CLOSED: the existing HydraLanding task seam is exercised by GuardTests.Of_two_waiters_only_one_starts_at_a_poll_and_the_other_waits_for_its_release.
+    // CLOSED: competing lead/head construction and ranked blocking maps are exercised by AppModelHydraMergeOwnershipTests.
     // (PR-HYDRAMERGE-112, the cross-group hold join this comment used to pair -117 with, is RETIRED at B3: AppModel+HydraMerge.swift no longer joins or checks a held map at all, so it needs no fixture and is not listed here -- A34 S4.)
-    // UNRESOLVED: PR-HYDRAMERGE-130 needs a HydraWorkFor fixture with a live sibling's blocking claim plus this job's OWN tool edit (a TimelineItem.Content.Tool entry with a matching Edits[].Path) on the same path, to show it still goes out; no existing fixture in this test file builds a Tool timeline entry, and inventing its exact shape without reading Core/Models/Timeline.swift's tool-edit record first risks a wrong fixture, which PR-HYDRAMERGE-075 above (in-memory, no git needed) shows is worth doing carefully rather than guessing here.
-    // UNRESOLVED: PR-HYDRAMERGE-116 needs a controlled tree-capture/claim-change seam to verify the post-snapshot checks without relying on timing or external processes.
+    // CLOSED: all three own-edit sources, including live/cold head tool timelines, are exercised by AppModelHydraMergeOwnershipTests.
+    // CLOSED: ED-207 ShellObserver exercises readiness changes at add/write-tree in AppModelHydraMergeGuardTests.
     // UNRESOLVED: UI-CHAT-084 and UI-HYDRAMERGE-036 need the actual timeline View/Control test harness to verify pill rendering and interactions.
     // (UI-CHAT-083 and UI-HYDRAMERGE-035, the hold-note and hold-pill entries this comment used to include, are RETIRED at B3: recordHydraHold and heldDetail are deleted, so no hold note or pill is ever produced and neither needs a fixture -- A34 S4.)
     // UNRESOLVED: UI-HYDRAMERGE-032 needs the platform notification test seam to verify notification delivery and targeting.
     // UNRESOLVED: UI-HYDRAMERGE-033 needs the platform badge test seam to verify taskbar badge updates.
-    // UNRESOLVED: UI-HYDRAMERGE-034 needs a known DiffFile construction fixture and a forge-body assertion seam; neither is supplied here.
+    // Dependency landed: DiffFile construction and forge-body argv observation exist (Part1Tests/PreparationTests). UI-HYDRAMERGE-034 is outside this unit TODO list.
 }
