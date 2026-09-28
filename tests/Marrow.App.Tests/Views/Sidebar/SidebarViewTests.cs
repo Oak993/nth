@@ -46,22 +46,21 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // window: the environment reaches it through the logical tree, its tracked parts stay inert, and its builders and
 // handlers can be called directly). The Window sweep below also drives populated, attached real rows.
 //
-// STOP App.Views.Sidebar.SidebarView #1
-// Kind: unverified
+// CLOSED STOP App.Views.Sidebar.SidebarView #1 (Job SB, ROUND3.md item 1)
 // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:737-751 (B3 52bc792); :743 `project.name.lowercased().contains(needle)`
 // and :745 `titles[$0.id]?.contains(needle) ?? $0.title.lowercased().contains(needle)`
-// Requirements: PR-SIDEBAR-005 (and PR-SIDEBAR-043 of part 2)
-// What is unclear or missing: the search field's Return runs searchResults even when the trimmed query is empty
-// (:86-90), so `contains` is asked about an empty needle. Two Swift overloads can answer: Foundation's
-// StringProtocol.contains (range(of:) != nil, which finds no range for "", so false) and the standard library's
-// Collection.contains from _StringProcessing (an empty collection is always contained, so true). Which one the
-// macOS 26 build binds for `String.contains(String)` with AppKit imported is not settled by the source, and the two
-// give different observable results.
-// Readings or options: (a) Foundation's -> Return in an empty (or whitespace-only) field selects nothing;
-// (b) the standard library's -> it selects the first thread of the first project that has one.
-// Needed to proceed: an oracle item (a macOS run of `"abc".contains("")` in an AppKit target) or a recorded decision.
-// Done so far: Return and the arrows are tested for non-empty queries only; the empty-needle case of the matching
-// helper is left unwritten (a MARROW_STUB naming this STOP), nothing guessed.
+// Requirements: PR-SIDEBAR-005 (empty-query half)
+// Was: the search field's Return runs searchResults even when the trimmed query is empty (:86-90), so `contains` is
+// asked about an empty needle, and two Swift overloads could answer differently: Foundation's NSString-bridged
+// contains (false for "") or the standard library's SE-0357 contains (true for "").
+// ENGINEERING DECISION (closes this STOP; full citation at Contains's own site, SidebarView.cs :1339): an empty
+// needle answers true. `.lowercased()` produces a plain Swift String, so the applicable overload is the standard
+// library's `firstRange(of:) != nil` (SE-0357, SwiftStdlib 5.7+, unchanged through the pinned Swift 6.0 toolchain);
+// Foundation's NSString.contains(_:), the only candidate that answers false, needs an explicit NSString receiver
+// this call site never produces. Proven by Return_with_an_empty_query_selects_the_first_thread_of_the_first_project.
+// Residual caveat: no macOS run of the pinned toolchain confirmed this by direct observation.
+// STOP #5 below (the character-wise-canonical-vs-ordinal question for a NON-empty needle) is a separate, still open
+// question this decision does not resolve either way (an empty needle matches under any reading).
 //
 // Resolved STOP #2: WindowManager.Shared/ShowSettings and SettingsView are real. The source Settings click,
 // manager/model ownership and reused Settings window are exercised by Clicking_Settings_opens_the_real_shared_managers_SettingsView_and_reuses_its_window.
@@ -96,19 +95,23 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // Done so far: the dedupe test adds the folder through this row twice, so both reads agree and the source's rule is
 // observable; no test asserts the stored path of a chosen folder.
 //
-// STOP App.Views.Sidebar.SidebarView #5
+// STOP App.Views.Sidebar.SidebarView #5 (still open; narrowed by the #1 closure, not resolved by it)
 // Kind: unverified
 // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:743, :745 (B3 52bc792) `.lowercased().contains(needle)`
 // Requirements: PR-SIDEBAR-043
-// What is unclear or missing: ED-009 asks the search fixture to cover a combining-mark case. Which `contains` the
-// source binds (STOP #1) also decides how a combining mark matches: the standard library's Collection.contains walks
-// Characters under canonical equivalence (a needle "e" does not match inside "e" + U+0301, and a precomposed U+00E9
-// needle matches a decomposed title), while the port's `Contains` (part 1) is an ordinal substring test (the
-// opposite answer in both cases). Lowercasing itself is settled (O-07, per-scalar) and is pinned below with U+0130,
-// U+0131 and the final sigma, where every reading agrees.
-// Readings or options: (a) Character-wise canonical matching -> the answers above; (b) ordinal UTF-16 matching -> the
-// opposite answers; (c) Foundation's `range(of:)` without options -> its own rules.
-// Needed to proceed: the same oracle item or decision STOP #1 needs.
+// What is unclear or missing: ED-009 asks the search fixture to cover a combining-mark case. The #1 closure above
+// (Contains(text, needle) with needle.Length == 0) identifies the bound overload as the standard library's, whose
+// non-empty-needle behaviour is Collection.contains walking Characters under canonical equivalence (a needle "e"
+// does not match inside "e" + U+0301, and a precomposed U+00E9 needle matches a decomposed title) - option (a)
+// below. The port's `Contains` (part 1) still implements only option (b), an ordinal substring test (the opposite
+// answer in both cases), unchanged by this pass: rewriting the general matcher for non-empty needles is a separate,
+// larger, untested change this job's scope (ROUND3.md item 1, the empty-needle case only) does not cover.
+// Readings or options: (a) Character-wise canonical matching - suggested but not proven by the #1 closure's
+// citations, which establish the bound overload's identity, not a macOS-run confirmation of its non-empty behaviour
+// against this port's own test data; (b) ordinal UTF-16 matching (current); (c) Foundation's `range(of:)` without
+// options -> its own rules.
+// Needed to proceed: a follow-up pass implementing and test-proving option (a) against combining-mark fixtures, or
+// a recorded decision to keep (b).
 // Done so far: no test asserts either reading for combining marks; part 1's matcher is unchanged.
 //
 // STOP App.Views.Sidebar.SidebarView #8 (Window sweep: narrowed to the shared context-menu site only)
@@ -126,10 +129,10 @@ namespace Marrow.App.Tests.Views.Sidebar;
 
 // STOP ledger opencode-App.Views.Sidebar.SidebarView (this unit's TODO records that stay blocked; each names
 // the missing dependency and the exact production site in SidebarView.cs; STOP #2/PR-SIDEBAR-013 is CLOSED above):
-// #1 PR-SIDEBAR-005 (empty-query half): which String.contains overload macOS binds for an empty needle needs a
-//    macOS oracle item or recorded decision; site :743 Contains (SidebarView.cs, the throwing empty-needle arm).
-//    Non-empty Return and no-result are proven by Return_selects_the_first_thread_of_the_first_search_result and
-//    Return_with_no_result_changes_nothing.
+// #1 PR-SIDEBAR-005 (empty-query half): CLOSED (Job SB, ROUND3.md item 1) - see the class-header ENGINEERING
+//    DECISION above SidebarView.cs Contains (:1339): an empty needle answers true (SE-0357). Proven by
+//    Return_with_an_empty_query_selects_the_first_thread_of_the_first_project. Non-empty Return and no-result
+//    remain proven by Return_selects_the_first_thread_of_the_first_search_result and Return_with_no_result_changes_nothing.
 // #2 PR-SIDEBAR-019: surviving rows' positional slide needs a UI/Port layout-animation foundation plus an ED;
 //    site ListPassNow/ApplyList (SidebarView.cs:460-484; entering/leaving fades ride panelSlide, stayers jump).
 // #3 PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030: `.roundedBorder`/`.bordered`/`.borderedProminent`
@@ -514,6 +517,32 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 box.Text = "nothing matches this";
                 Press(box, Key.Enter);
                 Assert.Null(model.SelectedThreadID);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:86-90,743: Return with an empty query still runs searchResults, and contains(_:) against an empty needle
+    public void Return_with_an_empty_query_selects_the_first_thread_of_the_first_project()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var beta = NewProject(harness, "Beta");
+            var older = NewThread(alpha, "Fix the build", 1);
+            var newer = NewThread(alpha, "Fix the docs", 2);
+            var other = NewThread(beta, "Fix the tests", 3);
+            var model = Model(harness, [alpha, beta], [older, newer, other]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                model.SelectedThreadID = null;
+                var box = SearchBox(view);
+                Assert.Equal(string.Empty, box.Text ?? string.Empty); // the field starts empty; nothing typed
+                Assert.True(Press(box, Key.Enter));
+                // Alpha is the first project; threads(in:) puts the newest first (AppModel.swift:314-332).
+                Assert.Equal(newer.Id, model.SelectedThreadID);
             });
         });
     }

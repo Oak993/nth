@@ -1337,14 +1337,22 @@ public sealed class SidebarView : Decorator
     }
 
     // :743, :745 `lowercased().contains(needle)`: a plain substring test of the lowercased texts, as the port reads
-    // Swift's String.contains at its other lowercased sites (AppModel+HydraMerge.cs, MCPProxy.cs, ZaiAPI.cs). An empty
-    // needle is STOP #1 (SidebarViewTests.cs): which overload the source binds, and so its answer, is unsettled.
+    // Swift's String.contains at its other lowercased sites (AppModel+HydraMerge.cs, MCPProxy.cs, ZaiAPI.cs).
+    // ENGINEERING DECISION (closes STOP #1, PR-SIDEBAR-005's empty-query half): an empty needle answers true, for
+    // every text including an empty one. `project.name.lowercased()`/`.title.lowercased()` are plain Swift String
+    // values (not NSString), so the applicable `.contains(_:)` is the standard library's (SE-0357 "Regex-powered
+    // String Processing Algorithms", available since SwiftStdlib 5.7 - unchanged through the pinned Swift 6.0
+    // toolchain, so not version-dependent here), defined as `firstRange(of: other) != nil`
+    // (swift-experimental-string-processing's StringProtocol+Algorithms.swift). SE-0357 states this "follows the
+    // consensus behaviour" of finding an empty needle at every index - its own worked example is
+    // `"Hello".firstRange(of: "")` == `0..<0` (found, not nil) - and Foundation's older Objective-C-bridged
+    // `NSString.contains(_:)`, which alone answers false for an empty argument, requires an explicit NSString
+    // receiver that this call site never produces. Residual caveat: no macOS run of the pinned toolchain confirmed
+    // this by direct observation (no such oracle is available in this environment); the citations above are the
+    // evidence this decision rests on.
     private static bool Contains(string text, string needle)
     {
-        // STOP opencode-App.Views.Sidebar.SidebarView #1: empty-needle `contains` needs a macOS oracle item or a
-        // recorded decision (which String.contains overload the source binds). Names PR-SIDEBAR-005's empty-query half.
-        if (needle.Length == 0)
-            throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:743 (STOP #1: String.contains with an empty needle)");
+        if (needle.Length == 0) return true;
         return text.Contains(needle, StringComparison.Ordinal);
     }
 
