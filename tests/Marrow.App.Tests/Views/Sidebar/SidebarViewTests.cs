@@ -11,6 +11,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
@@ -20,6 +21,7 @@ using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Settings;
 using Marrow.App.Views.Sidebar;
+using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
@@ -121,6 +123,23 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // PR-SIDEBAR-134 is proven; PR-SIDEBAR-135 remains partial only for the pinned captures in STOP #9.
 // UI-SIDEBAR-058: compact thread selection/search is proven; the project-row menu slice remains partial under
 // STOP #7. UI-SIDEBAR-017 remains partial for the actual right-click attachment. Rename stays under STOP #6.
+
+// STOP ledger opencode-App.Views.Sidebar.SidebarView (this unit's TODO records that stay blocked; each names
+// the missing dependency and the exact production site in SidebarView.cs; STOP #2/PR-SIDEBAR-013 is CLOSED above):
+// #1 PR-SIDEBAR-005 (empty-query half): which String.contains overload macOS binds for an empty needle needs a
+//    macOS oracle item or recorded decision; site :743 Contains (SidebarView.cs, the throwing empty-needle arm).
+//    Non-empty Return and no-result are proven by Return_selects_the_first_thread_of_the_first_search_result and
+//    Return_with_no_result_changes_nothing.
+// #2 PR-SIDEBAR-019: surviving rows' positional slide needs a UI/Port layout-animation foundation plus an ED;
+//    site ListPassNow/ApplyList (SidebarView.cs:460-484; entering/leaving fades ride panelSlide, stayers jump).
+// #3 PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030: `.roundedBorder`/`.bordered`/`.borderedProminent`
+//    chrome needs an ED/owner ruling; sites RenamePopover (:239) and RenameThreadPopover (:995).
+// #4 PR-SIDEBAR-130, PR-SIDEBAR-133 and the right-click interaction of UI-SIDEBAR-033/UI-SIDEBAR-037: SwiftUI's
+//    per-open `.contextMenu` re-evaluation needs an ED/PA foundation; site ProjectRow's header (the static menu
+//    ITEMS are proven: UI-SIDEBAR-014/-015/-016 and the non-right-click halves of UI-SIDEBAR-033/-037).
+// #5 PR-SIDEBAR-134, PR-SIDEBAR-135, UI-SIDEBAR-017 and the end-to-end half of UI-SIDEBAR-060: SidebarThreadRow's own
+//    constructor and ThreadRow wiring need a follow-up assembly unit; sites :870 ThreadRow and :1716 the constructor.
+//    UI-SIDEBAR-060's pointer/slide/lift-pieces/release are proven at the seam level by the five trait tests.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -449,7 +468,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- PR-SIDEBAR-005 / -006: Return and the arrows ----
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:86-90
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:86-90
     public void Return_selects_the_first_thread_of_the_first_search_result()
     {
         headless.OnUiThread(() =>
@@ -478,7 +497,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:87
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:87
     public void Return_with_no_result_changes_nothing()
     {
         headless.OnUiThread(() =>
@@ -765,8 +784,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             using var seam = OpenPanel.Runner.Override(runner);
             harness.Main.OnMain(() =>
             {
-                var view = Detached(model);
-                Click(ButtonNamed(view, "Add project"));
+                var view = Attached(model);
+                PointerClick(ButtonNamed(view, "Add project"));
+                Close(view);
             });
             var shown = Assert.Single(runner.Shown);
             Assert.True(shown.Directories); // :502
@@ -793,8 +813,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             using var seam = OpenPanel.Runner.Override(runner);
             harness.Main.OnMain(() =>
             {
-                var view = Detached(model);
-                Click(ButtonNamed(view, "Add project"));
+                var view = Attached(model);
+                PointerClick(ButtonNamed(view, "Add project"));
+                Close(view);
                 Assert.Equal([Path.GetFileName(first), Path.GetFileName(second)], model.Projects.Select(project => project.Name));
                 var thread = Assert.Single(model.Threads);
                 Assert.Equal(model.Projects[1].Id, thread.ProjectID);
@@ -815,8 +836,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             using var seam = OpenPanel.Runner.Override(new RecordingOpenPanelRunner(null));
             harness.Main.OnMain(() =>
             {
-                var view = Detached(model);
-                Click(ButtonNamed(view, "Add project"));
+                var view = Attached(model);
+                PointerClick(ButtonNamed(view, "Add project"));
+                Close(view);
                 Assert.Empty(model.Projects);
                 Assert.Empty(model.Threads);
             });
@@ -850,7 +872,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- PR-SIDEBAR-013: Settings ----
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-013")] // App/Views/Sidebar/SidebarView.swift:168-169
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:168-169
     [Trait("Req", "UI-SIDEBAR-043")] // App/Views/Sidebar/SidebarView.swift:168-175 (part 7: the same gear glyph, as a
     // screen-contract record)
     public void The_Settings_row_carries_the_gear_at_1_15_scale_and_Add_project_the_plus()
@@ -873,7 +895,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-013")] // App/Views/Sidebar/SidebarView.swift:170-174; App/Views/Settings/AboutUpdateViews.swift:526-534
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:170-174; App/Views/Settings/AboutUpdateViews.swift:526-534
     [Trait("Req", "PR-UPDATE-080")] // App/Views/Sidebar/SidebarView.swift:168-175 (part 6: this file's half of the record; the
     // About row's own placement is App/Views/Settings/SettingsView.swift:159-163, a different unit)
     [Trait("Req", "UI-SIDEBAR-043")] // App/Views/Sidebar/SidebarView.swift:170-174; App/Views/Settings/AboutUpdateViews.swift:526-534
@@ -927,6 +949,40 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                     Close(view);
                 }
             });
+        });
+    }
+
+    // ---- PR-SIDEBAR-013: Settings (click) ----
+    //
+    // STOP #2 is closed: WindowManager.Shared/ShowSettings has landed on impl/b2
+    // (src/Marrow.App/Window/WindowManager.cs), so the row's click is proven here.
+    // The row's title, glyph and update dot stay proven by the two tests above.
+
+    [Fact]
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:168 `action: { WindowManager.shared.showSettings() }`
+    public void Clicking_the_Settings_row_shows_the_settings_window()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var manager = harness.Main.OnMain(() => new WindowManager());
+            Control? shown = null;
+            harness.Main.OnMain(() => manager.SettingsContent = () => shown = new Border());
+            using (WindowManager.OverrideShared(manager))
+            {
+                SidebarView? view = null;
+                harness.Main.OnMain(() => view = Attached(model));
+                harness.Main.OnMain(() => Click(ButtonNamed(view!, "Settings"))); // :168
+                harness.Main.OnMain(() =>
+                {
+                    Assert.NotNull(shown); // ShowSettings built its content
+                    var window = WindowOf(shown!);
+                    Assert.True(window.IsVisible);
+                    window.Close();
+                    Close(view!);
+                });
+            }
         });
     }
 
@@ -1040,6 +1096,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     private static StackPanel ListStack(SidebarView view) =>
         Assert.IsType<StackPanel>(LogicalQuery.SelfAndDescendants<ScrollViewer>(view).Single().Content);
 
+    [Trait("Req", "UI-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
     [Trait("Req", "PR-SIDEBAR-018")] // App/Views/Sidebar/SidebarView.swift:115, :392-404
     public void A_scroll_movement_freezes_the_list_until_150_ms_after_the_last_one()
@@ -1066,6 +1123,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     }
 
+    [Trait("Req", "UI-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
     [Trait("Req", "PR-SIDEBAR-018")] // App/Views/Sidebar/SidebarView.swift:141-145
     public void A_scroll_gesture_ending_lifts_the_freeze_at_once()
@@ -1704,6 +1762,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- PR-SIDEBAR-034 to -042: the activity layout ----
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-039")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-034")] // App/Views/Sidebar/SidebarView.swift:561-605
     public void Activity_sections_run_attention_pinned_days_settled_and_only_the_first_emitted_header_is_first()
     {
@@ -1831,6 +1890,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-039")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:644-656, :677-686
     public void Day_groups_read_Today_Yesterday_a_wide_weekday_within_seven_calendar_days_then_month_and_day_then_the_year()
     {
@@ -2155,7 +2215,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-044")] // App/Views/Sidebar/SidebarView.swift:705-714
-    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:703-712 (part 7: the gap, project-row and
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:703-712 (part 7: the gap, project-row and
     // thread-row sequence, and hasHelpers, as a screen-contract record; the project row's own inertness-but-live-
     // accessories and the thread rows' project form are proven separately below, since ThreadRow (:870) stays
     // MARROW_STUB -- STOP #8, SidebarThreadRow's own constructor)
@@ -2237,6 +2297,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     private static Point At(Control control, double x, double y, Visual window) => control.TranslatePoint(new Point(x, y), window)!.Value;
 
+    [Trait("Req", "UI-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
     [Trait("Req", "PR-SIDEBAR-047")] // App/Views/Sidebar/SidebarView.swift:129-137
     public void A_press_moved_less_than_4_points_still_clicks_the_row_and_a_drag_grabs_the_row_under_its_start_without_clicking()
@@ -2333,6 +2394,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     }
 
+    [Trait("Req", "UI-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
     [Trait("Req", "PR-SIDEBAR-046")] // App/Views/Sidebar/SidebarView.swift:129, :136
     public void While_the_search_field_holds_a_query_no_drag_is_recognised_and_the_row_still_clicks()
@@ -2444,6 +2506,40 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     }
 
+    [Fact]
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:805-810
+    public void On_release_the_row_springs_home_from_wherever_the_pointer_let_go()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var project = NewProject(harness, "Alpha");
+            var first = NewThread(project, "First", 0);
+            var second = NewThread(project, "Second", 1);
+            var model = Model(harness, [project], [first, second]);
+            SidebarView? view = null;
+            harness.Main.OnMain(() => view = Detached(model));
+            harness.Main.OnMain(() => Call(view!, "DragChanged", first.Id, 30d));
+            IReadOnlyList<Guid> before = null!;
+            harness.Main.OnMain(() => before = model.ThreadsIn(project).Select(thread => thread.Id).ToList());
+            Animation? during = null;
+            using var probe = new OnChange<RowDrag<Guid>>(() => Drag(view!), (_, _) => during = Transaction.Current);
+            harness.Main.OnMain(() => Call(view!, "DragEnded")); // :805-810
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(Animation.Spring(response: 0.32, dampingFraction: 0.8), during); // :806-808
+                Assert.Null(Drag(view!).Id); // :808 drag = RowDrag()
+                Assert.Equal(0d, Drag(view!).Translation); // :808
+                Assert.Equal(0d, Drag(view!).Settled); // :808
+                Assert.Null(Field(view!, "dragPeers")); // :805
+                // The reorder itself was already committed swap by swap during the drag;
+                // release commits nothing further.
+                Assert.Equal(before, model.ThreadsIn(project).Select(thread => thread.Id).ToList());
+            });
+        });
+    }
+
+    [Trait("Req", "UI-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
     [Trait("Req", "PR-SIDEBAR-049")] // App/Views/Sidebar/SidebarView.swift:124 (B3; replaces B2's NSCursor push/pop)
     [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:124 (part 8: the same grabActive pointer
@@ -3098,6 +3194,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-018")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-068")] // App/Views/Sidebar/SidebarView.swift:1717-1721, :2147-2151
     [Trait("Req", "PR-SIDEBAR-069")] // App/Views/Sidebar/SidebarView.swift:1717-1721, :2166-2173
     public void The_badge_updates_in_place_when_its_runtime_changes_after_mount()
@@ -3195,6 +3292,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-024")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-073")] // App/Views/Sidebar/SidebarView.swift:1717-1721, :2412-2427
     public void The_trailing_status_updates_in_place_when_its_runtime_changes_after_mount()
     {
@@ -3246,6 +3344,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- PR-SIDEBAR-072: the trailing overlay's precedence ----
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-023")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-072")] // App/Views/Sidebar/SidebarView.swift:1772-1801
     public void The_trailing_overlay_shows_hover_buttons_then_status_then_status_plus_time_then_time_alone()
     {
@@ -3320,7 +3419,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-078")] // App/Views/Sidebar/SidebarView.swift:2122-2140
-    [Trait("Req", "UI-SIDEBAR-020")] // App/Views/Sidebar/SidebarView.swift:2114-2142 (part 6: the same check, as a screen-contract record)
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:2114-2142 (part 6: the same check, as a screen-contract record)
     public void The_settle_check_is_filled_while_settled_or_popping_and_outlined_otherwise_with_the_right_tips()
     {
         headless.OnUiThread(() =>
@@ -3445,6 +3544,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- PR-SIDEBAR-110: HelperConnector and HelperConnectorShape, the dotted line beside a helper row ----
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-034")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-110")] // App/Views/Sidebar/SidebarView.swift:1662-1674
     public void The_connector_shape_runs_from_the_top_to_the_bottom_or_only_to_midY_when_it_ends_here() => headless.OnUiThread(() =>
     {
@@ -3486,6 +3586,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-034")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-110")] // App/Views/Sidebar/SidebarView.swift:1653 .contentShape(.rect)
     public void The_connectors_whole_rectangle_is_clickable_not_just_the_drawn_dash() => headless.OnUiThread(() =>
     {
@@ -3533,6 +3634,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     public void The_delete_popover_is_280_wide_with_a_header_a_curly_quoted_note_a_divider_and_delete_rows() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
         var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
         var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
         var deletes = new List<bool>();
@@ -3547,10 +3649,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         Assert.DoesNotContain("Delete thread and worktree", texts); // :977, no worktree
 
         var deleteButton = LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Delete thread");
-        deleteButton.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        harness.Main.OnMain(() => PointerClick(deleteButton));
         harness.Main.RunUntilIdle(); // :271-274 PopoverItem.Activate spawns the action on the main actor
         Assert.Equal([false], deletes); // :976 onDelete(false)
-        WindowOf(popover).Close();
+        harness.Main.OnMain(() => WindowOf(popover).Close());
     });
 
     [Fact]
@@ -3561,6 +3663,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     public void The_delete_and_worktree_row_shows_only_with_a_worktree_and_deletes_with_it_true() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
         var project = AppModelSamples.Project("Alpha", harness.NewFolder("Alpha"));
         var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug", WorktreePath = "C:/Alpha/wt" };
         var deletes = new List<bool>();
@@ -3568,10 +3671,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
         Assert.Contains("Delete thread and worktree", Texts(popover)); // :977
         var button = LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Delete thread and worktree");
-        button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+        var window = WindowOf(popover);
+        window.Height = 200; // this standalone fixture must expose both menu rows to actual pointer hit testing
+        window.UpdateLayout();
+        harness.Main.OnMain(() => PointerClick(button));
         harness.Main.RunUntilIdle(); // :271-274 PopoverItem.Activate spawns the action on the main actor
         Assert.Equal([true], deletes); // :978 onDelete(true)
-        WindowOf(popover).Close();
+        harness.Main.OnMain(() => WindowOf(popover).Close());
     });
 
     // ---- PR-SIDEBAR-095, PR-SIDEBAR-096: ArchiveThreadPopover ----
@@ -3596,7 +3702,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:905-943
-    [Trait("Req", "UI-SIDEBAR-031")] // App/Views/Sidebar/SidebarView.swift:904-964 (part 7: the same popover, as a
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:904-964 (part 7: the same popover, as a
     // screen-contract record; OD-0005 governs the glass material, reproduced as an Acrylic-class Windows material)
     public void The_archive_popover_is_272_wide_asks_Archive_title_and_offers_Delete_and_Archive() => headless.OnUiThread(() =>
     {
@@ -3627,7 +3733,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red)
-    [Trait("Req", "UI-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:927-940 (part 7: the same buttons, as a
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:927-940 (part 7: the same buttons, as a
     // screen-contract record)
     public void The_delete_button_in_the_archive_popover_is_drawn_in_danger() => headless.OnUiThread(() =>
     {
@@ -4324,7 +4430,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-098")] // App/Views/Sidebar/SidebarView.swift:2193-2246, :2253-2312
-    [Trait("Req", "UI-SIDEBAR-025")] // App/Views/Sidebar/SidebarView.swift:2192-2314 (part 7: the same menu items, as a
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:2192-2314 (part 7: the same menu items, as a
     // screen-contract record: order, symbols, Delete… in danger, and the settle/archive swap by threadFinishAction)
     public void The_popover_and_context_menu_lists_carry_the_same_items_in_the_same_order() => headless.OnUiThread(() =>
     {
@@ -4422,6 +4528,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- PR-SIDEBAR-111: the connector shape's exact extent, including the horizontal tick ----
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-034")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-111")] // App/Views/Sidebar/SidebarView.swift:1662-1676, :1292 connectorLineX = 18
     public void The_connector_shape_runs_down_x_18_and_ticks_to_2pt_short_of_the_trailing_edge() => headless.OnUiThread(() =>
     {
@@ -4486,6 +4593,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-035")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-114")] // App/Views/Sidebar/SidebarView.swift:1567-1571, :1594-1597
     public void The_folded_stub_shows_a_mini_spinner_only_while_a_folded_helper_is_running_or_merging() => headless.OnUiThread(() =>
     {
@@ -4534,6 +4642,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-035")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-115")] // App/Views/Sidebar/SidebarView.swift:1583, :1606-1609
     public void Clicking_the_folded_stub_anywhere_including_the_connector_unfolds_the_helpers() => headless.OnUiThread(() =>
     {
@@ -4554,6 +4663,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-035")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-115")] // App/Views/Sidebar/SidebarView.swift:1603, :1605-1606 (REVIEW FIX, part 5)
     public void Clicking_the_stub_rows_empty_trailing_region_past_the_label_still_unfolds_the_helpers() => headless.OnUiThread(() =>
     {
@@ -4630,6 +4740,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- PR-SIDEBAR-117, PR-SIDEBAR-118, PR-SIDEBAR-119, PR-SIDEBAR-120: HeadCardsRow's directly testable geometry ----
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-117")] // App/Views/Sidebar/SidebarView.swift:1439-1451
     public void A_head_cards_glyphs_per_row_defaults_to_seven_before_measurement_then_floors_the_fit()
     {
@@ -4643,6 +4754,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-118")] // App/Views/Sidebar/SidebarView.swift:1456-1458
     public void A_head_cards_row_gap_stretches_past_8pt_until_the_last_badge_sits_on_the_padding()
     {
@@ -4654,6 +4766,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-119")] // App/Views/Sidebar/SidebarView.swift:1436-1443, :1514-1526
     public void A_head_card_caps_at_twelve_heads_and_the_chevron_row_reads_the_right_tooltip() => headless.OnUiThread(() =>
     {
@@ -4677,6 +4790,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-120")] // App/Views/Sidebar/SidebarView.swift:1305-1311, :1530-1540
     public void A_head_cards_height_is_12pt_padding_plus_14pt_per_row_plus_6pt_between_rows()
     {
@@ -4691,11 +4805,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-123")] // App/Views/Sidebar/SidebarView.swift:2363-2406
-    [Trait("Req", "UI-SIDEBAR-040")] // App/Views/Sidebar/SidebarView.swift:2363-2406 (part 7: the same header, as a
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:2363-2406 (part 7: the same header, as a
     // screen-contract record; the B3 chevron is 10 pt, .caption2, ED-059 (a fixed 9 pt at B1))
     public void The_settled_header_shows_its_count_toggles_the_fold_and_rotates_the_chevron() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
         var project = NewProject(harness, "Alpha");
         var thread = NewThread(project, "Thread", 0);
         var model = Model(harness, [project], [thread]);
@@ -5206,7 +5321,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- UI-SIDEBAR-008, -009, -010: ProjectRow's own body ----
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-008")] // App/Views/Sidebar/SidebarView.swift:1078-1166; UI/Chrome/Chrome.swift:681-746
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1078-1166; UI/Chrome/Chrome.swift:681-746
     public void The_project_row_toggles_expansion_unless_disabled_and_dims_to_0_55_while_inactive() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -5293,13 +5408,14 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             var plus = LogicalQuery.SelfAndDescendants<Button>(row)
                 .Single(b => ToolTip.GetTip(b) as string == "New thread in Alpha Beta Gamma Delta Epsilon"); // :1125, untruncated
             Assert.Empty(model.ThreadsIn(project));
-            Click(plus); // :1119-1123
+            PointerClick(plus); // :1119-1123
             Assert.Single(model.ThreadsIn(project)); // :1120 model.newThread(in: project)
+            window.Close();
         });
     });
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-127")] // App/Views/Sidebar/SidebarView.swift:1085, :1106-1114 (REVIEW FIX, part 6)
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1085, :1106-1114 (REVIEW FIX, part 6)
     public void The_icon_glyph_follows_the_live_project_icon_without_rebuilding_the_row() => headless.OnUiThread(() =>
     {
         // REVIEW FIX: :1085 `project` is a computed property Swift's body re-reads on every render, so :1106-1114's
@@ -5344,6 +5460,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-010")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
+    [Trait("Req", "UI-SIDEBAR-009")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-128")] // App/Views/Sidebar/SidebarView.swift:1091, :1115-1133 (REVIEW FIX, part 6)
     public void The_hover_accessory_collapses_the_instant_the_ellipsis_menu_closes_even_while_not_hovering() => headless.OnUiThread(() =>
     {
@@ -5379,7 +5497,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() =>
         {
             ellipsis = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More"); // Popovers.cs :396
-            Click(ellipsis); // :391 isPresented.toggle() -> isMenuPresented = true
+            PointerClick(ellipsis); // :391 isPresented.toggle() -> isMenuPresented = true
         });
         harness.Main.OnMain(() => window.MouseMove(new Point(1, 1))); // pointer leaves the row; :1116 hovering false, isMenuPresented still true
         harness.Main.OnMain(() =>
@@ -5394,10 +5512,138 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     });
 
+    // ---- PR-SIDEBAR-126, -127, -129: ProjectRow's own geometry, icon and dimming ----
+    //
+    // UI-SIDEBAR-008/-009/-010 prove the toggle, the count label and the plus
+    // button; PR-SIDEBAR-128 (the hover accessory's collapse) is proven by its
+    // own REVIEW FIX test below. The three tests here prove the PR-ids' numbers:
+    // the 28 pt row with its 40 pt accessory reserve and panelSlide toggle
+    // (-126), the picked-or-folder mark with its two sizes and opacities (-127)
+    // and the 0.55 whole-row dimming with its override-then-global rule (-129).
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-126")] // App/Views/Sidebar/SidebarView.swift:1097-1105; UI/Chrome/Chrome.swift:710-728
+    public void A_project_row_is_a_28pt_sidebar_row_with_a_40pt_accessory_reserve_and_click_toggles_expansion()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
+            var project = NewProject(harness, "Alpha");
+            var model = Model(harness, [project], []);
+            Control? row = null;
+            harness.Main.OnMain(() => row = ShownProjectRow(model, project, 0));
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(28d, row!.Bounds.Height); // :1099 via Chrome.rowHeight
+                var shape = LogicalQuery.SelfAndDescendants<Border>(row!).First(b => b.Height == 28 && b.Padding.Right > 40);
+                Assert.Equal(new Thickness(8, 0, 48, 0), shape.Padding); // :725-726 with :1099's 8 + 40
+                var stack = LogicalQuery.SelfAndDescendants<StackPanel>(row!).First(s => s.Orientation == Orientation.Horizontal && s.Children.Count == 2);
+                Assert.Equal(8d, stack.Spacing); // :711
+                Assert.Equal(20d, stack.Children[0].Width); // :713 Chrome.iconSize
+                var title = LogicalQuery.SelfAndDescendants<TextBlock>(row!).First(t => t.Text == "Alpha");
+                Assert.Equal(1, title.MaxLines); // :718
+                Assert.Equal(TextTrimming.CharacterEllipsis, title.TextTrimming); // :719 .tail
+                Assert.Equal(TextWrapping.NoWrap, title.TextWrapping);
+                Assert.Equal(13d, title.FontSize); // :717 .body
+                Assert.Equal(FontWeight.Normal, title.FontWeight); // never selected, so regular, not medium
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.92).Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color); // :718, not selected 1.0
+                Assert.Equal(Chrome.Overlay(0.06).Resolve(title.ActualThemeVariant), ((SwiftColor)CallStatic(typeof(SidebarRow), "FillFor", false, true)!).Resolve(title.ActualThemeVariant)); // :743 the row's own hover fill
+            });
+            Animation? during = null;
+            using var probe = new OnChange<bool>(() => model.Project(project.Id)!.IsExpanded, (_, _) => during = Transaction.Current);
+            harness.Main.OnMain(() => PointerClick(ButtonNamed(row!, "Alpha"))); // :1100-1105
+            harness.Main.OnMain(() =>
+            {
+                Assert.False(model.Project(project.Id)!.IsExpanded);
+                Assert.Equal(Chrome.PanelSlide, during); // :1102-1104
+                WindowOf(row!).Close(); // detach tracked hover accessories before the headless application resets
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1106-1114; UI/Chrome/ProjectIconPicker.swift:11-27; UI/Chrome/Chrome.swift:651-679
+    public void A_project_rows_leading_mark_is_the_picked_emoji_or_symbol_or_the_folder_mark_until_one_is_picked()
+    {
+        // The live row's glyph following the live icon through every branch is
+        // proven by The_icon_glyph_follows_the_live_project_icon_without_rebuilding_the_row
+        // above (same trait); this test proves the two sizes, the two opacities
+        // and the 20 pt box. Each branch is built fresh and measured once: swapping
+        // the badge's glyph and measuring a fresh run in the same pass trips this
+        // harness's own pre-existing "Could not create glyphTypeface" gap (see the
+        // REVIEW FIX test below), so no UpdateProject tearout happens here.
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var project = NewProject(harness, "Alpha"); // no icon yet
+            var model = Model(harness, [project], []);
+            harness.Main.OnMain(() =>
+            {
+                var row = ShownProjectRow(model, project, 0);
+                var badge = LogicalQuery.SelfAndDescendants<SidebarIconBadge>(row).Single();
+                var box = (Panel)badge.Child!;
+                Assert.Equal(20d, box.Width); // :677 both branches sit in a 20 pt square
+                Assert.Equal(20d, box.Height);
+                var fallback = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(i => i.SymbolName is not null);
+                Assert.Equal("folder.fill", fallback.SymbolName); // :1111
+                Assert.Equal(14d, fallback.Width); // the default SidebarSymbol size
+                Assert.Equal(14d, fallback.Height);
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.85).Resolve(fallback.ActualThemeVariant), ((ISolidColorBrush)fallback.GetValue(SwiftImage.ForegroundProperty)!).Color); // :676 the badge's 0.85, inherited
+            });
+            harness.Main.OnMain(() =>
+            {
+                // :1108-1109 a picked symbol: ProjectRow builds ProjectIconMark(icon, 12).
+                var mark = new ProjectIconMark(new ProjectIcon.Symbol("star.fill"), 12);
+                Hosted(model, mark);
+                var symbol = LogicalQuery.SelfAndDescendants<SwiftImage>(mark).Single(i => i.SymbolName is not null);
+                Assert.Equal("star.fill", symbol.SymbolName);
+                Assert.Equal(12d, SwiftImage.GetFont(symbol)!.PointSize); // :1109 size 12, not the 14 pt fallback
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.9).Resolve(symbol.ActualThemeVariant), ((ISolidColorBrush)symbol.GetValue(SwiftImage.ForegroundProperty)!).Color); // :25 0.9, not 0.85
+            });
+            harness.Main.OnMain(() =>
+            {
+                // :1108 an emoji icon.
+                var mark = new ProjectIconMark(new ProjectIcon.Emoji("\U0001F680"), 12);
+                Hosted(model, mark);
+                var emoji = LogicalQuery.SelfAndDescendants<TextBlock>(mark).Single(t => t.Text == "\U0001F680"); // :18
+                Assert.Equal(12d, emoji.FontSize); // :19
+                Assert.Equal(Chrome.PrimaryText.Opacity(0.9).Resolve(emoji.ActualThemeVariant), ((ISolidColorBrush)emoji.Foreground!).Color); // :25
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1096, :1135-1136; App/AppSettings.swift:343-346
+    public void A_deactivated_projects_whole_row_draws_at_0_55_opacity()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var project = NewProject(harness, "Alpha");
+            var model = Model(harness, [project], []);
+            Control? row = null;
+            harness.Main.OnMain(() => row = ShownProjectRow(model, project, 0));
+            harness.Main.OnMain(() => Assert.Equal(1d, row!.Opacity)); // active by default
+
+            harness.Main.OnMain(() => model.Settings.SetProjectActive(false, project.Id)); // explicit override
+            harness.Main.OnMain(() => Assert.Equal(0.55d, row!.Opacity)); // :1135 the whole body, icon, title and accessories
+
+            harness.Main.OnMain(() => model.Settings.SetProjectActive(true, project.Id));
+            harness.Main.OnMain(() => Assert.Equal(1d, row!.Opacity));
+
+            harness.Main.OnMain(() => model.Settings.ClearProjectActivationOverride(project.Id)); // no override: the global switch rules
+            harness.Main.OnMain(() => model.Settings.ProjectsEnabled = false);
+            harness.Main.OnMain(() => Assert.Equal(0.55d, row!.Opacity));
+            harness.Main.OnMain(() => model.Settings.ProjectsEnabled = true);
+            harness.Main.OnMain(() => Assert.Equal(1d, row!.Opacity));
+        });
+    }
+
     // ---- UI-SIDEBAR-014: the project menu's items (ellipsis popover and context menu) ----
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-014")] // App/Views/Sidebar/SidebarView.swift:1168-1229
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1168-1229
     public void The_project_menu_offers_new_thread_worktree_reveal_remove_and_the_activation_item_in_order() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -5449,7 +5695,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- UI-SIDEBAR-015, -016: the pair submenu and its items ----
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-015")] // App/Views/Sidebar/SidebarView.swift:1140-1165, :1149-1161
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1140-1165, :1149-1161
     public void The_start_new_chats_on_submenu_appears_only_when_there_is_a_hydra_pair_to_choose() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -5472,7 +5718,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-016")] // App/Views/Sidebar/SidebarView.swift:1241-1270
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1241-1270
     public void The_pair_submenu_lists_the_clearing_item_then_each_pair_with_a_checkmark_on_the_current_choice() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -5536,7 +5782,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // extend STOP #6 (part 4): the rename popover's TextField/Button chrome is still undecided.
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1317-1425
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1317-1425
     public void A_helper_row_shows_its_head_glyph_selects_on_click_and_swaps_its_overlay_on_hover() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the hover fill's own AnimatedColor needs a bound clock
@@ -5585,7 +5831,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1348-1409
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1348-1409
     public void A_selected_helper_rows_title_is_medium_weight_at_0_96_with_the_selection_fill() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -5614,7 +5860,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1359-1364 Text(...).lineLimit(1).truncationMode(.tail)
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1359-1364 Text(...).lineLimit(1).truncationMode(.tail)
     public void A_helper_rows_long_title_measures_bounded_by_the_row_instead_of_at_its_full_width() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -5655,7 +5901,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift:1427-1548
-    [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1472-1507
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1472-1507
     [Trait("Req", "PR-SIDEBAR-121")] // App/Views/Sidebar/SidebarView.swift:1472-1507 (B2 id, same site; the right-click
     // .contextMenu at :1490-1500 is not attached -- STOP #7 below)
     [Trait("Req", "PR-SIDEBAR-122")] // App/Views/Sidebar/SidebarView.swift:1440-1551
@@ -5704,7 +5950,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1484-1499
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1484-1499
     public void A_head_glyph_scales_1_18_on_hover_and_carries_the_dotted_tooltip_and_comma_label() => headless.OnUiThread(() =>
     {
         var manual = new ManualFrameSource();
@@ -5747,11 +5993,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "UI-SIDEBAR-038")] // App/Views/Sidebar/SidebarView.swift:1514-1526
     // Named for what it actually proves (button count, chevron glyph and tooltip after the toggle): the snappy
     // height animation itself is proven separately, below, by
     // A_head_cards_row_count_change_animates_the_cards_and_connectors_height_with_snappy_0_18 (REVIEW FIX: this
-    // test's old name claimed "and_snappy_animation" with no assertion of the kind -- a synchronous Click() and an
+    // test's old name claimed "and_snappy_animation" with no assertion of the kind -- a synchronous PointerClick() and an
     // immediate post-click assertion pass identically whether or not any animation exists).
     public void The_head_cards_chevron_toggles_all_heads_with_the_right_glyph_and_tooltip() => headless.OnUiThread(() =>
     {
@@ -5778,7 +6025,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Equal("chevron.down", glyph.SymbolName); // :1516, collapsed: 13 > 12
             Assert.Equal("Show all 13 heads", ToolTip.GetTip(chevron)); // :1526
 
-            Click(chevron); // :1515-1516, .snappy(duration: 0.18)
+            PointerClick(chevron); // :1515-1516, .snappy(duration: 0.18)
         });
         // A separate harness.Main.OnMain call, as SettledHeader's own regression does: OnMain pumps the manual loop
         // to idle on return, which is what runs Tracked<T>'s MainActor.Post(Update) after the click's mutation, not
@@ -5870,7 +6117,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- UI-SIDEBAR-058: a search group's project row stays inert but keeps its live hover accessories ----
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:709 ProjectRow(..., togglesExpansion: false)
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:709 ProjectRow(..., togglesExpansion: false)
     public void A_search_groups_project_row_never_toggles_but_still_shows_its_hover_ellipsis_and_plus() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the hover fill's own AnimatedColor needs a bound clock
@@ -5963,7 +6210,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-017")] // App/Views/Sidebar/SidebarView.swift:1716-1872
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1716-1872
     public void An_assembled_thread_row_selects_and_shows_hover_actions_and_the_pinned_selection_tint() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -6009,7 +6256,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-017")] // App/Views/Sidebar/SidebarView.swift:1723-1729,1763-1771,1834-1849,1863-1872
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1723-1729,1763-1771,1834-1849,1863-1872
     [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:1838-1849
     public void A_real_dragged_row_suppresses_hover_accessories_and_finish_requests_pop_its_check() => headless.OnUiThread(() =>
     {
@@ -6107,7 +6354,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Theory]
     [InlineData(null, 28)]
     [InlineData("Alpha", 48)]
-    [Trait("Req", "PR-SIDEBAR-135")] // App/Views/Sidebar/SidebarView.swift:1912-1916,1933-1978
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1912-1916,1933-1978
     public void A_real_settled_row_reopens_with_two_faces_and_the_destination_height(string? projectName, double height) => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -6146,7 +6393,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-135")] // App/Views/Sidebar/SidebarView.swift:1934 guard let listFrame else { return }
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1934 guard let listFrame else { return }
     public void A_popover_row_reopens_without_a_glide() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -6176,7 +6423,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-017")] // App/Views/Sidebar/SidebarView.swift:1776-1783,1988-1999
+    [Trait("Req", "UI-SIDEBAR-021")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1776-1783,1988-1999
     public void The_real_hover_archive_button_launches_a_genie_and_archives() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -6209,7 +6457,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:703-712
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:703-712
     public void Actual_search_rows_are_compact_selectable_and_cannot_start_a_reorder() => headless.OnUiThread(() =>
     {
         var manual = new ManualFrameSource();
@@ -6246,6 +6494,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-056")] // App/Views/Sidebar/SidebarView.swift:347-375,1622-1632
     public void The_real_list_dispatches_helpers_cards_and_stubs_and_they_follow_a_dragged_parent() => headless.OnUiThread(() =>
     {
@@ -6291,7 +6540,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Theory]
     [InlineData(1)]
     [InlineData(2)]
-    [Trait("Req", "PR-SIDEBAR-135")] // App/Views/Sidebar/SidebarView.swift:1951-1978
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1951-1978
     public void A_failed_departure_or_arrival_render_abandons_the_glide(int failAt) => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -6310,7 +6559,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-135")] // App/Views/Sidebar/SidebarView.swift:1938-1978
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1938-1978
     public void The_settled_destination_is_a_24_point_face_at_the_lists_bottom() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -6442,7 +6691,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [InlineData(1.0, 2.0)]
     [InlineData(1.5, 2.0)]
     [InlineData(2.5, 2.5)]
-    [Trait("Req", "PR-SIDEBAR-135")] // App/Views/Sidebar/SidebarView.swift:1933-1978; App/Views/Sidebar/RowGlide.swift:127-134 windows_path DPI minimum 2
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1933-1978; App/Views/Sidebar/RowGlide.swift:127-134 windows_path DPI minimum 2
     public void Glide_faces_use_their_own_windows_DPI_scale_with_a_two_times_minimum(double windowScale, double expectedScale) => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -6506,6 +6755,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             });
         });
     }
+    [Trait("Req", "UI-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
+    [Trait("Req", "UI-SIDEBAR-035")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
+    [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
     [Trait("Req", "PR-SIDEBAR-056")] // App/Views/Sidebar/SidebarView.swift:347-375,1622-1633
     [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:128-137,1838-1849
@@ -6598,10 +6850,12 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-013")] // App/Views/Sidebar/SidebarView.swift:168-175; App/Window/WindowManager.swift:32-36,80-84
+    [Trait("Req", "UI-SIDEBAR-043")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:168-175; App/Window/WindowManager.swift:32-36,80-84
     public void Clicking_Settings_opens_the_real_shared_managers_SettingsView_and_reuses_its_window() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // real pointer hover requests the source clock
         var managerType = typeof(Marrow.App.Window.WindowManager);
         var manager = harness.Main.OnMain(() => (Marrow.App.Window.WindowManager)Activator.CreateInstance(managerType, nonPublic: true)!);
         using var shared = (IDisposable)managerType.GetMethod("OverrideShared", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [manager])!;
@@ -6613,7 +6867,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             harness.Main.OnMain(() =>
             {
                 view = Attached(manager.Model);
-                Click(ButtonNamed(view, "Settings"));
+                PointerClick(ButtonNamed(view, "Settings"));
                 settings = (AvaloniaWindow)managerType.GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager)!;
                 Assert.True(settings.IsVisible);
                 var content = Assert.Single(LogicalQuery.SelfAndDescendants<SettingsView>(settings));
@@ -6621,7 +6875,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Equal(780, settings.Width); // WindowManager.swift:21
                 Assert.Equal(580, settings.Height);
                 settings.Hide();
-                Click(ButtonNamed(view, "Settings"));
+                PointerClick(ButtonNamed(view, "Settings"));
                 Assert.Same(settings, managerType.GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(manager));
                 Assert.True(settings.IsVisible);
                 Assert.Same(content, Assert.Single(LogicalQuery.SelfAndDescendants<SettingsView>(settings)));
@@ -6640,6 +6894,369 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             });
         }
     });
+    private static void PointerClick(Button button)
+    {
+        var window = WindowOf(button);
+        window.UpdateLayout();
+        var point = button.TranslatePoint(new Point(button.Bounds.Width / 2, button.Bounds.Height / 2), window)!.Value;
+        window.MouseMove(point);
+        window.MouseDown(point, MouseButton.Left);
+        window.MouseUp(point, MouseButton.Left);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-004")] // App/Views/Sidebar/SidebarView.swift:82,2322-2341; UI/Chrome/Chrome.swift:28,98
+    public void Bell_hits_only_its_circle_and_uses_the_source_font_accessibility_and_hover_curve() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var model = harness.MakeModel();
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        var window = WindowOf(view);
+        var button = ButtonNamed(view, "Activity view");
+        var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(button).Single();
+        var circle = LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Ellipse>(button).Single();
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(new Size(30, 30), button.Bounds.Size); // :2328
+            Assert.Equal(new Thickness(6, 0, 0, 0), button.GetLogicalAncestors().OfType<Control>().First(c => c.GetType() == Private("ActivityViewToggle")).Margin); // :82
+            Assert.Equal(12, SwiftImage.GetFont(glyph)!.Resolve().FontSize); // Chrome.swift:28 callout semibold, ED-059
+            Assert.Equal(FontWeight.SemiBold, SwiftImage.GetFont(glyph)!.Resolve().FontWeight);
+            Assert.Equal("Off", AutomationProperties.GetItemStatus(button)); // :2341
+            var corner = button.TranslatePoint(new Point(1, 1), window)!.Value;
+            window.MouseDown(corner, MouseButton.Left); window.MouseUp(corner, MouseButton.Left);
+            Assert.False(model.Settings.SidebarActivityView); // :2333 contentShape(Circle())
+        });
+        harness.Main.OnMain(() => window.MouseMove(button.TranslatePoint(new Point(15, 15), window)!.Value));
+        harness.Main.AdvanceMilliseconds(50);
+        harness.Main.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(50)));
+        harness.Main.OnMain(() =>
+        {
+            // :2336-2338 + Chrome.swift:98 easeOut(0.1); at halfway the alpha is neither endpoint.
+            var actual = ((ISolidColorBrush)circle.Fill!).Color;
+            var end = Chrome.Overlay(0.08).Resolve(circle.ActualThemeVariant);
+            Assert.Equal((byte)Math.Round(end.A * Animation.EaseOut(0.1).Progress(0.05)), actual.A);
+        });
+        Animation? during = null;
+        using var probe = new OnChange<bool>(() => model.Settings.SidebarActivityView, (_, _) => during = Transaction.Current);
+        harness.Main.OnMain(() => PointerClick(button));
+        harness.Main.OnMain(() =>
+        {
+            Assert.True(model.Settings.SidebarActivityView);
+            Assert.Equal(Chrome.PanelSlide, during); // :2323
+            Assert.Equal("On", AutomationProperties.GetItemStatus(button));
+            Close(view);
+        });
+    });
+
+    // PR-SIDEBAR-019: the ED-218 foundation has landed; this caller proof must go red before wiring it.
+    // The record's pinned capture comparison is still STOP #10, so this test has no Req trait.
+    [Theory]
+    [Trait("Decision", "ED-218")] // App/Views/Sidebar/SidebarView.swift:117-119; pinned capture remains STOP
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Project_expansion_moves_a_surviving_project_from_its_old_position_on_panelSlide(bool reduceMotion) => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var reduction = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reduceMotion });
+        var first = NewProject(harness, "First");
+        var next = NewProject(harness, "Next");
+        var thread = NewThread(first, "Open", 0);
+        var model = Model(harness, [first, next], [thread]);
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        var window = WindowOf(view);
+        try
+        {
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { frames.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Tick(1600);
+        var row = RowNamed(view, "Next");
+        var container = ListPanel(view).Children.Single(c => c.GetLogicalDescendants().Contains(row));
+        var oldY = container.Bounds.Y;
+        harness.Main.OnMain(() => PointerClick(ButtonNamed(view, "First")));
+        Tick(0);
+        var displacement = oldY - container.Bounds.Y;
+        Assert.NotEqual(0, displacement); // :117-119 space closes when First collapses
+        Assert.Equal(displacement, container.RenderTransform!.Value.M32, 5); // starts at its old visible position
+        Tick(90);
+        var curve = reduceMotion ? Animation.EaseOut(0.18) : Animation.Spring(response: 0.32, dampingFraction: 0.9); // Chrome.swift:100-104 panelSlide
+        Assert.Equal(displacement * (1 - curve.Progress(0.09)), container.RenderTransform!.Value.M32, 5);
+        Tick(1600);
+        Assert.Equal(0, container.RenderTransform?.Value.M32 ?? 0, 5);
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-039")] // App/Views/Sidebar/SidebarView.swift:2349-2357
+    public void Activity_headers_keep_their_verbatim_text_font_colour_leading_alignment_and_non_button_role() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        foreach (var title in new[] { "Needs attention", "Pinned", "Today", "Yesterday", "Wednesday", "September 2", "September 2, 2025" })
+        {
+            var header = (Control)Activator.CreateInstance(Private("ActivityHeader"), title, true)!;
+            Shown(header);
+            var text = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(header));
+            Assert.Equal(title, text.Text); // :2350 Text(verbatim: title), caller supplies literal or localized day string
+            Assert.Equal(12, text.FontSize); Assert.Equal(FontWeight.SemiBold, text.FontWeight); // :2351 .callout semibold
+            Assert.Equal(Chrome.SecondaryText.Resolve(text.ActualThemeVariant), ((ISolidColorBrush)text.Foreground!).Color); // :2352
+            Assert.Equal(HorizontalAlignment.Stretch, text.HorizontalAlignment); // :2356 full width
+            Assert.Equal(TextAlignment.Start, text.TextAlignment); // :2356 leading follows the writing direction
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(header));
+            WindowOf(header).Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-041")] // App/Views/Sidebar/SidebarView.swift:693-703
+    public void No_results_is_mounted_only_when_the_search_has_no_groups() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Found", 0);
+        var model = Model(harness, [project], [thread]);
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        harness.Main.OnMain(() => Assert.DoesNotContain("No results", Texts(view)));
+        harness.Main.OnMain(() => SearchBox(view).Text = "missing");
+        harness.Main.OnMain(() => Assert.Contains("No results", Texts(view)));
+        harness.Main.OnMain(() => SearchBox(view).Text = "Found");
+        harness.Main.AdvanceMilliseconds(1600);
+        harness.Main.OnMain(() => { frames.Advance(TimeSpan.FromMilliseconds(1600)); WindowOf(view).UpdateLayout(); });
+        harness.Main.OnMain(() => { Assert.DoesNotContain("No results", Texts(view)); Close(view); });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-006")] // App/Views/Sidebar/SidebarView.swift:331-332,517-519
+    [Trait("Req", "UI-SIDEBAR-007")] // App/Views/Sidebar/SidebarView.swift:533-537,1281
+    public void Both_kinds_of_project_spacer_render_clear_full_width_noninteractive_items_with_their_source_heights() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var model = RichLibrary(harness, out _);
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            var gaps = ProjectItems(view).Where(item => KindName(item) == "Gap").ToList();
+            Assert.Contains(gaps, item => IdOf(item).StartsWith("gap-", StringComparison.Ordinal));
+            Assert.Contains(gaps, item => IdOf(item).StartsWith("settled-gap-", StringComparison.Ordinal));
+            foreach (var gap in gaps)
+            {
+                var spacer = Assert.IsType<Border>(Call(view, "ItemView", gap));
+                Assert.Equal(IdOf(gap).StartsWith("settled-gap-", StringComparison.Ordinal) ? 4d : 10d, spacer.Height);
+                Assert.Equal(HorizontalAlignment.Stretch, spacer.HorizontalAlignment);
+                Assert.Null(spacer.Background); Assert.Null(spacer.Child);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(spacer));
+                Assert.Equal(SwiftTransition.Opacity, RowTransition(view, gap));
+            }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-034")] // App/Views/Sidebar/SidebarView.swift:1642-1658
+    public void Connector_stroke_is_one_point_round_dotted_and_real_hover_follows_easeOut_0_1() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource(); using var seam = FrameClock.Source.Override(frames);
+        Control connector = null!;
+        harness.Main.OnMain(() =>
+        {
+            connector = (Control)Activator.CreateInstance(Private("HelperConnector"), true, (Action)(() => { }))!;
+            connector.Width = 28; connector.Height = 24; Shown(connector);
+        });
+        try
+        {
+            var path = Assert.Single(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(connector));
+            Assert.Equal(1d, path.StrokeThickness); Assert.Equal(PenLineCap.Round, path.StrokeLineCap);
+            Assert.Equal(new double[] { 0.1, 3.6 }, path.StrokeDashArray!);
+            var initial = Chrome.SecondaryText.Opacity(0.45).Resolve(path.ActualThemeVariant);
+            var target = Chrome.SecondaryText.Opacity(0.9).Resolve(path.ActualThemeVariant);
+            Assert.Equal(initial, ((ISolidColorBrush)path.Stroke!).Color);
+            var window = WindowOf(connector);
+            harness.Main.OnMain(() => window.MouseMove(connector.TranslatePoint(new Point(2, 2), window)!.Value));
+            harness.Main.AdvanceMilliseconds(50);
+            harness.Main.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(50)));
+            Assert.Equal((byte)Math.Round(initial.A + (target.A - initial.A) * Animation.EaseOut(0.1).Progress(0.05)), ((ISolidColorBrush)path.Stroke!).Color.A);
+        }
+        finally { harness.Main.OnMain(() => WindowOf(connector).Close()); }
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:2378-2379; UI-SIDEBAR-040 baseline STOP only
+    public void Settled_chevron_rotates_on_panelSlide_instead_of_snapping_after_a_real_pointer_click() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource(); using var seam = FrameClock.Source.Override(frames);
+        var model = harness.MakeModel();
+        Control header = null!;
+        harness.Main.OnMain(() => header = Hosted(model, (Control)Activator.CreateInstance(Private("SettledHeader"), 1L, true)!));
+        try
+        {
+            var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(header));
+            var glyph = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(button));
+            Assert.Equal(0d, Assert.IsType<RotateTransform>(glyph.RenderTransform).Angle);
+            harness.Main.OnMain(() => PointerClick(button));
+            Assert.Equal(0d, Assert.IsType<RotateTransform>(glyph.RenderTransform).Angle); // :2379 value changes animate, not snap
+            harness.Main.AdvanceMilliseconds(90);
+            harness.Main.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(90)));
+            Assert.Equal(90 * Animation.Spring(response: 0.32, dampingFraction: 0.9).Progress(0.09), Assert.IsType<RotateTransform>(glyph.RenderTransform).Angle, 5);
+            harness.Main.AdvanceMilliseconds(1600);
+            harness.Main.OnMain(() => frames.Advance(TimeSpan.FromMilliseconds(1600)));
+            Assert.Equal(90d, Assert.IsType<RotateTransform>(glyph.RenderTransform).Angle);
+        }
+        finally { harness.Main.OnMain(() => WindowOf(header).Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-126")] // App/Views/Sidebar/SidebarView.swift:1097-1105; App/AppModel.swift:549-556
+    public void Project_body_pointer_toggles_persist_after_restart_but_search_and_no_change_schedule_no_save() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource(); using var seam = FrameClock.Source.Override(frames);
+        var project = NewProject(harness, "Alpha");
+        Assert.True(project.IsExpanded); // Core/Models/Library.swift:67 new-project default
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 0));
+        try
+        {
+            harness.Main.OnMain(() => PointerClick(ButtonNamed(row, "Alpha")));
+            harness.Main.OnMain(() => Assert.NotNull(Field(model, "saveTask"))); // updateProject schedules the library save
+            harness.Main.AdvanceMilliseconds(400);
+            DiskWriter.Shared.WaitForQueuedWrites();
+            var reloaded = harness.MakeModel();
+            harness.Main.OnMain(() => Assert.False(reloaded.Project(project.Id)!.IsExpanded));
+            harness.Main.OnMain(() => WindowOf(row).Close());
+            harness.Main.OnMain(() => row = ShownProjectRow(reloaded, reloaded.Project(project.Id)!, 0, togglesExpansion: false));
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(Field(reloaded, "saveTask"));
+                PointerClick(ButtonNamed(row, "Alpha"));
+                Assert.False(reloaded.Project(project.Id)!.IsExpanded);
+                Assert.Null(Field(reloaded, "saveTask")); // search guard returns without updating
+                reloaded.UpdateProject(project.Id, value => value);
+                Assert.Null(Field(reloaded, "saveTask")); // source equality guard returns without scheduling
+            });
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-009")] // App/Views/Sidebar/SidebarView.swift:1127-1132
+    [Trait("Req", "UI-SIDEBAR-010")] // App/Views/Sidebar/SidebarView.swift:1115-1125; UI/Chrome/Chrome.swift:766-772
+    public void Project_count_is_tabular_and_hover_accessories_keep_source_frames_order_font_and_hit_rectangles() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness(); using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presenter = Presentation.Presenter.Override(new RecordingPresenter());
+        var project = NewProject(harness, "Alpha") with { IsExpanded = false };
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 3));
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                var count = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == "3"); // :1128
+                Assert.Equal(11d, count.FontSize); Assert.Equal(FontWeight.Normal, count.FontWeight); // :1129 SwiftFont.Subheadline
+                Assert.Equal(SwiftFont.Subheadline.MonospacedDigit().Resolve().FontFeatures, count.FontFeatures); // :1129 .monospacedDigit()
+                var window = WindowOf(row);
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // :1116 hovering true
+            });
+            harness.Main.OnMain(() =>
+            {
+                WindowOf(row).UpdateLayout(); // the accessory rebuild (applied by the Track posted above) needs a real layout pass before the Bounds reads below
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(row), t => t.Text == "3"); // :1116 count branch no longer drawn
+                // The cluster is the Horizontal, zero-spacing StackPanel (:1117) whose two children together
+                // contain exactly two real Buttons: the ellipsis (Popovers.cs:569 RowActionsButton, a
+                // Decorator wrapping a Button) and the plus button (a Button directly).
+                var cluster = LogicalQuery.SelfAndDescendants<StackPanel>(row)
+                    .Single(p => p.Orientation == Orientation.Horizontal && p.Spacing == 0
+                        && p.Children.Count == 2 && LogicalQuery.SelfAndDescendants<Button>(p).Count() == 2);
+                Assert.Equal(new[] { "ellipsis", "plus" }, cluster.Children.Select(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Single().SymbolName)); // :1118,:1119 source order
+                var plus = Assert.IsType<Button>(cluster.Children[1]);
+                var glyph = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(plus));
+                Assert.Equal(11d, SwiftImage.GetFont(glyph)!.Resolve().FontSize); // UI/Chrome/Chrome.cs RowAccessoryIcon :766-772
+                Assert.Equal(FontWeight.SemiBold, SwiftImage.GetFont(glyph)!.Resolve().FontWeight);
+                Assert.Equal(Chrome.SecondaryText.Resolve(glyph.ActualThemeVariant), ((ISolidColorBrush)glyph.Foreground!).Color);
+                Assert.Equal(new Size(20, 20), plus.Bounds.Size); // RowAccessoryIcon's fixed hit rectangle
+                var at = plus.TranslatePoint(new Point(1, 1), WindowOf(row))!.Value; // off the glyph, inside the rectangular hit box
+                WindowOf(row).MouseMove(at); WindowOf(row).MouseDown(at, MouseButton.Left); WindowOf(row).MouseUp(at, MouseButton.Left);
+                Assert.Single(model.ThreadsIn(project)); // :1119-1123 Model.NewThread(current)
+            });
+        }
+        finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    // STOP opencode-App.Views.Sidebar.SidebarView #11 (successor review of uncommitted predecessor draft)
+    // Record: UI-SIDEBAR-059 (App/Views/Sidebar/SidebarView.swift:317-325,1064-1076, ED-218 ForEach
+    // transitions). A draft test ("Mounted_project_rows_fade_after_the_insertion_delay_and_leave_after_the_short_removal")
+    // was found uncommitted in this worktree and reverted: RowNamed(view, "Beta") threw "Sequence contains no
+    // matching element" immediately after model.RemoveProject(beta) at Tick(0), before any fade-out assertion ran.
+    // A throwaway diagnostic (built, run, then discarded; not committed) isolated the cause: it is NOT that the
+    // row is gone from the tree. Re-querying every SidebarRow's automation name right after
+    // harness.Main.OnMain(() => model.RemoveProject(beta)); Tick(0); still showed "Alpha,Beta,Add project,Settings"
+    // with the ListPanel's three children all at Opacity 1 — i.e. the row list did not react to the removal at
+    // all within that pump (no fade, no removal, no re-render), so RowNamed's failure in the real draft test must
+    // have come from a different scheduling order than this isolated probe used, not from the row being absent.
+    // Two real candidates remain open: (a) SidebarView's Track over Model.Projects/ThreadPlacements does not
+    // register Projects as a dependency the way Model.Threads does (a genuine reactivity gap distinct from
+    // ED-218's transition mechanics), so ApplyList/ApplyEntries never runs on a project-only removal; or (b) it
+    // does react, but only on a later pump this probe did not reach (e.g. requires the same DiskWriter/save
+    // round trip PR-SIDEBAR-126 depends on). Needs tracing ListPassNow/ThreadPlacements/HelpersByParent's actual
+    // reads against Swift's :317-325,1064-1076 dependency set before a fix or a firm STOP is written; not
+    // resolved in this pass.
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-026")] // App/Views/Sidebar/SidebarView.swift:965-983; UI/Chrome/Popovers.swift:102-157
+    public void Delete_confirmation_roles_have_the_exact_padding_fonts_colours_order_and_26_point_actions() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha"); var thread = NewThread(project, "Title", 0) with { WorktreePath = harness.NewFolder("worktree") };
+        var popover = Shown((Control)Activator.CreateInstance(Private("DeleteThreadPopover"), thread, (Action<bool>)(_ => { }))!);
+        try
+        {
+            var menu = Assert.IsType<PopoverMenu>(Get(popover, "Child")); Assert.Equal(280d, menu.Width);
+            var padded = Assert.IsType<Border>(Assert.IsType<ScrollViewer>(menu.Child).Content); Assert.Equal(new Thickness(6), padded.Padding);
+            var inner = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(padded.Child).Children.Single());
+            Assert.Equal(new[] { typeof(PopoverSectionHeader), typeof(PopoverNote), typeof(PopoverDivider), typeof(PopoverItem), typeof(PopoverItem) }, inner.Children.Select(c => c.GetType()));
+            var header = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(inner.Children[0]));
+            Assert.Equal("Delete this thread?", header.Text); Assert.Equal(11d, header.FontSize); Assert.Equal(FontWeight.SemiBold, header.FontWeight); Assert.Equal(new Thickness(8, 6, 8, 3), header.Margin);
+            var note = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(inner.Children[1]));
+            Assert.Equal("“Title” and its history will be removed. Files in your project stay as they are.", note.Text); Assert.Equal(12d, note.FontSize); Assert.Equal(new Thickness(8, 5), note.Margin);
+            foreach (var text in new[] { header, note }) Assert.Equal(Chrome.SecondaryText.Resolve(text.ActualThemeVariant), ((ISolidColorBrush)text.Foreground!).Color);
+            Assert.Equal(new Thickness(8, 5), Assert.IsType<Border>(Assert.IsType<PopoverDivider>(inner.Children[2]).Child).Margin);
+            foreach (var item in inner.Children.OfType<PopoverItem>())
+            {
+                var button = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(item)); Assert.Equal(26d, button.Bounds.Height);
+                var title = Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(button)); Assert.Equal(13d, title.FontSize);
+                Assert.Equal(Chrome.Danger.Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color);
+            }
+            Assert.DoesNotContain("Cancel", Texts(popover));
+        }
+        finally { WindowOf(popover).Close(); }
+    });
+
+    // STOP opencode-App.Views.Sidebar.SidebarView #12 (successor review of uncommitted predecessor draft)
+    // Rule: R-TEST-6, real popup dismissal probe (App/Views/Sidebar/SidebarView.swift:219-232,256-263). A
+    // draft test ("Real_delete_popover_dismissal_keeps_the_thread_and_confirmation_waits_for_content_to_leave")
+    // was found uncommitted in this worktree and reverted: window.Show()/PointerClick(anchor) threw
+    // "Unable to create IPopupImpl and no overlay layer is found for the target control" from
+    // Marrow.UI.Port.Presentation.AvaloniaPopoverPresenter.SetPresented (Port/ViewLifetime.cs:85) — the
+    // VisualLayerManager the draft builds is not the one SidebarView's own presenter resolves the popup
+    // against, so clicking the anchor opened a second, unrelated Popup.IsOpen the harness never attached an
+    // overlay for. Not fixed blind in this pass; needs the same real-popup harness pattern already proven to
+    // work elsewhere in this file (see DeletePopover_presents_only_for_the_matching_id_with_its_arrow_on_the_trailing_edge,
+    // :3878) rather than a hand-built window/VisualLayerManager.
+
 }
 
 // STOP App.Views.Sidebar.SidebarView #9 (Window review fixes)

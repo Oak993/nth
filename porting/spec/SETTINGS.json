@@ -633,7 +633,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The MCP page component receives the query as a prop from the settings shell.",
       "verification_method": "interaction test asserting the query reaches the MCP page and is cleared on page change",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -655,7 +655,7 @@
       "cancellation": "Leaving a page tears down its view, cancelling any task bound to its lifetime.",
       "windows_path": "A router keyed on the page id, unmounting the previous page so its effects are cleaned up.",
       "verification_method": "interaction test asserting only one page component is mounted at a time",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6576,7 +6576,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The settings shell hands the MCP page its query and nothing else; the MCP area owns everything inside it, including the confirmed custom-server Delete (OD-0008 A1).",
       "verification_method": "coverage check that the MCP area's spec covers every control on that page; interaction test that the custom-server Delete asks first while confirmBeforeDeleting is on",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -7144,7 +7144,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:138-140"
       ],
-      "notes": "Pure spacing for the window buttons. By owner ruling OD-0008 C4 the Windows caption buttons stay on the leading edge as round buttons at the source geometry, so the 14 + 16 reservation holds them exactly as on macOS. ED-063 (probe P7, porting/probes/p7/RESULT.md): on Avalonia 12.1.2 app-drawn caption controls declared only through Win32Properties.SetNonClientHitTestResult do nothing and right-click opens no system menu, so the window keeps WindowDecorations.Full with ExtendClientAreaToDecorationsHint, declares its leading-edge controls and drag region through SetNonClientHitTestResult, and a WndProc hook performs the controls' actions (WM_NCLBUTTONDOWN on a control swallowed, the SC_* command posted on WM_NCLBUTTONUP) and shows the system menu on WM_CONTEXTMENU and SC_KEYMENU. ED-063 records this for the main window; the settings window's caption controls are configured by the same WindowChrome.configure (WindowManager.swift:101), so the same hook serves them."
+      "notes": "Pure spacing for the window buttons. By owner ruling OD-0008 C4 the Windows caption buttons stay on the leading edge as round buttons at the source geometry, so the 14 + 16 reservation holds them exactly as on macOS. ED-063 (probe P7, porting/probes/p7/RESULT.md): on Avalonia 12.1.2 app-drawn caption controls declared only through Win32Properties.SetNonClientHitTestResult do nothing and right-click opens no system menu, so the window keeps WindowDecorations.Full with ExtendClientAreaToDecorationsHint, declares its leading-edge controls and drag region through SetNonClientHitTestResult, and a WndProc hook performs the controls' actions (WM_NCLBUTTONDOWN on a control swallowed, the SC_* command posted on WM_NCLBUTTONUP) and shows the system menu on WM_CONTEXTMENU and SC_KEYMENU. ED-063 records this for the main window; the settings window's caption controls are configured by the same WindowChrome.configure (WindowManager.swift:101), so the same hook serves them.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-003",
@@ -7225,7 +7226,8 @@
         "decision": "OD-0008 C6; OD-0012 I1",
         "upstream": "DroppyCode/App/UpdateChecker.swift:93-96 updateAvailable is true when Droppy's feed (:70) returned a newer release, and SettingsView.swift:159-163 then draws UpdateAvailableDot()",
         "port": "No Droppy feed is queried. The update feed is an internal value, empty by default, with no settings UI; while it is empty no network request is made, the check reports \"No update feed is set.\" and the dot never shows (OD-0012 I1); once a feed is set the dot follows updateAvailable as upstream."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-006",
@@ -7247,7 +7249,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51, :53 chatBaseSize - .body 13, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Keep the full stop on the second line and the absence of one on the first.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:161-172 -> 1fbf81e6 :166-177; heading `.system(size: 13, weight: .semibold)` -> `.system(.body, weight: .semibold)`, sentence `.system(size: 11)` -> `.system(.subheadline)`."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:161-172 -> 1fbf81e6 :166-177; heading `.system(size: 13, weight: .semibold)` -> `.system(.body, weight: .semibold)`, sentence `.system(size: 11)` -> `.system(.subheadline)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-007",
@@ -7267,7 +7270,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:198-204"
       ],
-      "notes": "Accessibility label is the verbatim \"No archived threads\". SF Symbol name \"archivebox\"."
+      "notes": "Accessibility label is the verbatim \"No archived threads\". SF Symbol name \"archivebox\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-008",
@@ -7293,7 +7297,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:50 chatBaseSize - .title3 15 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "Progress is quantised to 26 steps, so the fade is stepped, not continuous. Reproduce the quantisation.",
-      "spec_fix": "typography gave the B1 literal `.system(size: 15, weight: .semibold)` -> at B2 ChromeCompactTitle is `.system(.title3, weight: .semibold)` (DroppyCode/UI/Chrome/Chrome.swift:638), 15pt by B1:DroppyCode/UI/Common/ChatZoom.swift:50 (ED-059)"
+      "spec_fix": "typography gave the B1 literal `.system(size: 15, weight: .semibold)` -> at B2 ChromeCompactTitle is `.system(.title3, weight: .semibold)` (DroppyCode/UI/Chrome/Chrome.swift:638), 15pt by B1:DroppyCode/UI/Common/ChatZoom.swift:50 (ED-059)",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-009",
@@ -8346,7 +8351,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:648-675"
       ],
       "notes": "All fourteen providers get a section whether installed or not. The middle dot in the native-API line is U+00B7 with a space either side.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:639-666 -> 1fbf81e6 :671-698. The display name is no longer a ChromeSection title but the collapsible header (UI-PROVREG-045), and the row is inside a ChromeRevealLayout."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:639-666 -> 1fbf81e6 :671-698. The display name is no longer a ChromeSection title but the collapsible header (UI-PROVREG-045), and the row is inside a ChromeRevealLayout.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-050",
@@ -8425,7 +8431,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "This is the only multi-line text input in the settings window.",
-      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:802-819 -> 1fbf81e6 :841-858; `.system(size: 13)` -> `.system(.body)`."
+      "b2_change": "Re-cited dd2b86ef DroppyCode/App/Views/Settings/SettingsView.swift:802-819 -> 1fbf81e6 :841-858; `.system(size: 13)` -> `.system(.body)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-053",
@@ -8448,7 +8455,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:851-885"
       ],
-      "notes": "SF Symbol \"trash\" on both the button and the item. The note's wording changes between \"project\" and \"projects\" with the count; reproduce both."
+      "notes": "SF Symbol \"trash\" on both the button and the item. The note's wording changes between \"project\" and \"projects\" with the count; reproduce both.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-054",
@@ -8472,7 +8480,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1070 ChromeRow - title `.font(.system(.body))` (:1058), detail `.font(.system(.subheadline))` (:1062)",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51, :53 chatBaseSize - .body 13, .subheadline 11 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
-      "notes": "Restore is deliberately unconfirmed; only Delete consults the setting. One shared dialog serves every row, because only one deletion is ever pending."
+      "notes": "Restore is deliberately unconfirmed; only Delete consults the setting. One shared dialog serves every row, because only one deletion is ever pending.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-055",
@@ -8606,7 +8615,8 @@
         "decision": "OD-0008 B15; OD-0012 F3",
         "upstream": "DroppyCode/App/Views/Settings/SettingsView.swift:1076 \"Droppy Code is a coding app by Droppy for Mac.\"",
         "port": "The subtitle reads \"Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app\" (OD-0012 F3)."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-060",
@@ -8659,7 +8669,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "General is the only row whose symbol is scaled up, to 1.15. SF Symbol \"gear\".",
-      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged."
+      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-062",
@@ -8682,7 +8693,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "The only row that draws an image asset (the dragon mark) rather than an SF Symbol. Its declared symbol \"point.3.connected.trianglepath.dotted\" is never rendered.",
-      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged."
+      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-063",
@@ -8710,7 +8722,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "SF Symbol \"cpu\". The title is a single plural word with a capital P. It carries no badge; only the About row can (UI-SETTINGS-064).",
-      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged."
+      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-064",
@@ -8734,7 +8747,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "SF Symbol \"info.circle\". The only row that can carry a badge.",
-      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged."
+      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-065",
@@ -8853,7 +8867,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:838-840",
         "DroppyCode/UI/Common/Components.swift:163-165"
       ],
-      "notes": "The row's detail is the absolute path it reveals, so the label and the destination are always consistent."
+      "notes": "The row's detail is the absolute path it reveals, so the label and the destination are always consistent.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-070",
@@ -8873,7 +8888,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:985-987"
       ],
-      "notes": "There are two buttons labelled \"Show\" on the About page: this one and the Licenses row's. They are distinguished only by their row titles, which matters for accessible naming."
+      "notes": "There are two buttons labelled \"Show\" on the About page: this one and the Licenses row's. They are distinguished only by their row titles, which matters for accessible naming.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-071",
@@ -8956,7 +8972,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "SF Symbol \"puzzlepiece.extension\". The title is all caps, \"MCP\", not \"Mcp\" and not \"MCP servers\". It carries no badge; only the About row can (UI-SETTINGS-064).",
-      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged."
+      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-074",
@@ -8984,7 +9001,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "SF Symbol \"slider.horizontal.3\", including the trailing \".3\". It carries no badge; only the About row can (UI-SETTINGS-064).",
-      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged."
+      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-075",
@@ -9012,7 +9030,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "SF Symbol \"arrow.triangle.branch\". The title is sentence case with a lowercase c: \"Source control\", not \"Source Control\". It carries no badge; only the About row can (UI-SETTINGS-064).",
-      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged."
+      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-076",
@@ -9040,7 +9059,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "SF Symbol \"command\" (the loop glyph), not \"keyboard\". It carries no badge; only the About row can (UI-SETTINGS-064).",
-      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged."
+      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-077",
@@ -9068,7 +9088,8 @@
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
       "notes": "SF Symbol \"archivebox\", one word, no dot. It carries no badge; only the About row can (UI-SETTINGS-064).",
-      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged."
+      "b2_change": "SidebarRow's title font dd2b86ef `.system(size: 13, weight: ...)` -> 1fbf81e6 `.system(.body, weight: isSelected || isEmphasized ? .medium : .regular)` (DroppyCode/UI/Chrome/Chrome.swift:717); symbol size 14 (DroppyCode/UI/Chrome/Chrome.swift:52) and colours unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-078",
@@ -9096,7 +9117,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:717",
         "B1:DroppyCode/UI/Common/ChatZoom.swift:51 chatBaseSize - .body 13 (ED-059: the port sets each text style at the point size in upstream's B1 table, in Inter, scaled only by the app zoom; visual size parity UNVERIFIED under OD-0001)"
       ],
-      "notes": "SF Symbol \"paintpalette\". Added at 1fbf81e6; absent at dd2b86ef."
+      "notes": "SF Symbol \"paintpalette\". Added at 1fbf81e6; absent at dd2b86ef.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-SETTINGS-079",

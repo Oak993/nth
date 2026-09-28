@@ -647,13 +647,18 @@ public static class LoginEnvironment
         environment => DeveloperGit(environment, HomeDirectory)), LazyThreadSafetyMode.ExecutionAndPublication);
 
     /// <summary>:341-343</summary>
-    public static ValueMap<string, string> Current => shared.Value.Current;
+    // PORT-ONLY R-TEST-10 boundary; empty in production. Both credential home paths share the scoped override.
+    internal static Ambient<string> HomeForTesting { get; } = new("");
+
+    public static ValueMap<string, string> Current => HomeForTesting.Current is { Length: > 0 } home
+        ? shared.Value.Current.Mutating(environment => environment["HOME"] = home) : shared.Value.Current;
 
     /// <summary>:349-351</summary>
     public static bool IsLoaded => shared.Value.IsLoaded;
 
     /// <summary>:353-355 <c>FileManager.default.homeDirectoryForCurrentUser.path</c>: the user's profile folder.</summary>
-    public static string HomeDirectory => System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
+    public static string HomeDirectory => HomeForTesting.Current is { Length: > 0 } home
+        ? home : System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
 
     /// <summary>:357-365</summary>
     public static Task Load() => shared.Value.Load();
@@ -776,6 +781,9 @@ public static class LoginEnvironment
         var trimmed = entry.Length > 0 && entry[^1] is '\\' or '/' ? entry[..^1] : entry;
         if (trimmed.Length != directory.Length) return false;
         if (trimmed.Length == 0) return true;
+        // PORT-ONLY test-host portability: kernel32 exists only on Windows. Linux test hosts (cloud workers, CI) compare with
+        // OrdinalIgnoreCase, which no shipped build ever runs; Windows always takes the ED-137 path below.
+        if (!OperatingSystem.IsWindows()) return string.Equals(trimmed, directory, StringComparison.OrdinalIgnoreCase);
         var result = CompareStringOrdinal(trimmed, trimmed.Length, directory, directory.Length, bIgnoreCase: true);
         if (result == 0) throw new InvalidOperationException($"CompareStringOrdinal failed with error {Marshal.GetLastPInvokeError()}.");
         return result == CstrEqual;

@@ -709,6 +709,7 @@ namespace Marrow.UI.Chrome
                 Children = { new Ellipse { Fill = Brushes.Transparent }, image }, // :426 .contentShape(Circle())
             };
             var button = PlainControls.Button(label, action); // :421, :428
+            button.Clip = new EllipseGeometry(new Rect(0, 0, Chrome.CapsuleHeight, Chrome.CapsuleHeight)); // :426 .contentShape(Circle())
             var surface = button.ChromeGlassCircle(); // :429
             surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :430-432
             ToolTip.SetTip(button, help); // :433
@@ -750,6 +751,7 @@ namespace Marrow.UI.Chrome
                 Children = { new Ellipse { Fill = Brushes.Transparent }, image }, // :456 .contentShape(Circle())
             };
             var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented); // :449-451, :458
+            button.Clip = new EllipseGeometry(new Rect(0, 0, Chrome.CapsuleHeight, Chrome.CapsuleHeight)); // :456 .contentShape(Circle())
             var surface = button.ChromeGlassCircle(); // :459
             surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :460-462
             ToolTip.SetTip(button, help); // :463
@@ -1082,7 +1084,7 @@ namespace Marrow.UI.Chrome
             iconSlot.Width = Chrome.IconSize; // :713 .frame(width:, alignment: .center)
             iconSlot.HorizontalAlignment = HorizontalAlignment.Center;
 
-            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap }; // :714, :718-719
+            var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :714, :718-719 .lineLimit(1).truncationMode(.tail)
             void ApplyText()
             {
                 SwiftFont.System(SwiftFont.TextStyle.Body, weight: isSelected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
@@ -1639,13 +1641,13 @@ namespace Marrow.UI.Chrome
                 textStack.Children.Add(detailText);
             }
             var controlView = control(); // :1073
-            controlView.Margin = new Thickness(12, 0, 0, 0); // :1072 Spacer(minLength: 12)
             controlView.HorizontalAlignment = HorizontalAlignment.Right;
             controlView.VerticalAlignment = VerticalAlignment.Center;
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") }; // :1062 HStack(spacing: 16)
+            // :1062, :1072 HStack has two 16-point gaps around Spacer(minLength: 12).
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,16,12,16,Auto") };
             textStack.HorizontalAlignment = HorizontalAlignment.Stretch;
             Grid.SetColumn(textStack, 0);
-            Grid.SetColumn(controlView, 1);
+            Grid.SetColumn(controlView, 4);
             row.Children.Add(textStack);
             row.Children.Add(controlView);
             row.VerticalAlignment = VerticalAlignment.Center;
@@ -1668,6 +1670,7 @@ namespace Marrow.UI.Chrome
             // :1084 `Divider()`: SwiftUI's own separator, drawn in the system divider colour. B2 gives it no
             // literal (the framework paints it), so it takes the same translucent hairline opacity Chrome uses
             // for its other system-style rules (WindowBackdrop's edge, :270), UNVERIFIED under OD-0001.
+            // STOP opencode-proofs-settings-prov #1 UI-PROVREG-009: Divider system color has no pinned RGBA or approved specific mapping; need a ruling or macOS measurement.
             line.BorderBrush = Chrome.Overlay(0.14).Brush(line);
             Child = line;
             Margin = new Thickness(16, 0, 0, 0); // :1085 .padding(.leading, 16)

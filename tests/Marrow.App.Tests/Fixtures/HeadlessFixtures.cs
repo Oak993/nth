@@ -16,7 +16,7 @@ public sealed class TestApp : Application
 {
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApp>()
         .UseSkia()
-        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+        .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false, ShouldRenderOnUIThread = true })
         .WithSwiftFonts(); // ED-107 (5): the one font registration point, shared with the app shell's AppBuilder;
         // matches tests/Marrow.UI.Tests/Fixtures/HeadlessFixtures.cs, missing here until App.Views.Settings.TokenActivitySection's
         // tests needed a real Inter Medium glyph typeface (Avalonia's headless session otherwise has none registered).
@@ -70,11 +70,11 @@ public sealed class HeadlessSession : IDisposable
     }
 
     // Forces the embedded Inter release files to resolve every weight this assembly's tests draw with (Regular, Bold,
-    // SemiBold) before any test measures text, so a test whose first layout pass needs two glyph typefaces of the
+    // Medium, SemiBold) before any test measures text, so a test whose first layout pass needs two glyph typefaces of the
     // same weight at once (two crossfading pages, each titled in Bold) never races the collection's own first load.
     private static void WarmFonts()
     {
-        foreach (var weight in new[] { FontWeight.Normal, FontWeight.SemiBold, FontWeight.Bold })
+        foreach (var weight in new[] { FontWeight.Normal, FontWeight.Medium, FontWeight.SemiBold, FontWeight.Bold })
         {
             var block = new TextBlock { Text = "Warm", FontFamily = new FontFamily("fonts:Inter#Inter"), FontWeight = weight };
             block.Measure(Size.Infinity);

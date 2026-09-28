@@ -183,7 +183,7 @@ public sealed class SettingsView : Decorator
         });
         this.Track(() => state.Page, _ => { RebuildSidebar(); RebuildDetail(); });
         this.Track(() => UpdateChecker.Shared.UpdateAvailable, _ => RebuildSidebar());
-        this.Track(() => AppEnvironment.GetAppModel(this).ArchivedThreads.Count, _ => { if (state.Page == SettingsPage.Archive) RebuildDetail(); });
+        this.Track(() => { var model = AppEnvironment.GetAppModel(this); _ = model.Threads; return model.ArchivedThreads.Count; }, _ => { if (state.Page == SettingsPage.Archive) RebuildDetail(); }); // :198 observe the collection behind the computed archive count.
         rows.Track(() => scrollTracker.IsFrozen, value => rows.IsHitTestVisible = !value); // :182
         DetachedFromVisualTree += (_, _) => scrollTracker.End(); // :117
     }
@@ -236,19 +236,26 @@ public sealed class SettingsView : Decorator
         var hasControls = state.Page is SettingsPage.Providers or SettingsPage.Models or SettingsPage.Mcp or SettingsPage.Archive or SettingsPage.About; // :270-272
         pageStack = new StackPanel { Spacing = Chrome.SectionSpacing, Margin = new Thickness(Chrome.ContentHorizontalPadding + 8, hasControls ? Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 16 : 22, Chrome.ContentHorizontalPadding + 8, 24), Children = { content } }; // :220-227
         pageStack.Track(() => scrollTracker.IsFrozen, value => pageStack.IsHitTestVisible = !value);
-        var scroll = new ScrollViewer { Content = pageStack, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :228-230
+        var scroll = new ScrollViewer { Template = SettingsScrollTemplate, Content = pageStack, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :228-230
         WireScroll(scroll, page: true);
         var accessories = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         var chromeRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 10, MinHeight = Chrome.CapsuleHeight, Children = { new ChromeCompactTitle(state.Page.Title, scrollChrome), accessories } }; Grid.SetColumn(accessories, 1);
         var chrome = new StackPanel { Spacing = 10, MinHeight = Chrome.CapsuleHeight, Margin = new Thickness(Chrome.ChromeHorizontalPadding, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0), VerticalAlignment = VerticalAlignment.Top, Children = { chromeRow } }; // :246-267. Grid's star track is Swift's flexible title frame.
         if (state.Page == SettingsPage.Models) accessories.Children.Add(new ChromeSearchField(new Binding<string>(() => state.ModelSearch, value => { state.ModelSearch = value; ((ModelsSettingsPage)content).SetQuery(value); }), "Search models")); // :248-250
-        if (state.Page == SettingsPage.Mcp) accessories.Children.Add(new ChromeSearchField(new Binding<string>(() => state.McpSearch, value => state.McpSearch = value), "Search servers")); // :251-253
+        if (state.Page == SettingsPage.Mcp) accessories.Children.Add(new ChromeSearchField(new Binding<string>(() => state.McpSearch, value => { state.McpSearch = value; ((MCPSettingsPage)content).SetQuery(value); }), "Search servers")); // :251-253
         if (state.Page == SettingsPage.Providers) accessories.Children.Add(new ProvidersRefreshButton()); // :254-256
         if (state.Page == SettingsPage.Archive) accessories.Children.Add(new ArchiveDeleteAllButton()); // :257-259
         if (state.Page == SettingsPage.About) accessories.Children.Add(new AboutUpdateChromeAccessory()); // :260-262
         detail.Child = new Panel { Children = { scroll, new PaneTopVeil(scrollChrome) { VerticalAlignment = VerticalAlignment.Top }, chrome } }.DetailSheet();
     }
 
+    // :228-241 ScrollView: the unthemed app owns its real vertical content presenter.
+    private static readonly FuncControlTemplate<ScrollViewer> SettingsScrollTemplate = new((viewer, scope) =>
+    {
+        var presenter = new ScrollContentPresenter { Background = Brushes.Transparent, Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty] };
+        presenter.GestureRecognizers.Add(new Avalonia.Input.GestureRecognizers.ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
+        return presenter.RegisterInNameScope(scope);
+    });
     // :184-189,231-241. Avalonia reports wheel geometry; pointer phases mirror interaction and coasting.
     private void WireScroll(ScrollViewer scroll, bool page)
     {
@@ -430,7 +437,7 @@ internal sealed class SettingsScalarAnimation
         Action<TimeSpan>? tick = null;
         tick = _ =>
         {
-            var elapsed = (SwiftClock.Now - start).TotalSeconds; var finished = elapsed >= animation.Duration;
+            var elapsed = (SwiftClock.Now - start).TotalSeconds; var finished = (SwiftClock.Now - start).Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(animation.Duration).Ticks; // ED-117 (2): frame-clock completion tolerance.
             Value = finished ? target : from + (target - from) * animation.Progress(elapsed); apply(Value);
             if (finished) pending = null; else frames.RequestFrame(tick!);
         };
@@ -553,7 +560,7 @@ internal sealed class ProviderSettingsSection : Decorator
         {
             state.BinaryPath = model.Settings.BinaryPath(provider); if (provider.AcceptsAPIKey) state.ApiKey = model.Settings.ApiKeyInput(provider); // :768-771
             var statusRow = new Grid { ColumnDefinitions = new ColumnDefinitions("22,*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11) }; // :650,653,673-675
-            var icon = new ProviderIcon { Provider = provider, Size = 18 }; statusRow.Children.Add(icon); // :651
+            var icon = new ProviderIcon { Provider = provider, Size = 18 }; icon.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, Chrome.PrimaryText.Brush(icon)); statusRow.Children.Add(icon); // :651-652 .foregroundStyle(Chrome.primaryText)
             var labels = new StackPanel { Spacing = 2 }; Grid.SetColumn(labels, 1); statusRow.Children.Add(labels); // :654
             var toggle = new SettingsSwitch(new Binding<bool>(() => model.Settings.IsEnabled(provider), value => model.Settings.SetEnabled(value, provider))); Grid.SetColumn(toggle, 2); statusRow.Children.Add(toggle); // :668-671
             cardRows.Children.Add(statusRow);
@@ -561,7 +568,7 @@ internal sealed class ProviderSettingsSection : Decorator
             var usageSlot = new StackPanel(); cardRows.Children.Add(usageSlot);
             statusRow.Track(() => { _ = model.Providers.Statuses; return model.Providers.Status(provider); }, status =>
             {
-                labels.Children.Clear(); labels.Children.Add(new TextBlock { Text = status.IsChecking ? "Checking\u2026" : status.Summary }.Font(SwiftFont.System(13))); // :655-656
+                labels.Children.Clear(); labels.Children.Add(new TextBlock { Text = status.IsChecking ? "Checking\u2026" : status.Summary, Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(13))); // :655-656
                 var detailText = !provider.IsAPIKeyBased && status.Version is { } version ? "Version " + version : provider.IsAPIKeyBased && status.ApiKeyConfigured && provider.ApiHost is { } host ? "Native API \u00b7 " + host : null; // :657-664
                 if (detailText is not null) labels.Children.Add(new TextBlock { Text = detailText, Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(11)));
             });
@@ -588,8 +595,9 @@ internal sealed class ProviderSettingsSection : Decorator
                 }));
                 keyField.PasswordChar = '\u2022'; keyField.Width = 200; SwiftFont.System(12, design: SwiftFont.Design.Monospaced).Apply(keyField); // :700-707
                 MaskedPresenter(keyField); // SecureField must mask its actual text presenter, not just the box property.
-                var eye = PlainControls.Button(SwiftImage.SystemName("eye").Font(SwiftFont.System(12)).ForegroundStyle(Chrome.SecondaryText), () => state.ShowsAPIKey = !state.ShowsAPIKey); // :708-715
-                eye.Track(() => state.ShowsAPIKey, shown => { keyField.PasswordChar = shown ? '\0' : '\u2022'; eye.Content = SwiftImage.SystemName(shown ? "eye.slash" : "eye").Font(SwiftFont.System(12)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(eye, shown ? "Hide the API key" : "Show the API key"); }); // :711,716
+                var eyeLabel = new Border { Background = Brushes.Transparent, Child = SwiftImage.SystemName("eye").Font(SwiftFont.System(12)).ForegroundStyle(Chrome.SecondaryText) }; // :708-717: the plain button's label frame is the hit surface.
+                var eye = PlainControls.Button(eyeLabel, () => state.ShowsAPIKey = !state.ShowsAPIKey); // :708-715
+                eye.Track(() => state.ShowsAPIKey, shown => { keyField.PasswordChar = shown ? '\0' : '\u2022'; eyeLabel.Child = SwiftImage.SystemName(shown ? "eye.slash" : "eye").Font(SwiftFont.System(12)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(eye, shown ? "Hide the API key" : "Show the API key"); }); // :711,716
                 // DEVIATION OD-0012 G2: Credential Manager replaces Keychain.
                 var keyDetail = provider.IsAPIKeyBased ? "Stored in your Credential Manager. Get one at " + (provider.ApiKeySource ?? "the provider dashboard") + "." : "Instead of `" + provider.LoginCommand + "`: a Studio key from " + (provider.ApiKeySource ?? "the provider dashboard") + ", stored in your Credential Manager and handed to the CLI."; // :693-695
                 var keyControls = new StackPanel { Children = { new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { keyField, eye } } } };
@@ -636,7 +644,8 @@ internal sealed class ProviderSettingsSection : Decorator
             }.RegisterInNameScope(scope);
             void ShowPrompt() => prompt.IsVisible = string.IsNullOrEmpty(owner.Text);
             owner.PropertyChanged += (_, change) => { if (change.Property == TextBox.TextProperty) ShowPrompt(); }; ShowPrompt();
-            return new Panel { Children = { prompt, presenter } };
+            // :698-707: an empty SecureField still receives pointer focus and text input.
+            return new Panel { Background = Brushes.Transparent, Children = { prompt, presenter } };
         });
     }
 
@@ -672,14 +681,20 @@ internal sealed class SourceControlSettingsPage : Decorator
             var editor = PlainControls.TextField("", new Binding<string>(() => settings.CommitInstructions, value => settings.CommitInstructions = value)); editor.AcceptsReturn = true; editor.TextWrapping = TextWrapping.Wrap; editor.MinHeight = 90; SwiftFont.System(SwiftFont.TextStyle.Body).Apply(editor); // :821-824
             editor.Template = new FuncControlTemplate<TextBox>((owner, scope) => new ScrollViewer // :821-824. Plain transparent multiline editor, with its native caret/selection and scrolling.
             {
-                Name = "PART_ScrollViewer", HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden,
+                Template = new FuncControlTemplate<ScrollViewer>((scroll, names) => new ScrollContentPresenter
+                {
+                    Name = "PART_ContentPresenter", CanHorizontallyScroll = false, CanVerticallyScroll = true,
+                    [!ContentPresenter.ContentProperty] = scroll[!ContentControl.ContentProperty],
+                    Background = Brushes.Transparent,
+                }.RegisterInNameScope(names)),
+                Name = "PART_ScrollViewer", Background = Brushes.Transparent, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden,
                 Content = new TextPresenter
                 {
                     Name = "PART_TextPresenter", [!TextPresenter.TextProperty] = owner[!TextBox.TextProperty], [!TextPresenter.TextWrappingProperty] = owner[!TextBox.TextWrappingProperty],
                     [!TextPresenter.CaretIndexProperty] = owner[!TextBox.CaretIndexProperty], [!TextPresenter.SelectionStartProperty] = owner[!TextBox.SelectionStartProperty], [!TextPresenter.SelectionEndProperty] = owner[!TextBox.SelectionEndProperty],
                 }.RegisterInNameScope(scope),
             }.RegisterInNameScope(scope));
-            var placeholder = new TextBlock { Text = "For example: use conventional commit prefixes", Margin = new Thickness(5, 0), Foreground = Chrome.SecondaryText.Brush(this), IsHitTestVisible = false }.Font(SwiftFont.System(SwiftFont.TextStyle.Body)); // :825-830
+            var placeholder = new TextBlock { Text = "For example: use conventional commit prefixes", HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(5, 0), Foreground = Chrome.SecondaryText.Brush(this), IsHitTestVisible = false }.Font(SwiftFont.System(SwiftFont.TextStyle.Body)); // :820 ZStack(alignment:.topLeading), :825-830.
             placeholder.Track(() => settings.CommitInstructions.Length == 0, value => placeholder.IsVisible = value);
             sections.Children.Add(new ChromeSection("Commit message instructions", () => new ChromeCard(() => new Border { Padding = new Thickness(12), Child = new Panel { Children = { editor, placeholder } } }))); // :818-834
             sections.Children.Add(new ChromeSection("Worktrees and pull requests", () => new ChromeCard(() => new StackPanel { Children =
@@ -853,7 +868,7 @@ internal sealed class MadeByDroppyRow : Decorator
         var logo = SwiftImage.Named("droppy-logo").Resizable().AspectRatio(ContentMode.Fit); logo.Width = 40; logo.Height = 40; AutomationProperties.SetAccessibilityView(logo, AccessibilityView.Raw); // :1070-1073
         var labels = new StackPanel { Spacing = 2, Children = { new TextBlock { Text = "Made by Droppy", Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(13, SwiftFont.Weight.Semibold)), new TextBlock { Text = "Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Foreground = Chrome.SecondaryText.Brush(this), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(11)) } }; // :1074-1080 OD-0012 F3
         var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Opacity = 0.9, Children = { new TextBlock { Text = "getdroppy.app", Foreground = Chrome.Accent.Brush(this) }.Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), SwiftImage.SystemName("arrow.up.right").Font(SwiftFont.System(10, SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.Accent) } };
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 12, Chrome.RowControlTrailingPadding + 4, 12) }; Grid.SetColumn(labels, 1); Grid.SetColumn(trailing, 2); row.Children.Add(logo); row.Children.Add(labels); row.Children.Add(trailing);
+        var row = new Grid { Background = Brushes.Transparent, ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 12, Margin = new Thickness(16, 12, Chrome.RowControlTrailingPadding + 4, 12) }; Grid.SetColumn(labels, 1); Grid.SetColumn(trailing, 2); row.Children.Add(logo); row.Children.Add(labels); row.Children.Add(trailing); // :1093 .contentShape(.rect): the whole row, including its gaps, is one hit target.
         var hover = new SettingsScalarAnimation(trailing, 0.9, value => trailing.Opacity = value); // :1094-1096
         var button = PlainControls.Button(row, () => Marrow.Services.Port.Workspace.Open.Current(url)); button.OnHover(hovering => hover.Set(hovering ? 1 : 0.9, Chrome.Hover)); ToolTip.SetTip(button, "Open getdroppy.app"); AutomationProperties.SetName(button, "Made by Droppy. Open getdroppy.app"); Child = button; // :1081-1101
     }
@@ -915,6 +930,12 @@ internal sealed class ThemePickerButton : Decorator
             var theme = selection.Value; label.Children.Clear(); var swatch = theme.Swatch(); swatch.Width = 14; swatch.Height = 14; label.Children.Add(swatch); label.Children.Add(new TextBlock { Text = theme.DisplayName(), MaxLines = 1 }.Font(SwiftFont.System(12.5, SwiftFont.Weight.Medium))); label.Children.Add(SwiftImage.SystemName("chevron.down").Font(SwiftFont.System(8, SwiftFont.Weight.Bold)).ForegroundStyle(Chrome.SecondaryText));
         }
         var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented);
+        // :1185 .contentShape(Capsule(style: .continuous)): the hit-test shape covers the whole padded frame (not just painted content) and survives label replacement.
+        button.Template = new FuncControlTemplate<Button>((owner, scope) => new Border
+        {
+            Background = Brushes.Transparent,
+            Child = new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope),
+        }.Capsule(RoundedCornerStyle.Continuous));
         var foreground = new AnimatedColor(label); Avalonia.Controls.Documents.TextElement.SetForeground(label, foreground.Brush);
         label.Track(() => state.IsHovering || state.IsPresented, full => foreground.Set(Chrome.PrimaryText.Opacity(full ? 1 : 0.92), Transaction.Current)); // :1188
         button.OnHover(value => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = value));

@@ -81,6 +81,11 @@ public sealed class AppModelHarness : IDisposable
         Home = Path.Combine(baseFolder, "home");
         Scratch = Path.Combine(baseFolder, "scratch");
         Directory.CreateDirectory(Scratch);
+        Directory.CreateDirectory(Home);
+        // R-TEST-10: Command Code must never consult the owner's HOME or UserProfile.
+        var homeBoundary = typeof(LoginEnvironment).GetProperty("HomeForTesting", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+        Assert.NotNull(homeBoundary);
+        scopes.Add(Assert.IsType<Ambient<string>>(homeBoundary.GetValue(null)).Override(Home));
         if (withRuntime)
         {
             Runtime = new TestRuntime();

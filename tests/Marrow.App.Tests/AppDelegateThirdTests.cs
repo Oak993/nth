@@ -96,7 +96,8 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-LAUNCH-071")] // App/AppDelegate.swift:22-33
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-071; STOP opencode-App.AppDelegate #1. // App/AppDelegate.swift:22-33
     public void First_launch_opens_the_chat_then_only_the_delayed_tour_with_no_onboarding_alert()
     {
         WithLaunch(h => WriteProjectWithUnusedThread(h), launch =>
@@ -163,7 +164,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
             launch.Harness.Main.OnMain(launch.Delegate.ApplicationDidFinishLaunching);
 
             // :14 MarkdownDelegationCard.render = { AnyView(HydraDelegationBlock(json: $0, sent: $1)) }, set before :16.
-            // The renderer is not called here: HydraDelegationBlock's body is still MARROW_STUB (TimelineRows.swift:652).
+            // Registration-only check here; AppDelegateProofTests exercises the now-landed renderer and its card.
             Assert.NotNull(launch.DelegationBlockWhenMainWindowBuilt);
             Assert.Same(launch.DelegationBlockWhenMainWindowBuilt, MarkdownDelegationCard.Render);
         });
@@ -173,7 +174,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-070")] // App/AppDelegate.swift:24-26
     [Trait("Req", "PR-LAUNCH-037")] // App/AppDelegate.swift:24-26
     [Trait("Req", "PR-UPDATE-090")] // App/AppDelegate.swift:22-26; App/AppSettings.swift:178
-    [Trait("Req", "UI-LAUNCH-002")] // App/AppDelegate.swift:24-26
+    // Partial proof UI-LAUNCH-002; STOP opencode-App.AppDelegate #5. // App/AppDelegate.swift:24-26
     public void On_a_first_launch_the_tour_is_presented_exactly_700_ms_after_the_main_window()
     {
         WithLaunch(null, launch =>
@@ -196,7 +197,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-070")] // App/AppDelegate.swift:24
     [Trait("Req", "PR-LAUNCH-037")] // App/AppDelegate.swift:24
     [Trait("Req", "PR-UPDATE-090")] // App/AppDelegate.swift:24; App/AppSettings.swift:178
-    [Trait("Req", "UI-LAUNCH-002")] // App/AppDelegate.swift:24
+    // Partial proof UI-LAUNCH-002; STOP opencode-App.AppDelegate #5. // App/AppDelegate.swift:24
     public void When_the_tour_has_been_seen_launch_never_presents_it()
     {
         WithLaunch(h => h.Defaults.Set(HasSeenTourKey, true), launch =>
@@ -359,7 +360,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 // Done so far: (b): the shell refuses the session end while the merge wait runs and WM_ENDSESSION runs the three steps
 // at once (AppShellTests); no ShutdownBlockReasonCreate call.
 
-// STOP Boot #4 (build agent, 2026-09-26)
+// HISTORICAL CLOSED Boot #4 (ED-212; opencode audit 2026-09-27)
 // Kind: missing decision (a safe manual launch)
 // Swift: none (port-only: R-TEST-9's MARROW_PORT_DATA_DIR is a test convention)
 // What is unclear or missing: a production launch does not honour MARROW_PORT_DATA_DIR. Only scratch and temp folders

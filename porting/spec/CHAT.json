@@ -233,7 +233,7 @@
       "id": "PR-CHAT-011",
       "title": "The usage-limit resume badge is dead code in the pinned build and must not be implemented",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/LimitResumeBadge.swift:1-60 (B2 1fbf81e6 line range; the file is deleted at B3) the whole file - struct LimitResumeBadge with Cancel and New thread buttons and three outcome strings",
+        "B2:DroppyCode/App/Views/Chat/LimitResumeBadge.swift:1-60 (B2 1fbf81e6 line range; the file is deleted at B3) the whole file - struct LimitResumeBadge with Cancel and New thread buttons and three outcome strings",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2385-2431 NoticeRow - the only renderer of a .notice item, reading only notice.level and notice.message",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2058 case .notice: NoticeRow(entry: entry) - the only selection of a notice row"
       ],

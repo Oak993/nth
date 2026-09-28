@@ -6396,7 +6396,8 @@
         "E:/Droppy/port/porting/extracts/chrome-design-tokens.md:306"
       ],
       "notes": "The search keyword list is exactly these 39 strings in this order: codex, claude, cursor, opencode, opencode zen, opencode go, zen, grok, deepseek, meta, muse, spark, zai, z.ai, glm, coding plan, devin, cognition, antigravity, agy, google, gemini, copilot, github, command code, commandcode, cmd, binary, path, sign in, login, api key, usage, limits, limit, plan, quota, credits, balance. Several of them, such as muse, spark, cognition, google and gemini, are vendor words that appear nowhere on the page itself, so a port that derives keywords from visible text will not match.",
-      "b2_change": "Page position: B1 SettingsView.swift:4-14 had general, hydra, providers (third) -> B2 :4-15 has general, hydra, appearance, providers (fourth; `case appearance` at :8). Keywords: B1 :67 36 strings -> B2 :72 39 strings, with \"opencode zen\", \"opencode go\" and \"zen\" inserted after \"opencode\". Title, symbol cpu and tint Chrome.blue are unchanged."
+      "b2_change": "Page position: B1 SettingsView.swift:4-14 had general, hydra, providers (third) -> B2 :4-15 has general, hydra, appearance, providers (fourth; `case appearance` at :8). Keywords: B1 :67 36 strings -> B2 :72 39 strings, with \"opencode zen\", \"opencode go\" and \"zen\" inserted after \"opencode\". Title, symbol cpu and tint Chrome.blue are unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-002",
@@ -6458,7 +6459,7 @@
       ],
       "notes": "The sections are built EAGERLY, not lazily, and so is each card's own row stack (ChromeCard without lazy: true). The source comment records why: lazy sections were rebuilt while scrolling, which reset their text fields and re-ran every check they started on appear. A port that uses a virtualised list here will reintroduce that bug. Collapsing does not unmount a section either, so its fields keep their values and its onAppear and onChange handlers still run while it is collapsed. The per-provider expansion overrides live in the page's state for the page's lifetime and are never persisted. All 14 sections are always present, so there is no empty state for the page itself.",
       "b2_change": "Old (B1 SettingsView.swift:601-611, :637-639): each section was `ChromeSection(title: provider.displayName) { ChromeCard {`, always open, in plain allCases order. New (B2 :585-615, :644-790): signed-in providers first, then the rest; a header toggle button (UI-PROVREG-045); the card inside ChromeRevealLayout, expanded by default only when signed in, and while collapsed clipped, disabled, not hit-testable and hidden from accessibility. 13 sections -> 14 (opencodeGo), and OpenCode's section is titled OpenCode Zen.",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "b3_note": "At 1.7.0 ChromeCard gained a lazy flag defaulting to false (Chrome.swift:1009, :1014-1020), so the Providers page card, which passes none, is an eager VStack instead of a LazyVStack; the section header moved into CollapsibleProviderHeader (ModelsSettingsPage.swift:416-448) with identical strings."
     },
     {
@@ -6483,7 +6484,8 @@
         "DroppyCode/Core/Models/Provider.swift:59-60 `/// Both OpenCode plans are the one `opencode` CLI; the mark is the same.` `var iconName: String { self == .opencodeGo ? \"provider-opencode\" : \"provider-\\(rawValue)\" }`"
       ],
       "notes": "The asset name is provider- followed by the rawValue for every provider except OpenCode Go, which uses provider-opencode, the same mark as OpenCode Zen; so the fourteen cards use thirteen assets, provider-codex through provider-pi. The foreground style is applied but only affects template-rendered assets. The frame width 22 differs from the image size 18 and must be preserved or the rows misalign.",
-      "b2_change": "B1 Provider.swift:56 `var iconName: String { \"provider-\\(rawValue)\" }` -> B2 :60 `var iconName: String { self == .opencodeGo ? \"provider-opencode\" : \"provider-\\(rawValue)\" }`: the new OpenCode Go card draws the provider-opencode mark and no provider-opencodeGo asset exists. A fourteenth status card appears. The icon now sits inside the collapsible card (B1 SettingsView.swift:641-644 -> B2 :674-676)."
+      "b2_change": "B1 Provider.swift:56 `var iconName: String { \"provider-\\(rawValue)\" }` -> B2 :60 `var iconName: String { self == .opencodeGo ? \"provider-opencode\" : \"provider-\\(rawValue)\" }`: the new OpenCode Go card draws the provider-opencode mark and no provider-opencodeGo asset exists. A fourteenth status card appears. The icon now sits inside the collapsible card (B1 SettingsView.swift:641-644 -> B2 :674-676).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-005",
@@ -6507,7 +6509,8 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:19-26 ProviderStatus.summary"
       ],
       "notes": "The checking text replaces the summary entirely rather than being appended. The Installed variant uses U+00B7 MIDDLE DOT with a space either side. This is rendered with Text(verbatim:), so no Markdown or localisation processing applies to the account name.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-006",
@@ -6531,7 +6534,8 @@
         "DroppyCode/Services/Providers/ProviderRegistry.swift:397-399"
       ],
       "notes": "The literal is \"Version \" followed by the parsed version, with one space and no other punctuation. Because the API-key check excludes them, the \"API\" version literal set by refreshAPIProvider is never rendered as \"Version API\".",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). Chrome.secondaryText changed from B1 Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` to B2 :79 `static let secondaryText = primaryText.opacity(0.7)`."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). Chrome.secondaryText changed from B1 Chrome.swift:77 `static let secondaryText = Color(nsColor: .secondaryLabelColor)` to B2 :79 `static let secondaryText = primaryText.opacity(0.7)`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-007",
@@ -6555,7 +6559,8 @@
         "DroppyCode/Core/Models/Provider.swift:112-119"
       ],
       "notes": "The separator is U+00B7 MIDDLE DOT with a space either side. The three host strings are api.deepseek.com, api.meta.ai/v1 and api.z.ai/api/coding/paas/v4.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-008",
@@ -6581,7 +6586,8 @@
         "DroppyCode/App/AppSettings.swift:882-889"
       ],
       "notes": "There is no confirmation and no undo. Disabling a provider removes it from availableProviders immediately, which changes the composer pickers. The switch is not disabled while a check is running; it is disabled only while its section is collapsed (SettingsView.swift:764).",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-009",
@@ -6630,7 +6636,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:772-779"
       ],
       "notes": "Command Code is the only provider that shows BOTH sub-views. DeepSeek shows only credits. The onChange that starts the reads uses initial: true, so it fires once when the page opens on a signed-in account and again when a check signs one in; because the sections are eager, scrolling never re-fires it.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-011",
@@ -7280,7 +7287,8 @@
         "decision": "OD-0012 G2",
         "upstream": "SettingsView.swift:694 \"Stored in your Keychain. Get one at \\(provider.apiKeySource ?? \"the provider dashboard\").\" and :695 \"Instead of `\\(provider.loginCommand)`: a Studio key from \\(provider.apiKeySource ?? \"the provider dashboard\"), stored in your Keychain and handed to the CLI.\"",
         "port": "\"Stored in your Credential Manager. Get one at SOURCE.\" and \"Instead of `LOGIN`: a Studio key from SOURCE, stored in your Credential Manager and handed to the CLI.\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-038",
@@ -7334,7 +7342,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:708-717 `Button { showsAPIKey.toggle() } label: { Image(systemName: showsAPIKey ? \"eye.slash\" : \"eye\").font(.system(size: 12)) }` `.buttonStyle(.plain)` `.foregroundStyle(Chrome.secondaryText)` `.help(showsAPIKey ? \"Hide the API key\" : \"Show the API key\")`"
       ],
       "notes": "The symbol is eye.slash when the key is VISIBLE and eye when it is hidden, which is the inverse of the naive reading. Both help strings begin with a capital and have no trailing full stop.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-040",
@@ -7360,7 +7369,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1079 ChromeRow - `Text(verbatim: title)` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)`; `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.fixedSize(horizontal: false, vertical: true)`"
       ],
       "notes": "The row detail reads exactly: NAME needs an API key. Nothing to install. The link label reads exactly: Get a NAME key, so for Z.ai it is \"Get a Z.ai key\". The clamped label height exists because a monospaced copy button drew a taller capsule than a plain one beside it.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-041",
@@ -7411,7 +7421,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1079 ChromeRow - `Text(verbatim: title)` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)`; `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.fixedSize(horizontal: false, vertical: true)`"
       ],
       "notes": "The row detail reads exactly: NAME was not found on your PATH. with PATH in capitals and a trailing full stop. The link label reads exactly: Get NAME, with no article, so it is \"Get Command Code\", not \"Get a Command Code\". On Windows the wording with PATH in capitals is kept because it is what the user reads.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-043",
@@ -7437,7 +7448,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:1055-1079 ChromeRow - `Text(verbatim: title)` `.font(.system(.body))` `.foregroundStyle(Chrome.primaryText)`; `Text(verbatim: detail)` `.font(.system(.subheadline))` `.foregroundStyle(Chrome.secondaryText)` `.fixedSize(horizontal: false, vertical: true)`"
       ],
       "notes": "The row title is \"Sign in\" but the button inside it is labelled \"Login\"; the two words are deliberately different and must not be harmonised. The detail reads exactly: Click here to login again. with a trailing full stop, unlike the plan-limits variant of the same sentence which has none. The row is shown for an auth state of unknown as well as signedOut, so a provider whose probe could not reach it still offers the button.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608). ChromeRow typography changed at B2 (B1 Chrome.swift:1025 `.font(.system(size: 13))` -> B2 :1058 `.font(.system(.body))`; B1 :1029 `.font(.system(size: 11))` -> B2 :1062 `.font(.system(.subheadline))`).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-044",
@@ -7460,7 +7472,8 @@
         "DroppyCode/UI/Common/Components.swift:117-132"
       ],
       "notes": "There is no in-app sign-in. The app hands the command to a terminal and then learns the result only from the next status check, which the user must start with the refresh button. A write failure produces no terminal and no message at all.",
-      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608)."
+      "b2_change": "B2 moved the provider card inside a collapsible section (SettingsView.swift:671 `ChromeRevealLayout(fraction: isExpanded ? 1 : 0) {`, :786-789 `.clipped()` `.disabled(!isExpanded)` `.allowsHitTesting(isExpanded)` `.accessibilityHidden(!isExpanded)`), expanded by default only when the provider is signed in (:608).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-PROVREG-045",
@@ -7487,7 +7500,8 @@
         "DroppyCode/Core/Models/Provider.swift:21-38 displayName",
         "DroppyCode/Core/Models/Provider.swift:59-60 `/// Both OpenCode plans are the one `opencode` CLI; the mark is the same.` `var iconName: String { self == .opencodeGo ? \"provider-opencode\" : \"provider-\\(rawValue)\" }`"
       ],
-      "notes": "Accessibility: the label is the provider display name, the hint is \"Shows or hides the provider settings\", and the header trait is added. The name is drawn with Text(verbatim:). The header icon (16) is smaller than the status card icon (18, UI-PROVREG-004). OpenCode Go's header shows the provider-opencode mark. The tooltip strings begin with a capital and have no trailing full stop."
+      "notes": "Accessibility: the label is the provider display name, the hint is \"Shows or hides the provider settings\", and the header trait is added. The name is drawn with Text(verbatim:). The header icon (16) is smaller than the status card icon (18, UI-PROVREG-004). OpenCode Go's header shows the provider-opencode mark. The tooltip strings begin with a capital and have no trailing full stop.",
+      "status": "IMPLEMENTED"
     }
   ]
 }

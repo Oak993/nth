@@ -233,8 +233,9 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92
-    [Trait("Req", "PR-LAUNCH-065")] // App/AppDelegate.swift:77-92
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-064; STOP opencode-App.AppDelegate #6. // App/AppDelegate.swift:77-92
+    // Partial proof PR-LAUNCH-065; STOP opencode-App.AppDelegate #6. // App/AppDelegate.swift:77-92
     [InlineData(false, "valid")]
     [InlineData(false, "unknown")]
     [InlineData(false, "invalid")]
@@ -282,7 +283,8 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; ED-220 (6)
+    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
+    // Partial proof PR-LAUNCH-064; STOP opencode-App.AppDelegate #6. // App/AppDelegate.swift:77-92; ED-220 (6)
     [InlineData("https://example.com/?payload=x")]
     [InlineData("marrow-code-dev://notification?payload=%7B%7D")]
     [InlineData("marrow-code-release://notification?payload=bad")]
@@ -299,7 +301,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     [Trait("Req", "PR-UPDATE-021")] // App/UpdateChecker.swift:178-180, :245-261
     [Trait("Req", "PR-UPDATE-023")] // App/UpdateChecker.swift:254-261; PLATFORM BOUNDARY ED-220 (4)
     [Trait("Req", "PR-UPDATE-025")] // App/AppDelegate.swift:63-75
-    [Trait("Req", "PR-LAUNCH-046")] // App/UpdateChecker.swift:178-180, :245-261 (notification side effect)
+    // Partial proof PR-LAUNCH-046; STOP opencode-App.AppDelegate #2. // App/UpdateChecker.swift:178-180, :245-261 (notification side effect)
     [InlineData(false)]
     [InlineData(true)]
     public void Background_update_posts_through_the_same_poster_after_persisting_once_even_if_delivery_fails(bool denied)

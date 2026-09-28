@@ -4691,7 +4691,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:422-426"
       ],
       "notes": "The detail is bound to the live theme, not snapshotted. The separator in every detail is U+00B7 with a space either side.",
-      "b2_change": "The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). The row itself (B2 SettingsView.swift:424-426) is unchanged."
+      "b2_change": "The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). The row itself (B2 SettingsView.swift:424-426) is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-002",
@@ -4722,7 +4723,8 @@
         "decision": "OD-0005",
         "upstream": "The theme picker button is drawn with `.chromeGlassCapsule()` (DroppyCode/App/Views/Settings/SettingsView.swift:1189), which renders `content.glassEffect(.regular.tint(Chrome.glassTint.opacity(0.3)).interactive(), in: shape)` (DroppyCode/UI/Chrome/Chrome.swift:180), macOS Liquid Glass",
         "port": "Where the window behind the control shows the desktop, an Acrylic-class Windows system material, without lensing, refraction or chromatic fringing; where the app draws its own backdrop (the wallpaper or the solid base), a shader reproduces the source-defined material: shape, corner radius, tint colour and opacity, .interactive() and container spacing"
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-003",
@@ -4746,7 +4748,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:1165-1166",
         "DroppyCode/UI/Chrome/Popovers.swift:8-12"
       ],
-      "notes": "System appears once, above both sections, because its scheme is nil and it matches neither filter. The two lists are derived from the palette table, not hard-coded."
+      "notes": "System appears once, above both sections, because its scheme is nil and it matches neither filter. The two lists are derived from the palette table, not hard-coded.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-004",
@@ -4766,7 +4769,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:1196"
       ],
-      "notes": "One word, capital D, no count and no trailing punctuation."
+      "notes": "One word, capital D, no count and no trailing punctuation.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-005",
@@ -4786,7 +4790,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/SettingsView.swift:1198"
       ],
-      "notes": "Sits below the 19 dark rows, above the 6 light rows."
+      "notes": "Sits below the 19 dark rows, above the 6 light rows.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-006",
@@ -4808,7 +4813,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:1204-1208",
         "DroppyCode/UI/Theme/AppTheme.swift:44-73"
       ],
-      "notes": "\"Rosé Pine\" carries U+00E9. \"GitHub Dark\" and \"GitHub Light\" carry a capital H. These 26 strings are also the strings a search of Settings matches against."
+      "notes": "\"Rosé Pine\" carries U+00E9. \"GitHub Dark\" and \"GitHub Light\" carry a capital H. These 26 strings are also the strings a search of Settings matches against.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-007",
@@ -4850,7 +4856,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:427-430"
       ],
       "notes": "Detail is the fixed string \"How much shows through the window\".",
-      "b2_change": "The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). The row itself (B2 SettingsView.swift:428-430) is unchanged."
+      "b2_change": "The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage). The row itself (B2 SettingsView.swift:428-430) is unchanged.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-009",
@@ -4922,7 +4929,8 @@
         "DroppyCode/App/Views/Settings/SettingsView.swift:535-538"
       ],
       "notes": null,
-      "b2_change": "Re-cited B1 SettingsView.swift:551-554 -> B2 :535-538. Font `.system(size: 11)` (B1 :552) -> `.system(.subheadline)` (B2 :536); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage)."
+      "b2_change": "Re-cited B1 SettingsView.swift:551-554 -> B2 :535-538. Font `.system(size: 11)` (B1 :552) -> `.system(.subheadline)` (B2 :536); Chrome.secondaryText `Color(nsColor: .secondaryLabelColor)` (B1 Chrome.swift:77) -> `primaryText.opacity(0.7)` (B2 Chrome.swift:79). The Appearance section moved from the General page (B1 SettingsView.swift:301 GeneralSettingsPage, section at :406) to a new Settings page \"Appearance\", third in the sidebar after General and Hydra (B2 SettingsView.swift:5-8 `case general`, `case hydra`, `case appearance`; :22 `case .appearance: \"Appearance\"`; :278 `case .appearance: AppearanceSettingsPage()`; :417-457 AppearanceSettingsPage).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-THEME-012",

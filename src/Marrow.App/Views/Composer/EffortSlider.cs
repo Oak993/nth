@@ -107,6 +107,7 @@ public sealed class ModelEffortButton : Decorator
         popup.Closed += (_, _) => { presented = false; button.Chip(); lockedWidth = null; frame.Width = double.NaN; popup.Child = null; }; // :114,116-117
         DetachedFromVisualTree += (_, _) => { if (presented) Presentation.Presenter.Current.SetPresented(popup, false); };
         Child = button;
+        ProviderRegistry registry = null!; // :60 `let registry = model.providers`, set by every body evaluation below
         this.Track(() =>
         {
             var model = AppEnvironment.GetAppModel(this);
@@ -117,6 +118,7 @@ public sealed class ModelEffortButton : Decorator
         }, snapshot =>
         {
             var (model, currentThread, current, pair) = snapshot;
+            registry = model.Providers;
             frame.Children.Clear();
             Control mark = pair is null
                 ? new ProviderIcon { Provider = currentThread.Provider, Size = 14, Width = 14, Height = 14 } // :73-75 real provider artwork from Components.
@@ -144,7 +146,9 @@ public sealed class ModelEffortButton : Decorator
             if (pair is not null) parts.Add(HydraPairSummary.Title(pair, model.Providers));
             var help = string.Join(" · ", parts); ToolTip.SetTip(button, help); AutomationProperties.SetName(button, help); // :142-149
         });
-        this.Task(() => thread.Provider, async provider => await AppEnvironment.GetAppModel(this).Providers.LoadCatalog(provider)); // :138
+        // :138 the body closes over the registry of the body evaluation (:60), attached before this task starts; it
+        // never looks the environment up, so a task left queued by a chip that has since left the tree still has it.
+        this.Task(() => thread.Provider, async provider => await registry.LoadCatalog(provider)); // :138
         // :125-137 capture-only anchor/frame sites remain outside the shipped path (ED-001).
     }
 }
@@ -321,7 +325,8 @@ public sealed class HydraPairListRow : Decorator
     // :384-419 body
     public HydraPairListRow(HydraPair pair, string title, string detail, double rowHeight, bool isSelected, bool isEnabled, Action action)
     {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("18,10,*,12,Auto") };
+        // :386 HStack(spacing:10), :400 Spacer(minLength:12): preserve the gap on EACH side of the spacer.
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("18,10,*,10,12,10,Auto") };
         row.Children.Add(new HydraFusedPairIcon(pair.Provider, pair.HeadsProvider, 16, false) { Width = 18 }); // :387-388
         var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children =
         {
@@ -329,7 +334,7 @@ public sealed class HydraPairListRow : Decorator
             EffortView.Text(detail, SwiftFont.Callout, Chrome.SecondaryText),
         } }; Grid.SetColumn(texts, 2); row.Children.Add(texts); // :389-399
         var check = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.PrimaryText);
-        check.Opacity = isSelected ? 1 : 0; Grid.SetColumn(check, 4); row.Children.Add(check); // :401-405
+        check.Opacity = isSelected ? 1 : 0; Grid.SetColumn(check, 6); row.Children.Add(check); // :401-405
         Child = EffortView.Row(row, rowHeight, isEnabled, action); // :407-419
     }
 }
@@ -659,6 +664,8 @@ public sealed class EffortSlider : Decorator
     private readonly Ellipse glow = new();
     private readonly Ellipse lens = new();
     private TrackLook? drawnLook;
+    private TrackEffect? currentEffect;
+    private readonly System.Collections.Generic.HashSet<TrackEffect> outgoingEffects = [];
     private readonly System.Collections.Generic.List<Ellipse> stops = [];
 
     public EffortSlider(int count, Binding<int> index, string accessibilityTitle, bool fastMode = false, EffortBrand brand = EffortBrand.Purple, EffortPairBrand? pair = null)
@@ -702,6 +709,14 @@ public sealed class EffortSlider : Decorator
         PointerCaptureLost += (_, _) => { if (dragX is not null) { dragX = null; LayoutTrack(); } };
         SizeChanged += (_, _) => LayoutTrack();
         ActualThemeVariantChanged += (_, _) => LayoutTrack();
+        DetachedFromVisualTree += (_, _) =>
+        {
+            // :765 removal views end with the view lifetime. Animate stops detached playbacks, so finish
+            // their removal here; a retained slider shown again starts with its current effect fully visible.
+            foreach (var outgoing in outgoingEffects.ToArray()) effects.Children.Remove(outgoing);
+            outgoingEffects.Clear();
+            if (currentEffect is not null) currentEffect.Opacity = 1;
+        };
         this.Track(() => index.Value, _ => LayoutTrack());
     }
 
@@ -764,10 +779,48 @@ public sealed class EffortSlider : Decorator
         Canvas.SetLeft(knob, x - inset);
         if (drawnLook?.EffectIdentity != look.EffectIdentity && !Equals(drawnLook?.EffectIdentity, look.EffectIdentity))
         {
-            effects.Children.Clear();
-            if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null) effects.Children.Add(new TrackEffect(look));
+            // :760-767 .transition(.opacity) with :799 .animation(.smooth(duration: 0.3), value: look).
+            // A solo identity change crossfades instead of jumping: the previous current effect is retained
+            // under its OLD look while its opacity fades out, and the replacement fades in. Every later
+            // layout pass with the same identity updates only the incoming effect (currentEffect below),
+            // never FirstOrDefault, so the fading view keeps its look for its whole fade. A new change
+            // during a fade does not restart the effects already leaving: each keeps its own fade and is
+            // removed when that fade ends, the way a SwiftUI view already leaving plays its own removal
+            // transition while a later transaction starts a new one (ED-092(2) smooth 0.3, settling per ED-011).
+            var previous = currentEffect;
+            currentEffect = null;
+            if (drawnLook is null)
+            {
+                if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null)
+                {
+                    var first = new TrackEffect(look) { Opacity = 1 };
+                    effects.Children.Add(first);
+                    currentEffect = first;
+                }
+            }
+            else
+            {
+                if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null)
+                {
+                    var fresh = new TrackEffect(look) { Opacity = 0 };
+                    effects.Children.Add(fresh);
+                    currentEffect = fresh;
+                    EffortView.Animate(fresh, Animation.Smooth(0.3), progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
+                }
+                if (previous is not null)
+                {
+                    outgoingEffects.Add(previous);
+                    var fading = previous;
+                    var from = fading.Opacity;
+                    EffortView.Animate(fading, Animation.Smooth(0.3), progress =>
+                    {
+                        if (progress >= 1) { fading.Opacity = 0; effects.Children.Remove(fading); outgoingEffects.Remove(fading); }
+                        else fading.Opacity = from * (1 - Math.Clamp(progress, 0, 1));
+                    });
+                }
+            }
         }
-        else if (effects.Children.FirstOrDefault() is TrackEffect effect) effect.SetLook(look);
+        else if (currentEffect is not null) currentEffect.SetLook(look);
         drawnLook = look;
     }
 
@@ -878,6 +931,13 @@ internal static class EffortView
         var plate = new Border { Padding = new Thickness(10, 0), Height = height, Child = row }.RoundedRectangle(9, RoundedCornerStyle.Continuous);
         var fill = new AnimatedColor(plate); plate.Background = fill.Brush;
         var button = PlainControls.Button(plate, action); button.IsEnabled = enabled; button.Opacity = enabled ? 1 : 0.45;
+        // :415 .contentShape(.rect): include the unpainted corners outside the rounded hover plate.
+        // The plain template's presenter needs a transparent background to participate in rectangular hit testing.
+        button.TemplateApplied += (_, _) =>
+        {
+            if (button.GetVisualChildren().Single() is Avalonia.Controls.Presenters.ContentPresenter presenter)
+                presenter.Background = Brushes.Transparent;
+        };
         button.OnHover(hovering => fill.Set(hovering && enabled ? Chrome.Overlay(0.1) : SwiftColor.Clear, Chrome.Hover));
         return button;
     }
@@ -891,13 +951,14 @@ internal static class EffortView
     internal static IBrush BrandTitle(EffortBrand brand, ThemeVariant theme) => brand == EffortBrand.Antigravity ? Gradient(EffortBrand.Gemini, theme) : new SolidColorBrush(brand.TitleColor.Resolve(theme));
     internal static IBrush Fill(TrackLook look, ThemeVariant theme)
     {
-        if (look.Pair is { } pair) return Gradient(new[] { look.Brand.FillColor }.Concat(pair.Colors).Concat(look.TrackLookKind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion ? new[] { EffortPalette.FastFill } : Array.Empty<SwiftColor>()), theme);
+        // :986-988: pair colours own the fill for every kind; fast/fusion add effects, never a fill stop.
+        if (look.Pair is { } pair) return Gradient(new[] { look.Brand.FillColor }.Concat(pair.Colors), theme);
         return look.TrackLookKind switch
         {
             TrackLook.Kind.Plain => new SolidColorBrush(Chrome.Accent.Resolve(theme)),
             TrackLook.Kind.Supercharged => look.Brand == EffortBrand.Antigravity ? Gradient(EffortBrand.Gemini, theme) : new SolidColorBrush(look.Brand.FillColor.Resolve(theme)),
             TrackLook.Kind.Fast => new SolidColorBrush(EffortPalette.FastFill.Resolve(theme)),
-            _ => Gradient([look.Brand.FillColor, EffortPalette.FastFill], theme),
+            _ => Gradient([look.Brand.FillColor, look.Brand.FillColor, EffortPalette.FastFill], theme), // :993-996
         };
     }
 }

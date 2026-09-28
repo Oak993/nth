@@ -384,7 +384,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void File_row_UI_uses_middle_truncation_and_Binary_instead_of_stats() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
     [Fact]
-    // Partial proof UI-CHAT-042 (STOP #10); App/Views/Chat/TimelineRows.swift:2850-2856
+    // UI-CHAT-042 full proof: TimelineRowsUiLabelsTests; App/Views/Chat/TimelineRows.swift:2850-2856
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void File_overflow_UI_keeps_the_exact_singular_and_plural_lines() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
     [Fact]
@@ -457,23 +457,23 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Narration_UI_is_twelve_point_dimmed_markdown_indented_twenty_four_points() => With_every_step_showing_there_is_no_earlier_line_and_narration_is_dimmed_12_point_markdown_after_the_icon_column();
     [Fact]
-    // Partial proof UI-CHAT-063 (STOP #10); App/Views/Chat/TimelineRows.swift:1837-1840
+    // UI-CHAT-063 full proof: TimelineRowsUiLabelsTests; App/Views/Chat/TimelineRows.swift:1837-1840
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Declined_UI_is_caption_in_the_theme_warning_colour() => A_failed_call_shows_its_exit_code_in_danger_and_a_declined_one_Declined_in_warning();
     [Fact]
-    // Partial proof UI-CHAT-064 (STOP #10); App/Views/Chat/TimelineRows.swift:1833-1836
+    // UI-CHAT-064 full proof: TimelineRowsUiLabelsTests; App/Views/Chat/TimelineRows.swift:1833-1836
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Exit_UI_is_lowercase_exit_and_monospaced_digits_in_danger() => A_failed_call_shows_its_exit_code_in_danger_and_a_declined_one_Declined_in_warning();
     [Fact]
-    // Partial proof UI-CHAT-070 (STOP #10); App/Views/Chat/TimelineRows.swift:1906-1909
+    // UI-CHAT-070 full proof: TimelineRowsUiLabelsTests; App/Views/Chat/TimelineRows.swift:1906-1909
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void No_steps_UI_has_its_full_stop_and_disappears_after_a_tool() => Head_steps_mount_at_440_with_a_520_cap_and_update_from_the_heads_own_runtime();
     [Fact]
-    // Partial proof UI-CHAT-071 (STOP #10); App/Views/Chat/TimelineRows.swift:680-687
+    // UI-CHAT-071 full proof: TimelineRowsUiLabelsTests; App/Views/Chat/TimelineRows.swift:680-687
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Next_brief_UI_has_the_horizontal_ellipsis_only_while_streaming() => The_delegation_card_says_Summoning_heads_while_streaming_then_names_the_count_or_the_one_head();
     [Fact]
-    // Partial proof UI-CHAT-072 (STOP #10); App/Views/Chat/TimelineRows.swift:2839-2842
+    // UI-CHAT-072 full proof: TimelineRowsUiLabelsTests; App/Views/Chat/TimelineRows.swift:2839-2842
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Binary_UI_replaces_the_diff_stat_in_the_trailing_column() => The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files();
     [Fact]
@@ -4573,15 +4573,17 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Records: UI-CHAT-026; UI-CHAT-027; UI-CHAT-028; UI-CHAT-029; UI-CHAT-030.
 // Records: UI-CHAT-031; UI-CHAT-032; UI-CHAT-033; UI-CHAT-034; UI-CHAT-035.
 // Records: UI-CHAT-036; UI-CHAT-037; UI-CHAT-038; UI-CHAT-040; UI-CHAT-041.
-// Records: UI-CHAT-042; UI-CHAT-048; UI-CHAT-049; UI-CHAT-050; UI-CHAT-051.
+// Records: UI-CHAT-048; UI-CHAT-049; UI-CHAT-050; UI-CHAT-051.
 // Records: UI-CHAT-052; UI-CHAT-053; UI-CHAT-054; UI-CHAT-055; UI-CHAT-056.
-// Records: UI-CHAT-057; UI-CHAT-059; UI-CHAT-061; UI-CHAT-063; UI-CHAT-064.
-// Records: UI-CHAT-070; UI-CHAT-071; UI-CHAT-072; UI-GIT-044; UI-GIT-045.
+// Records: UI-CHAT-057; UI-CHAT-059; UI-CHAT-061.
+// Records: UI-GIT-044; UI-GIT-045.
 // Records: UI-GIT-046; UI-GIT-048; UI-GIT-049; UI-GIT-050; UI-HYDRAMERGE-002.
 // Records: UI-HYDRAMERGE-004; UI-HYDRAMERGE-005; UI-HYDRAMERGE-006; UI-HYDRAMERGE-007; UI-RUNTIME-001.
 // Records: UI-RUNTIME-002; UI-RUNTIME-003; UI-RUNTIME-004.
 // Missing: the required source/Windows captures and remaining record-specific mounted interaction scenarios.
 // Needed: compare approved reference captures and exercise each verification_method before restoring Req.
+// Six explicit label contracts are closed by TimelineRowsUiLabelsTests with clause-by-clause mutations.
+// Precise remaining UI dependency sites are recorded in TimelineRowsUiAuditTests.
 // UI-CHAT-024's finite-width defect is fixed and mounted long/short labels are now regression tested for
 // ordinary tools, head badges and MCP badges. That geometry proof is not a complete visual-capture claim.
 // All existing appearance/state assertions remain. UI-CHAT-039/UI-GIT-047 remain separately in STOP #5.

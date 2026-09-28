@@ -2067,7 +2067,7 @@
       "cancellation": "the confirmation is the cancellation point; once confirmed the delete is not cancellable",
       "windows_path": "Ship the Delete item (symbol trash, destructive) and gate deleteCustom on confirmBeforeDeleting the way the sibling delete paths gate theirs. Named deviation: upstream never asks. BLK-0001 is resolved by OD-0008 A1.",
       "verification_method": "interaction test with confirmBeforeDeleting on (Delete asks first; dismissing keeps the server and its Credential Manager items; confirming removes it from custom-mcp.json and deletes those items) and off (one click deletes, as upstream); the confirmation shows exactly the OD-0012 E1 question, note and button text",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "68",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5657,7 +5657,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same branch in both places.",
       "verification_method": "interaction tests on a no-field server and a keyed server",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -5762,7 +5762,7 @@
       "cancellation": "not cancellable once started",
       "windows_path": "Same order, and keep the saved-id memory so a failed then retried save does not create a second server.",
       "verification_method": "interaction test editing a connected server and asserting a re-probe follows",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -5821,7 +5821,7 @@
       "cancellation": "closing the popover discards the toggle",
       "windows_path": "Same two tooltips in the OD-0008 B3 wording (\"Credential Manager\" in place of \"Keychain\"); mcp.json is named verbatim. Locked values go to Windows Credential Manager.",
       "verification_method": "interaction test toggling a row and asserting both stores after Save",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -6487,7 +6487,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:88-122 - :90 HStack(alignment: .top, spacing: 12) { | :97 .font(.system(.body, weight: .semibold)) | :111 .font(.system(.callout)) | :112 .foregroundStyle(Chrome.secondaryText) | :116 .padding(16) | :119 RoundedRectangle(cornerRadius: 14, style: .continuous) | :120 .fill(Chrome.primaryText.opacity(0.05))"
       ],
       "notes": "The body text wraps rather than truncating (fixedSize vertical). The inner VStack spacing is 6 and the title row spacing is 4.",
-      "b2_change": "No shift. B1 :97 .font(.system(size: 13, weight: .semibold)) | B1 :111 .font(.system(size: 12)) -> B2 :97 .font(.system(.body, weight: .semibold)) | B2 :111 .font(.system(.callout)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :97 .font(.system(size: 13, weight: .semibold)) | B1 :111 .font(.system(size: 12)) -> B2 :97 .font(.system(.body, weight: .semibold)) | B2 :111 .font(.system(.callout)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-003",
@@ -6508,7 +6509,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:91-93 - :91 Image(systemName: \"checkmark.shield.fill\") | :92 .font(.system(.title)) | :93 .foregroundStyle(Chrome.accent)"
       ],
       "notes": "On Windows this is an icon asset, not a system symbol; the shape and the 22-point size must match.",
-      "b2_change": "No shift. B1 :92 .font(.system(size: 22)) -> B2 :92 .font(.system(.title)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :92 .font(.system(size: 22)) -> B2 :92 .font(.system(.title)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-004",
@@ -6534,7 +6536,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:914-963 - :928 Image(systemName: \"info.circle\") | :929 .font(.system(.callout, weight: .medium)) | :930 .foregroundStyle(Chrome.secondaryText.opacity(isOverButton || isPresented ? 1 : 0.55)) | :931 .frame(width: 22, height: 22) | :935 .focusable(false) | :936 .accessibilityLabel(Text(verbatim: label)) | :958 try? await Task.sleep(for: .milliseconds(wanted ? 220 : 320))"
       ],
       "notes": "The exact_text is the accessibility label, not a visible caption; the visible element is the glyph alone.",
-      "b2_change": "Moved: B1 :883-932 -> B2 :914-963. B1 :898 .font(.system(size: 12, weight: .medium)) -> B2 :929 .font(.system(.callout, weight: .medium)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "Moved: B1 :883-932 -> B2 :914-963. B1 :898 .font(.system(size: 12, weight: .medium)) -> B2 :929 .font(.system(.callout, weight: .medium)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-005",
@@ -6561,7 +6564,8 @@
         "decision": "OD-0008 B3",
         "upstream": "Upstream row text \"Keys stay in your Keychain\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:103 - :103 fact(symbol: \"lock.fill\", text: \"Keys stay in your Keychain\")",
         "port": "Marrow shows \"Keys stay in your Credential Manager\" and stores the keys in Windows Credential Manager."
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-006",
@@ -6584,7 +6588,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:60"
       ],
       "notes": "Uses the shared ChromeSection; the same header style carries the Custom header and the seven category titles.",
-      "b2_change": "Moved: B1 Chrome.swift:990-1014 -> B2 :1023-1047. Header font and colour B1 :1002 .font(.system(size: 13, weight: .semibold)) | B1 :1003 .foregroundStyle(.secondary) -> B2 :1035 .font(.system(.body, weight: .semibold)) | B2 :1036 .foregroundStyle(Chrome.secondaryText): \"system 13 semibold\" -> .body semibold (13 nominal), and \"the secondary style\" -> Chrome.secondaryText. Chrome.secondaryText itself changed value: B1 :77 static let secondaryText = Color(nsColor: .secondaryLabelColor) -> B2 :79 static let secondaryText = primaryText.opacity(0.7), i.e. Chrome.primaryText (labelColor) at opacity 0.7 instead of secondaryLabelColor. Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "Moved: B1 Chrome.swift:990-1014 -> B2 :1023-1047. Header font and colour B1 :1002 .font(.system(size: 13, weight: .semibold)) | B1 :1003 .foregroundStyle(.secondary) -> B2 :1035 .font(.system(.body, weight: .semibold)) | B2 :1036 .foregroundStyle(Chrome.secondaryText): \"system 13 semibold\" -> .body semibold (13 nominal), and \"the secondary style\" -> Chrome.secondaryText. Chrome.secondaryText itself changed value: B1 :77 static let secondaryText = Color(nsColor: .secondaryLabelColor) -> B2 :79 static let secondaryText = primaryText.opacity(0.7), i.e. Chrome.primaryText (labelColor) at opacity 0.7 instead of secondaryLabelColor. Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-007",
@@ -6628,7 +6633,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:63"
       ],
       "notes": "The detail line is the tool count and version joined by a middle dot: \"<count> tools · <serverVersion or vendor>\", falling back to the entry's vendor when the probe reported no version.",
-      "b2_change": "No shift. B1 :158 .font(.system(size: 13, weight: .semibold)) | B1 :161 .font(.system(size: 11)) -> B2 :158 .font(.system(.body, weight: .semibold)) | B2 :161 .font(.system(.subheadline)) (same nominal sizes). Chrome.secondaryText itself changed value: B1 :77 static let secondaryText = Color(nsColor: .secondaryLabelColor) -> B2 :79 static let secondaryText = primaryText.opacity(0.7), i.e. Chrome.primaryText (labelColor) at opacity 0.7 instead of secondaryLabelColor. Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :158 .font(.system(size: 13, weight: .semibold)) | B1 :161 .font(.system(size: 11)) -> B2 :158 .font(.system(.body, weight: .semibold)) | B2 :161 .font(.system(.subheadline)) (same nominal sizes). Chrome.secondaryText itself changed value: B1 :77 static let secondaryText = Color(nsColor: .secondaryLabelColor) -> B2 :79 static let secondaryText = primaryText.opacity(0.7), i.e. Chrome.primaryText (labelColor) at opacity 0.7 instead of secondaryLabelColor. Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-009",
@@ -6650,7 +6656,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:165-168",
         "DroppyCode/Services/MCP/MCPStore.swift:137-143"
       ],
-      "notes": "Its value reads connection.isEnabled and defaults to true when there is no connection row, so it can read on for a server it cannot actually switch."
+      "notes": "Its value reads connection.isEnabled and defaults to true when there is no connection row, so it can read on for a server it cannot actually switch.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-010",
@@ -6671,7 +6678,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:169-180 - :172 Image(systemName: \"ellipsis.circle\") | :173 .font(.system(.body)) | :174 .foregroundStyle(Chrome.secondaryText) | :175 .frame(width: 22, height: 22) | :176 .contentShape(.rect) | :179 .help(\"Server options\") | :180 .popover(isPresented: $showMenu, arrowEdge: .bottom) {"
       ],
       "notes": "exact_text is the tooltip. The popover is attached to the button, not the row: hung from the row it opened in the row's middle.",
-      "b2_change": "No shift. B1 :173 .font(.system(size: 13)) -> B2 :173 .font(.system(.body)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :173 .font(.system(size: 13)) -> B2 :173 .font(.system(.body)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-011",
@@ -6691,7 +6699,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:182-184"
       ],
-      "notes": "Symbol arrow.clockwise. This item does not set showMenu itself; PopoverItem always closes the popover before running the action."
+      "notes": "Symbol arrow.clockwise. This item does not set showMenu itself; PopoverItem always closes the popover before running the action.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-012",
@@ -6711,7 +6720,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:185-188"
       ],
-      "notes": "Symbol wrench. This item does set showMenu = false explicitly, which is redundant because PopoverItem already closes the popover; four of the six menu items omit it and two set it."
+      "notes": "Symbol wrench. This item does set showMenu = false explicitly, which is redundant because PopoverItem already closes the popover; four of the six menu items omit it and two set it.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-013",
@@ -6731,7 +6741,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:189"
       ],
-      "notes": "Separates the two safe items from the destructive one."
+      "notes": "Separates the two safe items from the destructive one.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-014",
@@ -6759,7 +6770,8 @@
         "upstream": "Upstream discards every deletion result and disconnect carries on as a success: DroppyCode/Services/MCP/MCPKeychain.swift:21-23 - :22 APIKeychain.delete(account(server: server, field: field)); DroppyCode/Services/Providers/APIKeychain.swift:76-83 - :82 SecItemDelete(query as CFDictionary); DroppyCode/Services/MCP/MCPStore.swift:118-120 - :118 MCPKeychain.deleteAll(server: entry) | :119 if entry.isOAuth { | :120 MCPOAuth.signOut(serverID: entry.id); DroppyCode/Services/MCP/MCPOAuth.swift:189-191 - :190 MCPKeychain.delete(server: serverID, field: \"oauth\") | :191 MCPKeychain.delete(server: serverID, field: \"oauth-client\"); upstream reports nothing, so it has no wording for the report",
         "port": "Marrow checks each credential deletion that disconnect makes and reports a failed one to the user instead of success (BLK-0012 ruling: \"a failed credential deletion on disconnect is reported to the user instead of success\"). Three details are ENGINEERING DECISIONS, not ruling text: the two OAuth items signOut deletes during disconnect (MCPStore.swift:119-120) are included, because they are credential deletions made on disconnect, although BLK-0012's quarantined sub-path names only deleteAll; an item that did not exist is not a failure, because upstream routinely deletes items that were never written (deleteAll walks every declared field whether set or not, and signOut deletes both OAuth items whether present or not); and the rest of disconnect still runs, because upstream's disconnect has no early exit (MCPStore.swift:115-128) and the ruling changes only what is reported. The report reads, per OD-0012 E6: \"Disconnected, but Credential Manager did not remove this server’s stored values.\" Where it is shown is not given by the source or by the ruling (open_question)."
       },
-      "open_question": "OD-0012 E6 gives the text of the failed-deletion report (\"Disconnected, but Credential Manager did not remove this server’s stored values.\") but neither the ruling nor the source says where it is shown or for how long."
+      "open_question": "OD-0012 E6 gives the text of the failed-deletion report (\"Disconnected, but Credential Manager did not remove this server’s stored values.\") but neither the ruling nor the source says where it is shown or for how long.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-015",
@@ -6779,7 +6791,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:205-211"
       ],
-      "notes": "The literal is the entry's name followed by a space and the word \"tools\", for example \"GitHub tools\"."
+      "notes": "The literal is the entry's name followed by a space and the word \"tools\", for example \"GitHub tools\".",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-016",
@@ -6799,7 +6812,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:209-211"
       ],
-      "notes": "Reachable when a server connected but announced no tools, and when the connection row was removed while the state still says connected."
+      "notes": "Reachable when a server connected but announced no tools, and when the connection row was removed while the state still says connected.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-017",
@@ -6821,7 +6835,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:212-227 - :213 HStack(alignment: .firstTextBaseline, spacing: 8) { | :215 .font(.system(.subheadline, design: .monospaced)) | :219 .font(.system(.subheadline)) | :221 .lineLimit(2) | :224 .padding(.horizontal, 8) | :225 .padding(.vertical, 3)"
       ],
       "notes": "The summary is the first non-empty line of the tool's description as the probe recorded it, not the full description.",
-      "b2_change": "No shift. B1 :215 .font(.system(size: 11, design: .monospaced)) | B1 :219 .font(.system(size: 11)) -> B2 :215 .font(.system(.subheadline, design: .monospaced)) | B2 :219 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :215 .font(.system(size: 11, design: .monospaced)) | B1 :219 .font(.system(size: 11)) -> B2 :215 .font(.system(.subheadline, design: .monospaced)) | B2 :219 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-018",
@@ -6845,7 +6860,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:53-58"
       ],
       "notes": "The card holds a fixed shape: two lines are reserved for the summary whether it needs them or not, and one line for the sample tools, so the grid reads as a grid.",
-      "b2_change": "No shift. The container is unchanged; only fonts inside it changed (see UI-MCP-019 to UI-MCP-023)."
+      "b2_change": "No shift. The container is unchanged; only fonts inside it changed (see UI-MCP-019 to UI-MCP-023).",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-019",
@@ -6866,7 +6882,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:305-319 - :306 HStack(alignment: .top, spacing: 10) { | :307 MCPIcon(entry: entry, size: 26) | :308 VStack(alignment: .leading, spacing: 1) { | :310 .font(.system(.body, weight: .semibold)) | :313 .font(.system(.subheadline)) | :316 Spacer(minLength: 8)"
       ],
       "notes": null,
-      "b2_change": "No shift. B1 :310 .font(.system(size: 13, weight: .semibold)) | B1 :313 .font(.system(size: 11)) -> B2 :310 .font(.system(.body, weight: .semibold)) | B2 :313 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :310 .font(.system(size: 13, weight: .semibold)) | B1 :313 .font(.system(size: 11)) -> B2 :310 .font(.system(.body, weight: .semibold)) | B2 :313 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-020",
@@ -6887,7 +6904,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:257-261 - :257 Text(verbatim: entry.summary) | :258 .font(.system(.callout)) | :259 .foregroundStyle(Chrome.secondaryText) | :260 .lineLimit(2, reservesSpace: true) | :261 .fixedSize(horizontal: false, vertical: true)"
       ],
       "notes": "The reserved second line is what keeps every card the same height.",
-      "b2_change": "No shift. B1 :258 .font(.system(size: 12)) -> B2 :258 .font(.system(.callout)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :258 .font(.system(size: 12)) -> B2 :258 .font(.system(.callout)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-021",
@@ -6907,7 +6925,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:262-268"
       ],
-      "notes": "The tools are joined with \" · \", a middle dot with a space on each side."
+      "notes": "The tools are joined with \" · \", a middle dot with a space on each side.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-022",
@@ -6928,7 +6947,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:269-274 - :269 if case .failed(let message) = state { | :271 .font(.system(.subheadline)) | :272 .foregroundStyle(Chrome.danger) | :273 .lineLimit(3)"
       ],
       "notes": "The text is the probe or OAuth error's own description, verbatim.",
-      "b2_change": "No shift. B1 :271 .font(.system(size: 11)) -> B2 :271 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :271 .font(.system(size: 11)) -> B2 :271 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-023",
@@ -6949,7 +6969,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:275-280 - :275 if case .needsSetup(let guide) = state { | :277 .font(.system(.subheadline)) | :278 .foregroundStyle(Chrome.warning) | :279 .lineLimit(2)"
       ],
       "notes": "It shows the guide's TITLE, for example \"Turn on GitLab's MCP server\", not its reason.",
-      "b2_change": "No shift. B1 :277 .font(.system(size: 11)) -> B2 :277 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :277 .font(.system(size: 11)) -> B2 :277 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-024",
@@ -7011,7 +7032,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:331-338 - :332 HStack(spacing: 6) { | :333 WorkingSpinner(cellSize: 3) | :334 Text(entry.isOAuth ? \"Waiting\" : \"Connecting\") | :335 .font(.system(.subheadline)) | :337 .fixedSize()"
       ],
       "notes": "There is no way to cancel a probe from the card: only pressing a connect action again, disconnecting, or editing a custom server cancels it.",
-      "b2_change": "No shift. B1 :335 .font(.system(size: 11)) -> B2 :335 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :335 .font(.system(size: 11)) -> B2 :335 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-027",
@@ -7032,7 +7054,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:334-335 - :334 Text(entry.isOAuth ? \"Waiting\" : \"Connecting\") | :335 .font(.system(.subheadline))"
       ],
       "notes": "The word is \"Waiting\" because the user is expected to be in the browser; the sign-in gives up after 300 seconds.",
-      "b2_change": "No shift. B1 :335 .font(.system(size: 11)) -> B2 :335 .font(.system(.subheadline)); it is the same Text as UI-MCP-026's \"Connecting\". Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :335 .font(.system(size: 11)) -> B2 :335 .font(.system(.subheadline)); it is the same Text as UI-MCP-026's \"Connecting\". Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-028",
@@ -7117,7 +7140,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:914-936 MCPHoverInfoButton, which draws it (:906 MCPHoverInfoButton(label: \"About \\(entry.name)\") {) - :928 Image(systemName: \"info.circle\") | :929 .font(.system(.callout, weight: .medium)) | :930 .foregroundStyle(Chrome.secondaryText.opacity(isOverButton || isPresented ? 1 : 0.55)) | :931 .frame(width: 22, height: 22)"
       ],
       "notes": "exact_text is the accessibility label, built as \"About \" plus the entry name.",
-      "b2_change": "B1 :898 .font(.system(size: 12, weight: .medium)) -> B2 :929 .font(.system(.callout, weight: .medium)), in the shared MCPHoverInfoButton (the same change as UI-MCP-004). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "B1 :898 .font(.system(size: 12, weight: .medium)) -> B2 :929 .font(.system(.callout, weight: .medium)), in the shared MCPHoverInfoButton (the same change as UI-MCP-004). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-032",
@@ -7139,7 +7163,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:360-375 - :361 VStack(spacing: 8) { | :362 Image(systemName: \"checkmark.circle.fill\") | :363 .font(.system(size: 34)) | :365 .scaleEffect(successPopped ? 1 : 0.5) | :366 Text(verbatim: \"Connected · \\(toolCount) tools\") | :367 .font(.system(.callout, weight: .medium)) | :370 .frame(maxWidth: .infinity, minHeight: 120, alignment: .center) | :373 withAnimation(.spring(duration: 0.5, bounce: 0.4)) { successPopped = true }"
       ],
       "notes": "The separator is U+00B7 with a space on each side. Under reduce-motion the page suppresses the celebration entirely, so the half-scale branch is not reachable today.",
-      "b2_change": "No shift. B1 :367 .font(.system(size: 12, weight: .medium)) -> B2 :367 .font(.system(.callout, weight: .medium)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :367 .font(.system(size: 12, weight: .medium)) -> B2 :367 .font(.system(.callout, weight: .medium)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-033",
@@ -7162,7 +7187,8 @@
         "DroppyCode/UI/Chrome/Chrome.swift:79 - :79 static let secondaryText = primaryText.opacity(0.7)"
       ],
       "notes": "With no custom servers and no search the section still shows, carrying its empty-state line and the add row.",
-      "b2_change": "Header font and colour come from the shared ChromeSection (as UI-MCP-006): B1 DroppyCode/UI/Chrome/Chrome.swift:1002 .font(.system(size: 13, weight: .semibold)) | B1 :1003 .foregroundStyle(.secondary) -> B2 :1035 .font(.system(.body, weight: .semibold)) | B2 :1036 .foregroundStyle(Chrome.secondaryText). Chrome.secondaryText itself changed value: B1 :77 static let secondaryText = Color(nsColor: .secondaryLabelColor) -> B2 :79 static let secondaryText = primaryText.opacity(0.7). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "Header font and colour come from the shared ChromeSection (as UI-MCP-006): B1 DroppyCode/UI/Chrome/Chrome.swift:1002 .font(.system(size: 13, weight: .semibold)) | B1 :1003 .foregroundStyle(.secondary) -> B2 :1035 .font(.system(.body, weight: .semibold)) | B2 :1036 .foregroundStyle(Chrome.secondaryText). Chrome.secondaryText itself changed value: B1 :77 static let secondaryText = Color(nsColor: .secondaryLabelColor) -> B2 :79 static let secondaryText = primaryText.opacity(0.7). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-034",
@@ -7188,7 +7214,8 @@
         "decision": "OD-0008 B4",
         "upstream": "Upstream line \"Servers of your own: a command that runs on this Mac, or a remote address, with the variables they need.\": DroppyCode/App/Views/Settings/MCPSettingsPage.swift:397 - :397 Text(\"Servers of your own: a command that runs on this Mac, or a remote address, with the variables they need.\")",
         "port": "Marrow line \"Servers of your own: a command that runs on this PC, or a remote address, with the variables they need.\""
-      }
+      },
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-035",
@@ -7209,7 +7236,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:417-441 - :421 HStack(spacing: 12) { | :422 Image(systemName: \"plus.circle\") | :423 .font(.system(.body)) | :425 .frame(width: 26, alignment: .center) | :426 Text(\"Add server\") | :427 .font(.system(.body, weight: .medium)) | :431 .padding(.leading, 16) | :432 .padding(.trailing, Chrome.rowControlTrailingPadding) | :433 .padding(.vertical, 11) | :437 .popover(isPresented: $isAdding, arrowEdge: .bottom) {"
       ],
       "notes": "Plain button style: no fill, no pressed background beyond the shared plain style.",
-      "b2_change": "No shift. B1 :423 .font(.system(size: 13)) | B1 :427 .font(.system(size: 13, weight: .medium)) -> B2 :423 .font(.system(.body)) | B2 :427 .font(.system(.body, weight: .medium)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :423 .font(.system(size: 13)) | B1 :427 .font(.system(size: 13, weight: .medium)) -> B2 :423 .font(.system(.body)) | B2 :427 .font(.system(.body, weight: .medium)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-036",
@@ -7232,7 +7260,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:463-499 - :464 HStack(spacing: 12) { | :469 .font(.system(.body, weight: .semibold)) | :486 Text(verbatim: \"\\(toolCount) tools · \\(connection?.serverVersion ?? entry.vendor)\") | :487 .font(.system(.subheadline)) | :491 .font(.system(.subheadline)) | :492 .foregroundStyle(Chrome.danger) | :493 .lineLimit(3) | :496 .font(.system(.subheadline))"
       ],
       "notes": "The vendor fallback for a custom server is the literal \"Custom\", which its converted catalog entry carries.",
-      "b2_change": "No shift. B1 :469 .font(.system(size: 13, weight: .semibold)) | B1 :487 .font(.system(size: 11)) -> B2 :469 .font(.system(.body, weight: .semibold)) | B2 :487 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :469 .font(.system(size: 13, weight: .semibold)) | B1 :487 .font(.system(size: 11)) -> B2 :469 .font(.system(.body, weight: .semibold)) | B2 :487 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-037",
@@ -7274,7 +7303,8 @@
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:508-515 - :509 HStack(spacing: 6) { | :510 WorkingSpinner(cellSize: 3) | :511 Text(\"Connecting\") | :512 .font(.system(.subheadline)) | :514 .fixedSize()"
       ],
       "notes": "Always \"Connecting\", never \"Waiting\", because a custom server never signs in.",
-      "b2_change": "No shift. B1 :512 .font(.system(size: 11)) -> B2 :512 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001."
+      "b2_change": "No shift. B1 :512 .font(.system(size: 11)) -> B2 :512 .font(.system(.subheadline)). Fixed point sizes became macOS text styles. Per ED-059 each style takes the point size in upstream's own table \"The point size macOS lays a text style out at, for `chat`.\" (chatBaseSize, in a file removed at B2), set in Inter (OD-0009): .title 22 (B1:DroppyCode/UI/Common/ChatZoom.swift:48), .title3 15 (B1:DroppyCode/UI/Common/ChatZoom.swift:50), .body 13 (B1:DroppyCode/UI/Common/ChatZoom.swift:51), .callout 12 (B1:DroppyCode/UI/Common/ChatZoom.swift:52), .subheadline 11 (B1:DroppyCode/UI/Common/ChatZoom.swift:53), .footnote 10 and .caption2 10 (B1:DroppyCode/UI/Common/ChatZoom.swift:54). Sizes are fixed per style and scale only through the app's own zoom (DroppyCode/UI/Common/AppZoom.swift), because the source gives no hook for a system text-size preference; B2 DroppyCode/UI/Common/ChatFont.swift:5 says the app-wide zoom scales the window, not the type. Visual size parity stays UNVERIFIED under OD-0001.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-039",
@@ -7294,7 +7324,8 @@
       "source_evidence": [
         "DroppyCode/App/Views/Settings/MCPSettingsPage.swift:516-520"
       ],
-      "notes": "On a custom row the switch occupies the same slot as the Connect button, so the two are never visible together."
+      "notes": "On a custom row the switch occupies the same slot as the Connect button, so the two are never visible together.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-MCP-040",
