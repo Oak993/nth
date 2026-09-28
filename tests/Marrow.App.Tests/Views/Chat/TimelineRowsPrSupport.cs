@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
+using Avalonia.Media;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
@@ -76,6 +77,10 @@ internal static class TimelineRowsPrSupport
     internal static TimelineEntry MakeNotice(Notice.Level level) => new(new TimelineItem(null,
         new TimelineItem.Content.Notice(new Notice { Message = level.ToString(), NoticeLevel = level })));
     internal static TurnSummary Summary(Guid turn) => new() { TurnID = turn, Status = TurnStatus.Completed, Duration = 5, FilesChanged = 0, Additions = 0, Deletions = 0 };
+    internal static TimelineEntry UserEntry(string text, Guid? turn, ValueList<Attachment>? attachments = null) =>
+        new(new TimelineItem(turn, new TimelineItem.Content.User(new UserMessage { Text = text, Attachments = attachments ?? ValueList<Attachment>.Empty })));
+    internal static Color Resolved(SwiftColor color, Control on) => color.Resolve(on.ActualThemeVariant);
+    internal static Color BrushColor(IBrush? brush) => (brush as ISolidColorBrush)!.Color;
 }
 
 // Real overlay popups keep hit testing and pointer input in the headless window.

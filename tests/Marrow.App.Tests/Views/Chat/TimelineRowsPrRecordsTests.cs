@@ -654,4 +654,114 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Close(window!);
         });
     });
+
+    // ---- PR-CHAT-077: a sent message is a trailing tinted bubble with an iMessage tail (:118-129, :163-164, :1167-1207) ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-077")]
+    public void The_bubble_path_rounds_three_corners_and_draws_the_tail_through_the_exact_control_points()
+    {
+        var geometry = Assert.IsType<PathGeometry>(new UserBubble().Path(new Rect(0, 0, 200, 50)));
+        var figure = Assert.Single(geometry.Figures!);
+        Assert.True(figure.IsClosed);
+        Assert.True(figure.IsFilled);
+        Assert.Equal(new Point(18, 0), figure.StartPoint);
+        var segments = figure.Segments!.ToList();
+        Assert.Equal(10, segments.Count);
+        Assert.Equal(new Point(178, 0), Assert.IsType<LineSegment>(segments[0]).Point);
+        var topRight = Assert.IsType<ArcSegment>(segments[1]);
+        Assert.Equal(new Point(196, 18), topRight.Point);
+        Assert.Equal(new Size(18, 18), topRight.Size);
+        Assert.Equal(SweepDirection.Clockwise, topRight.SweepDirection);
+        Assert.False(topRight.IsLargeArc);
+        Assert.Equal(new Point(196, 39), Assert.IsType<LineSegment>(segments[2]).Point);
+        var tip = Assert.IsType<BezierSegment>(segments[3]);
+        Assert.Equal((new Point(196, 49), new Point(200, 50), new Point(200, 50)), (tip.Point1, tip.Point2, tip.Point3));
+        var curl = Assert.IsType<BezierSegment>(segments[4]);
+        Assert.Equal((new Point(196, 50.5), new Point(192, 49), new Point(189, 46)), (curl.Point1, curl.Point2, curl.Point3));
+        var ease = Assert.IsType<BezierSegment>(segments[5]);
+        Assert.Equal((new Point(184, 50), new Point(180, 50), new Point(175, 50)), (ease.Point1, ease.Point2, ease.Point3));
+        Assert.Equal(new Point(18, 50), Assert.IsType<LineSegment>(segments[6]).Point);
+        var bottomLeft = Assert.IsType<ArcSegment>(segments[7]);
+        Assert.Equal(new Point(0, 32), bottomLeft.Point);
+        Assert.Equal(SweepDirection.Clockwise, bottomLeft.SweepDirection);
+        Assert.Equal(new Point(0, 18), Assert.IsType<LineSegment>(segments[8]).Point);
+        var topLeft = Assert.IsType<ArcSegment>(segments[9]);
+        Assert.Equal(new Point(18, 0), topLeft.Point);
+        Assert.Equal(SweepDirection.Clockwise, topLeft.SweepDirection);
+        Assert.Equal(18, UserBubble.CornerRadius);
+        Assert.Equal(4, UserBubble.Tail);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-077")]
+    public void A_sent_message_is_a_trailing_bubble_with_14_18_and_9_point_insets_96_points_clear_on_the_leading_side_tinted_at_14_percent() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var row = new UserMessageRow(UserEntry("hello there", Guid.NewGuid()), h.Runtime, canRevert: false);
+            var window = Show(row);
+            var text = Assert.Single(row.GetVisualDescendants().OfType<InlineText>());
+            Assert.Equal("hello there", text.Source);
+            Assert.True(text.HugsContent);
+            var inset = Assert.IsType<Border>(text.Parent);
+            Assert.Equal(new Thickness(14, 9, 14 + UserBubble.Tail, 9), inset.Padding);
+            var shape = Assert.Single(row.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>());
+            Assert.Equal(Resolved(ChromeTokens.Accent.Opacity(0.14), shape), BrushColor(shape.Fill));
+            var outer = row.GetVisualDescendants().OfType<Border>().First(border => border.Padding.Left == 96);
+            Assert.Equal(-(TimelineMetrics.HoverLineHeight + 6), outer.Margin.Bottom);
+            var column = row.GetVisualDescendants().OfType<StackPanel>().First(stack => stack.Spacing == 6);
+            Assert.Equal(HorizontalAlignment.Right, column.HorizontalAlignment);
+            Close(window);
+        });
+    });
+
+    // ---- PR-CHAT-079: a sent message's attachments are a 56-point thumbnail strip above the bubble (:1209-1350) ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-079")]
+    public void The_strip_hugs_its_thumbnails_56_points_square_6_points_apart_each_carrying_its_name_as_a_tooltip() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var files = new ValueList<Attachment>([
+                new Attachment { Name = "a.txt", Path = @"C:\no-such-folder\a.txt", MimeType = "text/plain" },
+                new Attachment { Name = "b.txt", Path = @"C:\no-such-folder\b.txt", MimeType = "text/plain" }]);
+            var strip = new AttachmentStrip(files);
+            var window = Show(strip);
+            var row = strip.GetVisualDescendants().OfType<StackPanel>().Single(stack => stack.Orientation == Orientation.Horizontal);
+            Assert.Equal(6, row.Spacing);
+            var plates = strip.GetVisualDescendants().OfType<Border>().Where(border => border.Width == 56 && border.Height == 56).ToArray();
+            Assert.Equal(2, plates.Length);
+            Assert.All(plates, plate => Assert.True(plate.ClipToBounds));
+            var thumbnails = strip.GetVisualDescendants().OfType<AttachmentThumbnail>().ToArray();
+            Assert.Equal(2, thumbnails.Length);
+            Assert.Equal("a.txt", ToolTip.GetTip(thumbnails[0]));
+            Assert.Equal("b.txt", ToolTip.GetTip(thumbnails[1]));
+            Close(window);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-079")]
+    public void A_non_image_non_video_attachment_shows_the_shell_icon_on_the_plate_at_size_times_zero_point_zero_eight_padding_labelled_with_its_name() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var file = new Attachment { Name = "notes.txt", Path = @"C:\no-such-folder\notes.txt", MimeType = "text/plain" };
+            var preview = new AttachmentPreviewSlot();
+            var thumbnail = new AttachmentThumbnail(file, preview);
+            var window = Show(thumbnail);
+            var icon = Assert.Single(thumbnail.GetVisualDescendants().OfType<Image>());
+            Assert.Equal(new Thickness(56 * 0.08), icon.Margin);
+            Assert.Equal(Stretch.Uniform, icon.Stretch);
+            var plate = Assert.Single(thumbnail.GetVisualDescendants().OfType<Border>(), border => border.Width == 56);
+            Assert.Equal("notes.txt", Avalonia.Automation.AutomationProperties.GetName(plate));
+            Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.6), plate), BrushColor(plate.Background));
+            Close(window);
+        });
+    });
 }
