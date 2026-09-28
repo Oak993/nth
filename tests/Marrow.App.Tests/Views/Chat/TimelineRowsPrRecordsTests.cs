@@ -5,12 +5,14 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.VisualTree;
+using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Git;
+using Marrow.Services.Providers;
 using Marrow.Testing;
 using Marrow.UI.Markdown;
 using Marrow.UI.Chrome;
@@ -830,6 +832,93 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Assert.Equal(1, HoverLine080(row!).Opacity); // editing keeps the line up without a hover
             Click(window!, Assert.Single(HoverLine080(row!).GetVisualDescendants().OfType<Button>()));
             Assert.Null(h.Runtime.MessageEdit);
+            Close(window!);
+        });
+    });
+
+    // ---- PR-CHAT-082: Edit from here raises a two-button confirmation that decides whether files go back too (:184-206) ----
+
+    [Theory]
+    [Trait("Req", "PR-CHAT-082")]
+    [InlineData("Revert and keep file changes", false)]
+    [InlineData("Revert files too", true)]
+    public void Edit_from_here_raises_the_dialog_verbatim_and_routes_the_pressed_button_to_restoreFiles(string title, bool restoreFiles) => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var presenter = new RecordingConfirmationPresenter();
+        using var seam = AlertPresentation.Presenter.Override(presenter);
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            h.Runtime.RehearseTurn("prompt");
+            h.Runtime.Rehearse(new ProviderEvent.TurnCompleted(TurnStatus.Failed, null));
+        });
+        h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return h.Runtime.Phase == RuntimePhase.Idle; }, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            var entry = h.Runtime.Entries.First(item => item.Item.TimelineItemContent is TimelineItem.Content.User);
+            var row = new UserMessageRow(entry, h.Runtime, true);
+            window = Show(row);
+            var requests = (MessageMenuRequests)Field(row, "menuRequests")!;
+            requests.ConfirmRevert = true;
+            Settle(window);
+        });
+        h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return presenter.Shown.Count == 1; }, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            var dialog = Assert.Single(presenter.Shown);
+            Assert.Equal(AlertKind.ConfirmationDialog, dialog.Kind);
+            Assert.Equal("Edit from this message?", dialog.Title);
+            Assert.Equal("This message and everything after it leave the thread, and your prompt returns to the composer.", dialog.Message);
+            Assert.Same(window, dialog.Owner);
+            Assert.Equal(["Revert and keep file changes", "Revert files too", "Cancel"], dialog.Buttons.Select(button => button.Title));
+            Assert.Equal([AlertButtonRole.None, AlertButtonRole.Destructive, AlertButtonRole.Cancel], dialog.Buttons.Select(button => button.Role));
+            Assert.Single(h.Runtime.Turns);
+            presenter.Press(title);
+        });
+        h.Main.OnMain(() =>
+        {
+            // No checkpoint: restoring must refuse, while keeping files trims this failed turn without one.
+            Assert.Equal(restoreFiles ? 1 : 0, h.Runtime.Turns.Count);
+            Close(window!);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-082")]
+    public void The_confirming_intent_resets_immediately_so_the_same_row_can_ask_again() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var presenter = new RecordingConfirmationPresenter();
+        using var seam = AlertPresentation.Presenter.Override(presenter);
+        MessageMenuRequests? requests = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var row = new UserMessageRow(UserEntry("edit me", Guid.NewGuid()), h.Runtime, canRevert: true);
+            window = Show(row);
+            requests = (MessageMenuRequests)Field(row, "menuRequests")!;
+            requests.ConfirmRevert = true;
+            Settle(window);
+        });
+        h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return presenter.Shown.Count == 1; }, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            // :184-190 the intent is a one-shot signal: it is consumed and reset to false as soon as the row takes it up.
+            Assert.False(requests!.ConfirmRevert);
+            presenter.Cancel(); // dismissing resets isConfirmingRevert=false so the row may ask again
+        });
+        h.Main.Loop.RunUntilIdle();
+        h.Main.OnMain(() =>
+        {
+            requests!.ConfirmRevert = true;
+            Settle(window!);
+        });
+        h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return presenter.Shown.Count == 2; }, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            Assert.Equal(2, presenter.Shown.Count); // asking again after the reset raises the dialog a second time
             Close(window!);
         });
     });
