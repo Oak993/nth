@@ -709,6 +709,7 @@ namespace Marrow.UI.Chrome
                 Children = { new Ellipse { Fill = Brushes.Transparent }, image }, // :426 .contentShape(Circle())
             };
             var button = PlainControls.Button(label, action); // :421, :428
+            button.Clip = new EllipseGeometry(new Rect(0, 0, Chrome.CapsuleHeight, Chrome.CapsuleHeight)); // :426 .contentShape(Circle())
             var surface = button.ChromeGlassCircle(); // :429
             surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :430-432
             ToolTip.SetTip(button, help); // :433
@@ -750,6 +751,7 @@ namespace Marrow.UI.Chrome
                 Children = { new Ellipse { Fill = Brushes.Transparent }, image }, // :456 .contentShape(Circle())
             };
             var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented); // :449-451, :458
+            button.Clip = new EllipseGeometry(new Rect(0, 0, Chrome.CapsuleHeight, Chrome.CapsuleHeight)); // :456 .contentShape(Circle())
             var surface = button.ChromeGlassCircle(); // :459
             surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :460-462
             ToolTip.SetTip(button, help); // :463

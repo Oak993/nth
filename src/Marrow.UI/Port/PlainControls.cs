@@ -21,8 +21,6 @@ public static class PlainControls
         new ContentPresenter
         {
             Name = "PART_ContentPresenter",
-            // SettingsView.swift:708-717: plain image buttons accept clicks across their label frame.
-            Background = Brushes.Transparent,
             [!ContentPresenter.ContentProperty] = button[!ContentControl.ContentProperty],
         }.RegisterInNameScope(scope));
 
