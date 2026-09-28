@@ -781,6 +781,9 @@ public static class LoginEnvironment
         var trimmed = entry.Length > 0 && entry[^1] is '\\' or '/' ? entry[..^1] : entry;
         if (trimmed.Length != directory.Length) return false;
         if (trimmed.Length == 0) return true;
+        // PORT-ONLY test-host portability: kernel32 exists only on Windows. Linux test hosts (cloud workers, CI) compare with
+        // OrdinalIgnoreCase, which no shipped build ever runs; Windows always takes the ED-137 path below.
+        if (!OperatingSystem.IsWindows()) return string.Equals(trimmed, directory, StringComparison.OrdinalIgnoreCase);
         var result = CompareStringOrdinal(trimmed, trimmed.Length, directory, directory.Length, bIgnoreCase: true);
         if (result == 0) throw new InvalidOperationException($"CompareStringOrdinal failed with error {Marshal.GetLastPInvokeError()}.");
         return result == CstrEqual;
