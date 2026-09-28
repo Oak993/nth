@@ -114,18 +114,24 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // a recorded decision to keep (b).
 // Done so far: no test asserts either reading for combining marks; part 1's matcher is unchanged.
 //
-// STOP App.Views.Sidebar.SidebarView #8 (Window sweep: narrowed to the shared context-menu site only)
-// Kind: forbidden need
-// Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:1853-1861 (B3 52bc792)
-// Requirements: UI-SIDEBAR-017, right-click context-menu interaction only.
-// What is missing: exactly the per-open-refreshed Avalonia context-menu foundation/ED named in genuine STOP #7.
-// ThreadActions.MakeContextMenu and RowActionMenuButtons exist; the unavailable piece is the attachment that
-// refreshes its snapshot-only capture on every open without retaining row frames or settle/reopen closures.
-// Needed to proceed: the shared foundation decision required by STOP #7. No row-rendering dependency is missing.
-// Done: SidebarThreadRow's live body and handlers, ThreadRow, all three helper dispatch arms, FrameHolder.Note,
-// PR-SIDEBAR-134 is proven; PR-SIDEBAR-135 remains partial only for the pinned captures in STOP #9.
-// UI-SIDEBAR-058: compact thread selection/search is proven; the project-row menu slice remains partial under
-// STOP #7. UI-SIDEBAR-017 remains partial for the actual right-click attachment. Rename stays under STOP #6.
+// CLOSED STOP App.Views.Sidebar.SidebarView #8 (Job SB, ROUND3.md item 3; was: Window sweep, narrowed to the
+// shared context-menu site only)
+// Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:1848-1862 (B3 52bc792)
+// Requirements: UI-SIDEBAR-017's right-click interaction; PR-SIDEBAR-098 through PR-SIDEBAR-103's live-menu half.
+// ENGINEERING DECISION (closes this STOP; full citation at SidebarThreadRow's own constructor, SidebarView.cs
+// :2899-2911, the same foundation as STOP #4/ProjectRow's own closure above): Avalonia's ContextMenu.Opening
+// rebuilds Items from a live Thread()/Model read on every open; Control.ContextMenu opens it on a real right-click.
+// Proven by A_real_right_click_opens_the_thread_rows_context_menu_rebuilt_fresh_on_every_open (real hit-testing,
+// the same pointer pipeline PR-SIDEBAR-096's own tests use, same headless-Popup caveat as the ProjectRow tests
+// above - Avalonia 12.1.2 cannot actually open a native Popup here; Items are read right after Opening runs and
+// before that throws).
+// PR-SIDEBAR-134 (already proven) and this closure together account for SidebarThreadRow's live body and handlers;
+// PR-SIDEBAR-135 remains partial only for the pinned captures in STOP #9. UI-SIDEBAR-058: compact thread
+// selection/search is proven; the project-row menu slice is proven above (STOP #4/ProjectRow). Rename stays under
+// STOP #6. SidebarHelperRow's and HeadCardsRow's own `.contextMenu` sites (UI-SIDEBAR-033/UI-SIDEBAR-037's
+// right-click halves) remain under genuine STOP #7 (SidebarView.cs), out of this closure and ROUND3.md item 3's own
+// scope (thread row only; item 3 conditioned the helper/head-card sites on "if the Swift is unambiguous and its
+// dependencies exist" - not attempted this pass).
 
 // STOP ledger opencode-App.Views.Sidebar.SidebarView (this unit's TODO records that stay blocked; each names
 // the missing dependency and the exact production site in SidebarView.cs; STOP #2/PR-SIDEBAR-013 is CLOSED above):
@@ -137,12 +143,19 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //    site ListPassNow/ApplyList (SidebarView.cs:460-484; entering/leaving fades ride panelSlide, stayers jump).
 // #3 PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030: `.roundedBorder`/`.bordered`/`.borderedProminent`
 //    chrome needs an ED/owner ruling; sites RenamePopover (:239) and RenameThreadPopover (:995).
-// #4 PR-SIDEBAR-130, PR-SIDEBAR-133 and the right-click interaction of UI-SIDEBAR-033/UI-SIDEBAR-037: SwiftUI's
-//    per-open `.contextMenu` re-evaluation needs an ED/PA foundation; site ProjectRow's header (the static menu
-//    ITEMS are proven: UI-SIDEBAR-014/-015/-016 and the non-right-click halves of UI-SIDEBAR-033/-037).
-// #5 PR-SIDEBAR-134, PR-SIDEBAR-135, UI-SIDEBAR-017 and the end-to-end half of UI-SIDEBAR-060: SidebarThreadRow's own
-//    constructor and ThreadRow wiring need a follow-up assembly unit; sites :870 ThreadRow and :1716 the constructor.
-//    UI-SIDEBAR-060's pointer/slide/lift-pieces/release are proven at the seam level by the five trait tests.
+// #4 PR-SIDEBAR-130, PR-SIDEBAR-133: CLOSED (Job SB, ROUND3.md item 2) - see the CLOSED STOP #4 block above
+//    SidebarView.cs ProjectRow's own header, and its own constructor's ContextMenu.Opening wiring (:1886-1899).
+//    Proven by A_real_right_click_opens_the_project_rows_context_menu_rebuilt_fresh_on_every_open and
+//    The_pair_submenu_is_absent_with_no_pairs_and_appears_once_one_exists_without_rebuilding_the_row. The
+//    right-click interaction of UI-SIDEBAR-033/UI-SIDEBAR-037 (SidebarHelperRow's and HeadCardsRow's own sites)
+//    remains open under genuine STOP #7 (SidebarView.cs); their non-right-click halves were already proven.
+// #5 PR-SIDEBAR-134 (already proven), PR-SIDEBAR-135 (partial: STOP #9's pinned captures), UI-SIDEBAR-017 and the
+//    end-to-end half of UI-SIDEBAR-060: SidebarThreadRow's own constructor and ThreadRow wiring were already
+//    assembled by the Window sweep (this file's own header, above); UI-SIDEBAR-017's right-click half is CLOSED
+//    (Job SB, ROUND3.md item 3) - see the CLOSED STOP #8 block above and SidebarThreadRow's own constructor
+//    (SidebarView.cs :2899-2911). PR-SIDEBAR-098 through PR-SIDEBAR-103's live-menu half is proven by the same
+//    closure. UI-SIDEBAR-060's pointer/slide/lift-pieces/release are proven at the seam level by the five trait
+//    tests; the constructor/ThreadRow wiring assembly this entry originally named is no longer outstanding.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -6355,6 +6368,60 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         row.VerticalAlignment = VerticalAlignment.Top;
         return row;
     }
+
+    // ---- PR-SIDEBAR-098 through -103, UI-SIDEBAR-017: the thread row's own live context menu ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")] // App/Views/Sidebar/SidebarView.swift:1848-1862,2253-2312: a real right-click opens the live thread context menu, rebuilt fresh (not stale) on every open
+    public void A_real_right_click_opens_the_thread_rows_context_menu_rebuilt_fresh_on_every_open() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the row's own hover Track (Chrome.cs-equivalent :1816) animates on the same pointer traffic
+        var project = NewProject(harness, "Alpha");
+        // AppModelSamples.Thread's own CreatedAt/UpdatedAt is SwiftDate.Now (Library.cs :316), left untouched here
+        // (unlike the NewThread helper's fixed Base date, tens of days in the past by the time this runs): the
+        // window sweep's own RelativeTimeLabel (:2662-2695) takes RelativeTime.Short's "now" branch for a fresh
+        // thread, never reaching SwiftFormatters.Formatted's ICU call - this sandbox has no native icu.dll (a
+        // pre-existing, environment-wide gap, not this job's own: An_assembled_thread_row_selects_and_shows_hover_
+        // actions_and_the_pinned_selection_tint, already in this file, hits the identical DllNotFoundException on
+        // the unmodified baseline for the same reason, confirmed by this job's own git-stash comparison for Items
+        // 1 and 2 above).
+        var thread = AppModelSamples.Thread(project) with { Title = "Fix the build" };
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = LiveThreadRow(thread, fold: () => { });
+            var window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+        });
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var menu = row.ContextMenu!; // :1851, Control.ContextMenu directly (this row IS the whole body, unlike ProjectRow's own SidebarRow child)
+            var titles = menu.Items.Cast<object>().Select(MenuItemTitle).ToArray();
+            // :2259-2262, :2265-2273, :2277-2280, :2244 (MakeContextMenu): the weak-model-captured items, snapshot-built at open time.
+            Assert.Contains("Rename", titles);
+            Assert.Contains("Pin", titles); // :2266-2267 !isHelper && !isSettled, not yet pinned
+            Assert.DoesNotContain("Unpin", titles);
+            Assert.Contains("Forward to new thread", titles);
+            Assert.Contains("Delete…", titles);
+        });
+        // Same row, never rebuilt between the two right-clicks: a menu whose Items were fixed once would show the
+        // same "Pin"/"Unpin" wording both times - the "invented, silently wrong behaviour" STOP #7/#8
+        // (SidebarViewTests.cs) rejected. Flipping the live thread state directly (not through this row) and
+        // re-reading through a second real right-click tells a per-open-fresh Thread()/Model read (this row's own
+        // constructor, ContextMenu.Opening) apart from a stale one.
+        harness.Main.OnMain(() => model.UpdateThread(thread.Id, t => t with { IsPinned = true }));
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var menu = row.ContextMenu!;
+            var titles = menu.Items.Cast<object>().Select(MenuItemTitle).ToArray();
+            Assert.Contains("Unpin", titles); // :2267 isPinned now true: the flipped wording
+            Assert.DoesNotContain("Pin", titles);
+        });
+    });
 
     [Fact]
     [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1716-1872

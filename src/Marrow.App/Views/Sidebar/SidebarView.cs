@@ -74,28 +74,29 @@ using Marrow.UI.Sound;
 // SidebarThreadRow.BuildFoldOverlay (:1804-1814) and .RowEquals (:1882-1891), and SidebarHelperRow.RowEquals
 // (:1413-1420), each a directly testable static piece the row's own constructor (still MARROW_STUB) will call;
 // ActivityHeader (:2345-2358) and SettledHeader (:2363-2406) in full.
-// STOP App.Views.Sidebar.SidebarView #7 (narrowed part 6, narrowed again part 7; full note in SidebarViewTests.cs's
-// own header). HeadCardsRow's and ProjectRow's own constructors, named here at part 5, are built in full (parts 6
-// and 7) and are no longer part of this STOP.
+// STOP App.Views.Sidebar.SidebarView #7 (narrowed part 6, narrowed again part 7; narrowed again Job SB (ROUND3.md
+// items 2 and 3): full note in SidebarViewTests.cs's own header). HeadCardsRow's and ProjectRow's own constructors,
+// named here at part 5, are built in full (parts 6 and 7) and are no longer part of this STOP. ProjectRow's and
+// SidebarThreadRow's own live context menus (this file's ProjectRow and SidebarThreadRow constructors, each own
+// ContextMenu.Opening wiring) are also no longer part of this STOP as of Job SB: the per-open-refresh foundation
+// ENGINEERING DECISION is recorded at ProjectRow's own constructor (full citation there).
 // Kind: forbidden need
-// Requirements: PR-SIDEBAR-133 (ProjectRow's live AppKit-style context menu, on a right click); PR-SIDEBAR-130 (the
-// "Remove project" confirmation gated behind it); the right-click interaction named in UI-SIDEBAR-033 ("right-click
-// opens the helper's context menu") and UI-SIDEBAR-037 ("right-click opens the head's context menu").
-// What is unclear or missing: ProjectRow's, SidebarHelperRow's and HeadCardsRow's own constructors are each built in
-// full (parts 6 and 7), but each leaves its own `.contextMenu` unattached: SwiftUI's `.contextMenu` re-evaluates its
-// content fresh every time the menu opens, and no ED or platform-adaptation entry names a Windows/Avalonia
-// foundation for that per-open refresh. Attaching one fixed at construction time would go stale the first time the
-// underlying state changed without the row being rebuilt: an invented, silently wrong behaviour. Re-checked at B3
-// (review pass, 2026-09-27): ED-193 through ED-211 (the whole B3 batch) and every helper in src/Marrow.UI/Chrome
-// still name no per-open-refresh mechanism for a context menu of any kind; this STOP's missing foundation is
-// unchanged, not stale.
-// Needed to proceed: an engineering or platform-adaptation decision naming that foundation (then PR-SIDEBAR-130's
-// own request field and popover follow, extending SidebarMenuRequests' Rename/Delete precedent).
-// Done so far: nothing claimed for PR-SIDEBAR-130 or -133, or for the right-click interaction alone of
-// UI-SIDEBAR-033/-037; no test names them.
+// Requirements (remaining): the right-click interaction named in UI-SIDEBAR-033 ("right-click opens the helper's
+// context menu") and UI-SIDEBAR-037 ("right-click opens the head's context menu") - SidebarHelperRow's and
+// HeadCardsRow's own `.contextMenu` sites only.
+// What is unclear or missing: SidebarHelperRow's and HeadCardsRow's own constructors are each built in full (parts
+// 6 and 7), but each still leaves its own `.contextMenu` unattached. ProjectRow's and SidebarThreadRow's own sites
+// (Job SB) prove the foundation itself (Avalonia's ContextMenu.Opening) works; what remains for these two is
+// determining each site's own live-read shape (SidebarHelperRow's and a head's own action list; Job SB's own
+// ROUND3.md scoped only items 2 and 3, ProjectRow and the thread row, not these two), not a missing foundation.
+// Needed to proceed: a follow-up pass wiring SidebarHelperRow's and HeadCardsRow's own ContextMenu the same way.
+// Done so far: ProjectRow (PR-SIDEBAR-130, PR-SIDEBAR-133, UI-SIDEBAR-014/-015/-016) and SidebarThreadRow
+// (PR-SIDEBAR-098 through PR-SIDEBAR-103's live-menu half) are proven; SidebarHelperRow and HeadCardsRow are not.
 // Window sweep assembles SidebarThreadRow, ThreadRow, the three helper dispatch arms and FrameHolder.Note.
-// Still unwritten: rename presentation (STOP #6), the shared right-click menu attachment (STOP #7 and narrowed
-// STOP #8), and the empty-needle search match (STOP #1). Row state, frame reports and glides are now live.
+// Still unwritten: rename presentation (STOP #6) and the SidebarHelperRow/HeadCardsRow right-click menu attachment
+// (STOP #7, narrowed). Job SB (ROUND3.md) closed the empty-needle search match (STOP #1), ProjectRow's and
+// SidebarThreadRow's own live context menus (STOP #7 narrowed, STOP #8 in SidebarViewTests.cs closed). Row state,
+// frame reports and glides are now live.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
 // with `Control Body(Control content)`; a Shape is a sealed record with `Geometry Path(Rect in)`; a caseless enum is a
 // static class; an enum with associated values is an abstract record (R-ENUM-2), an unlabelled payload named Value; a
@@ -2797,7 +2798,8 @@ internal sealed class SidebarThreadRow : Decorator
     private readonly Button selectButton;
     private AppModel Model => AppEnvironment.GetAppModel(this); // :1683
 
-    // :1716-1872 body; :1899-1901 makeActions. Only the shared context-menu foundation (STOP #7) is unavailable.
+    // :1716-1872 body; :1899-1901 makeActions. The live context menu (Job SB, ROUND3.md item 3) is at this
+    // constructor's own ContextMenu.Opening wiring, below.
     public SidebarThreadRow(
         ChatThread snapshot,
         string? projectName,
@@ -2896,8 +2898,21 @@ internal sealed class SidebarThreadRow : Decorator
         AttachedToVisualTree += (_, _) => finish ??= new OnChange<AppModel.FinishRequest?>(() => Model.AppModelFinishRequest,
             (_, _) => FinishRequestReceived(Model, Thread(), Thread().IsSettled, SettleRow, ReopenRow)); // :1863-1870
         DetachedFromVisualTree += (_, _) => { finish?.Dispose(); finish = null; StopReveal(); };
-        // :1853-1861 .contextMenu alone remains unwritten: genuine shared STOP #7 (per-open refresh/capture foundation).
-        // The ellipsis uses MakeActions and its own handlers; ThreadActions.MakeContextMenu remains snapshot-only.
+        // :1848-1862 .contextMenu: snapshot-only, re-evaluated fresh every open. ENGINEERING DECISION (closes STOP #7
+        // for SidebarThreadRow, ROUND3.md item 3, the same per-open-refresh foundation ProjectRow's own constructor
+        // uses, this file's :1886-1899, full citation there): Avalonia's ContextMenu.Opening rebuilds Items from a
+        // live Thread()/Model read on every open; Control.ContextMenu opens it on a real right-click via Avalonia's
+        // own ContextRequestedEvent, the Windows counterpart of AppKit's right-click-opens-NSMenu.
+        var contextMenu = new ContextMenu();
+        contextMenu.Opening += (_, _) =>
+        {
+            var threadSnapshot = Thread(); // :1852, :1689
+            var settleFirstSnapshot = !threadSnapshot.IsHelper && Model.Settings.ThreadFinishAction == ThreadFinishAction.Settle; // :1855
+            contextMenu.Items.Clear();
+            foreach (var item in new RowActionMenuButtons(ThreadActions.MakeContextMenu(Model, threadSnapshot, settleFirstSnapshot, menuRequests)).Items)
+                contextMenu.Items.Add(item);
+        };
+        ContextMenu = contextMenu; // :1851 .contextMenu { ... }; PR-SIDEBAR-098 through -103's live-menu half
     }
 
     // :1834-1838 Instant hide; reveal eases over the same 0.12s handover as the covering ghost.
