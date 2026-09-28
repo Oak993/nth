@@ -1,0 +1,269 @@
+using System.Reflection;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Marrow.App.Port;
+using Marrow.App.Runtime;
+using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Chat;
+using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Services.Store;
+using Marrow.Testing;
+using Marrow.UI.Chrome;
+using Marrow.UI.Common;
+using Marrow.UI.Port;
+
+namespace Marrow.App.Tests.Views.Chat;
+
+// Source: DroppyCode/App/Views/Chat/ThreadTimeline.swift (B3 52bc792).
+// Job-owned proof for App.Views.Chat.ThreadTimeline (opencode). Each Fact below
+// proves the WHOLE of one TODO record; STOP records live in ThreadTimelineOcStopTests.cs
+// with no Req trait.
+[Collection("Headless")]
+public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
+{
+    private static readonly Guid Turn = Guid.Parse("12345678-abcd-1234-abcd-123456789abc");
+    private static TimelineEntry Entry(string id, TimelineItem.Content content, Guid? turn = null) => new(new TimelineItem(turn, content, id));
+    private static TimelineEntry User(string id, Guid? turn = null, string text = "prompt") => Entry(id, new TimelineItem.Content.User(new UserMessage { Text = text }), turn);
+    private static TimelineEntry Reply(string id, Guid? turn = null) => Entry(id, new TimelineItem.Content.Assistant(new AssistantMessage { Text = "reply" }), turn);
+    private static TimelineEntry Tool(string id, Guid? turn = null, bool head = false) => Entry(id, new TimelineItem.Content.Tool(new ToolCall { Title = id, ToolCallKind = head ? ToolCall.Kind.Agent : ToolCall.Kind.Command }), turn);
+    private static TimelineEntry Reason(string id, Guid? turn = null) => Entry(id, new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = "thinking" }), turn);
+    private static TurnSummary Summary(Guid turn) => new() { TurnID = turn, Status = TurnStatus.Completed, Duration = 2, FilesChanged = 0, Additions = 0, Deletions = 0 };
+    private static ValueList<DisplayBlock> Blocks(TimelineEntry[] entries, bool running = false, string? merge = null, HeadPills? pills = null) => DisplayBlock.Build(entries, TimelineMeta.Build(entries), false, running, merge, pills);
+    private static T Invoke<T>(object owner, string name, params object?[] args) => (T)owner.GetType().GetMethod(name, BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(owner, args)!;
+    private static T Field<T>(object owner, string name) => (T)owner.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(owner)!;
+    private static void Put(object owner, string name, object? value) => owner.GetType().GetField(name, BindingFlags.NonPublic | BindingFlags.Instance)!.SetValue(owner, value);
+
+    private void WithTimeline(Action<ThreadTimeline, ThreadRuntime, ChromeScrollModel, TimelineScrollState, AppModelHarness> check) => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var h = new AppModelHarness(); using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var model = new Marrow.App.AppModel(); var id = Guid.NewGuid(); DiskWriter.Shared.WriteSynchronously(new ThreadDocument(id), Storage.ThreadURL(id)); DocumentPrefetch.Shared.Warm([id], urgent: true)!.Completion.GetAwaiter().GetResult(); var runtime = new ThreadRuntime(id, model); var chrome = new ChromeScrollModel(); var state = new TimelineScrollState(); var view = new ThreadTimeline(runtime, chrome, state, "Project", null, false, 480); var host = new Border(); AppEnvironment.SetAppModel(host, model); host.Child = view; var window = new Avalonia.Controls.Window { Content = host, Width = 960, Height = 480 };
+        AppEnvironment.SetWindowLiveResize(host, new Marrow.App.Window.WindowLiveResize(window));
+        try { window.Show(); window.UpdateLayout(); check(view, runtime, chrome, state, h); } finally { window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
+    });
+    private void OnMain(Action body) => headless.OnUiThread(() => { using var runtime = new TestRuntime(); runtime.OnMain(body); });
+    private static Point Centre(Avalonia.Controls.Window window, Control control) => control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
+    private static void Settle(Avalonia.Controls.Window window) { window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); }
+    private static void RealClick(Avalonia.Controls.Window window, Button button)
+    {
+        var point = Centre(window, button); window.MouseMove(point, RawInputModifiers.None);
+        window.MouseDown(point, MouseButton.Left, RawInputModifiers.None); window.MouseUp(point, MouseButton.Left, RawInputModifiers.None); Settle(window);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-026")] // App/Views/Chat/ThreadTimeline.swift:136-141
+    public void Oc_Empty_idle_shows_prompt_with_ids_and_zeroes_chrome_and_jump() => WithTimeline((view, runtime, chrome, state, _) =>
+    {
+        typeof(ThreadRuntime).GetProperty("IsLoadingHistory")!.SetValue(runtime, true);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        chrome.Update(100); state.ShowsJumpButton = true;
+        typeof(ThreadRuntime).GetProperty("IsLoadingHistory")!.SetValue(runtime, false);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(view));
+        Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(prompt), text => text.Text == "Project");
+        Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(prompt).Select(text => text.Text ?? ""), text => text.Contains("What should we build", StringComparison.Ordinal));
+        Assert.Equal(0, chrome.Progress);
+        Assert.False(state.ShowsJumpButton);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-027")] // App/Views/Chat/ThreadTimeline.swift:136
+    public void Oc_Empty_running_takes_timeline_branch_with_working_block() => OnMain(() =>
+    {
+        Assert.Empty(Blocks([]));
+        var running = Blocks([], true);
+        var working = Assert.Single(running);
+        var w = Assert.IsType<DisplayBlock.Working>(working);
+        Assert.Equal("working-", w.Id);
+        Assert.Null(w.TurnID);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-034")] // App/Views/Chat/ThreadTimeline.swift:104-110,1608-1614
+    public void Oc_Earlier_pills_insert_before_live_turn_only_without_heads_in_order() => OnMain(() =>
+    {
+        var cut = DateTimeOffset.FromUnixTimeSeconds(100);
+        HydraHeadInfo Head(int index, DateTimeOffset? finish) => new(index, "task", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) { FinishedAt = finish };
+        var heads = new[] { Head(3, cut.AddSeconds(1)), Head(4, cut), Head(2, cut.AddSeconds(-2)), Head(1, null), Head(3, cut.AddSeconds(-1)) };
+        var method = typeof(ThreadTimeline).GetMethod("SplitHeadPills", BindingFlags.Static | BindingFlags.NonPublic)!;
+        var split = (HeadPills)method.Invoke(null, [heads, cut])!;
+        Assert.Equal(new[] { 1, 2, 3 }, split.Earlier);
+        Assert.Equal(new[] { 4 }, split.Later);
+        var idleSplit = (HeadPills)method.Invoke(null, [heads, null])!;
+        Assert.Empty(idleSplit.Earlier);
+        Assert.Equal(new[] { 1, 2, 3, 4, 3 }, idleSplit.Later);
+        var pills = new HeadPills { Earlier = new([2, 1]), Later = new([3]) };
+        var blocks = Blocks(new[] { User("u", Turn) }, true, pills: pills);
+        Assert.Equal(new[] { "hydra-heads-working", "turn-12345678-ABCD-1234-ABCD-123456789ABC-u", "hydra-heads-working-tail" }, blocks.Select(block => block.Id));
+        var first = Assert.IsType<DisplayBlock.HeadsWorking>(blocks[0]);
+        Assert.False(first.Trailing);
+        Assert.Equal(new[] { 2, 1 }, first.Heads);
+        Assert.DoesNotContain(Blocks(new[] { Tool("head", Turn, true) }, true, pills: pills), block => block is DisplayBlock.HeadsWorking { Trailing: false });
+        Assert.Empty(((HeadPills)method.Invoke(null, [Array.Empty<HydraHeadInfo>(), cut])!).Earlier);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-035")] // App/Views/Chat/ThreadTimeline.swift:108-110,1615-1617
+    public void Oc_Later_pills_append_with_trailing_identity_across_turn_boundary() => OnMain(() =>
+    {
+        var pills = new HeadPills { Later = new([3]) };
+        var running = Blocks(new[] { User("u", Turn) }, true, pills: pills);
+        var tail = Assert.IsType<DisplayBlock.HeadsWorking>(running[^1]);
+        Assert.True(tail.Trailing);
+        Assert.Equal("hydra-heads-working-tail", tail.Id);
+        var idle = Blocks(new[] { User("u", Turn) }, false, pills: pills);
+        var plain = Assert.IsType<DisplayBlock.HeadsWorking>(idle[^1]);
+        Assert.False(plain.Trailing);
+        Assert.Equal("hydra-heads-working", plain.Id);
+        Assert.Equal("hydra-heads-working", Blocks([], pills: pills).Single().Id);
+        Assert.DoesNotContain(Blocks(new[] { User("u", Turn) }, true), block => block is DisplayBlock.HeadsWorking);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-039")] // App/Views/Chat/ThreadTimeline.swift:1520-1526
+    public void Oc_Only_turns_and_plain_user_singles_carry_ticks() => OnMain(() =>
+    {
+        Assert.True(Blocks(new[] { User("u", Turn), User("u2", Turn) }).Single().HasUserMessage);
+        Assert.True(Blocks(new[] { User("plain") }).Single().HasUserMessage);
+        var turn = Blocks(new[] { User("u", Turn), Reply("r", Turn) }).Single();
+        Assert.True(turn.HasUserMessage);
+        Assert.All(Blocks(new[] { Reply("r"), Tool("t") }, true, "merge", new HeadPills { Later = new([1]) }), block => Assert.False(block.HasUserMessage));
+        Assert.False(Blocks(new[] { Reply("single") }).Single().HasUserMessage);
+        Assert.False(new DisplayBlock.Working(null, new ValueList<TimelineEntry>([])).HasUserMessage);
+        Assert.False(new DisplayBlock.Merging("m").HasUserMessage);
+        Assert.False(new DisplayBlock.HeadsWorking(new([1]), false).HasUserMessage);
+        var grouped = TimelineGroup.Build(new[] { Tool("a", Turn) }, false);
+        Assert.False(Blocks(new[] { Tool("a", Turn) }).Single().HasUserMessage);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:77-81,257-278,595-608,703-707,1804-1811
+    public void Oc_Window_constants_identity_anchor_paging_cancel_and_eager_drop() => WithTimeline((view, _, _, _, h) =>
+    {
+        Assert.Equal(3, TimelineWindow.FirstPaint);
+        Assert.Equal(24, TimelineWindow.Initial);
+        Assert.Equal(24, TimelineWindow.Page);
+        Assert.Equal(96, TimelineWindow.EagerLimit);
+        var blocks = Enumerable.Range(0, 60).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Assert.Equal(57, Invoke<int>(view, "WindowStartIndex", (object)blocks));
+        Invoke<object?>(view, "LoadEarlier", blocks, 24);
+        Assert.Equal(36, Invoke<int>(view, "WindowStartIndex", (object)blocks));
+        Invoke<object?>(view, "LoadEarlier", blocks, null);
+        Assert.Equal(36, Invoke<int>(view, "WindowStartIndex", (object)blocks));
+        Put(view, "historyLoadPending", false);
+        Invoke<object?>(view, "LoadEarlier", blocks, null);
+        Assert.Equal(12, Invoke<int>(view, "WindowStartIndex", (object)blocks));
+        Put(view, "windowStartID", null); Put(view, "historyLoadPending", false);
+        var thirty = Enumerable.Range(0, 30).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Invoke<object?>(view, "StartInitialHistoryLoad", (object)thirty);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        h.Main.AdvanceMilliseconds(249); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Null(Field<string?>(view, "windowStartID"));
+        h.Main.AdvanceMilliseconds(1); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Equal("b6", Field<string?>(view, "windowStartID"));
+        Assert.True(Field<TimelineScrollTracking>(view, "tracking").IsArriving);
+        var grown = Enumerable.Range(0, 120).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Put(view, "windowStartID", "b0"); Put(view, "historyLoadPending", false);
+        var tracking = Field<TimelineScrollTracking>(view, "tracking");
+        tracking.IsPinnedToBottom = true; tracking.NoteGeometry(0, 0, 0);
+        Invoke<object?>(view, "NoteArrival", "b119", grown);
+        Assert.Equal(96, Invoke<int>(view, "WindowStartIndex", (object)grown));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119,2152-2176,822-829
+    public void Oc_Working_click_opens_thinking_and_steps_and_follows_end_despite_jump() => WithTimeline((view, runtime, _, state, _) =>
+    {
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([Tool("a")]), new([]), true);
+        var window = (Avalonia.Controls.Window)TopLevel.GetTopLevel(view)!;
+        var host = new Border { Child = card };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var panel = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            panel.Show(); Settle(panel);
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card));
+            var tracking = Field<TimelineScrollTracking>(view, "tracking");
+            ThreadTimeline.SetRevealTimelineEnd(card, Field<TimelineRevealBox>(view, "revealBox"));
+            tracking.IsPinnedToBottom = false; state.ShowsJumpButton = true; tracking.NoteGeometry(0, 900, 0);
+            Put(view, "viewportHeight", 480.0);
+            var button = LogicalQuery.SelfAndDescendants<Button>(card).Single();
+            button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Settle(panel);
+            Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card));
+            Assert.Single(LogicalQuery.SelfAndDescendants<WorkSteps>(card));
+            Assert.Equal("Hide these steps", Avalonia.Controls.ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(card).Single()));
+            Assert.True(tracking.IsPinnedToBottom);
+        }
+        finally { panel.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-125")] // App/Views/Chat/ThreadTimeline.swift:325-331,2185-2188
+    public void Oc_Chronological_flag_is_always_false_so_cards_open_folded_with_two_steps() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { User("probe") }));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var rows = Field<System.Collections.Generic.Dictionary<string, (DisplayBlock Block, RowContext Context, Control Row)>>(view, "rowViews");
+        Assert.NotEmpty(rows);
+        Assert.All(rows.Values, pair => Assert.False(pair.Context.Chronological));
+        var model = AppEnvironment.GetAppModel(view);
+        model.Settings.ChronologicalTimeline = true;
+        typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { User("probe2") }));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.All(Field<System.Collections.Generic.Dictionary<string, (DisplayBlock Block, RowContext Context, Control Row)>>(view, "rowViews").Values, pair => Assert.False(pair.Context.Chronological));
+        model.Settings.ChronologicalTimeline = false;
+        typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { User("probe3") }));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.All(Field<System.Collections.Generic.Dictionary<string, (DisplayBlock Block, RowContext Context, Control Row)>>(view, "rowViews").Values, pair => Assert.False(pair.Context.Chronological));
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("t", false)]), new([Tool("a"), Tool("b"), Tool("c")]), new([]), true);
+        var host = new Border { Child = card };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var window = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            window.Show(); Settle(window);
+            Assert.Empty(LogicalQuery.SelfAndDescendants<WorkSteps>(card));
+            LogicalQuery.SelfAndDescendants<Button>(card).Single().RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            Settle(window);
+            var steps = LogicalQuery.SelfAndDescendants<WorkSteps>(card).Single();
+            Assert.Equal(2, LogicalQuery.SelfAndDescendants<ToolRow>(steps).Count());
+            Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(steps), text => text.Text == "1 earlier step");
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-069")] // App/Views/Chat/ThreadTimeline.swift:2104,2123
+    public void Oc_Finished_tool_less_segment_labels_Earlier_steps_without_breathing() => WithTimeline((_, runtime, _, _, _) =>
+    {
+        var finished = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), new([]), new([]), false, SwiftDate.Now);
+        var title = LogicalQuery.SelfAndDescendants<TextBlock>(finished).Single(text => text.Text == "Earlier steps");
+        Assert.Equal(13, title.FontSize);
+        Assert.Equal(Avalonia.Media.FontWeight.Medium, title.FontWeight);
+        Assert.Equal(Chrome.PrimaryText.Resolve(finished.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground).Color);
+        var running = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), new([Tool("t1")]), new([]), false);
+        Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(running), text => text.Text == "Earlier steps");
+        var finishedOpenable = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([]), new([]), false, SwiftDate.Now);
+        Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(finishedOpenable), text => text.Text == "Earlier steps");
+        Assert.NotEmpty(LogicalQuery.SelfAndDescendants<Button>(finishedOpenable));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-031")] // App/Views/Chat/ThreadTimeline.swift:1645-1652
+    public void Oc_Merge_outcome_requires_Hydra_prefix_and_never_normalizes_project_prefix() => OnMain(() =>
+    {
+        Assert.True(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Hydra merged project\nbody", HydraHeads = new([]) }));
+        Assert.True(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Hydra did not merge: the checkout kept moving.\nbody", HydraHeads = new([]) }));
+        Assert.True(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Hydra left a file outside every project.\nbody", HydraHeads = new([]) }));
+        Assert.True(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Hydra has no files left to merge.\nbody", HydraHeads = new([]) }));
+        Assert.True(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Hydra is waiting for another chat's files.\nbody", HydraHeads = new([]) }));
+        Assert.False(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Project: Hydra merged branch\nbody", HydraHeads = new([]) }));
+        Assert.False(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "hydra merged\nbody", HydraHeads = new([]) }));
+        Assert.False(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Hydra\nbody", HydraHeads = new([]) }));
+        Assert.False(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Hydra merged\nbody", HydraHeads = null }));
+        Assert.False(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Hydra merged\nbody", HydraHeads = new([1]) }));
+    });
+}
