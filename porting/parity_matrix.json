@@ -281,7 +281,7 @@
       "id": "PR-CHAT-011",
       "title": "The usage-limit resume badge is dead code in the pinned build and must not be implemented",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/LimitResumeBadge.swift:1-60 (B2 1fbf81e6 line range; the file is deleted at B3) the whole file - struct LimitResumeBadge with Cancel and New thread buttons and three outcome strings",
+        "B2:DroppyCode/App/Views/Chat/LimitResumeBadge.swift:1-60 (B2 1fbf81e6 line range; the file is deleted at B3) the whole file - struct LimitResumeBadge with Cancel and New thread buttons and three outcome strings",
         "DroppyCode/App/Views/Chat/TimelineRows.swift:2385-2431 NoticeRow - the only renderer of a .notice item, reading only notice.level and notice.message",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2058 case .notice: NoticeRow(entry: entry) - the only selection of a notice row"
       ],
@@ -20447,11 +20447,11 @@
       "id": "PR-HYDRA-252",
       "title": "HydraRunMetricsView, its card and its reader are defined but nothing presents them, so no run-metrics card is shown",
       "source_evidence": [
-        "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:196-222 (B2 1fbf81e6 line range; the file is deleted at B3) /// A run's recorded usage and head timings, hung under the panel's strip while it is open. ... struct HydraRunMetricsView: View { ... var body: some View { HydraRunMetricsCard(metrics: snapshot).equatable().task(id: heads.map(\\.id)) { ... } } }",
-        "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:226 (B2 1fbf81e6; deleted at B3) private struct HydraRunMetricsCard: View, Equatable - private to the file, used only at :205",
-        "DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:91-194 (B2 1fbf81e6; deleted at B3) enum HydraRunMetricsReader - snapshot(leadTurns:heads:headTurns:), called only at :217",
-        "git -C E:/Droppy/reference/droppy-code-v1.6.2 grep -n HydraRunMetrics 1fbf81e61e28a079508a074c01ee1830a9cc23dc -- . : every match is in DroppyCode/App/Views/Chat/HydraRunMetricsView.swift (first at :11); the same holds at dd2b86ef",
-        "porting/dead_code.md:41 entry 16 - [hydra] DroppyCode/App/Views/Chat/HydraRunMetricsView.swift, all 398 lines ... PORT ACTION: do not port; the register header (porting/dead_code.md:6-7): \"Anything here is excluded from the parity matrix as NOT_APPLICABLE_WITH_EVIDENCE, and the evidence is the entry itself.\""
+        "B2:DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:196-222 (B2 1fbf81e6 line range; the file is deleted at B3) /// A run's recorded usage and head timings, hung under the panel's strip while it is open. ... struct HydraRunMetricsView: View { ... var body: some View { HydraRunMetricsCard(metrics: snapshot).equatable().task(id: heads.map(\\.id)) { ... } } }",
+        "B2:DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:226 (B2 1fbf81e6; deleted at B3) private struct HydraRunMetricsCard: View, Equatable - private to the file, used only at :205",
+        "B2:DroppyCode/App/Views/Chat/HydraRunMetricsView.swift:91-194 (B2 1fbf81e6; deleted at B3) enum HydraRunMetricsReader - snapshot(leadTurns:heads:headTurns:), called only at :217",
+        "git -C E:/Droppy/reference/droppy-code-v1.6.2 grep -n HydraRunMetrics 1fbf81e61e28a079508a074c01ee1830a9cc23dc -- . : every match is in B2:DroppyCode/App/Views/Chat/HydraRunMetricsView.swift (first at :11); the same holds at dd2b86ef",
+        "porting/dead_code.md:41 entry 16 - [hydra] B2:DroppyCode/App/Views/Chat/HydraRunMetricsView.swift, all 398 lines ... PORT ACTION: do not port; the register header (porting/dead_code.md:6-7): \"Anything here is excluded from the parity matrix as NOT_APPLICABLE_WITH_EVIDENCE, and the evidence is the entry itself.\""
       ],
       "preconditions": "Any state of the app, including a Hydra panel open with heads that recorded token spends and timings.",
       "action": "The Hydra panel and its strip are shown.",
@@ -65564,7 +65564,7 @@
       "source_evidence": [
         "DroppyCode/App/Runtime/LimitHandoff.swift:6-78 enum LimitHandoff - @MainActor static func text(for runtime: ThreadRuntime, title: String) -> String, and private static func flatten(_:) at :75-77",
         "DroppyCode/App/Runtime/AutoContinue.swift:78-85 handOff(_:) - guard let app, let thread = app.thread(threadID), let runtime = app.existingRuntime(for: threadID) else { return }; let text = LimitHandoff.text(for: runtime, title: thread.title); cancel(threadID); guard let project = app.project(thread.projectID), let made = app.newThread(in: project) else { return }; outcomes[threadID] = .handedOff(made.id); app.runtime(for: made.id).draft.text = text",
-        "At B3, DroppyCode/App/Views/Chat/LimitResumeBadge.swift no longer exists in the tree at all (see PR-CHAT-011); a repo-wide search finds zero call sites of \".handOff(\" anywhere in DroppyCode, so AutoContinue.handOff is now uncalled by any file, not merely by an uninstantiated view. At B2 (git grep 1fbf81e) LimitResumeBadge.swift:30 was its only call, and the view itself was declared unreachable at LimitResumeBadge.swift:5",
+        "At B3, B2:DroppyCode/App/Views/Chat/LimitResumeBadge.swift no longer exists in the tree at all (see PR-CHAT-011); a repo-wide search finds zero call sites of \".handOff(\" anywhere in DroppyCode, so AutoContinue.handOff is now uncalled by any file, not merely by an uninstantiated view. At B2 (git grep 1fbf81e) B2:DroppyCode/App/Views/Chat/LimitResumeBadge.swift:30 was its only call, and the view itself was declared unreachable at B2:DroppyCode/App/Views/Chat/LimitResumeBadge.swift:5",
         "porting/dead_code.md entries 21 and 22 (LimitResumeBadge, AutoContinue.cancel and handOff)"
       ],
       "preconditions": "A chat stopped on its provider's usage limit.",
