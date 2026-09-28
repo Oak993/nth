@@ -8,6 +8,7 @@ using Avalonia.Controls.Primitives;
 using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
@@ -92,6 +93,8 @@ internal static class TimelineRowsPrSupport
         new(new TimelineItem(turn, new TimelineItem.Content.User(new UserMessage { Text = text, Attachments = attachments ?? ValueList<Attachment>.Empty })));
     internal static Color Resolved(SwiftColor color, Control on) => color.Resolve(on.ActualThemeVariant);
     internal static Color BrushColor(IBrush? brush) => (brush as ISolidColorBrush)!.Color;
+    internal static string[] Texts(Control control) =>
+        control.GetVisualDescendants().OfType<TextBlock>().Select(block => block.Text ?? "").ToArray();
 }
 
 // Real overlay popups keep hit testing and pointer input in the headless window.

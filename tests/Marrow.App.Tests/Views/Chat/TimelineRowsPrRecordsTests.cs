@@ -9,6 +9,7 @@ using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
+using Marrow.App.Views.Diff;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Git;
@@ -978,6 +979,81 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             var word = declined.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == "Declined");
             Assert.Equal(Resolved(ChromeTokens.Warning, word), BrushColor(word.Foreground));
             Close(window);
+        });
+    });
+
+    // ---- PR-CHAT-101: an expanded tool row's output is capped at thirty lines with a toggle (:2094-2167, esp. :2103-2113, :2141-2162) ----
+
+    private static string Lines101(int count) => string.Join("\n", Enumerable.Range(1, count).Select(i => "line " + i));
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-101")]
+    public void Output_over_thirty_lines_shows_its_first_thirty_and_a_link_that_reveals_the_rest_then_Show_less() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        ToolDetailView? view = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            view = new ToolDetailView(Call(ToolCall.Kind.Command, "cat") with { Output = "\n\n" + Lines101(31) + "\n\n" });
+            window = Show(view);
+            Assert.Contains(Lines101(30), Texts(view));
+            Assert.DoesNotContain(Lines101(31), Texts(view));
+            var link = Assert.Single(view.GetVisualDescendants().OfType<Button>());
+            Assert.Contains("Show full output (31 lines)", Texts(link));
+            Click(window, link);
+        });
+        h.Main.OnMain(() =>
+        {
+            Assert.Contains(Lines101(31), Texts(view!));
+            Assert.Contains("Show less", Texts(Assert.Single(view!.GetVisualDescendants().OfType<Button>())));
+            Close(window!);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-101")]
+    public void Thirty_lines_show_whole_with_no_link_and_the_detail_is_capped_at_twelve_lines_in_secondary_monospace() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var view = new ToolDetailView(Call(ToolCall.Kind.Command, "cat") with { Output = Lines101(30), Detail = "the detail" });
+            var window = Show(view);
+            Assert.Contains(Lines101(30), Texts(view));
+            Assert.Empty(view.GetVisualDescendants().OfType<Button>());
+            var detail = view.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == "the detail");
+            Assert.Equal(12, detail.MaxLines);
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, detail), BrushColor(detail.Foreground));
+            Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Resolve().FontFamily, detail.FontFamily);
+            Close(window);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-101")]
+    public void Each_edit_with_a_diff_shows_its_path_above_its_lines_on_a_rounded_plate_and_a_diffless_edit_shows_nothing() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var call = Call(ToolCall.Kind.Edit, "e") with
+            {
+                Edits = new ValueList<FileEdit>([new FileEdit("src/a.swift", "@@ -1 +1 @@\n-a\n+b\n", 1, 1), new FileEdit("src/b.swift", "", 0, 0)]),
+            };
+            // Inspected without a layout pass: the edits are built with the view, and DiffLinesView's own font
+            // (App.Views.Diff.DiffInspector's) does not resolve headless (a distinct font gap from icu.dll/STOP #14/#15,
+            // not investigated further since nothing in this clause needs a layout pass to verify).
+            var view = new ToolDetailView(call);
+            Assert.Single(view.GetVisualDescendants().OfType<DiffLinesView>());
+            var path = view.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == "src/a.swift");
+            Assert.Equal(new Thickness(10, 6), path.Margin);
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, path), BrushColor(path.Foreground));
+            var plate = Assert.IsType<Border>(Assert.IsType<StackPanel>(path.Parent).Parent);
+            Assert.Equal(new CornerRadius(10), plate.CornerRadius);
+            Assert.True(plate.ClipToBounds);
+            Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.45), plate), BrushColor(plate.Background));
+            Assert.DoesNotContain("src/b.swift", Texts(view));
         });
     });
 }
