@@ -168,6 +168,100 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-034")] // App/Views/Chat/ThreadTimeline.swift:1608-1614 (immediately before the LAST UNFINISHED turn)
+    public void Oc_Earlier_pills_insert_before_the_last_unfinished_turn() => OnMain(() =>
+    {
+        var first = Guid.NewGuid(); var second = Guid.NewGuid();
+        var blocks = Blocks(new[] { User("u1", first), User("u2", second) }, true, pills: new HeadPills { Earlier = new([9]) });
+        var head = Assert.IsType<DisplayBlock.HeadsWorking>(blocks[1]);
+        Assert.False(head.Trailing);
+        Assert.Equal(new[] { 9 }, head.Heads);
+        Assert.Equal(first, Assert.IsType<DisplayBlock.Turn>(blocks[0]).TurnID);
+        Assert.Equal(second, Assert.IsType<DisplayBlock.Turn>(blocks[2]).TurnID);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-034")] // App/Views/Chat/ThreadTimeline.swift:1608-1614 (a turn is running: finished turns do not count)
+    public void Oc_Earlier_pills_skip_finished_turns() => OnMain(() =>
+    {
+        var open = Guid.NewGuid(); var done = Guid.NewGuid();
+        var end = Entry("end", new TimelineItem.Content.TurnEnd(Summary(done)), done);
+        var blocks = Blocks(new[] { User("u1", open), User("u2", done), end }, true, pills: new HeadPills { Earlier = new([7]) });
+        var head = Assert.IsType<DisplayBlock.HeadsWorking>(blocks[0]);
+        Assert.False(head.Trailing);
+        Assert.Equal(new[] { 7 }, head.Heads);
+        Assert.Null(Assert.IsType<DisplayBlock.Turn>(blocks[1]).Summary);
+        Assert.NotNull(Assert.IsType<DisplayBlock.Turn>(blocks[2]).Summary);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-034")] // App/Views/Chat/ThreadTimeline.swift:1608-1614 (only while a turn runs)
+    public void Oc_Earlier_pills_insert_only_while_a_turn_runs() => OnMain(() =>
+    {
+        Assert.DoesNotContain(
+            Blocks(new[] { User("u", Turn) }, false, pills: new HeadPills { Earlier = new([2, 1]) }),
+            block => block is DisplayBlock.HeadsWorking { Trailing: false });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-034")] // App/Views/Chat/ThreadTimeline.swift:1608-1614 (only with heads to show)
+    public void Oc_Earlier_pills_insert_only_with_heads_to_show() => OnMain(() =>
+    {
+        Assert.DoesNotContain(
+            Blocks(new[] { User("u", Turn) }, true),
+            block => block is DisplayBlock.HeadsWorking);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-034")] // App/Views/Chat/ThreadTimeline.swift:104-110 (idle splits nothing earlier: since is null without a running turn)
+    [Trait("Req", "PR-CHAT-035")] // App/Views/Chat/ThreadTimeline.swift:108-110 (idle appends every head later for the same reason)
+    public void Oc_Idle_draw_splits_no_head_earlier_and_appends_every_head_later() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var h = new AppModelHarness();
+        using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        var t0 = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+        HydraHeadInfo Head(long index, DateTimeOffset? finished) =>
+            new HydraHeadInfo(index, "task", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) with
+            { HydraHeadInfoStatus = finished is null ? HydraHeadInfo.Status.Running : HydraHeadInfo.Status.Completed, StartedAt = finished is null ? t0.AddSeconds(5) : t0, FinishedAt = finished };
+        var model = h.MakeModel();
+        var project = h.Main.OnMain(() => model.AddProject(new Project("P", h.NewFolder("proj")).Url));
+        var parent = h.Main.OnMain(() => model.NewThread(project)!);
+        foreach (var (index, finished) in new[] { (1L, (DateTimeOffset?)t0.AddSeconds(10)), (2L, (DateTimeOffset?)t0.AddSeconds(20)), (3L, (DateTimeOffset?)null) })
+        {
+            var info = Head(index, finished);
+            var head = h.Main.OnMain(() => model.NewThread(project)!);
+            h.Main.OnMain(() => model.UpdateThread(head.Id, thread => thread with { ParentThreadID = parent.Id, Hydra = info }));
+        }
+        var runtime = new ThreadRuntime(parent.Id, model);
+        typeof(ThreadRuntime).GetProperty("TurnStartedAt")!.GetSetMethod(true)!.Invoke(runtime, [t0.AddSeconds(15)]);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        h.Main.OnMain(() =>
+        {
+            Assert.Equal(3, model.Helpers(parent.Id).Count);
+            var hydras = model.Helpers(parent.Id).Select(t => t.Hydra).ToList();
+            Assert.All(hydras, h => Assert.NotNull(h));
+            Assert.Equal(new[] { 1L, 2L }, HydraHeadsWorkingRow.FinishedHeads(model.Helpers(parent.Id)).Select(head => head.Index));
+        });
+        var chrome = new ChromeScrollModel(); var state = new TimelineScrollState();
+        var view = new ThreadTimeline(runtime, chrome, state, project.Name, null, false, 480);
+        var host = new Border(); AppEnvironment.SetAppModel(host, model); host.Child = view;
+        var window = new Avalonia.Controls.Window { Content = host, Width = 960, Height = 480 };
+        AppEnvironment.SetWindowLiveResize(host, new Marrow.App.Window.WindowLiveResize(window));
+        try
+        {
+            window.Show(); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var rows = Field<System.Collections.Generic.Dictionary<string, (DisplayBlock Block, RowContext Context, Control Row)>>(view, "rowViews");
+            var tail = Assert.IsType<DisplayBlock.HeadsWorking>(rows["hydra-heads-working"].Block);
+            Assert.False(tail.Trailing); // idle appends the plain identity (:1615-1617 with isRunning false)
+            Assert.Equal("hydra-heads-working", tail.Id);
+            Assert.Equal(new[] { 1, 2 }, tail.Heads); // since is null idle: every finished head lands Later
+            Assert.Single(rows.Values, pair => pair.Block is DisplayBlock.HeadsWorking); // no Earlier insert without a running turn
+        }
+        finally { window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-CHAT-035")] // App/Views/Chat/ThreadTimeline.swift:108-110,1615-1617
     public void Oc_Later_pills_append_with_trailing_identity_across_turn_boundary() => OnMain(() =>
     {
