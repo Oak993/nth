@@ -796,7 +796,7 @@ public static class HydraMergeStageExtensions
         // :519-528
         public string Words => stage switch
         {
-            HydraMergeStage.Gathering => "Gathering the team\U00002019s files", // :521, U+2019 RIGHT SINGLE QUOTATION MARK
+            HydraMergeStage.Gathering => "Gathering the team's files",        // :521 (ASCII apostrophe U+0027)
             HydraMergeStage.Committing => "Writing the commit",                 // :522
             HydraMergeStage.Describing => "Writing the commit message",         // :523
             HydraMergeStage.Pushing => "Pushing the branch",                    // :524
