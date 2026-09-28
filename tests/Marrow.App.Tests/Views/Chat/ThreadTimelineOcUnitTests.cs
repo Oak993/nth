@@ -279,6 +279,44 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-035")] // App/Views/Chat/ThreadTimeline.swift:1615-1617 (appended with the later heads: all of them, not the earlier ones)
+    public void Oc_Later_append_carries_later_heads_in_full() => OnMain(() =>
+    {
+        var blocks = Blocks(new[] { User("u", Turn) }, true, pills: new HeadPills { Earlier = new([2, 1]), Later = new([3, 4]) });
+        var tail = Assert.IsType<DisplayBlock.HeadsWorking>(blocks[^1]);
+        Assert.True(tail.Trailing);
+        Assert.Equal(new[] { 3, 4 }, tail.Heads);
+        Assert.Equal("hydra-heads-working-tail", tail.Id);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-035")] // App/Views/Chat/ThreadTimeline.swift:1615-1626 (the later-heads pill comes before the merging pill)
+    public void Oc_Later_heads_come_before_the_merging_pill() => OnMain(() =>
+    {
+        var blocks = Blocks(new[] { User("u", Turn) }, true, "merge", new HeadPills { Later = new([3]) });
+        var headsAt = blocks.Select((block, index) => (block, index)).First(pair => pair.block is DisplayBlock.HeadsWorking { Trailing: true }).index;
+        var mergeAt = blocks.Select((block, index) => (block, index)).First(pair => pair.block is DisplayBlock.Merging).index;
+        Assert.True(headsAt < mergeAt);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-035")] // App/Views/Chat/ThreadTimeline.swift:1615-1617 (the later-heads pill renders as a HydraHeadsWorkingRow through row dispatch)
+    public void Oc_Later_heads_render_through_row_dispatch() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var row = new DisplayBlockView(new DisplayBlock.HeadsWorking(new([3]), false), runtime, new RowContext(null, false, false));
+        var host = new Border { Child = row };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var panel = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            panel.Show(); Settle(panel);
+            var rendered = Assert.Single(LogicalQuery.SelfAndDescendants<HydraHeadsWorkingRow>(row));
+            Assert.Equal(new[] { 3 }, (ValueList<int>)rendered.GetType().GetField("requestedHeads", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(rendered)!);
+        }
+        finally { panel.Close(); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-CHAT-039")] // App/Views/Chat/ThreadTimeline.swift:1520-1526
     public void Oc_Only_turns_and_plain_user_singles_carry_ticks() => OnMain(() =>
     {
