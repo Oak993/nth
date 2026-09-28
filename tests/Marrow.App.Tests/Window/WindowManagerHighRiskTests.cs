@@ -1,6 +1,4 @@
-using System.ComponentModel;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -71,17 +69,20 @@ public sealed class WindowManagerHighRiskTests(HeadlessSession headless)
 
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONDOWN, HTMINBUTTON);
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONUP, HTMINBUTTON);
+                NativeMessageWindow.Pump(native.Handle);
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal(WindowState.Minimized, main.WindowState);
 
                 main.WindowState = WindowState.Normal;
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONDOWN, HTMAXBUTTON);
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONUP, HTMAXBUTTON);
+                NativeMessageWindow.Pump(native.Handle);
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal(WindowState.Maximized, main.WindowState);
 
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONDOWN, HTMAXBUTTON);
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONUP, HTMAXBUTTON);
+                NativeMessageWindow.Pump(native.Handle);
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal(WindowState.Normal, main.WindowState);
 
@@ -92,11 +93,13 @@ public sealed class WindowManagerHighRiskTests(HeadlessSession headless)
                     DispatchCaptionMessage(manager, settings, hwnd, msg, wParam, lParam, ref handled));
                 NativeMessageWindow.Send(settingsNative.Handle, WM_NCLBUTTONDOWN, HTMAXBUTTON);
                 NativeMessageWindow.Send(settingsNative.Handle, WM_NCLBUTTONUP, HTMAXBUTTON);
+                NativeMessageWindow.Pump(settingsNative.Handle);
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal(WindowState.Normal, settings.WindowState); // :81 resizable: false, so zoom is inert
 
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONDOWN, HTCLOSE);
                 NativeMessageWindow.Send(native.Handle, WM_NCLBUTTONUP, HTCLOSE);
+                NativeMessageWindow.Pump(native.Handle);
                 Dispatcher.UIThread.RunJobs();
                 Assert.False(main.IsVisible);
             }
@@ -120,93 +123,10 @@ public sealed class WindowManagerHighRiskTests(HeadlessSession headless)
     {
         var method = typeof(WindowManager).GetMethod("HandleNativeWindowMessage", BindingFlags.Instance | BindingFlags.NonPublic);
         if (method is null) return 0; // the outer assertion reports the red test before any native callback runs
-        var arguments = new object?[] { hwnd, msg, wParam, lParam, handled };
+        var arguments = new object?[] { window, hwnd, msg, wParam, lParam, handled };
         var result = Assert.IsType<nint>(method!.Invoke(manager, arguments));
-        handled = Assert.IsType<bool>(arguments[4]);
-        _ = window;
+        handled = Assert.IsType<bool>(arguments[5]);
         return result;
     }
 
-    internal sealed class NativeMessageWindow : IDisposable
-    {
-        private const int ERROR_CLASS_ALREADY_EXISTS = 1410;
-        private static readonly nint HWND_MESSAGE = -3;
-        private readonly string className = "MarrowWindowManagerHighRisk_" + Guid.NewGuid().ToString("N");
-        private readonly NativeWindowProc callback;
-        private readonly NativeHandler handler;
-        private readonly ushort atom;
-
-        internal NativeMessageWindow(NativeHandler handler)
-        {
-            this.handler = handler;
-            callback = WindowProc;
-            var klass = new WndClassEx
-            {
-                Size = (uint)Marshal.SizeOf<WndClassEx>(),
-                WindowProc = callback,
-                Instance = GetModuleHandle(null),
-                ClassName = className,
-            };
-            atom = RegisterClassEx(ref klass);
-            if (atom == 0 && Marshal.GetLastWin32Error() != ERROR_CLASS_ALREADY_EXISTS)
-                throw new Win32Exception(Marshal.GetLastWin32Error());
-            Handle = CreateWindowEx(0, className, className, 0, 0, 0, 1, 1, HWND_MESSAGE, 0, klass.Instance, 0);
-            if (Handle == 0) throw new Win32Exception(Marshal.GetLastWin32Error());
-        }
-
-        public nint Handle { get; }
-
-        public void Dispose()
-        {
-            DestroyWindow(Handle);
-            if (atom != 0) UnregisterClass(className, GetModuleHandle(null));
-            GC.KeepAlive(callback);
-            GC.KeepAlive(handler);
-        }
-
-        public static void Send(nint hwnd, uint message, nint wParam = 0, nint lParam = 0) =>
-            SendMessage(hwnd, message, wParam, lParam);
-
-        private nint WindowProc(nint hwnd, uint message, nint wParam, nint lParam)
-        {
-            var handled = false;
-            var result = handler(hwnd, message, wParam, lParam, ref handled);
-            return handled ? result : DefWindowProc(hwnd, message, wParam, lParam);
-        }
-
-        [UnmanagedFunctionPointer(CallingConvention.Winapi)]
-        private delegate nint NativeWindowProc(nint hwnd, uint message, nint wParam, nint lParam);
-
-        internal delegate nint NativeHandler(nint hwnd, uint message, nint wParam, nint lParam, ref bool handled);
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct WndClassEx
-        {
-            public uint Size;
-            public uint Style;
-            public NativeWindowProc WindowProc;
-            public int ClassExtra;
-            public int WindowExtra;
-            public nint Instance;
-            public nint Icon;
-            public nint Cursor;
-            public nint Background;
-            public string? MenuName;
-            public string ClassName;
-            public nint SmallIcon;
-        }
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern ushort RegisterClassEx(ref WndClassEx windowClass);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
-        private static extern nint CreateWindowEx(uint extendedStyle, string className, string windowName, uint style,
-            int x, int y, int width, int height, nint parent, nint menu, nint instance, nint parameter);
-
-        [DllImport("user32.dll", SetLastError = true)] private static extern bool DestroyWindow(nint hwnd);
-        [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)] private static extern bool UnregisterClass(string className, nint instance);
-        [DllImport("user32.dll")] private static extern nint DefWindowProc(nint hwnd, uint message, nint wParam, nint lParam);
-        [DllImport("user32.dll", SetLastError = true)] private static extern nint SendMessage(nint hwnd, uint message, nint wParam, nint lParam);
-        [DllImport("kernel32.dll", CharSet = CharSet.Unicode)] private static extern nint GetModuleHandle(string? moduleName);
-    }
 }

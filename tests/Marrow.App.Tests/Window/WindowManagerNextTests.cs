@@ -253,9 +253,9 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
     // Missing: RootView's constructor still throws at the chosen impl/b2 base; its and SidebarView's repairs
     // belong to the Window chat. Needed: merge those units, then run the real main-content path. The production
     // factory remains RootView; these tests substitute only the main content. No change to either dependency.
-    // Carried STOP #3: ED-063 native caption/system-menu hook and live-resize hook registration cannot be
-    // exercised by Avalonia.Headless; App-layer caption wiring is absent. Needed: the owning native port unit
-    // and probe P7 verification. Records: PR-WIN-007, PR-SETTINGS-001, PR-THEME-039, PR-WIN-017.
+    // CLOSED STOP #3: WindowManager now owns the ED-063 App-layer caption bridge. WindowManagerHighRiskTests exercises
+    // it through real user32 message delivery, including the live-resize hook's native message sequence. Records:
+    // PR-WIN-007, PR-SETTINGS-001, PR-THEME-039, PR-WIN-017.
     // Carried STOP #5: Acrylic/corner treatment belongs to WindowChrome and lacks a settled corner binding.
     // Swift: WindowManager.swift:101; SettingsView.swift:118-120. Records: UI-SETTINGS-001. Needed: its owner
     // ruling and probe P3 verification; no guessed transparency hint here.

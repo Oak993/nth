@@ -1188,25 +1188,16 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // sets; a close asked of the main window runs the terminate handshake instead of ordering it out (tested in
 // Port/AppShellSecondTests.cs); every other window still hides as :98 has it.
 
-// STOP App.Window.WindowManager #3 (build agent, 2026-09-26)
-// Kind: untestable
+// CLOSED STOP App.Window.WindowManager #3 (2026-09-28)
+// Kind: implementation and real-Windows verification
 // Swift: DroppyCode/App/Window/WindowManager.swift:101 `WindowChrome.configure(window)` (B3 52bc792)
 // Requirements: PR-WIN-007, PR-SETTINGS-001, PR-THEME-039 (windows_path: the ED-063 caption hook); PR-WIN-017
 // (the live-resize hook's wiring)
-// What is unclear or missing: ED-063 (probe P7) requires a WndProc hook on every window that performs minimise,
-// maximise, restore and close for the app-drawn caption buttons (WM_NCLBUTTONDOWN swallowed, SC_* posted on
-// WM_NCLBUTTONUP) and shows the system menu on WM_CONTEXTMENU and SC_KEYMENU with its item states set first. No unit
-// has written it (UI/Chrome/WindowChrome.cs hands it to the App layer), probe P7 left the item states unmeasured
-// (its deviation 3), and OD-0013 withholds acceptance of this chrome until probe P4b removes the live-resize edge
-// strip. This test project runs Avalonia.Headless, where Win32Properties.AddWndProcHookCallback does nothing, so
-// neither that hook nor the WindowLiveResize hook's registration can be exercised here; WindowLiveResize's message
-// handling is tested above through the hook method itself.
-// Readings or options: (a) write the caption hook here without a harness that can run it -> unverified Win32 code;
-// (b) schedule it as a probe-verified port unit on the real desktop (P7's method) -> verifiable.
-// Needed to proceed: a decision (which unit owns the ED-063 caption hook) and a desktop test harness (probe P7 style).
-// The hook must leave the Settings window's zoom control inert (PR-WIN-007: no .resizable; CanMaximize is false).
-// Done so far: WindowChrome.Configure runs for every window (:101); the caption hook is not written; the live-resize
-// hook is registered through Win32Properties.AddWndProcHookCallback and its message handling is tested.
+// Closed by WindowManager.MakeWindow's ED-063 WndProc bridge: it swallows valid app-drawn caption downs, posts the
+// matching SC_* command on release, executes close/minimise/maximise/restore, and prepares the system menu for
+// WM_CONTEXTMENU and SC_KEYMENU. WindowManagerHighRiskTests sends the real user32 messages through a native window,
+// including the Settings zoom-inert case; the live-resize test sends real WM_ENTERSIZEMOVE/WM_SIZING/WM_EXITSIZEMOVE.
+// OD-0013's separate WindowChrome live-resize edge-strip acceptance remains recorded under that owning unit.
 
 // STOP App.Window.WindowManager #4 (build agent, 2026-09-26)
 // Kind: missing dependency
