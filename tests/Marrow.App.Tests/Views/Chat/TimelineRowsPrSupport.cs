@@ -97,6 +97,10 @@ internal static class TimelineRowsPrSupport
     internal static Color BrushColor(IBrush? brush) => (brush as ISolidColorBrush)!.Color;
     internal static string[] Texts(Control control) =>
         control.GetVisualDescendants().OfType<TextBlock>().Select(block => block.Text ?? "").ToArray();
+    internal static TextBlock TextNamed(Control root, string text) =>
+        root.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == text);
+    internal static TimelineItem.Content.Todos Steps(params (string Text, TodoStep.Status Status)[] steps) =>
+        new(new ValueList<TodoStep>(steps.Select(step => new TodoStep { Text = step.Text, TodoStepStatus = step.Status })));
 }
 
 // Real overlay popups keep hit testing and pointer input in the headless window.

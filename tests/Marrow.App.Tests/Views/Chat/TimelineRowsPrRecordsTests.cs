@@ -1142,4 +1142,75 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Close(window);
         });
     });
+
+    // ---- PR-CHAT-114: a checklist renders as a card headed by a done-of-total count (:2343-2382) ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-114")]
+    public void A_checklist_is_a_card_headed_N_of_M_done_with_a_glyph_and_line_per_step() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var entry = new TimelineEntry(new TimelineItem(null, Steps(("Read the code", TodoStep.Status.Done), ("Write the fix", TodoStep.Status.Active), ("Run tests", TodoStep.Status.Pending))));
+            var row = new TodoListRow(entry);
+            var window = Show(row);
+            var header = TextNamed(row, "1 of 3 done");
+            Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption).Resolve().FontSize, header.FontSize);
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, header), BrushColor(header.Foreground));
+            Assert.Equal(["checklist", "checkmark.circle.fill", "circle.dotted.circle", "circle"], Symbols(row));
+            var glyphs = row.GetVisualDescendants().OfType<SwiftImage>().ToList();
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, glyphs[0]), BrushColor(glyphs[0].Foreground));
+            Assert.Equal(Resolved(ChromeTokens.Accent, glyphs[1]), BrushColor(glyphs[1].Foreground));
+            Assert.Equal(Resolved(ChromeTokens.Accent, glyphs[2]), BrushColor(glyphs[2].Foreground));
+            Assert.Equal(Resolved(SwiftColor.Tertiary, glyphs[3]), BrushColor(glyphs[3].Foreground));
+            var done = TextNamed(row, "Read the code");
+            Assert.Equal(Resolved(SwiftColor.Secondary, done), BrushColor(done.Foreground));
+            var strike = Assert.Single(done.TextDecorations!);
+            Assert.Equal(TextDecorationLocation.Strikethrough, strike.Location);
+            var active = TextNamed(row, "Write the fix");
+            Assert.Equal(Resolved(SwiftColor.Primary, active), BrushColor(active.Foreground));
+            Assert.True(active.TextDecorations is null || active.TextDecorations.Count == 0);
+            var card = row.GetVisualDescendants().OfType<Border>().First(border => border.Padding == new Thickness(14));
+            Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), card.CornerRadius);
+            Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), card), BrushColor(card.Background));
+            Assert.Equal(96, row.Padding.Right);
+            Close(window);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-114")]
+    public void A_checklist_with_no_steps_draws_nothing_and_an_update_rewrites_the_same_rows_in_place() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        TodoListRow? row = null;
+        TextBlock? before = null;
+        AvaloniaWindow? window = null;
+        TimelineEntry? entry = null;
+        h.Main.OnMain(() =>
+        {
+            var empty = new TodoListRow(new TimelineEntry(new TimelineItem(null, Steps())));
+            entry = new TimelineEntry(new TimelineItem(null, Steps(("One", TodoStep.Status.Active), ("Two", TodoStep.Status.Pending))));
+            row = new TodoListRow(entry);
+            var panel = new StackPanel();
+            panel.Children.Add(empty);
+            panel.Children.Add(row);
+            window = Show(panel);
+            Assert.Empty(empty.GetVisualDescendants().OfType<TextBlock>());
+            Assert.Empty(empty.GetVisualDescendants().OfType<Border>());
+            before = TextNamed(row, "One");
+            entry.Item = entry.Item with { TimelineItemContent = Steps(("One", TodoStep.Status.Done), ("Two", TodoStep.Status.Active)) };
+        });
+        h.Main.OnMain(() =>
+        {
+            Settle(window!);
+            Assert.Contains("1 of 2 done", Texts(row!));
+            Assert.Same(before, TextNamed(row!, "One"));
+            Assert.Equal(["checklist", "checkmark.circle.fill", "circle.dotted.circle"], Symbols(row!));
+            Close(window!);
+        });
+    });
 }
