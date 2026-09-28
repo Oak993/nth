@@ -1030,6 +1030,13 @@ public sealed class WorkingIndicator : Decorator
     // :2085 private static let cardWidth: CGFloat = 380
     private const double CardWidth = 380;
 
+    // :2167, :2171 .transition(.softAppear); Chrome.swift:949-955: arrives with SoftAppearModifier under Animation.softAppear,
+    // leaves with .opacity.animation(.easeOut(duration: 0.12)). The insertion is decomposed into the modifier's layer
+    // effects (Chrome.swift:940-944) for the reason ThreadTimeline.RowTransition gives.
+    private static SwiftTransition SoftAppearTransition => SwiftTransition.Asymmetric(
+        SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)).Animation(Animation.SoftAppear),
+        SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
+
     /// <param name="runtime">:2064 <c>let runtime: ThreadRuntime</c>.</param>
     /// <param name="startedAt">:2065 <c>let startedAt: Date</c>.</param>
     /// <param name="seed">:2066 <c>let seed: UInt64</c>.</param>
@@ -1056,14 +1063,16 @@ public sealed class WorkingIndicator : Decorator
         var isExpanded = chronological; var showsAllSteps = chronological; var now = SwiftDate.Now;
         var canExpand = thinkingSteps.Count != 0 || liveWork.Count != 0; var running = finishedAt is null;
         var shell = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = SwiftColor.Quaternary.Opacity(0.32).Brush(this) }; Child = shell;
+        var column = new StackPanel { Spacing = TimelineMetrics.RowSpacing }; shell.Child = column;
+        // :2155-2176 the opened body lives across renders while it stays open: its structural ifs (:2156, :2169) keep their
+        // views, so their transitions play on insertion and removal only, never again on a new render.
+        Border? opened = null; StackPanel? openedDetails = null; StackPanel? openedThinking = null; WorkSteps? openedSteps = null;
         string? drawnLabel = null;
         void Draw(bool force = true)
         {
             var elapsed = Math.Max(0, (now - startedAt).TotalSeconds); var word = WorkingWords.Word(seed, (long)elapsed);
-            // STOP #2 at the external summary only: no guessed tool labels.
             var label = liveWork.Any(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Tool) ? WorkGroupSummary.Text(liveWork) : running ? word + "\u2026" : "Earlier steps"; // :2100-2105
             if (!force && drawnLabel == label) return; drawnLabel = label;
-            var column = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
             var header = new BaselineHeader(showsCard);
             header.Children.Add(new HydraWorkingTitle(label, running, TextAlignment.Left)); header.Children.Add(new HydraElapsedTime(startedAt, finishedAt, running));
             if (canExpand) { var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(SwiftColor.Tertiary).Transition(SwiftTransition.Opacity); chevron.RenderTransform = new RotateTransform(isExpanded ? 90 : 0); header.Children.Add(chevron); }
@@ -1073,21 +1082,31 @@ public sealed class WorkingIndicator : Decorator
             if (showsCard) frame.Width = CardWidth;
             var button = PlainControls.Button(frame, () => { if (!canExpand) return; Transaction.WithAnimation(Animation.Snappy(0.24), () => { isExpanded = !isExpanded; if (isExpanded) ThreadTimeline.GetRevealTimelineEnd(this)?.Follow(); Draw(); }); });
             button.HorizontalAlignment = HorizontalAlignment.Left; // :2106 VStack(alignment: .leading) hugs its content; the button never stretches to the row's width.
-            ToolTip.SetTip(button, canExpand ? isExpanded ? "Hide these steps" : "Show these steps" : ""); Avalonia.Automation.AutomationProperties.SetHelpText(button, canExpand ? "Shows what the agent is doing" : ""); column.Children.Add(button);
+            ToolTip.SetTip(button, canExpand ? isExpanded ? "Hide these steps" : "Show these steps" : ""); Avalonia.Automation.AutomationProperties.SetHelpText(button, canExpand ? "Shows what the agent is doing" : "");
+            if (column.Children.Count == 0) column.Children.Add(button); else column.Children[0] = button;
             if (isExpanded && canExpand)
             {
-                var details = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
-                if (thinkingSteps.Count != 0)
+                if (opened is null) { openedDetails = new StackPanel { Spacing = TimelineMetrics.RowSpacing }; opened = new Border { Padding = new Thickness(14, 0, 14, 11), Child = openedDetails }; column.Children.Add(opened); }
+                var details = openedDetails!;
+                if (thinkingSteps.Count != 0) // :2156-2168
                 {
-                    var thinking = new StackPanel { Spacing = TimelineMetrics.RowSpacing, Margin = new Thickness(TimelineMetrics.IconWidth + TimelineMetrics.IconSpacing, 0, 0, 0) };
-                    MarkdownView.SetMarkdownPointSize(thinking, 12); MarkdownView.SetMarkdownDimmed(thinking, true);
-                    foreach (var step in thinkingSteps) thinking.Children.Add(new MarkdownView(step.Text, step.IsStreaming)); SwiftTransition.Insert(details, details.Children.Count, thinking.Transition(ThreadTimeline.RowTransition));
+                    if (openedThinking is null)
+                    {
+                        openedThinking = new StackPanel { Spacing = TimelineMetrics.RowSpacing, Margin = new Thickness(TimelineMetrics.IconWidth + TimelineMetrics.IconSpacing, 0, 0, 0) };
+                        MarkdownView.SetMarkdownPointSize(openedThinking, 12); MarkdownView.SetMarkdownDimmed(openedThinking, true);
+                        SwiftTransition.Insert(details, 0, openedThinking.Transition(SoftAppearTransition));
+                    }
+                    openedThinking.Children.Clear(); foreach (var step in thinkingSteps) openedThinking.Children.Add(new MarkdownView(step.Text, step.IsStreaming));
                 }
-                // STOP #2: WorkSteps remains the external implementation, with the original binding and arguments.
-                if (liveWork.Count != 0) details.Children.Add(new WorkSteps(liveWork, runtime, new Binding<bool>(() => showsAllSteps, value => showsAllSteps = value), workingDirectory));
-                column.Children.Add(new Border { Padding = new Thickness(14, 0, 14, 11), Child = details });
+                else if (openedThinking is not null) { SwiftTransition.Remove(details, openedThinking); openedThinking = null; }
+                if (liveWork.Count != 0) // :2169-2172
+                {
+                    if (openedSteps is null) { openedSteps = new WorkSteps(liveWork, runtime, new Binding<bool>(() => showsAllSteps, value => showsAllSteps = value), workingDirectory); SwiftTransition.Insert(details, details.Children.Count, openedSteps.Transition(SoftAppearTransition)); }
+                    else openedSteps.Update(liveWork);
+                }
+                else if (openedSteps is not null) { SwiftTransition.Remove(details, openedSteps); openedSteps = null; }
             }
-            shell.Child = column;
+            else if (opened is not null) { column.Children.Remove(opened); opened = null; openedDetails = null; openedThinking = null; openedSteps = null; }
         }
         applyInputs = (thinking, work, entries, card) => { thinkingSteps = thinking; liveWork = work; turnEntries = entries; showsCard = card; canExpand = thinking.Count != 0 || work.Count != 0; Draw(); };
         Draw(); // :2185-2188. The source retains chronological, but ThreadTimeline always passes false.

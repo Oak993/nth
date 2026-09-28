@@ -149,7 +149,7 @@ public sealed class MCPSettingsPage : Decorator
         return trimmed.Length == 0 || new[] { entry.Name, entry.Vendor, entry.Summary, entry.Id }.Concat(entry.SampleTools).Any(value => SwiftString.LocalizedCaseInsensitiveContains(value, trimmed));
     }
     // :894-898
-    internal static Control McpFieldSurface(Control view) => new Border { Child = view, CornerRadius = new CornerRadius(9), Background = Chrome.Overlay(0.06).Brush(view) };
+    internal static Control McpFieldSurface(Control view) => new Border { Child = view, Background = Chrome.Overlay(0.06).Brush(view) }.RoundedRectangle(9, RoundedCornerStyle.Continuous);
     // :97-98,111-113,158-162 and the other Text modifiers below.
     internal static TextBlock Text(string text, double size, SwiftColor color, SwiftFont.Weight weight = SwiftFont.Weight.Regular, bool mono = false, int lines = 0)
     {
@@ -164,21 +164,36 @@ public sealed class MCPSettingsPage : Decorator
     {
         var label = Text(title, 11, Chrome.PrimaryText);
         if (prominent) return WelcomeView.GlassProminentButton(label, Chrome.CapsuleContentHeight, action);
-        var surface = new Border { Child = label, Height = Chrome.CapsuleContentHeight, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0) }.Capsule(RoundedCornerStyle.Continuous);
+        var surface = new Border { Child = label, Background = Brushes.Transparent, Height = Chrome.CapsuleContentHeight, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0) }.Capsule(RoundedCornerStyle.Continuous); // :328-330 keep the interactive material's full hit area while ED-180 is deferred
         SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive());
         return PlainControls.Button(surface, action);
     }
     // :169-179,543-553
     internal static Button Options(Action action)
     {
-        var button = PlainControls.Button(Symbol("ellipsis.circle", 13, Chrome.SecondaryText), action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, "Server options"); return button;
+        var button = SquareButton(Symbol("ellipsis.circle", 13, Chrome.SecondaryText), 22, action); ToolTip.SetTip(button, "Server options"); return button;
+    }
+    // :549-550,724-725,810-811,822-823 .frame(...).contentShape(.rect): hit-test the whole square.
+    internal static Button SquareButton(Control glyph, double size, Action action)
+    {
+        var button = PlainControls.Button(new Border { Background = Brushes.Transparent, Width = size, Height = size, Child = glyph }, action);
+        button.Width = button.Height = size; return button;
     }
     // :180-198,554-573,941-948; environment and dismiss are injected by SwiftUI.
-    internal static Popup Popover(Control anchor, Binding<bool> presented, Func<Control> content, Control environment) => PlainControls.Popover(anchor, presented, () =>
+    // PORT-ONLY R-VIEW-9: retain the actual view-builder on the popup so the recording headless presenter
+    // can construct the same presented tree without inventing a native popup implementation.
+    private static readonly AttachedProperty<Func<Control>?> PopoverBuilderProperty =
+        AvaloniaProperty.RegisterAttached<MCPSettingsPage, Popup, Func<Control>?>("PopoverBuilder");
+    internal static Control PopoverContent(Popup popup) => popup.GetValue(PopoverBuilderProperty)!();
+    internal static Popup Popover(Control anchor, Binding<bool> presented, Func<Control> content, Control environment)
     {
-        var body = content(); if (environment.GetValue(AppEnvironment.AppModelProperty) is { } model) AppEnvironment.SetAppModel(body, model);
-        Popovers.SetClosePopover(body, () => presented.Value = false); return body.PresentedChrome();
-    });
+        Control Build()
+        {
+            var body = content(); if (environment.GetValue(AppEnvironment.AppModelProperty) is { } model) AppEnvironment.SetAppModel(body, model);
+            Popovers.SetClosePopover(body, () => presented.Value = false); return body.PresentedChrome();
+        }
+        var popup = PlainControls.Popover(anchor, presented, Build); popup.SetValue(PopoverBuilderProperty, Build); return popup;
+    }
     // :352-358,534-540
     internal static void Begin(Control owner, MCPCatalogEntry entry)
     {
@@ -431,6 +446,7 @@ internal sealed class MCPCustomRow : Decorator
             MCPConnectionState.Failed => MCPSettingsPage.ActionButton("Try again", () => MCPSettingsPage.Begin(this, entry)),
             _ => throw new UnreachableException(),
         };
+        action.VerticalAlignment = VerticalAlignment.Center; // :463 HStack's default centre alignment; keep its intrinsic hit area
         Grid.SetColumn(action, 3); row.Children.Add(action); var menu = MCPSettingsPage.Options(() => view.Menu = !view.Menu);
         var menus = new Panel { Children = { menu,
             MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Menu, v => view.Menu = v), BuildMenu, this),
@@ -550,7 +566,7 @@ internal sealed class MCPCustomEditor : Decorator
         {
             form.Children.Add(Field("Command", MCPSettingsPage.McpFieldSurface(EditorField("npx", () => command, v => command = v))));
             var args = EditorField("", () => argsText, v => argsText = v); args.AcceptsReturn = true; args.TextWrapping = TextWrapping.Wrap; args.Height = 66; args.Padding = new Thickness(6, 4);
-            form.Children.Add(Field("Arguments", new StackPanel { Children = { MCPSettingsPage.McpFieldSurface(args), MCPSettingsPage.Text("One argument per line; empty lines are dropped.", 10.5, Chrome.SecondaryText) } }));
+            form.Children.Add(Field("Arguments", MCPSettingsPage.McpFieldSurface(args), MCPSettingsPage.Text("One argument per line; empty lines are dropped.", 10.5, Chrome.SecondaryText))); // :777-790 editor and hint are two children of field()
         }
         else form.Children.Add(Field("URL", MCPSettingsPage.McpFieldSurface(EditorField("https://\U00002026", () => url, v => url = v)))); // U+2026 HORIZONTAL ELLIPSIS
         var rows = new StackPanel { Spacing = 5 }; variablesHost = rows;
@@ -558,18 +574,23 @@ internal sealed class MCPCustomEditor : Decorator
         variableForEach = new ForEach<VariableDraft, Guid>(rows, v => v.Id, VariableRow, (_, _) => { }); variableForEach.Apply(variables);
         var addText = kind == MCPCustomServer.Kind.Stdio ? "Add environment variable" : "Add header";
         var add = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { MCPSettingsPage.Symbol("plus", 12, Chrome.Accent).Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), MCPSettingsPage.Text(addText, 12, Chrome.Accent, SwiftFont.Weight.Medium) } };
-        rows.Children.Add(PlainControls.Button(add, () => { variables = variables.Appending(new VariableDraft()); variableForEach.Apply(variables); ResizeForm(); }));
+        var addButton = PlainControls.Button(add, () => { variables = variables.Appending(new VariableDraft()); variableForEach.Apply(variables); ResizeForm(); });
+        addButton.HorizontalAlignment = HorizontalAlignment.Left; rows.Children.Add(addButton); // :633,794 leading, :828-835 no frame
         rows.Children.Add(MCPSettingsPage.Text("Locked values are kept in the Credential Manager.", 10.5, Chrome.SecondaryText)); form.Children.Add(Field(kind == MCPCustomServer.Kind.Stdio ? "Environment" : "Headers", rows));
     }
     // :706-729
     private Control BuildHeader()
     {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 10 }; row.Children.Add(new MCPIcon(Draft.CatalogEntry(), 26));
-        var copy = new StackPanel { Spacing = 1, Children = { MCPSettingsPage.Text(server?.Name ?? "New server", 14, Chrome.PrimaryText, SwiftFont.Weight.Semibold), MCPSettingsPage.Text("Custom \U000000B7 " + (kind == MCPCustomServer.Kind.Stdio ? "stdio" : "http"), 11, Chrome.SecondaryText) } }; Grid.SetColumn(copy, 1); row.Children.Add(copy); // U+00B7 MIDDLE DOT
-        var close = PlainControls.Button(MCPSettingsPage.Symbol("xmark", 11, Chrome.SecondaryText).Font(SwiftFont.System(11, SwiftFont.Weight.Semibold)), () => Popovers.GetClosePopover(this)?.Invoke()); close.Width = 24; close.Height = 24; AutomationProperties.SetName(close, "Close"); Grid.SetColumn(close, 2); row.Children.Add(close); return row;
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"), ColumnSpacing = 10 }; row.Children.Add(new MCPIcon(Draft.CatalogEntry(), 26) { VerticalAlignment = VerticalAlignment.Top }); // :707 top alignment
+        var copy = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Top, Children = { MCPSettingsPage.Text(server?.Name ?? "New server", 14, Chrome.PrimaryText, SwiftFont.Weight.Semibold), MCPSettingsPage.Text("Custom \U000000B7 " + (kind == MCPCustomServer.Kind.Stdio ? "stdio" : "http"), 11, Chrome.SecondaryText) } }; Grid.SetColumn(copy, 1); row.Children.Add(copy); // U+00B7 MIDDLE DOT
+        var spacer = new Border { MinWidth = 8 }; Grid.SetColumn(spacer, 2); row.Children.Add(spacer); // :717 Spacer(minLength: 8)
+        var close = MCPSettingsPage.SquareButton(MCPSettingsPage.Symbol("xmark", 11, Chrome.SecondaryText).Font(SwiftFont.System(11, SwiftFont.Weight.Semibold)), 24, () => Popovers.GetClosePopover(this)?.Invoke()); close.VerticalAlignment = VerticalAlignment.Top; AutomationProperties.SetName(close, "Close"); Grid.SetColumn(close, 3); row.Children.Add(close); return row;
     }
-    // :747-753
-    private static Control Field(string label, Control content) => new StackPanel { Spacing = 5, Children = { MCPSettingsPage.Text(label, 11, Chrome.SecondaryText, SwiftFont.Weight.Semibold), content } };
+    // :747-753. The @ViewBuilder control's views are each a child of the VStack(spacing: 5).
+    private static Control Field(string label, params Control[] content)
+    {
+        var stack = new StackPanel { Spacing = 5, Children = { MCPSettingsPage.Text(label, 11, Chrome.SecondaryText, SwiftFont.Weight.Semibold) } }; stack.Children.AddRange(content); return stack;
+    }
     // :732-742,756-774
     private static TextBox EditorField(string prompt, Func<string> read, Action<string> write, bool secret = false, bool name = false)
     {
@@ -583,13 +604,13 @@ internal sealed class MCPCustomEditor : Decorator
     {
         var prompt = new TextBlock
         {
-            IsHitTestVisible = false, VerticalAlignment = VerticalAlignment.Center,
+            IsHitTestVisible = false, VerticalAlignment = box.AcceptsReturn ? VerticalAlignment.Top : VerticalAlignment.Center, // :781 TextEditor text starts at the top
             [!TextBlock.TextProperty] = box[!TextBox.PlaceholderTextProperty],
             [!TextBlock.ForegroundProperty] = box[!TextBox.PlaceholderForegroundProperty],
         };
         var presenter = new TextPresenter
         {
-            Name = "PART_TextPresenter", VerticalAlignment = VerticalAlignment.Center,
+            Name = "PART_TextPresenter", VerticalAlignment = box.AcceptsReturn ? VerticalAlignment.Top : VerticalAlignment.Center,
             [!TextPresenter.TextProperty] = box[!TextBox.TextProperty],
             [!TextPresenter.PasswordCharProperty] = box[!TextBox.PasswordCharProperty],
             [!TextPresenter.RevealPasswordProperty] = box[!TextBox.RevealPasswordProperty],
@@ -618,8 +639,8 @@ internal sealed class MCPCustomEditor : Decorator
         void Edit(Func<VariableDraft, VariableDraft> update) { var index = Index(); if (index >= 0) variables = variables.SetItem(index, update(variables[index])); }
         var key = EditorField("KEY", () => variables[Index()].Key, v => Edit(old => old with { Key = v }));
         var value = EditorField("value", () => variables[Index()].Value, v => Edit(old => old with { Value = v }), variable.IsSecret);
-        var toggle = PlainControls.Button(MCPSettingsPage.Symbol(variable.IsSecret ? "lock.fill" : "lock.open", 12, variable.IsSecret ? Chrome.Accent : Chrome.SecondaryText).Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), () => Edit(old => old with { IsSecret = !old.IsSecret })); ToolTip.SetTip(toggle, variable.IsSecret ? "Kept in the Credential Manager" : "Stored in mcp.json; click to keep it in the Credential Manager instead");
-        var remove = PlainControls.Button(MCPSettingsPage.Symbol("minus.circle", 12, Chrome.SecondaryText).Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), () => { variables = variables.Mutating(list => list.RemoveAll(v => v.Id == variable.Id)); variableForEach!.Apply(variables); ResizeForm(); variableRows.Remove(variable.Id); }); ToolTip.SetTip(remove, "Remove this variable"); toggle.Width = toggle.Height = remove.Width = remove.Height = 24;
+        var toggle = MCPSettingsPage.SquareButton(MCPSettingsPage.Symbol(variable.IsSecret ? "lock.fill" : "lock.open", 12, variable.IsSecret ? Chrome.Accent : Chrome.SecondaryText).Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), 24, () => Edit(old => old with { IsSecret = !old.IsSecret })); ToolTip.SetTip(toggle, variable.IsSecret ? "Kept in the Credential Manager" : "Stored in mcp.json; click to keep it in the Credential Manager instead");
+        var remove = MCPSettingsPage.SquareButton(MCPSettingsPage.Symbol("minus.circle", 12, Chrome.SecondaryText).Font(SwiftFont.System(12, SwiftFont.Weight.Medium)), 24, () => { variables = variables.Mutating(list => list.RemoveAll(v => v.Id == variable.Id)); variableForEach!.Apply(variables); ResizeForm(); variableRows.Remove(variable.Id); }); ToolTip.SetTip(remove, "Remove this variable");
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,*,Auto,Auto"), ColumnSpacing = 6 };
         foreach (var (control, column) in new[] { (MCPSettingsPage.McpFieldSurface(key), 0), (MCPSettingsPage.McpFieldSurface(value), 1), ((Control)toggle, 2), ((Control)remove, 3) }) { Grid.SetColumn(control, column); row.Children.Add(control); }
         var locked = variable.IsSecret;
@@ -629,7 +650,7 @@ internal sealed class MCPCustomEditor : Decorator
             locked = isSecret;
             var replacement = MCPSettingsPage.McpFieldSurface(EditorField("value", () => variables[Index()].Value, v => Edit(old => old with { Value = v }), isSecret));
             Grid.SetColumn(replacement, 1); row.Children.RemoveAt(1); row.Children.Insert(1, replacement);
-            toggle.Content = MCPSettingsPage.Symbol(isSecret ? "lock.fill" : "lock.open", 12, isSecret ? Chrome.Accent : Chrome.SecondaryText).Font(SwiftFont.System(12, SwiftFont.Weight.Medium));
+            ((Border)toggle.Content!).Child = MCPSettingsPage.Symbol(isSecret ? "lock.fill" : "lock.open", 12, isSecret ? Chrome.Accent : Chrome.SecondaryText).Font(SwiftFont.System(12, SwiftFont.Weight.Medium));
             ToolTip.SetTip(toggle, isSecret ? "Kept in the Credential Manager" : "Stored in mcp.json; click to keep it in the Credential Manager instead");
         }
         row.Track(() => variables[Index()].IsSecret, RenderSecret);
@@ -710,7 +731,7 @@ internal sealed class MCPInfoPopover : Decorator
     public MCPInfoPopover(MCPCatalogEntry entry)
     {
         var stack = new StackPanel { Spacing = 14 };
-        stack.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { new MCPIcon(entry, 28), new StackPanel { Spacing = 1, Children = { MCPSettingsPage.Text(entry.Name, 14, Chrome.PrimaryText, SwiftFont.Weight.Semibold), MCPSettingsPage.Text(entry.Vendor + " \U000000B7 " + entry.Category.Title(), 11, Chrome.SecondaryText) } } } }); // U+00B7 MIDDLE DOT
+        stack.Children.Add(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, Children = { new MCPIcon(entry, 28) { VerticalAlignment = VerticalAlignment.Center }, new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { MCPSettingsPage.Text(entry.Name, 14, Chrome.PrimaryText, SwiftFont.Weight.Semibold), MCPSettingsPage.Text(entry.Vendor + " \U000000B7 " + entry.Category.Title(), 11, Chrome.SecondaryText) } } } }); // U+00B7 MIDDLE DOT; :975 centre alignment
         stack.Children.Add(MCPSettingsPage.Text(entry.Summary, 12, Chrome.PrimaryText.Opacity(0.9)));
         var connection = entry.Transport switch
         {
@@ -724,8 +745,16 @@ internal sealed class MCPInfoPopover : Decorator
         else { if (optional.Length > 0) required.Add("optional: " + SwiftString.Lowercased(string.Join(", ", optional))); needs = string.Join("; ", required) + "."; }
         stack.Children.Add(new StackPanel { Spacing = 8, Children = { Detail("Connects", connection), Detail("Needs", needs) } });
         if (entry.SampleTools.Count > 0) stack.Children.Add(new StackPanel { Spacing = 6, Children = { MCPSettingsPage.Text("Tools", 11, Chrome.SecondaryText, SwiftFont.Weight.Semibold), new FlowChips(entry.SampleTools) } });
-        if (entry.Fields.FirstOrDefault(f => !f.IsRequired) is { } field) stack.Children.Add(PlainControls.Button(MCPSettingsPage.Text("Change the " + SwiftString.Lowercased(field.Label) + "\U00002026", 12, Chrome.Accent, SwiftFont.Weight.Medium), () => MCPKeyPanel.Shared.Present(entry, AppEnvironment.GetAppModel(this)))); // U+2026 HORIZONTAL ELLIPSIS
-        if (entry.DocsURL.Length > 0 && SwiftURL.Create(entry.DocsURL) is { } docs) stack.Children.Add(PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Children = { MCPSettingsPage.Text("Read the docs", 12, Chrome.Accent, SwiftFont.Weight.Medium), MCPSettingsPage.Symbol("arrow.up.right", 10, Chrome.Accent).Font(SwiftFont.System(10, SwiftFont.Weight.Bold)) } }, () => MCPSettingsPage.OpenURL(this, docs)));
+        if (entry.Fields.FirstOrDefault(f => !f.IsRequired) is { } field)
+        {
+            var change = PlainControls.Button(MCPSettingsPage.Text("Change the " + SwiftString.Lowercased(field.Label) + "\U00002026", 12, Chrome.Accent, SwiftFont.Weight.Medium), () => MCPKeyPanel.Shared.Present(entry, AppEnvironment.GetAppModel(this))); // U+2026 HORIZONTAL ELLIPSIS
+            change.HorizontalAlignment = HorizontalAlignment.Left; stack.Children.Add(change); // :974 leading, :1008 plain/no frame
+        }
+        if (entry.DocsURL.Length > 0 && SwiftURL.Create(entry.DocsURL) is { } docs)
+        {
+            var link = PlainControls.Button(new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Children = { MCPSettingsPage.Text("Read the docs", 12, Chrome.Accent, SwiftFont.Weight.Medium), MCPSettingsPage.Symbol("arrow.up.right", 10, Chrome.Accent).Font(SwiftFont.System(10, SwiftFont.Weight.Bold)) } }, () => MCPSettingsPage.OpenURL(this, docs));
+            link.HorizontalAlignment = HorizontalAlignment.Left; stack.Children.Add(link); // :974 leading
+        }
         Child = new Border { Padding = new Thickness(16), Width = MCPInfoPopoverWidth, Child = stack };
     }
     // :1026-1036
@@ -733,7 +762,30 @@ internal sealed class MCPInfoPopover : Decorator
     {
         var title = MCPSettingsPage.Text(label, 11, Chrome.SecondaryText, SwiftFont.Weight.Semibold); title.Width = 58;
         var detail = MCPSettingsPage.Text(value, 11.5, Chrome.PrimaryText.Opacity(0.9));
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 8 }; row.Children.Add(title); Grid.SetColumn(detail, 1); row.Children.Add(detail); return row;
+        return new DetailRow(title, detail); // :1027 firstTextBaseline, spacing 8
+    }
+    // :1027-1036. A local two-column layout aligns the actual first text baselines, including wrapped values.
+    private sealed class DetailRow : Panel
+    {
+        private readonly TextBlock label, value;
+        private double labelTop, valueTop;
+        public DetailRow(TextBlock label, TextBlock value) { this.label = label; this.value = value; UseLayoutRounding = label.UseLayoutRounding = value.UseLayoutRounding = false; Children.Add(label); Children.Add(value); }
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            label.Measure(new Size(58, double.PositiveInfinity));
+            value.Measure(new Size(Math.Max(0, availableSize.Width - 58 - 8), double.PositiveInfinity));
+            var labelBaseline = label.TextLayout.TextLines[0].Baseline;
+            var valueBaseline = value.TextLayout.TextLines[0].Baseline;
+            var baseline = Math.Max(labelBaseline, valueBaseline);
+            labelTop = baseline - labelBaseline; valueTop = baseline - valueBaseline;
+            return new Size(58 + 8 + value.DesiredSize.Width, Math.Max(labelTop + label.DesiredSize.Height, valueTop + value.DesiredSize.Height));
+        }
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            label.Arrange(new Rect(0, labelTop, 58, label.DesiredSize.Height));
+            value.Arrange(new Rect(58 + 8, valueTop, Math.Max(0, finalSize.Width - 58 - 8), value.DesiredSize.Height));
+            return finalSize;
+        }
     }
     // :1062-1064
     private static string Host(string of) => SwiftURL.Create(of)?.Host ?? of;
@@ -744,7 +796,7 @@ internal sealed class FlowChips : Decorator
     // :1071-1084
     public FlowChips(IReadOnlyList<string> items)
     {
-        var flow = new FlowLayout(); foreach (var item in items) flow.Children.Add(new Border { Padding = new Thickness(7, 3), CornerRadius = new CornerRadius(6), Background = Chrome.Overlay(0.08).Brush(flow), Child = MCPSettingsPage.Text(item, 10.5, Chrome.PrimaryText.Opacity(0.85), mono: true) }); Child = flow;
+        var flow = new FlowLayout(); foreach (var item in items) flow.Children.Add(new Border { Padding = new Thickness(7, 3), Background = Chrome.Overlay(0.08).Brush(flow), Child = MCPSettingsPage.Text(item, 10.5, Chrome.PrimaryText.Opacity(0.85), mono: true) }.RoundedRectangle(6, RoundedCornerStyle.Continuous)); Child = flow;
     }
 }
 internal sealed class FlowLayout : Panel

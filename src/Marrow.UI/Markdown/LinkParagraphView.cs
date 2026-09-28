@@ -475,7 +475,16 @@ public sealed class LinkTextView : Decorator
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
         };
         Child = textBlock;
-        textBlock.PointerPressed += OnPointerPressed;
+        // Tunnel: a head or link press is the view's (mouseDown :444-451, clickedOnLink :90-100; rightMouseDown and
+        // menu(for:) :453-461) before the SelectableTextBlock's own class handler takes the press to move the
+        // selection and marks it handled, which a bubbling instance handler never sees (fix/links), as Render's
+        // presenter path already does.
+        textBlock.AddHandler(PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel);
+        // Tunnel: vetoes the right release that pairs with a press PresentLinkPopover already handled. Otherwise
+        // SelectableTextBlock.OnPointerReleased, which still holds the press's implicit capture, moves the selection to
+        // the click point when the point is outside it (:430-435 "so the click never moves the selection";
+        // :453-456), as Render's presenter path already does.
+        textBlock.AddHandler(PointerReleasedEvent, OnPointerReleasedOverLink, RoutingStrategies.Tunnel);
         textBlock.PointerMoved += OnPointerMoved;
         textBlock.PointerExited += OnPointerExited;
         ActualThemeVariantChanged += (_, _) => ReapplyLinkAttributes();
@@ -589,7 +598,8 @@ public sealed class LinkTextView : Decorator
             presenter.PointerExited += OnPointerExited;
             if (textBlock is { } old)
             {
-                old.PointerPressed -= OnPointerPressed;
+                old.RemoveHandler(PointerPressedEvent, OnPointerPressed);
+                old.RemoveHandler(PointerReleasedEvent, OnPointerReleasedOverLink);
                 old.PointerMoved -= OnPointerMoved;
                 old.PointerExited -= OnPointerExited;
             }
@@ -701,17 +711,20 @@ public sealed class LinkTextView : Decorator
     {
         if (TextHost is not { } block) return;
         var point = e.GetPosition(block);
-        if (HeadMention(point) is { } head)
+        // :444-451 only mouseDown (the left button) opens a head; rightMouseDown (:453-456) never does and
+        // otherMouseDown is not overridden. A Ctrl+left press is still a left press (MessagePopoverMenu.swift:63-65,
+        // :73-79: a control-click is a .leftMouseDown with the control flag, handled in mouseDown(with:)).
+        if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && HeadMention(point) is { } head)
         {
             OnOpenHead?.Invoke(head.Url);
-            e.Handled = true;
+            Consume(e);
             return;
         }
 
         if (e.GetCurrentPoint(this).Properties.IsRightButtonPressed ||
             (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed && e.KeyModifiers.HasFlag(Avalonia.Input.KeyModifiers.Control)))
         {
-            if (PresentLinkPopover(e.GetPosition(this))) e.Handled = true;
+            if (PresentLinkPopover(e.GetPosition(this))) Consume(e);
             return;
         }
 
@@ -721,13 +734,26 @@ public sealed class LinkTextView : Decorator
             // MarkdownLinkOpener, :90-100); with no delegate, or one that declines, the link still opens (B3 :337-341,
             // was InlineText.OpenUrl, a pre-existing divergence).
             if (Delegate?.TextView(this, hit.Url, hit.Range.Location) != true) MarkdownLinkOpener.Open(hit.Url);
-            e.Handled = true;
+            Consume(e);
         }
+    }
+
+    // A press handled here is one the text never tracks (:446-449 and :453-456 return without super). Marking it
+    // handled keeps SelectableTextBlock's press handler from running, but the mouse device has already captured the
+    // pointer for the text block, and Avalonia 12.1.2's SelectableTextBlock.OnPointerMoved extends the selection from
+    // a stale SelectionStart whenever it holds that capture with the left button down. Releasing the capture leaves
+    // the rest of the gesture to ordinary hit testing, so a pixel of movement before the release selects nothing.
+    private static void Consume(Avalonia.Input.PointerPressedEventArgs e)
+    {
+        e.Handled = true;
+        e.Pointer.Capture(null);
     }
 
     // See the wiring comment at the AddHandler call in Render(_:): a right-button release over a link would
     // otherwise still open the presenter's own ContextMenu (Avalonia's Control.OnPointerReleased opens it from any
-    // released, unhandled right button, independently of the press PresentLinkPopover already handled). Checked at
+    // released, unhandled right button, independently of the press PresentLinkPopover already handled). On the
+    // paragraph's SelectableTextBlock (wired in the constructor) the same release would also move the selection to
+    // the click point (SelectableTextBlock.OnPointerReleased on a right release outside the selection). Checked at
     // the release point, not carried over from the press, the same way LinkAndRange itself is always a fresh
     // lookup; the two agree except across a drag, which :453-461 has no counterpart for either.
     private void OnPointerReleasedOverLink(object? sender, PointerReleasedEventArgs e)
