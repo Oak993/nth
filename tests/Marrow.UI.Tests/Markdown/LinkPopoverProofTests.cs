@@ -312,10 +312,45 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-THEME-044")] // :88-90 () => MarkdownLinkOpener.Open(url) - routed through the real opener, not a raw ShellWorkspace.OpenWithDefaultApp(url.AbsoluteString) call
+    public void Open_Link_is_routed_through_MarkdownLinkOpener_not_a_raw_shell_open() => headless.OnUiThread(() =>
+    {
+        // MarkdownLinkOpener.Open checks IsUnc first (LinkParagraphView.cs :309) and returns without calling
+        // ANY ShellWorkspace member for a UNC-shaped link; a raw ShellWorkspace.OpenWithDefaultApp(url.AbsoluteString)
+        // call in its place would still open it. An ordinary https URL cannot distinguish the two (both end up
+        // calling OpenWithDefaultApp with the same string), which is why this exact mutation survived before.
+        var url = SwiftURL.Create(@"\\host\share\a.txt")!;
+        var content = new LinkPopoverContent(url, null, _ => { });
+        var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child);
+        var openLink = (PopoverItem)stack.Children[0];
+        var window = Show(content);
+
+        var previousOpen = ShellWorkspace.OpenWithDefaultApp;
+        var previousReveal = ShellWorkspace.RevealInFileExplorer;
+        string? opened = null;
+        var revealed = false;
+        ShellWorkspace.OpenWithDefaultApp = path => opened = path;
+        ShellWorkspace.RevealInFileExplorer = _ => revealed = true;
+        try
+        {
+            ((Button)openLink.Child!).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Dispatcher.UIThread.RunJobs();
+            Assert.Null(opened); // ED-204: a UNC target is never opened or revealed
+            Assert.False(revealed);
+        }
+        finally
+        {
+            ShellWorkspace.OpenWithDefaultApp = previousOpen;
+            ShellWorkspace.RevealInFileExplorer = previousReveal;
+            window.Close();
+        }
+    });
+
+    [Fact]
     [Trait("Req", "UI-THEME-045")] // :91-94 PopoverItem("Copy Link", symbol: "link"); clears then writes the absolute URL as plain text
     public void The_Copy_Link_row_reads_exactly_that_writes_the_absolute_url_with_the_link_glyph() => headless.OnUiThread(() =>
     {
-        var url = SwiftURL.Create("https://example.com/x?y=1")!;
+        var url = SwiftURL.Create("https://example.com/X?Y=1")!; // uppercase path/query: catches a .ToLowerInvariant() on the copied string
         var content = new LinkPopoverContent(url, null, _ => { });
         var window = Show(content); // Button templates apply only once attached to a rooted visual tree
         try
