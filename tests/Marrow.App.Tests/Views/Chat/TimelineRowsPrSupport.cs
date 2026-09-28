@@ -88,6 +88,8 @@ internal static class TimelineRowsPrSupport
         { Markdown = "plan", ProposedPlanState = ProposedPlan.State.Accepted })));
     internal static TimelineEntry MakeNotice(Notice.Level level) => new(new TimelineItem(null,
         new TimelineItem.Content.Notice(new Notice { Message = level.ToString(), NoticeLevel = level })));
+    internal static TimelineEntry NoticeEntry(Notice.Level level, string message) => new(new TimelineItem(null,
+        new TimelineItem.Content.Notice(new Notice { Message = message, NoticeLevel = level })));
     internal static TurnSummary Summary(Guid turn) => new() { TurnID = turn, Status = TurnStatus.Completed, Duration = 5, FilesChanged = 0, Additions = 0, Deletions = 0 };
     internal static TimelineEntry UserEntry(string text, Guid? turn, ValueList<Attachment>? attachments = null) =>
         new(new TimelineItem(turn, new TimelineItem.Content.User(new UserMessage { Text = text, Attachments = attachments ?? ValueList<Attachment>.Empty })));

@@ -1085,4 +1085,61 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     private const string CodeOnlyReply101 = "```\nplan\n```";
+
+    // ---- PR-CHAT-115: a notice renders as plain text at info level and as a tinted pill at warning/error (:2388-2430) ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-115")]
+    public void An_info_notice_is_a_bare_line_of_secondary_selectable_text() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var row = new NoticeRow(NoticeEntry(Notice.Level.Info, "Context compacted"));
+            var window = Show(row);
+            var glyph = row.GetVisualDescendants().OfType<SwiftImage>().Single();
+            Assert.Equal("info.circle", glyph.SymbolName);
+            Assert.Equal(Resolved(SwiftColor.Secondary, glyph), BrushColor(glyph.Foreground));
+            var message = Assert.Single(row.GetVisualDescendants().OfType<SelectableTextBlock>());
+            Assert.Equal("Context compacted", message.Text);
+            Assert.Equal(Resolved(SwiftColor.Secondary, message), BrushColor(message.Foreground));
+            Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout).Resolve().FontSize, message.FontSize);
+            var pill = row.GetVisualDescendants().OfType<Border>().First();
+            Assert.Equal(default, pill.Padding);
+            Assert.Equal(Resolved(SwiftColor.Clear, pill), BrushColor(pill.Background));
+            Assert.Equal(HorizontalAlignment.Stretch, pill.HorizontalAlignment);
+            Close(window);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-115")]
+    public void A_warning_or_error_notice_sits_in_a_full_width_pill_tinted_at_ten_percent_of_its_theme_status_colour() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var warning = new NoticeRow(NoticeEntry(Notice.Level.Warning, "Low on context"));
+            var error = new NoticeRow(NoticeEntry(Notice.Level.Error, "The provider failed"));
+            var panel = new StackPanel();
+            panel.Children.Add(warning);
+            panel.Children.Add(error);
+            var window = Show(panel);
+            foreach (var (row, symbol, color, text) in new[] { (warning, "exclamationmark.triangle", ChromeTokens.Warning, "Low on context"), (error, "exclamationmark.octagon", ChromeTokens.Danger, "The provider failed") })
+            {
+                var glyph = row.GetVisualDescendants().OfType<SwiftImage>().Single();
+                Assert.Equal(symbol, glyph.SymbolName);
+                Assert.Equal(Resolved(color, glyph), BrushColor(glyph.Foreground));
+                var message = row.GetVisualDescendants().OfType<SelectableTextBlock>().Single();
+                Assert.Equal(text, message.Text);
+                Assert.Equal(Resolved(SwiftColor.Primary, message), BrushColor(message.Foreground));
+                var pill = row.GetVisualDescendants().OfType<Border>().First();
+                Assert.Equal(new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical), pill.Padding);
+                Assert.Equal(Resolved(color.Opacity(0.1), pill), BrushColor(pill.Background));
+                Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+                Assert.Equal(HorizontalAlignment.Stretch, pill.HorizontalAlignment);
+            }
+            Close(window);
+        });
+    });
 }
