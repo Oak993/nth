@@ -70,7 +70,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     private void WithSettings(Action<Control, AppModel, AppModelHarness> check) => WithView(() => new SettingsView(), check, _ => SettingsNavigation.Shared.RequestedPage = SettingsPage.Archive);
 
     [Fact]
-    [Trait("Req", "PR-GIT-150")] // App/Views/Settings/SettingsView.swift:836-842
     [Trait("Req", "UI-SETTINGS-069")] // App/Views/Settings/SettingsView.swift:838-840
     public void Worktree_reveal_calls_the_workspace_boundary_with_the_resolved_directory() => WithView(() => new SourceControlSettingsPage(), (view, _, _) =>
     {
@@ -152,7 +151,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-015")] // App/Views/Settings/SettingsView.swift:344-348
     [Trait("Req", "UI-SETTINGS-065")] // App/Views/Settings/SettingsView.swift:395-399,432-442
     public void Owned_visual_pickers_keep_option_order_symbols_and_uniform_stage_and_caption_metrics()
     {
@@ -262,8 +260,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-002")] // App/Views/Settings/SettingsView.swift:138-140
-    [Trait("Req", "UI-SETTINGS-003")] // App/Views/Settings/SettingsView.swift:141-145
-    [Trait("Req", "UI-SETTINGS-004")] // App/Views/Settings/SettingsView.swift:148-164,179-182
     [Trait("Req", "UI-SETTINGS-006")] // App/Views/Settings/SettingsView.swift:166-177
     [Trait("Req", "UI-SETTINGS-007")] // App/Views/Settings/SettingsView.swift:198-204
     public void Sidebar_search_and_no_results_keep_source_insets_fonts_and_empty_archive_replaces_all_chrome() => WithSettings((view, _, _) =>
@@ -287,7 +283,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-008")] // App/Views/Settings/SettingsView.swift:246-267
-    [Trait("Req", "UI-SETTINGS-009")] // App/Views/Settings/SettingsView.swift:248-250
     public void Sticky_title_fills_width_left_by_search_and_fades_with_geometry_without_taking_hits() => WithSettings((view, _, _) =>
     {
         SettingsNavigation.Shared.RequestedPage = SettingsPage.Models; Sync(); var chrome = Nodes<StackPanel>(view).Single(stack => stack.MinHeight == 32); var title = Assert.Single(Nodes<ChromeCompactTitle>(view)); var search = Assert.Single(Nodes<ChromeSearchField>(view));
@@ -297,8 +292,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-011")] // App/Views/Settings/SettingsView.swift:566-580
-    [Trait("Req", "UI-SETTINGS-012")] // App/Views/Settings/SettingsView.swift:296-305
+    [Trait("Rule", "R-TEST-2")]
     public void Refresh_symbol_uses_chrome_font_and_small_switch_exposes_keyboard_and_toggle_automation()
     {
         WithView(() => new ProvidersRefreshButton(), (view, _, _) => { var symbol = Nodes<SwiftImage>(view).Single(image => image.SymbolName == "arrow.clockwise"); Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), SwiftImage.GetFont(symbol)); Assert.Empty(Nodes<TextBlock>(view)); });
@@ -306,8 +300,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-013")] // App/Views/Settings/SettingsView.swift:323-325
-    [Trait("Req", "UI-SETTINGS-014")] // App/Views/Settings/SettingsView.swift:327-331
+    [Trait("Rule", "R-TEST-2")]
     public void Permission_menu_and_workspace_tiles_keep_the_source_options_symbols_and_dimensions() => WithView(() => new GeneralSettingsPage(), (view, model, _) =>
     {
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter); var permissions = Row(view, "Permissions"); Click(Assert.Single(Nodes<Button>(permissions))); Sync(); var menu = Opened(presenter.Calls.Last(x => x.Presented).Popup); Assert.Equal(new[] { "Supervised", "Auto-accept edits", "Auto", "Full access" }, Nodes<PopoverItem>(menu).Select(item => Text(item).First())); Click(Button(menu, "Full access")); Sync(); Assert.Equal(RuntimeMode.FullAccess, model.Settings.DefaultRuntimeMode); Assert.Contains("Runs commands and edits without asking", Text(Row(view, "Permissions")));
@@ -398,7 +391,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-GIT-058")] // App/Views/Settings/SettingsView.swift:818-834
-    [Trait("Req", "UI-GIT-059")] // App/Views/Settings/SettingsView.swift:836-847
     public void Source_control_editor_and_worktree_rows_keep_their_exact_geometry_and_placeholder_state() => WithView(() => new SourceControlSettingsPage(), (view, model, _) =>
     {
         var editor = Assert.Single(Nodes<TextBox>(view)); Assert.Equal(13, editor.FontSize); Assert.Equal(90, editor.MinHeight); var placeholder = Nodes<TextBlock>(view).Single(x => x.Text == "For example: use conventional commit prefixes"); Assert.Equal(new Thickness(5, 0), placeholder.Margin); Assert.False(placeholder.IsHitTestVisible); Assert.True(placeholder.IsVisible);
@@ -440,7 +432,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-THEME-047")] // App/Views/Settings/SettingsView.swift:1204-1208
     [Trait("Req", "PR-THEME-048")] // App/Views/Settings/SettingsView.swift:1168-1192
     [Trait("Req", "PR-THEME-049")] // App/Views/Settings/SettingsView.swift:424-426
-    [Trait("Req", "UI-SETTINGS-017")] // App/Views/Settings/SettingsView.swift:1157-1209
     [Trait("Req", "UI-THEME-001")] // App/Views/Settings/SettingsView.swift:422-426
     [Trait("Req", "UI-THEME-003")] // App/Views/Settings/SettingsView.swift:1193-1201
     [Trait("Req", "UI-THEME-004")] // App/Views/Settings/SettingsView.swift:1196
@@ -460,7 +451,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     [Trait("Req", "PR-THEME-050")] // App/Views/Settings/SettingsView.swift:428-430,526-539
     [Trait("Req", "PR-THEME-051")] // App/Views/Settings/SettingsView.swift:524,540-562
     [Trait("Req", "PR-THEME-052")] // App/Views/Settings/SettingsView.swift:563
-    [Trait("Req", "UI-SETTINGS-018")] // App/Views/Settings/SettingsView.swift:519-563
     [Trait("Req", "UI-THEME-008")] // App/Views/Settings/SettingsView.swift:427-430
     [Trait("Req", "UI-THEME-009")] // App/Views/Settings/SettingsView.swift:532-534
     [Trait("Req", "UI-THEME-010")] // App/Views/Settings/SettingsView.swift:528-531
@@ -728,11 +718,9 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         model.Settings.ShowReasoning = true; Sync(); Assert.True(h.Defaults.Bool("showReasoning")); Assert.DoesNotContain(Text(view), label => label is "Apply" or "OK" or "Cancel" or "Done");
     });
 
-    // STOP App.Views.Settings.SettingsView #3
-    // Kind: dependency. Swift: SettingsView.swift:280,251-253. Records: PR-SETTINGS-027; PR-SETTINGS-028 (MCP branch).
-    // Missing: MCPSettingsPage(query) is MARROW_STUB in the assigned base. Needed: MCP unit implementation.
-    // Part 4 also assigns PR-SETTINGS-252: the shell remains the owner only of the query/routing, not server deletion.
-    // The constructor call and query binding are retained; a live MCP page cannot be tested until it is ported.
+    // Resolved dependency #3: MCPSettingsPage has landed and SettingsView forwards its live query.
+    // SettingsViewCoreProofTests proves query filtering, all ten keyed page lifetimes and confirmed custom deletion.
+    // Source: SettingsView.swift:251-253,274-289; MCPSettingsPage.swift:554-568; OD-0008 A1.
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-022")] // App/Views/Settings/SettingsView.swift:218-229,270-272
@@ -814,7 +802,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-121")] // App/Views/Settings/SettingsView.swift:1130-1154
-    [Trait("Req", "UI-SETTINGS-016")] // App/Views/Settings/SettingsView.swift:1130-1154
     public void Marks_edit_is_disabled_without_projects_and_opens_the_400_wide_list_in_library_order() => WithView(() => new ProjectMarksRow(), (view, model, h) =>
     {
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
@@ -1016,7 +1003,6 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-GIT-150")] // App/Views/Settings/SettingsView.swift:836-846
     [Trait("Req", "UI-STORE-001")] // App/Views/Settings/SettingsView.swift:836-842
     [Trait("Req", "UI-STORE-002")] // App/Views/Settings/SettingsView.swift:839-840
     public void Worktree_section_shows_resolved_path_reveal_and_exact_pull_request_detail() => WithView(() => new SourceControlSettingsPage(), (view, _, _) =>
