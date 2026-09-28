@@ -324,6 +324,8 @@ public static class SwiftPath
     /// NTFS), a lowercase fold or the current culture.</summary>
     private static bool EqualIgnoringCase(string a, string b, int length)
     {
+        // PORT-ONLY test-host portability: kernel32 exists only on Windows (see LoginEnvironment.SameEntry).
+        if (!OperatingSystem.IsWindows()) return MemoryExtensions.Equals(a.AsSpan(0, length), b.AsSpan(0, length), StringComparison.OrdinalIgnoreCase);
         var result = CompareStringOrdinal(a, length, b, length, bIgnoreCase: true);
         if (result == 0) throw new InvalidOperationException($"CompareStringOrdinal failed with error {Marshal.GetLastPInvokeError()}.");
         return result == CstrEqual;

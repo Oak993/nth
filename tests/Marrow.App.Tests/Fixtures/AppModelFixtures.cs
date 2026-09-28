@@ -194,7 +194,12 @@ public sealed class AppModelHarness : IDisposable
 
     public void Dispose()
     {
-        try { FinishFileIndexBuilds(); }
+        try
+        {
+            FinishFileIndexBuilds();
+            WaitForPrefetch();
+            DiskWriter.Shared.WaitForQueuedWrites();
+        }
         finally
         {
             for (var index = scopes.Count - 1; index >= 0; index--) scopes[index].Dispose();
