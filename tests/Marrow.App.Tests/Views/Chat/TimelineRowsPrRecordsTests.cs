@@ -1056,4 +1056,33 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Assert.DoesNotContain("src/b.swift", Texts(view));
         });
     });
+
+    // ---- PR-CHAT-104: a finished turn collapses to a header, its final answer and its file summary (:2589-2715) ----
+
+    // WINDOWS-ONLY here: TurnSummary is a required, non-nullable constructor parameter of TurnFinishedBlock
+    // (TimelineRows.cs:3079), and Header() always builds `new TextBlock { Text = TurnEndRow.Label(summary) }`, which
+    // calls TimelineRows.Duration -> icu.dll. There is no way to construct a TurnFinishedBlock at all without
+    // hitting this crash, so every clause of this record is unconditionally blocked here (not just the label text) --
+    // same root cause as PR-CHAT-088/PR-CHAT-116/PR-GIT-151's downgrades. Confirmed reproducible alone below.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_finished_turn_opens_folded_to_its_prompt_a_summary_line_a_rule_and_its_answer() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var content = new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Command, "make"), turn), Reply(CodeOnlyReply101)]);
+            var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn),
+                new ValueList<TimelineEntry>([UserEntry("do it", turn)]), content, null, canUndo: false, chronological: false);
+            var window = Show(block);
+            var header = Assert.Single(block.GetVisualDescendants().OfType<Button>());
+            Assert.Equal("Show this turn's steps", ToolTip.GetTip(header));
+            var label = header.GetVisualDescendants().OfType<TextBlock>().Single();
+            Assert.StartsWith("Worked for ", label.Text, StringComparison.Ordinal);
+            Close(window);
+        });
+    });
+
+    private const string CodeOnlyReply101 = "```\nplan\n```";
 }
