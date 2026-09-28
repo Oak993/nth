@@ -12,6 +12,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Git;
 using Marrow.Testing;
+using Marrow.UI.Markdown;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
@@ -581,6 +582,75 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         {
             Assert.DoesNotContain("chevron.right", Symbols(row!));
             Assert.DoesNotContain("chevron.down", Symbols(row!));
+            Close(window!);
+        });
+    });
+
+    // ---- PR-CHAT-092: an expanded work group shows only the two latest steps until the earlier-steps line is
+    // tapped (:1522-1557). Not claimed as PROVEN: the "only two show, with the right hidden count" clause below is
+    // real, mutation-tested proof, but the "tapping the line reveals every step" clause cannot be observed here -
+    // rendering the fifth ToolRow after a click throws System.InvalidOperationException "Could not create
+    // glyphTypeface. Font family: Inter", reproducibly, alone, using the exact same Inter text that renders fine in
+    // every other test in this file. This looks like a third distinct Linux-headless Skia font-loading gap (after
+    // icu.dll and STOP #14's Cascadia Mono one), triggered specifically by several new text layouts appearing at
+    // once after a click-driven re-render, not by anything about this record's own logic. Filed as STOP
+    // cloud-TimelineRows-pr #15. ----
+
+    [Theory]
+    [Trait("Req", "PR-CHAT-092")]
+    [InlineData(2, 0, "")]
+    [InlineData(3, 1, "1 earlier step")]
+    [InlineData(5, 3, "3 earlier steps")]
+    public void Only_the_two_latest_steps_show_until_the_earlier_line_is_revealed(int total, int hidden, string label) => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            // Command-kind entries with no output/detail (no chevron, no ICU/monospace font needed to render them -
+            // see STOP #14) stand in for "a step of the work": PR-CHAT-092 is about which/how-many mount, not their
+            // own content, which every other WorkSteps-adjacent record already covers.
+            var entries = new ValueList<TimelineEntry>(Enumerable.Range(0, total).Select(_ => Tool()));
+            var showsAll = false;
+            var steps = new WorkSteps(entries, h.Runtime, new Binding<bool>(() => showsAll, value => showsAll = value));
+            var window = Show(steps);
+            var texts = steps.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text ?? "").ToArray();
+            if (hidden > 0) Assert.Contains(label, texts);
+            else Assert.DoesNotContain(texts, t => t.Contains("earlier step", StringComparison.Ordinal));
+            // Only the latest (total - hidden) steps are mounted.
+            var rows = steps.GetVisualDescendants().OfType<ToolRow>().ToArray();
+            Assert.Equal(total - hidden, rows.Length);
+            Close(window);
+        });
+    });
+
+    // WINDOWS-ONLY here: throws mid-render after the click; see STOP #15 above. Kept for the Windows re-run: it is
+    // the only test in this file that exercises the reveal-on-tap clause.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")]
+    public void Tapping_the_earlier_steps_line_reveals_every_step() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        AvaloniaWindow? window = null;
+        WorkSteps? steps = null;
+        var showsAll = new ObservableBoolBox();
+        h.Main.OnMain(() =>
+        {
+            var entries = new ValueList<TimelineEntry>(Enumerable.Range(0, 5).Select(_ => Tool()));
+            steps = new WorkSteps(entries, h.Runtime, showsAll.AsBinding());
+            window = Show(steps);
+            Assert.Equal(2, steps.GetVisualDescendants().OfType<ToolRow>().Count());
+        });
+        h.Main.OnMain(() =>
+        {
+            var more = steps!.GetVisualDescendants().OfType<Button>().Single();
+            Click(window!, more);
+        });
+        h.Main.OnMain(() =>
+        {
+            Assert.Equal(5, steps!.GetVisualDescendants().OfType<ToolRow>().Count());
+            Assert.Empty(steps!.GetVisualDescendants().OfType<Button>()); // the earlier-steps line itself is removed once shown
             Close(window!);
         });
     });
