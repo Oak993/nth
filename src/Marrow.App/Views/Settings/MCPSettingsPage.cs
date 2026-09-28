@@ -171,11 +171,13 @@ public sealed class MCPSettingsPage : Decorator
     // :169-179,543-553
     internal static Button Options(Action action)
     {
+        // :175-176 .frame(22,22).contentShape(.rect), including corners outside the glyph.
         var button = SquareButton(Symbol("ellipsis.circle", 13, Chrome.SecondaryText), 22, action); ToolTip.SetTip(button, "Server options"); return button;
     }
-    // :549-550,724-725,810-811,822-823 .frame(...).contentShape(.rect): hit-test the whole square.
+    // :549-550,724-725,810-811,822-823 .frame(...).contentShape(.rect): hit-test the whole square; .frame centres its content.
     internal static Button SquareButton(Control glyph, double size, Action action)
     {
+        glyph.HorizontalAlignment = HorizontalAlignment.Center; glyph.VerticalAlignment = VerticalAlignment.Center;
         var button = PlainControls.Button(new Border { Background = Brushes.Transparent, Width = size, Height = size, Child = glyph }, action);
         button.Width = button.Height = size; return button;
     }
@@ -213,8 +215,10 @@ internal sealed class MCPLeadCard : Decorator
     {
         var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { MCPSettingsPage.Text("Connected servers lead", 13, Chrome.PrimaryText, SwiftFont.Weight.Semibold), new MCPHoverInfoButton("About connected servers", Facts) } };
         var copy = new StackPanel { Spacing = 6, Children = { title, MCPSettingsPage.Text("Connect a server here and every thread can use it. Anything set up in a terminal or another app stays just as it is.", 12, Chrome.SecondaryText) } };
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 12 }; row.Children.Add(MCPSettingsPage.Symbol("checkmark.shield.fill", 22, Chrome.Accent)); Grid.SetColumn(copy, 1); row.Children.Add(copy);
-        Child = new Border { Padding = new Thickness(16), CornerRadius = new CornerRadius(14), Background = Chrome.PrimaryText.Opacity(0.05).Brush(row), Child = row };
+        // :90 HStack(alignment: .top); :119 continuous rounded rectangle.
+        var shield = MCPSettingsPage.Symbol("checkmark.shield.fill", 22, Chrome.Accent); shield.VerticalAlignment = VerticalAlignment.Top; copy.VerticalAlignment = VerticalAlignment.Top;
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing = 12 }; row.Children.Add(shield); Grid.SetColumn(copy, 1); row.Children.Add(copy);
+        Child = new Border { Padding = new Thickness(16), Background = Chrome.PrimaryText.Opacity(0.05).Brush(row), Child = row }.RoundedRectangle(14, RoundedCornerStyle.Continuous);
     }
     // :101-107,124-133
     private static Control Facts()
@@ -246,13 +250,15 @@ internal sealed class MCPConnectedRow : Decorator
     {
         var model = AppEnvironment.GetAppModel(this); var connection = model.Mcp.Connection(entry.Id);
         var count = model.Mcp.State(entry.Id) is MCPConnectionState.Connected c ? c.ToolCount : connection?.Tools.Count ?? 0;
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"), ColumnSpacing = 12 };
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto,Auto"), ColumnSpacing = 12 };
         row.Children.Add(new Border { Width = 26, Child = new MCPIcon(entry,22) { HorizontalAlignment = HorizontalAlignment.Center } });
         var copy = new StackPanel { Spacing = 2, Children = { MCPSettingsPage.Text(entry.Name,13,Chrome.PrimaryText,SwiftFont.Weight.Semibold), MCPSettingsPage.Text(count.ToString(CultureInfo.InvariantCulture)+" tools \U000000B7 "+(connection?.ServerVersion??entry.Vendor),11,Chrome.SecondaryText) } }; // U+00B7 MIDDLE DOT
         Grid.SetColumn(copy,1); row.Children.Add(copy);
-        var enabled = new SettingsSwitch(new Binding<bool>(()=>model.Mcp.Connection(entry.Id)?.IsEnabled??true, v=>model.Mcp.SetEnabled(v,entry))); Grid.SetColumn(enabled,2); row.Children.Add(enabled);
+        // :164 Spacer(minLength: 12) before the trailing controls.
+        var spacer = new Border { MinWidth = 12 }; Grid.SetColumn(spacer,2); row.Children.Add(spacer);
+        var enabled = new SettingsSwitch(new Binding<bool>(()=>model.Mcp.Connection(entry.Id)?.IsEnabled??true, v=>model.Mcp.SetEnabled(v,entry))); Grid.SetColumn(enabled,3); row.Children.Add(enabled);
         var button = MCPSettingsPage.Options(()=>view.Menu=!view.Menu);
-        var menus = new Panel { Children = { button, MCPSettingsPage.Popover(button,new Binding<bool>(()=>view.Menu,v=>view.Menu=v),BuildMenu,this), MCPSettingsPage.Popover(button,new Binding<bool>(()=>view.Tools,v=>view.Tools=v),BuildTools,this) } }; Grid.SetColumn(menus,3); row.Children.Add(menus);
+        var menus = new Panel { Children = { button, MCPSettingsPage.Popover(button,new Binding<bool>(()=>view.Menu,v=>view.Menu=v),BuildMenu,this), MCPSettingsPage.Popover(button,new Binding<bool>(()=>view.Tools,v=>view.Tools=v),BuildTools,this) } }; Grid.SetColumn(menus,4); row.Children.Add(menus);
         Child = new Border { Padding = new Thickness(16,11,Chrome.RowControlTrailingPadding,11), Child = row };
     }
     // :180-194
@@ -275,13 +281,37 @@ internal sealed class MCPConnectedRow : Decorator
             if(tools.Count==0) stack.Children.Add(new PopoverNote("No tools listed yet."));
             foreach(var tool in tools)
             {
-                var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing=8 };
+                var row = new MCPToolRow { ColumnDefinitions = new ColumnDefinitions("Auto,*"), ColumnSpacing=8 };
                 row.Children.Add(MCPSettingsPage.Text(tool.Name,11,Chrome.PrimaryText,mono:true));
                 if(tool.Summary is {Length:>0} summary) { var text=MCPSettingsPage.Text(summary,11,Chrome.SecondaryText,lines:2); Grid.SetColumn(text,1);row.Children.Add(text); }
                 stack.Children.Add(new Border { Padding=new Thickness(8,3),Child=row });
             }
             return stack;
         });
+    }
+}
+// MCPSettingsPage.swift:213 HStack(alignment: .firstTextBaseline), including mixed font families.
+internal sealed class MCPToolRow : Grid
+{
+    public MCPToolRow() => UseLayoutRounding = false; // Keep fractional font baselines, as TimelineBaselineRow does.
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var size = base.MeasureOverride(availableSize);
+        var texts = Children.OfType<TextBlock>().ToArray();
+        if (texts.Length < 2) return size;
+        var ascent = texts.Max(text => text.TextLayout.TextLines[0].Baseline);
+        var descent = texts.Max(text => text.DesiredSize.Height - text.TextLayout.TextLines[0].Baseline);
+        return new Size(size.Width, Math.Max(size.Height, ascent + descent));
+    }
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var size = base.ArrangeOverride(finalSize);
+        var texts = Children.OfType<TextBlock>().ToArray();
+        if (texts.Length < 2) return size;
+        var baseline = texts.Max(text => text.TextLayout.TextLines[0].Baseline);
+        foreach (var text in texts)
+            text.Arrange(new Rect(text.Bounds.X, baseline - text.TextLayout.TextLines[0].Baseline, text.Bounds.Width, text.DesiredSize.Height));
+        return size;
     }
 }
 internal sealed class MCPServerCard : Decorator
@@ -310,7 +340,7 @@ internal sealed class MCPServerCard : Decorator
     // :249-303,305-349,360-375
     private void Build()
     {
-        var state = AppEnvironment.GetAppModel(this).Mcp.State(entry.Id); var stack = new StackPanel { Spacing = 8 };
+        var state = AppEnvironment.GetAppModel(this).Mcp.State(entry.Id); var stack = new StackPanel { Spacing = 8, VerticalAlignment = VerticalAlignment.Top }; // :292 .topLeading
         if (celebrating)
         {
             var image = MCPSettingsPage.Symbol("checkmark.circle.fill", 34, Chrome.Success); var initialScale = view.SuccessPopped ? 1 : 0.5; image.RenderTransform = new ScaleTransform(initialScale, initialScale); image.RenderTransformOrigin = RelativePoint.Center; image.HorizontalAlignment = HorizontalAlignment.Center;
@@ -341,8 +371,11 @@ internal sealed class MCPServerCard : Decorator
         else
         {
             var name = new StackPanel { Spacing = 1, Children = { MCPSettingsPage.Text(entry.Name, 13, Chrome.PrimaryText, SwiftFont.Weight.Semibold), MCPSettingsPage.Text(entry.Vendor, 11, Chrome.SecondaryText) } };
-            var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto"), ColumnSpacing = 10 }; header.Children.Add(new MCPIcon(entry, 26)); Grid.SetColumn(name, 1); header.Children.Add(name);
-            var action = Action(state); Grid.SetColumn(action, 2); header.Children.Add(action); stack.Children.Add(header);
+            // :306 .top; :316 Spacer(minLength: 8).
+            name.VerticalAlignment = VerticalAlignment.Top;
+            var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto,Auto"), ColumnSpacing = 10 }; header.Children.Add(new MCPIcon(entry, 26) { VerticalAlignment = VerticalAlignment.Top }); Grid.SetColumn(name, 1); header.Children.Add(name);
+            var spacer = new Border { MinWidth = 8 }; Grid.SetColumn(spacer, 2); header.Children.Add(spacer);
+            var action = Action(state); action.VerticalAlignment = VerticalAlignment.Top; Grid.SetColumn(action, 3); header.Children.Add(action); stack.Children.Add(header);
             var summary = MCPSettingsPage.Text(entry.Summary, 12, Chrome.SecondaryText, lines: 2);
             // :260 reservesSpace: true. Measure two lines with this exact font, rather than guessing line height.
             var reserved = MCPSettingsPage.Text(" \n ", 12, Chrome.SecondaryText);
@@ -353,7 +386,8 @@ internal sealed class MCPServerCard : Decorator
             if (state is MCPConnectionState.Failed failed) stack.Children.Add(MCPSettingsPage.Text(failed.Message, 11, Chrome.Danger, lines: 3));
             if (state is MCPConnectionState.NeedsSetup needs) stack.Children.Add(MCPSettingsPage.Text(needs.Guide.Title, 11, Chrome.Warning, lines: 2));
         }
-        var content = new Border { Padding = new Thickness(14), CornerRadius = new CornerRadius(14), Background = Chrome.PrimaryText.Opacity(0.05).Brush(stack), Child = stack }; var layers = new Panel { Children = { content } };
+        var content = new Border { Padding = new Thickness(14), Background = Chrome.PrimaryText.Opacity(0.05).Brush(stack), Child = stack }.RoundedRectangle(14, RoundedCornerStyle.Continuous); // :294 continuous
+        var layers = new Panel { Children = { content } };
         if (!celebrating) layers.Children.Add(new MCPInfoButton(entry) { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(10) }); Child = layers;
     }
     // :322-349
@@ -710,7 +744,10 @@ internal sealed class MCPHoverInfoButton : Decorator
     public MCPHoverInfoButton(string label, Func<Control> content)
     {
         var image = MCPSettingsPage.Symbol("info.circle", 12, Chrome.SecondaryText.Opacity(0.55)).Font(SwiftFont.System(12, SwiftFont.Weight.Medium));
-        var button = PlainControls.Button(image, () => { settle?.Cancel(); state.Presented = !state.Presented; }); button.Width = 22; button.Height = 22; button.Focusable = false; AutomationProperties.SetName(button, label);
+        // :931-932 frame(22,22).contentShape(.rect): corners outside the glyph must accept input.
+        image.HorizontalAlignment = HorizontalAlignment.Center; image.VerticalAlignment = VerticalAlignment.Center;
+        var hitArea = new Border { Width = 22, Height = 22, Background = Brushes.Transparent, Child = image };
+        var button = PlainControls.Button(hitArea, () => { settle?.Cancel(); state.Presented = !state.Presented; }); button.Width = 22; button.Height = 22; button.Focusable = false; AutomationProperties.SetName(button, label);
         button.OnHover(over => { state.Button = over; Reconsider(); });
         image.Track(() => state.Button || state.Presented, full => image.ForegroundStyle(Chrome.SecondaryText.Opacity(full ? 1 : 0.55)));
         var popup = MCPSettingsPage.Popover(button, new Binding<bool>(() => state.Presented, value => state.Presented = value), () => content().OnHover(over => { state.Popover = over; Reconsider(); }), this);
