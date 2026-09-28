@@ -69,6 +69,70 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-026")] // App/Views/Chat/ThreadTimeline.swift:136-141 (the prompt is shown with the thread id: the picker checks the thread's own project)
+    public void Oc_Empty_prompt_checks_the_threads_own_project_in_the_picker() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var h = new AppModelHarness();
+        using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var dirA = h.NewFolder("a");
+        var dirB = h.NewFolder("b");
+        var model = h.MakeModel();
+        var projectA = h.Main.OnMain(() => model.AddProject(new Project("Alpha", dirA).Url));
+        var projectB = h.Main.OnMain(() => model.AddProject(new Project("Beta", dirB).Url));
+        var thread = h.Main.OnMain(() => model.NewThread(projectA)!);
+        var runtime = new ThreadRuntime(thread.Id, model);
+        var chrome = new ChromeScrollModel(); var state = new TimelineScrollState();
+        var view = new ThreadTimeline(runtime, chrome, state, projectA.Name, null, false, 480);
+        var host = new Border(); AppEnvironment.SetAppModel(host, model); host.Child = view;
+        var window = new Avalonia.Controls.Window { Content = host, Width = 960, Height = 480 };
+        AppEnvironment.SetWindowLiveResize(host, new Marrow.App.Window.WindowLiveResize(window));
+        try
+        {
+            window.Show(); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(view));
+            var button = LogicalQuery.SelfAndDescendants<Button>(prompt).Single(b => (Avalonia.Controls.ToolTip.GetTip(b) as string) == "Choose another project");
+            RealClick(window, button);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var popup = recorder.Calls.Last(c => c.Presented).Popup;
+            var choices = popup.Child ?? throw new Xunit.Sdk.XunitException("the project picker never presented");
+            var rows = LogicalQuery.SelfAndDescendants<PopoverItem>(choices).ToArray();
+            var alphaRow = rows.Single(row => LogicalQuery.SelfAndDescendants<MiddleTruncatingText>(row).Single().FullText == projectA.Name);
+            var betaRow = rows.Single(row => LogicalQuery.SelfAndDescendants<MiddleTruncatingText>(row).Single().FullText == projectB.Name);
+            Assert.Equal(1, LogicalQuery.SelfAndDescendants<SwiftImage>(alphaRow).Single(i => i.SymbolName == "checkmark").Opacity);
+            Assert.Equal(0, LogicalQuery.SelfAndDescendants<SwiftImage>(betaRow).Single(i => i.SymbolName == "checkmark").Opacity);
+        }
+        finally { window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-026")] // App/Views/Chat/ThreadTimeline.swift:136-141 (jump-to-latest hidden without animation)
+    public void Oc_Empty_idle_hides_jump_button_without_animation() => WithTimeline((view, runtime, chrome, state, _) =>
+    {
+        typeof(ThreadRuntime).GetProperty("IsLoadingHistory")!.SetValue(runtime, true);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        chrome.Update(100); state.ShowsJumpButton = true;
+        Animation? during = null;
+        using var probe = new OnChange<bool>(() => state.ShowsJumpButton, (_, _) => during = Transaction.Current);
+        typeof(ThreadRuntime).GetProperty("IsLoadingHistory")!.SetValue(runtime, false);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.False(state.ShowsJumpButton);
+        Assert.Null(during);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-026")] // App/Views/Chat/ThreadTimeline.swift:136-141 (the prompt only when there is nothing to show)
+    public void Oc_Nonempty_idle_takes_timeline_branch_without_prompt() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { User("u") }));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Empty(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(view));
+        Assert.NotEmpty(LogicalQuery.SelfAndDescendants<ScrollViewer>(view));
+    });
+
+    [Fact]
     [Trait("Req", "PR-CHAT-027")] // App/Views/Chat/ThreadTimeline.swift:136
     public void Oc_Empty_running_takes_timeline_branch_with_working_block() => WithTimeline((view, runtime, _, _, _) =>
     {
