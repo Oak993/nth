@@ -1,19 +1,24 @@
 using System.Reflection;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.VisualTree;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Git;
+using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
 using Xunit;
 using ChromeTokens = Marrow.UI.Chrome.Chrome;
+using AvaloniaWindow = Avalonia.Controls.Window;
+using static Marrow.App.Tests.Views.Chat.TimelineRowsPrSupport;
 
 namespace Marrow.App.Tests.Views.Chat;
 
@@ -419,4 +424,58 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.Equal(8.0, TimelineMetrics.PillVertical);
         Assert.Equal(18.0, TimelineMetrics.PillRadius);
     }
+
+    // ---- PR-GIT-151: the turn file card is shown only when the turn's summary has files, and its title is
+    // singular at one file (:2688-2700, :2739-2740) ----
+
+    [Theory]
+    [Trait("Req", "PR-GIT-151")]
+    [InlineData(1, "Edited 1 file")]
+    [InlineData(2, "Edited 2 files")]
+    [InlineData(5, "Edited 5 files")]
+    public void The_file_card_title_is_singular_at_exactly_one_file(int fileCount, string expected) => headless.OnUiThread(() =>
+    {
+        var changes = new FileChangeSummary(new ValueList<FileChangeSummary.File>(
+            Enumerable.Range(0, fileCount).Select(i => new FileChangeSummary.File($"f{i}.txt", 1, 0, false))), fileCount, 0);
+        var card = new TurnFileCard(changes, canUndo: false, onRevert: () => { }, onReview: _ => { });
+        var window = Show(card);
+        var title = card.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text!.StartsWith("Edited ", StringComparison.Ordinal));
+        Assert.Equal(expected, title.Text);
+        Close(window);
+    });
+
+    // WINDOWS-ONLY here: TurnFinishedBlock's constructor always calls Header(), which reads TurnEndRow.Label ->
+    // TimelineRows.Duration -> SwiftFormatters.CurrentLocale.Current, needing icu.dll (absent on this Linux
+    // container, DllNotFoundException confirmed by a direct run; the same limitation already noted for PR-CHAT-116
+    // and the pre-existing TimelineRowsPrDerivationTests). The title-singular clause above is unaffected and fully
+    // proven; this "shown only with files" clause needs the full block and stays Rule=R-TEST-4.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")]
+    public void The_file_card_is_shown_only_when_the_turns_summary_has_files() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var turn = Guid.NewGuid();
+        var withFile = Summary(turn) with { Changes = new FileChangeSummary(new ValueList<FileChangeSummary.File>([new FileChangeSummary.File("f.txt", 1, 0, false)]), 1, 0) };
+        var noFiles = Summary(turn) with { Changes = new FileChangeSummary(ValueList<FileChangeSummary.File>.Empty, 0, 0) };
+        var noChanges = Summary(turn);
+
+        TurnFinishedBlock BlockFor(TurnSummary summary) => new(h.Runtime, turn, summary, ValueList<TimelineEntry>.Empty,
+            new ValueList<TimelineEntry>([Reply("an answer so the turn shows a body")]), null, false, false);
+
+        var shown = BlockFor(withFile);
+        var shownWindow = Show(shown);
+        Assert.NotEmpty(shown.GetVisualDescendants().OfType<TurnFileCard>());
+        Close(shownWindow);
+
+        var emptyFiles = BlockFor(noFiles);
+        var emptyWindow = Show(emptyFiles);
+        Assert.Empty(emptyFiles.GetVisualDescendants().OfType<TurnFileCard>());
+        Close(emptyWindow);
+
+        var none = BlockFor(noChanges);
+        var noneWindow = Show(none);
+        Assert.Empty(none.GetVisualDescendants().OfType<TurnFileCard>());
+        Close(noneWindow);
+    });
 }
