@@ -453,7 +453,14 @@ public sealed class MiddleTruncatingText : TextBlock
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Text = full;
+        // A styled title (PopoverItem's titleText path, Popovers.cs :242-255) populates Inlines directly through
+        // StyledText.Render(TextBlock) and never assigns FullText, so `full` stays "". Resetting Text here
+        // unconditionally replaced those Inlines with a single empty run on the very first real measure pass
+        // (LinkPopover.swift:80-81: the Merge row's "Merge" semibold + the request label regular, wiped to
+        // nothing - confirmed empirically). Skip the reset only in that shape: full still unset AND something
+        // else already put content into Inlines directly.
+        if (full.Length != 0 || Inlines is not { Count: > 0 })
+            Text = full;
         if (full.Length == 0 || double.IsInfinity(availableSize.Width))
             return base.MeasureOverride(availableSize);
         var natural = base.MeasureOverride(availableSize);
