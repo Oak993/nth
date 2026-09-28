@@ -951,4 +951,33 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Close(window);
         });
     });
+
+    // ---- PR-CHAT-100: a failed tool row shows its exit code and a declined one shows Declined (:1832-1841) ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-100")]
+    public void A_failed_call_shows_its_exit_code_in_danger_and_a_declined_one_shows_Declined_in_warning() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var failed = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "make", ToolCall.Status.Failed) with { ExitCode = 2 }), h.Runtime);
+            var noCode = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "make", ToolCall.Status.Failed)), h.Runtime);
+            var declined = new ToolRow(ToolEntry(Call(ToolCall.Kind.Command, "rm -rf /", ToolCall.Status.Declined)), h.Runtime);
+            var panel = new StackPanel();
+            panel.Children.Add(failed);
+            panel.Children.Add(noCode);
+            panel.Children.Add(declined);
+            var window = Show(panel);
+            var exit = failed.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == "exit 2");
+            Assert.Equal(Resolved(ChromeTokens.Danger, exit), BrushColor(exit.Foreground));
+            Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption).Resolve().FontSize, exit.FontSize);
+            var noCodeTexts = noCode.GetVisualDescendants().OfType<TextBlock>().Select(t => t.Text ?? "").ToArray();
+            Assert.DoesNotContain(noCodeTexts, text => text.StartsWith("exit", StringComparison.Ordinal));
+            Assert.DoesNotContain("Declined", noCodeTexts);
+            var word = declined.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == "Declined");
+            Assert.Equal(Resolved(ChromeTokens.Warning, word), BrushColor(word.Foreground));
+            Close(window);
+        });
+    });
 }

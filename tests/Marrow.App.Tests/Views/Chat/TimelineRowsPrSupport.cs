@@ -79,6 +79,10 @@ internal static class TimelineRowsPrSupport
     internal static TimelineEntry Tool(ToolCall.Kind kind = ToolCall.Kind.Command, ToolCall.Status status = ToolCall.Status.Completed,
         ValueList<FileEdit>? edits = null) => new(new TimelineItem(null, new TimelineItem.Content.Tool(
             new ToolCall { ToolCallKind = kind, ToolCallStatus = status, Title = "Read file", Edits = edits ?? ValueList<FileEdit>.Empty })));
+    internal static ToolCall Call(ToolCall.Kind kind, string title, ToolCall.Status status = ToolCall.Status.Completed) =>
+        new() { ToolCallKind = kind, Title = title, ToolCallStatus = status };
+    internal static TimelineEntry ToolEntry(ToolCall call, Guid? turn = null) =>
+        new(new TimelineItem(turn, new TimelineItem.Content.Tool(call)));
     internal static TimelineEntry Plan() => new(new TimelineItem(null, new TimelineItem.Content.Plan(new ProposedPlan
         { Markdown = "plan", ProposedPlanState = ProposedPlan.State.Accepted })));
     internal static TimelineEntry MakeNotice(Notice.Level level) => new(new TimelineItem(null,
