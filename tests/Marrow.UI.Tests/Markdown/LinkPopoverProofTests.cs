@@ -98,20 +98,34 @@ public sealed class LinkPopoverProofTests(HeadlessSession headless)
         }
     });
 
-    // STOP cloud-UI.Markdown.LinkPopover #1: UI-THEME-043's typography clause ("The word 'Merge' semibold, the
-    // request label in the regular weight") cannot be proven against current production. PopoverItem's styled-title
-    // path (Popovers.cs UpdateTitle -> titleText.Render(titleBlock), used only when a title is StyledText) sets
-    // MiddleTruncatingText.Inlines directly; but MiddleTruncatingText.MeasureOverride (Popovers.cs, unit
-    // UI.Chrome.Popovers, NOT this job's file) unconditionally runs `Text = full` on every measure pass, and `full`
-    // is never assigned for a styled title (only FullText's setter touches it), so it is "". Avalonia's TextBlock.Text
-    // setter replaces Inlines with a single run for the new Text, so the very first real layout pass wipes the
-    // styled "Merge <label>" text to an empty run: confirmed empirically (Inlines.Count 2 -> 0, Text "" after
-    // Show()). This reproduces with the pinned B3 Swift unchanged (LinkPopover.swift:80-81 is byte-identical to B2),
-    // so it is a pre-existing port defect in UI.Chrome.Popovers.cs, out of this job's files (the hard fence forbids
-    // editing another unit's C# file). No test is written here (R-TEST-10 forbids Skip; IMPLEMENTING.md section 6:
-    // "leave that site unwritten"): an independent reviewer routes the fix to that unit. MiddleTruncatingText's
-    // MeasureOverride needs to skip `Text = full` when the control was populated through Inlines directly rather
-    // than FullText.
+    [Fact]
+    [Trait("Req", "UI-THEME-043")] // :80 "Merge" semibold + " " + request.Label regular; :332 AutomationProperties.SetName(button, title) with request.Title
+    public void The_merge_row_shows_Merge_semibold_then_the_label_in_regular_weight() => headless.OnUiThread(() =>
+    {
+        var url = SwiftURL.Create("https://gitlab.com/g/p/-/merge_requests/7")!;
+        var request = MergeRequestLink.Create(url)!;
+        var content = new LinkPopoverContent(url, request, _ => { });
+        var window = Show(content);
+        try
+        {
+            var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child);
+            var mergeItem = (PopoverItem)stack.Children[0];
+            var titleBlock = mergeItem.GetVisualDescendants().OfType<TextBlock>().First(t => t.Inlines is { Count: > 0 });
+            var runs = titleBlock.Inlines!.Cast<Run>().ToArray();
+            Assert.True(runs.Length >= 2);
+            Assert.Equal("Merge", runs[0].Text);
+            Assert.Equal(Avalonia.Media.FontWeight.SemiBold, runs[0].FontWeight);
+            Assert.Contains(request.Label, runs[1].Text, StringComparison.Ordinal);
+            Assert.NotEqual(Avalonia.Media.FontWeight.SemiBold, runs[1].FontWeight);
+
+            var mergeButton = (Button)mergeItem.Child!;
+            Assert.Equal(request.Title, Avalonia.Automation.AutomationProperties.GetName(mergeButton)); // :332 title, not a constant
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
 
     [Fact]
     [Trait("Req", "UI-THEME-043")] // :29-32,83-85 clicking Merge closes the real popover and hands the parsed request to the target
