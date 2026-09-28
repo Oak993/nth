@@ -101,6 +101,8 @@ internal static class TimelineRowsPrSupport
         root.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == text);
     internal static TimelineItem.Content.Todos Steps(params (string Text, TodoStep.Status Status)[] steps) =>
         new(new ValueList<TodoStep>(steps.Select(step => new TodoStep { Text = step.Text, TodoStepStatus = step.Status })));
+    internal static TimelineEntry PlanEntry(ProposedPlan.State state, string markdown = "```\nstep one\n```", Guid? turn = null) =>
+        new(new TimelineItem(turn, new TimelineItem.Content.Plan(new ProposedPlan { Markdown = markdown, ProposedPlanState = state })));
 }
 
 // Real overlay popups keep hit testing and pointer input in the headless window.

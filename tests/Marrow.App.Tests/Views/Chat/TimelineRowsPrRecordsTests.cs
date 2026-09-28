@@ -9,6 +9,7 @@ using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
+using Marrow.App.Views.Composer;
 using Marrow.App.Views.Diff;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -371,13 +372,18 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         var method = rowType.GetMethod("QuoteChip", HiddenStatic)!;
         var quote = new ReplyQuote { Text = "  quoted   words  here  " };
         var chip = (Control)method.Invoke(null, [quote])!;
+        var window = Show(chip);
+        try
+        {
 
         // :110 .modifier(ChipChrome()): a 9/7/5 padded capsule filled with Chrome.overlay(0.12) (ComposerView.cs:1619-1628).
         var capsule = Assert.IsType<Border>(chip);
         Assert.Equal(new Avalonia.Thickness(9, 5, 7, 5), capsule.Padding);
         Assert.Equal(ChromeTokens.Overlay(0.12).Resolve(capsule.ActualThemeVariant),
             Assert.IsAssignableFrom<ISolidColorBrush>(capsule.Background).Color);
-        Assert.Equal(new Avalonia.CornerRadius(1000), capsule.CornerRadius); // Capsule(): fully round per its own helper
+        Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(capsule)); // :110 Capsule(style: .continuous)
+        Assert.True(capsule.Bounds.Height > 0);
+        Assert.Equal(new Avalonia.CornerRadius(Math.Min(capsule.Bounds.Width, capsule.Bounds.Height) / 2), capsule.CornerRadius); // a capsule rounds by half its shorter side
 
         var stack = Assert.IsType<StackPanel>(capsule.Child);
         Assert.Equal(Orientation.Horizontal, stack.Orientation);
@@ -400,6 +406,8 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
 
         Assert.Equal(quote.Text, ToolTip.GetTip(capsule)); // :111 .help(quote.text): the full, uncollapsed quote
         Assert.Equal("Quote: " + quote.Excerpt, Avalonia.Automation.AutomationProperties.GetName(capsule));
+        }
+        finally { Close(window); }
     });
 
     // ---- PR-CHAT-020: TimelineMetrics - eight named constants, never a hard-coded literal at a call site (:8-28).
@@ -483,26 +491,18 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Close(noneWindow);
     });
 
-    // ---- PR-CHAT-098: a tool row's chevron points down for a popover/head and right (rotating) for an in-place
-    // expansion, beside the subject, and is absent otherwise (:1799-1810).
-    // Not claimed as PROVEN this session: two of its three branches are proven below, but the third (showsOutput ->
-    // chevron.right) cannot be observed on this container. Rendering a ToolRow whose call has non-empty Output
-    // throws System.InvalidOperationException "Could not create glyphTypeface. Font family: Cascadia Mono" from
-    // Avalonia's Skia text formatter (confirmed reproducible, not order-dependent: fails alone, and a warm-up
-    // Measure() of the same FontFamily beforehand does not avoid it, unlike Inter's own warm-up in
-    // HeadlessFixtures.WarmFonts). The embedded CascadiaMono-*.ttf files are genuine, valid, Microsoft-signed
-    // TrueType data (`file` confirms this), so the font asset itself is not the problem; nothing in this codebase's
-    // existing tests renders actual Cascadia Mono glyph text anywhere (only SwiftFontTests.cs checks the
-    // FontFamily's name/key metadata, never lays text out with it), so this looks like a standing Linux-headless
-    // Skia font-loading gap for this specific embedded font, not something introduced by this session. Filed as
-    // STOP cloud-TimelineRows-pr #14: same class of container limitation as icu.dll, but for Cascadia Mono glyph
-    // rendering; it will also block PR-CHAT-101 and PR-CHAT-100's monospaced-digit "exit N" text once reached.
+    // ---- PR-CHAT-098: a tool row's chevron points down for a popover/head and right (rotating ninety degrees when
+    // expanded) for an in-place expansion, beside the subject, and is absent otherwise (:1799-1810). The rotation is a
+    // snappy animation, so the test ticks the manual frame clock before it reads the angle. (An earlier version read the
+    // angle before any tick, failed, left its window open, and the session teardown then re-threw a glyph-typeface
+    // error that hid the real failure: the "Cascadia Mono / Inter glyphTypeface" STOPs #14 and #15 were that, not a font
+    // gap. Every window below is now closed in a finally so a real assertion failure shows itself.)
 
     private static string[] Symbols(Avalonia.Controls.Control control) =>
         control.GetVisualDescendants().OfType<SwiftImage>().Select(image => image.SymbolName ?? "").ToArray();
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // two of three branches of PR-CHAT-098; see STOP #14 above for the third.
+    [Trait("Req", "PR-CHAT-098")]
     public void A_call_that_sent_out_a_head_draws_chevron_down() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -527,14 +527,13 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         });
     });
 
-    // WINDOWS-ONLY here: throws on this container as soon as the row's showsOutput branch tries to lay out its
-    // Cascadia Mono content; see STOP #14 above. Kept for the Windows re-run: it is the only test in this file that
-    // exercises the chevron.right / rotation branch.
     [Fact]
-    [Trait("Rule", "R-TEST-4")]
+    [Trait("Req", "PR-CHAT-098")]
     public void A_call_that_shows_output_draws_chevron_right_rotating_ninety_degrees_when_expanded() => headless.OnUiThread(() =>
     {
         using var h = Harness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
         ToolRow? row = null;
         AvaloniaWindow? window = null;
         h.Main.OnMain(() =>
@@ -546,27 +545,97 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Marrow.App.Port.AppEnvironment.SetAppModel(host, h.App);
             window = Show(host);
         });
-        h.Main.OnMain(() =>
+        try
         {
-            Assert.Contains("chevron.right", Symbols(row!));
-            Assert.DoesNotContain("chevron.down", Symbols(row!));
-            var chevron = row!.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "chevron.right");
-            var before = ((RotateTransform?)chevron.RenderTransform)?.Angle ?? 0;
-            Assert.Equal(0, before);
-            var button = row!.GetVisualDescendants().OfType<Button>().First();
-            Click(window!, button);
-        });
-        h.Main.OnMain(() =>
-        {
-            var chevron = row!.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "chevron.right");
-            var after = ((RotateTransform?)chevron.RenderTransform)?.Angle ?? 0;
-            Assert.Equal(90, after);
-            Close(window!);
-        });
+            h.Main.OnMain(() =>
+            {
+                Assert.Contains("chevron.right", Symbols(row!));
+                Assert.DoesNotContain("chevron.down", Symbols(row!));
+                var chevron = row!.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "chevron.right");
+                Assert.Equal(0, ((RotateTransform?)chevron.RenderTransform)?.Angle ?? 0);
+                Click(window!, row!.GetVisualDescendants().OfType<Button>().First());
+            });
+            // The turn is a snappy animation: it reaches 90 only as the manual clock ticks (480 ms is past its settling time).
+            for (var i = 0; i < 30; i++) { h.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); }
+            h.Main.OnMain(() =>
+            {
+                var chevron = row!.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "chevron.right");
+                Assert.Equal(90, ((RotateTransform?)chevron.RenderTransform)?.Angle ?? 0);
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // two of three branches of PR-CHAT-098; see STOP #14 above for the third.
+    [Trait("Req", "PR-CHAT-098")]
+    public void A_call_that_opens_the_changes_popover_draws_a_static_chevron_down() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        ToolRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var edits = new ValueList<FileEdit>([new FileEdit("src/a.swift", "@@ -1 +1 @@\n-a\n+b\n", 1, 1)]);
+            row = new ToolRow(ToolEntry(Call(ToolCall.Kind.Edit, "Edit a.swift") with { Edits = edits }), h.Runtime);
+            var host = new Border { Child = row };
+            Marrow.App.Port.AppEnvironment.SetAppModel(host, h.App);
+            window = Show(host);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Assert.Contains("chevron.down", Symbols(row!));
+                Assert.DoesNotContain("chevron.right", Symbols(row!));
+                var chevron = row!.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "chevron.down");
+                Assert.Null(chevron.RenderTransform); // a static affordance: it never rotates
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Theory]
+    [Trait("Req", "PR-CHAT-098")]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Either_chevron_is_caption2_semibold_in_secondary_text_immediately_after_the_rows_own_text(bool popover) => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        ToolRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var call = popover
+                ? Call(ToolCall.Kind.Edit, "Edit a.swift") with { Edits = new ValueList<FileEdit>([new FileEdit("src/a.swift", "@@ -1 +1 @@\n-a\n+b\n", 1, 1)]) }
+                : Call(ToolCall.Kind.Command, "run a thing") with { Output = "some output" };
+            row = new ToolRow(ToolEntry(call), h.Runtime);
+            var host = new Border { Child = row };
+            Marrow.App.Port.AppEnvironment.SetAppModel(host, h.App);
+            window = Show(host);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var chevron = row!.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == (popover ? "chevron.down" : "chevron.right"));
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold), chevron.GetValue(SwiftImage.FontProperty));
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, chevron), BrushColor(chevron.Foreground));
+                var line = Assert.IsAssignableFrom<Panel>(chevron.Parent);
+                var label = line.Children.OfType<MiddleTruncatingTextBlock>().Single();
+                var labelAt = line.Children.IndexOf(label);
+                var chevronAt = line.Children.IndexOf(chevron);
+                Assert.True(chevronAt > labelAt, "the chevron follows the row's text");
+                // the diff stat (an edit's counts) may sit between the text and the chevron; nothing else may
+                Assert.All(line.Children.Skip(labelAt + 1).Take(chevronAt - labelAt - 1), child => Assert.IsType<DiffStatLabel>(child));
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-098")]
     public void A_call_with_nothing_to_show_draws_no_chevron() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -590,14 +659,8 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     // ---- PR-CHAT-092: an expanded work group shows only the two latest steps until the earlier-steps line is
-    // tapped (:1522-1557). Not claimed as PROVEN: the "only two show, with the right hidden count" clause below is
-    // real, mutation-tested proof, but the "tapping the line reveals every step" clause cannot be observed here -
-    // rendering the fifth ToolRow after a click throws System.InvalidOperationException "Could not create
-    // glyphTypeface. Font family: Inter", reproducibly, alone, using the exact same Inter text that renders fine in
-    // every other test in this file. This looks like a third distinct Linux-headless Skia font-loading gap (after
-    // icu.dll and STOP #14's Cascadia Mono one), triggered specifically by several new text layouts appearing at
-    // once after a click-driven re-render, not by anything about this record's own logic. Filed as STOP
-    // cloud-TimelineRows-pr #15. ----
+    // tapped (:1522-1557). The tap runs inside a snappy animation transaction, so the line leaves and the earlier rows
+    // arrive only as the manual frame clock ticks. ----
 
     [Theory]
     [Trait("Req", "PR-CHAT-092")]
@@ -610,8 +673,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         h.Main.OnMain(() =>
         {
-            // Command-kind entries with no output/detail (no chevron, no ICU/monospace font needed to render them -
-            // see STOP #14) stand in for "a step of the work": PR-CHAT-092 is about which/how-many mount, not their
+            // Command-kind entries with no output/detail (no chevron, no output to lay out) stand in for "a step of the work": PR-CHAT-092 is about which/how-many mount, not their
             // own content, which every other WorkSteps-adjacent record already covers.
             var entries = new ValueList<TimelineEntry>(Enumerable.Range(0, total).Select(_ => Tool()));
             var showsAll = false;
@@ -627,14 +689,13 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         });
     });
 
-    // WINDOWS-ONLY here: throws mid-render after the click; see STOP #15 above. Kept for the Windows re-run: it is
-    // the only test in this file that exercises the reveal-on-tap clause.
     [Fact]
-    [Trait("Rule", "R-TEST-4")]
+    [Trait("Req", "PR-CHAT-092")]
     public void Tapping_the_earlier_steps_line_reveals_every_step() => headless.OnUiThread(() =>
     {
         using var h = Harness();
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
         AvaloniaWindow? window = null;
         WorkSteps? steps = null;
         var showsAll = new ObservableBoolBox();
@@ -643,19 +704,109 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             var entries = new ValueList<TimelineEntry>(Enumerable.Range(0, 5).Select(_ => Tool()));
             steps = new WorkSteps(entries, h.Runtime, showsAll.AsBinding());
             window = Show(steps);
-            Assert.Equal(2, steps.GetVisualDescendants().OfType<ToolRow>().Count());
         });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal(2, steps!.GetVisualDescendants().OfType<ToolRow>().Count());
+                Click(window!, steps!.GetVisualDescendants().OfType<Button>().Single());
+            });
+            for (var i = 0; i < 30; i++) { h.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); }
+            h.Main.OnMain(() =>
+            {
+                Assert.True(showsAll.Value);
+                Assert.Equal(5, steps!.GetVisualDescendants().OfType<ToolRow>().Count());
+                Assert.DoesNotContain(steps!.GetVisualDescendants().OfType<TextBlock>(), block => (block.Text ?? "").Contains("earlier step", StringComparison.Ordinal)); // the earlier-steps line itself is removed once shown
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-092")]
+    public void The_earlier_steps_line_is_an_ellipsis_in_a_16_point_column_and_the_count_both_in_secondary_text_with_12_points_trailing() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        AvaloniaWindow? window = null;
+        WorkSteps? steps = null;
         h.Main.OnMain(() =>
         {
-            var more = steps!.GetVisualDescendants().OfType<Button>().Single();
-            Click(window!, more);
+            steps = new WorkSteps(new ValueList<TimelineEntry>(Enumerable.Range(0, 3).Select(_ => Tool())), h.Runtime, new ObservableBoolBox().AsBinding());
+            window = Show(steps);
         });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var ellipsis = Assert.Single(steps!.GetVisualDescendants().OfType<SwiftImage>(), image => image.SymbolName == "ellipsis");
+                Assert.Equal(TimelineMetrics.IconWidth, ellipsis.Width);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, ellipsis), BrushColor(ellipsis.Foreground));
+                var line = Assert.IsType<StackPanel>(ellipsis.Parent);
+                Assert.Equal(12, line.Margin.Right);
+                var count = Assert.Single(line.Children.OfType<TextBlock>());
+                Assert.Equal("1 earlier step", count.Text);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, count), BrushColor(count.Foreground));
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-092")]
+    public void Tapping_the_earlier_steps_line_asks_the_timeline_to_reveal_its_end_inside_a_snappy_240_millisecond_animation() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        AvaloniaWindow? window = null;
+        WorkSteps? steps = null;
+        var reveals = new List<Animation?>();
         h.Main.OnMain(() =>
         {
-            Assert.Equal(5, steps!.GetVisualDescendants().OfType<ToolRow>().Count());
-            Assert.Empty(steps!.GetVisualDescendants().OfType<Button>()); // the earlier-steps line itself is removed once shown
-            Close(window!);
+            steps = new WorkSteps(new ValueList<TimelineEntry>(Enumerable.Range(0, 3).Select(_ => Tool())), h.Runtime, new ObservableBoolBox().AsBinding());
+            var host = new Border { Child = steps };
+            ThreadTimeline.SetRevealTimelineEnd(host, new TimelineRevealBox { Action = () => reveals.Add(Transaction.Current) });
+            window = Show(host);
         });
+        try
+        {
+            h.Main.OnMain(() => Click(window!, steps!.GetVisualDescendants().OfType<Button>().Single()));
+            var reveal = Assert.Single(reveals);
+            Assert.Equal(Animation.Snappy(duration: 0.24), reveal);
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-092")]
+    public void What_the_agent_said_between_two_steps_renders_as_dimmed_12_point_secondary_markdown_indented_past_the_icon_column() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        AvaloniaWindow? window = null;
+        WorkSteps? steps = null;
+        h.Main.OnMain(() =>
+        {
+            steps = new WorkSteps(new ValueList<TimelineEntry>([Reply("looking at the config"), Tool()]), h.Runtime, new ObservableBoolBox().AsBinding());
+            window = Show(steps);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Assert.Single(steps!.GetVisualDescendants().OfType<ToolRow>());
+                var markdown = Assert.Single(steps!.GetVisualDescendants().OfType<MarkdownView>());
+                Assert.Equal("looking at the config", markdown.Text);
+                Assert.Equal(12, MarkdownView.GetMarkdownPointSize(markdown));
+                Assert.True(MarkdownView.GetMarkdownDimmed(markdown));
+                Assert.Equal(TimelineMetrics.IconWidth + TimelineMetrics.IconSpacing, markdown.Margin.Left);
+                Assert.Equal(24, markdown.Margin.Left);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, markdown), BrushColor(Avalonia.Controls.Documents.TextElement.GetForeground(markdown)));
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
     });
 
     // ---- PR-CHAT-077: a sent message is a trailing tinted bubble with an iMessage tail (:118-129, :163-164, :1167-1207) ----
@@ -1042,8 +1193,8 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 Edits = new ValueList<FileEdit>([new FileEdit("src/a.swift", "@@ -1 +1 @@\n-a\n+b\n", 1, 1), new FileEdit("src/b.swift", "", 0, 0)]),
             };
             // Inspected without a layout pass: the edits are built with the view, and DiffLinesView's own font
-            // (App.Views.Diff.DiffInspector's) does not resolve headless (a distinct font gap from icu.dll/STOP #14/#15,
-            // not investigated further since nothing in this clause needs a layout pass to verify).
+            // (App.Views.Diff.DiffInspector's) does not resolve headless (not investigated further, since nothing in this clause
+            // needs a layout pass to verify).
             var view = new ToolDetailView(call);
             Assert.Single(view.GetVisualDescendants().OfType<DiffLinesView>());
             var path = view.GetVisualDescendants().OfType<TextBlock>().Single(block => block.Text == "src/a.swift");
@@ -1076,8 +1227,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn),
                 new ValueList<TimelineEntry>([UserEntry("do it", turn)]), content, null, canUndo: false, chronological: false);
             var window = Show(block);
-            var header = Assert.Single(block.GetVisualDescendants().OfType<Button>());
-            Assert.Equal("Show this turn's steps", ToolTip.GetTip(header));
+            var header = Assert.Single(block.GetVisualDescendants().OfType<Button>(), button => ToolTip.GetTip(button) as string == "Show this turn's steps");
             var label = header.GetVisualDescendants().OfType<TextBlock>().Single();
             Assert.StartsWith("Worked for ", label.Text, StringComparison.Ordinal);
             Close(window);
@@ -1211,6 +1361,57 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Assert.Same(before, TextNamed(row!, "One"));
             Assert.Equal(["checklist", "checkmark.circle.fill", "circle.dotted.circle"], Symbols(row!));
             Close(window!);
+        });
+    });
+
+    // ---- PR-CHAT-111: a plan renders as a chat badge whose title and caption follow its state (:2263-2278, :2318-2337) ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-111")]
+    public void A_plans_badge_title_caption_and_attention_follow_its_state() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var states = new[] { ProposedPlan.State.Drafting, ProposedPlan.State.Proposed, ProposedPlan.State.Accepted, ProposedPlan.State.Dismissed };
+            var cards = states.Select(state => new PlanCard(PlanEntry(state), h.Runtime)).ToArray();
+            var panel = new StackPanel();
+            foreach (var card in cards) panel.Children.Add(card);
+            var window = Show(panel);
+            string[] Words(PlanCard card) => Texts(card).Where(text => text.Length != 0).ToArray();
+            Assert.Equal(["Writing a plan"], Words(cards[0]));
+            Assert.Equal(["Plan ready", "Implement or dismiss"], Words(cards[1]));
+            Assert.Equal(["Plan", "Approved"], Words(cards[2]));
+            Assert.Equal(["Plan", "Dismissed"], Words(cards[3]));
+            // :2335-2337 only a proposed plan draws the attention dots.
+            Assert.Equal([false, true, false, false], cards.Select(card => card.GetVisualDescendants().OfType<DotFieldControl>().Any()));
+            // :2272-2276 the spinner while drafting, the clipboard in the tint otherwise.
+            var spinner = Assert.Single(cards[0].GetVisualDescendants().OfType<WorkingSpinner>());
+            Assert.Equal(14, spinner.Width);
+            Assert.Equal(3.0, (double)Field(spinner.Child!, "cellSize")!); // :2274 WorkingSpinner(cellSize: 3)
+            Assert.DoesNotContain("list.bullet.clipboard", Symbols(cards[0]));
+            var clipboard = cards[1].GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "list.bullet.clipboard");
+            Assert.Equal(Resolved(ChromeTokens.Accent, clipboard), BrushColor(clipboard.Foreground));
+            Assert.All(cards, card => Assert.Contains("chevron.right", Symbols(card)));
+            Assert.All(cards, card => Assert.True(card.GetVisualDescendants().OfType<Button>().First().IsEnabled));
+            Close(window);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-111")]
+    public void A_plan_with_empty_markdown_has_no_chevron_and_cannot_be_opened() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var card = new PlanCard(PlanEntry(ProposedPlan.State.Drafting, markdown: ""), h.Runtime);
+            var window = Show(card);
+            Assert.DoesNotContain("chevron.right", Symbols(card));
+            Assert.False(card.GetVisualDescendants().OfType<Button>().First().IsEnabled);
+            Close(window);
         });
     });
 }
