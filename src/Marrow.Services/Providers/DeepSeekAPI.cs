@@ -9,6 +9,9 @@ namespace Marrow.Services.Providers;
 // :6-79
 public static class DeepSeekAPI
 {
+    // PORT-ONLY R-TEST-10: scoped loopback endpoint boundary for production registry/view proofs.
+    // Identity by default; requests, headers, response parsing and timing remain the pinned Swift path.
+    internal static Ambient<Func<Uri, Uri>> Endpoint { get; } = new(() => url => url);
     // :7
     public static readonly Uri BaseURL = new("https://api.deepseek.com");
 
@@ -24,12 +27,12 @@ public static class DeepSeekAPI
     // :13-15
     public static async Task<bool> Validate(string apiKey) =>
         // :14
-        await OpenAICompatibleAPI.Validate(ModelsURL, apiKey);
+        await OpenAICompatibleAPI.Validate(Endpoint.Current(ModelsURL), apiKey);
 
     // :17-19
     public static async Task<ValueList<ModelOption>> ListModels(string apiKey) =>
         // :18
-        await OpenAICompatibleAPI.ListModels(ModelsURL, apiKey, Option);
+        await OpenAICompatibleAPI.ListModels(Endpoint.Current(ModelsURL), apiKey, Option);
 
     // :24-32
     public static async Task<ProviderCredits?> Balance(string apiKey)
@@ -37,7 +40,7 @@ public static class DeepSeekAPI
         var key = apiKey.Trimmed(); // :25
         if (key.Length == 0) return null; // :26
 
-        var request = OpenAICompatibleAPI.BearerRequest(BalanceURL, key); // :27
+        var request = OpenAICompatibleAPI.BearerRequest(Endpoint.Current(BalanceURL), key); // :27
 
         try
         {

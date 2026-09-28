@@ -372,7 +372,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-PROVREG-001")] // App/Views/Settings/SettingsView.swift:9,23,38,55,72
-    [Trait("Req", "UI-PROVREG-002")] // App/Views/Settings/SettingsView.swift:254-255,566-579
+    // Partial UI-PROVREG-002 only: STOP opencode-proofs-settings-prov #2, API-key edits also probe (:789-794).
     [Trait("Req", "UI-PROVREG-003")] // App/Views/Settings/SettingsView.swift:585-615,646-766
     [Trait("Req", "UI-PROVREG-004")] // App/Views/Settings/SettingsView.swift:651-653
     [Trait("Req", "UI-PROVREG-005")] // App/Views/Settings/SettingsView.swift:650-656
@@ -383,7 +383,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         Assert.Equal("Providers", SettingsPage.Providers.Title); Assert.Equal("cpu", SettingsPage.Providers.Symbol); Assert.Equal(Chrome.Blue, SettingsPage.Providers.Tint); Assert.Equal(39, SettingsPage.Providers.Keywords.Count);
         var section = Nodes<ProviderSettingsSection>(view).Single(x => Field<ProviderKind>(x, "provider") == ProviderKind.Codex); var reveal = Assert.Single(Nodes<ChromeRevealLayout>(section)); var card = Assert.Single(Nodes<ChromeCard>(section));
         var header = Assert.Single(Nodes<CollapsibleProviderHeader>(section)); Assert.Equal(0, reveal.Fraction); Click(Assert.Single(Nodes<Button>(header))); Sync(); Assert.InRange(reveal.Fraction, 0, 0.001); AdvanceFrames(h, 160); Assert.InRange(reveal.Fraction, 0.001, 0.999); AdvanceFrames(h, 1000); Assert.Equal(1, reveal.Fraction); Assert.Same(card, Assert.Single(Nodes<ChromeCard>(section)));
-        var statusRow = Nodes<Grid>(section).Single(grid => grid.ColumnDefinitions.Count == 3); Assert.Equal(new Thickness(16, 11, 10, 11), statusRow.Margin); Assert.Equal(12, statusRow.ColumnSpacing); Assert.Equal(22, statusRow.ColumnDefinitions[0].Width.Value);
+        var statusRow = Nodes<Grid>(section).Single(grid => grid.ColumnDefinitions.Count == 3 && grid.Children.FirstOrDefault() is ProviderIcon); Assert.Equal(new Thickness(16, 11, 10, 11), statusRow.Margin); Assert.Equal(12, statusRow.ColumnSpacing); Assert.Equal(22, statusRow.ColumnDefinitions[0].Width.Value);
         var icon = Nodes<ProviderIcon>(section).Single(x => x.Size == 18); Assert.Equal(18, icon.Size);
         Seed(model, ProviderKind.Codex, new ProviderStatus { Version = "1.2.3", IsChecking = true }); Sync(); Assert.Contains("Checking\u2026", Text(section)); Assert.Contains("Version 1.2.3", Text(section));
         var summary = Nodes<TextBlock>(statusRow).Single(x => x.Text == "Checking\u2026"); Assert.Equal(13, summary.FontSize); var version = Nodes<TextBlock>(statusRow).Single(x => x.Text == "Version 1.2.3"); Assert.Equal(11, version.FontSize);
