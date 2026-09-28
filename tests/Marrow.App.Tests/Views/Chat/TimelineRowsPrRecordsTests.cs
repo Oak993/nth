@@ -922,4 +922,33 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Close(window!);
         });
     });
+
+    // ---- PR-CHAT-088: an assistant reply renders its markdown and shows the turn duration on its hover line (:1353-1390) ----
+
+    // WINDOWS-ONLY here: AssistantMessageRow.Body builds `new TextBlock { Text = TurnEndRow.Label(summary) }`
+    // eagerly at construction (TimelineRows.cs:1576), and TurnEndRow.Label calls TimelineRows.Duration, which needs
+    // icu.dll for the current locale (same root cause as PR-CHAT-116/PR-GIT-151's downgrades) -- so a row with a
+    // non-null summary throws on construction, before any assertion runs. Confirmed reproducible alone below.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")]
+    public void A_reply_with_a_summary_renders_its_markdown_and_a_hidden_hover_line_carrying_the_turn_label() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var row = new AssistantMessageRow(Reply("some `code` here"), Summary(turn), h.Runtime);
+            var window = Show(row);
+            var markdown = Assert.Single(row.GetVisualDescendants().OfType<MarkdownView>());
+            Assert.False(markdown.IsStreaming);
+            var line = row.GetVisualDescendants().OfType<Control>().Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
+            Assert.Equal(0, line.Opacity);
+            var label = line.GetVisualDescendants().OfType<TextBlock>().Single();
+            Assert.StartsWith("Worked for ", label.Text, StringComparison.Ordinal);
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, label), BrushColor(label.Foreground));
+            var outer = row.GetVisualDescendants().OfType<Control>().First(control => control.Margin.Bottom == -(TimelineMetrics.HoverLineHeight + 2));
+            Assert.NotNull(outer);
+            Close(window);
+        });
+    });
 }
