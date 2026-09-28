@@ -764,4 +764,73 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Close(window);
         });
     });
+
+    // ---- PR-CHAT-080: a revertable sent message shows a pencil on hover that toggles the message editor (:130-161) ----
+
+    private static Control HoverLine080(Control row) =>
+        row.GetVisualDescendants().OfType<Control>().Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-080")]
+    public void A_revertable_message_shows_a_pencil_only_on_hover_and_a_locked_one_shows_none() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        UserMessageRow? row = null;
+        UserMessageRow? locked = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            row = new UserMessageRow(UserEntry("edit me", Guid.NewGuid()), h.Runtime, canRevert: true);
+            locked = new UserMessageRow(UserEntry("keep me", Guid.NewGuid()), h.Runtime, canRevert: false);
+            var panel = new StackPanel { Spacing = 60 };
+            panel.Children.Add(row);
+            panel.Children.Add(locked);
+            window = Show(panel);
+            Assert.Empty(HoverLine080(locked).GetVisualDescendants().OfType<Button>());
+            var pencil = Assert.Single(HoverLine080(row).GetVisualDescendants().OfType<Button>());
+            Assert.Equal("Edit message", ToolTip.GetTip(pencil));
+            Assert.Contains("pencil", Symbols(pencil));
+            Assert.Equal(0, HoverLine080(row).Opacity);
+            Hover(window, row.GetVisualDescendants().OfType<InlineText>().Single());
+        });
+        h.Main.OnMain(() =>
+        {
+            Assert.Equal(1, HoverLine080(row!).Opacity);
+            Assert.Equal(0, HoverLine080(locked!).Opacity);
+            Close(window!);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-080")]
+    public void The_pencil_opens_the_edit_on_the_runtime_through_the_editor_popover_and_a_second_tap_closes_it() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var turn = Guid.NewGuid();
+        UserMessageRow? row = null;
+        AvaloniaWindow? window = null;
+        // The thread's history lands first: installing it drops an edit whose turn it does not hold
+        // (ThreadRuntime.swift:172-182), which is the runtime's rule, not the row's.
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            row = new UserMessageRow(UserEntry("edit me", turn), h.Runtime, canRevert: true);
+            window = Show(row);
+            Click(window, Assert.Single(HoverLine080(row).GetVisualDescendants().OfType<Button>()));
+            var edit = Assert.IsType<PromptEdit>(h.Runtime.MessageEdit);
+            Assert.Equal(turn, edit.Id);
+            Assert.Equal("edit me", edit.Text);
+        });
+        h.Main.OnMain(() =>
+        {
+            var shown = Assert.Single(presenter.Calls, call => call.Presented);
+            Assert.IsType<MessageEditor>(shown.Popup.Child);
+            Assert.Equal(1, HoverLine080(row!).Opacity); // editing keeps the line up without a hover
+            Click(window!, Assert.Single(HoverLine080(row!).GetVisualDescendants().OfType<Button>()));
+            Assert.Null(h.Runtime.MessageEdit);
+            Close(window!);
+        });
+    });
 }

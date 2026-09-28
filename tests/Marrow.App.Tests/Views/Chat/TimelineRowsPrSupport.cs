@@ -67,6 +67,13 @@ internal static class TimelineRowsPrSupport
         window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
         Settle(window);
     }
+    internal static void Hover(AvaloniaWindow window, Control target)
+    {
+        var point = target.TranslatePoint(new Point(target.Bounds.Width / 2, target.Bounds.Height / 2), window)
+            ?? throw new InvalidOperationException("Target is not mounted");
+        window.MouseMove(point, RawInputModifiers.None);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+    }
     internal static TimelineEntry Reply(string text) => new(new TimelineItem(null,
         new TimelineItem.Content.Assistant(new AssistantMessage { Text = text })));
     internal static TimelineEntry Tool(ToolCall.Kind kind = ToolCall.Kind.Command, ToolCall.Status status = ToolCall.Status.Completed,
