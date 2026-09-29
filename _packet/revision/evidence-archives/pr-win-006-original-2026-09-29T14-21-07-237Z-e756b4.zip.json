@@ -1,0 +1,292 @@
+{
+  "original_directory": "_packet/revision/evidence/pr-win-006-original-2026-09-29T14-21-07-237Z-e756b4",
+  "archive": "_packet/revision/evidence-archives/pr-win-006-original-2026-09-29T14-21-07-237Z-e756b4.zip",
+  "archive_sha256": "C5A9587C915F0A3CC3A490C40E8424BC2B48C648B96380FA39DB96504AE077A3",
+  "files": [
+    {
+      "path": "E11-green.json",
+      "bytes": 2082,
+      "sha256": "F25411AF102B2A3D7B47FDCF576CAA8780A4CCCA10D3A3CCDDDC09265265EEF2"
+    },
+    {
+      "path": "E11-green.log",
+      "bytes": 691,
+      "sha256": "FF526ADBE9494D4989629A969D94A5F1165F1562AB5E9DE02BBB8F9DE68250ED"
+    },
+    {
+      "path": "E11-green.trx",
+      "bytes": 3140,
+      "sha256": "B14FA9416D3B499E1B73DC9A9A16C98562FD02470DA5CFDD185932ED17B68208"
+    },
+    {
+      "path": "E11-mutant-build.json",
+      "bytes": 1696,
+      "sha256": "9718FE249CC38EBA5DA35FC5A843BCED2161FBC0B25AB62A4C2A7DE185E0BDFA"
+    },
+    {
+      "path": "E11-mutant-build.log",
+      "bytes": 310,
+      "sha256": "79CE5A492EAAB4EDDDCC975B4715DEF7FAA3E1DC78FD8C41FE8B1E3930CADD3F"
+    },
+    {
+      "path": "E11-red-1.json",
+      "bytes": 2167,
+      "sha256": "4CC1448CAFAFE4A1DC6D6314ACD67F987EEECBD11C13F552F537E17517A24E21"
+    },
+    {
+      "path": "E11-red-1.log",
+      "bytes": 874,
+      "sha256": "951EB4AF467CFF515518DB1FE474E00EC60E2D53AD427D04A9A745784D9BDC6C"
+    },
+    {
+      "path": "E11-red-1.trx",
+      "bytes": 8011,
+      "sha256": "6CB6D0FE3B76353238D9A879DF2802054D6FFBF4D1A4C6220754892FF880C51F"
+    },
+    {
+      "path": "E11-red-2.json",
+      "bytes": 2167,
+      "sha256": "772D577CC9617C87A5AD6CE2FB2D2ED1533A42D072137B8AA1209ECB21F1133D"
+    },
+    {
+      "path": "E11-red-2.log",
+      "bytes": 874,
+      "sha256": "EF8238894A4DE966E805BAF50454E7053E62957989FE10688DF796CF385DF8D1"
+    },
+    {
+      "path": "E11-red-2.trx",
+      "bytes": 8011,
+      "sha256": "99BEF30E52784F975926FEA5F1C37AC413DADCB11B9F38B1F77DE19CB628A6F4"
+    },
+    {
+      "path": "E11-restored-build.json",
+      "bytes": 1698,
+      "sha256": "8784F90FA0FBDB40F2A764B0BF7865437C8A438578980E9CBE7B308D528478AC"
+    },
+    {
+      "path": "E11-restored-build.log",
+      "bytes": 310,
+      "sha256": "13505216EF8C07215C46037A68C2E518029E5FBA32C8402D614DEC00331B37E2"
+    },
+    {
+      "path": "E11.diff",
+      "bytes": 817,
+      "sha256": "C8A90EF58974C389985CCA2E0662957C8E394792380223635F4BC442108FA087"
+    },
+    {
+      "path": "E12-green.json",
+      "bytes": 2082,
+      "sha256": "BBE965B101EBC5D6011EF4663F394C6F5C00A187465034DDC4A5178572435059"
+    },
+    {
+      "path": "E12-green.log",
+      "bytes": 691,
+      "sha256": "BB6A525D8C617D562C8B45015E3AD24DD049DCC4742C8313ED075D8FFB8D712A"
+    },
+    {
+      "path": "E12-green.trx",
+      "bytes": 3140,
+      "sha256": "12CC3C58BD252778F63AD15BC8D40817946BCA08AB638A345FF86B6646F3A8EC"
+    },
+    {
+      "path": "E12-mutant-build.json",
+      "bytes": 1696,
+      "sha256": "7FCDAF67C5EBE3034D68692983E0E305384E682F12BD183E171938FEEA2BCDD6"
+    },
+    {
+      "path": "E12-mutant-build.log",
+      "bytes": 310,
+      "sha256": "7598E77AEA12859E0A1280665249021E3F3AB10361D2DA952FE9CD0579A63615"
+    },
+    {
+      "path": "E12-red-1.json",
+      "bytes": 2167,
+      "sha256": "C1C11977A5C5AF505C5E6689B60F0B2910D09D5A765842462658B68C7A05C8F3"
+    },
+    {
+      "path": "E12-red-1.log",
+      "bytes": 874,
+      "sha256": "BD2A3D6E36B5CDF92A1FE887AFBC43F4C06FD950EDCEE647822B1F0A575988B6"
+    },
+    {
+      "path": "E12-red-1.trx",
+      "bytes": 8011,
+      "sha256": "E6AD0B5A6F0D7D8B3E0F809EB1A36E701C5B803B9721AA81E7F7933E26BAEC6E"
+    },
+    {
+      "path": "E12-red-2.json",
+      "bytes": 2167,
+      "sha256": "912307C27C00E4F296AF4C8DC179B2F436D1E91FA9C2F0D8949D60AC932255CE"
+    },
+    {
+      "path": "E12-red-2.log",
+      "bytes": 874,
+      "sha256": "B9BA56EC4D3AB450BE095683CF8F6C500B8AD93E04D06AC6CACB257856CDC7B4"
+    },
+    {
+      "path": "E12-red-2.trx",
+      "bytes": 8011,
+      "sha256": "818DFC6B1168A543FF86B84DB3B36E4C7EE0584CED063B2BCA47EC0B9473E0A3"
+    },
+    {
+      "path": "E12-restored-build.json",
+      "bytes": 1698,
+      "sha256": "23E3DA63F7D9C15CAA519BA32282D5E8BEB8D8E684761FEB34A575675A135FA8"
+    },
+    {
+      "path": "E12-restored-build.log",
+      "bytes": 310,
+      "sha256": "2CE7B0C09D558264D46D80E16DBAB01C4887CECEEA1E85AC56A6F79C4D693BCB"
+    },
+    {
+      "path": "E12.diff",
+      "bytes": 817,
+      "sha256": "A93307C69EB666B5C924BB0A186F876C0C357BC9F6A483CE55E9AC9516851564"
+    },
+    {
+      "path": "E13-green.json",
+      "bytes": 2082,
+      "sha256": "6BE844B74BC07E0CAF02075AAB628C206D9F14125A3A75D9C69ECB2C6DA3D4FA"
+    },
+    {
+      "path": "E13-green.log",
+      "bytes": 691,
+      "sha256": "151B1198CDA1ECAC3834B10503E293DE3907BFFB5E9B3C1F413429C0A7BC8F84"
+    },
+    {
+      "path": "E13-green.trx",
+      "bytes": 3140,
+      "sha256": "7FFC95CF37485987C485C3A3E45382367AD78AF84C906CA1F45F12BFCE157806"
+    },
+    {
+      "path": "E13-mutant-build.json",
+      "bytes": 1696,
+      "sha256": "B34898F08E813C3A5D15AC92A3280159CA2D26D101C7D51109933C743A736EF5"
+    },
+    {
+      "path": "E13-mutant-build.log",
+      "bytes": 310,
+      "sha256": "8C136048045C804992218678945C1A3C51B9F9EF67B1FAC8F2CBC23633ED2E4B"
+    },
+    {
+      "path": "E13-red-1.json",
+      "bytes": 2155,
+      "sha256": "87959214E7CA7827F4976D6F24C0DAF7F06EE729E4120944F81968BD8E9555CC"
+    },
+    {
+      "path": "E13-red-1.log",
+      "bytes": 874,
+      "sha256": "E4736E9B07B3936013621DB96FAEB5C829ADB4F0AB762D1FABE79B376E760C0D"
+    },
+    {
+      "path": "E13-red-1.trx",
+      "bytes": 7987,
+      "sha256": "C8A1ACA8E353A3BC30E0FA3F9434E4719FF7028BD420C9BBF2B8530F63323C78"
+    },
+    {
+      "path": "E13-red-2.json",
+      "bytes": 2155,
+      "sha256": "DD74C97800CF93EEB0CC04E0F785847F3C923A5A2E0332FBBB1620ACF159BC8B"
+    },
+    {
+      "path": "E13-red-2.log",
+      "bytes": 874,
+      "sha256": "2A73E4AD662D6ACD6E65E5A48DA23A1191DDFC702277C0D11052A254B54BB8AA"
+    },
+    {
+      "path": "E13-red-2.trx",
+      "bytes": 7987,
+      "sha256": "725747750F03CB9651A5B246E84A1839E628B567E4C3E1FD22A7791F131E4FE9"
+    },
+    {
+      "path": "E13-restored-build.json",
+      "bytes": 1698,
+      "sha256": "BABF438457004A0A94CC009C761A4535247BB7B95FF979DBC2212414B126B706"
+    },
+    {
+      "path": "E13-restored-build.log",
+      "bytes": 310,
+      "sha256": "C61D33EA5224BDBD253F980A6EF3CF504E0DC96AC66AC6633F4F275C276FF234"
+    },
+    {
+      "path": "E13.diff",
+      "bytes": 674,
+      "sha256": "8C8E2A78DEB2B69FE00DBCF379FD3D9498626D920854EA779EBC61602608E8E7"
+    },
+    {
+      "path": "E14-green.json",
+      "bytes": 2082,
+      "sha256": "9B1A3FAD0210E0D3361A1655B779CAA78DD26E3708E211F4EE7BF4B2C9B44B72"
+    },
+    {
+      "path": "E14-green.log",
+      "bytes": 691,
+      "sha256": "7926E670B18A6A150F88F385CC31CBC3F1DE8D0F8EEF556FE34429C0F2544A60"
+    },
+    {
+      "path": "E14-green.trx",
+      "bytes": 3140,
+      "sha256": "093E25F9808AF3F82423EC01CC6B952ED4D685D8E635B851E733F9292D1C3CEF"
+    },
+    {
+      "path": "E14-mutant-build.json",
+      "bytes": 1696,
+      "sha256": "809A30D882622C083BAA2974F0A33625AEBEF279EBD1A05B57C7EAFDAFD54C7F"
+    },
+    {
+      "path": "E14-mutant-build.log",
+      "bytes": 310,
+      "sha256": "D817CD16F21EB92121B547413811AEA6F3A678E8F97ED1D2664C803B72276AD1"
+    },
+    {
+      "path": "E14-red-1.json",
+      "bytes": 2155,
+      "sha256": "7C1B2AD9DA1552AE7AA2432FE94E817A887DC71F83B8115C22736072CB1B0D26"
+    },
+    {
+      "path": "E14-red-1.log",
+      "bytes": 874,
+      "sha256": "34F9471A79D1D9121C36993D5800DCBC34F25532A123AD609C99EA07764070B1"
+    },
+    {
+      "path": "E14-red-1.trx",
+      "bytes": 7987,
+      "sha256": "23ECF560C0FE703DCF73DA9864E06CBDC6E8026BF0AA4BC00BA4384C0243BF8E"
+    },
+    {
+      "path": "E14-red-2.json",
+      "bytes": 2155,
+      "sha256": "1410A6FFCC6A1AFFA0C44497296DE58A1EB9C547F0FB60FF4CF4DC316BA7471D"
+    },
+    {
+      "path": "E14-red-2.log",
+      "bytes": 874,
+      "sha256": "76269227C97B38FAC5776609505A38223D5A62AE47663E67E0765087EF7D533C"
+    },
+    {
+      "path": "E14-red-2.trx",
+      "bytes": 7987,
+      "sha256": "CA5FC8C98E13DF2A9E762E4C7BB60381BBDC2155494F63384E0AF206338A99BD"
+    },
+    {
+      "path": "E14-restored-build.json",
+      "bytes": 1698,
+      "sha256": "A1EE5B32E6C1F45ED0324DDA7AA078F301569BAA22075B4363E3CB6335085AF0"
+    },
+    {
+      "path": "E14-restored-build.log",
+      "bytes": 310,
+      "sha256": "BBE7F6391607A81835947FD83333C9E4B7B00ECB68862BBBFF101197C0C91CCA"
+    },
+    {
+      "path": "E14.diff",
+      "bytes": 583,
+      "sha256": "4FB5E17A9D606AD030BD2DC9C4FE3CEAA46B4CDDE23E59DAE747E62A56D72D36"
+    },
+    {
+      "path": "results.json",
+      "bytes": 49509,
+      "sha256": "FB30BC813A8C36026E0660441232934C2BDA39E8AB3193538E5F6687FD2B8C8C"
+    }
+  ]
+}

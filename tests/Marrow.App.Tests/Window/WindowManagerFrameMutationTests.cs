@@ -20,6 +20,31 @@ public sealed class WindowManagerFrameMutationTests(HeadlessSession headless)
     };
 
     [Fact]
+    [Trait("Req", "PR-WIN-006")] // WindowManager.swift:67-70, autosave follows restoration as well as first-run centering.
+    public void A_restored_main_window_continues_to_autosave_each_later_move_and_resize() => WindowManagerMutationScope.Run(headless, (harness, manager) =>
+    {
+        harness.Defaults.Set(FrameName, Frame(6007, 4509, 1453, 973));
+        manager.ShowMain();
+        var window = Assert.IsType<ThreadWindow>(manager.MainWindow);
+        Assert.Equal(new PixelPoint(6007, 4509), window.Position);
+        Assert.Equal(1453, window.Width); Assert.Equal(973, window.Height);
+        harness.Defaults.Writes.Clear();
+        window.Position = new PixelPoint(321, 654);
+        WindowManagerMutationScope.Settle(window);
+        Assert.Contains(FrameName, harness.Defaults.Writes);
+        var moved = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(harness.Defaults.Object(FrameName));
+        Assert.Equal(321L, moved["x"]); Assert.Equal(654L, moved["y"]);
+        Assert.Equal(1453d, moved["width"]); Assert.Equal(973d, moved["height"]);
+        harness.Defaults.Writes.Clear();
+        window.Width = 1577; window.Height = 1021;
+        WindowManagerMutationScope.Settle(window);
+        Assert.Contains(FrameName, harness.Defaults.Writes);
+        var resized = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object>>(harness.Defaults.Object(FrameName));
+        Assert.Equal(321L, resized["x"]); Assert.Equal(654L, resized["y"]);
+        Assert.Equal(1577d, resized["width"]); Assert.Equal(1021d, resized["height"]);
+    });
+
+    [Fact]
     [Trait("Req", "PR-WIN-006")]
     public void A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping() => WindowManagerMutationScope.Run(headless, (harness, manager) =>
     {
