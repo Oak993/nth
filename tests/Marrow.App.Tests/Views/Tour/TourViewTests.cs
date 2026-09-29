@@ -384,4 +384,28 @@ public sealed class TourViewTests(HeadlessSession headless)
     {
         button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
     }
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-099")] // App/Views/Tour/TourView.swift:24,234-246 the pages array is a value: a page appended to the caller's list later is not the view's
+    public void Pages_appended_to_the_callers_list_after_construction_do_not_change_the_view() => headless.OnUiThread(() =>
+    {
+        var pages = new System.Collections.Generic.List<TourPage> { new("a", "One", "First") };
+        var finished = 0;
+        var view = new TourView(pages, onFinish: () => finished++);
+        pages.Add(new("b", "Two", "Second"));
+        Assert.True(view.IsLastPage);
+        view.Advance();
+        Assert.Equal(1, finished);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-103")] // App/Views/Tour/TourView.swift:64-72,225-245 advancing an empty tour only moves the index: the body still shows the empty state
+    public void Advancing_an_empty_tour_neither_throws_nor_calls_back() => headless.OnUiThread(() =>
+    {
+        var called = 0;
+        var view = new TourView([], onFinish: () => called++, onClose: () => called++);
+        view.Advance();
+        Assert.Equal(0, called);
+        Assert.Equal(1, view.CurrentIndex);
+    });
 }
