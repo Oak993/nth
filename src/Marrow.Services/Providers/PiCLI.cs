@@ -48,7 +48,8 @@ public static class PiCLI
     {
         if (environment.TryGetValue("PI_CODING_AGENT_DIR", out var directory) && directory.Length != 0) // :22-24
         {
-            return directory;
+            // :23 URL(fileURLWithPath:) resolves a relative path against the current directory.
+            return Path.IsPathRooted(directory) ? directory : SwiftPath.AppendingPathComponent(Environment.CurrentDirectory, directory);
         }
         return SwiftPath.AppendingPathComponent(Home(environment), ".pi/agent"); // :25-26
     }
