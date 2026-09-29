@@ -190,10 +190,13 @@ public sealed class HydraSettingsPage : Decorator
             blurb.Children.Add(MakeText("A pair says which model leads and which runs the heads. Put a deep thinker over quick hands on one provider, or lead on one provider and send the heads out on another: the strongest lead with the fastest team, every time.",
                 SwiftFont.Subheadline, Chrome.SecondaryText));
 
-            var introRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
+            // :118-141 HStack(spacing: 14) { roster; text; Spacer(minLength: 0) }: the text takes the width left beside the
+            // roster and wraps (:135 fixedSize(horizontal: false)).
+            var introRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
+            glyphRow.Margin = new Thickness(0, 0, 14, 0);
+            Grid.SetColumn(blurb, 1);
             introRow.Children.Add(glyphRow);
             introRow.Children.Add(blurb);
-            introRow.Children.Add(new Border { MinWidth = 0, HorizontalAlignment = HorizontalAlignment.Stretch });
             introRow.Margin = new Thickness(16, 14);
             pairsGroup.Children.Add(new ChromeCard(() => introRow));
 
@@ -224,7 +227,13 @@ public sealed class HydraSettingsPage : Decorator
         }, trailing: new HydraCookbookButton()));
 
         group.IsEnabled = settings.HydraEnabled; // :164 .disabled(!settings.hydraEnabled)
-        group.Opacity = settings.HydraEnabled ? 1 : 0.5; // :165
+        // :165-166 .opacity(...).animation(.smooth(duration: 0.2), value: settings.hydraEnabled): the rebuilt group starts
+        // where the one it replaces stands and fades to its target.
+        var target = settings.HydraEnabled ? 1.0 : 0.5;
+        var shown = shownGroup?.Opacity;
+        var fade = new AnimatedOpacity(group, shown ?? target);
+        if (shown is { } from && from != target) fade.Set(target, Marrow.UI.Port.Animation.Smooth(0.2));
+        shownGroup = group;
         root.Children.Add(group);
 
         // :167-189 Where heads run
@@ -385,7 +394,7 @@ internal sealed class HydraPairRow : Decorator
     {
         var registry = model.Providers;
 
-        var title = new Avalonia.Controls.TextBlock { Text = HydraPairSummary.Title(pair, registry) };
+        var title = new Avalonia.Controls.TextBlock { Text = HydraPairSummary.Title(pair, registry), TextWrapping = TextWrapping.Wrap };
         SwiftFont.Body.Apply(title);
         title.Foreground = Chrome.PrimaryText.Brush(title);
         var summary = new Avalonia.Controls.TextBlock { Text = Summary(pair, registry, model) };
@@ -397,10 +406,15 @@ internal sealed class HydraPairRow : Decorator
 
         var chevron = SwiftImage.SystemName("slider.horizontal.3").Font(SwiftFont.Callout).ForegroundStyle(Chrome.SecondaryText);
 
-        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 12 };
-        content.Children.Add(new HydraPairIcons(pair));
+        // :251-263 HStack(spacing: 12) { icons; text; Spacer(minLength: 8); chevron }: the text column takes the remaining
+        // width and wraps, the chevron trails.
+        var content = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
+        var icons = new HydraPairIcons(pair) { Margin = new Thickness(0, 0, 12, 0) };
+        Grid.SetColumn(textColumn, 1);
+        chevron.Margin = new Thickness(12 + 8 + 12, 0, 0, 0);
+        Grid.SetColumn(chevron, 2);
+        content.Children.Add(icons);
         content.Children.Add(textColumn);
-        content.Children.Add(new Border { MinWidth = 8, HorizontalAlignment = HorizontalAlignment.Stretch });
         content.Children.Add(chevron);
 
         var openButton = new Button
@@ -439,7 +453,9 @@ internal sealed class HydraPairRow : Decorator
         // :278 includes the model's chat/project pair-reference cleanup.
         removeButton.Click += (_, _) => Transaction.WithAnimation(Chrome.PanelSlide, () => model.RemoveHydraPair(pair.Id));
 
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto") }; // :248 HStack(spacing: 10): the button fills, the remove control trails
+        removeButton.Margin = new Thickness(10, 0, 0, 0);
+        Grid.SetColumn(removeButton, 1);
         row.Children.Add(openButton);
         row.Children.Add(removeButton);
         row.Margin = new Thickness(16, 9, Chrome.RowControlTrailingPadding, 9);
@@ -502,9 +518,13 @@ internal sealed class HydraPairEditor : Decorator
         });
     }
 
+    // :360-379 the name field keeps its identity, focus, selection and caret across the value change: it is built
+    // once and only the rows after it are rebuilt.
+    private StackPanel? nameColumn;
+    private TextBox? nameField;
+
     private void Rebuild()
     {
-        root.Children.Clear();
         AppModel model;
         try { model = AppEnvironment.GetAppModel(this); }
         catch (InvalidOperationException) { return; }

@@ -63,4 +63,29 @@ public sealed class HydraSettingsPageAuditTests(HeadlessSession headless)
         Assert.InRange(Math.Abs(Right(card, view) - Chrome.RowControlTrailingPadding - Right(toggle, view)), 0, 1.5);
     });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-163")] // HydraSettingsPage.swift:246-263 the row's button fills the width and the remove control trails it
+    public void A_pair_rows_remove_control_sits_at_the_trailing_edge() => WithPair("HydraPairRow", p => p, 900, (view, _, _) =>
+    {
+        var remove = Of<Button>(view).Last();
+        Assert.InRange(Math.Abs(Right(view, view) - Chrome.RowControlTrailingPadding - Right(remove, view)), 0, 1.5);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-160")] // HydraSettingsPage.swift:118-141 the pairs blurb takes the width left beside the roster and wraps
+    public void The_pairs_blurb_wraps_inside_a_narrow_page() => WithView(_ => new HydraSettingsPage(), 420, (view, _) =>
+    {
+        var blurb = Of<TextBlock>(view).First(t => t.Text?.StartsWith("A pair says which model leads", StringComparison.Ordinal) == true);
+        Assert.True(Right(blurb, view) <= view.Bounds.Width + 0.5);
+        Assert.True(blurb.Bounds.Height > 2 * blurb.FontSize);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-163")] // HydraSettingsPage.swift:247-262 a long pair name and summary wrap and grow the row
+    public void A_long_pair_title_wraps_inside_the_row() => WithPair("HydraPairRow", p => p with { Name = string.Join(' ', Enumerable.Repeat("verylongword", 20)) }, 500, (view, _, _) =>
+    {
+        var title = Of<TextBlock>(view).First(t => t.Text?.StartsWith("verylongword", StringComparison.Ordinal) == true);
+        Assert.True(Right(title, view) <= view.Bounds.Width + 0.5);
+    });
+
 }
