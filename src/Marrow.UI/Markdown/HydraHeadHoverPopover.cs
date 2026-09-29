@@ -127,6 +127,7 @@ public sealed class HydraHeadHoverPopover
             // to show the popover below the mention (equivalent to preferredEdge: .maxY)
             _popover.Placement = PlacementMode.Bottom;
             _popover.PlacementTarget = of as Control;
+            _popover.PlacementRect = relativeTo; // :37 relativeTo: rect
             _presented = true; // :37
             Presentation.Presenter.Current.SetPresented(_popover, true);
         });
@@ -240,6 +241,7 @@ internal sealed class HydraHeadHoverCard : Decorator
             Text = target.Task, // :68 Text(verbatim: target.task)
             MaxLines = 3, // :71 .lineLimit(3)
             TextWrapping = Avalonia.Media.TextWrapping.Wrap,
+            TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis, // :71 lineLimit(3) truncates the tail
         };
         var calloutFont = SwiftFont.System(SwiftFont.TextStyle.Callout); // :69 .font(.system(.callout))
         calloutFont.Apply(taskText);
