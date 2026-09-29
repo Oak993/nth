@@ -10,6 +10,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
 using Marrow.App.Views.Chat;
+using Marrow.App.Views.Tour;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
@@ -28,6 +29,7 @@ namespace Marrow.App.Views.Settings;
 public sealed class HydraSettingsPage : Decorator
 {
     private readonly StackPanel root = new() { Orientation = Orientation.Vertical, Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch };
+    private Control? shownGroup;
 
     // :8-190 body
     public HydraSettingsPage()
@@ -545,17 +547,22 @@ internal sealed class HydraPairEditor : Decorator
         // :360-379 name field, prompted by the pair's own summary title
         if (nameColumn is null || nameField is null)
         {
-            Text = pair.Name ?? "",
-            PlaceholderText = HydraPairSummary.ModelsTitle(pair, registry),
-        };
-        nameField.TextChanged += (_, _) =>
-            Update(model, p => p with { Name = string.IsNullOrEmpty(nameField.Text) ? null : nameField.Text });
-        SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold).Apply(nameField);
-
-        var nameColumn = new StackPanel { Orientation = Orientation.Vertical, Spacing = 4, Margin = new Thickness(14, 14, 14, 0) };
-        nameColumn.Children.Add(nameField);
-        nameColumn.Children.Add(MakeText("Shown in the picker and the composer", SwiftFont.Subheadline, Chrome.SecondaryText));
-        root.Children.Add(nameColumn);
+            nameField = PlainControls.TextField("", new Binding<string>(
+                () => model.Settings.HydraPairs.FirstOrDefault(current => current.Id == pairID)?.Name ?? "", // the observable list, as the row reads it
+                text => Update(model, p => p with { Name = string.IsNullOrEmpty(text) ? null : text }))); // :362-365
+            SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold).Apply(nameField); // :369
+            nameField.Foreground = Chrome.PrimaryText.Brush(nameField); // :370
+            var frame = new Border { Child = nameField, Padding = new Thickness(10, 7) }.RoundedRectangle(9, RoundedCornerStyle.Continuous); // :371-373
+            frame.Background = Chrome.Overlay(0.06).Brush(frame); // :373
+            var subtitle = MakeText("Shown in the picker and the composer", SwiftFont.Subheadline, Chrome.SecondaryText, new Thickness(2, 0)); // :374-377
+            nameColumn = new StackPanel { Orientation = Orientation.Vertical, Spacing = 4, Margin = new Thickness(14, 14, 14, 0) };
+            nameColumn.Children.Add(frame);
+            nameColumn.Children.Add(subtitle);
+        }
+        nameField.PlaceholderText = HydraPairSummary.ModelsTitle(pair, registry);
+        for (var index = root.Children.Count - 1; index >= 0; index--)
+            if (!ReferenceEquals(root.Children[index], nameColumn)) root.Children.RemoveAt(index);
+        if (root.Children.Count == 0) root.Children.Add(nameColumn);
 
         root.Children.Add(SectionLabel("Lead"));
         root.Children.Add(EditorRow("Provider", null, () => new GlassPickerButton<ProviderKind>(

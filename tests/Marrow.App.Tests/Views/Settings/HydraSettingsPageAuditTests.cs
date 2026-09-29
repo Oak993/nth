@@ -116,4 +116,24 @@ public sealed class HydraSettingsPageAuditTests(HeadlessSession headless)
         Assert.Equal(new Thickness(2, 0), subtitle.Margin);
     });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-149")] // HydraSettingsPage.swift:164-166 opacity 0.5 / 1 rides .smooth(duration: 0.2) on hydraEnabled
+    public void The_dimmed_group_fades_along_the_smooth_point_two_curve() => WithView(_ => new HydraSettingsPage(), 900, (view, m) =>
+    {
+        m.Settings.HydraEnabled = true; Sync();
+        var root = (StackPanel)typeof(HydraSettingsPage).GetField("root", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(view)!;
+        Assert.Equal(1, GroupOf(view, root).Opacity);
+        m.Settings.HydraEnabled = false; Sync();
+        Advance(0.05);
+        var mid = GroupOf(view, root).Opacity;
+        Assert.InRange(mid, 0.5001, 0.9999);
+        Advance(1);
+        Assert.Equal(0.5, GroupOf(view, root).Opacity);
+    });
+
+    private static Control GroupOf(Control view, StackPanel root)
+    {
+        var heads = Of<ChromeRow>(view).First(r => Of<TextBlock>(r).Any(t => t.Text == "Checkout"));
+        return (Control)heads.GetLogicalAncestors().First(a => ReferenceEquals(a.GetLogicalParent(), root));
+    }
 }
