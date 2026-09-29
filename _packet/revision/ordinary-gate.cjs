@@ -86,6 +86,20 @@ function retainOwnedChildEvidence(label, environment) {
   }
   return retained;
 }
+function validateProcessMutationFailure(result) {
+  const proof = result.child_evidence?.find(child => child.files.some(file => file.name === 'parent-result.json'));
+  if (!proof) return {valid:false,reason:'No retained child process evidence'};
+  function json(name) {
+    const file=proof.files.find(file=>file.name===name);
+    return file ? JSON.parse(fs.readFileSync(path.join(run,file.retained),'utf8')) : null;
+  }
+  const parent=json('parent-result.json'),failure=json('failure.json');
+  const valid=parent?.KernelChildExitCode===74&&parent?.CleanupComplete===true&&parent?.ExitProofVerified===false&&
+    failure?.ExitCode===74&&failure.Identity?.ChildProcessId===parent.Child?.ChildProcessId&&
+    /WindowManagerProcessChild\.(Scenario|.*ExitFromShell)/.test(failure.Error||'')&&
+    !/NATIVE_PRECONDITION|TimeoutException|before the selected child Fact|authorize the identified child/.test(failure.Error||'');
+  return {valid,child_exit:parent?.KernelChildExitCode,cleanup_complete:parent?.CleanupComplete,child_error:failure?.Error||'',reason:valid?'Owned child reached scenario and failed with code 74':'Child failure was not a verified scenario assertion'};
+}
 function invoke(label,args) {
   console.log('RUN '+label+': dotnet '+args.join(' '));
   const start=new Date().toISOString();
@@ -159,6 +173,12 @@ if (mode==='build') {
         const red=test(m.id+'-red-'+i,selection);r.runs.push(red);
         if(red.exit===0||red.total!==1||red.failed!==1) r.status='SURVIVED_OR_INVALID_RED';
         if(red.tests.some(t=>/NATIVE_PRECONDITION|TopLevel must be a headless window|activation click did not complete|requires .*opt-in|Native child STA did not stop|Native child Fact or VSTest runner did not finish|Native child survived its completed VSTest runner|Native runner exited before the selected Fact|Native child data\/temp were not isolated/.test(t.error))) r.status='FIXTURE_FAILURE_NOT_A_KILL';
+        if(m.killer.includes('.WindowManagerProcessTests.')) {
+          red.process_failure=validateProcessMutationFailure(red);
+          if(!red.process_failure.valid)r.status='INVALID_CHILD_FAILURE_NOT_A_KILL';
+          console.log('CHILD_FAILURE '+m.id+' verified='+red.process_failure.valid+' '+red.process_failure.reason);
+          save(red.name+'.json',red);
+        }
       }
     } catch(error) {r.status='ERROR';r.error=String(error);console.log(r.error);}
     finally {
