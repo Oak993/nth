@@ -995,4 +995,54 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
         Assert.False(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Hydra merged\nbody", HydraHeads = null }));
         Assert.False(DisplayBlock.IsMergeOutcome(new UserMessage { Text = "Hydra merged\nbody", HydraHeads = new([1]) }));
     });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-031")] // App/Views/Chat/ThreadTimeline.swift:1533-1541 (only a merge outcome maps to the outcome card)
+    public void Oc_Ordinary_hydra_note_maps_to_no_phase() => OnMain(() =>
+    {
+        var note = Entry("n", new TimelineItem.Content.User(new UserMessage { Text = "Hello\nbody", HydraHeads = new([]) }));
+        var block = Assert.IsType<DisplayBlock.Group>(Blocks(new[] { note }).Single());
+        Assert.Null(block.HydraMergePhase);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-031")] // App/Views/Chat/ThreadTimeline.swift:1902-1935 (a phased block renders as a HydraMergeRow through dispatch)
+    public void Oc_Phased_block_renders_through_merge_dispatch() => WithTimeline((_, runtime, _, _, _) =>
+    {
+        var row = new DisplayBlockView(new DisplayBlock.Merging("m"), runtime, new RowContext(null, false, false));
+        Assert.NotEmpty(LogicalQuery.SelfAndDescendants<HydraMergeRow>(row));
+        var note = Entry("n", new TimelineItem.Content.User(new UserMessage { Text = "Hydra merged project\nbody", HydraHeads = new([]) }));
+        var outcome = Assert.IsType<DisplayBlock.Group>(Blocks(new[] { note }).Single());
+        var phase = Assert.IsType<HydraMergePhase.Outcome>(outcome.HydraMergePhase);
+        Assert.Equal("Hydra merged project\nbody", phase.Value.Text);
+        var outcomeRow = new DisplayBlockView(outcome, runtime, new RowContext(null, false, false));
+        Assert.NotEmpty(LogicalQuery.SelfAndDescendants<HydraMergeRow>(outcomeRow));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-031")] // App/Views/Chat/ThreadTimeline.swift:1624-1626 (a trailing outcome suppresses the merging pill)
+    public void Oc_Trailing_outcome_suppresses_the_merging_pill() => OnMain(() =>
+    {
+        var outcome = Entry("m", new TimelineItem.Content.User(new UserMessage { Text = "Hydra merged project\nbody", HydraHeads = new([]) }));
+        var blocks = Blocks(new[] { outcome }, false, "m");
+        Assert.DoesNotContain(blocks, block => block is DisplayBlock.Merging);
+        Assert.IsType<DisplayBlock.Group>(Assert.Single(blocks));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-031")] // App/Views/Chat/ThreadTimeline.swift:1624-1626 (only the last entry decides suppression)
+    public void Oc_Only_the_last_entry_decides_suppression() => OnMain(() =>
+    {
+        var outcome = Entry("m", new TimelineItem.Content.User(new UserMessage { Text = "Hydra merged project\nbody", HydraHeads = new([]) }));
+        var blocks = Blocks(new[] { outcome, User("u") }, false, "m");
+        Assert.Contains(blocks, block => block is DisplayBlock.Merging);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRAMERGE-031")] // App/Views/Chat/ThreadTimeline.swift:1624-1626 (the merging pill carries the merge id)
+    public void Oc_Merging_pill_carries_the_merge_id() => OnMain(() =>
+    {
+        var pill = Assert.IsType<DisplayBlock.Merging>(Blocks([], false, "note-9").Single());
+        Assert.Equal("note-9", pill.Id);
+    });
 }
