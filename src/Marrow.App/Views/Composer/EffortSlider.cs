@@ -172,13 +172,25 @@ public sealed class ModelEffortPanel : Decorator
     public ModelEffortPanel(Guid threadID, bool hasHistory)
     {
         Width = 330; Child = pages; // :186
-        this.Track(() => (AppEnvironment.GetAppModel(this), AppEnvironment.GetAppModel(this).Thread(threadID), state.ShowsModels), snapshot =>
+        this.Track(() =>
         {
-            var (app, thread, showsModels) = snapshot; model = app;
+            var app = AppEnvironment.GetAppModel(this);
+            var thread = app.Thread(threadID);
+            // :196 the body reads hydraLaunch's resolved heads effort, so the caption follows it.
+            return (app, thread, state.ShowsModels, HeadsEffort: thread is null ? null : app.HydraLaunch(thread)?.WorkerEffort);
+        }, snapshot =>
+        {
+            var (app, thread, showsModels, headsEffort) = snapshot; model = app;
             if (thread is null) { pages.Children.Clear(); displayedModels = null; return; } // :162
             var key = (thread.Provider, thread.Model, model.HydraIsOn(thread) ? model.HydraPair(thread) : null, model.Providers.Model(thread.Model, thread.Provider));
             // :163-185 the branch retains its view/state while only the bound effort or fast mode changes.
-            if (!showsModels && displayedModels == false && Equals(sliderKey, key)) return;
+            if (!showsModels && displayedModels == false && Equals(sliderKey, key))
+            {
+                // Only the resolved heads effort can differ here: the caption is the one part of the card it reaches.
+                if (key.Item3 is { } keptPair && pages.Children.FirstOrDefault() is EffortSliderCard card)
+                    card.UpdateHeadsEffort(new EffortPairLook(keptPair, model.Providers, headsEffort));
+                return;
+            }
             sliderKey = key;
             Control content;
             if (showsModels)
@@ -416,6 +428,15 @@ public sealed class EffortSliderCard : Decorator
     /// <param name="onReset">:517 <c>let onReset: () -> Void</c>; moves before onTitleTap (ED-095).</param>
     /// <param name="pair">:510 <c>var pair: EffortPairLook? = nil</c>.</param>
     /// <param name="onTitleTap">:516 <c>var onTitleTap: (() -> Void)?</c>.</param>
+    private TextBlock? pairCaption;
+
+    /// <summary>:191-197, :500-503 the body runs again with the pair's freshly resolved heads effort: the caption is the
+    /// only part of the look that reads it.</summary>
+    internal void UpdateHeadsEffort(EffortPairLook look)
+    {
+        if (pairCaption is { } caption && caption.Text != look.Caption) caption.Text = look.Caption;
+    }
+
     // :557-656 body
     public EffortSliderCard(
         string modelName,
@@ -480,6 +501,7 @@ public sealed class EffortSliderCard : Decorator
         if (pair is not null && efforts.Count > 0)
         {
             var caption = EffortView.Text(pair.Caption, SwiftFont.System(SwiftFont.TextStyle.Subheadline), Chrome.SecondaryText);
+            pairCaption = caption;
             caption.Margin = new Thickness(0, -6, 0, 0); caption.TextTrimming = TextTrimming.CharacterEllipsis;
             var scaledCaption = TextScaling.Apply(caption, 0.9); // :648 (ED-214).
             rows.Children.Add(scaledCaption);
