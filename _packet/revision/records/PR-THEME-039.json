@@ -3,20 +3,21 @@
   "status": "MUTATION_BATCH_COMPLETE",
   "candidate": false,
   "candidate_note": "Final clause-by-clause and full-suite acceptance is reported separately; a mutation count alone is not certification.",
-  "head_before_commit": "2596aa179e93090761b800b39e5b741412a808d4",
+  "head_before_commit": "458a1ba536b2331b91f36a36770beab5c5b9e671",
   "window_manager_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
-  "additional_count": 8,
+  "additional_count": 9,
   "verifier_recheck_count": 0,
   "ordinary_record_gate": {
     "name": "tests",
-    "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'Req=PR-THEME-039|FullyQualifiedName~TraceabilityTests' '--logger' 'trx;LogFileName=tests.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-record-gate-2026-09-29T14-26-48-150Z-8d9323'",
+    "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'Req=PR-THEME-039|FullyQualifiedName~TraceabilityTests' '--logger' 'trx;LogFileName=tests.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\supplement-gate-pr-theme-039-2026-09-29T16-06-55-917Z-6ede99'",
     "exit": 0,
-    "start": "2026-09-29T14:26:48.151Z",
-    "end": "2026-09-29T14:26:52.925Z",
+    "start": "2026-09-29T16:06:55.918Z",
+    "end": "2026-09-29T16:07:00.727Z",
     "environment": {
       "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
       "outer_opt_in_variables": [],
-      "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-749e8a8c-9509-4c6c-a3ad-30d6b4ca99e8",
+      "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-f9129e22-913d-4e61-a0f9-3a84857b4dca",
+      "api_key_variables_remaining": [],
       "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
     },
     "source_hashes": [
@@ -43,51 +44,19 @@
       {
         "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
         "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+      },
+      {
+        "name": "src/Marrow.Core/Support/Text.cs",
+        "sha256": "255A7FF52A770EC3A09C01741CEC87715A4D918A6737E79814C2F4FDBB8D78C1"
+      },
+      {
+        "name": "src/Marrow.Services/Port/SettingsStore.cs",
+        "sha256": "BB9CD80B0F5B0D47DC44B1B7ACDCF5DC3B56FFCDEA961F55682F6EBA4B52F2DA"
       }
     ],
     "tests": [
       {
-        "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
-        "outcome": "Passed",
-        "error": ""
-      },
-      {
-        "name": "Marrow.App.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords",
-        "outcome": "Passed",
-        "error": ""
-      },
-      {
-        "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
-        "outcome": "Passed",
-        "error": ""
-      },
-      {
-        "name": "Marrow.App.Tests.Window.WindowManagerTests.At_first_build_the_theme_sets_the_window_colour_scheme_and_the_process_appearance",
-        "outcome": "Passed",
-        "error": ""
-      },
-      {
         "name": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
-        "outcome": "Passed",
-        "error": ""
-      },
-      {
-        "name": "Marrow.App.Tests.Window.WindowManagerTests.Changing_the_theme_sets_both_the_colour_scheme_and_the_process_appearance",
-        "outcome": "Passed",
-        "error": ""
-      },
-      {
-        "name": "Marrow.App.Tests.Window.WindowManagerNextTests.Theme_changes_reach_both_cached_windows_and_a_hidden_Settings_view_without_rebuilding_it",
-        "outcome": "Passed",
-        "error": ""
-      },
-      {
-        "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
-        "outcome": "Passed",
-        "error": ""
-      },
-      {
-        "name": "Marrow.App.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read",
         "outcome": "Passed",
         "error": ""
       },
@@ -97,7 +66,47 @@
         "error": ""
       },
       {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.At_first_build_the_theme_sets_the_window_colour_scheme_and_the_process_appearance",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerNextTests.Theme_changes_reach_both_cached_windows_and_a_hidden_Settings_view_without_rebuilding_it",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
         "name": "Marrow.App.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.Changing_the_theme_sets_both_the_colour_scheme_and_the_process_appearance",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read",
         "outcome": "Passed",
         "error": ""
       }
@@ -107,164 +116,1546 @@
     "failed": 0,
     "child_evidence": [
       {
-        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-749e8a8c-9509-4c6c-a3ad-30d6b4ca99e8\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e",
+        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-f9129e22-913d-4e61-a0f9-3a84857b4dca\\marrow-window-process-6e48eb1e4c1c413298ad8dc8137c4889",
         "files": [
           {
             "name": "restart-root.json",
-            "retained": "children\\tests\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e\\restart-root.json",
-            "sha256": "DA13A344CF90815EFCC3BB4060DDAB8B0937E19DEC876E1C9164ADDF7DB29F4A"
+            "retained": "children\\tests\\marrow-window-process-6e48eb1e4c1c413298ad8dc8137c4889\\restart-root.json",
+            "sha256": "4FD16763628361E91F2050FE9DE32C8B5B585C5F45CB02801463A5BA4AB23F09"
           },
           {
             "name": "restart-result.json",
-            "retained": "children\\tests\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e\\restart-result.json",
-            "sha256": "8F251D05DE3E782079F617EA86604AEA47713FF76D8167B168DBB838A48B67CC"
+            "retained": "children\\tests\\marrow-window-process-6e48eb1e4c1c413298ad8dc8137c4889\\restart-result.json",
+            "sha256": "E5E6B20607A6D3EDE63AEE5FBF8971CBF357BC418A75FFEB44B8049496F7B5B7"
           },
           {
             "name": "phase-1-complete.json",
-            "retained": "children\\tests\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e\\phase-1-complete.json",
-            "sha256": "5B2C1C0A02271DD14B8F87067730507AA78E72BBF2EAFB98FEFD9D3755361EAD"
+            "retained": "children\\tests\\marrow-window-process-6e48eb1e4c1c413298ad8dc8137c4889\\phase-1-complete.json",
+            "sha256": "7BE3855BD928744E5BC319D576DDE9593A67672E8AB8EDCC902F4C76C78EB24F"
           }
         ]
       },
       {
-        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-749e8a8c-9509-4c6c-a3ad-30d6b4ca99e8\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e\\phase-1\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7",
+        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-f9129e22-913d-4e61-a0f9-3a84857b4dca\\marrow-window-process-6e48eb1e4c1c413298ad8dc8137c4889\\phase-1\\marrow-window-process-883f65ed155e44f2beb8480b85c14190",
         "files": [
           {
             "name": "request.json",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\request.json",
-            "sha256": "6E78D2CDF677D331868C12474F412D982CB58A5F36B8C6348D916D66D478E179"
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\request.json",
+            "sha256": "60C43DF073CCB1B1FA7D0B981A8ADCA9D2292DF95FCF263CB80751E716E841E9"
           },
           {
             "name": "invocation.json",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\invocation.json",
-            "sha256": "1707FDF32B17E201AF177CA05CE944EB939CA6B319B134CBA631AD8B99DAFA87"
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\invocation.json",
+            "sha256": "D3E4EFBF3998FCBAA67BDA90468276FADC6CB687E258EEB76FB2C8DDD0F59B03"
           },
           {
             "name": "ready.json",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\ready.json",
-            "sha256": "0F21F2CEFD200ED9050E6EFE7A6179F89EBBFC74532DDA9D68CC3A91C80D4BA9"
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\ready.json",
+            "sha256": "623D769408E39BDE7A2EB9E331C3FA288D1F260C13BB20C5FF2CA13004BBFEB2"
           },
           {
             "name": "permit.json",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\permit.json",
-            "sha256": "511447A48FD8E675E719303B40573FE65CE564E540B1FA652E7921009D65BA39"
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\permit.json",
+            "sha256": "C9E672FEC7C26D189047EFA0D8482B4C78D140DB0C353B98DB747217D3AFDC09"
           },
           {
             "name": "child.log",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\child.log",
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\child.log",
             "sha256": "765828B369F1D7BD4A0B1E3104DFEB6110EDDD9F84A52746D466E4ED4C2EF064"
           },
           {
             "name": "parent-result.json",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\parent-result.json",
-            "sha256": "55E20DAC1580D7BD7ECC02DD927A1C5136470E5FBB010BB724082D5769168DC1"
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\parent-result.json",
+            "sha256": "16294FA2A8F5C651626E3A6B9F784676EF44A5AB6F9CD1F71C6FB4F4CEB292E1"
           },
           {
             "name": "runner.stdout.log",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\runner.stdout.log",
-            "sha256": "D04A0D13101B3A6468A5DE92EA9917C52AF38384B6604B73D89548DDBADD92F1"
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\runner.stdout.log",
+            "sha256": "BE9BA613730B55ABA476AE1C4ED20DE8C8AA400F23BEBE194E442606DBADAC82"
           },
           {
             "name": "runner.stderr.log",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\runner.stderr.log",
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\runner.stderr.log",
             "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
           },
           {
             "name": "results/child.trx",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\results\\child.trx",
-            "sha256": "26F14A961F3BB3884BAD80A5F4C600F84D44D1ED94E9FE0CD379E165C455D76C"
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\results\\child.trx",
+            "sha256": "318077A29F0239C996FF8CE890D93AEE112F1003BDB14A57FC9EE0EBEE638204"
           },
           {
             "name": "restart-request.json",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\restart-request.json",
-            "sha256": "3721229D0715E238331063F8C6FDEBBD9F76F5EAB003C7B648CFC52C0371FDEF"
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\restart-request.json",
+            "sha256": "DC622620BA4E078E32B8504C24BD86DAB1E44D231EBE0170F537C4CDA5D5ECCA"
           },
           {
             "name": "phase-result.json",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\phase-result.json",
-            "sha256": "858E86A8D93DA0AE99B88BB7AE8F72AB2ED4D10646D91A9600A01BDB1D377FDF"
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\phase-result.json",
+            "sha256": "3858F1DED24950137A300F7CCFD4D8079008CA86211033B005D77BDEF5C359F0"
           },
           {
             "name": "output-store.bin",
-            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\output-store.bin",
+            "retained": "children\\tests\\marrow-window-process-883f65ed155e44f2beb8480b85c14190\\output-store.bin",
             "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
           }
         ]
       },
       {
-        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-749e8a8c-9509-4c6c-a3ad-30d6b4ca99e8\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e\\phase-2\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6",
+        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-f9129e22-913d-4e61-a0f9-3a84857b4dca\\marrow-window-process-6e48eb1e4c1c413298ad8dc8137c4889\\phase-2\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a",
         "files": [
           {
             "name": "request.json",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\request.json",
-            "sha256": "EAA01B41CCA59335B8B21EFFE5E0D8E309061906E2D309CA78A78D3294D89D27"
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\request.json",
+            "sha256": "4B312DAC8BE3A2BF67CDE3168DB071879964F4ADBE5A7455E28FCCC00B18147F"
           },
           {
             "name": "invocation.json",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\invocation.json",
-            "sha256": "09DE72B0F8441D42DCB99AAF90D34E97261C31D2CB0BF9C586936424FB163480"
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\invocation.json",
+            "sha256": "95914B63541AA652DDDD815303AE6C929407D24EF5C0E363A11B9FDF446D13FD"
           },
           {
             "name": "ready.json",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\ready.json",
-            "sha256": "E7551A656C49EFE145A75373041A12B38D3E7D6CB6FA4C891E32CD8F80FCF004"
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\ready.json",
+            "sha256": "8331F9D6EE9BF46539F7D7F26C33BF999B63DC9D89CE45400163AF64EC41640C"
           },
           {
             "name": "permit.json",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\permit.json",
-            "sha256": "F5B1C567DA1C387730744522198A2734AF6718377E09E698E24192D14238CDE2"
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\permit.json",
+            "sha256": "0836BAE31E42A97EAFB807F3D627DE72038F44F71262B7D06B357B94ED71631A"
           },
           {
             "name": "child.log",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\child.log",
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\child.log",
             "sha256": "C9B7CAA23AF15E47D2C368B6C2BF5F6829DDB82E5B740AF8E77C4278E505A9F0"
           },
           {
             "name": "parent-result.json",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\parent-result.json",
-            "sha256": "7791B6767CC0F524C7C04C3DFB04D6E2BA7BBB3D6D3FB60A6175F3E67602C69B"
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\parent-result.json",
+            "sha256": "F00EEEA72030FB0508C59FA11805B41C743807A0F1D304295CA919F2C7CA35E2"
           },
           {
             "name": "runner.stdout.log",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\runner.stdout.log",
-            "sha256": "CF297E1FE42C4BAD692FEE0B923BFEA005CAF68BE80ABE80C404A560EE3CD3D2"
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\runner.stdout.log",
+            "sha256": "71D694767D8B5955CD6B81399A1D022584813320388153D1BF29818DEE748CED"
           },
           {
             "name": "runner.stderr.log",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\runner.stderr.log",
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\runner.stderr.log",
             "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
           },
           {
             "name": "results/child.trx",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\results\\child.trx",
-            "sha256": "0E69CAAC2FDC9B4CDFA8C1C53F93CA6CCF433735AEE1C4529538F68D2695D0E8"
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\results\\child.trx",
+            "sha256": "B7E2CBF3663356CFF06BDCA1026C72FA386F906C8A116808401B604795B01093"
           },
           {
             "name": "restart-request.json",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\restart-request.json",
-            "sha256": "C1FFB4DD96C3D9F5E2F31C75F888D3B87D3A8459DCE6817C8A0D638513DBC037"
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\restart-request.json",
+            "sha256": "81218AC59128748D53E5A209A2E69F44DAF1E4742CCF49C575D6AEBBCF112C1F"
           },
           {
             "name": "phase-result.json",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\phase-result.json",
-            "sha256": "E2E96D4BD5927B90130673D85C747521B268B8523EFD959D4FE2423CFBB3D55F"
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\phase-result.json",
+            "sha256": "59B15EA0A200CF510F309C769E6B8F9C6F4ED7900F0EE7010F2A4A68BE772359"
           },
           {
             "name": "input-store.bin",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\input-store.bin",
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\input-store.bin",
             "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
           },
           {
             "name": "output-store.bin",
-            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\output-store.bin",
+            "retained": "children\\tests\\marrow-window-process-e02f7ddc903b4bcbabc55d542929b51a\\output-store.bin",
             "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
           }
         ]
       }
     ],
-    "evidence": "_packet/revision/evidence/pr-theme-039-record-gate-2026-09-29T14-26-48-150Z-8d9323/tests.json"
+    "evidence": "_packet/revision/evidence/supplement-gate-pr-theme-039-2026-09-29T16-06-55-917Z-6ede99/tests.json"
   },
   "mutations": [
+    {
+      "id": "OWN-THEME039-09",
+      "records": [
+        "PR-THEME-039"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "clause": "A restarted saved-frame profile still applies the initial process appearance before any second-process theme change",
+      "precision": "Own additional exact source replacement; not an unpublished verifier mutation",
+      "killer": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+      "replacements": [
+        {
+          "before": "(_, theme) => SetAppearance(theme), initial: true",
+          "after": "(_, theme) => SetAppearance(theme), initial: UserDefaults.Standard.Current.Dictionary(\"DroppyCodeMainWindow\") is null"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "OWN-THEME039-09-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T15:59:24.696Z",
+          "end": "2026-09-29T15:59:29.782Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ca7eb885-de06-4ca8-95d5-6679e932fbfb",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "D1D0502FAB7988DCB3E68D41D736E1FB0B8DB2B03E074658A03AF18F81688B5C"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            },
+            {
+              "name": "src/Marrow.Core/Support/Text.cs",
+              "sha256": "255A7FF52A770EC3A09C01741CEC87715A4D918A6737E79814C2F4FDBB8D78C1"
+            },
+            {
+              "name": "src/Marrow.Services/Port/SettingsStore.cs",
+              "sha256": "BB9CD80B0F5B0D47DC44B1B7ACDCF5DC3B56FFCDEA961F55682F6EBA4B52F2DA"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "F7B7687668DD0D8A7045E67EC2DBC0950DA9FF9A399BEB41D383CBED1BAA1639"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "A5F8B18FF18252BEA3BB069301CBA6C5A2E5EE3D2DF34D9049D436002B8C12A7"
+            },
+            {
+              "name": "Marrow.Core.dll",
+              "sha256": "71E112575A3481243A1B303A8BE34527F16AD248B8C47D32C1BE28F80D5F7477"
+            },
+            {
+              "name": "Marrow.Services.dll",
+              "sha256": "25D0381976D1D51F06DD9B51B0B7ECA8657F08901C01B67B4AC35DE0DE462693"
+            },
+            {
+              "name": "Marrow.UI.dll",
+              "sha256": "4762454B1DFB784739FF4C1421A9F647B9B60F767168C1F7E5A5C7D6068CA2B2"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-09-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-09-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\final-gap-pr-theme-039-2026-09-29T15-59-24-639Z-ba1cfc'",
+          "exit": 1,
+          "start": "2026-09-29T15:59:29.797Z",
+          "end": "2026-09-29T15:59:34.477Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-43eaeaed-64ce-4c44-bdf4-c69c03c3b4ac",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "D1D0502FAB7988DCB3E68D41D736E1FB0B8DB2B03E074658A03AF18F81688B5C"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            },
+            {
+              "name": "src/Marrow.Core/Support/Text.cs",
+              "sha256": "255A7FF52A770EC3A09C01741CEC87715A4D918A6737E79814C2F4FDBB8D78C1"
+            },
+            {
+              "name": "src/Marrow.Services/Port/SettingsStore.cs",
+              "sha256": "BB9CD80B0F5B0D47DC44B1B7ACDCF5DC3B56FFCDEA961F55682F6EBA4B52F2DA"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+              "outcome": "Failed",
+              "error": "System.InvalidOperationException : WindowManager restart proof failed; evidence: C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-43eaeaed-64ce-4c44-bdf4-c69c03c3b4ac\\marrow-window-process-9848ef716e6741cf9933a0d528c35142\r\n---- System.InvalidOperationException : Restart child Fact Failed: Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement\nAssert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartScenario.Run(WindowManagerRestartReady identity, String directory) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartScenario.cs:line 91\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartChild.<>c__DisplayClass0_1.<Run>b__1() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartChild.cs:line 30\r\n   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\HeadlessFixtures.cs:line 37\r\n   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()\r\n   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\HeadlessFixtures.cs:line 33\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartChild.Run(String token, String factName) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartChild.cs:line 30\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartProof.Execute(String factName) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartProof.cs:line 19\r\n   at Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerRestartTests.cs:line 18\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-43eaeaed-64ce-4c44-bdf4-c69c03c3b4ac\\marrow-window-process-9848ef716e6741cf9933a0d528c35142",
+              "files": [
+                {
+                  "name": "restart-root.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-9848ef716e6741cf9933a0d528c35142\\restart-root.json",
+                  "sha256": "23CB3FAC4413478738E0E71D52192331534F1F42FB5AAF89063C04EB3E49D5FA"
+                },
+                {
+                  "name": "restart-failure.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-9848ef716e6741cf9933a0d528c35142\\restart-failure.json",
+                  "sha256": "E0715664694F2E3492308A9C5F83D6BCE61BCA7D96B04429A3FB8CB6C2C5B9E5"
+                },
+                {
+                  "name": "phase-1-complete.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-9848ef716e6741cf9933a0d528c35142\\phase-1-complete.json",
+                  "sha256": "9E9733AF58E00E312297353E305A983F9C13504FB2DA044B05436F01DE61FC59"
+                }
+              ]
+            },
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-43eaeaed-64ce-4c44-bdf4-c69c03c3b4ac\\marrow-window-process-9848ef716e6741cf9933a0d528c35142\\phase-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\request.json",
+                  "sha256": "44FB550B997BCA16B07DEDD131A8105AD9702CC342DBC39892D64164FED9B1A6"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\invocation.json",
+                  "sha256": "A254D33BDB4142456B3A61AA26757B5ADC4B34535CEB91115F68A824A7F64489"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\ready.json",
+                  "sha256": "3B0DB02298B65BE0A89650069D10C39665B8E37D123347CAE8E556E6679B5990"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\permit.json",
+                  "sha256": "F8DDB7D077D9606856686B2D1AD5E0281631A24FCBBDEE9641267AA1EA67B401"
+                },
+                {
+                  "name": "child.log",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\child.log",
+                  "sha256": "765828B369F1D7BD4A0B1E3104DFEB6110EDDD9F84A52746D466E4ED4C2EF064"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\parent-result.json",
+                  "sha256": "B20C86FF17A9E4C3C33F1C1169D879A697E583369DCF1D20F63B1422210E7B41"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\runner.stdout.log",
+                  "sha256": "06D23C7D0360E7B50CC3A09C0B92A11A3E0E1BED4109B86AAFE388F5D3F755AE"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\runner.stderr.log",
+                  "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                },
+                {
+                  "name": "results/child.trx",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\results\\child.trx",
+                  "sha256": "EADB7CFE8C51216343DD5AE5E70AFAE94DD452ACB6C76064A4277D6A36B093F2"
+                },
+                {
+                  "name": "restart-request.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\restart-request.json",
+                  "sha256": "2A361181DCFEC0BF40F9125882760B33AFF0369ED975E3095266A3323DDAF32E"
+                },
+                {
+                  "name": "phase-result.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\phase-result.json",
+                  "sha256": "33E8E39EE0246A78CA9A410E07C478E329FE65F78BDFAC51038422BEC1DCC97E"
+                },
+                {
+                  "name": "output-store.bin",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-62b1098e1b2b46259c1b30d3bf4e438d\\output-store.bin",
+                  "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+                }
+              ]
+            },
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-43eaeaed-64ce-4c44-bdf4-c69c03c3b4ac\\marrow-window-process-9848ef716e6741cf9933a0d528c35142\\phase-2\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\request.json",
+                  "sha256": "45ACB04D36F03DF35434A8AA128E76D8C1B24C4D47F591C6BC15431BB8898152"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\invocation.json",
+                  "sha256": "2C6952637921EF6A67B4A21E5CACECA37A965EE6954C4B6AFCAE8E449469BB0A"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\ready.json",
+                  "sha256": "1CACC0BABF8CF4F8D14C272F8F172E93BA1BD9F519A9E55D981AA05F79E26C1E"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\permit.json",
+                  "sha256": "0841C0A1FC93500506E1F3B825BA4800CE9A245069ABA53834F54795F4DD8E3C"
+                },
+                {
+                  "name": "child.log",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\child.log",
+                  "sha256": "8A1F269BE03A6746350781B7BD7244F1898B02E6FD2480B10AE2CA797E8944E3"
+                },
+                {
+                  "name": "failure.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\failure.json",
+                  "sha256": "D9A4D53A1C66A82D4E38B31FF3E25CE3C891BB434D0C9665BBA06E1E9E30AF51"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\parent-result.json",
+                  "sha256": "D59D919C3004D676771128218DC50FAA5929AE5A178C1478A3C666D6C7F2C866"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\runner.stdout.log",
+                  "sha256": "2EB839D0FBACF5ABD1EB08527866DB552CBDA382747E86154C8BB0D1652C6F31"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\runner.stderr.log",
+                  "sha256": "E2AF77BF857759B745436FA17B66016AF1CFF863DACABEA89859F9B682B6AC5B"
+                },
+                {
+                  "name": "results/child.trx",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\results\\child.trx",
+                  "sha256": "30AE6C17759DA18EBFB0A5226E5664A4023C400267AA1ABB8896C669C385CCF1"
+                },
+                {
+                  "name": "restart-request.json",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\restart-request.json",
+                  "sha256": "9E24B447AF88A42D4557ABAEC6ED45D82A2138EADD0177D1F71B466A03E50EAB"
+                },
+                {
+                  "name": "input-store.bin",
+                  "retained": "children\\OWN-THEME039-09-red-1\\marrow-window-process-6ae4b6f5563d4e80b885dcc6a5ea68c5\\input-store.bin",
+                  "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-09-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-09-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\final-gap-pr-theme-039-2026-09-29T15-59-24-639Z-ba1cfc'",
+          "exit": 1,
+          "start": "2026-09-29T15:59:34.494Z",
+          "end": "2026-09-29T15:59:39.286Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d247b7de-5272-4094-aaf5-e564078bcfe3",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "D1D0502FAB7988DCB3E68D41D736E1FB0B8DB2B03E074658A03AF18F81688B5C"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            },
+            {
+              "name": "src/Marrow.Core/Support/Text.cs",
+              "sha256": "255A7FF52A770EC3A09C01741CEC87715A4D918A6737E79814C2F4FDBB8D78C1"
+            },
+            {
+              "name": "src/Marrow.Services/Port/SettingsStore.cs",
+              "sha256": "BB9CD80B0F5B0D47DC44B1B7ACDCF5DC3B56FFCDEA961F55682F6EBA4B52F2DA"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+              "outcome": "Failed",
+              "error": "System.InvalidOperationException : WindowManager restart proof failed; evidence: C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d247b7de-5272-4094-aaf5-e564078bcfe3\\marrow-window-process-64977175a75e431289ba70fa2d1d6a8b\r\n---- System.InvalidOperationException : Restart child Fact Failed: Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement\nAssert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartScenario.Run(WindowManagerRestartReady identity, String directory) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartScenario.cs:line 91\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartChild.<>c__DisplayClass0_1.<Run>b__1() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartChild.cs:line 30\r\n   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\HeadlessFixtures.cs:line 37\r\n   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()\r\n   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\HeadlessFixtures.cs:line 33\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartChild.Run(String token, String factName) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartChild.cs:line 30\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartProof.Execute(String factName) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartProof.cs:line 19\r\n   at Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerRestartTests.cs:line 18\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d247b7de-5272-4094-aaf5-e564078bcfe3\\marrow-window-process-64977175a75e431289ba70fa2d1d6a8b",
+              "files": [
+                {
+                  "name": "restart-root.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-64977175a75e431289ba70fa2d1d6a8b\\restart-root.json",
+                  "sha256": "22CEEE53DAFB9038ED9FD0CF1E7E326727E189EFDD91C4DE7AAE597E382C1E75"
+                },
+                {
+                  "name": "restart-failure.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-64977175a75e431289ba70fa2d1d6a8b\\restart-failure.json",
+                  "sha256": "34225FE0BB4EA447A732EB4225BCF0C55B3D5183B59C018AFC273E89B0865FF5"
+                },
+                {
+                  "name": "phase-1-complete.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-64977175a75e431289ba70fa2d1d6a8b\\phase-1-complete.json",
+                  "sha256": "C9653FA5D77D776B8FFDA5319AB372FC8DCF0D4B9837B7333D3472A8B37D2C57"
+                }
+              ]
+            },
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d247b7de-5272-4094-aaf5-e564078bcfe3\\marrow-window-process-64977175a75e431289ba70fa2d1d6a8b\\phase-1\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\request.json",
+                  "sha256": "7D2CC409D12AE9B64AE70EF4D72140CC0D486E16F5E65A28121986BCF479A14C"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\invocation.json",
+                  "sha256": "8447351AE27B83B9F860FB1CBFCF9BA9CF4AEC869C7F11659807286D92166901"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\ready.json",
+                  "sha256": "DAFC4F566AF1112492BB6E1D3FFF6775DE53C49E1F38B9BC990882FF11F771B6"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\permit.json",
+                  "sha256": "EAD553B8B9960AA1C9E7229952B209C3E10CC20B8D992B57759E7C77A9CAF2D6"
+                },
+                {
+                  "name": "child.log",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\child.log",
+                  "sha256": "765828B369F1D7BD4A0B1E3104DFEB6110EDDD9F84A52746D466E4ED4C2EF064"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\parent-result.json",
+                  "sha256": "D53F549220AB3CE5E3F64432173452AC964298999A8CA9181F13405D0871B29D"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\runner.stdout.log",
+                  "sha256": "232E8505CDFF793E6D76027B49B2E9AA42FF9EA2A5F70D3C9E28B4A010E07AF2"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\runner.stderr.log",
+                  "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                },
+                {
+                  "name": "results/child.trx",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\results\\child.trx",
+                  "sha256": "9D47C42D9D614C9A32F41D0A37EBDFC7A7E04F9ADBCAA0D1C8BE54FFF1230540"
+                },
+                {
+                  "name": "restart-request.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\restart-request.json",
+                  "sha256": "F4A657E56D257E4B8895FB8360D10AF9B549155F54AE900DF44AEC80C0D717DF"
+                },
+                {
+                  "name": "phase-result.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\phase-result.json",
+                  "sha256": "1A75DB9B380D146D8A955E9DA0DF8E95B7864321FD9466330F41B6ABED977282"
+                },
+                {
+                  "name": "output-store.bin",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-46d1405f3fcc4af19fa0ef075d67e0fd\\output-store.bin",
+                  "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+                }
+              ]
+            },
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d247b7de-5272-4094-aaf5-e564078bcfe3\\marrow-window-process-64977175a75e431289ba70fa2d1d6a8b\\phase-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\request.json",
+                  "sha256": "1C42377D2EBF6FA190F5B40A5316506EF18D1C56276FA5EAF1ECF64D3F0ECD56"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\invocation.json",
+                  "sha256": "E1D2283C00C82E0606706AFA236DEF11EA7BFD1868BE311AB09FC40E122B28EC"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\ready.json",
+                  "sha256": "30782C63F9AF35299A5522BCFBC8BE9B948F249ACB2EA633F7AD0894575C5534"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\permit.json",
+                  "sha256": "6A42619A643BFBF0CC6F28ACD1F9822E249425362BC1A48E06D2A31A1ED7EF44"
+                },
+                {
+                  "name": "child.log",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\child.log",
+                  "sha256": "8A1F269BE03A6746350781B7BD7244F1898B02E6FD2480B10AE2CA797E8944E3"
+                },
+                {
+                  "name": "failure.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\failure.json",
+                  "sha256": "877F34DAA398F194AB0477DBE3479939D15C6DD97A2BA93925DDC0644615253A"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\parent-result.json",
+                  "sha256": "01AF977C59696225E87BB3FF85285024DAC667419C2D83B1BB42A172EA290856"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\runner.stdout.log",
+                  "sha256": "4B7A40FA9EAF004E2A5548DAA92417C8458E124DDCCE7D34ACA87A22B13CF1C6"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\runner.stderr.log",
+                  "sha256": "C91934350E17359F0FE21CB3DFACEB366E51909C2599AEE5C77D178719F8DD3D"
+                },
+                {
+                  "name": "results/child.trx",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\results\\child.trx",
+                  "sha256": "D48E4AE2B0F7585535DDA1EE7B7FACD8C59F67DA3BE4F1A9E1CFCCD04105D0B4"
+                },
+                {
+                  "name": "restart-request.json",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\restart-request.json",
+                  "sha256": "5E89003912BB2DD7317EEEE9782C79C80F7CC6A02A7B33B2CBB088D6DEDB8D91"
+                },
+                {
+                  "name": "input-store.bin",
+                  "retained": "children\\OWN-THEME039-09-red-2\\marrow-window-process-fb1a96f91b5345f1af1f615b65862a3d\\input-store.bin",
+                  "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-09-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T15:59:39.338Z",
+          "end": "2026-09-29T15:59:46.076Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-606ed46a-623f-44e7-a0f3-85c920dcb9bd",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            },
+            {
+              "name": "src/Marrow.Core/Support/Text.cs",
+              "sha256": "255A7FF52A770EC3A09C01741CEC87715A4D918A6737E79814C2F4FDBB8D78C1"
+            },
+            {
+              "name": "src/Marrow.Services/Port/SettingsStore.cs",
+              "sha256": "BB9CD80B0F5B0D47DC44B1B7ACDCF5DC3B56FFCDEA961F55682F6EBA4B52F2DA"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "50A8325CBC4C5EDDE0DE682502ED213520A26AA790CE999E6735BB190A82EDC9"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "A5F8B18FF18252BEA3BB069301CBA6C5A2E5EE3D2DF34D9049D436002B8C12A7"
+            },
+            {
+              "name": "Marrow.Core.dll",
+              "sha256": "71E112575A3481243A1B303A8BE34527F16AD248B8C47D32C1BE28F80D5F7477"
+            },
+            {
+              "name": "Marrow.Services.dll",
+              "sha256": "25D0381976D1D51F06DD9B51B0B7ECA8657F08901C01B67B4AC35DE0DE462693"
+            },
+            {
+              "name": "Marrow.UI.dll",
+              "sha256": "4762454B1DFB784739FF4C1421A9F647B9B60F767168C1F7E5A5C7D6068CA2B2"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-09-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-09-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\final-gap-pr-theme-039-2026-09-29T15-59-24-639Z-ba1cfc'",
+          "exit": 0,
+          "start": "2026-09-29T15:59:46.091Z",
+          "end": "2026-09-29T15:59:50.977Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-786f9514-f2b4-4933-89ea-2f0f05f553b6",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            },
+            {
+              "name": "src/Marrow.Core/Support/Text.cs",
+              "sha256": "255A7FF52A770EC3A09C01741CEC87715A4D918A6737E79814C2F4FDBB8D78C1"
+            },
+            {
+              "name": "src/Marrow.Services/Port/SettingsStore.cs",
+              "sha256": "BB9CD80B0F5B0D47DC44B1B7ACDCF5DC3B56FFCDEA961F55682F6EBA4B52F2DA"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-786f9514-f2b4-4933-89ea-2f0f05f553b6\\marrow-window-process-3c7adc21e42a46af9144def5140ade06",
+              "files": [
+                {
+                  "name": "restart-root.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-3c7adc21e42a46af9144def5140ade06\\restart-root.json",
+                  "sha256": "B129AC4BA80B38D9031BCD7C8A5B01D1C4CDDA07447DAD8396DCC9B2E1A7B0B5"
+                },
+                {
+                  "name": "restart-result.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-3c7adc21e42a46af9144def5140ade06\\restart-result.json",
+                  "sha256": "4FDEBC4216D68AFF4A28F0DE3A150440EA3F549E49948325C5F4E423493E546A"
+                },
+                {
+                  "name": "phase-1-complete.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-3c7adc21e42a46af9144def5140ade06\\phase-1-complete.json",
+                  "sha256": "A95BBD1B60DF8DCE9DD9617D169395AA6D78DD099E71473A44DD1CC62F6A0F13"
+                }
+              ]
+            },
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-786f9514-f2b4-4933-89ea-2f0f05f553b6\\marrow-window-process-3c7adc21e42a46af9144def5140ade06\\phase-1\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\request.json",
+                  "sha256": "29931EE833EAE134ECAA5D09F7CB5CC7042AE3514E6E63E41D410FBEDB462465"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\invocation.json",
+                  "sha256": "70B5E122F15C99F59FB8D132C0684C05AAF84A6702DD65C86373991C868C5AA8"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\ready.json",
+                  "sha256": "D28A602D73EF5616661A3D5553CCF702115CF50DA764C07D014A88ECED7C0D60"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\permit.json",
+                  "sha256": "724B40E7A6167991A96E4C22FCD58EEBC9F696C9F9A34B1540C2450C9B2E6E48"
+                },
+                {
+                  "name": "child.log",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\child.log",
+                  "sha256": "765828B369F1D7BD4A0B1E3104DFEB6110EDDD9F84A52746D466E4ED4C2EF064"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\parent-result.json",
+                  "sha256": "375C77B87BB4903C2D4FDD571D4026ED1B223CCF0F17F2264F2BCEB41E3B2F5B"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\runner.stdout.log",
+                  "sha256": "2676DC49F1D2A350245369016AE8BC6B1790146CC3A97AB8514C7EE54638D695"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\runner.stderr.log",
+                  "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                },
+                {
+                  "name": "results/child.trx",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\results\\child.trx",
+                  "sha256": "5340BA8049E769592C966194621B99851D12D8BBEDD790D89A2AC791E6C8709C"
+                },
+                {
+                  "name": "restart-request.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\restart-request.json",
+                  "sha256": "A13DC44A2C73D8AFF89BEF047F957390643FCA70E58D78534F838ACDC41375D1"
+                },
+                {
+                  "name": "phase-result.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\phase-result.json",
+                  "sha256": "DB024C7B12184F653D18ADB7549B8F88E47D3FCBF293FC2976DACB57231FD377"
+                },
+                {
+                  "name": "output-store.bin",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-b4c591bbab4f4ac189a9261597d6e9eb\\output-store.bin",
+                  "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+                }
+              ]
+            },
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-786f9514-f2b4-4933-89ea-2f0f05f553b6\\marrow-window-process-3c7adc21e42a46af9144def5140ade06\\phase-2\\marrow-window-process-9342517b319346d181941b7ef8dadb40",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\request.json",
+                  "sha256": "397B6AEE511A147D7714D00C418A85C389EBFD4EFB99BDCB8DBD07BB2644DE27"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\invocation.json",
+                  "sha256": "0B4C5016DE054A10CEFE80FF369B8BCB06819FF6A1924131996A7AE9BEDAA2A1"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\ready.json",
+                  "sha256": "6FDAD9AE0BDE37F4FDBACF8AC2E1F4827FBFD7721BAB7F253953D8CFB15C7E25"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\permit.json",
+                  "sha256": "F0AE3CD0C6BA31A65C1E173278BB37DF928CDECF619C3401C972F54945F79BCB"
+                },
+                {
+                  "name": "child.log",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\child.log",
+                  "sha256": "C9B7CAA23AF15E47D2C368B6C2BF5F6829DDB82E5B740AF8E77C4278E505A9F0"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\parent-result.json",
+                  "sha256": "5C5D840AB429B6531B71ED93C90AFAF1C5A16FFC36ECC820F6FAD6A9CBC28454"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\runner.stdout.log",
+                  "sha256": "B954C8703FB244C0DC70260F86D35BFDA5D785A55F35D349B65656D01FBC6E44"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\runner.stderr.log",
+                  "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                },
+                {
+                  "name": "results/child.trx",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\results\\child.trx",
+                  "sha256": "06466FBD156D7CB4BA658731AE06F4E3C26CF602A48E2A3C17D5B2411D95F49C"
+                },
+                {
+                  "name": "restart-request.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\restart-request.json",
+                  "sha256": "E6097CC1F9AD6DB3B457E7195CEEA3FF43D8E143936D8B110C748E61640F8948"
+                },
+                {
+                  "name": "phase-result.json",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\phase-result.json",
+                  "sha256": "BB138C68832137BA5939656BEE194C942238F6215FF0A6D2769BEB6BFFE3AC46"
+                },
+                {
+                  "name": "input-store.bin",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\input-store.bin",
+                  "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+                },
+                {
+                  "name": "output-store.bin",
+                  "retained": "children\\OWN-THEME039-09-green\\marrow-window-process-9342517b319346d181941b7ef8dadb40\\output-store.bin",
+                  "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "D1D0502FAB7988DCB3E68D41D736E1FB0B8DB2B03E074658A03AF18F81688B5C",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/final-gap-pr-theme-039-2026-09-29T15-59-24-639Z-ba1cfc/results.json"
+    },
+    {
+      "id": "OWN-THEME039-03",
+      "records": [
+        "PR-THEME-039"
+      ],
+      "clause": "Swift:152 initial and subsequent process observer is wired",
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "native": false,
+      "killer": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+      "replacements": [
+        {
+          "before": "(_, theme) => SetAppearance(theme), initial: true",
+          "after": "(_, theme) => { _ = theme; }, initial: true"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "OWN-THEME039-03-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T15:48:34.858Z",
+          "end": "2026-09-29T15:48:39.258Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-9fee3f5c-8bdb-4115-8c8b-fbf02849dd5f",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "212BFA0AEDAB091294C392F69A3B99CFAF30C3C5F616431D47CF5601926E14E1"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "564AD095B929C256B9CF6BD859B91EFE66598AE10133FDDD572BB260FE45991E"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-03-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-03-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\lifecycle-pr-theme-039-2026-09-29T15-48-34-801Z-9fbcba'",
+          "exit": 1,
+          "start": "2026-09-29T15:48:39.265Z",
+          "end": "2026-09-29T15:48:42.334Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-99ddcebd-4d08-4b13-8082-a60165216a0c",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+              "outcome": "Failed",
+              "error": "System.InvalidOperationException : WindowManager restart proof failed; evidence: C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-99ddcebd-4d08-4b13-8082-a60165216a0c\\marrow-window-process-bfbc0d9156b248ea99ab47b8a79b5506\r\n---- System.InvalidOperationException : Restart child Fact Failed: Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement\nAssert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartScenario.Run(WindowManagerRestartReady identity, String directory) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartScenario.cs:line 91\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartChild.<>c__DisplayClass0_1.<Run>b__1() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartChild.cs:line 30\r\n   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\HeadlessFixtures.cs:line 37\r\n   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()\r\n   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\HeadlessFixtures.cs:line 33\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartChild.Run(String token, String factName) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartChild.cs:line 30\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartProof.Execute(String factName) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartProof.cs:line 19\r\n   at Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerRestartTests.cs:line 18\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-99ddcebd-4d08-4b13-8082-a60165216a0c\\marrow-window-process-bfbc0d9156b248ea99ab47b8a79b5506",
+              "files": [
+                {
+                  "name": "restart-root.json",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-bfbc0d9156b248ea99ab47b8a79b5506\\restart-root.json",
+                  "sha256": "B97859C20B707EF2853B8A64B4B6D60E61AA18E56B46026DDE384A0C68A4AF9C"
+                },
+                {
+                  "name": "restart-failure.json",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-bfbc0d9156b248ea99ab47b8a79b5506\\restart-failure.json",
+                  "sha256": "B240AAE3B114CF71598FECBF44BFB531AF729A880E6B4224AFA85C0AEACF97F8"
+                }
+              ]
+            },
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-99ddcebd-4d08-4b13-8082-a60165216a0c\\marrow-window-process-bfbc0d9156b248ea99ab47b8a79b5506\\phase-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\request.json",
+                  "sha256": "5D3F949ABFF88AB3A23BEEA394E083BFBC96E9D1A9BE3B2968252DDE0BE17ED2"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\invocation.json",
+                  "sha256": "133CCBED00B9287F2A4A7C6FE7FC54A77CC292B084B4D51DE223F32CC91D698A"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\ready.json",
+                  "sha256": "A4C7D40CE68813B8B82CBA61D13C8E8AB041CB7E5EC479893B6196773DAF3D5D"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\permit.json",
+                  "sha256": "8DC6D76C651427F8892D96E96426665360D7062DC5217F09AA2D06DC3B41FA64"
+                },
+                {
+                  "name": "child.log",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\child.log",
+                  "sha256": "32F1EAA79ADB47514B3CA02C1C447BAFA1753193FB1F48A3D8327F63B51F390B"
+                },
+                {
+                  "name": "failure.json",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\failure.json",
+                  "sha256": "14F14C1D17F584D2AD62F2A7B7C118A6559B021DFE8E9C964B8800591EAA7A26"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\parent-result.json",
+                  "sha256": "F5FA9FA3EFF41B2CC1412A3C07D7256B2712188214EFB2F29CF8E0D8A26CF6F3"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\runner.stdout.log",
+                  "sha256": "345A377935C88A4999029448E4FAFE8F7A2B0C4F20DBD09E42DC7EC1FB057765"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\runner.stderr.log",
+                  "sha256": "AA9837D96F53F40FF507D07A76DB4A05EB67DC1E388E6A7361B9CFC9D83268D9"
+                },
+                {
+                  "name": "results/child.trx",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\results\\child.trx",
+                  "sha256": "9B58A742409951FC7911D26502A176271408FD497A1DD343F65202D4D28F14C0"
+                },
+                {
+                  "name": "restart-request.json",
+                  "retained": "children\\OWN-THEME039-03-red-1\\marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b\\restart-request.json",
+                  "sha256": "9CE9126885E77101E9B78877C95CB995771083D98EA00A3886E03290C6647EB5"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-03-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-03-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\lifecycle-pr-theme-039-2026-09-29T15-48-34-801Z-9fbcba'",
+          "exit": 1,
+          "start": "2026-09-29T15:48:42.343Z",
+          "end": "2026-09-29T15:48:45.182Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-cd796590-bde3-498f-ac1a-1a81501e9d7c",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+              "outcome": "Failed",
+              "error": "System.InvalidOperationException : WindowManager restart proof failed; evidence: C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-cd796590-bde3-498f-ac1a-1a81501e9d7c\\marrow-window-process-fac86d9def8546eab91795c1fc6ed269\r\n---- System.InvalidOperationException : Restart child Fact Failed: Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement\nAssert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartScenario.Run(WindowManagerRestartReady identity, String directory) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartScenario.cs:line 91\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartChild.<>c__DisplayClass0_1.<Run>b__1() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartChild.cs:line 30\r\n   at Marrow.App.Tests.Fixtures.HeadlessSession.<>c__DisplayClass4_0.<OnUiThread>b__0() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\HeadlessFixtures.cs:line 37\r\n   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass9_0.<Dispatch>b__0()\r\n   at Avalonia.Headless.HeadlessUnitTestSession.<>c__DisplayClass12_0`1.<DispatchCore>b__0()\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Fixtures.HeadlessSession.OnUiThread(Action body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\HeadlessFixtures.cs:line 33\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartChild.Run(String token, String factName) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartChild.cs:line 30\r\n   at Marrow.App.Tests.Fixtures.WindowManagerRestartProof.Execute(String factName) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerRestartProof.cs:line 19\r\n   at Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerRestartTests.cs:line 18\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-cd796590-bde3-498f-ac1a-1a81501e9d7c\\marrow-window-process-fac86d9def8546eab91795c1fc6ed269",
+              "files": [
+                {
+                  "name": "restart-root.json",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-fac86d9def8546eab91795c1fc6ed269\\restart-root.json",
+                  "sha256": "66732FCDC0CFD9904C17EB04846118D6A89997A263F4B80AF0F457210AF428DE"
+                },
+                {
+                  "name": "restart-failure.json",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-fac86d9def8546eab91795c1fc6ed269\\restart-failure.json",
+                  "sha256": "94B81976F13DD7363F45415756AE1FAE9CB5A17AC7AF7902903C3F33F110E64F"
+                }
+              ]
+            },
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-cd796590-bde3-498f-ac1a-1a81501e9d7c\\marrow-window-process-fac86d9def8546eab91795c1fc6ed269\\phase-1\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\request.json",
+                  "sha256": "7415D57E7BFF5985A307AFD37C61569C732820F21C7A011040494C776DB584AB"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\invocation.json",
+                  "sha256": "EDD7C4215BD01CBD3F23A60B7A349FFAA4C43897E7CB3DEC02CC0BE66F4F7DEA"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\ready.json",
+                  "sha256": "369E3CBAD2FED798CDE999A9966E001BEDADB3A3047599A3E2A7DA38E1DEB256"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\permit.json",
+                  "sha256": "1FF3A8F01B252E405EAE2B06FEAB607018637AE417E15CB1755A4F1869C13163"
+                },
+                {
+                  "name": "child.log",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\child.log",
+                  "sha256": "32F1EAA79ADB47514B3CA02C1C447BAFA1753193FB1F48A3D8327F63B51F390B"
+                },
+                {
+                  "name": "failure.json",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\failure.json",
+                  "sha256": "BFE46B47A78D69E3ED40C9DF421431592F851F9290B663BCCE2A2F27ADB3A57C"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\parent-result.json",
+                  "sha256": "00AAE2D62CFD2FF7953DFD68873B0EB78B16A22C2BF9D81F726CB84E8DF9FAA7"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\runner.stdout.log",
+                  "sha256": "9B3627DEEFDB3807EB904B6956F2F1394979B707772D8BA7C36328C15F22870C"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\runner.stderr.log",
+                  "sha256": "A046B1151529B4380C821BFCA74B03B0BE9C60D51E7F73FCCF1FD704F64116C1"
+                },
+                {
+                  "name": "results/child.trx",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\results\\child.trx",
+                  "sha256": "0CB352D766312F6422E8014A62C14D8B6B0D2F8C873E25F5752CC39C62B7E5D1"
+                },
+                {
+                  "name": "restart-request.json",
+                  "retained": "children\\OWN-THEME039-03-red-2\\marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c\\restart-request.json",
+                  "sha256": "58B6E3EF7230A450EF979B1F7AFECC200C16AF4703C3EA69540DEFD592733AB0"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-03-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T15:48:45.230Z",
+          "end": "2026-09-29T15:48:49.622Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-1c2ab8c5-9d1f-4cfa-a549-f92994b41041",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "50A8325CBC4C5EDDE0DE682502ED213520A26AA790CE999E6735BB190A82EDC9"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "564AD095B929C256B9CF6BD859B91EFE66598AE10133FDDD572BB260FE45991E"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-03-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-03-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\lifecycle-pr-theme-039-2026-09-29T15-48-34-801Z-9fbcba'",
+          "exit": 0,
+          "start": "2026-09-29T15:48:49.628Z",
+          "end": "2026-09-29T15:48:54.126Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-932897a4-234a-4d03-8a69-63dd27d189d2",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-932897a4-234a-4d03-8a69-63dd27d189d2\\marrow-window-process-f2a2d1d663134cc2863f36408566667e",
+              "files": [
+                {
+                  "name": "restart-root.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-f2a2d1d663134cc2863f36408566667e\\restart-root.json",
+                  "sha256": "9FA3BC3627BC9FE425E343BAEEC4381A68B0A50EFAEA49667CFDC4E0616062AC"
+                },
+                {
+                  "name": "restart-result.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-f2a2d1d663134cc2863f36408566667e\\restart-result.json",
+                  "sha256": "FE409FE888A62F6A3087CA76ABD8659CD1254C6F3019B346ED3FA2D8E2046B09"
+                },
+                {
+                  "name": "phase-1-complete.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-f2a2d1d663134cc2863f36408566667e\\phase-1-complete.json",
+                  "sha256": "7EDA1F2A037BDC85D736B83397DF3BD2DAACBEEEA4B9F25FBC874E1DE51C66C8"
+                }
+              ]
+            },
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-932897a4-234a-4d03-8a69-63dd27d189d2\\marrow-window-process-f2a2d1d663134cc2863f36408566667e\\phase-1\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\request.json",
+                  "sha256": "03A6C44CA028C52221E0B65EFC51D52684A1EF90D80F1A3F72D67CD25AD6448F"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\invocation.json",
+                  "sha256": "C01A11BE9E296C67003DEEEB44F2F47E3F5F96806E677503B85D9F3152C5D9F0"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\ready.json",
+                  "sha256": "C6E6ECC439910B4C78E706423543D897BD13079F5D670AAF275F29DF5FD5D159"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\permit.json",
+                  "sha256": "3188C17966D8B9373C126DA25F4A7FBE5873E0658C499921F805C255A708EC1D"
+                },
+                {
+                  "name": "child.log",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\child.log",
+                  "sha256": "765828B369F1D7BD4A0B1E3104DFEB6110EDDD9F84A52746D466E4ED4C2EF064"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\parent-result.json",
+                  "sha256": "35E59A16E7E7018933589450192273139770C05C011A5996A5E1ABFD357921E4"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\runner.stdout.log",
+                  "sha256": "F9507F2EA8C53027CD819A56C7B48804F438529F4C076ABA7DE03190148F37B9"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\runner.stderr.log",
+                  "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                },
+                {
+                  "name": "results/child.trx",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\results\\child.trx",
+                  "sha256": "0F4E29A7A1EE621C1A2C608099BF63BC1AE0E665699E9FF08F8CCAEEB8CFC3D0"
+                },
+                {
+                  "name": "restart-request.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\restart-request.json",
+                  "sha256": "F33AA097F24A47470564E506D31B9B7E1A0E6BBBA68BE98EBFE127F21BA39033"
+                },
+                {
+                  "name": "phase-result.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\phase-result.json",
+                  "sha256": "19E1D44B142BDDBFC6BD529FE671334C1802A3FAF3E1F505D89AE02F8C86B9CD"
+                },
+                {
+                  "name": "output-store.bin",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-5c4c2260f92644d38442809dd618d7aa\\output-store.bin",
+                  "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+                }
+              ]
+            },
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-932897a4-234a-4d03-8a69-63dd27d189d2\\marrow-window-process-f2a2d1d663134cc2863f36408566667e\\phase-2\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\request.json",
+                  "sha256": "7E5BCCAF2FBB90781C65D85E8BA621B6B786B65BD54AC80166E117CD45CB481E"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\invocation.json",
+                  "sha256": "9D1777A21659826E718C01C5AC73E96A8C2B9D8898CDF1DEBF0383A412484273"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\ready.json",
+                  "sha256": "A57521ACCE7CF6228A11F8C5F5B77D8AAA911D929D32D3EA0EA06AFB4AA363DE"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\permit.json",
+                  "sha256": "119983D17EB65D5237E9B4A679F3019C172C3354936C82CAAA8330CD2AE5C336"
+                },
+                {
+                  "name": "child.log",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\child.log",
+                  "sha256": "C9B7CAA23AF15E47D2C368B6C2BF5F6829DDB82E5B740AF8E77C4278E505A9F0"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\parent-result.json",
+                  "sha256": "EC40A1F584EB95F9937F39B8A827A2D52A6D2FDA630CFEBBA1FF5397525E3D85"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\runner.stdout.log",
+                  "sha256": "C1E863D85FAF13434F599E5314EBF09D172F0C689C77EB3B9B97A32FA857A1A8"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\runner.stderr.log",
+                  "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                },
+                {
+                  "name": "results/child.trx",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\results\\child.trx",
+                  "sha256": "B454798C70E8F8E0B28154FBE94B6F915F4B71CA0EE923D18F525B05F2E4BBA9"
+                },
+                {
+                  "name": "restart-request.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\restart-request.json",
+                  "sha256": "90F9BA9E0BEEB651363C5672BB4A1996309F75523F3447C939106D0818E6F8B5"
+                },
+                {
+                  "name": "phase-result.json",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\phase-result.json",
+                  "sha256": "AB739F13D65DAD8249DF16EB07680B03A66DF77B1F8D5CE1BD351C8019955422"
+                },
+                {
+                  "name": "input-store.bin",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\input-store.bin",
+                  "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+                },
+                {
+                  "name": "output-store.bin",
+                  "retained": "children\\OWN-THEME039-03-green\\marrow-window-process-9b64c48d037145798f8617b0a28a38aa\\output-store.bin",
+                  "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/lifecycle-pr-theme-039-2026-09-29T15-48-34-801Z-9fbcba/results.json"
+    },
     {
       "id": "OWN-THEME039-01",
       "records": [
@@ -812,282 +2203,6 @@
       "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
       "restored": true,
       "mutant_sha256": "58B9F56EB321FF489AE4721144F8EA3E057500F5BE85B27FAAEC1AD821B177BA",
-      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
-      "git_diff_unchanged": true,
-      "kind": "additional",
-      "evidence": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1/results.json"
-    },
-    {
-      "id": "OWN-THEME039-03",
-      "records": [
-        "PR-THEME-039"
-      ],
-      "clause": "Swift:152 initial and subsequent process observer is wired",
-      "path": "src/Marrow.App/Window/WindowManager.cs",
-      "native": false,
-      "killer": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
-      "replacements": [
-        {
-          "before": "(_, theme) => SetAppearance(theme), initial: true",
-          "after": "(_, theme) => { _ = theme; }, initial: true"
-        }
-      ],
-      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
-      "runs": [
-        {
-          "name": "OWN-THEME039-03-mutant-build",
-          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
-          "exit": 0,
-          "start": "2026-09-29T14:25:22.750Z",
-          "end": "2026-09-29T14:25:27.011Z",
-          "environment": {
-            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
-            "outer_opt_in_variables": [],
-            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ecff04a2-bc73-4352-8938-531d942c503f",
-            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
-          },
-          "source_hashes": [
-            {
-              "name": "src/Marrow.App/Window/WindowManager.cs",
-              "sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317"
-            },
-            {
-              "name": "src/Marrow.App/Port/AppShell.cs",
-              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
-            },
-            {
-              "name": "src/Marrow.App/AppDelegate.cs",
-              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
-            },
-            {
-              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
-              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
-            },
-            {
-              "name": "src/Marrow.App/Window/ThreadWindow.cs",
-              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
-            },
-            {
-              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
-              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
-            }
-          ],
-          "clean": true,
-          "binaries": [
-            {
-              "name": "Marrow.App.dll",
-              "sha256": "15E9CBEABFFD1F79EB8F1C7E32B3C5A430AF69B93F7D69278BD8AF3CE9BC813F"
-            },
-            {
-              "name": "Marrow.App.Tests.dll",
-              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
-            }
-          ]
-        },
-        {
-          "name": "OWN-THEME039-03-red-1",
-          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-03-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
-          "exit": 1,
-          "start": "2026-09-29T14:25:27.016Z",
-          "end": "2026-09-29T14:25:28.944Z",
-          "environment": {
-            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
-            "outer_opt_in_variables": [],
-            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-2cef3d6d-1ca9-4f0f-bb7b-042e21a7719a",
-            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
-          },
-          "source_hashes": [
-            {
-              "name": "src/Marrow.App/Window/WindowManager.cs",
-              "sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317"
-            },
-            {
-              "name": "src/Marrow.App/Port/AppShell.cs",
-              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
-            },
-            {
-              "name": "src/Marrow.App/AppDelegate.cs",
-              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
-            },
-            {
-              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
-              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
-            },
-            {
-              "name": "src/Marrow.App/Window/ThreadWindow.cs",
-              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
-            },
-            {
-              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
-              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
-            }
-          ],
-          "tests": [
-            {
-              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
-              "outcome": "Failed",
-              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
-            }
-          ],
-          "total": 1,
-          "passed": 0,
-          "failed": 1,
-          "child_evidence": []
-        },
-        {
-          "name": "OWN-THEME039-03-red-2",
-          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-03-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
-          "exit": 1,
-          "start": "2026-09-29T14:25:28.945Z",
-          "end": "2026-09-29T14:25:30.645Z",
-          "environment": {
-            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
-            "outer_opt_in_variables": [],
-            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-18f55885-ab6d-4497-8a24-76d6b3cadcfa",
-            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
-          },
-          "source_hashes": [
-            {
-              "name": "src/Marrow.App/Window/WindowManager.cs",
-              "sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317"
-            },
-            {
-              "name": "src/Marrow.App/Port/AppShell.cs",
-              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
-            },
-            {
-              "name": "src/Marrow.App/AppDelegate.cs",
-              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
-            },
-            {
-              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
-              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
-            },
-            {
-              "name": "src/Marrow.App/Window/ThreadWindow.cs",
-              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
-            },
-            {
-              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
-              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
-            }
-          ],
-          "tests": [
-            {
-              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
-              "outcome": "Failed",
-              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
-            }
-          ],
-          "total": 1,
-          "passed": 0,
-          "failed": 1,
-          "child_evidence": []
-        },
-        {
-          "name": "OWN-THEME039-03-restored-build",
-          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
-          "exit": 0,
-          "start": "2026-09-29T14:25:30.678Z",
-          "end": "2026-09-29T14:25:34.825Z",
-          "environment": {
-            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
-            "outer_opt_in_variables": [],
-            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ea45ce62-4fbd-4c7d-852f-aa8fa6362a04",
-            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
-          },
-          "source_hashes": [
-            {
-              "name": "src/Marrow.App/Window/WindowManager.cs",
-              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
-            },
-            {
-              "name": "src/Marrow.App/Port/AppShell.cs",
-              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
-            },
-            {
-              "name": "src/Marrow.App/AppDelegate.cs",
-              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
-            },
-            {
-              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
-              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
-            },
-            {
-              "name": "src/Marrow.App/Window/ThreadWindow.cs",
-              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
-            },
-            {
-              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
-              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
-            }
-          ],
-          "clean": true,
-          "binaries": [
-            {
-              "name": "Marrow.App.dll",
-              "sha256": "6A409BBDF099E4548450CA02784CCE16CE8EC6DA5D5FB3A81A35EC15A3177823"
-            },
-            {
-              "name": "Marrow.App.Tests.dll",
-              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
-            }
-          ]
-        },
-        {
-          "name": "OWN-THEME039-03-green",
-          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-03-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
-          "exit": 0,
-          "start": "2026-09-29T14:25:34.830Z",
-          "end": "2026-09-29T14:25:36.733Z",
-          "environment": {
-            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
-            "outer_opt_in_variables": [],
-            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-7170710c-3bab-4181-8320-6c76ef525dd8",
-            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
-          },
-          "source_hashes": [
-            {
-              "name": "src/Marrow.App/Window/WindowManager.cs",
-              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
-            },
-            {
-              "name": "src/Marrow.App/Port/AppShell.cs",
-              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
-            },
-            {
-              "name": "src/Marrow.App/AppDelegate.cs",
-              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
-            },
-            {
-              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
-              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
-            },
-            {
-              "name": "src/Marrow.App/Window/ThreadWindow.cs",
-              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
-            },
-            {
-              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
-              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
-            }
-          ],
-          "tests": [
-            {
-              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
-              "outcome": "Passed",
-              "error": ""
-            }
-          ],
-          "total": 1,
-          "passed": 1,
-          "failed": 0,
-          "child_evidence": []
-        }
-      ],
-      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
-      "restored": true,
-      "mutant_sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317",
       "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
       "git_diff_unchanged": true,
       "kind": "additional",

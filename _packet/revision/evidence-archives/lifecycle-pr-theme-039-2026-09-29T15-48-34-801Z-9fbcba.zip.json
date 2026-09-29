@@ -1,0 +1,352 @@
+{
+  "original_directory": "_packet/revision/evidence/lifecycle-pr-theme-039-2026-09-29T15-48-34-801Z-9fbcba",
+  "archive": "_packet/revision/evidence-archives/lifecycle-pr-theme-039-2026-09-29T15-48-34-801Z-9fbcba.zip",
+  "archive_sha256": "D9333145087A3B82D4A15180B160BB0830933D7C7D53596A0281AC5F552A27C2",
+  "files": [
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/child.log",
+      "bytes": 199,
+      "sha256": "765828B369F1D7BD4A0B1E3104DFEB6110EDDD9F84A52746D466E4ED4C2EF064"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/invocation.json",
+      "bytes": 916,
+      "sha256": "C01A11BE9E296C67003DEEEB44F2F47E3F5F96806E677503B85D9F3152C5D9F0"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/output-store.bin",
+      "bytes": 150,
+      "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/parent-result.json",
+      "bytes": 2260,
+      "sha256": "35E59A16E7E7018933589450192273139770C05C011A5996A5E1ABFD357921E4"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/permit.json",
+      "bytes": 1190,
+      "sha256": "3188C17966D8B9373C126DA25F4A7FBE5873E0658C499921F805C255A708EC1D"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/phase-result.json",
+      "bytes": 1597,
+      "sha256": "19E1D44B142BDDBFC6BD529FE671334C1802A3FAF3E1F505D89AE02F8C86B9CD"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/ready.json",
+      "bytes": 1177,
+      "sha256": "C6E6ECC439910B4C78E706423543D897BD13079F5D670AAF275F29DF5FD5D159"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/request.json",
+      "bytes": 324,
+      "sha256": "03A6C44CA028C52221E0B65EFC51D52684A1EF90D80F1A3F72D67CD25AD6448F"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/restart-request.json",
+      "bytes": 903,
+      "sha256": "F33AA097F24A47470564E506D31B9B7E1A0E6BBBA68BE98EBFE127F21BA39033"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/results/child.trx",
+      "bytes": 3094,
+      "sha256": "0F4E29A7A1EE621C1A2C608099BF63BC1AE0E665699E9FF08F8CCAEEB8CFC3D0"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/runner.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-5c4c2260f92644d38442809dd618d7aa/runner.stdout.log",
+      "bytes": 914,
+      "sha256": "F9507F2EA8C53027CD819A56C7B48804F438529F4C076ABA7DE03190148F37B9"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/child.log",
+      "bytes": 176,
+      "sha256": "C9B7CAA23AF15E47D2C368B6C2BF5F6829DDB82E5B740AF8E77C4278E505A9F0"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/input-store.bin",
+      "bytes": 150,
+      "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/invocation.json",
+      "bytes": 916,
+      "sha256": "9D1777A21659826E718C01C5AC73E96A8C2B9D8898CDF1DEBF0383A412484273"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/output-store.bin",
+      "bytes": 150,
+      "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/parent-result.json",
+      "bytes": 2392,
+      "sha256": "EC40A1F584EB95F9937F39B8A827A2D52A6D2FDA630CFEBBA1FF5397525E3D85"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/permit.json",
+      "bytes": 1256,
+      "sha256": "119983D17EB65D5237E9B4A679F3019C172C3354936C82CAAA8330CD2AE5C336"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/phase-result.json",
+      "bytes": 1728,
+      "sha256": "AB739F13D65DAD8249DF16EB07680B03A66DF77B1F8D5CE1BD351C8019955422"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/ready.json",
+      "bytes": 1243,
+      "sha256": "A57521ACCE7CF6228A11F8C5F5B77D8AAA911D929D32D3EA0EA06AFB4AA363DE"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/request.json",
+      "bytes": 324,
+      "sha256": "7E5BCCAF2FBB90781C65D85E8BA621B6B786B65BD54AC80166E117CD45CB481E"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/restart-request.json",
+      "bytes": 970,
+      "sha256": "90F9BA9E0BEEB651363C5672BB4A1996309F75523F3447C939106D0818E6F8B5"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/results/child.trx",
+      "bytes": 3094,
+      "sha256": "B454798C70E8F8E0B28154FBE94B6F915F4B71CA0EE923D18F525B05F2E4BBA9"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/runner.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-9b64c48d037145798f8617b0a28a38aa/runner.stdout.log",
+      "bytes": 914,
+      "sha256": "C1E863D85FAF13434F599E5314EBF09D172F0C689C77EB3B9B97A32FA857A1A8"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-f2a2d1d663134cc2863f36408566667e/phase-1-complete.json",
+      "bytes": 1686,
+      "sha256": "7EDA1F2A037BDC85D736B83397DF3BD2DAACBEEEA4B9F25FBC874E1DE51C66C8"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-f2a2d1d663134cc2863f36408566667e/restart-result.json",
+      "bytes": 4320,
+      "sha256": "FE409FE888A62F6A3087CA76ABD8659CD1254C6F3019B346ED3FA2D8E2046B09"
+    },
+    {
+      "path": "children/OWN-THEME039-03-green/marrow-window-process-f2a2d1d663134cc2863f36408566667e/restart-root.json",
+      "bytes": 789,
+      "sha256": "9FA3BC3627BC9FE425E343BAEEC4381A68B0A50EFAEA49667CFDC4E0616062AC"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/child.log",
+      "bytes": 44,
+      "sha256": "32F1EAA79ADB47514B3CA02C1C447BAFA1753193FB1F48A3D8327F63B51F390B"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/failure.json",
+      "bytes": 2875,
+      "sha256": "14F14C1D17F584D2AD62F2A7B7C118A6559B021DFE8E9C964B8800591EAA7A26"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/invocation.json",
+      "bytes": 916,
+      "sha256": "133CCBED00B9287F2A4A7C6FE7FC54A77CC292B084B4D51DE223F32CC91D698A"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/parent-result.json",
+      "bytes": 4894,
+      "sha256": "F5FA9FA3EFF41B2CC1412A3C07D7256B2712188214EFB2F29CF8E0D8A26CF6F3"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/permit.json",
+      "bytes": 1190,
+      "sha256": "8DC6D76C651427F8892D96E96426665360D7062DC5217F09AA2D06DC3B41FA64"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/ready.json",
+      "bytes": 1177,
+      "sha256": "A4C7D40CE68813B8B82CBA61D13C8E8AB041CB7E5EC479893B6196773DAF3D5D"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/request.json",
+      "bytes": 324,
+      "sha256": "5D3F949ABFF88AB3A23BEEA394E083BFBC96E9D1A9BE3B2968252DDE0BE17ED2"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/restart-request.json",
+      "bytes": 903,
+      "sha256": "9CE9126885E77101E9B78877C95CB995771083D98EA00A3886E03290C6647EB5"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/results/child.trx",
+      "bytes": 8000,
+      "sha256": "9B58A742409951FC7911D26502A176271408FD497A1DD343F65202D4D28F14C0"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/runner.stderr.log",
+      "bytes": 189,
+      "sha256": "AA9837D96F53F40FF507D07A76DB4A05EB67DC1E388E6A7361B9CFC9D83268D9"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-45d3c632a9d84b0a8bdeed7dcbb0971b/runner.stdout.log",
+      "bytes": 5120,
+      "sha256": "345A377935C88A4999029448E4FAFE8F7A2B0C4F20DBD09E42DC7EC1FB057765"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-bfbc0d9156b248ea99ab47b8a79b5506/restart-failure.json",
+      "bytes": 3889,
+      "sha256": "B240AAE3B114CF71598FECBF44BFB531AF729A880E6B4224AFA85C0AEACF97F8"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-1/marrow-window-process-bfbc0d9156b248ea99ab47b8a79b5506/restart-root.json",
+      "bytes": 789,
+      "sha256": "B97859C20B707EF2853B8A64B4B6D60E61AA18E56B46026DDE384A0C68A4AF9C"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/child.log",
+      "bytes": 44,
+      "sha256": "32F1EAA79ADB47514B3CA02C1C447BAFA1753193FB1F48A3D8327F63B51F390B"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/failure.json",
+      "bytes": 2875,
+      "sha256": "BFE46B47A78D69E3ED40C9DF421431592F851F9290B663BCCE2A2F27ADB3A57C"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/invocation.json",
+      "bytes": 916,
+      "sha256": "EDD7C4215BD01CBD3F23A60B7A349FFAA4C43897E7CB3DEC02CC0BE66F4F7DEA"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/parent-result.json",
+      "bytes": 4893,
+      "sha256": "00AAE2D62CFD2FF7953DFD68873B0EB78B16A22C2BF9D81F726CB84E8DF9FAA7"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/permit.json",
+      "bytes": 1190,
+      "sha256": "1FF3A8F01B252E405EAE2B06FEAB607018637AE417E15CB1755A4F1869C13163"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/ready.json",
+      "bytes": 1177,
+      "sha256": "369E3CBAD2FED798CDE999A9966E001BEDADB3A3047599A3E2A7DA38E1DEB256"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/request.json",
+      "bytes": 324,
+      "sha256": "7415D57E7BFF5985A307AFD37C61569C732820F21C7A011040494C776DB584AB"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/restart-request.json",
+      "bytes": 903,
+      "sha256": "58B6E3EF7230A450EF979B1F7AFECC200C16AF4703C3EA69540DEFD592733AB0"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/results/child.trx",
+      "bytes": 8000,
+      "sha256": "0CB352D766312F6422E8014A62C14D8B6B0D2F8C873E25F5752CC39C62B7E5D1"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/runner.stderr.log",
+      "bytes": 189,
+      "sha256": "A046B1151529B4380C821BFCA74B03B0BE9C60D51E7F73FCCF1FD704F64116C1"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-700d30e3abe54e7689d93e8cafd3c75c/runner.stdout.log",
+      "bytes": 5120,
+      "sha256": "9B3627DEEFDB3807EB904B6956F2F1394979B707772D8BA7C36328C15F22870C"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-fac86d9def8546eab91795c1fc6ed269/restart-failure.json",
+      "bytes": 3889,
+      "sha256": "94B81976F13DD7363F45415756AE1FAE9CB5A17AC7AF7902903C3F33F110E64F"
+    },
+    {
+      "path": "children/OWN-THEME039-03-red-2/marrow-window-process-fac86d9def8546eab91795c1fc6ed269/restart-root.json",
+      "bytes": 789,
+      "sha256": "66732FCDC0CFD9904C17EB04846118D6A89997A263F4B80AF0F457210AF428DE"
+    },
+    {
+      "path": "OWN-THEME039-03-green.json",
+      "bytes": 10529,
+      "sha256": "FF769687B9FACD443080358E39B47C6AA7FBC80031ED37742AF312F86FDB451A"
+    },
+    {
+      "path": "OWN-THEME039-03-green.log",
+      "bytes": 703,
+      "sha256": "A2942885CC9A33651C815EFDA48BFF3B7A9F501C5289B0BCF7AC8FFED5010A20"
+    },
+    {
+      "path": "OWN-THEME039-03-green.trx",
+      "bytes": 3274,
+      "sha256": "89416A308D1546A72931061DF1CCD116A4177CC93B7365D138FFFDBD61146448"
+    },
+    {
+      "path": "OWN-THEME039-03-mutant-build.json",
+      "bytes": 1708,
+      "sha256": "8C7F9747DC23FDE533584FA840AF41C5D38AFC2FE616F38961831BA724902D2E"
+    },
+    {
+      "path": "OWN-THEME039-03-mutant-build.log",
+      "bytes": 310,
+      "sha256": "3B11006A962FE5064D52DD11744855DEBC0B47C646B043B773668B278239B671"
+    },
+    {
+      "path": "OWN-THEME039-03-red-1.json",
+      "bytes": 8489,
+      "sha256": "09FE1E0EF53AC0BAE33D7C58303205B72EF66151A2079A5287A45722A93DAAE5"
+    },
+    {
+      "path": "OWN-THEME039-03-red-1.log",
+      "bytes": 874,
+      "sha256": "969276652FC9BF8026C9393AB7E39D340AD88250C1529191B12E355855FA10F7"
+    },
+    {
+      "path": "OWN-THEME039-03-red-1.trx",
+      "bytes": 12261,
+      "sha256": "E0C917EFD8DACFD72E6E58347866D886B02E7CFFE0171A2D7A8ECD653D1355DC"
+    },
+    {
+      "path": "OWN-THEME039-03-red-2.json",
+      "bytes": 8489,
+      "sha256": "F5EC4E33D013CFBB48ED81A9AE579D11372344D22759BAC3E856DFBD9D0E8D98"
+    },
+    {
+      "path": "OWN-THEME039-03-red-2.log",
+      "bytes": 874,
+      "sha256": "6B19633D07798205E244A7768E28FEBAB25F81B9D5F162C4D7B05FBC159D19CC"
+    },
+    {
+      "path": "OWN-THEME039-03-red-2.trx",
+      "bytes": 12261,
+      "sha256": "4C949B5EAED2A237608DA131FF842C497C74491E5683862943C8714CA046A505"
+    },
+    {
+      "path": "OWN-THEME039-03-restored-build.json",
+      "bytes": 1710,
+      "sha256": "E9735D46660EC56414198909D0F14BF4A85819091CD4EE69DF458E814F987F06"
+    },
+    {
+      "path": "OWN-THEME039-03-restored-build.log",
+      "bytes": 310,
+      "sha256": "B2B29134CBED1E99BFCB4B11504CC86C4C4A949D7BD8B8D10FA287A0EDDCCE03"
+    },
+    {
+      "path": "OWN-THEME039-03.diff",
+      "bytes": 998,
+      "sha256": "47224C11A48DCFEE3F8B8DC749D025448B48F2564933EB76AFB6FBDF75ADBD65"
+    },
+    {
+      "path": "results.json",
+      "bytes": 35245,
+      "sha256": "9D2795F9DE2662FB5680EC62588C5F6BE6C6170EF113ED960DF3B93A61BB9C44"
+    }
+  ]
+}

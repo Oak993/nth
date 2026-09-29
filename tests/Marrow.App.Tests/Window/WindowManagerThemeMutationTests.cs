@@ -8,6 +8,8 @@ using Marrow.UI.Theme;
 namespace Marrow.App.Tests.Window;
 
 // Source: WindowManager.swift:151-159. Both the hosted tree and the application appearance change initially and later.
+// STOP NATIVE-THEME: hosted/process/framework ThemeVariant checks, including actual-store
+// restart, do not prove DWM immersive-dark-mode acceptance or OS-opposite native menu pixels.
 [Collection("Headless")]
 public sealed class WindowManagerThemeMutationTests(HeadlessSession headless)
 {

@@ -2,6 +2,20 @@
   "record": "PR-THEME-039",
   "archives": [
     {
+      "original_directory": "_packet/revision/evidence/final-gap-pr-theme-039-2026-09-29T15-59-24-639Z-ba1cfc",
+      "archive": "_packet/revision/evidence-archives/final-gap-pr-theme-039-2026-09-29T15-59-24-639Z-ba1cfc.zip",
+      "archive_sha256": "9FD42189BA21F4B86B1B78AFEB863984AE0099CAC7C37113C6FED205CADC91BC",
+      "manifest": "_packet/revision/evidence-archives/final-gap-pr-theme-039-2026-09-29T15-59-24-639Z-ba1cfc.zip.json",
+      "file_count": 97
+    },
+    {
+      "original_directory": "_packet/revision/evidence/lifecycle-pr-theme-039-2026-09-29T15-48-34-801Z-9fbcba",
+      "archive": "_packet/revision/evidence-archives/lifecycle-pr-theme-039-2026-09-29T15-48-34-801Z-9fbcba.zip",
+      "archive_sha256": "D9333145087A3B82D4A15180B160BB0830933D7C7D53596A0281AC5F552A27C2",
+      "manifest": "_packet/revision/evidence-archives/lifecycle-pr-theme-039-2026-09-29T15-48-34-801Z-9fbcba.zip.json",
+      "file_count": 69
+    },
+    {
       "original_directory": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1",
       "archive": "_packet/revision/evidence-archives/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1.zip",
       "archive_sha256": "5296A6B4B7DD9490F87F548DB1D0C82AEE5504C1D931FF86E8826D5DC0AC6950",
@@ -9,10 +23,10 @@
       "file_count": 113
     },
     {
-      "original_directory": "_packet/revision/evidence/pr-theme-039-record-gate-2026-09-29T14-26-48-150Z-8d9323",
-      "archive": "_packet/revision/evidence-archives/pr-theme-039-record-gate-2026-09-29T14-26-48-150Z-8d9323.zip",
-      "archive_sha256": "B51450FA616139C2A976F08247DFED12F2E5F4342D0930C0186318F63052C5FB",
-      "manifest": "_packet/revision/evidence-archives/pr-theme-039-record-gate-2026-09-29T14-26-48-150Z-8d9323.zip.json",
+      "original_directory": "_packet/revision/evidence/supplement-gate-pr-theme-039-2026-09-29T16-06-55-917Z-6ede99",
+      "archive": "_packet/revision/evidence-archives/supplement-gate-pr-theme-039-2026-09-29T16-06-55-917Z-6ede99.zip",
+      "archive_sha256": "EB19B93450B71A0D9248A9D7EC35C2B86896F598C4AD2B8F866C830881A80426",
+      "manifest": "_packet/revision/evidence-archives/supplement-gate-pr-theme-039-2026-09-29T16-06-55-917Z-6ede99.zip.json",
       "file_count": 31
     }
   ]
