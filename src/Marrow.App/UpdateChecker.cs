@@ -120,7 +120,7 @@ public sealed record AvailableUpdate
     private static SwiftURL ReadUrl(JsonElement element)
     {
         var relative = SwiftDecoding.Decode(element, "relative", SwiftDecoding.ReadString);
-        return SwiftURL.Create(relative) ?? throw new SwiftTrapException("Invalid URL string: " + relative);
+        return SwiftURL.Create(relative) ?? throw new DecodingError("dataCorrupted", "Invalid URL string."); // Foundation URL Codable throws, never traps
     }
 
     // :233-237 the bytes persist() writes (or reads back), a plain JSONEncoder()/JSONDecoder() (R-CODE-4).
