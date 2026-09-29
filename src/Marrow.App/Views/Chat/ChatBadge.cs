@@ -99,10 +99,7 @@ public sealed class ChatBadge : Decorator
         if (needsAttention) // :55
         {
             var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this); // :19 @Environment(\.accessibilityReduceMotion)
-            var dotField = new DotFieldControl(Chrome.AccentNSColor, animated: !reduceMotion, sweeps: false) // :57 DotFieldLayerView.Representable(color:animated:)
-            {
-                IsVisible = !reduceMotion,
-            };
+            var dotField = new DotFieldControl(Chrome.AccentNSColor, animated: !reduceMotion, sweeps: false); // :57 DotFieldLayerView.Representable(color:animated:), still rendered (static) under reduce motion
             dotField.RenderTransform = new ScaleTransform(1, -1); // :58 .scaleEffect(y: -1), on the dot field itself, inside its quarter frame
             var attentionLayer = new BadgeAttentionQuarter(dotField); // :59 .frame(height: proxy.size.height * 0.25)
             attentionLayer.IsHitTestVisible = false; // :61 .allowsHitTesting(false)
@@ -112,11 +109,7 @@ public sealed class ChatBadge : Decorator
 
             layers.Track(
                 () => EnvironmentValues.GetAccessibilityReduceMotion(layers),
-                motion =>
-                {
-                    dotField.UpdateAnimated(!motion);
-                    dotField.IsVisible = !motion;
-                });
+                motion => dotField.UpdateAnimated(!motion));
         }
 
         var button = PlainControls.Button(layers, () => isPresented.Value = !isPresented.Value); // :23 Button { isPresented.toggle() }
