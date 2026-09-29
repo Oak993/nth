@@ -28,15 +28,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
 {
     private static readonly ModelPin Pin = new(ProviderKind.Claude, "fixture");
 
-    private sealed class Rig(TestRuntime main, AppModel model, ModelsSettingsPage page, RecordingPresenter presenter)
-    {
-        public TestRuntime Main { get; } = main;
-        public AppModel Model { get; } = model;
-        public ModelsSettingsPage Page { get; } = page;
-        public RecordingPresenter Presenter { get; } = presenter;
-    }
-
-    private void Run(bool supportsFast, Action<Rig> test) => headless.OnUiThread(() =>
+    private void Run(bool supportsFast, Action<ModelsSettingsPopoverRig> test) => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var presenter = new RecordingPresenter();
@@ -57,7 +49,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
         var window = new AvaloniaWindow { Content = host, Width = 500, Height = 400 };
         window.Show();
         Dispatcher.UIThread.RunJobs();
-        try { test(new Rig(harness.Main, model, page, presenter)); }
+        try { test(new ModelsSettingsPopoverRig(harness.Main, model, page, presenter)); }
         finally { window.Close(); }
     });
 
@@ -68,7 +60,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
     private static void Click(Button button) => button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
     // The recorded popup's content is the card, at the source's 330 pt width (:239).
-    private static EffortSliderCard OpenCard(Rig rig)
+    private static EffortSliderCard OpenCard(ModelsSettingsPopoverRig rig)
     {
         rig.Main.OnMain(() => Click(BlockButton(rig.Page))); // :192-194 Button { isPresented = true }; presented on the next main turn
         var (popup, presented) = Assert.Single(rig.Presenter.Calls);
@@ -81,7 +73,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
 
     // The popup cannot open headless (Avalonia 12.1.2, no overlay layer), so the card it would host is shown in a
     // window of its own, which is also what makes the card build its effort title.
-    private static AvaloniaWindow Mount(Rig rig, EffortSliderCard card)
+    private static AvaloniaWindow Mount(ModelsSettingsPopoverRig rig, EffortSliderCard card)
     {
         var popup = rig.Presenter.Calls.Single().Popup;
         AvaloniaWindow window = null!;

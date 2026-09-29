@@ -18,38 +18,7 @@ namespace Marrow.App.Tests.Runtime;
 // from the AppModel.
 public sealed class ThreadRuntimeNativeHeadTests
 {
-    private sealed class Rig(AppModelHarness harness, AppModel model, ThreadRuntime lead, ChatThread leadThread) : IDisposable
-    {
-        public AppModelHarness Harness { get; } = harness;
-        public AppModel Model { get; } = model;
-        public ThreadRuntime Lead { get; } = lead;
-        public ChatThread LeadThread { get; } = leadThread;
-        public void Dispose() => Harness.Dispose();
-
-        public void Feed(ProviderEvent @event) => Harness.Main.OnMain(() => Lead.Rehearse(@event));
-
-        public IReadOnlyList<ChatThread> Heads => Harness.Main.OnMain(() => Model.HydraHeads(LeadThread.Id).ToList());
-
-        public ChatThread Head(string nativeID) => Harness.Main.OnMain(() =>
-            Model.HydraHeads(LeadThread.Id).Single(head => head.Hydra!.NativeID == nativeID));
-
-        public ChatThread Fresh(ChatThread head) => Harness.Main.OnMain(() => Model.Thread(head.Id)!);
-
-        public ThreadRuntime HeadRuntime(ChatThread head) => Harness.Main.OnMain(() => Model.ExistingRuntime(head.Id)!);
-
-        // The head's rehearsed turn closes through FinishTurn, which is asynchronous: pump the loop until it is idle.
-        public void WaitUntilIdle(ChatThread head)
-        {
-            var runtime = HeadRuntime(head);
-            Harness.Main.Loop.RunUntil(() => !runtime.IsRunning, AppModelHarness.Bound);
-        }
-
-        public bool Registered(string nativeID) => Harness.Main.OnMain(() =>
-            ((System.Collections.IDictionary)typeof(ThreadRuntime).GetField("hydraNativeHeads", BindingFlags.Instance | BindingFlags.NonPublic)!
-                .GetValue(Lead)!).Contains(nativeID));
-    }
-
-    private static Rig MakeRig(bool hydraOn = true, Func<Project, ChatThread, IEnumerable<ChatThread>>? extraThreads = null)
+    private static ThreadRuntimeNativeHeadRig MakeRig(bool hydraOn = true, Func<Project, ChatThread, IEnumerable<ChatThread>>? extraThreads = null)
     {
         var harness = new AppModelHarness();
         var project = AppModelSamples.Project("Project", harness.NewFolder("project"));
@@ -64,7 +33,7 @@ public sealed class ThreadRuntimeNativeHeadTests
         harness.PrepareBootstrap(model);
         var runtime = harness.Main.OnMain(() => model.Runtime(lead.Id));
         harness.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
-        return new Rig(harness, model, runtime, lead);
+        return new ThreadRuntimeNativeHeadRig(harness, model, runtime, lead);
     }
 
     // U+00B7 MIDDLE DOT, the separator in a native head's title (:2586); built from its code point, R-STR-9.

@@ -18,38 +18,7 @@ public sealed class ThreadRuntimeDispatchHeadTests
 {
     private const string Prompt = "Rename the helper in Parser.cs and update every one of its callers across the whole solution";
 
-    private sealed class Rig(AppModelHarness harness, AppModel model, ThreadRuntime runtime, ChatThread lead) : IDisposable
-    {
-        public AppModelHarness Harness { get; } = harness;
-        public AppModel Model { get; } = model;
-        public ThreadRuntime Runtime { get; } = runtime;
-        public ChatThread Lead { get; } = lead;
-        public void Dispose() => Harness.Dispose();
-
-        public bool Dispatch(FollowUpPrompt prompt, HydraHeadInfo.Origin origin) =>
-            Harness.Main.OnMain(() => (bool)typeof(ThreadRuntime)
-                .GetMethod("DispatchHead", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(Runtime, [prompt, origin])!);
-
-        public IReadOnlyList<ChatThread> Heads => Harness.Main.OnMain(() => Model.HydraHeads(Lead.Id).ToList());
-
-        public void SetPhase(RuntimePhase phase) => Harness.Main.OnMain(() =>
-            typeof(ThreadRuntime).GetField("phase", BindingFlags.Instance | BindingFlags.NonPublic)!.SetValue(Runtime, phase));
-
-        // The text of the brief the spawned head was sent, once its own start has run.
-        public string Brief(ChatThread head)
-        {
-            string? text = null;
-            Harness.Main.Loop.RunUntil(() =>
-            {
-                text = Model.ExistingRuntime(head.Id)?.Entries.Select(entry => entry.Item.TimelineItemContent)
-                    .OfType<TimelineItem.Content.User>().Select(user => user.Value).FirstOrDefault(message => message.HydraBrief == true)?.Text;
-                return text is not null;
-            }, AppModelHarness.Bound);
-            return text!;
-        }
-    }
-
-    private static Rig MakeRig(Action<AppModel>? configure = null, Func<ChatThread, ChatThread>? shape = null,
+    private static ThreadRuntimeDispatchHeadRig MakeRig(Action<AppModel>? configure = null, Func<ChatThread, ChatThread>? shape = null,
         IReadOnlyList<TimelineItem>? timeline = null, IReadOnlyList<TurnRecord>? turns = null)
     {
         var harness = new AppModelHarness();
@@ -77,7 +46,7 @@ public sealed class ThreadRuntimeDispatchHeadTests
         harness.PrepareBootstrap(model);
         var runtime = harness.Main.OnMain(() => model.Runtime(lead.Id));
         harness.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
-        return new Rig(harness, model, runtime, lead);
+        return new ThreadRuntimeDispatchHeadRig(harness, model, runtime, lead);
     }
 
     private static FollowUpPrompt Follow(string text, params Attachment[] attachments) =>

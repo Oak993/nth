@@ -312,6 +312,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         {
             using var h = RuntimeHarness();
             var runtime = h.Runtime;
+            h.Main.OnMain(() => h.App.Settings.HydraQueueHeads = false); // Plain follow-up queue: with Hydra's default queue-heads switch on, ThreadRuntime.swift:999 hands a prompt queued behind a running turn to a head instead (PR-RUNTIME-237).
             GiveStats(h, runtime);
             h.Main.OnMain(() => runtime.EnqueueFollowUp("queued prompt", []));
             var slot = h.Main.OnMain(() => new TabSlot(runtime, new DiffPopoverCoordinator(), showsChanges: true));
@@ -358,6 +359,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             var frames = new ManualFrameSource();
             using var frameScope = FrameClock.Source.Override(frames);
             var runtime = h.Runtime;
+            h.Main.OnMain(() => h.App.Settings.HydraQueueHeads = false); // Plain follow-up queue: with Hydra's default queue-heads switch on, ThreadRuntime.swift:999 hands a prompt queued behind a running turn to a head instead (PR-RUNTIME-237).
             GiveStats(h, runtime);
             h.Main.OnMain(() => runtime.EnqueueFollowUp("queued prompt", []));
             var slot = h.Main.OnMain(() => new TabSlot(runtime, new DiffPopoverCoordinator(), showsChanges: true));
@@ -1296,6 +1298,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             var view = Pill(h, runtime);
             h.Main.OnMain(() =>
             {
+                h.App.Settings.HydraQueueHeads = false; // Plain follow-up queue: with Hydra's default queue-heads switch on, ThreadRuntime.swift:999 hands a prompt queued behind a running turn to a head instead (PR-RUNTIME-237).
                 runtime.RehearseTurn("working");
                 runtime.Draft = new ComposerDraft { Text = "after that, the tests" };
             });
