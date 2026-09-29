@@ -287,6 +287,7 @@ internal sealed class SmallSwitch : Control
     private const double KnobDiameter = TrackHeight - Inset * 2;
 
     private readonly Binding<bool> isOn;
+    private bool pressed;
 
     public SmallSwitch(Binding<bool> isOn)
     {
@@ -297,14 +298,27 @@ internal sealed class SmallSwitch : Control
         Cursor = new Cursor(StandardCursorType.Hand);
         this.Track(() => isOn.Value, _ => InvalidateVisual());
         KeyDown += (_, e) => { if (e.Key == Key.Space && IsEffectivelyEnabled) { isOn.Value = !isOn.Value; e.Handled = true; InvalidateVisual(); } };
+        // :296-305 the native switch acts on a primary press that is released inside it: a secondary or middle press,
+        // or a press dragged away before release, changes nothing.
         PointerPressed += (_, e) =>
         {
-            if (!IsEffectivelyEnabled) return;
+            if (!IsEffectivelyEnabled || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
             Focus();
-            isOn.Value = !isOn.Value;
+            pressed = true;
+            e.Pointer.Capture(this);
             e.Handled = true;
+        };
+        PointerReleased += (_, e) =>
+        {
+            if (!pressed) return;
+            pressed = false;
+            e.Pointer.Capture(null);
+            e.Handled = true;
+            if (!IsEffectivelyEnabled || !new Rect(Bounds.Size).Contains(e.GetPosition(this))) return;
+            isOn.Value = !isOn.Value;
             InvalidateVisual();
         };
+        PointerCaptureLost += (_, _) => pressed = false;
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new SwitchPeer(this);
