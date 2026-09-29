@@ -163,9 +163,12 @@ public sealed class MessageEditor : Decorator
         switch (state.Changes)
         {
             case Changes.Checking:
-                var checking = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+                var checking = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), HorizontalAlignment = HorizontalAlignment.Stretch };
                 checking.Children.Add(new ProgressBar { IsIndeterminate = true, Width = 16, Height = 16 }); // :82-83
-                checking.Children.Add(Callout("Checking for file changes\U00002026", Chrome.SecondaryText)); // U+2026 HORIZONTAL ELLIPSIS; :84-86
+                var checkingText = Callout("Checking for file changes\U00002026", Chrome.SecondaryText); // U+2026 HORIZONTAL ELLIPSIS; :84-86
+                checkingText.Margin = new Thickness(8, 0, 0, 0); // HStack(spacing: 8); the text wraps at the width left
+                Grid.SetColumn(checkingText, 1);
+                checking.Children.Add(checkingText);
                 content.Children.Add(checking);
                 break;
 
@@ -215,6 +218,7 @@ public sealed class MessageEditor : Decorator
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
         var title = Callout("Undo the file changes this thread made", Chrome.PrimaryText); // :104
+        title.Margin = new Thickness(0, 0, 16, 0); // :105 Spacer(minLength: 8) between two HStack gaps of 8: 24 points at least before the count
         var count = Callout(restorable.Count == 1 ? "1 file" : $"{restorable.Count} files", Chrome.SecondaryText); // :106-107
         count.Margin = new Thickness(8, 0, 0, 0);
         var stat = CreateDiffStat(checked((int)preview.Additions), checked((int)preview.Deletions)); // :108
@@ -338,7 +342,7 @@ public sealed class MessageEditor : Decorator
     // :82-120 Callout text in the file-changes box.
     private static TextBlock Callout(string text, SwiftColor color)
     {
-        var block = new TextBlock { Text = text };
+        var block = new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap }; // no lineLimit: a Text wraps at the width it is offered
         SwiftFont.Callout.Apply(block);
         block.Foreground = color.Brush(block);
         return block;
@@ -360,14 +364,17 @@ public sealed class MessageEditor : Decorator
     // :87-99 A symbol and a label.
     private static Control IconLabel(string text, string symbol, SwiftColor color)
     {
-        var row = new StackPanel
+        var row = new Grid
         {
-            Orientation = Orientation.Horizontal,
-            Spacing = 8,
+            ColumnDefinitions = new ColumnDefinitions("Auto,*"),
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
-        row.Children.Add(Icon(symbol, color, SwiftFont.Callout));
-        row.Children.Add(Callout(text, color));
+        var icon = Icon(symbol, color, SwiftFont.Callout);
+        var label = Callout(text, color);
+        label.Margin = new Thickness(8, 0, 0, 0); // spacing 8; the label wraps at the width left of the icon
+        Grid.SetColumn(label, 1);
+        row.Children.Add(icon);
+        row.Children.Add(label);
         return row;
     }
 
