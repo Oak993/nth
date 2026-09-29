@@ -402,6 +402,41 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-083")] // AppModel.swift:887-921
+    public void A_settle_or_archive_request_no_row_takes_up_is_carried_out_after_80_milliseconds()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("fallback"));
+        var toSettle = AppModelSamples.Thread(project);
+        var toArchive = AppModelSamples.Thread(project);
+        h.WriteLibrary([project], [toSettle, toArchive]);
+        var model = h.MakeModel();
+        h.Main.OnMain(() => model.Settings.SettleSound = false);
+
+        h.Main.OnMain(() =>
+        {
+            model.SelectedThreadID = toSettle.Id;
+            model.SettleSelectedThread();
+            Assert.NotNull(model.AppModelFinishRequest);
+            Assert.False(model.Thread(toSettle.Id)!.IsSettled);
+        });
+        h.Main.Advance(TimeSpan.FromMilliseconds(100));
+        Assert.True(h.Main.OnMain(() => model.Thread(toSettle.Id)!.IsSettled));
+        Assert.Null(h.Main.OnMain(() => model.AppModelFinishRequest));
+
+        h.Main.OnMain(() =>
+        {
+            model.SelectedThreadID = toArchive.Id;
+            model.AskToArchiveSelectedThread();
+            Assert.NotNull(model.AppModelArchiveRequest);
+            Assert.False(model.Thread(toArchive.Id)!.IsArchived);
+        });
+        h.Main.Advance(TimeSpan.FromMilliseconds(100));
+        Assert.True(h.Main.OnMain(() => model.Thread(toArchive.Id)!.IsArchived));
+        Assert.Null(h.Main.OnMain(() => model.AppModelArchiveRequest));
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
