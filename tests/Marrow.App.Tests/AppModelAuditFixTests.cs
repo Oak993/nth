@@ -515,6 +515,35 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-127")] // AppModel.swift:1144-1180
+    public void An_inline_helper_of_the_selected_unfolded_thread_and_a_settled_panel_helper_are_on_screen()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("on-screen"));
+        var parent = AppModelSamples.Thread(project).WithFoldsHelpers(false);
+        var inline = AppModelSamples.Thread(project) with { ParentThreadID = parent.Id, HasUnread = true };
+        var panel = AppModelSamples.Thread(project) with { ParentThreadID = parent.Id, IsInPanel = true, IsSettled = true, HasUnread = true };
+        h.WriteLibrary([project], [parent, inline, panel]);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            using var active = NSApplication.IsActive.Override(() => true);
+            model.Settings.ChimeWhenFinished = false;
+            model.Settings.NotifyWhenFinished = false;
+            model.SelectedThreadID = parent.Id;
+            model.UpdateThread(inline.Id, thread => thread with { HasUnread = true });
+            model.UpdateThread(panel.Id, thread => thread with { HasUnread = true });
+
+            model.TurnFinished(inline.Id, TurnStatus.Completed, continues: false);
+            model.TurnFinished(panel.Id, TurnStatus.Completed, continues: false);
+
+            Assert.False(model.Thread(inline.Id)!.HasUnread);
+            Assert.False(model.Thread(panel.Id)!.HasUnread);
+        });
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
