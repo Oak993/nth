@@ -145,6 +145,35 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-STORE-094")] // AppModel.swift:667-671, :703-709
+    public void A_fresh_thread_starts_on_the_pair_of_the_most_recent_non_helper_thread_when_no_pair_was_entered()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("recent-pair"));
+        var pair = new HydraPair(ProviderKind.Codex) { OrchestratorModel = "lead-model", OrchestratorEffort = "high" };
+        var older = AppModelSamples.Thread(project) with { UpdatedAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) };
+        var recent = AppModelSamples.Thread(project) with { UpdatedAt = new DateTimeOffset(2026, 2, 1, 0, 0, 0, TimeSpan.Zero), HydraPairID = null };
+        var recentHelper = AppModelSamples.Thread(project) with { UpdatedAt = new DateTimeOffset(2026, 3, 1, 0, 0, 0, TimeSpan.Zero), ParentThreadID = older.Id, HydraPairID = Guid.NewGuid() };
+        recent = recent with { HydraPairID = pair.Id, HydraEnabled = true };
+        h.WriteLibrary([project], [older, recent, recentHelper]);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            HydraCookbookResolveFixture.SetInstalled(model.Providers, ProviderKind.Codex, true);
+            HydraCookbookResolveFixture.SetModels(model.Providers, ProviderKind.Codex, HydraCookbookResolveFixture.Model("lead-model", "Lead", ["low", "high"]));
+            model.Settings.AddHydraPair(pair);
+            model.Settings.HydraEnabled = true;
+            model.Settings.LastHydraPairID = null;
+
+            var made = model.NewThread(project)!;
+
+            Assert.Equal(pair.Id, made.HydraPairID);
+            Assert.True(made.HydraEnabled);
+        });
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
