@@ -27,7 +27,20 @@ namespace Marrow.App.Views.Settings;
 public sealed class ModelsSettingsPage : Decorator
 {
     private string query;
-    private readonly Dictionary<ProviderKind, bool> providerExpansion = new(); // :12-14 absent means expanded
+    // :12-14 @State providerExpansion: absent means expanded. An ObservableModel so the sections that read the binding
+    // are told when a header flips it (a plain dictionary is invisible to observation tracking).
+    private sealed class ViewState : MainActorModel
+    {
+        private ValueMap<ProviderKind, bool> expansion = ValueMap<ProviderKind, bool>.Empty;
+        public ValueMap<ProviderKind, bool> Expansion { get => Read(expansion); set => Set(ref expansion, value); }
+    }
+
+    private readonly ViewState state = new();
+    private readonly Dictionary<ProviderKind, ProviderModelsSection> sections = new(); // a section keeps its identity (and focus) across body updates
+    private AppModel? sectionsModel;
+    private ModelPin? pressedPin; // the grip currently held down, tracked on the page so a rebuilt row never loses the drag
+    private Point? dragOrigin;
+    private TopLevel? dragRoot;
     private readonly StackPanel root = new() { Orientation = Orientation.Vertical, Spacing = Chrome.SectionSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :30
     private ValueMap<ModelPin, double> rowHeights = ValueMap<ModelPin, double>.Empty; // :10
     private RowDrag<ModelPin> drag = new(); // :9
@@ -37,7 +50,17 @@ public sealed class ModelsSettingsPage : Decorator
     {
         this.query = query;
         Child = root;
-        this.Track(() => AppEnvironment.GetAppModel(this), _ => Rebuild());
+        // :20-22 body reads model.settings.modelList, the providers' statuses and catalogues, so it re-evaluates with them.
+        this.Track(() =>
+        {
+            var model = AppEnvironment.GetAppModel(this);
+            return (Model: model, model.Settings.ModelList, model.Settings.DisabledProviders, model.Providers.Statuses,
+                model.Providers.Catalogs, model.Providers.LoadingCatalogs);
+        }, _ => Rebuild());
+        // The reorder gesture lives on the page's own stack, which survives every rebuild of the rows under it.
+        root.PointerMoved += (_, e) => GripMoved(e);
+        root.PointerReleased += (_, _) => GripReleased();
+        root.PointerCaptureLost += (_, _) => GripReleased();
     }
 
     /// <summary>The chrome search field's text, trimmed of whitespace and newlines by the caller or here.</summary>
@@ -53,12 +76,12 @@ public sealed class ModelsSettingsPage : Decorator
     // :19-100 body
     private void Rebuild()
     {
-        root.Children.Clear();
         // SetQuery may run before the page is attached; Track's own deferred call guards the first Rebuild, but a
         // search edit that races attachment must not throw.
         AppModel model;
         try { model = AppEnvironment.GetAppModel(this); }
         catch (InvalidOperationException) { return; }
+        if (!ReferenceEquals(sectionsModel, model)) { sections.Clear(); sectionsModel = model; }
 
         var registry = model.Providers;
         var settings = model.Settings;
@@ -67,9 +90,10 @@ public sealed class ModelsSettingsPage : Decorator
         var pins = settings.ModelList; // :7
         var visiblePins = VisiblePins(pins, registry, trimmed); // :105-110
 
+        var desired = new List<Control>();
         if (trimmed.Length == 0 || visiblePins.Count > 0) // :33
         {
-            root.Children.Add(new ChromeSection("Your models", () => YourModels(model, pins, visiblePins, registry, settings, trimmed))); // :30-65
+            desired.Add(new ChromeSection("Your models", () => YourModels(model, pins, visiblePins, registry, settings, trimmed))); // :30-65
         }
 
         var providers = registry.AvailableProviders.Where(provider => // :25-27
@@ -77,13 +101,16 @@ public sealed class ModelsSettingsPage : Decorator
 
         foreach (var provider in providers) // :75-84
         {
-            root.Children.Add(new ProviderModelsSection(
-                model,
-                provider,
-                new Binding<bool>(
-                    () => providerExpansion.TryGetValue(provider, out var expanded) ? expanded : true,
-                    value => providerExpansion[provider] = value),
-                trimmed));
+            if (sections.TryGetValue(provider, out var existing)) existing.SetQuery(trimmed);
+            else
+                sections[provider] = existing = new ProviderModelsSection(
+                    model,
+                    provider,
+                    new Binding<bool>(
+                        () => state.Expansion.TryGetValue(provider, out var expanded) ? expanded : true,
+                        value => state.Expansion = state.Expansion.Mutating(map => map[provider] = value)),
+                    trimmed);
+            desired.Add(existing);
         }
 
         if (trimmed.Length > 0 && visiblePins.Count == 0 && providers.Count == 0) // :86-91
@@ -95,7 +122,18 @@ public sealed class ModelsSettingsPage : Decorator
                 Margin = new Thickness(4, 0, 4, 0),
             };
             SwiftFont.System(13).Apply(noMatch);
-            root.Children.Add(noMatch);
+            desired.Add(noMatch);
+        }
+
+        // Keep every control that stays (a section holds the focus of its buttons); only what changed is added or removed.
+        for (var index = root.Children.Count - 1; index >= 0; index--)
+            if (!desired.Contains(root.Children[index])) root.Children.RemoveAt(index);
+        for (var index = 0; index < desired.Count; index++)
+        {
+            var at = root.Children.IndexOf(desired[index]);
+            if (at == index) continue;
+            if (at < 0) root.Children.Insert(index, desired[index]);
+            else root.Children.Move(at, index);
         }
     }
 
@@ -122,25 +160,26 @@ public sealed class ModelsSettingsPage : Decorator
             foreach (var pin in visiblePins) // :47-62
             {
                 var isDragged = drag.Id == pin; // :49
-                var divider = new ChromeRowDivider { Opacity = (visiblePins.Count > 0 && pin == visiblePins[0]) || isDragged ? 0 : 1 }; // :51, ruling :50
-                rows.Children.Add(divider);
-
-                var row = new PinnedModelRow(
+                // :50-58 VStack { divider; row }: the slot is what is offset, lifted and measured (:59-60).
+                var slot = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+                slot.Children.Add(new ChromeRowDivider { Opacity = (visiblePins.Count > 0 && pin == visiblePins[0]) || isDragged ? 0 : 1 }); // :51, ruling :50
+                slot.Children.Add(new PinnedModelRow(
                     model,
                     pin,
                     isDragged,
-                    translation => DragChanged(pin, translation, registry, settings, visiblePins),
-                    () => DragEnded(settings));
-                row.RenderTransform = new TranslateTransform(0, isDragged ? drag.VisualOffset : 0);
-                row.ZIndex = isDragged ? 1 : 0;
-                row.SizeChanged += (_, args) =>
+                    _ => { },
+                    () => { },
+                    press => GripPressed(pin, press)));
+                slot.RenderTransform = new TranslateTransform(0, isDragged ? drag.VisualOffset : 0); // :59
+                slot.ZIndex = isDragged ? 1 : 0; // :60
+                slot.SizeChanged += (_, args) =>
                 {
                     if (args.NewSize.Height <= 0) return;
                     rowHeights = rowHeights.Mutating(map => map[pin] = args.NewSize.Height); // :141-150 PinnedRowHeightReporter
                     if (rowHeights.Count > pins.Count) // :93-99
                         rowHeights = new ValueMap<ModelPin, double>(rowHeights.Where(entry => pins.Contains(entry.Key)));
                 };
-                rows.Children.Add(row);
+                rows.Children.Add(slot);
             }
             stack.Children.Add(rows);
 
@@ -161,23 +200,58 @@ public sealed class ModelsSettingsPage : Decorator
         return stack;
     }
 
-    // :112-134 dragChanged(_:translation:)
-    private void DragChanged(ModelPin pin, double translation, ProviderRegistry registry, AppSettings settings, ValueList<ModelPin> visiblePinsAtStart)
+    // :175-206 the grip's DragGesture(minimumDistance: 1, coordinateSpace: .global), held on the page so a rebuild of the
+    // rows never drops it: onChanged reports the height of the translation, onEnded ends the drag.
+    private void GripPressed(ModelPin pin, PointerPressedEventArgs e)
     {
+        if (TopLevel.GetTopLevel(this) is not { } top) return;
+        dragRoot = top;
+        dragOrigin = e.GetPosition(top);
+        pressedPin = pin;
+        e.Pointer.Capture(root);
+        e.Handled = true;
+    }
+
+    private void GripMoved(PointerEventArgs e)
+    {
+        if (pressedPin is not { } pin || dragOrigin is not { } origin || dragRoot is null) return;
+        var delta = e.GetPosition(dragRoot) - origin;
+        if (drag.Id != pin && Math.Sqrt(delta.X * delta.X + delta.Y * delta.Y) < 1) return; // minimumDistance: 1
+        DragChanged(pin, delta.Y);
+    }
+
+    private void GripReleased()
+    {
+        if (pressedPin is null) return;
+        pressedPin = null;
+        dragOrigin = null;
+        dragRoot = null;
+        DragEnded();
+    }
+
+    // :112-134 dragChanged(_:translation:)
+    private void DragChanged(ModelPin pin, double translation)
+    {
+        AppModel model;
+        try { model = AppEnvironment.GetAppModel(this); }
+        catch (InvalidOperationException) { return; }
+        var registry = model.Providers;
+        var settings = model.Settings;
+
         if (drag.Id != pin) drag = new RowDrag<ModelPin> { Id = pin };
         drag = drag with { Translation = translation };
 
         var trimmed = FoundationText.Trim(query, includeNewlines: true);
         var order = VisiblePins(settings.ModelList, registry, trimmed); // re-read fresh on every move
-        var (nextDrag, moved) = drag.Settle(order, rowHeights, fallbackHeight: 54,
+        var (nextDrag, _) = drag.Settle(order, rowHeights, fallbackHeight: 54,
             (neighbour, placeAfter) => settings.MoveModel(pin, neighbour, placeAfter),
             pastCentre: 0);
         drag = nextDrag;
-        if (moved) Rebuild();
+        Rebuild(); // drag.id and drag.translation are observed state: the grabbed row follows the pointer at once
     }
 
     // :136-139 dragEnded()
-    private void DragEnded(AppSettings settings)
+    private void DragEnded()
     {
         if (drag.Id is null) return;
         Transaction.WithAnimation(Animation.Spring(response: 0.32, dampingFraction: 0.8), () => drag = new RowDrag<ModelPin>());
@@ -222,7 +296,7 @@ internal sealed class PinnedModelRow : Decorator
     // AppModel is passed directly rather than re-read via AppEnvironment.GetAppModel(this): this row is
     // constructed and parented in the same call as ModelsSettingsPage.Rebuild(), which already has it in scope,
     // and reading the environment here would need the same not-yet-attached deferral HydraCookbookRow required.
-    public PinnedModelRow(AppModel model, ModelPin pin, bool isDragged, Action<double> onDragChanged, Action onDragEnded)
+    public PinnedModelRow(AppModel model, ModelPin pin, bool isDragged, Action<double> onDragChanged, Action onDragEnded, Action<PointerPressedEventArgs>? onGripPressed = null)
     {
         var registry = model.Providers;
         var settings = model.Settings;
@@ -249,6 +323,7 @@ internal sealed class PinnedModelRow : Decorator
         gripHost.PointerPressed += (_, e) =>
         {
             if (!e.GetCurrentPoint(gripHost).Properties.IsLeftButtonPressed) return;
+            if (onGripPressed is not null) { onGripPressed(e); return; } // the page holds the gesture
             dragRoot = TopLevel.GetTopLevel(gripHost);
             dragOrigin = e.GetPosition(dragRoot);
             e.Pointer.Capture(gripHost);
@@ -368,10 +443,18 @@ internal sealed class RowControl : Decorator
 /// <summary>:298-413 <c>private struct ProviderModelsSection: View</c>: one provider's catalogue.</summary>
 internal sealed class ProviderModelsSection : Decorator
 {
+    /// <summary>One catalogue row: the divider above it and the row itself, each in its own reveal (:346-395).</summary>
+    private sealed record RowParts(ModelOption Option, ChromeRevealLayout DividerReveal, SettingsScalarAnimation DividerMotion,
+        ChromeRow Row, ChromeRevealLayout RowReveal, SettingsScalarAnimation RowMotion, Button Toggle);
+
+    private string query;
+    private readonly Action sync;
+
     // :299-305 let provider, var query = "", @Binding var isExpanded; :307-412 body
     // AppModel is passed directly for the same reason as PinnedModelRow's (see its comment).
     public ProviderModelsSection(AppModel model, ProviderKind provider, Binding<bool> isExpanded, string query = "")
     {
+        this.query = query;
         var registry = model.Providers;
         var settings = model.Settings;
 
@@ -393,14 +476,34 @@ internal sealed class ProviderModelsSection : Decorator
         stack.Children.Add(card);
         Child = stack;
 
-        void RebuildCard()
+        // The rows are built once per catalogue (a stable ForEach keyed on option.id, :346) and then only updated, so
+        // an activated button keeps its identity and keyboard focus while its glyph and state change.
+        ValueList<ModelOption>? builtCatalogue = null;
+        var builtLoading = false;
+        var parts = new List<RowParts>();
+        ChromeRevealLayout? emptyReveal = null;
+        SettingsScalarAnimation? emptyMotion = null;
+
+        void UpdateToggle(Button toggle, ModelOption option, ModelPin pin)
+        {
+            var added = settings.IsInModelList(pin);
+            var glyph = SwiftImage.SystemName(added ? "checkmark.circle.fill" : "plus.circle").Font(SwiftFont.System(17));
+            glyph.ForegroundStyle(added ? Chrome.Accent : Chrome.SecondaryText);
+            toggle.Content = glyph;
+            var full = settings.ModelList.Count >= AppSettings.ModelListLimit;
+            toggle.IsEnabled = added || !full;
+            toggle.Opacity = !added && full ? 0.35 : 1;
+            var help = added ? "Remove from the picker" : full ? "The picker holds up to " + AppSettings.ModelListLimit.ToString(System.Globalization.CultureInfo.InvariantCulture) + " models" : "Add to the picker";
+            ToolTip.SetTip(toggle, help);
+            AutomationProperties.SetName(toggle, added ? "Remove " + option.ShortName + " from the picker" : "Add " + option.ShortName + " to the picker");
+        }
+
+        void Build(ValueList<ModelOption> catalogue, bool expanded, bool isFiltering)
         {
             cardContent.Children.Clear();
-            var expanded = isExpanded.Value;
-            var catalogue = registry.Models(provider); // :312
-            var isFull = settings.ModelList.Count >= AppSettings.ModelListLimit; // :313
-            var isFiltering = query.Length > 0; // :314
-
+            parts.Clear();
+            emptyReveal = null;
+            emptyMotion = null;
             if (catalogue.Count == 0) // :330-344
             {
                 var loading = registry.LoadingCatalogs.Contains(provider);
@@ -411,86 +514,118 @@ internal sealed class ProviderModelsSection : Decorator
                     loadButton.Click += async (_, _) => await registry.LoadCatalog(provider, force: true);
                     return loadButton;
                 });
-                var reveal = new ChromeRevealLayout(expanded || isFiltering ? 1 : 0) { ClipToBounds = true };
+                var start = expanded || isFiltering ? 1 : 0;
+                var reveal = new ChromeRevealLayout(start) { ClipToBounds = true };
                 reveal.Children.Add(content);
+                emptyReveal = reveal;
+                emptyMotion = new SettingsScalarAnimation(reveal, start, value => reveal.Fraction = value);
                 cardContent.Children.Add(reveal);
+                return;
+            }
+
+            foreach (var option in catalogue) // :346-395
+            {
+                var dividerReveal = new ChromeRevealLayout(0) { ClipToBounds = true };
+                dividerReveal.Children.Add(new ChromeRowDivider());
+                cardContent.Children.Add(dividerReveal);
+
+                var pin = new ModelPin(provider, option.Id);
+                var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+                if (option.SupportsFast)
+                {
+                    var bolt = SwiftImage.SystemName("bolt").Font(SwiftFont.System(11));
+                    bolt.ForegroundStyle(Chrome.SecondaryText);
+                    ToolTip.SetTip(bolt, "Supports fast mode");
+                    controls.Children.Add(bolt);
+                }
+                var toggle = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Padding = new Thickness(0) };
+                toggle.Click += (_, _) =>
+                {
+                    void Flip()
+                    {
+                        if (settings.IsInModelList(pin)) settings.RemoveFromModelList(pin);
+                        else settings.AddToModelList(pin);
+                    }
+                    if (this.query.Length > 0) Flip();
+                    else Transaction.WithAnimation(Chrome.PanelSlide, Flip);
+                    UpdateToggle(toggle, option, pin);
+                };
+                controls.Children.Add(toggle);
+
+                var rowContent = new ChromeRow(option.ShortName, () => controls, option.Detail);
+                var rowReveal = new ChromeRevealLayout(0) { ClipToBounds = true };
+                rowReveal.Children.Add(rowContent);
+                cardContent.Children.Add(rowReveal);
+                parts.Add(new RowParts(option, dividerReveal, new SettingsScalarAnimation(dividerReveal, 0, value => dividerReveal.Fraction = value),
+                    rowContent, rowReveal, new SettingsScalarAnimation(rowReveal, 0, value => rowReveal.Fraction = value), toggle));
+            }
+        }
+
+        var immediate = true;
+        void Sync()
+        {
+            var expanded = isExpanded.Value;
+            var catalogue = registry.Models(provider); // :312
+            var isFiltering = this.query.Length > 0; // :314
+            var loading = registry.LoadingCatalogs.Contains(provider);
+            if (builtCatalogue is null || !builtCatalogue.Equals(catalogue) || (catalogue.Count == 0 && loading != builtLoading))
+            {
+                Build(catalogue, expanded, isFiltering);
+                builtCatalogue = catalogue;
+                builtLoading = loading;
+                immediate = true; // a rebuilt structure starts at its state: nothing animates from a new row
+            }
+
+            var animation = immediate ? null : Transaction.Current;
+            immediate = false;
+            if (catalogue.Count == 0)
+            {
+                emptyMotion!.Set(expanded || isFiltering ? 1 : 0, animation);
             }
             else
             {
                 var visibleIDs = new HashSet<string>(catalogue
                     .Where(option => isFiltering
-                        ? ModelsSettingsPage.Matches(option, option.Id, provider, query)
+                        ? ModelsSettingsPage.Matches(option, option.Id, provider, this.query)
                         : expanded || settings.IsInModelList(new ModelPin(provider, option.Id)))
                     .Select(option => option.Id)); // :317-321
                 var firstVisibleID = catalogue.FirstOrDefault(option => visibleIDs.Contains(option.Id))?.Id; // :322
-
-                foreach (var option in catalogue) // :346-395
+                foreach (var part in parts)
                 {
-                    var isVisible = visibleIDs.Contains(option.Id);
-                    var dividerReveal = new ChromeRevealLayout(isVisible && option.Id != firstVisibleID ? 1 : 0) { ClipToBounds = true };
-                    dividerReveal.Children.Add(new ChromeRowDivider());
-                    cardContent.Children.Add(dividerReveal);
-
-                    var pin = new ModelPin(provider, option.Id);
-                    var isAdded = settings.IsInModelList(pin);
-
-                    var controls = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
-                    if (option.SupportsFast)
-                    {
-                        var bolt = SwiftImage.SystemName("bolt").Font(SwiftFont.System(11));
-                        bolt.ForegroundStyle(Chrome.SecondaryText);
-                        ToolTip.SetTip(bolt, "Supports fast mode");
-                        controls.Children.Add(bolt);
-                    }
-                    var toggle = new Button { Background = Brushes.Transparent, BorderThickness = new Thickness(0), Padding = new Thickness(0) };
-                    void UpdateToggle()
-                    {
-                        var added = settings.IsInModelList(pin);
-                        var glyph = SwiftImage.SystemName(added ? "checkmark.circle.fill" : "plus.circle").Font(SwiftFont.System(17));
-                        glyph.ForegroundStyle(added ? Chrome.Accent : Chrome.SecondaryText);
-                        toggle.Content = glyph;
-                        var full = settings.ModelList.Count >= AppSettings.ModelListLimit;
-                        toggle.IsEnabled = added || !full;
-                        toggle.Opacity = !added && full ? 0.35 : 1;
-                        var help = added ? "Remove from the picker" : full ? "The picker holds up to " + AppSettings.ModelListLimit.ToString(System.Globalization.CultureInfo.InvariantCulture) + " models" : "Add to the picker";
-                        ToolTip.SetTip(toggle, help);
-                        AutomationProperties.SetName(toggle, added ? "Remove " + option.ShortName + " from the picker" : "Add " + option.ShortName + " to the picker");
-                    }
-                    UpdateToggle();
-                    toggle.Click += (_, _) =>
-                    {
-                        void Flip()
-                        {
-                            if (settings.IsInModelList(pin)) settings.RemoveFromModelList(pin);
-                            else settings.AddToModelList(pin);
-                        }
-                        if (isFiltering) Flip();
-                        else Transaction.WithAnimation(Chrome.PanelSlide, Flip);
-                        UpdateToggle();
-                    };
-                    controls.Children.Add(toggle);
-
-                    var rowContent = new ChromeRow(option.ShortName, () => controls, option.Detail);
-                    rowContent.IsEnabled = isVisible;
-                    rowContent.IsHitTestVisible = isVisible;
-                    var rowReveal = new ChromeRevealLayout(isVisible ? 1 : 0) { ClipToBounds = true };
-                    rowReveal.Children.Add(rowContent);
-                    cardContent.Children.Add(rowReveal);
+                    var isVisible = visibleIDs.Contains(part.Option.Id);
+                    part.DividerMotion.Set(isVisible && part.Option.Id != firstVisibleID ? 1 : 0, animation);
+                    part.RowMotion.Set(isVisible ? 1 : 0, animation);
+                    part.Row.IsEnabled = isVisible;
+                    part.Row.IsHitTestVisible = isVisible;
+                    // :346-395 a row that does not show is clipped, disabled, not hit-testable and accessibilityHidden.
+                    AutomationProperties.SetAccessibilityView(part.RowReveal, isVisible ? AccessibilityView.Content : AccessibilityView.Raw);
+                    AutomationProperties.SetAccessibilityView(part.DividerReveal, isVisible ? AccessibilityView.Content : AccessibilityView.Raw);
+                    UpdateToggle(part.Toggle, part.Option, new ModelPin(provider, part.Option.Id));
                 }
             }
 
             var cardVisible = expanded || isFiltering || (catalogue.Count > 0
                 ? catalogue.Any(option => isFiltering
-                    ? ModelsSettingsPage.Matches(option, option.Id, provider, query)
+                    ? ModelsSettingsPage.Matches(option, option.Id, provider, this.query)
                     : expanded || settings.IsInModelList(new ModelPin(provider, option.Id)))
                 : false); // :323-324
             card.IsHitTestVisible = cardVisible;
             AutomationProperties.SetAccessibilityView(card, cardVisible ? AccessibilityView.Content : AccessibilityView.Raw);
         }
 
-        RebuildCard();
-        this.Track(() => (isExpanded.Value, settings.ModelList, registry.Statuses), _ => RebuildCard());
+        sync = Sync;
+        Sync();
+        // :307-410 the body reads the expansion, the chosen list, the catalogue and its loading state.
+        this.Track(() => (isExpanded.Value, settings.ModelList, registry.Statuses, registry.Catalogs, registry.LoadingCatalogs), _ => Sync());
         this.Task(() => provider, async _ => await registry.LoadCatalog(provider)); // :411, not forced
+    }
+
+    /// <summary>The page hands the trimmed search text to the section it keeps across body updates (:300 var query).</summary>
+    public void SetQuery(string value)
+    {
+        if (query == value) return;
+        query = value;
+        sync();
     }
 }
 
