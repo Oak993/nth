@@ -84,11 +84,7 @@ public sealed class HeadlessSession : IDisposable
     public void Dispose() => Session.Dispose();
 }
 
-// R-TEST-5: Headless views observe the process-wide ThemeManager event. Other AppModel
-// collections construct AppSettings on independent manual loops and synchronously broadcast
-// that event. They must not mutate a live view from another thread during a render pass.
-// Keep every test/assertion and the assembly's other collection parallelism unchanged.
-[CollectionDefinition("Headless", DisableParallelization = true)]
+[CollectionDefinition("Headless")]
 public sealed class HeadlessCollection : ICollectionFixture<HeadlessSession>;
 
 /// <summary>
