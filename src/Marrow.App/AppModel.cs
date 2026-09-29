@@ -914,7 +914,7 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:839-842
     public void ReopenIfSettled(Guid id) // AppModel.swift:839-842
     {
-        if (Thread(id)?.IsSettled == true) Reopen(id);
+        if (Thread(id)?.IsSettled == true) ReopenAnimated(id); // AppModel.swift:850
     }
 
     // AppModel.swift:846-849

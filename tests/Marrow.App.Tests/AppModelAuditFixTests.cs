@@ -4,6 +4,8 @@ using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Store;
+using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 
 namespace Marrow.App.Tests;
 
@@ -303,6 +305,29 @@ public sealed class AppModelAuditFixTests
         Assert.Null(archived.Branch);
         Assert.Null(archived.Hydra!.BaseTree);
         h.Main.Loop.RunUntil(() => !Directory.Exists(copy), AppModelHarness.Bound); // the copy's folder goes with the release
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-081")] // AppModel.swift:839-851
+    public void A_settled_thread_that_starts_a_turn_reopens_inside_the_settle_flight_animation()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("reopen-animated"));
+        var settled = AppModelSamples.Thread(project) with { IsSettled = true, SettledAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) };
+        h.WriteLibrary([project], [settled]);
+        var model = h.MakeModel();
+        Animation? seen = null;
+
+        h.Main.OnMain(() =>
+        {
+            var (_, tracker) = ObservationTracking.Track(() => model.Thread(settled.Id)!.IsSettled, () => seen = Transaction.Current);
+            model.ReopenIfSettled(settled.Id);
+
+            Assert.False(model.Thread(settled.Id)!.IsSettled);
+            Assert.NotNull(seen);
+            Assert.Equal(Chrome.SettleFlight, seen);
+            tracker.Cancel();
+        });
     }
 
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
