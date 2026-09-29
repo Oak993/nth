@@ -1,0 +1,217 @@
+{
+  "original_directory": "_packet/revision/evidence/final-gap-pr-win-008-2026-09-29T15-59-51-057Z-16f9ab",
+  "archive": "_packet/revision/evidence-archives/final-gap-pr-win-008-2026-09-29T15-59-51-057Z-16f9ab.zip",
+  "archive_sha256": "8DDE93001949D50AA8E460DF3803C19AB9D6013710788CB513E54A04D6A29048",
+  "files": [
+    {
+      "path": "children/OWN-WIN008-13-green/70878192bb7145f68a14d6f062d756e3/child-result.json",
+      "bytes": 806,
+      "sha256": "B8F4E8077604C69728441BD7583EFF2E99FD5640D18A260C708E7B0D767AF1D4"
+    },
+    {
+      "path": "children/OWN-WIN008-13-green/70878192bb7145f68a14d6f062d756e3/invocation.json",
+      "bytes": 619,
+      "sha256": "87E8C993ED7F79DFCC9AE90A822198E050B23D3718AB0B5D637304C313F1C17A"
+    },
+    {
+      "path": "children/OWN-WIN008-13-green/70878192bb7145f68a14d6f062d756e3/parent-result.json",
+      "bytes": 2358,
+      "sha256": "34EBE7DF1D4C94FA7A16B7699E1107D238A4CDFBE8AF7DDF07011445D5B0B412"
+    },
+    {
+      "path": "children/OWN-WIN008-13-green/70878192bb7145f68a14d6f062d756e3/permit.json",
+      "bytes": 800,
+      "sha256": "C43F701C64474797C0EB91AE12D8F69DB3D6B3FD47614E7D567643577B4FBDD3"
+    },
+    {
+      "path": "children/OWN-WIN008-13-green/70878192bb7145f68a14d6f062d756e3/ready.json",
+      "bytes": 736,
+      "sha256": "582BEA23E7B69432284F815377508775BA36EEE51C56671F887C4CB6D95605F4"
+    },
+    {
+      "path": "children/OWN-WIN008-13-green/70878192bb7145f68a14d6f062d756e3/request.json",
+      "bytes": 659,
+      "sha256": "C91825D10B754546A3FD98E8F8D66D8E3D3EE2C8141666A2840361498D33D44B"
+    },
+    {
+      "path": "children/OWN-WIN008-13-green/70878192bb7145f68a14d6f062d756e3/results/native-child.trx",
+      "bytes": 3388,
+      "sha256": "3DF93ED3CA614EBF5D668690EC546D8B109E8E279AFDCD2F9EFD2D7EEB48432C"
+    },
+    {
+      "path": "children/OWN-WIN008-13-green/70878192bb7145f68a14d6f062d756e3/runner.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "children/OWN-WIN008-13-green/70878192bb7145f68a14d6f062d756e3/runner.stdout.log",
+      "bytes": 1170,
+      "sha256": "3A03004D574B9D85DF53010293429B1D71D547435E6B94EDB80AAC5235BBCF75"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-1/a91842dd73324a2084b844d870b1595a/child-result.json",
+      "bytes": 3268,
+      "sha256": "C13DC311EF8161618E7424FE703546A38A0A132ED826CFB2CE39F733790E0EAB"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-1/a91842dd73324a2084b844d870b1595a/invocation.json",
+      "bytes": 619,
+      "sha256": "C66E9B137CCE37594DDC82758AD80A363368D03F187B724735111A0B65FA4F53"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-1/a91842dd73324a2084b844d870b1595a/parent-result.json",
+      "bytes": 8325,
+      "sha256": "646B52EC06D3450DB8D9BCA6E1E435B95F3E357BC6F67E4D5F0134E0C0C2F651"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-1/a91842dd73324a2084b844d870b1595a/permit.json",
+      "bytes": 801,
+      "sha256": "C5DC77BC322BE0571E03EEA9481BF95B59607EF589F2A212DDB79169D2F1F9CD"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-1/a91842dd73324a2084b844d870b1595a/ready.json",
+      "bytes": 737,
+      "sha256": "9F96E88C5EED3D54CC3084BB254223F5C430930C3891DFAF2B14B39EB7B295E0"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-1/a91842dd73324a2084b844d870b1595a/request.json",
+      "bytes": 659,
+      "sha256": "3FBCD4400FB0436909D8E2297A41D31E9E50603851A91726AC396F9598C12036"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-1/a91842dd73324a2084b844d870b1595a/results/native-child.trx",
+      "bytes": 10194,
+      "sha256": "84FAD36559AE4DC86E3E29D471D45B6532021897C76511E6264C90626827F5B0"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-1/a91842dd73324a2084b844d870b1595a/runner.stderr.log",
+      "bytes": 177,
+      "sha256": "F0ADF82966AF30CE94B953B2D819569F7353086466BC891BAF73AD3ECBACE752"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-1/a91842dd73324a2084b844d870b1595a/runner.stdout.log",
+      "bytes": 7264,
+      "sha256": "738348CE14ACC9ED21F7CA0AFB9D13415E42BE1E4DE67F164AA05766873985D5"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-2/2f00e3fc31d346948503206f3d456f0a/child-result.json",
+      "bytes": 3266,
+      "sha256": "C02AAD9813172678550CEA18BB72A2007E595F4F24E13933E48B3E957D36D788"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-2/2f00e3fc31d346948503206f3d456f0a/invocation.json",
+      "bytes": 619,
+      "sha256": "9E4E3554BDD1E7DE0DC157BBE3410C1A04A47389345868F3393148771CE96D10"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-2/2f00e3fc31d346948503206f3d456f0a/parent-result.json",
+      "bytes": 8320,
+      "sha256": "CD75906C26295B83AB9AD53D8E9085EBB32A4D270C32750E1CEF0E6BF6383A97"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-2/2f00e3fc31d346948503206f3d456f0a/permit.json",
+      "bytes": 799,
+      "sha256": "6C70199DD3520BBD28D7D0C0F45BC650D360C0654EE9DF882E2F6A4B1E2DF97C"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-2/2f00e3fc31d346948503206f3d456f0a/ready.json",
+      "bytes": 735,
+      "sha256": "A1B61925A65B8C1B9D695166748B641EC6FC2B6CC06AE954D6A3C84E69CDC4FB"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-2/2f00e3fc31d346948503206f3d456f0a/request.json",
+      "bytes": 658,
+      "sha256": "36741FC7BA8D1BAE4F58628E1A3CFC9AA7CCF3EDB7ED14A9B875EF2C2942FD7B"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-2/2f00e3fc31d346948503206f3d456f0a/results/native-child.trx",
+      "bytes": 10193,
+      "sha256": "C4DAC9C5ED95CE133005FCBCE214B78A26FF22127C0F76149329DA6F9D94F55D"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-2/2f00e3fc31d346948503206f3d456f0a/runner.stderr.log",
+      "bytes": 177,
+      "sha256": "FD8759D44C0064003DBD3179BAC95E1070A726E60235FB34FACA6661A9FCBF84"
+    },
+    {
+      "path": "children/OWN-WIN008-13-red-2/2f00e3fc31d346948503206f3d456f0a/runner.stdout.log",
+      "bytes": 7263,
+      "sha256": "5CA6CBC8F4B77BF6FAC7B96161E5B8779AAE262EC83AB19146A155F9BE841EA4"
+    },
+    {
+      "path": "OWN-WIN008-13-green.json",
+      "bytes": 4824,
+      "sha256": "B997460783EC33E1F6C0DC1093F1FF47C538EB1BE8E4763D30A1CE0377FAC229"
+    },
+    {
+      "path": "OWN-WIN008-13-green.log",
+      "bytes": 699,
+      "sha256": "0A8E7BE7E9615CAB6EDE899BE3351C1559B06B3364E95552DE17AEFFEA24E1A3"
+    },
+    {
+      "path": "OWN-WIN008-13-green.trx",
+      "bytes": 3522,
+      "sha256": "24BACF834F53D5C8A5B6F3C08D6BC2FF41420C3D3D0CB6C67CF85AF8A508A1CA"
+    },
+    {
+      "path": "OWN-WIN008-13-mutant-build.json",
+      "bytes": 2395,
+      "sha256": "E3ED0F0034F5E8F387BBBF4E358AAF50A947CF1DFFE788A3BD14A06D37EEC632"
+    },
+    {
+      "path": "OWN-WIN008-13-mutant-build.log",
+      "bytes": 310,
+      "sha256": "E2B2996429B543B7CA8E9B1D55AAC56BFA7E3F73DE2A46E494763AEC3D5B95C7"
+    },
+    {
+      "path": "OWN-WIN008-13-red-1.json",
+      "bytes": 8537,
+      "sha256": "77EB400727D78657A88423C901DA14EA623DE73F15B757F11EF038FF5A2AEE80"
+    },
+    {
+      "path": "OWN-WIN008-13-red-1.log",
+      "bytes": 858,
+      "sha256": "0EC902FCACCF06B7FFDCB9EB080BDD147A01CE51EC6226E733B5A15017B77DAA"
+    },
+    {
+      "path": "OWN-WIN008-13-red-1.trx",
+      "bytes": 13517,
+      "sha256": "0B685B0FC33B2810B679F594805DB83EE1E49FDD5E3BD6D701F84F39099306A3"
+    },
+    {
+      "path": "OWN-WIN008-13-red-2.json",
+      "bytes": 8537,
+      "sha256": "4C3388CBE9AA55C14CB6D759E7AFF196BB929A11E94D548C81F35845F2AB0D1E"
+    },
+    {
+      "path": "OWN-WIN008-13-red-2.log",
+      "bytes": 858,
+      "sha256": "0412DEFC691355AC935EF4782C435C3C5EE240CB587C77A17084620632095D10"
+    },
+    {
+      "path": "OWN-WIN008-13-red-2.trx",
+      "bytes": 13517,
+      "sha256": "2CB96BFFA51832737EB80B256CDBA8925357C9D0BB07645E545C11BCDD5F2539"
+    },
+    {
+      "path": "OWN-WIN008-13-restored-build.json",
+      "bytes": 2397,
+      "sha256": "5F54D74256AD9EF31D91A4AF3683D855AB4C8C3311D7BDF60AC707AD4945B7A6"
+    },
+    {
+      "path": "OWN-WIN008-13-restored-build.log",
+      "bytes": 310,
+      "sha256": "8DDCB0D9C1DFDF21CF0606437F5EFD0D1F00133B77EF86F7D260D2A735332285"
+    },
+    {
+      "path": "OWN-WIN008-13.diff",
+      "bytes": 608,
+      "sha256": "8D84EE40E40A1F019181AA2C9AD60313942B2B4FC034ED9053A3C796C9B06380"
+    },
+    {
+      "path": "results.json",
+      "bytes": 30632,
+      "sha256": "E9718A3B3A5011DEF51F175239FC67D823DB5CFDA8CED4068970A59C674361C0"
+    }
+  ]
+}

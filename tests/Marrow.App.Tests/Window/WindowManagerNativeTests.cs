@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Marrow.App.Port;
+using Marrow.App.Window;
 using Xunit;
 using N = Marrow.App.Tests.Window.Native.WindowManagerNativeMethods;
 
@@ -94,6 +95,30 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
             Assert.Equal(new[] { true, false, true, false }, subject.MainProbe.ResizeTransitions);
             Assert.Empty(subject.SettingsProbe.ResizeTransitions);
         });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-008")] // WindowManager.swift:96, defer:false realizes the native window before presentation.
+    public void The_factory_realizes_its_owned_native_handle_before_the_first_Show()
+    {
+        // STOP FACTORY-RENDER-POLICY: a live invisible HWND proves realization, not the
+        // PR-WIN-008 buffered/default-animation mapping or the first painted frame.
+        native.Run(subject => native.OnUi(() =>
+        {
+            var manager = new WindowManager { MainContent = () => new Border(), SettingsContent = () => new Border() };
+            var factory = typeof(WindowManager).GetMethod("MakeMainWindow", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            Assert.NotNull(factory);
+            var window = Assert.IsType<ThreadWindow>(factory.Invoke(manager, null));
+            native.Register(window);
+            Assert.False(window.IsVisible);
+            var handle = window.TryGetPlatformHandle();
+            Assert.NotNull(handle);
+            Assert.NotEqual((nint)0, handle.Handle);
+            Assert.True(N.IsWindow(handle.Handle));
+            N.RequireOwner(handle.Handle);
+            Assert.Equal(native.ThreadId, N.GetWindowThreadProcessId(handle.Handle, out _));
+            Assert.False(N.IsWindowVisible(handle.Handle));
+        }));
     }
 
     [Fact]
