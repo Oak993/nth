@@ -555,7 +555,7 @@ public sealed class MiddleTruncatingText : TextBlock
     {
         var text = PlainFull;
         var lo = 0;
-        var hi = text.Length;
+        var hi = System.Globalization.StringInfo.ParseCombiningCharacters(text).Length;
         var best = 0;
         var unconstrained = new Size(double.PositiveInfinity, double.PositiveInfinity);
         while (lo <= hi)
@@ -576,18 +576,32 @@ public sealed class MiddleTruncatingText : TextBlock
         PresentCandidate(text, best);
     }
 
-    // The first mid/2 units, U+2026, then the last mid - mid/2 units.
-    private void PresentCandidate(string text, int kept)
+    /// <summary>The first kept/2 characters, U+2026, then the last kept - kept/2 characters of <paramref name="text"/>.</summary>
+    public static string Candidate(string text, int kept)
     {
+        var (headEnd, tailStart) = Cut(text, kept);
+        return text.Substring(0, headEnd) + Ellipsis + text.Substring(tailStart);
+    }
+
+    // UTF-16 offsets where the head ends and the tail starts for `kept` kept characters. A Swift Character is an
+    // extended grapheme cluster (:307-311 Text truncates by Character), so the cut falls only between clusters.
+    private static (int HeadEnd, int TailStart) Cut(string text, int kept)
+    {
+        var starts = System.Globalization.StringInfo.ParseCombiningCharacters(text);
         var head = kept / 2;
         var tail = kept - head;
-        var headEnd = head;
-        var tailStart = text.Length - tail;
+        int At(int cluster) => cluster >= starts.Length ? text.Length : starts[cluster];
+        return (At(head), At(starts.Length - tail));
+    }
+
+    private void PresentCandidate(string text, int kept)
+    {
         if (styled is null)
         {
-            Present(text.Substring(0, headEnd) + Ellipsis + text.Substring(tailStart), null);
+            Present(Candidate(text, kept), null);
             return;
         }
+        var (headEnd, tailStart) = Cut(text, kept);
         var runs = new List<StyledText.Run>();
         var offset = 0;
         var ellipsisAdded = false;

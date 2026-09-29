@@ -132,4 +132,21 @@ public sealed class PopoversAuditTests(HeadlessSession headless)
         Assert.Contains("…", title.Text, StringComparison.Ordinal);
         window.Close();
     });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-106")] // UI/Chrome/Popovers.swift:307-311: Text truncates by Character (grapheme cluster), so an emoji is kept or dropped whole
+    public void MiddleTruncatingText_candidates_never_split_a_grapheme_cluster()
+    {
+        var text = string.Concat(Enumerable.Repeat("😀é👨‍👩", 3)) + "ab";
+        var clusters = new List<string>();
+        var enumerator = System.Globalization.StringInfo.GetTextElementEnumerator(text);
+        while (enumerator.MoveNext()) clusters.Add((string)enumerator.Current);
+        for (var kept = 0; kept <= clusters.Count; kept++)
+        {
+            var head = kept / 2;
+            var tail = kept - head;
+            var expected = string.Concat(clusters.Take(head)) + "…" + string.Concat(clusters.Skip(clusters.Count - tail));
+            Assert.Equal(expected, MiddleTruncatingText.Candidate(text, kept));
+        }
+    }
 }
