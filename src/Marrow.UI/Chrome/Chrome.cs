@@ -1092,12 +1092,14 @@ namespace Marrow.UI.Chrome
             }
             ApplyText();
 
-            var row = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                Spacing = 8, // :711 HStack(spacing: 8)
-                Children = { iconSlot, text }, // :712-720 Spacer(minLength: 4) satisfied by stretch below
-            };
+            // :711 HStack(spacing: 8): icon, 8, title, then Spacer(minLength: 4) (:720). The title column is the flexible
+            // one, so a long title is compressed and tail-truncated rather than laid out at its intrinsic width.
+            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,8,*,4") };
+            Grid.SetColumn(iconSlot, 0);
+            Grid.SetColumn(text, 2);
+            text.HorizontalAlignment = HorizontalAlignment.Left;
+            row.Children.Add(iconSlot);
+            row.Children.Add(text);
             foreach (var part in row.Children) part.VerticalAlignment = VerticalAlignment.Center;
 
             var shape = new Border // :722 RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous).fill(fill)

@@ -76,4 +76,21 @@ public sealed class ChromeAuditTests(HeadlessSession headless)
         Assert.True(TextOf(row, title).Bounds.Height > lineHeight * 1.5, "the title stayed on one line");
         window.Close();
     });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:718-720: lineLimit(1) + truncationMode(.tail) + Spacer(minLength: 4); a long title is compressed, never run under the trailing padding
+    public void SidebarRow_long_title_truncates_before_the_accessory_column() => headless.OnUiThread(() =>
+    {
+        var row = new SidebarRow(
+            title: "A very long conversation title that cannot fit in the sidebar",
+            action: () => { },
+            icon: () => new Border { Width = 14, Height = 14 },
+            accessory: _ => new Border { Width = 20, Height = 20 },
+            accessoryWidth: 24);
+        var window = Show(row, 160);
+        var text = TextOf(row, "A very long conversation title that cannot fit in the sidebar");
+        var right = text.TranslatePoint(new Point(text.Bounds.Width, 0), row)!.Value.X;
+        Assert.True(right <= 160 - (Chrome.RowHorizontalPadding + 24) - 4 + 0.5, $"the title ends at {right}");
+        window.Close();
+    });
 }
