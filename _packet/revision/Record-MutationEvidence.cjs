@@ -23,7 +23,9 @@ for(const directory of fs.readdirSync(base,{withFileTypes:true}).filter(d=>d.isD
       const green=row.runs.find(r=>/-green$/.test(r.name));
       const builds=row.runs.filter(r=>/-build$/.test(r.name));
       if(reds.length!==2||reds.some(r=>r.total!==1||r.failed!==1||r.exit===0)||!green||green.total!==1||green.passed!==1||green.exit!==0||builds.length!==2||builds.some(b=>!b.clean)||row.runs.some(r=>r.environment?.outer_opt_in_variables?.length!==0))throw Error('Invalid asserted evidence for '+row.id);
-      successful.set(row.id,{...row,kind:originalIds.has(row.id)?'verifier-recheck':'additional',evidence});
+      const current=successful.get(row.id);
+      if(!current || green.end > current.runs.find(r=>/-green$/.test(r.name)).end)
+        successful.set(row.id,{...row,kind:originalIds.has(row.id)?'verifier-recheck':'additional',evidence});
     }
   }
   const testPath=path.join(base,directory.name,'tests.json');

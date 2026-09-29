@@ -40,7 +40,7 @@ add('PR-SETTINGS-001',wm,'Swift:98 close hides, not mere invisible paint','windo
 
 add('PR-SETTINGS-002',wm,'Swift:46 converts the main x coordinate using its scale','main.Position.X / scale','main.Position.X',mixed);
 add('PR-SETTINGS-002',wm,'Swift:46 converts the main y coordinate using its scale','main.Position.Y / scale','main.Position.Y',mixed);
-add('PR-SETTINGS-002',wm,'Swift:46 parent frame includes decorations','var parentSize = FrameSizeOf(main);','var parentSize = main.ClientSize;',outer);
+add('PR-SETTINGS-002',wm,'Swift:46 parent frame includes decorations','var parentSize = main.FrameSize ?? FrameSizeOf(main);','var parentSize = main.ClientSize;',outer);
 add('PR-SETTINGS-002',wm,'Swift:48 centers with half child width','parent.Center.X - frame.Width / 2','parent.Center.X - frame.Width / 3',half);
 add('PR-SETTINGS-002',wm,'Swift:49 centers with half child height','parent.Center.Y - frame.Height / 2','parent.Center.Y - frame.Height / 3',half);
 add('PR-SETTINGS-002',wm,'Swift:50 work area retains its left origin','new Rect(working.Left, up - working.Bottom, working.Width, working.Height)','new Rect(working.Right, up - working.Bottom, working.Width, working.Height)',workarea);
@@ -56,7 +56,7 @@ add('PR-WIN-010',tw,'SecondaryWindow close yields to an attached sheet','if (Att
 add('PR-WIN-010',tw,'SecondaryWindow Ctrl-W uses the defined physical chord','new KeyChord(0x11, ChordModifiers.Control)) // :59','new KeyChord(0x11, ChordModifiers.Control | ChordModifiers.Shift)) // :59',opener+'Secondary_keyboard_close_preserves_state_and_field_Escape_keeps_the_window_open');
 add('PR-WIN-010',tw,'SecondaryWindow Escape outside fields closes it','KeyCode(e) == 0x01 &&','KeyCode(e) == 0x02 &&',opener+'Secondary_keyboard_close_preserves_state_and_field_Escape_keeps_the_window_open');
 
-add('PR-WIN-011',wm,'Swift:46 parent is main, not Settings','var parentSize = FrameSizeOf(main);','var parentSize = FrameSizeOf(window);',outer);
+add('PR-WIN-011',wm,'Swift:46 parent is main, not Settings','var parentSize = main.FrameSize ?? FrameSizeOf(main);','var parentSize = FrameSizeOf(window);',outer);
 add('PR-WIN-011',wm,'Swift:47 child frame includes decorations','var frame = FrameSizeOf(window); // :47','var frame = new Avalonia.Size(window.Width, window.Height); // :47',outer);
 add('PR-WIN-011',wm,'Swift:48 positive half-point rounds away from zero','SwiftNumber.Rounded(parent.Center.X - frame.Width / 2)','Math.Floor(parent.Center.X - frame.Width / 2)',half);
 add('PR-WIN-011',wm,'Swift:49 negative logical coordinate does not ceil','SwiftNumber.Rounded(parent.Center.Y - frame.Height / 2)','Math.Ceiling(parent.Center.Y - frame.Height / 2)',mixed);
@@ -82,6 +82,9 @@ add('PR-WIN-007',wm,'ED-063 minimize command sets minimized state','SC_MINIMIZE 
 add('PR-WIN-007',wm,'ED-063 captured client release is re-hit-tested','if (message == WM_LBUTTONUP) wParam = CaptionHitAtClientPoint(hWnd, lParam);','if (message == WM_LBUTTONUP) wParam = 0;',native+'Factory_hooks_capture_the_caption_press_and_complete_a_real_minimize_click');
 add('PR-WIN-007',wm,'ED-063 menu always enables close','SetMenuItemState(menu, SC_CLOSE, true);','SetMenuItemState(menu, SC_CLOSE, false);',native+'A_real_caption_right_click_opens_a_menu_with_each_windows_native_capabilities');
 add('PR-WIN-007',wm,'ED-063 normal window has no restore menu action','SetMenuItemState(menu, SC_RESTORE, window.WindowState != WindowState.Normal);','SetMenuItemState(menu, SC_RESTORE, window.WindowState == WindowState.Normal);',native+'A_real_caption_right_click_opens_a_menu_with_each_windows_native_capabilities');
+
+for (const record of ['PR-SETTINGS-002','PR-WIN-011'])
+  add(record,wm,'Swift:46 centers over the actual native main frame, even when requested content height differs','var parentSize = main.FrameSize ?? FrameSizeOf(main);','var parentSize = FrameSizeOf(main);',native+'Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI');
 
 for (const m of mutations) {
   const text = fs.readFileSync(path.join(root,m.path),'utf8');

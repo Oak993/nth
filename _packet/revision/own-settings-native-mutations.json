@@ -170,7 +170,7 @@
     "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings",
     "replacements": [
       {
-        "before": "var parentSize = FrameSizeOf(main);",
+        "before": "var parentSize = main.FrameSize ?? FrameSizeOf(main);",
         "after": "var parentSize = main.ClientSize;"
       }
     ]
@@ -394,7 +394,7 @@
     "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings",
     "replacements": [
       {
-        "before": "var parentSize = FrameSizeOf(main);",
+        "before": "var parentSize = main.FrameSize ?? FrameSizeOf(main);",
         "after": "var parentSize = FrameSizeOf(window);"
       }
     ]
@@ -764,6 +764,38 @@
       {
         "before": "SetMenuItemState(menu, SC_RESTORE, window.WindowState != WindowState.Normal);",
         "after": "SetMenuItemState(menu, SC_RESTORE, window.WindowState == WindowState.Normal);"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-002-09",
+    "records": [
+      "PR-SETTINGS-002"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:46 centers over the actual native main frame, even when requested content height differs",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+    "replacements": [
+      {
+        "before": "var parentSize = main.FrameSize ?? FrameSizeOf(main);",
+        "after": "var parentSize = FrameSizeOf(main);"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-011-09",
+    "records": [
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:46 centers over the actual native main frame, even when requested content height differs",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+    "replacements": [
+      {
+        "before": "var parentSize = main.FrameSize ?? FrameSizeOf(main);",
+        "after": "var parentSize = FrameSizeOf(main);"
       }
     ]
   }

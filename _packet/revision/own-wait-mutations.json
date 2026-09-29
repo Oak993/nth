@@ -1,0 +1,122 @@
+[
+  {
+    "id": "WAIT-PR-WIN-003-1",
+    "records": [
+      "PR-WIN-003"
+    ],
+    "path": "src/Marrow.App/AppDelegate.cs",
+    "clause": "The bound close must defer during a merge",
+    "killer": "Marrow.App.Tests.Window.WindowManagerTerminationWaitTests.The_bound_main_close_stays_visible_and_waits_until_the_next_250_millisecond_merge_poll",
+    "replacements": [
+      {
+        "before": "if (Model is not { } model || !model.IsAnyHydraMergeRunning)",
+        "after": "if (Model is not { } model || model.IsAnyHydraMergeRunning)"
+      }
+    ]
+  },
+  {
+    "id": "WAIT-PR-WIN-003-2",
+    "records": [
+      "PR-WIN-003"
+    ],
+    "path": "src/Marrow.App/AppDelegate.cs",
+    "clause": "AppDelegate.swift:49 polls every 250ms, not earlier",
+    "killer": "Marrow.App.Tests.Window.WindowManagerTerminationWaitTests.The_bound_main_close_stays_visible_and_waits_until_the_next_250_millisecond_merge_poll",
+    "replacements": [
+      {
+        "before": "SwiftTask.TrySleep(TimeSpan.FromMilliseconds(250))",
+        "after": "SwiftTask.TrySleep(TimeSpan.FromMilliseconds(249))"
+      }
+    ]
+  },
+  {
+    "id": "WAIT-PR-WIN-003-3",
+    "records": [
+      "PR-WIN-003"
+    ],
+    "path": "src/Marrow.App/AppDelegate.cs",
+    "clause": "AppDelegate.swift:49 polls every 250ms, not later",
+    "killer": "Marrow.App.Tests.Window.WindowManagerTerminationWaitTests.The_bound_main_close_stays_visible_and_waits_until_the_next_250_millisecond_merge_poll",
+    "replacements": [
+      {
+        "before": "SwiftTask.TrySleep(TimeSpan.FromMilliseconds(250))",
+        "after": "SwiftTask.TrySleep(TimeSpan.FromMilliseconds(251))"
+      }
+    ]
+  },
+  {
+    "id": "WAIT-PR-WIN-003-4",
+    "records": [
+      "PR-WIN-003"
+    ],
+    "path": "src/Marrow.App/AppDelegate.cs",
+    "clause": "AppDelegate.swift:47 caps the main close wait at four minutes",
+    "killer": "Marrow.App.Tests.Window.WindowManagerTerminationWaitTests.The_bound_main_close_waits_exactly_four_minutes_for_a_merge_that_does_not_finish",
+    "replacements": [
+      {
+        "before": "SwiftDate.AddingTimeInterval(SwiftDate.Now, 4 * 60)",
+        "after": "SwiftDate.AddingTimeInterval(SwiftDate.Now, 4 * 60 + 1)"
+      }
+    ]
+  },
+  {
+    "id": "WAIT-PR-WIN-008-1",
+    "records": [
+      "PR-WIN-008"
+    ],
+    "path": "src/Marrow.App/AppDelegate.cs",
+    "clause": "The bound close must defer during a merge",
+    "killer": "Marrow.App.Tests.Window.WindowManagerTerminationWaitTests.The_bound_main_close_stays_visible_and_waits_until_the_next_250_millisecond_merge_poll",
+    "replacements": [
+      {
+        "before": "if (Model is not { } model || !model.IsAnyHydraMergeRunning)",
+        "after": "if (Model is not { } model || model.IsAnyHydraMergeRunning)"
+      }
+    ]
+  },
+  {
+    "id": "WAIT-PR-WIN-008-2",
+    "records": [
+      "PR-WIN-008"
+    ],
+    "path": "src/Marrow.App/AppDelegate.cs",
+    "clause": "AppDelegate.swift:49 polls every 250ms, not earlier",
+    "killer": "Marrow.App.Tests.Window.WindowManagerTerminationWaitTests.The_bound_main_close_stays_visible_and_waits_until_the_next_250_millisecond_merge_poll",
+    "replacements": [
+      {
+        "before": "SwiftTask.TrySleep(TimeSpan.FromMilliseconds(250))",
+        "after": "SwiftTask.TrySleep(TimeSpan.FromMilliseconds(249))"
+      }
+    ]
+  },
+  {
+    "id": "WAIT-PR-WIN-008-3",
+    "records": [
+      "PR-WIN-008"
+    ],
+    "path": "src/Marrow.App/AppDelegate.cs",
+    "clause": "AppDelegate.swift:49 polls every 250ms, not later",
+    "killer": "Marrow.App.Tests.Window.WindowManagerTerminationWaitTests.The_bound_main_close_stays_visible_and_waits_until_the_next_250_millisecond_merge_poll",
+    "replacements": [
+      {
+        "before": "SwiftTask.TrySleep(TimeSpan.FromMilliseconds(250))",
+        "after": "SwiftTask.TrySleep(TimeSpan.FromMilliseconds(251))"
+      }
+    ]
+  },
+  {
+    "id": "WAIT-PR-WIN-008-4",
+    "records": [
+      "PR-WIN-008"
+    ],
+    "path": "src/Marrow.App/AppDelegate.cs",
+    "clause": "AppDelegate.swift:47 caps the main close wait at four minutes",
+    "killer": "Marrow.App.Tests.Window.WindowManagerTerminationWaitTests.The_bound_main_close_waits_exactly_four_minutes_for_a_merge_that_does_not_finish",
+    "replacements": [
+      {
+        "before": "SwiftDate.AddingTimeInterval(SwiftDate.Now, 4 * 60)",
+        "after": "SwiftDate.AddingTimeInterval(SwiftDate.Now, 4 * 60 + 1)"
+      }
+    ]
+  }
+]

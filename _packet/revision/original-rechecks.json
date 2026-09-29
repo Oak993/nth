@@ -247,7 +247,7 @@
         "after": "var working = screen.Bounds.ToRect(scale);"
       }
     ],
-    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
     "clause": "Verifier B18: Exact property substitution described in report"
   },
   {
@@ -263,7 +263,7 @@
         "after": ""
       }
     ],
-    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Visible_inactive_settings_receives_explicit_activation",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering",
     "clause": "Verifier B15: Exact statement removal identified in report"
   },
   {

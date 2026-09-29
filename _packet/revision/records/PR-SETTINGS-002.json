@@ -1,0 +1,3071 @@
+{
+  "record": "PR-SETTINGS-002",
+  "status": "MUTATION_BATCH_COMPLETE",
+  "candidate": false,
+  "candidate_note": "Final clause-by-clause and full-suite acceptance is reported separately; a mutation count alone is not certification.",
+  "head_before_commit": "8a87584411af3815b279f9b0d90031c15cce34f1",
+  "window_manager_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+  "additional_count": 9,
+  "verifier_recheck_count": 5,
+  "ordinary_record_gate": {
+    "name": "tests",
+    "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'Req=PR-SETTINGS-002|FullyQualifiedName~TraceabilityTests' '--logger' 'trx;LogFileName=tests.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\settings002-record-final-2026-09-29T13-34-17-127Z-84e697'",
+    "exit": 0,
+    "start": "2026-09-29T13:34:17.129Z",
+    "end": "2026-09-29T13:34:25.518Z",
+    "environment": {
+      "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+      "outer_opt_in_variables": [],
+      "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0539782b-e025-47b1-bcf3-66052562ba25",
+      "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+    },
+    "tests": [
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.With_the_main_window_hidden_or_minimised_the_Settings_window_is_not_centred_over_it",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.No_screens_skips_the_clamp_but_keeps_source_rounding",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Visible_inactive_settings_receives_explicit_activation",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Secondary_monitor_and_main_DPI_determine_settings_origin(scale: 1.5, x: 2505, y: 311)",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerCenteringTests.Settings_without_main_is_centered_on_creation_and_again_on_every_show",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerNextTests.A_work_area_smaller_than_Settings_uses_the_outer_min_and_preserves_the_window_size",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Smaller_workarea_preserves_outer_min_without_resizing_settings",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.The_Settings_window_is_centred_over_the_visible_main_window",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Secondary_monitor_and_main_DPI_determine_settings_origin(scale: 1.25, x: 2438, y: 275)",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.Presenting_a_window_shows_it_and_makes_it_the_active_window",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Secondary_monitor_and_main_DPI_determine_settings_origin(scale: 1, x: 2370, y: 240)",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerCenteringTests.Hidden_and_minimized_main_use_pointer_screen_centering_instead_of_the_main_frame",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Negative_origin_monitor_uses_its_left_and_top_workarea_edges",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Missing_main_screen_uses_primary_workarea",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Reopening_requeries_the_main_windows_current_monitor",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Secondary_monitor_and_main_DPI_determine_settings_origin(scale: 2, x: 2640, y: 380)",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerNextTests.With_no_screen_negative_half_points_round_away_from_zero_and_are_not_clamped",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerNextTests.A_display_left_and_below_the_primary_keeps_its_own_work_area_origin",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.The_centred_frame_is_clamped_into_the_working_area_of_the_main_window_screen",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Cached_show_centers_before_the_platform_show_request",
+        "outcome": "Passed",
+        "error": ""
+      }
+    ],
+    "total": 29,
+    "passed": 29,
+    "failed": 0,
+    "child_evidence": [
+      {
+        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0539782b-e025-47b1-bcf3-66052562ba25\\WindowManagerNative\\029fc11b06e14be1bb56d4fcc84e2839",
+        "files": [
+          {
+            "name": "request.json",
+            "retained": "children\\tests\\029fc11b06e14be1bb56d4fcc84e2839\\request.json",
+            "sha256": "2B7C6618982B0048924AA88FEF916672695909EB0B042494F27963F8915A6AD6"
+          },
+          {
+            "name": "invocation.json",
+            "retained": "children\\tests\\029fc11b06e14be1bb56d4fcc84e2839\\invocation.json",
+            "sha256": "4CB9C8EA0A0C3BCCB10DD4DAFE0AA1AB6A987874387AA5C3A8A21B923B76840D"
+          },
+          {
+            "name": "ready.json",
+            "retained": "children\\tests\\029fc11b06e14be1bb56d4fcc84e2839\\ready.json",
+            "sha256": "DD286C71AB43DB82B74B720AE24A9EB82F9BD96B6187218C5BC6A4B489ABB525"
+          },
+          {
+            "name": "permit.json",
+            "retained": "children\\tests\\029fc11b06e14be1bb56d4fcc84e2839\\permit.json",
+            "sha256": "3D19DD672231723B39E839DCC9CDD35D3910BBBD36474B8D01291D6A19B33B01"
+          },
+          {
+            "name": "parent-result.json",
+            "retained": "children\\tests\\029fc11b06e14be1bb56d4fcc84e2839\\parent-result.json",
+            "sha256": "33EF71207EE59F238D50EE50FC87F45C4B4D3D571B65E28C0180ED3B31162B91"
+          },
+          {
+            "name": "child-result.json",
+            "retained": "children\\tests\\029fc11b06e14be1bb56d4fcc84e2839\\child-result.json",
+            "sha256": "7D32881BA39B85C3DBEF449F663562B5E0C1AB92DB0032B4204E42A597306058"
+          },
+          {
+            "name": "runner.stdout.log",
+            "retained": "children\\tests\\029fc11b06e14be1bb56d4fcc84e2839\\runner.stdout.log",
+            "sha256": "E2287B640E783F0E4624470027F21F7B22ECC063D61F33498C6A6C0258ED9001"
+          },
+          {
+            "name": "runner.stderr.log",
+            "retained": "children\\tests\\029fc11b06e14be1bb56d4fcc84e2839\\runner.stderr.log",
+            "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+          },
+          {
+            "name": "results/native-child.trx",
+            "retained": "children\\tests\\029fc11b06e14be1bb56d4fcc84e2839\\results\\native-child.trx",
+            "sha256": "E3F8078D347374F6B57EDFEB2AEF9B7F98BBFD8C24AA85A4F155CC6603133AD2"
+          }
+        ]
+      },
+      {
+        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0539782b-e025-47b1-bcf3-66052562ba25\\WindowManagerNative\\04dbf22d045645b4bed8f9d96b7afd53",
+        "files": [
+          {
+            "name": "request.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\request.json",
+            "sha256": "1B0BD76207CA69F3B47E71A322CD166F04ECF3C5E8CDFF64B2BB11C57F8F1558"
+          },
+          {
+            "name": "invocation.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\invocation.json",
+            "sha256": "DCBAC5B5B576E88C51A4E25226D781D2FFA87B7C39058858BA6C507F1734098E"
+          },
+          {
+            "name": "ready.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\ready.json",
+            "sha256": "D9294ACCEFDB338458033975E3055793039614F3EC064C2AB53CEFF9207D2237"
+          },
+          {
+            "name": "permit.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\permit.json",
+            "sha256": "ABE8E42CA1A564AC7CC428E2CEB1C1A83ECBD5D0A4076CE6D712C864AE0AB9E0"
+          },
+          {
+            "name": "parent-result.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\parent-result.json",
+            "sha256": "D1940C1333A98E56D805990913DE585F930458EAF0EF2AA7BB997F1DF9F0590E"
+          },
+          {
+            "name": "child-result.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\child-result.json",
+            "sha256": "723AA7AE16F8C767D8A3EBADBADE8D61FFE47D62498052ABF0FF059FECFBD965"
+          },
+          {
+            "name": "runner.stdout.log",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\runner.stdout.log",
+            "sha256": "5F74952DB2896620433582BC75E4114E8E33043D27BF4E18F0531360155602FD"
+          },
+          {
+            "name": "runner.stderr.log",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\runner.stderr.log",
+            "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+          },
+          {
+            "name": "results/native-child.trx",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\results\\native-child.trx",
+            "sha256": "A1B9E27937E41E430B24D09D33355239B05BB45366689FDD324FF6FFA7621C0F"
+          },
+          {
+            "name": "placement-case-001.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-case-001.json",
+            "sha256": "D35E93F7685F7F365476A95F283399FCFAC66FB82B01CC164A2334F7514CF0FE"
+          },
+          {
+            "name": "placement-case-002.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-case-002.json",
+            "sha256": "BA467E39352A529F34B20268DE571270B18394AD6D6521DC4911D054C7DFDBDF"
+          },
+          {
+            "name": "placement-case-003.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-case-003.json",
+            "sha256": "0C363F8D1416E4394D43F0469356214A7B9B1EE4256618F4FBBBB1F685D4DC96"
+          },
+          {
+            "name": "placement-case-004.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-case-004.json",
+            "sha256": "F10522F789D8E9170C8235A7CD95841F81898E3403511DE50225C2EB53E4DEA2"
+          },
+          {
+            "name": "placement-case-005.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-case-005.json",
+            "sha256": "07A446F47D56B4404B2069A394D105D88A925F5A5C99CA29491140F84428F4A4"
+          },
+          {
+            "name": "placement-case-006.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-case-006.json",
+            "sha256": "EDE0B45164513B7542797E9BC26D83182903E0F69972528127DF32E566743B51"
+          },
+          {
+            "name": "placement-case-007.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-case-007.json",
+            "sha256": "C44A8557F397D63B198269BFCAE8987759343F716880AC98FEB4F6E5E59CD59B"
+          },
+          {
+            "name": "placement-case-008.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-case-008.json",
+            "sha256": "967D1F7498E662C9FA42423AD3E91DD6148343564BAF32E734F56E43B3C3711A"
+          },
+          {
+            "name": "placement-case-009.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-case-009.json",
+            "sha256": "BA4FEAC743D8A85D486330023955A37C7071AF04E88CD54BCEB857E42F93CC01"
+          },
+          {
+            "name": "placement-coverage.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-coverage.json",
+            "sha256": "1753826CD1D3235C59DAD3A5868C0B72CCD5AD9726E9FBA4FB2C137D29639B6A"
+          },
+          {
+            "name": "placement-topology-start.json",
+            "retained": "children\\tests\\04dbf22d045645b4bed8f9d96b7afd53\\placement-topology-start.json",
+            "sha256": "2C6447B9B1A262DC60E449EE949A3D08434DB6CFD5B86F2013C973466E652D46"
+          }
+        ]
+      }
+    ],
+    "evidence": "_packet/revision/evidence/settings002-record-final-2026-09-29T13-34-17-127Z-84e697/tests.json"
+  },
+  "mutations": [
+    {
+      "id": "B18",
+      "records": [
+        "PR-SETTINGS-002",
+        "PR-WIN-011"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "precision": "Exact property substitution described in report",
+      "replacements": [
+        {
+          "before": "var working = screen.WorkingArea.ToRect(scale);",
+          "after": "var working = screen.Bounds.ToRect(scale);"
+        }
+      ],
+      "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+      "clause": "Verifier B18: Exact property substitution described in report",
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "B18-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:33:31.576Z",
+          "end": "2026-09-29T13:33:36.068Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-c820a72b-d18b-4b05-9320-dbd76441aa5a",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4D683C9E15067625D258E405C25E8A37D6E9EF6F3F82372781A400EDF6DB2031"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "45290486746B2430C61DA198AB8E395BB2DDB83027F49519B6E17EA0CAC2F702"
+            }
+          ]
+        },
+        {
+          "name": "B18-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B18-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1'",
+          "exit": 1,
+          "start": "2026-09-29T13:33:36.074Z",
+          "end": "2026-09-29T13:33:41.528Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0215ee35-23da-4afc-9766-b66a5a6ddeae",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+              "outcome": "Failed",
+              "error": "Native child Fact failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI\nArtifacts: C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0215ee35-23da-4afc-9766-b66a5a6ddeae\\WindowManagerNative\\1f11dcec2833449ab9c30b98e1757ad2\nXunit.Sdk.XunitException: Child native result Failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI\nAssert.Equal() Failure: Values differ\r\nExpected: NativePlacementPoint { X = 604, Y = 804 }\r\nActual:   NativePlacementPoint { X = 604, Y = 852 }\n   at Marrow.App.Tests.Window.Native.WindowManagerNativePlacementExercise.<>c__DisplayClass0_1.<Run>g__RecordCase|16(String name, Boolean hidden, Boolean moveSettings) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativePlacementExercise.cs:line 146\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativePlacementExercise.Run(WindowManagerNativeSubject subject) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativePlacementExercise.cs:line 83\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.<>c.<Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI>b__3_0(WindowManagerNativeSubject subject) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 56\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 131\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 163\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 106\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 121\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 56\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.VerifyTrx(WindowManagerNativeRequest request) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 168\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.RunParent(String fact) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 92"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0215ee35-23da-4afc-9766-b66a5a6ddeae\\WindowManagerNative\\1f11dcec2833449ab9c30b98e1757ad2",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\request.json",
+                  "sha256": "C731032367788E0581FCE9CB8E152EA3DFC658BC13313987692CB597EE5CAE80"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\invocation.json",
+                  "sha256": "66D49AAB756CF61BF75B2787E7A7E797314F0F8E61CFABB287AC2F1BC26D2D83"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\ready.json",
+                  "sha256": "5EECCEA494E1BE28608F064C6204BCE344CEE1BAB08951371FBA3F1C2155D608"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\permit.json",
+                  "sha256": "4FFDF95C6F4020B3D3B8C80813DDF7B61EAE4205D2511BDA55C5734E9FAE31E7"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\parent-result.json",
+                  "sha256": "D0F25A5B47EAEDB5B6E44B7AED4F257A7332667DCEB8B027A6D26EB0A8F786E9"
+                },
+                {
+                  "name": "child-result.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\child-result.json",
+                  "sha256": "1477AD464551CB90E57F967B10AFEB5253C4EBD1AF19F26CF431E4CD99FC9281"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\runner.stdout.log",
+                  "sha256": "9992C5EB8B025D3053774F3479CDD0AC8CDA87740E89B47095897EA57C902092"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\runner.stderr.log",
+                  "sha256": "3B3172C808B6A5C0A15D96DDEECBA2C502171D8C5567B7024A5BFC983B8275A9"
+                },
+                {
+                  "name": "results/native-child.trx",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\results\\native-child.trx",
+                  "sha256": "99F71ECEA6EF9E80394B4355DCA0B92A9A34BBB861DC86D40EF228B09175F500"
+                },
+                {
+                  "name": "placement-case-001.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\placement-case-001.json",
+                  "sha256": "5EF09E6C3F61BCF7130387C0E446DDC6DC7A10B3E292DCE8B2D892F7D4969AF4"
+                },
+                {
+                  "name": "placement-case-002.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\placement-case-002.json",
+                  "sha256": "0DE348FD6BC840895AB28A668E12E685DC9877A9C5B0859F2C792E89A80EACD6"
+                },
+                {
+                  "name": "placement-case-003.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\placement-case-003.json",
+                  "sha256": "158BA3B5EB149EE305CDB0CC88BA01A4DA82E3447E5E37309A8F474F4B5CA216"
+                },
+                {
+                  "name": "placement-case-004.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\placement-case-004.json",
+                  "sha256": "BFAC0451DAC05023C09A83C9984F12FE573A410D96C14A1E7E99D19D26F692BC"
+                },
+                {
+                  "name": "placement-case-005.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\placement-case-005.json",
+                  "sha256": "D919C44B3CC84B6D7BB8C5FE84EC7EDD9F4907B0E246D05169BF1AE5A59BFE84"
+                },
+                {
+                  "name": "placement-case-006.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\placement-case-006.json",
+                  "sha256": "5BB8DEDD19EDEA37400F0DFCB7E2C7D724398000DD9AE162F09F9139382C1038"
+                },
+                {
+                  "name": "placement-case-007.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\placement-case-007.json",
+                  "sha256": "8D11002767797C1E46A1E94B7A336FC13BD1E27A86EBE565F5946D5441E4A2A8"
+                },
+                {
+                  "name": "placement-coverage.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\placement-coverage.json",
+                  "sha256": "ABA91E4A9A8340379F9D33325FD2DFB9A0D8E7ABA4C4088AEE5BE25EFC11D39E"
+                },
+                {
+                  "name": "placement-topology-start.json",
+                  "retained": "children\\B18-red-1\\1f11dcec2833449ab9c30b98e1757ad2\\placement-topology-start.json",
+                  "sha256": "2C6447B9B1A262DC60E449EE949A3D08434DB6CFD5B86F2013C973466E652D46"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "B18-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B18-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1'",
+          "exit": 1,
+          "start": "2026-09-29T13:33:41.536Z",
+          "end": "2026-09-29T13:33:46.845Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-af617f96-9431-4089-b814-f7a967a47090",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+              "outcome": "Failed",
+              "error": "Native child Fact failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI\nArtifacts: C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-af617f96-9431-4089-b814-f7a967a47090\\WindowManagerNative\\1c6f1058c9954e1ba69fb36d794609b5\nXunit.Sdk.XunitException: Child native result Failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI\nAssert.Equal() Failure: Values differ\r\nExpected: NativePlacementPoint { X = 604, Y = 804 }\r\nActual:   NativePlacementPoint { X = 604, Y = 852 }\n   at Marrow.App.Tests.Window.Native.WindowManagerNativePlacementExercise.<>c__DisplayClass0_1.<Run>g__RecordCase|16(String name, Boolean hidden, Boolean moveSettings) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativePlacementExercise.cs:line 146\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativePlacementExercise.Run(WindowManagerNativeSubject subject) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativePlacementExercise.cs:line 83\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.<>c.<Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI>b__3_0(WindowManagerNativeSubject subject) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 56\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 131\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 163\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 106\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 121\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 56\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.VerifyTrx(WindowManagerNativeRequest request) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 168\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.RunParent(String fact) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 92"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-af617f96-9431-4089-b814-f7a967a47090\\WindowManagerNative\\1c6f1058c9954e1ba69fb36d794609b5",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\request.json",
+                  "sha256": "16B39B555686AC667264B19C02B0903CBD14AE0978C2BD90ECB1DB3C06CBC54A"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\invocation.json",
+                  "sha256": "17E59A6924A8918601ED19CE057BD2A1ADE5264BC8A58D40E9E21051DF6C0F46"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\ready.json",
+                  "sha256": "2BE1C8D1E573D35E45EA732C30A360A07D1A42D87DB67A3DC45C85EB152C3624"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\permit.json",
+                  "sha256": "7C0C6AA593644085D6E21B63C8527AAF727B505D7CAC97C8172BE043609AB9FF"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\parent-result.json",
+                  "sha256": "6B1BE3C5AB1CD5B18609CBAA634F90A19EF2C916D691EAD9FF0526AE38AD74CD"
+                },
+                {
+                  "name": "child-result.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\child-result.json",
+                  "sha256": "0AB48522838C0A5D512F2AF67ABC148ADC4CE0B7CAA4F1E5773D257BBDC9841B"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\runner.stdout.log",
+                  "sha256": "188E69E7BF9DE88C69B57480AD651C44056C6229D517A9634762A97BC194DC78"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\runner.stderr.log",
+                  "sha256": "9E7A09D8A8B98E921CE07FA7660CC583E814C877F97E0A08742C31934E0803CE"
+                },
+                {
+                  "name": "results/native-child.trx",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\results\\native-child.trx",
+                  "sha256": "B0CCF9C03BB9A85C091C1B12D6C67F0A08E2CDC993455A702EFC8B368E94F29D"
+                },
+                {
+                  "name": "placement-case-001.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\placement-case-001.json",
+                  "sha256": "2E609EC5848F6503117230F0FD93BD706F93B6EA54199BECC50D3B29F773BEDB"
+                },
+                {
+                  "name": "placement-case-002.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\placement-case-002.json",
+                  "sha256": "9D7B3089EC13FFA420CCA04F8A3DA183B08726D7A5022B79453CDACC1659A774"
+                },
+                {
+                  "name": "placement-case-003.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\placement-case-003.json",
+                  "sha256": "924813AD05A6022008FF524D53CACB6EC84B2F716DD9E1E5B95AB07DF9D0218B"
+                },
+                {
+                  "name": "placement-case-004.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\placement-case-004.json",
+                  "sha256": "A230EE7EE8028B388CD522F49853A32A54DA1FD1B4EB05C8313D3890ADF00B76"
+                },
+                {
+                  "name": "placement-case-005.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\placement-case-005.json",
+                  "sha256": "BBBF1CF5C0E100C829D1E456C212D5FB9F63032581A2934FF3A153D9B9B4F732"
+                },
+                {
+                  "name": "placement-case-006.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\placement-case-006.json",
+                  "sha256": "48147BD5A019BB06C17C1FA0C11922D66561B6EE0C69DCECC351DE82699D2D1B"
+                },
+                {
+                  "name": "placement-case-007.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\placement-case-007.json",
+                  "sha256": "C2815D67E5FCC9026E30D33FFC4E28CA75ACCB425403FE9E6C1CB75BCA4C42AD"
+                },
+                {
+                  "name": "placement-coverage.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\placement-coverage.json",
+                  "sha256": "ABA91E4A9A8340379F9D33325FD2DFB9A0D8E7ABA4C4088AEE5BE25EFC11D39E"
+                },
+                {
+                  "name": "placement-topology-start.json",
+                  "retained": "children\\B18-red-2\\1c6f1058c9954e1ba69fb36d794609b5\\placement-topology-start.json",
+                  "sha256": "2C6447B9B1A262DC60E449EE949A3D08434DB6CFD5B86F2013C973466E652D46"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "B18-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:33:46.881Z",
+          "end": "2026-09-29T13:33:51.458Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-52647b2b-8534-47be-b25a-08d9ce8782eb",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "45290486746B2430C61DA198AB8E395BB2DDB83027F49519B6E17EA0CAC2F702"
+            }
+          ]
+        },
+        {
+          "name": "B18-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B18-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1'",
+          "exit": 0,
+          "start": "2026-09-29T13:33:51.464Z",
+          "end": "2026-09-29T13:33:57.677Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-031d2927-c5a9-4ca6-9cbc-f6fc1ab6f18e",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-031d2927-c5a9-4ca6-9cbc-f6fc1ab6f18e\\WindowManagerNative\\e33a0d180d9e49d79d2a83fb1f4ed832",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\request.json",
+                  "sha256": "CE8F23F678026009349209663BBCEE1081B3B779F4A473A57133D5B0121F3A2A"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\invocation.json",
+                  "sha256": "CABEDA6A5CBA785A113054D0073DE44ADFF765DE04374D98822FFF4F74883CDF"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\ready.json",
+                  "sha256": "8343B454C5E7A98FCFC2937939AF56BFF8607E957DE9C3FE668C8F48F3DAA062"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\permit.json",
+                  "sha256": "02F8A1A59CD0B50B65E43D5CD6261CF09A5DE5B509C83CAFE5258D017A4BA31B"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\parent-result.json",
+                  "sha256": "9E1B1113800CC51C0DB8DC981DA7887431DCEA64F1BF9886456E7F50BD77E2B2"
+                },
+                {
+                  "name": "child-result.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\child-result.json",
+                  "sha256": "6F0C91E1F819C5805CBC43AB369D508A26CB33E985DCAE2806F57775E139B8EA"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\runner.stdout.log",
+                  "sha256": "D3AA9CCA9CCF46970B950354BC6D198AFBF0439C075A010B4AA690EDDCA14D72"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\runner.stderr.log",
+                  "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                },
+                {
+                  "name": "results/native-child.trx",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\results\\native-child.trx",
+                  "sha256": "680B8C1604E5D2C55299A77BB9C73605375F3B903B1BEDA94C23327C7054F1DA"
+                },
+                {
+                  "name": "placement-case-001.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-case-001.json",
+                  "sha256": "34FEF892B952D6AA22B57A22AF21BAEF5AF99FC1A6C721A6AE228DA8427F231F"
+                },
+                {
+                  "name": "placement-case-002.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-case-002.json",
+                  "sha256": "248B693B60CD11792481462BEB810537DA7E7505B6759B2E8DD14CC625091F7B"
+                },
+                {
+                  "name": "placement-case-003.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-case-003.json",
+                  "sha256": "6FB1CB12A0C89CCAB167BA97EFB686F11FBF193B598D0A0266F35F2EC04A1E2D"
+                },
+                {
+                  "name": "placement-case-004.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-case-004.json",
+                  "sha256": "669B86152C88834AFE94A8348611ADFD321155EC651DE87E6CFBA36E9B751F08"
+                },
+                {
+                  "name": "placement-case-005.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-case-005.json",
+                  "sha256": "C71550DABF33DF0D93EBF6B8C2EE8871E09C86F9BDCD7F28C22D6FC0F99DFD26"
+                },
+                {
+                  "name": "placement-case-006.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-case-006.json",
+                  "sha256": "F5903C086D90522D422BFD2D4F1CA2D462265479BC9D9B5221615B9CF670864A"
+                },
+                {
+                  "name": "placement-case-007.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-case-007.json",
+                  "sha256": "4499193C964E0575E8586F1FA0B2AB5E7BB34B528E134F019CDDF842DF65A7C3"
+                },
+                {
+                  "name": "placement-case-008.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-case-008.json",
+                  "sha256": "A48187DB57829FFDD7EF31E6DA609EF549B9AF705CC25A04FA0FA01254CED7B3"
+                },
+                {
+                  "name": "placement-case-009.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-case-009.json",
+                  "sha256": "77FD01BF1F8B41B882100948EE8FA6653BA30487C2A7FD21ED6F2D293F194447"
+                },
+                {
+                  "name": "placement-coverage.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-coverage.json",
+                  "sha256": "1753826CD1D3235C59DAD3A5868C0B72CCD5AD9726E9FBA4FB2C137D29639B6A"
+                },
+                {
+                  "name": "placement-topology-start.json",
+                  "retained": "children\\B18-green\\e33a0d180d9e49d79d2a83fb1f4ed832\\placement-topology-start.json",
+                  "sha256": "2C6447B9B1A262DC60E449EE949A3D08434DB6CFD5B86F2013C973466E652D46"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "6DB2D04ADF9833912A909B9BB1D5229F4F335C4021EBC6B2076C61457ED0FA2E",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "verifier-recheck",
+      "evidence": "_packet/revision/evidence/native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1/results.json"
+    },
+    {
+      "id": "B15",
+      "records": [
+        "PR-SETTINGS-002"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "precision": "Exact statement removal identified in report",
+      "replacements": [
+        {
+          "before": "        window.Activate();",
+          "after": ""
+        }
+      ],
+      "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering",
+      "clause": "Verifier B15: Exact statement removal identified in report",
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "B15-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:33:57.741Z",
+          "end": "2026-09-29T13:34:02.377Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e7e9e130-bb35-4556-a7a2-697862678f2a",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "6894DBC61370CC3BA643E3EB2D08B02CFE8E7ECEB175121710E365A5BE4D5A0C"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "45290486746B2430C61DA198AB8E395BB2DDB83027F49519B6E17EA0CAC2F702"
+            }
+          ]
+        },
+        {
+          "name": "B15-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B15-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1'",
+          "exit": 1,
+          "start": "2026-09-29T13:34:02.382Z",
+          "end": "2026-09-29T13:34:05.809Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ea67f0fc-0eb3-46c6-9a2a-4f8321c0e252",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering",
+              "outcome": "Failed",
+              "error": "Native child Fact failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering\nArtifacts: C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ea67f0fc-0eb3-46c6-9a2a-4f8321c0e252\\WindowManagerNative\\96202979d0b14ec6af5cf8396ec263cd\nXunit.Sdk.XunitException: Child native result Failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering\nAssert.Equal() Failure: Values differ\r\nExpected: 22153690\r\nActual:   40569728\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.<Reopening_visible_Settings_activates_its_native_window_after_centering>b__2_0(WindowManagerNativeSubject subject) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 43\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 131\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 163\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 106\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 121\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 20\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.VerifyTrx(WindowManagerNativeRequest request) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 168\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.RunParent(String fact) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 92"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ea67f0fc-0eb3-46c6-9a2a-4f8321c0e252\\WindowManagerNative\\96202979d0b14ec6af5cf8396ec263cd",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\B15-red-1\\96202979d0b14ec6af5cf8396ec263cd\\request.json",
+                  "sha256": "D93F6B3726E95CD5420BC03D6F214621AF559638454979FEB3157416509AC4A6"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\B15-red-1\\96202979d0b14ec6af5cf8396ec263cd\\invocation.json",
+                  "sha256": "75896468BB55DF99439D0974EF5767375AD629F907538B6672E3168A881C0967"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\B15-red-1\\96202979d0b14ec6af5cf8396ec263cd\\ready.json",
+                  "sha256": "8998339970EA9C46B17700CE0D89E6A6872D24FA2A7BCA85BC52BED5EB8CA021"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\B15-red-1\\96202979d0b14ec6af5cf8396ec263cd\\permit.json",
+                  "sha256": "A2F27551C938FD3BF1A03281A80C56DCA68D175D6308BE0C91FA770BB83A6298"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\B15-red-1\\96202979d0b14ec6af5cf8396ec263cd\\parent-result.json",
+                  "sha256": "ED62C5CF8DCA68988B2E51942AA542C076C3320DF352F0D5CAFBD378185FA56A"
+                },
+                {
+                  "name": "child-result.json",
+                  "retained": "children\\B15-red-1\\96202979d0b14ec6af5cf8396ec263cd\\child-result.json",
+                  "sha256": "39FD9B6392286EF7F2A9244461C13A5A9061AF8FB67B3D4AC04D4897A23A1332"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\B15-red-1\\96202979d0b14ec6af5cf8396ec263cd\\runner.stdout.log",
+                  "sha256": "F1C38114D19D8FDC5943FDBA2C0CBD3891433E3C4B16D7632F1A7F3B2A301336"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\B15-red-1\\96202979d0b14ec6af5cf8396ec263cd\\runner.stderr.log",
+                  "sha256": "EB88492F91404264DE90C31E7D9FDF10CF2AB46C696D35248B771E6412E0A4C8"
+                },
+                {
+                  "name": "results/native-child.trx",
+                  "retained": "children\\B15-red-1\\96202979d0b14ec6af5cf8396ec263cd\\results\\native-child.trx",
+                  "sha256": "D658DAEB0B967B63514F1487CCC79F9BC09ACA290007E8F3C595609B7F3520C5"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "B15-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B15-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1'",
+          "exit": 1,
+          "start": "2026-09-29T13:34:05.812Z",
+          "end": "2026-09-29T13:34:09.058Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-79dd85bc-6b25-4206-bd11-75ae0226c40e",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering",
+              "outcome": "Failed",
+              "error": "Native child Fact failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering\nArtifacts: C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-79dd85bc-6b25-4206-bd11-75ae0226c40e\\WindowManagerNative\\8f2fc9f5cf2045778acf9041cfd1c6a7\nXunit.Sdk.XunitException: Child native result Failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering\nAssert.Equal() Failure: Values differ\r\nExpected: 22219226\r\nActual:   4853068\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.<Reopening_visible_Settings_activates_its_native_window_after_centering>b__2_0(WindowManagerNativeSubject subject) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 43\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 131\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 163\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 106\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 121\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 20\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.VerifyTrx(WindowManagerNativeRequest request) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 168\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.RunParent(String fact) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 92"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-79dd85bc-6b25-4206-bd11-75ae0226c40e\\WindowManagerNative\\8f2fc9f5cf2045778acf9041cfd1c6a7",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\B15-red-2\\8f2fc9f5cf2045778acf9041cfd1c6a7\\request.json",
+                  "sha256": "4B828C9C4F5783ABE90BD8CD210EA332696BCC28BB3ADBA6ECC517DF1D203F8F"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\B15-red-2\\8f2fc9f5cf2045778acf9041cfd1c6a7\\invocation.json",
+                  "sha256": "A9B549B61EBDA70EF37B0F32477904CD3EFC3C451A736B782CFD6C3B4AD08F2F"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\B15-red-2\\8f2fc9f5cf2045778acf9041cfd1c6a7\\ready.json",
+                  "sha256": "4E5BFB3B5D699A12C4752F36AC880F79382C1D7C296981406E5C524680F6D027"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\B15-red-2\\8f2fc9f5cf2045778acf9041cfd1c6a7\\permit.json",
+                  "sha256": "AA5E6B2D2096E1E59648074FB6B8F50E07E825C29400169C389B468B47A76FEF"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\B15-red-2\\8f2fc9f5cf2045778acf9041cfd1c6a7\\parent-result.json",
+                  "sha256": "8A10B4E8B9150F40AF198AE721C1EA5371C8841CC1077ABB7E72A1670D34DDB2"
+                },
+                {
+                  "name": "child-result.json",
+                  "retained": "children\\B15-red-2\\8f2fc9f5cf2045778acf9041cfd1c6a7\\child-result.json",
+                  "sha256": "C15A6AF561F0CE680B68B777F295C2E24E0812DF5A36BDF3C46D5A205EFC2634"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\B15-red-2\\8f2fc9f5cf2045778acf9041cfd1c6a7\\runner.stdout.log",
+                  "sha256": "862D1E3E2895D8E764C035C1E189D9E344BD96DD3BF336B201795EB4BD375F07"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\B15-red-2\\8f2fc9f5cf2045778acf9041cfd1c6a7\\runner.stderr.log",
+                  "sha256": "9118D604B3FC096B98D7A787E445CDF9B210C959C259E7CF63E1341AE66DFBFC"
+                },
+                {
+                  "name": "results/native-child.trx",
+                  "retained": "children\\B15-red-2\\8f2fc9f5cf2045778acf9041cfd1c6a7\\results\\native-child.trx",
+                  "sha256": "490F28FF7F211769EF0365E2FDE40D6F90803572F108C831AD5708618E6FDC84"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "B15-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:34:09.092Z",
+          "end": "2026-09-29T13:34:13.598Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-06607426-f658-4405-90d1-4bffd1ee03c9",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "45290486746B2430C61DA198AB8E395BB2DDB83027F49519B6E17EA0CAC2F702"
+            }
+          ]
+        },
+        {
+          "name": "B15-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B15-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1'",
+          "exit": 0,
+          "start": "2026-09-29T13:34:13.603Z",
+          "end": "2026-09-29T13:34:17.057Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-21a2031e-ddc3-45ec-825f-c1edddbd5bda",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Reopening_visible_Settings_activates_its_native_window_after_centering",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-21a2031e-ddc3-45ec-825f-c1edddbd5bda\\WindowManagerNative\\7d6aca3851a445c5a0659b6881d8e7d9",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\B15-green\\7d6aca3851a445c5a0659b6881d8e7d9\\request.json",
+                  "sha256": "5BE791D59DFECC2B0F99CBDFDA68FC9997ED50BF0A603E26FCA19881FDBEC2D5"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\B15-green\\7d6aca3851a445c5a0659b6881d8e7d9\\invocation.json",
+                  "sha256": "0193C65C24B415A265438D3697ADEBE28A28E513AFBC994C6015EC9605244D99"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\B15-green\\7d6aca3851a445c5a0659b6881d8e7d9\\ready.json",
+                  "sha256": "E4CE49003142251F82D2D987A59B0DF5BC408C708C9415A5F621AA261CB88409"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\B15-green\\7d6aca3851a445c5a0659b6881d8e7d9\\permit.json",
+                  "sha256": "931D9A9883B62BB5D55A3E5EAE7636E596AA1FDE14E0A089EF4F0C09F93933DE"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\B15-green\\7d6aca3851a445c5a0659b6881d8e7d9\\parent-result.json",
+                  "sha256": "B154DCAF2FA980CD3FEFE338E7739C806BE9A91D1425814076019E7291D500A7"
+                },
+                {
+                  "name": "child-result.json",
+                  "retained": "children\\B15-green\\7d6aca3851a445c5a0659b6881d8e7d9\\child-result.json",
+                  "sha256": "78F25A971709BCBC0EF7BFE2F5E49FFEC5FAF41C85FDFC97E3D085A1CAC5AD0A"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\B15-green\\7d6aca3851a445c5a0659b6881d8e7d9\\runner.stdout.log",
+                  "sha256": "E9889FCF5CEBF26C57C03E86239E2EBC2B8703B1B90DD4C8F9E3ABB8B5DCE386"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\B15-green\\7d6aca3851a445c5a0659b6881d8e7d9\\runner.stderr.log",
+                  "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                },
+                {
+                  "name": "results/native-child.trx",
+                  "retained": "children\\B15-green\\7d6aca3851a445c5a0659b6881d8e7d9\\results\\native-child.trx",
+                  "sha256": "B12ACE33580CEE26BEBC1F1F8979731473FFBDF1EC100E21761E732C9B65ED42"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "1B5B05E5642A8BB9AC0B8C01615742D702102DE7816E770FA0B3917B1F0EE028",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "verifier-recheck",
+      "evidence": "_packet/revision/evidence/native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1/results.json"
+    },
+    {
+      "id": "B12",
+      "records": [
+        "PR-SETTINGS-002",
+        "PR-WIN-011"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "precision": "Exact screen-selection change described in report",
+      "replacements": [
+        {
+          "before": "(main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary)",
+          "after": "(main.Screens.Primary)"
+        }
+      ],
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Reopening_requeries_the_main_windows_current_monitor",
+      "clause": "Verifier B12: Exact screen-selection change described in report",
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "B12-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:26:43.298Z",
+          "end": "2026-09-29T13:26:47.820Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-36c91e91-39e4-4eb0-9265-b29a8708ebe0",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "80762C94B02D12DA89D8F0C9235ADAAFEC4FEB613FBF96E471A3FCE9C9837FD3"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "B12-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Reopening_requeries_the_main_windows_current_monitor&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B12-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\original-settings002-current-2026-09-29T13-26-43-237Z-453d6d'",
+          "exit": 1,
+          "start": "2026-09-29T13:26:47.825Z",
+          "end": "2026-09-29T13:26:49.770Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-9c426ddd-59f2-4043-be04-28c7e4812c2c",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Reopening_requeries_the_main_windows_current_monitor",
+              "outcome": "Failed",
+              "error": "Assert.True() Failure\r\nExpected: True\r\nActual:   False"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "B12-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Reopening_requeries_the_main_windows_current_monitor&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B12-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\original-settings002-current-2026-09-29T13-26-43-237Z-453d6d'",
+          "exit": 1,
+          "start": "2026-09-29T13:26:49.771Z",
+          "end": "2026-09-29T13:26:51.512Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-34e142f8-28e0-44aa-a327-2ef5e8e1f14a",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Reopening_requeries_the_main_windows_current_monitor",
+              "outcome": "Failed",
+              "error": "Assert.True() Failure\r\nExpected: True\r\nActual:   False"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "B12-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:26:51.543Z",
+          "end": "2026-09-29T13:26:55.911Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-876b7f9f-3f51-4f7c-a1da-47e67e9457f3",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "B12-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Reopening_requeries_the_main_windows_current_monitor&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B12-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\original-settings002-current-2026-09-29T13-26-43-237Z-453d6d'",
+          "exit": 0,
+          "start": "2026-09-29T13:26:55.916Z",
+          "end": "2026-09-29T13:26:57.836Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e9a239b1-ebd5-4e92-b8ca-6f49f2d3f5ab",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Reopening_requeries_the_main_windows_current_monitor",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "35FCF8F1E69F6B097F7B7DBDDE0EFE3909DBCDF23451A93EDA23C237EAEEADBE",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "verifier-recheck",
+      "evidence": "_packet/revision/evidence/original-settings002-current-2026-09-29T13-26-43-237Z-453d6d/results.json"
+    },
+    {
+      "id": "B14",
+      "records": [
+        "PR-SETTINGS-002",
+        "PR-WIN-011"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "precision": "Exact statement reorder described in report",
+      "replacements": [
+        {
+          "before": "        CenterOverMainWindow(window); // :36\n        Present(window); // :37",
+          "after": "        Present(window); // :37\n        CenterOverMainWindow(window); // :36"
+        }
+      ],
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Cached_show_centers_before_the_platform_show_request",
+      "clause": "Verifier B14: Exact statement reorder described in report",
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "B14-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:27:27.456Z",
+          "end": "2026-09-29T13:27:31.777Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0c69cc97-fa0b-4130-a3a4-374146cd65eb",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "CAAF7AD5E51A2362FE82D382A5E811500441E926608EFC61D64115BF843A5A60"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "B14-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Cached_show_centers_before_the_platform_show_request&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B14-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\original-settings002-current-2026-09-29T13-26-43-237Z-453d6d'",
+          "exit": 1,
+          "start": "2026-09-29T13:27:31.782Z",
+          "end": "2026-09-29T13:27:33.728Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0c8fb912-69ce-4576-bf38-dda8d9b882df",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Cached_show_centers_before_the_platform_show_request",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 420, 260\r\nActual:   13, 17"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "B14-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Cached_show_centers_before_the_platform_show_request&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B14-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\original-settings002-current-2026-09-29T13-26-43-237Z-453d6d'",
+          "exit": 1,
+          "start": "2026-09-29T13:27:33.728Z",
+          "end": "2026-09-29T13:27:35.489Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e77e19d3-a54c-4efc-b08d-277a80d42d53",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Cached_show_centers_before_the_platform_show_request",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 420, 260\r\nActual:   13, 17"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "B14-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:27:35.520Z",
+          "end": "2026-09-29T13:27:40.066Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-24c76548-5d87-409f-a146-c2bf0a2ffc88",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "B14-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Cached_show_centers_before_the_platform_show_request&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B14-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\original-settings002-current-2026-09-29T13-26-43-237Z-453d6d'",
+          "exit": 0,
+          "start": "2026-09-29T13:27:40.071Z",
+          "end": "2026-09-29T13:27:42.036Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-15d61a0e-d2b4-49da-85b4-5a0075198547",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Cached_show_centers_before_the_platform_show_request",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "86B9D824F5C8AEA029CA892BAFC6DB97945C127B2D348189BE91DDB930F390FD",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "verifier-recheck",
+      "evidence": "_packet/revision/evidence/original-settings002-current-2026-09-29T13-26-43-237Z-453d6d/results.json"
+    },
+    {
+      "id": "B13",
+      "records": [
+        "PR-SETTINGS-002",
+        "PR-WIN-011"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "precision": "Scale ignored as described; constant substitution reconstructed",
+      "replacements": [
+        {
+          "before": "var scale = main.DesktopScaling;",
+          "after": "var scale = 1d;"
+        }
+      ],
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+      "clause": "Verifier B13: Scale ignored as described; constant substitution reconstructed",
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "B13-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:27:42.096Z",
+          "end": "2026-09-29T13:27:46.589Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-012300a5-9ebf-4069-9a87-f59b1b9c4780",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "9BAA9A4FC5A41217A165C95834D3DF5DC301DC306EFDDF48DDA951E8558383DB"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "B13-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B13-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\original-settings002-current-2026-09-29T13-26-43-237Z-453d6d'",
+          "exit": 1,
+          "start": "2026-09-29T13:27:46.594Z",
+          "end": "2026-09-29T13:27:48.546Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-bca933a7-044e-45a3-8542-1e312aea37df",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 2505, 311\r\nActual:   2370, 240"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "B13-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B13-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\original-settings002-current-2026-09-29T13-26-43-237Z-453d6d'",
+          "exit": 1,
+          "start": "2026-09-29T13:27:48.547Z",
+          "end": "2026-09-29T13:27:50.299Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-329dc7eb-2dde-4492-92a5-9f7b596e236f",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 2505, 311\r\nActual:   2370, 240"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "B13-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:27:50.330Z",
+          "end": "2026-09-29T13:27:54.868Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ee0a7efa-ea94-4309-aaa6-17e76e800120",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "B13-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=B13-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\original-settings002-current-2026-09-29T13-26-43-237Z-453d6d'",
+          "exit": 0,
+          "start": "2026-09-29T13:27:54.873Z",
+          "end": "2026-09-29T13:27:56.812Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-eae9fe59-5d0d-4c06-9836-418ee3303ff2",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "3888A9EC86BF469B1D452A98FB40C856A72F0E76FC82BE70AB7BA7DBE5116844",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "verifier-recheck",
+      "evidence": "_packet/revision/evidence/original-settings002-current-2026-09-29T13-26-43-237Z-453d6d/results.json"
+    },
+    {
+      "id": "REV-PR-SETTINGS-002-01",
+      "records": [
+        "PR-SETTINGS-002"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "clause": "Swift:46 converts the main x coordinate using its scale",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+      "replacements": [
+        {
+          "before": "main.Position.X / scale",
+          "after": "main.Position.X"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "REV-PR-SETTINGS-002-01-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:24:21.850Z",
+          "end": "2026-09-29T13:24:26.460Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-98a8bcaf-b13a-45da-abf8-d05ac756bcc0",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8E27307CE0063F4FC5D3CA59B12F50B577CE2F3C7F0B6737F0313F16913FC2A"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-01-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-01-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:24:26.466Z",
+          "end": "2026-09-29T13:24:28.422Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-7cd14d16-ea5b-4c16-becc-5bda9125ca2f",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 2505, 311\r\nActual:   3555, 311"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-01-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-01-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:24:28.424Z",
+          "end": "2026-09-29T13:24:30.175Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-7929ba77-bc00-4950-857f-cc54506e9cc5",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 2505, 311\r\nActual:   3555, 311"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-01-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:24:30.205Z",
+          "end": "2026-09-29T13:24:34.819Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0da5fff1-0dfe-4fbd-a361-287705ba5f5e",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-01-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-01-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 0,
+          "start": "2026-09-29T13:24:34.824Z",
+          "end": "2026-09-29T13:24:36.846Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e3d382e5-3b4e-44bb-a0dd-b9ad346a1792",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "282FACE33001D357918C9421EA1BEB4D9740B264BA33F4529229211C2EFAA379",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/own-settings002-current-2026-09-29T13-24-21-791Z-173abb/results.json"
+    },
+    {
+      "id": "REV-PR-SETTINGS-002-02",
+      "records": [
+        "PR-SETTINGS-002"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "clause": "Swift:46 converts the main y coordinate using its scale",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+      "replacements": [
+        {
+          "before": "main.Position.Y / scale",
+          "after": "main.Position.Y"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "REV-PR-SETTINGS-002-02-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:24:36.912Z",
+          "end": "2026-09-29T13:24:41.380Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-cf4bcc72-c77d-4ab8-824f-b906c2320eeb",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "2EEF4259E4CBC292F8AAB768878753D7D56A1D655C5E926DE1C2212B75A01DB3"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-02-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-02-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:24:41.385Z",
+          "end": "2026-09-29T13:24:43.358Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0edd360d-33c0-443d-9c13-4ab2893626b4",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 2505, 311\r\nActual:   2505, 360"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-02-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-02-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:24:43.359Z",
+          "end": "2026-09-29T13:24:45.106Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ed53f564-4a32-48c4-87bd-42a8def766ec",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 2505, 311\r\nActual:   2505, 360"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-02-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:24:45.136Z",
+          "end": "2026-09-29T13:24:49.670Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-cf391227-02f1-4435-9bcc-e3bc3973fdd3",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-02-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-02-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 0,
+          "start": "2026-09-29T13:24:49.676Z",
+          "end": "2026-09-29T13:24:51.602Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-09b1fc40-6820-4103-a999-19ea794957ca",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "156509C419E18FEF3C2EA57B37600C71A9418D59A198BF3E01853731010BBECE",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/own-settings002-current-2026-09-29T13-24-21-791Z-173abb/results.json"
+    },
+    {
+      "id": "REV-PR-SETTINGS-002-03",
+      "records": [
+        "PR-SETTINGS-002"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "clause": "Swift:46 parent frame includes decorations",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings",
+      "replacements": [
+        {
+          "before": "var parentSize = main.FrameSize ?? FrameSizeOf(main);",
+          "after": "var parentSize = main.ClientSize;"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "REV-PR-SETTINGS-002-03-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:24:51.660Z",
+          "end": "2026-09-29T13:24:56.257Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-fa3803f2-8566-4e16-8acb-d7a07bee940c",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "49AB36F97774F6951E93F048EC9A1232D91AF9E5002E8396A10B5DAE942D7008"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-03-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-03-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:24:56.262Z",
+          "end": "2026-09-29T13:24:58.208Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-1087fa9a-c9fc-4cbb-b15f-148e99b9e091",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 375, 230\r\nActual:   365, 210"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-03-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-03-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:24:58.209Z",
+          "end": "2026-09-29T13:24:59.941Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-4bacde9b-c94a-4cf9-a236-bc513cefb844",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 375, 230\r\nActual:   365, 210"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-03-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:24:59.970Z",
+          "end": "2026-09-29T13:25:04.490Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-a530ba97-5d0e-4365-a7cc-96ca0fd58227",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-03-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-03-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:04.495Z",
+          "end": "2026-09-29T13:25:06.436Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-c949cd50-6788-4b91-b9d5-5a60553e85fd",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "293FA2A642D729B284C2F8EF9EC2CC2D7BAABABFB5E34C31DA12679ADE282D63",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/own-settings002-current-2026-09-29T13-24-21-791Z-173abb/results.json"
+    },
+    {
+      "id": "REV-PR-SETTINGS-002-04",
+      "records": [
+        "PR-SETTINGS-002"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "clause": "Swift:48 centers with half child width",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+      "replacements": [
+        {
+          "before": "parent.Center.X - frame.Width / 2",
+          "after": "parent.Center.X - frame.Width / 3"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "REV-PR-SETTINGS-002-04-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:06.494Z",
+          "end": "2026-09-29T13:25:11.024Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ee908859-61ee-4d6f-aeac-2f0422c88ea5",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4DF580B3946AAE2A0A0A759ECDA979ED8E71924144386152EB993B9F2F47168D"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-04-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-04-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:25:11.029Z",
+          "end": "2026-09-29T13:25:12.992Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-daf24e72-1b7e-4add-b9f3-45441fd9328c",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 371, 220\r\nActual:   501, 220"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-04-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-04-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:25:12.993Z",
+          "end": "2026-09-29T13:25:14.747Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-8f40d9f7-9348-40b1-ac23-b05754b93f88",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 371, 220\r\nActual:   501, 220"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-04-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:14.778Z",
+          "end": "2026-09-29T13:25:19.348Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-609bbf9f-6275-432a-bd90-26b4e4498411",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-04-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-04-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:19.353Z",
+          "end": "2026-09-29T13:25:21.335Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-7bb69c28-bb40-485b-bd94-4c942a7cd3a7",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "AF988E9E507842F271F7E99C3054761A4809F11213C6A842DCABF7BECADEA760",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/own-settings002-current-2026-09-29T13-24-21-791Z-173abb/results.json"
+    },
+    {
+      "id": "REV-PR-SETTINGS-002-05",
+      "records": [
+        "PR-SETTINGS-002"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "clause": "Swift:49 centers with half child height",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+      "replacements": [
+        {
+          "before": "parent.Center.Y - frame.Height / 2",
+          "after": "parent.Center.Y - frame.Height / 3"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "REV-PR-SETTINGS-002-05-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:21.393Z",
+          "end": "2026-09-29T13:25:25.873Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-198ec630-c540-4d2d-a89b-f18b9036b209",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "338DC41D564AE44EAD3A2EBB3BAB94EBD532D242AF0707BDA9786F7AE04A33E1"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-05-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-05-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:25:25.878Z",
+          "end": "2026-09-29T13:25:27.850Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e5fd9ef3-0add-48e9-80c9-79eeede548b4",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 371, 220\r\nActual:   371, 124"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-05-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-05-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:25:27.851Z",
+          "end": "2026-09-29T13:25:29.598Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-72f05e4f-ab35-4422-bc46-c20f3af37375",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 371, 220\r\nActual:   371, 124"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-05-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:29.628Z",
+          "end": "2026-09-29T13:25:34.064Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-bea63b6a-f2f5-4c47-9b0f-0d173834c4b6",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-05-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-05-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:34.069Z",
+          "end": "2026-09-29T13:25:36.040Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-c929ef5d-80fa-4515-9911-719ca60989aa",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "095A6C7C2C20A3B5EBCD236D831501DF10B1BABE935CF7AA27110712F258C369",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/own-settings002-current-2026-09-29T13-24-21-791Z-173abb/results.json"
+    },
+    {
+      "id": "REV-PR-SETTINGS-002-06",
+      "records": [
+        "PR-SETTINGS-002"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "clause": "Swift:50 work area retains its left origin",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor",
+      "replacements": [
+        {
+          "before": "new Rect(working.Left, up - working.Bottom, working.Width, working.Height)",
+          "after": "new Rect(working.Right, up - working.Bottom, working.Width, working.Height)"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "REV-PR-SETTINGS-002-06-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:36.098Z",
+          "end": "2026-09-29T13:25:40.698Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-36fe8021-dba9-4525-8845-98a96f7defdb",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "DA8598A9CD2586E2A577341E09D261627A31B7B567E055DA34BB29846F22C8C8"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-06-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-06-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:25:40.703Z",
+          "end": "2026-09-29T13:25:42.642Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-fb7188ae-856e-452c-bddd-249d7f87bf35",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 3400, 560\r\nActual:   4960, 560"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-06-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-06-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:25:42.643Z",
+          "end": "2026-09-29T13:25:44.378Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-772cbb2d-2c05-407c-8142-84ea0a287f02",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 3400, 560\r\nActual:   4960, 560"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-06-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:44.407Z",
+          "end": "2026-09-29T13:25:48.931Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ede469a9-76b5-4309-8270-730e3a0aa499",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-06-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-06-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:48.936Z",
+          "end": "2026-09-29T13:25:50.879Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ba3aeaa0-4b56-4c5a-b97a-1463c2b4fe94",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "F1923BB377AF4EB5ED4E366E8157D4D2C4C273431162C5C7D8E751B7AD9B4251",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/own-settings002-current-2026-09-29T13-24-21-791Z-173abb/results.json"
+    },
+    {
+      "id": "REV-PR-SETTINGS-002-07",
+      "records": [
+        "PR-SETTINGS-002"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "clause": "Swift:50 missing main screen falls back to primary",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Missing_main_screen_uses_primary_workarea",
+      "replacements": [
+        {
+          "before": "(main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary)",
+          "after": "(main.Screens.ScreenFromWindow(main))"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "REV-PR-SETTINGS-002-07-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:50.936Z",
+          "end": "2026-09-29T13:25:55.565Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-cfc347fc-7c33-4d7e-820b-344ad3c9fbc4",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "8895FE14295ED7DC754C83887DC1DD6FB863792012530EEE308CF013B5CB6827"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-07-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Missing_main_screen_uses_primary_workarea&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-07-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:25:55.570Z",
+          "end": "2026-09-29T13:25:57.503Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-b7d95fad-b30d-475b-a67d-a698cfc2dc06",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Missing_main_screen_uses_primary_workarea",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 1100, 420\r\nActual:   2070, 1040"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-07-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Missing_main_screen_uses_primary_workarea&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-07-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:25:57.504Z",
+          "end": "2026-09-29T13:25:59.229Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-3ccebe06-e829-4103-b2f4-7a7527c20345",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Missing_main_screen_uses_primary_workarea",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 1100, 420\r\nActual:   2070, 1040"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-07-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:25:59.259Z",
+          "end": "2026-09-29T13:26:03.851Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-f7328053-4fff-406e-ac5e-016085540366",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-07-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Missing_main_screen_uses_primary_workarea&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-07-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 0,
+          "start": "2026-09-29T13:26:03.856Z",
+          "end": "2026-09-29T13:26:05.776Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-13f886d9-ed6b-471a-9867-30e102990cbb",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Missing_main_screen_uses_primary_workarea",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "88B89E0E322592972FC3BAA4BE481D29135560CDBD6ECD3A4065C5A620C4651F",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/own-settings002-current-2026-09-29T13-24-21-791Z-173abb/results.json"
+    },
+    {
+      "id": "REV-PR-SETTINGS-002-08",
+      "records": [
+        "PR-SETTINGS-002"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "clause": "Swift:46-54 use main DPI, not the child previous monitor DPI",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+      "replacements": [
+        {
+          "before": "var scale = main.DesktopScaling;",
+          "after": "var scale = window.DesktopScaling;"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "REV-PR-SETTINGS-002-08-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:26:05.836Z",
+          "end": "2026-09-29T13:26:10.547Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-17fa37a9-542c-48f4-9dcf-5781d33e52d9",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "713DFDBC393360C36D57DAE12B241F46E5B95A61B65D0819C41F4E921C8116D1"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-08-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-08-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:26:10.552Z",
+          "end": "2026-09-29T13:26:12.484Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-8752929f-86b0-4027-aac9-ee25ab2585d2",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 2505, 311\r\nActual:   2370, 240"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-08-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-08-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:26:12.484Z",
+          "end": "2026-09-29T13:26:14.207Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d3150702-d19d-47d4-8f1d-3be21f2bcb7b",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 2505, 311\r\nActual:   2370, 240"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-08-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:26:14.237Z",
+          "end": "2026-09-29T13:26:18.696Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d1883873-e3de-4e53-b565-57215f431144",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-08-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-08-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 0,
+          "start": "2026-09-29T13:26:18.701Z",
+          "end": "2026-09-29T13:26:20.646Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-3cf48dbd-4a60-425f-b99f-8ab9a6373de3",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "E58BC4A72E5733C118D61EE1D094159888429F666189519F3941008B7E139ED7",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/own-settings002-current-2026-09-29T13-24-21-791Z-173abb/results.json"
+    },
+    {
+      "id": "REV-PR-SETTINGS-002-09",
+      "records": [
+        "PR-SETTINGS-002"
+      ],
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "clause": "Swift:46 centers over the actual native main frame, even when requested content height differs",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+      "replacements": [
+        {
+          "before": "var parentSize = main.FrameSize ?? FrameSizeOf(main);",
+          "after": "var parentSize = FrameSizeOf(main);"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "REV-PR-SETTINGS-002-09-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:26:20.706Z",
+          "end": "2026-09-29T13:26:25.268Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d41985c9-46f7-4a22-9336-7cff167d8b91",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "7837E6FAA7BBC7B3E03672BD020BDD41DB9E3C76177B8C8CCF721D4DA1C9E7B8"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-09-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-09-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:26:25.273Z",
+          "end": "2026-09-29T13:26:28.982Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-a2da223a-7626-4031-8cf0-ccf39cfc5a4a",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+              "outcome": "Failed",
+              "error": "Native child Fact failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI\nArtifacts: C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-a2da223a-7626-4031-8cf0-ccf39cfc5a4a\\WindowManagerNative\\cbfc43827193457fa56cc4e9ac01b9a9\nXunit.Sdk.XunitException: Child native result Failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI\nAssert.Equal() Failure: Values differ\r\nExpected: NativePlacementPoint { X = 604, Y = 269 }\r\nActual:   NativePlacementPoint { X = 604, Y = 262 }\n   at Marrow.App.Tests.Window.Native.WindowManagerNativePlacementExercise.<>c__DisplayClass0_1.<Run>g__RecordCase|16(String name, Boolean hidden, Boolean moveSettings) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativePlacementExercise.cs:line 146\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativePlacementExercise.Run(WindowManagerNativeSubject subject) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativePlacementExercise.cs:line 69\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.<>c.<Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI>b__2_0(WindowManagerNativeSubject subject) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 20\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 131\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 163\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 106\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 121\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 20\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.VerifyTrx(WindowManagerNativeRequest request) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 168\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.RunParent(String fact) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 92"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-a2da223a-7626-4031-8cf0-ccf39cfc5a4a\\WindowManagerNative\\cbfc43827193457fa56cc4e9ac01b9a9",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\request.json",
+                  "sha256": "7AEE12752EE832E6D6B42AA2E2E4126EF9A3C70DD81F8E798BA6CA74DBC03FB0"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\invocation.json",
+                  "sha256": "45739C1775E31116AF75CEBC964802CD0EF6659FA31408D625E455FB8D23EB8C"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\ready.json",
+                  "sha256": "AACB3D124E3AD507386D8C9A9C72BF3E1C507909A0C187DA7AD78214C1D0E5E0"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\permit.json",
+                  "sha256": "5758BBF9FF46DE8DDAC77C76FB2A49E659B5D57A40DDFE002746CD597807BFE6"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\parent-result.json",
+                  "sha256": "F1ACCCB568F35DD526A3403EF976BB437EEEDD7BF3BEB7C5ED80CE8CAC99E743"
+                },
+                {
+                  "name": "child-result.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\child-result.json",
+                  "sha256": "E3EA10EA3D4BDCAAA47EF8112D27C2B045D84CF432FDAF3EC98C07E2D49E0769"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\runner.stdout.log",
+                  "sha256": "BAB999594B8D8B8C8D69A3F33633604F1569626A5951B94A5A1564EA3D9BDD2D"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\runner.stderr.log",
+                  "sha256": "6E4CAC551D92F9D8794DC6057965C16C7ECD904992407CFABC9E601872DA82E9"
+                },
+                {
+                  "name": "results/native-child.trx",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\results\\native-child.trx",
+                  "sha256": "A191EF5F407E3B6ED2107BB409310AFA9DBBD3D813C8AC0076A78263A5C1ED61"
+                },
+                {
+                  "name": "placement-case-001.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\placement-case-001.json",
+                  "sha256": "168F6D49B947F77A324DADCC312980D13508F47898CA5D83AEC8EE73A52013F6"
+                },
+                {
+                  "name": "placement-coverage.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\placement-coverage.json",
+                  "sha256": "083070C1E9A9233DED8FF4F856BE769AD899EAF72ACF7499A551DC01267D7E6D"
+                },
+                {
+                  "name": "placement-topology-start.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-1\\cbfc43827193457fa56cc4e9ac01b9a9\\placement-topology-start.json",
+                  "sha256": "2C6447B9B1A262DC60E449EE949A3D08434DB6CFD5B86F2013C973466E652D46"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-09-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-09-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 1,
+          "start": "2026-09-29T13:26:28.987Z",
+          "end": "2026-09-29T13:26:32.520Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-86009c03-6876-4774-ba79-d54a1e8e3e61",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+              "outcome": "Failed",
+              "error": "Native child Fact failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI\nArtifacts: C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-86009c03-6876-4774-ba79-d54a1e8e3e61\\WindowManagerNative\\24f66aaa104949ab80155cf09dec4a45\nXunit.Sdk.XunitException: Child native result Failed: Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI\nAssert.Equal() Failure: Values differ\r\nExpected: NativePlacementPoint { X = 604, Y = 269 }\r\nActual:   NativePlacementPoint { X = 604, Y = 262 }\n   at Marrow.App.Tests.Window.Native.WindowManagerNativePlacementExercise.<>c__DisplayClass0_1.<Run>g__RecordCase|16(String name, Boolean hidden, Boolean moveSettings) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativePlacementExercise.cs:line 146\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativePlacementExercise.Run(WindowManagerNativeSubject subject) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativePlacementExercise.cs:line 69\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.<>c.<Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI>b__2_0(WindowManagerNativeSubject subject) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 20\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 131\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.RunNative(Action`1 body) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 163\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 106\r\n--- End of stack trace from previous location ---\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeSession.Run(Action`1 body, String member) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeSession.cs:line 121\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI() in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Window\\WindowManagerNativeTests.cs:line 20\r\n   at System.Reflection.MethodBaseInvoker.InterpretedInvoke_Method(Object obj, IntPtr* args)\r\n   at System.Reflection.MethodBaseInvoker.InvokeWithNoArgs(Object obj, BindingFlags invokeAttr)\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.VerifyTrx(WindowManagerNativeRequest request) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 168\r\n   at Marrow.App.Tests.Window.Native.WindowManagerNativeChildHost.RunParent(String fact) in E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\Fixtures\\WindowManagerNativeChildHost.cs:line 92"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-86009c03-6876-4774-ba79-d54a1e8e3e61\\WindowManagerNative\\24f66aaa104949ab80155cf09dec4a45",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\request.json",
+                  "sha256": "E52C1DC730AA6EF644B8B94FECC340A9BB241834296CA9B51CB39BDF93143F4C"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\invocation.json",
+                  "sha256": "0AAB1FF63F10CD7B0479692909EF74ED128F146C0F2E3E43F4D43A34207C2A5C"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\ready.json",
+                  "sha256": "7398392E2E372342497452A7A68AB2F266D3B846AC605E968AE532E4D402D718"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\permit.json",
+                  "sha256": "FCACBEF3AEDE8F863CDF930EBD7260575D8E100D59B800D6A9B7C20B26D4F157"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\parent-result.json",
+                  "sha256": "A264BA40DA341FD67BC56884E80C901286534CD5268C680272D8AD24ADC30BEA"
+                },
+                {
+                  "name": "child-result.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\child-result.json",
+                  "sha256": "126AF8BA96D2625D4B59BAB1989190687036EB6A71B9B9951A60DD4546A79B9D"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\runner.stdout.log",
+                  "sha256": "7CF7F4F933E8D2685EB3C15D66C7A28CCE0D84EADA3B289726748126B9DC7D30"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\runner.stderr.log",
+                  "sha256": "6E4CAC551D92F9D8794DC6057965C16C7ECD904992407CFABC9E601872DA82E9"
+                },
+                {
+                  "name": "results/native-child.trx",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\results\\native-child.trx",
+                  "sha256": "82B6675ADD37E598876F71FF3D814CCDCA21D118A25A763E29757B8F4778A5C6"
+                },
+                {
+                  "name": "placement-case-001.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\placement-case-001.json",
+                  "sha256": "D1F563CB128BAD13512CCB6901BA753A53BB08E577B3A87A3E04DAF27BE01502"
+                },
+                {
+                  "name": "placement-coverage.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\placement-coverage.json",
+                  "sha256": "083070C1E9A9233DED8FF4F856BE769AD899EAF72ACF7499A551DC01267D7E6D"
+                },
+                {
+                  "name": "placement-topology-start.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-red-2\\24f66aaa104949ab80155cf09dec4a45\\placement-topology-start.json",
+                  "sha256": "2C6447B9B1A262DC60E449EE949A3D08434DB6CFD5B86F2013C973466E652D46"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-09-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T13:26:32.554Z",
+          "end": "2026-09-29T13:26:37.017Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e952cc58-f27f-4243-83f8-fccbb8d5a031",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "E8DF9C5F532CFFB78597DBD8D9DB8A03D4C5DE4AC86671D542A25BD22D8C4870"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "6FDEBC34156817134C90BA23F44E392172F3A92EDE0020347B3471F2271D74CB"
+            }
+          ]
+        },
+        {
+          "name": "REV-PR-SETTINGS-002-09-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI&Req=PR-SETTINGS-002' '--logger' 'trx;LogFileName=REV-PR-SETTINGS-002-09-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\own-settings002-current-2026-09-29T13-24-21-791Z-173abb'",
+          "exit": 0,
+          "start": "2026-09-29T13:26:37.022Z",
+          "end": "2026-09-29T13:26:43.165Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0d56c5d3-f57a-4f39-a85f-88dd6e4fe14d",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": [
+            {
+              "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0d56c5d3-f57a-4f39-a85f-88dd6e4fe14d\\WindowManagerNative\\7999d15bdcef49a0bfbb626a672bc740",
+              "files": [
+                {
+                  "name": "request.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\request.json",
+                  "sha256": "1F4366B8D1085446E1BBE1F695851E66B1A027CC05487463A6A711C88CC5ABD5"
+                },
+                {
+                  "name": "invocation.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\invocation.json",
+                  "sha256": "9A28D70E2B772724F825D8BA9EFDB961D88712BEBB9DD6D8A432C5EE7B7B17D7"
+                },
+                {
+                  "name": "ready.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\ready.json",
+                  "sha256": "5CB166C03374AC34F4E198D9D4CFC9F6C5908B8FF9898AFB3A749226BB7510CB"
+                },
+                {
+                  "name": "permit.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\permit.json",
+                  "sha256": "726771DA7846AACF6AED0AD6864C3D322AD9A1FC7CBE274DAC494A35203DB7CC"
+                },
+                {
+                  "name": "parent-result.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\parent-result.json",
+                  "sha256": "F236C425E200A367F7EACC396AC62EF255DCC60CFC607B817C50C76B8EE90DA1"
+                },
+                {
+                  "name": "child-result.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\child-result.json",
+                  "sha256": "F4309E62310976F48A4C41904D711971E9DE519E80E5E5C287CEA35755B67870"
+                },
+                {
+                  "name": "runner.stdout.log",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\runner.stdout.log",
+                  "sha256": "A496B4256A9BBBAD56DC1850341A726818CEFD1210C433C26A6A83183982A583"
+                },
+                {
+                  "name": "runner.stderr.log",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\runner.stderr.log",
+                  "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+                },
+                {
+                  "name": "results/native-child.trx",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\results\\native-child.trx",
+                  "sha256": "182153ED1FA2B800B52578A874C7175267AEA6D6E6D1CA15D247C4D73D14E3EA"
+                },
+                {
+                  "name": "placement-case-001.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-case-001.json",
+                  "sha256": "872D5BE7E5D15D810BC802611B4EF99B8B6C8F28FDC18028B3301844FB8F6A92"
+                },
+                {
+                  "name": "placement-case-002.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-case-002.json",
+                  "sha256": "FE6B67936B72BBACBA45BB3DC26D86E48D0838911A09A2AC282F420E1CFC3F2F"
+                },
+                {
+                  "name": "placement-case-003.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-case-003.json",
+                  "sha256": "B4BD608806EFE5FF506D1D63589A3CF3D6B788209889987251CA4CE9D2B0A8C0"
+                },
+                {
+                  "name": "placement-case-004.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-case-004.json",
+                  "sha256": "843DC2F76593CD561FD802E56E106284A7A11059A8C8C430FD37C7018E12035F"
+                },
+                {
+                  "name": "placement-case-005.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-case-005.json",
+                  "sha256": "1D94B37A0C7E031417964B41AB51A37851D977CA5F888544AA56018697786C70"
+                },
+                {
+                  "name": "placement-case-006.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-case-006.json",
+                  "sha256": "905E41CE082DAD0FD5186B631F252C300EA661606982B48E8B9D72918E98DE1D"
+                },
+                {
+                  "name": "placement-case-007.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-case-007.json",
+                  "sha256": "FADCBB80C4CC51679CE8452C363CF86C7F227A6212AFFD5ACC83D9389ED27BE5"
+                },
+                {
+                  "name": "placement-case-008.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-case-008.json",
+                  "sha256": "0FC509B0ED35AA072E2494C0B00278DDA70B6887FB6D5FBFDC9F708CE7D498C6"
+                },
+                {
+                  "name": "placement-case-009.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-case-009.json",
+                  "sha256": "DFFBFCEEE4F09AD9C19D88829721D5196CD335DD00BBA90886CDBB78AFF525EB"
+                },
+                {
+                  "name": "placement-coverage.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-coverage.json",
+                  "sha256": "1753826CD1D3235C59DAD3A5868C0B72CCD5AD9726E9FBA4FB2C137D29639B6A"
+                },
+                {
+                  "name": "placement-topology-start.json",
+                  "retained": "children\\REV-PR-SETTINGS-002-09-green\\7999d15bdcef49a0bfbb626a672bc740\\placement-topology-start.json",
+                  "sha256": "2C6447B9B1A262DC60E449EE949A3D08434DB6CFD5B86F2013C973466E652D46"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "6F65F2AB806BFD10CA2B6426A0251604BF42E820746376DA49C94A6DE73C5F9E",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/own-settings002-current-2026-09-29T13-24-21-791Z-173abb/results.json"
+    }
+  ],
+  "excluded_attempts": []
+}

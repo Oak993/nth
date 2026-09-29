@@ -77,7 +77,9 @@ internal static class WindowManagerNativeChildProtocol
         values["NUGET_PACKAGES"] = Path.Combine(run, "nuget");
         values["DOTNET_HOST_PATH"] = dotnet;
         values["DOTNET_CLI_HOME"] = Path.Combine(run, "home");
-        values["DOTNET_SKIP_FIRST_TIME_EXPERIENCE"] = "1";
+        // SDK first-use must not create certificates or alter the user's tools PATH.
+        values["DOTNET_GENERATE_ASPNET_CERTIFICATE"] = "false";
+        values["DOTNET_ADD_GLOBAL_TOOLS_TO_PATH"] = "false";
         values["DOTNET_CLI_TELEMETRY_OPTOUT"] = "1";
         values["DOTNET_NOLOGO"] = "1";
         values["DOTNET_CLI_WORKLOAD_UPDATE_NOTIFY_DISABLE"] = "1";

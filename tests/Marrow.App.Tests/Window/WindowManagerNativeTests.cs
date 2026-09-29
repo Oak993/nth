@@ -13,6 +13,50 @@ namespace Marrow.App.Tests.Window.Native;
 public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
 {
     [Fact]
+    [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:36-37, :57-60; an already visible window still becomes key.
+    [Trait("Req", "PR-WIN-011")] // WindowManager.swift:46-54; native final placement is checked too.
+    public void Reopening_visible_Settings_activates_its_native_window_after_centering()
+    {
+        native.Run(subject =>
+        {
+            subject.Focus(subject.Main, subject.MainProbe);
+            native.OnUi(() =>
+            {
+                subject.Main.Topmost = false;
+                subject.Settings.Topmost = false;
+                Assert.True(subject.Settings.IsVisible);
+                Assert.True(subject.Main.IsActive);
+                Assert.False(subject.Settings.IsActive);
+            });
+            subject.MainProbe.Fence();
+            WindowManagerNativeForeground.RequireStillForeground(subject.MainProbe.Handle, native.ThreadId);
+            var topology = native.OnUi(WindowManagerNativeMonitorTopology.Read);
+            var main = native.OnUi(() => WindowManagerNativePlacementGeometry.Read(subject.MainProbe.Handle));
+            var settings = native.OnUi(() => WindowManagerNativePlacementGeometry.Read(subject.SettingsProbe.Handle));
+            var primary = Assert.Single(topology.Monitors, monitor => monitor.Primary);
+            var ownerMonitor = Assert.Single(topology.Monitors, monitor => monitor.Handle == main.Monitor);
+            var expected = WindowManagerNativePlacementGeometry.Expected(main, settings, primary.Bounds, ownerMonitor.Work);
+
+            // Neither a second focus helper nor another Show may manufacture the observed result.
+            native.OnUi(() => subject.Manager.ShowSettings());
+            subject.SettingsProbe.Fence();
+            Assert.Equal(subject.SettingsProbe.Handle, N.GetForegroundWindow());
+            Assert.True(native.OnUi(() => subject.Settings.IsActive));
+            var after = native.OnUi(() => WindowManagerNativePlacementGeometry.Read(subject.SettingsProbe.Handle));
+            Assert.True(after.Visible);
+            Assert.Equal(expected.Origin, after.Origin);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:32-55; native placement on the observed topology.
+    [Trait("Req", "PR-WIN-011")] // Two-monitor verification remains open when fewer than two physical regions are available.
+    public void Settings_reopening_uses_the_actual_main_monitor_workarea_and_native_frame_DPI()
+    {
+        native.Run(subject => WindowManagerNativePlacementExercise.Run(subject));
+    }
+
+    [Fact]
     [Trait("Req", "PR-WIN-007")]
     [Trait("Req", "PR-SETTINGS-001")]
     public void Factory_hooks_capture_the_caption_press_and_complete_a_real_minimize_click()

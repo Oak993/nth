@@ -156,7 +156,7 @@ public sealed class WindowManager
         // no screen at all (nothing a window could be shown on) there is no primary screen to measure from, and the
         // virtual screen's origin line stands in for its bottom edge.
         var up = main.Screens.Primary is { } primary ? primary.Bounds.ToRect(scale).Bottom : 0;
-        var parentSize = FrameSizeOf(main);
+        var parentSize = main.FrameSize ?? FrameSizeOf(main); // :46 main.frame, not the requested content size.
         var parent = new Rect(main.Position.X / scale, up - (main.Position.Y / scale + parentSize.Height), parentSize.Width, parentSize.Height); // :46
         var frame = FrameSizeOf(window); // :47
         Rect? visible = null;

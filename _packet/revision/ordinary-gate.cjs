@@ -51,17 +51,28 @@ function retainOwnedChildEvidence(label, environment) {
   const children=[];
   for(const entry of fs.readdirSync(data,{withFileTypes:true})) {
     if(!entry.isDirectory() || entry.isSymbolicLink()) continue;
-    if(/^marrow-window-process-[0-9a-f]{32}$/i.test(entry.name)) children.push(path.join(data,entry.name));
+    if(/^marrow-window-process-[0-9a-f]{32}$/i.test(entry.name)) {
+      const ownedRoot=path.join(data,entry.name);
+      children.push(ownedRoot);
+      for(const phase of ['phase-1','phase-2']) {
+        const phaseRoot=path.join(ownedRoot,phase);
+        if(!fs.existsSync(phaseRoot))continue;
+        if(!fs.lstatSync(phaseRoot).isDirectory()||fs.lstatSync(phaseRoot).isSymbolicLink())throw Error('Unexpected phase directory');
+        for(const phaseChild of fs.readdirSync(phaseRoot,{withFileTypes:true}))
+          if(phaseChild.isDirectory()&&!phaseChild.isSymbolicLink()&&/^marrow-window-process-[0-9a-f]{32}$/i.test(phaseChild.name))children.push(path.join(phaseRoot,phaseChild.name));
+      }
+    }
     if(entry.name==='WindowManagerNative') {
       for(const nested of fs.readdirSync(path.join(data,entry.name),{withFileTypes:true}))
         if(nested.isDirectory()&&!nested.isSymbolicLink()&&/^[0-9a-f]{32}$/i.test(nested.name))children.push(path.join(data,entry.name,nested.name));
     }
   }
   const retained=[];
-  const names=['request.json','invocation.json','ready.json','permit.json','child.log','exit-path.json','failure.json','parent-result.json','child-result.json','runner.stdout.log','runner.stderr.log','results/native-child.trx','results/child-runner.trx'];
+  const names=['request.json','invocation.json','ready.json','permit.json','child.log','exit-path.json','failure.json','parent-result.json','child-result.json','runner.stdout.log','runner.stderr.log','results/native-child.trx','results/child-runner.trx','results/child.trx','restart-root.json','restart-request.json','restart-result.json','restart-failure.json','phase-1-complete.json','phase-result.json','input-store.bin','output-store.bin'];
   for(const child of children) {
     const record={source:child,files:[]};
-    for(const name of names) {
+    const placement=fs.readdirSync(child).filter(name=>/^placement-(topology-start|coverage|case-\d{3}|topology-change-\d{3})\.json$/.test(name));
+    for(const name of names.concat(placement)) {
       const file=path.join(child,name);
       if(!fs.existsSync(file))continue;
       const stat=fs.lstatSync(file);
@@ -83,7 +94,8 @@ function invoke(label,args) {
   const output=(child.stdout||'')+(child.stderr||'');
   fs.writeFileSync(path.join(run,label+'.log'),output);
   const metadata=output.match(/^GATE_ENV=(.+)$/m);
-  const item={name:label,command:'dotnet '+args.map(quote).join(' '),exit:child.status,start,end:new Date().toISOString(),environment:metadata?JSON.parse(metadata[1]):null};
+  const item={name:label,command:'dotnet '+args.map(quote).join(' '),exit:child.status,start,end:new Date().toISOString(),environment:metadata?JSON.parse(metadata[1]):null,
+    source_hashes:['src/Marrow.App/Window/WindowManager.cs','src/Marrow.App/Port/AppShell.cs','src/Marrow.App/AppDelegate.cs','src/Marrow.App/Views/Settings/SettingsView.cs','src/Marrow.App/Window/ThreadWindow.cs','src/Marrow.App/Views/Palette/CommandPalette.cs'].map(name=>({name,sha256:sha(fs.readFileSync(path.join(root,name)))}))};
   if (child.error) item.launch_error=String(child.error);
   if (args[0]==='build') {
     item.clean=child.status===0 && /0 Warning\(s\)/.test(output) && /0 Error\(s\)/.test(output);

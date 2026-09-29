@@ -1,0 +1,33 @@
+{
+  "record": "PR-SETTINGS-002",
+  "archives": [
+    {
+      "original_directory": "_packet/revision/evidence/native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1",
+      "archive": "_packet/revision/evidence-archives/native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1.zip",
+      "archive_sha256": "E5DCD1EEF475939BCCB61E58FAC927CBBB666F5B9667A8BDFC54EA817CD8D291",
+      "manifest": "_packet/revision/evidence-archives/native-settings002-kills-2026-09-29T13-33-31-504Z-7440c1.zip.json",
+      "file_count": 112
+    },
+    {
+      "original_directory": "_packet/revision/evidence/original-settings002-current-2026-09-29T13-26-43-237Z-453d6d",
+      "archive": "_packet/revision/evidence-archives/original-settings002-current-2026-09-29T13-26-43-237Z-453d6d.zip",
+      "archive_sha256": "9433C9EB275F6E59812E7EE72B407ECBD4BAD43BBEB47E44120FB39D01959258",
+      "manifest": "_packet/revision/evidence-archives/original-settings002-current-2026-09-29T13-26-43-237Z-453d6d.zip.json",
+      "file_count": 71
+    },
+    {
+      "original_directory": "_packet/revision/evidence/own-settings002-current-2026-09-29T13-24-21-791Z-173abb",
+      "archive": "_packet/revision/evidence-archives/own-settings002-current-2026-09-29T13-24-21-791Z-173abb.zip",
+      "archive_sha256": "382C919CDC13CE6A49BBE5019DA223D16FFC897294347263C3D4A52033F5DDEF",
+      "manifest": "_packet/revision/evidence-archives/own-settings002-current-2026-09-29T13-24-21-791Z-173abb.zip.json",
+      "file_count": 171
+    },
+    {
+      "original_directory": "_packet/revision/evidence/settings002-record-final-2026-09-29T13-34-17-127Z-84e697",
+      "archive": "_packet/revision/evidence-archives/settings002-record-final-2026-09-29T13-34-17-127Z-84e697.zip",
+      "archive_sha256": "F08181853AF72A0982C0D60B5E47082F37F2FD60A708BF0953E8BE0E15AFC6D8",
+      "manifest": "_packet/revision/evidence-archives/settings002-record-final-2026-09-29T13-34-17-127Z-84e697.zip.json",
+      "file_count": 32
+    }
+  ]
+}
