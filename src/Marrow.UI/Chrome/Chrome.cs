@@ -1146,6 +1146,12 @@ namespace Marrow.UI.Chrome
         {
             protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this, isSelected);
 
+            // :730 the row is a Button: accessibility activation runs its action, as a click does.
+            internal void Activate()
+            {
+                if (IsEffectivelyEnabled) OnClick();
+            }
+
             private sealed class Peer(Control owner, bool isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
             {
                 protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
@@ -1154,7 +1160,7 @@ namespace Marrow.UI.Chrome
                 void ISelectionItemProvider.AddToSelection() { }
                 void ISelectionItemProvider.RemoveFromSelection() { }
                 void ISelectionItemProvider.Select() { }
-                void IInvokeProvider.Invoke() => ((Button)Owner).Focus();
+                void IInvokeProvider.Invoke() => ((SelectableButton)Owner).Activate();
             }
         }
 

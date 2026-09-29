@@ -93,4 +93,18 @@ public sealed class ChromeAuditTests(HeadlessSession headless)
         Assert.True(right <= 160 - (Chrome.RowHorizontalPadding + 24) - 4 + 0.5, $"the title ends at {right}");
         window.Close();
     });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:730: the row is a Button whose accessibility activation runs the row action
+    public void SidebarRow_automation_invoke_runs_the_row_action() => headless.OnUiThread(() =>
+    {
+        var count = 0;
+        var row = new SidebarRow("Thread", () => count++, () => new Border { Width = 14, Height = 14 });
+        var window = Show(row, 200);
+        var button = Assert.Single(VisualQuery.Descendants<Button>(row));
+        var invoke = Assert.IsAssignableFrom<IInvokeProvider>(ControlAutomationPeer.CreatePeerForElement(button));
+        invoke.Invoke();
+        Assert.Equal(1, count);
+        window.Close();
+    });
 }
