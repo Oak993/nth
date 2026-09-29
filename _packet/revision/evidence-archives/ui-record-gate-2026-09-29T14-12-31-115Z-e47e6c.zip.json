@@ -1,0 +1,22 @@
+{
+  "original_directory": "_packet/revision/evidence/ui-record-gate-2026-09-29T14-12-31-115Z-e47e6c",
+  "archive": "_packet/revision/evidence-archives/ui-record-gate-2026-09-29T14-12-31-115Z-e47e6c.zip",
+  "archive_sha256": "02F886FACEA07041D123F693CEA17E16EDEEBA189B3942FCBE0369A2BE15B141",
+  "files": [
+    {
+      "path": "tests.json",
+      "bytes": 6020,
+      "sha256": "2B7DC19747ADFB62D7CBE0C6BD7624F000E860C13BC822F6F05FFB28E7F6E6A9"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 679,
+      "sha256": "517CBB7D3AF159A4D391DCA63DDA4063B1F9FFB73A07883BFEFB56F6C0E79EA8"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 31824,
+      "sha256": "EA0847960E77A0A5896D78A2D807D10F1AC52B9D5111E3FEB8D7560C02B07BDD"
+    }
+  ]
+}

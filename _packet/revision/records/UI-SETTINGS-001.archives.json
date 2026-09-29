@@ -1,0 +1,33 @@
+{
+  "record": "UI-SETTINGS-001",
+  "archives": [
+    {
+      "original_directory": "_packet/revision/evidence/ui-original-kills-2026-09-29T14-11-44-388Z-debc5f",
+      "archive": "_packet/revision/evidence-archives/ui-original-kills-2026-09-29T14-11-44-388Z-debc5f.zip",
+      "archive_sha256": "50D861CFA9AE78A6DE5AA4A57B7756DA21B441169597ED635DB0DED2890B5200",
+      "manifest": "_packet/revision/evidence-archives/ui-original-kills-2026-09-29T14-11-44-388Z-debc5f.zip.json",
+      "file_count": 43
+    },
+    {
+      "original_directory": "_packet/revision/evidence/ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee",
+      "archive": "_packet/revision/evidence-archives/ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee.zip",
+      "archive_sha256": "F557DBE654FDA6FF8A6CBF49E1D01EFF5EADC3127B63E92CF857A38E80F34531",
+      "manifest": "_packet/revision/evidence-archives/ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee.zip.json",
+      "file_count": 29
+    },
+    {
+      "original_directory": "_packet/revision/evidence/ui-settings-001-own-2026-09-29T14-02-40-063Z-207602",
+      "archive": "_packet/revision/evidence-archives/ui-settings-001-own-2026-09-29T14-02-40-063Z-207602.zip",
+      "archive_sha256": "E7A130C7B0254964EB21E025B7CECD3FEA775F9BCA20E0FBDD0D9915328BC77A",
+      "manifest": "_packet/revision/evidence-archives/ui-settings-001-own-2026-09-29T14-02-40-063Z-207602.zip.json",
+      "file_count": 99
+    },
+    {
+      "original_directory": "_packet/revision/evidence/ui-record-gate-2026-09-29T14-12-31-115Z-e47e6c",
+      "archive": "_packet/revision/evidence-archives/ui-record-gate-2026-09-29T14-12-31-115Z-e47e6c.zip",
+      "archive_sha256": "02F886FACEA07041D123F693CEA17E16EDEEBA189B3942FCBE0369A2BE15B141",
+      "manifest": "_packet/revision/evidence-archives/ui-record-gate-2026-09-29T14-12-31-115Z-e47e6c.zip.json",
+      "file_count": 3
+    }
+  ]
+}

@@ -1,0 +1,3201 @@
+{
+  "record": "UI-SETTINGS-001",
+  "status": "MUTATION_BATCH_COMPLETE",
+  "candidate": false,
+  "candidate_note": "Final clause-by-clause and full-suite acceptance is reported separately; a mutation count alone is not certification.",
+  "head_before_commit": "5c9437189a51f45f5b28d91caf11ed80fcf27268",
+  "window_manager_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+  "additional_count": 8,
+  "verifier_recheck_count": 3,
+  "ordinary_record_gate": {
+    "name": "tests",
+    "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'Req=UI-SETTINGS-001|FullyQualifiedName~TraceabilityTests' '--logger' 'trx;LogFileName=tests.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-record-gate-2026-09-29T14-12-31-115Z-e47e6c'",
+    "exit": 0,
+    "start": "2026-09-29T14:12:31.117Z",
+    "end": "2026-09-29T14:12:33.686Z",
+    "environment": {
+      "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+      "outer_opt_in_variables": [],
+      "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-067b7912-e3e0-4161-99dd-72f0c5e39fdf",
+      "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+    },
+    "source_hashes": [
+      {
+        "name": "src/Marrow.App/Window/WindowManager.cs",
+        "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+      },
+      {
+        "name": "src/Marrow.App/Port/AppShell.cs",
+        "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+      },
+      {
+        "name": "src/Marrow.App/AppDelegate.cs",
+        "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+      },
+      {
+        "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+        "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+      },
+      {
+        "name": "src/Marrow.App/Window/ThreadWindow.cs",
+        "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+      },
+      {
+        "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+        "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+      }
+    ],
+    "tests": [
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.Reopening_the_Settings_window_with_a_page_requests_that_page_before_the_same_kept_view_is_shown_again",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Secondary_keyboard_close_preserves_state_and_field_Escape_keeps_the_window_open",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerNextTests.Theme_changes_reach_both_cached_windows_and_a_hidden_Settings_view_without_rebuilding_it",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.The_Settings_window_is_a_fixed_780_by_580_window_titled_Settings_that_can_be_minimised_but_not_resized",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.A_live_opacity_change_reaches_the_actual_retained_Settings_backdrop",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.The_Settings_window_draws_its_content_from_the_top_left_corner_under_a_transparent_title_bar_over_a_clear_window",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.Every_open_centres_the_Settings_window_over_the_main_window_clamped_into_its_screen_and_nothing_remembers_where_it_was",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Default_and_remapped_shortcuts_reopen_the_same_page_and_search",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.Closing_the_Settings_window_hides_it_and_its_view_state_survives_so_the_next_open_shows_the_same_page_and_search_text",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerNextTests.The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Palette_row_click_closes_palette_then_reopens_retained_Settings",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_backdrop_follows_initial_live_and_hidden_opacity(dark: True, stock: 0.26000000000000001, quarter: 0.13, threeQuarter: 0.63)",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Search_and_page_controls_receive_input_without_starting_a_window_drag",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerCenteringTests.A_window_with_an_owner_uses_that_owners_monitor_and_never_reads_the_pointer",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_backdrop_follows_initial_live_and_hidden_opacity(dark: False, stock: 0.17999999999999999, quarter: 0.089999999999999997, threeQuarter: 0.58999999999999997)",
+        "outcome": "Passed",
+        "error": ""
+      }
+    ],
+    "total": 20,
+    "passed": 20,
+    "failed": 0,
+    "child_evidence": [],
+    "evidence": "_packet/revision/evidence/ui-record-gate-2026-09-29T14-12-31-115Z-e47e6c/tests.json"
+  },
+  "mutations": [
+    {
+      "id": "I01",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+      "precision": "Corner 26-to-25 as described; replacement at Settings-specific use site",
+      "replacements": [
+        {
+          "before": ".RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);",
+          "after": ".RoundedRectangle(25, RoundedCornerStyle.Continuous);"
+        }
+      ],
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+      "clause": "Verifier I01: Corner 26-to-25 as described; replacement at Settings-specific use site",
+      "original_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "runs": [
+        {
+          "name": "I01-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:11:44.448Z",
+          "end": "2026-09-29T14:11:49.094Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-2bde819d-b81e-44ec-92fc-1d93710ed9ee",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "F03A3A54CE216CC95839B4311B5A40BB3BA3101560AA5113C09CC34DA05D82DA"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "56E8CD26C500CC9878155643474FB4CA6A948145B115757762C91A1B16438062"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "5F65B11D5D445499C20811C875D3378491B08EC85334354E1CEA1C08A031A06D"
+            }
+          ]
+        },
+        {
+          "name": "I01-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=I01-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-original-kills-2026-09-29T14-11-44-388Z-debc5f'",
+          "exit": 1,
+          "start": "2026-09-29T14:11:49.100Z",
+          "end": "2026-09-29T14:11:51.245Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-a4c7af4b-2086-4bea-9c61-2e26123bf696",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "F03A3A54CE216CC95839B4311B5A40BB3BA3101560AA5113C09CC34DA05D82DA"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 26,26,26,26\r\nActual:   25,25,25,25"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "I01-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=I01-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-original-kills-2026-09-29T14-11-44-388Z-debc5f'",
+          "exit": 1,
+          "start": "2026-09-29T14:11:51.247Z",
+          "end": "2026-09-29T14:11:53.196Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-f2f90896-5672-4155-8eb6-df812d9b32de",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "F03A3A54CE216CC95839B4311B5A40BB3BA3101560AA5113C09CC34DA05D82DA"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 26,26,26,26\r\nActual:   25,25,25,25"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "I01-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:11:53.231Z",
+          "end": "2026-09-29T14:11:57.857Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-32226b22-d2ba-41d8-a323-7792df7296d4",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "5F65B11D5D445499C20811C875D3378491B08EC85334354E1CEA1C08A031A06D"
+            }
+          ]
+        },
+        {
+          "name": "I01-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=I01-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-original-kills-2026-09-29T14-11-44-388Z-debc5f'",
+          "exit": 0,
+          "start": "2026-09-29T14:11:57.863Z",
+          "end": "2026-09-29T14:12:00.005Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-9336bdf2-46fe-47a0-ae18-5f343a66a1d4",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "F03A3A54CE216CC95839B4311B5A40BB3BA3101560AA5113C09CC34DA05D82DA",
+      "restored_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "git_diff_unchanged": true,
+      "kind": "verifier-recheck",
+      "evidence": "_packet/revision/evidence/ui-original-kills-2026-09-29T14-11-44-388Z-debc5f/results.json"
+    },
+    {
+      "id": "I02",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+      "precision": "Report only says ignores opacity; reconstructed constant zero update",
+      "replacements": [
+        {
+          "before": "value => backdrop.Update(value, null)",
+          "after": "value => backdrop.Update(0, null)"
+        }
+      ],
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.A_live_opacity_change_reaches_the_actual_retained_Settings_backdrop",
+      "clause": "Verifier I02: Report only says ignores opacity; reconstructed constant zero update",
+      "original_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "runs": [
+        {
+          "name": "I02-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:12:00.067Z",
+          "end": "2026-09-29T14:12:04.557Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-694a9f59-664a-44e4-a40b-58fd49303ab6",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "37E65D02F1DC21591E7985EB44AD87119687FE9038C77C5B81AC23D456711EF8"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "A6A1053E364F443DF4E13DA017D15EF5DCB8EB6F06125AF9AC97427BB9E4991A"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "5F65B11D5D445499C20811C875D3378491B08EC85334354E1CEA1C08A031A06D"
+            }
+          ]
+        },
+        {
+          "name": "I02-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.A_live_opacity_change_reaches_the_actual_retained_Settings_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=I02-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-original-kills-2026-09-29T14-11-44-388Z-debc5f'",
+          "exit": 1,
+          "start": "2026-09-29T14:12:04.563Z",
+          "end": "2026-09-29T14:12:06.691Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ce7f131b-d62b-49af-a19f-aa27e16715e2",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "37E65D02F1DC21591E7985EB44AD87119687FE9038C77C5B81AC23D456711EF8"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.A_live_opacity_change_reaches_the_actual_retained_Settings_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values are not within 8 decimal places\r\nExpected: 0.17999999999999999 (rounded from 0.17999999999999999)\r\nActual:   0 (rounded from 0)"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "I02-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.A_live_opacity_change_reaches_the_actual_retained_Settings_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=I02-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-original-kills-2026-09-29T14-11-44-388Z-debc5f'",
+          "exit": 1,
+          "start": "2026-09-29T14:12:06.693Z",
+          "end": "2026-09-29T14:12:08.622Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-64bf2fad-804e-4f61-b747-980fee5b32ee",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "37E65D02F1DC21591E7985EB44AD87119687FE9038C77C5B81AC23D456711EF8"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.A_live_opacity_change_reaches_the_actual_retained_Settings_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values are not within 8 decimal places\r\nExpected: 0.17999999999999999 (rounded from 0.17999999999999999)\r\nActual:   0 (rounded from 0)"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "I02-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:12:08.657Z",
+          "end": "2026-09-29T14:12:13.431Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-6533c03d-cb3c-4790-8190-9321858521c8",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "5F65B11D5D445499C20811C875D3378491B08EC85334354E1CEA1C08A031A06D"
+            }
+          ]
+        },
+        {
+          "name": "I02-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.A_live_opacity_change_reaches_the_actual_retained_Settings_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=I02-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-original-kills-2026-09-29T14-11-44-388Z-debc5f'",
+          "exit": 0,
+          "start": "2026-09-29T14:12:13.437Z",
+          "end": "2026-09-29T14:12:15.560Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-1a5b6899-8075-40a6-ae15-088a63efbeb9",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.A_live_opacity_change_reaches_the_actual_retained_Settings_backdrop",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "37E65D02F1DC21591E7985EB44AD87119687FE9038C77C5B81AC23D456711EF8",
+      "restored_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "git_diff_unchanged": true,
+      "kind": "verifier-recheck",
+      "evidence": "_packet/revision/evidence/ui-original-kills-2026-09-29T14-11-44-388Z-debc5f/results.json"
+    },
+    {
+      "id": "I03",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+      "precision": "Sidebar not WindowDragArea as described; replacement by inert Border",
+      "replacements": [
+        {
+          "before": "PlainControls.Background(column, new WindowDragArea())",
+          "after": "PlainControls.Background(column, new Border())"
+        }
+      ],
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+      "clause": "Verifier I03: Sidebar not WindowDragArea as described; replacement by inert Border",
+      "original_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "runs": [
+        {
+          "name": "I03-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:12:15.617Z",
+          "end": "2026-09-29T14:12:20.136Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d065eaf3-b32a-4def-9ec5-272c2f057c89",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "F4C75B5793C5AFF447DD6015A7421AC16B68D06C80511B8CE469663555E32397"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "D894101A8D9726651EB17E7FA43BEE8C3BAB90D67A63ABCC883FCB70E05FC30D"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "5F65B11D5D445499C20811C875D3378491B08EC85334354E1CEA1C08A031A06D"
+            }
+          ]
+        },
+        {
+          "name": "I03-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=I03-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-original-kills-2026-09-29T14-11-44-388Z-debc5f'",
+          "exit": 1,
+          "start": "2026-09-29T14:12:20.142Z",
+          "end": "2026-09-29T14:12:22.337Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-311d6f2c-ee83-471f-896a-42914c48698d",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "F4C75B5793C5AFF447DD6015A7421AC16B68D06C80511B8CE469663555E32397"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+              "outcome": "Failed",
+              "error": "Assert.Single() Failure: The collection was empty"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "I03-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=I03-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-original-kills-2026-09-29T14-11-44-388Z-debc5f'",
+          "exit": 1,
+          "start": "2026-09-29T14:12:22.338Z",
+          "end": "2026-09-29T14:12:24.265Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-43ca65c8-0bd7-4549-a558-80bbe1fcb142",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "F4C75B5793C5AFF447DD6015A7421AC16B68D06C80511B8CE469663555E32397"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+              "outcome": "Failed",
+              "error": "Assert.Single() Failure: The collection was empty"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "I03-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:12:24.298Z",
+          "end": "2026-09-29T14:12:28.859Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-15359dec-cd7b-48f3-a9bd-9571181a26a0",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "5F65B11D5D445499C20811C875D3378491B08EC85334354E1CEA1C08A031A06D"
+            }
+          ]
+        },
+        {
+          "name": "I03-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=I03-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-original-kills-2026-09-29T14-11-44-388Z-debc5f'",
+          "exit": 0,
+          "start": "2026-09-29T14:12:28.865Z",
+          "end": "2026-09-29T14:12:31.054Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-26ffe509-1be1-41d5-8fe1-decdabbcbfa2",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "F4C75B5793C5AFF447DD6015A7421AC16B68D06C80511B8CE469663555E32397",
+      "restored_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "git_diff_unchanged": true,
+      "kind": "verifier-recheck",
+      "evidence": "_packet/revision/evidence/ui-original-kills-2026-09-29T14-11-44-388Z-debc5f/results.json"
+    },
+    {
+      "id": "REV-UI-SETTINGS-001-07",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+      "clause": "SettingsView.swift:123-127 requested page replaces retained selection",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerNextTests.The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen",
+      "replacements": [
+        {
+          "before": "state.Page = page;\n            SettingsNavigation.Shared.RequestedPage = null;",
+          "after": "state.Page = SettingsPage.General;\n            SettingsNavigation.Shared.RequestedPage = null;"
+        }
+      ],
+      "original_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "runs": [
+        {
+          "name": "REV-UI-SETTINGS-001-07-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:11:12.182Z",
+          "end": "2026-09-29T14:11:16.703Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-3b6a4f8a-835e-428a-b340-1b9a0d216e15",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "0938C3C4FD10CB5CFD566CAEB5C6898724D21C7EAC4A58C44E71F317B1F96E08"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "D4FFD53101B49EEC108D067CC7D1513130C87F1A36582450AD3E06372F5A6207"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "5F65B11D5D445499C20811C875D3378491B08EC85334354E1CEA1C08A031A06D"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-07-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerNextTests.The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-07-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee'",
+          "exit": 1,
+          "start": "2026-09-29T14:11:16.709Z",
+          "end": "2026-09-29T14:11:19.065Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-738c7f24-2867-4eea-8796-a1b2141b7c55",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "0938C3C4FD10CB5CFD566CAEB5C6898724D21C7EAC4A58C44E71F317B1F96E08"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerNextTests.The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen",
+              "outcome": "Failed",
+              "error": "Assert.Single() Failure: The collection did not contain any matching items\r\nExpected:   (predicate expression)\r\nCollection: [SettingsView { ActualThemeVariant = Light, Bounds = 0, 0, 780, 580, CacheMode = null, Child = Border { ActualThemeVariant = Light, Background = null, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, Classes = [], ··· }, Border { ActualThemeVariant = Light, Background = null, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, Panel { ActualThemeVariant = Light, Background = null, Bounds = 0, 0, 780, 580, CacheMode = null, Children = [WindowBackdrop { ActualThemeVariant = Light, Bounds = 0, 0, 780, 580, CacheMode = null, Child = Panel { ··· }, Classes = [···], ··· }, WindowChromeProbe { ActualThemeVariant = Light, Bounds = 0, 0, 780, 580, CacheMode = null, Classes = [···], Clip = null, ··· }, Grid { ActualThemeVariant = Light, Background = null, Bounds = 0, 0, 780, 580, CacheMode = null, Children = [···], ··· }], ··· }, WindowBackdrop { ActualThemeVariant = Light, Bounds = 0, 0, 780, 580, CacheMode = null, Child = Panel { ActualThemeVariant = Light, Background = null, Bounds = 0, 0, 780, 580, CacheMode = null, Children = [···], ··· }, Classes = [], ··· }, Panel { ActualThemeVariant = Light, Background = null, Bounds = 0, 0, 780, 580, CacheMode = null, Children = [Panel { ActualThemeVariant = Light, Background = null, Bounds = 0, 0, 780, 580, CacheMode = null, Children = [···], ··· }, Border { ActualThemeVariant = Light, Background = #1fffffff, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, Border { ActualThemeVariant = Light, Background = null, BackgroundSizing = CenterBorder, BorderBrush = #1e000000, BorderThickness = 1,1,1,1, ··· }], ··· }, ···]"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-07-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerNextTests.The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-07-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee'",
+          "exit": 1,
+          "start": "2026-09-29T14:11:19.067Z",
+          "end": "2026-09-29T14:11:21.237Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d48c4246-36f7-4aa0-ba06-277604f3e376",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "0938C3C4FD10CB5CFD566CAEB5C6898724D21C7EAC4A58C44E71F317B1F96E08"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerNextTests.The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen",
+              "outcome": "Failed",
+              "error": "Assert.Single() Failure: The collection did not contain any matching items\r\nExpected:   (predicate expression)\r\nCollection: [SettingsView { ActualThemeVariant = Light, Bounds = 0, 0, 780, 580, CacheMode = null, Child = Border { ActualThemeVariant = Light, Background = null, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, Classes = [], ··· }, Border { ActualThemeVariant = Light, Background = null, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, Panel { ActualThemeVariant = Light, Background = null, Bounds = 0, 0, 780, 580, CacheMode = null, Children = [WindowBackdrop { ActualThemeVariant = Light, Bounds = 0, 0, 780, 580, CacheMode = null, Child = Panel { ··· }, Classes = [···], ··· }, WindowChromeProbe { ActualThemeVariant = Light, Bounds = 0, 0, 780, 580, CacheMode = null, Classes = [···], Clip = null, ··· }, Grid { ActualThemeVariant = Light, Background = null, Bounds = 0, 0, 780, 580, CacheMode = null, Children = [···], ··· }], ··· }, WindowBackdrop { ActualThemeVariant = Light, Bounds = 0, 0, 780, 580, CacheMode = null, Child = Panel { ActualThemeVariant = Light, Background = null, Bounds = 0, 0, 780, 580, CacheMode = null, Children = [···], ··· }, Classes = [], ··· }, Panel { ActualThemeVariant = Light, Background = null, Bounds = 0, 0, 780, 580, CacheMode = null, Children = [Panel { ActualThemeVariant = Light, Background = null, Bounds = 0, 0, 780, 580, CacheMode = null, Children = [···], ··· }, Border { ActualThemeVariant = Light, Background = #1fffffff, BackgroundSizing = CenterBorder, BorderBrush = null, BorderThickness = 0,0,0,0, ··· }, Border { ActualThemeVariant = Light, Background = null, BackgroundSizing = CenterBorder, BorderBrush = #1e000000, BorderThickness = 1,1,1,1, ··· }], ··· }, ···]"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-07-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:11:21.272Z",
+          "end": "2026-09-29T14:11:25.863Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-c4e41af5-4965-489a-86a7-5314c81ba204",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "5F65B11D5D445499C20811C875D3378491B08EC85334354E1CEA1C08A031A06D"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-07-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerNextTests.The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-07-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee'",
+          "exit": 0,
+          "start": "2026-09-29T14:11:25.869Z",
+          "end": "2026-09-29T14:11:28.048Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-3172b805-c054-4c15-95cd-fcb16e5c2810",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerNextTests.The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "0938C3C4FD10CB5CFD566CAEB5C6898724D21C7EAC4A58C44E71F317B1F96E08",
+      "restored_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee/results.json"
+    },
+    {
+      "id": "REV-UI-SETTINGS-001-08",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+      "clause": "CommandPalette.swift:176-178 Settings action is connected",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Palette_row_click_closes_palette_then_reopens_retained_Settings",
+      "replacements": [
+        {
+          "before": "() => WindowManager.Shared.ShowSettings()));",
+          "after": "() => { }));"
+        }
+      ],
+      "original_sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0",
+      "runs": [
+        {
+          "name": "REV-UI-SETTINGS-001-08-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:11:28.106Z",
+          "end": "2026-09-29T14:11:32.799Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-700bd268-f2b0-4616-8836-b20278b4eaab",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "95C5B78CB6EE2AA309B086F14DCBA154ABF9A82DAE0A0413A0DBCB5A43FC8B71"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4F6EAE8F44960A5AE6A42022236C05F3D5AE38E9F4C542401CDEEA06200AFF13"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "5F65B11D5D445499C20811C875D3378491B08EC85334354E1CEA1C08A031A06D"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-08-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Palette_row_click_closes_palette_then_reopens_retained_Settings&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-08-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee'",
+          "exit": 1,
+          "start": "2026-09-29T14:11:32.805Z",
+          "end": "2026-09-29T14:11:35.129Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-a16a9dbf-71ae-496f-b17e-369c78251c3e",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "95C5B78CB6EE2AA309B086F14DCBA154ABF9A82DAE0A0413A0DBCB5A43FC8B71"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Palette_row_click_closes_palette_then_reopens_retained_Settings",
+              "outcome": "Failed",
+              "error": "Assert.Single() Failure: The collection was empty"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-08-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Palette_row_click_closes_palette_then_reopens_retained_Settings&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-08-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee'",
+          "exit": 1,
+          "start": "2026-09-29T14:11:35.130Z",
+          "end": "2026-09-29T14:11:37.283Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-b2466151-67fe-4251-ba54-b49da43d94ef",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "95C5B78CB6EE2AA309B086F14DCBA154ABF9A82DAE0A0413A0DBCB5A43FC8B71"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Palette_row_click_closes_palette_then_reopens_retained_Settings",
+              "outcome": "Failed",
+              "error": "Assert.Single() Failure: The collection was empty"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-08-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:11:37.320Z",
+          "end": "2026-09-29T14:11:41.968Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-273d18bc-acdd-4fa2-a71a-baa40a9bbc77",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "5F65B11D5D445499C20811C875D3378491B08EC85334354E1CEA1C08A031A06D"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-08-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Palette_row_click_closes_palette_then_reopens_retained_Settings&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-08-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee'",
+          "exit": 0,
+          "start": "2026-09-29T14:11:41.974Z",
+          "end": "2026-09-29T14:11:44.325Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-6fb1e152-8a36-4879-a51f-f9129b5feed5",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Palette_row_click_closes_palette_then_reopens_retained_Settings",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "95C5B78CB6EE2AA309B086F14DCBA154ABF9A82DAE0A0413A0DBCB5A43FC8B71",
+      "restored_sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee/results.json"
+    },
+    {
+      "id": "REV-UI-SETTINGS-001-01",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+      "clause": "SettingsView.swift:120 clips the content",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+      "replacements": [
+        {
+          "before": "frame.ClipToBounds = true;",
+          "after": "frame.ClipToBounds = false;"
+        }
+      ],
+      "original_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "runs": [
+        {
+          "name": "REV-UI-SETTINGS-001-01-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:02:40.156Z",
+          "end": "2026-09-29T14:02:47.259Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-7f32e0a3-98bc-4615-9502-c53800526371",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "3E4D056B6954150E2192FF9407B13C8CB930273D13CB8687FD81DF7C3DF62304"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "8B57369AFF965A4A7A0E58F41F44483DF5A13F9F9386E3A27CFAA34E2A90C3FB"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-01-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-01-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:02:47.265Z",
+          "end": "2026-09-29T14:02:49.700Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e9f7ac56-c3c0-479b-aacc-97a65bf47a4a",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "3E4D056B6954150E2192FF9407B13C8CB930273D13CB8687FD81DF7C3DF62304"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.True() Failure\r\nExpected: True\r\nActual:   False"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-01-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-01-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:02:49.702Z",
+          "end": "2026-09-29T14:02:51.642Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-7643a77b-5b7d-4c36-8203-8b8e60cdf99d",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "3E4D056B6954150E2192FF9407B13C8CB930273D13CB8687FD81DF7C3DF62304"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.True() Failure\r\nExpected: True\r\nActual:   False"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-01-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:02:51.677Z",
+          "end": "2026-09-29T14:02:56.207Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ad3e1f24-7dd2-46c9-9ec4-0df77743afc1",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-01-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-01-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 0,
+          "start": "2026-09-29T14:02:56.213Z",
+          "end": "2026-09-29T14:02:58.352Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-74ddf5b4-387f-461c-bf15-34e583ae30b9",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "3E4D056B6954150E2192FF9407B13C8CB930273D13CB8687FD81DF7C3DF62304",
+      "restored_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/ui-settings-001-own-2026-09-29T14-02-40-063Z-207602/results.json"
+    },
+    {
+      "id": "REV-UI-SETTINGS-001-02",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+      "clause": "SettingsView.swift:118 backdrop is behind controls",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+      "replacements": [
+        {
+          "before": "Children = { backdrop, new WindowChromeProbe(), grid }",
+          "after": "Children = { grid, new WindowChromeProbe(), backdrop }"
+        }
+      ],
+      "original_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "runs": [
+        {
+          "name": "REV-UI-SETTINGS-001-02-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:02:58.442Z",
+          "end": "2026-09-29T14:03:02.958Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-a98f81cb-7aab-4cb4-9d3b-37b7b9462cf4",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "D160FB11B223252A80223E28B56C695F4893FD65001930BF741DAD6D202A514E"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "2F61518E9CC428276765C6B2AC6A180E1A2E9E9AD9931DE57644E9D0CCABBD37"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-02-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-02-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:03:02.964Z",
+          "end": "2026-09-29T14:03:05.111Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-6a4723ac-6fcd-4652-ae10-1b54c324cfd0",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "D160FB11B223252A80223E28B56C695F4893FD65001930BF741DAD6D202A514E"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.IsType() Failure: Value is not the exact type\r\nExpected: typeof(Marrow.UI.Chrome.WindowBackdrop)\r\nActual:   typeof(Avalonia.Controls.Grid)"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-02-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-02-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:03:05.112Z",
+          "end": "2026-09-29T14:03:07.048Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-5304cfe4-b4b6-468c-bbce-084a14f2c7fc",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "D160FB11B223252A80223E28B56C695F4893FD65001930BF741DAD6D202A514E"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.IsType() Failure: Value is not the exact type\r\nExpected: typeof(Marrow.UI.Chrome.WindowBackdrop)\r\nActual:   typeof(Avalonia.Controls.Grid)"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-02-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:07.082Z",
+          "end": "2026-09-29T14:03:11.675Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-7f71a49b-7227-4410-bd0a-57a07a2f11cc",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-02-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-02-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:11.681Z",
+          "end": "2026-09-29T14:03:13.825Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-8f0edb1d-4f36-48ed-9ec6-e7d2cc1a22f3",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "D160FB11B223252A80223E28B56C695F4893FD65001930BF741DAD6D202A514E",
+      "restored_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/ui-settings-001-own-2026-09-29T14-02-40-063Z-207602/results.json"
+    },
+    {
+      "id": "REV-UI-SETTINGS-001-03",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+      "clause": "SettingsView.swift:119 configuration probe cannot intercept input",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+      "replacements": [
+        {
+          "before": "Children = { backdrop, new WindowChromeProbe(), grid }",
+          "after": "Children = { backdrop, new WindowChromeProbe { IsHitTestVisible = true }, grid }"
+        }
+      ],
+      "original_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "runs": [
+        {
+          "name": "REV-UI-SETTINGS-001-03-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:13.917Z",
+          "end": "2026-09-29T14:03:18.375Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0c017bcd-3772-486b-91e3-9e5a1cecd1b0",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "633D53CD405BDABFA30FA30F54878171C2757C2E03ADDF9BBC21EC8AA35BD59A"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "3424863C3C8385D0470E0506E0A1627E3A6BB7263A49D03014AB39EA109D14F4"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-03-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-03-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:03:18.380Z",
+          "end": "2026-09-29T14:03:20.536Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d6a0b128-a60c-48aa-9e47-4fa05e4a98fd",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "633D53CD405BDABFA30FA30F54878171C2757C2E03ADDF9BBC21EC8AA35BD59A"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.False() Failure\r\nExpected: False\r\nActual:   True"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-03-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-03-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:03:20.537Z",
+          "end": "2026-09-29T14:03:22.473Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-492588b8-e83e-4321-a2cb-966a06edefe4",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "633D53CD405BDABFA30FA30F54878171C2757C2E03ADDF9BBC21EC8AA35BD59A"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.False() Failure\r\nExpected: False\r\nActual:   True"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-03-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:22.507Z",
+          "end": "2026-09-29T14:03:27.089Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-5eba8b6f-c7d3-48ea-8fa8-fc9059f84168",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-03-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-03-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:27.094Z",
+          "end": "2026-09-29T14:03:29.237Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e1c41667-f972-47ba-8f83-a070956a8070",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "633D53CD405BDABFA30FA30F54878171C2757C2E03ADDF9BBC21EC8AA35BD59A",
+      "restored_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/ui-settings-001-own-2026-09-29T14-02-40-063Z-207602/results.json"
+    },
+    {
+      "id": "REV-UI-SETTINGS-001-04",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+      "clause": "SettingsView.swift:122 fixed view width",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+      "replacements": [
+        {
+          "before": "Width = 780; Height = 580; // :122",
+          "after": "Width = 781; Height = 580; // :122"
+        }
+      ],
+      "original_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "runs": [
+        {
+          "name": "REV-UI-SETTINGS-001-04-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:29.296Z",
+          "end": "2026-09-29T14:03:33.904Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-63c36e5b-6b93-4a3b-a41a-a8a004223618",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "36FD86294093EA2E71B674C295E582141816BA90DC75A60E72154B8AC9F78F40"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "EEA9095BD83F5023F330450415D2343D63CE4E699CF695EAF239315D463CFD69"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-04-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-04-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:03:33.910Z",
+          "end": "2026-09-29T14:03:36.069Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-274d37ab-022d-40a2-84b9-deff78acc326",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "36FD86294093EA2E71B674C295E582141816BA90DC75A60E72154B8AC9F78F40"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 780\r\nActual:   781"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-04-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-04-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:03:36.070Z",
+          "end": "2026-09-29T14:03:37.994Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-febaf58f-c79d-4b22-9091-8861dced43e9",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "36FD86294093EA2E71B674C295E582141816BA90DC75A60E72154B8AC9F78F40"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 780\r\nActual:   781"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-04-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:38.029Z",
+          "end": "2026-09-29T14:03:42.413Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d87e5ba3-afce-4921-87dc-a8f7f0203421",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-04-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-04-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:42.419Z",
+          "end": "2026-09-29T14:03:44.556Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-53213d97-19d5-4723-9b06-3be514368e21",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "36FD86294093EA2E71B674C295E582141816BA90DC75A60E72154B8AC9F78F40",
+      "restored_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/ui-settings-001-own-2026-09-29T14-02-40-063Z-207602/results.json"
+    },
+    {
+      "id": "REV-UI-SETTINGS-001-05",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+      "clause": "SettingsView.swift:112 sidebar drag region spans 212 points",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+      "replacements": [
+        {
+          "before": "sidebar.Width = 212;",
+          "after": "sidebar.Width = 211;"
+        }
+      ],
+      "original_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "runs": [
+        {
+          "name": "REV-UI-SETTINGS-001-05-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:44.616Z",
+          "end": "2026-09-29T14:03:49.208Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e080a586-4349-4950-a0c2-767a2d1ff149",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "E80116F544A5AF274B8B4D8D04A80BBA50FAD620AE6324CE51294DF5BF5BC0EA"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4EE0C1959C624175B7F7A53D1949600C892749C7F4139761E2AB6EAAD5B1F602"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-05-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-05-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:03:49.213Z",
+          "end": "2026-09-29T14:03:51.399Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e31a4dad-9971-4ae8-a6f6-97e35c74470e",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "E80116F544A5AF274B8B4D8D04A80BBA50FAD620AE6324CE51294DF5BF5BC0EA"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 212\r\nActual:   211"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-05-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-05-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:03:51.400Z",
+          "end": "2026-09-29T14:03:53.336Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-199cf96c-b801-4c46-9fc1-141087f9c5fb",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "E80116F544A5AF274B8B4D8D04A80BBA50FAD620AE6324CE51294DF5BF5BC0EA"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 212\r\nActual:   211"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-05-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:53.371Z",
+          "end": "2026-09-29T14:03:57.852Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-681c6b8c-79f5-4f9e-bac7-8c1f4e6b46ac",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-05-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-05-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 0,
+          "start": "2026-09-29T14:03:57.858Z",
+          "end": "2026-09-29T14:04:00.027Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-996987fb-1c06-45bf-be21-2a5bf2c19c31",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "E80116F544A5AF274B8B4D8D04A80BBA50FAD620AE6324CE51294DF5BF5BC0EA",
+      "restored_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/ui-settings-001-own-2026-09-29T14-02-40-063Z-207602/results.json"
+    },
+    {
+      "id": "REV-UI-SETTINGS-001-06",
+      "records": [
+        "UI-SETTINGS-001"
+      ],
+      "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+      "clause": "SettingsView.swift:122 fixed view height",
+      "precision": "Own additional exact replacement, not a copied verifier survivor",
+      "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+      "replacements": [
+        {
+          "before": "Width = 780; Height = 580; // :122",
+          "after": "Width = 780; Height = 581; // :122"
+        }
+      ],
+      "original_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "runs": [
+        {
+          "name": "REV-UI-SETTINGS-001-06-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:04:00.090Z",
+          "end": "2026-09-29T14:04:04.602Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-4eaf71ee-7e13-49b7-a9cb-33185eec650b",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "E2B40514FE65696A71C231DA6EEBD16CDACAE8427EBAB71EDEFB59222A08A470"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "B5340EFA800EC208565CC6F9B878455851AC10CF0DB2E5B780E1BFD145DA2E93"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-06-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-06-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:04:04.607Z",
+          "end": "2026-09-29T14:04:06.769Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-5a8215d9-eb51-4e34-88dd-7403bcecb1ab",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "E2B40514FE65696A71C231DA6EEBD16CDACAE8427EBAB71EDEFB59222A08A470"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 580\r\nActual:   581"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-06-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-06-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 1,
+          "start": "2026-09-29T14:04:06.770Z",
+          "end": "2026-09-29T14:04:08.708Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-aaa0b770-8744-4998-b954-d68ba318600f",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "E2B40514FE65696A71C231DA6EEBD16CDACAE8427EBAB71EDEFB59222A08A470"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: 580\r\nActual:   581"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-06-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:04:08.744Z",
+          "end": "2026-09-29T14:04:13.217Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-c3fd17fe-5e16-4d8c-a7e2-5a751553fa85",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "4C882308B595609843EC0388B96FF9A96632E14665C5EFE82AA89E8A482BD927"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "9553E88A92D9E67CFF252367C0056EA7159D5279ED4B5018FE2349488AD22373"
+            }
+          ]
+        },
+        {
+          "name": "REV-UI-SETTINGS-001-06-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop&Req=UI-SETTINGS-001' '--logger' 'trx;LogFileName=REV-UI-SETTINGS-001-06-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\ui-settings-001-own-2026-09-29T14-02-40-063Z-207602'",
+          "exit": 0,
+          "start": "2026-09-29T14:04:13.223Z",
+          "end": "2026-09-29T14:04:15.350Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-fe3c96f1-3984-4a34-bd63-eb61f001ed54",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "E2B40514FE65696A71C231DA6EEBD16CDACAE8427EBAB71EDEFB59222A08A470",
+      "restored_sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/ui-settings-001-own-2026-09-29T14-02-40-063Z-207602/results.json"
+    }
+  ],
+  "excluded_attempts": [
+    {
+      "id": "REV-UI-SETTINGS-001-07",
+      "status": "SURVIVED_OR_INVALID_RED",
+      "evidence": "_packet/revision/evidence/ui-settings-001-own-2026-09-29T14-02-40-063Z-207602/results.json"
+    }
+  ]
+}

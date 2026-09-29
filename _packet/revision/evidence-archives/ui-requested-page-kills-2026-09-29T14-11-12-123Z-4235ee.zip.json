@@ -1,0 +1,152 @@
+{
+  "original_directory": "_packet/revision/evidence/ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee",
+  "archive": "_packet/revision/evidence-archives/ui-requested-page-kills-2026-09-29T14-11-12-123Z-4235ee.zip",
+  "archive_sha256": "F557DBE654FDA6FF8A6CBF49E1D01EFF5EADC3127B63E92CF857A38E80F34531",
+  "files": [
+    {
+      "path": "results.json",
+      "bytes": 28409,
+      "sha256": "9856E5AAE41FDBEA17ADAC4F1AF13D3705C0E83142038F806FB356E35E99298E"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-green.json",
+      "bytes": 2107,
+      "sha256": "841EC83CAF5778CCCB519ED2E14426E36C68C691383E2EF1F1998BD92C992AAE"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-green.log",
+      "bytes": 714,
+      "sha256": "A2D130FBCD09C928F5D16D50F17C78093BC47B78A5C6182129E03069640C7511"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-green.trx",
+      "bytes": 3107,
+      "sha256": "8907D0C8C7CF016752B5496A8840E0D0BAB43EC4AE2C5B33B06148C5FFEC5769"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-mutant-build.json",
+      "bytes": 1715,
+      "sha256": "0F0929DAE1B0BEC3B0553629EFBDE0AE4E96ED7DBAB9F5F77E88520F71CB4D5A"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-mutant-build.log",
+      "bytes": 310,
+      "sha256": "DA3D42AC9BFFDAC961CDACC4B326E3837D1FF56188F069504E08CAFD415F9C4F"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-red-1.json",
+      "bytes": 3981,
+      "sha256": "AAD8D75F234C651F400B38EA30FF97EECD07915E69695ED3248538EE345EA807"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-red-1.log",
+      "bytes": 886,
+      "sha256": "59A7426DF9855BEEAD92DC443F506921BEC802413616CDCEDDC993719756E2B8"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-red-1.trx",
+      "bytes": 11353,
+      "sha256": "422F469B405035495AAB7B2F583BBF85B586025DB828B6D1B6664C34473FA520"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-red-2.json",
+      "bytes": 3981,
+      "sha256": "D70FED8C9C3D5B4E82EE0BDB5FB96D22FB700D8E904F0DA317ECAD3A498C503B"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-red-2.log",
+      "bytes": 886,
+      "sha256": "5F37ADF627B3EAA01E04D582C99933450D7ACBAD9D9AB7DDBB9BC089B2BF2FD1"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-red-2.trx",
+      "bytes": 11353,
+      "sha256": "A770E5E3690703AEE65B527C7254F3B81EF6A4CD0C60C0A4A6D43070F9290922"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-restored-build.json",
+      "bytes": 1717,
+      "sha256": "9A3D8E77C5CED1178E4D4690C725E7014987C07859978649C41A1DC27FCD89E5"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07-restored-build.log",
+      "bytes": 310,
+      "sha256": "BB423F45B7ACF1717E09780F47A59CA03C094CA4C39FBFBF5D877AEC79A88E4B"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-07.diff",
+      "bytes": 680,
+      "sha256": "20FFC591CE42B38A7D549FA7F0C3B50ABFC9A945C2A3E71659C8BA701D35DE0C"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-green.json",
+      "bytes": 2077,
+      "sha256": "0ADFC76CD41C8757E3067377EB0AE3C0ED2D3CA373AFB7C44CC7B3CCBB395D98"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-green.log",
+      "bytes": 714,
+      "sha256": "99EC105AC2D11C429FAE913EB308BF91A49C66EE795507BB1FC90DA061D2A189"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-green.trx",
+      "bytes": 3062,
+      "sha256": "28049AE7BC070C1BBE4A93EA430C86E09F96AB9348598F82DDEA70E0BBA1DDA8"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-mutant-build.json",
+      "bytes": 1715,
+      "sha256": "7116318F8F804124ADC029A4F0A0F6EED7790674664EE018F1B2BAFC5ED79B2A"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-mutant-build.log",
+      "bytes": 310,
+      "sha256": "DC4C8ED258F04A210531B48BB7952182268484797776156338916E9D30B58E48"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-red-1.json",
+      "bytes": 2126,
+      "sha256": "E5E96702B37852238CFD08A4838DDE4A055E20D8C209F2D536DC05D7F9FFCED3"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-red-1.log",
+      "bytes": 871,
+      "sha256": "B3834EE8AE914D53460EF4401395BEDCC7C7D774E25C5B970E00BC63FFDD6D11"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-red-1.trx",
+      "bytes": 7583,
+      "sha256": "501D68BADD94AA399D7A59C054A0E5F9F74FA36C215C5676C57EA84670687258"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-red-2.json",
+      "bytes": 2126,
+      "sha256": "A8A5AF4C855285AC48EB9842E3EF341F099356AD5DEF23CA63959F42B1DB905A"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-red-2.log",
+      "bytes": 871,
+      "sha256": "8E8B83FFF392BFC11D92AB838D38DF8E25B3EC9E556C404C18DFAC11E1C2DC33"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-red-2.trx",
+      "bytes": 7583,
+      "sha256": "DE97F1C28BD55A5F47D325849BC6FFDBBC24D7202B1362A17F7D68295AF044CC"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-restored-build.json",
+      "bytes": 1717,
+      "sha256": "3DE6ED4D22C24281A7B0AF27E90763210E54F2D6E79F7C2B57A6176C18B1109D"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08-restored-build.log",
+      "bytes": 310,
+      "sha256": "AFFA842053E8F2E1D9E5ADF973FFF458AE7FC901E63067A19270ABE5DB559CC0"
+    },
+    {
+      "path": "REV-UI-SETTINGS-001-08.diff",
+      "bytes": 687,
+      "sha256": "8577F9269F409CAFA80E63A6F27E87CF9D3702E9DCCD5BEF3EF2238ECF945388"
+    }
+  ]
+}

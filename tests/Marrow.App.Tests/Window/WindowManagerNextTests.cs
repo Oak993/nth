@@ -107,6 +107,9 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         Assert.Equal("Settings", window.Title);
         Assert.Null(SettingsNavigation.Shared.RequestedPage);
         Assert.Contains(Nodes<TextBlock>(view), text => text.Text == "Archive");
+        // SettingsView.swift:201-204: the empty Archive body, not the permanently available sidebar label.
+        Assert.Single(Nodes<Control>(view), control => Avalonia.Automation.AutomationProperties.GetName(control) == "No archived threads");
+        Assert.Empty(Nodes<GeneralSettingsPage>(view));
         var search = Assert.Single(Nodes<SidebarSearchField>(view));
         var input = Assert.Single(Nodes<TextBox>(search));
         input.Text = "archive";
@@ -119,6 +122,7 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         Assert.Same(view, Assert.Single(Nodes<SettingsView>(Assert.IsAssignableFrom<Control>(window.Content))));
         Assert.Equal("archive", input.Text);
         Assert.Contains(Nodes<TextBlock>(view), text => text.Text == "Archive");
+        Assert.Single(Nodes<Control>(view), control => Avalonia.Automation.AutomationProperties.GetName(control) == "No archived threads");
         input.Text = "";
         Settle(window);
         window.Close();
@@ -126,6 +130,8 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         Settle(window);
         Assert.Null(SettingsNavigation.Shared.RequestedPage);
         Assert.Contains(Nodes<TextBlock>(view), text => text.Text == "Shortcuts");
+        Assert.Single(Nodes<ShortcutsSettingsPage>(view));
+        Assert.Empty(Nodes<GeneralSettingsPage>(view));
         Assert.Same(view, Assert.Single(Nodes<SettingsView>(Assert.IsAssignableFrom<Control>(window.Content))));
     });
 

@@ -1,0 +1,222 @@
+{
+  "original_directory": "_packet/revision/evidence/ui-original-kills-2026-09-29T14-11-44-388Z-debc5f",
+  "archive": "_packet/revision/evidence-archives/ui-original-kills-2026-09-29T14-11-44-388Z-debc5f.zip",
+  "archive_sha256": "50D861CFA9AE78A6DE5AA4A57B7756DA21B441169597ED635DB0DED2890B5200",
+  "files": [
+    {
+      "path": "I01-green.json",
+      "bytes": 2041,
+      "sha256": "2EEE94249E61E0FCA277E5C40D6C427EB7F2646729CDCD48281A7E0575F2663A"
+    },
+    {
+      "path": "I01-green.log",
+      "bytes": 689,
+      "sha256": "74B87EB80FF30FBD48056A163A38E6C4D61EE3290DA76CB29A18D2FF816A5EFE"
+    },
+    {
+      "path": "I01-green.trx",
+      "bytes": 3074,
+      "sha256": "747479E28752C8F7EF07A2677032373D349E673D82A1513B7B8A21DD5361247C"
+    },
+    {
+      "path": "I01-mutant-build.json",
+      "bytes": 1696,
+      "sha256": "DEBBB3FA4C000DBE2C7895D65DEC57759E4EC1BD0A759C5DC50471C60B259A8A"
+    },
+    {
+      "path": "I01-mutant-build.log",
+      "bytes": 310,
+      "sha256": "44C413E382F37A1BD8B17764836332EF80578759FC35844678C2698D7C559D23"
+    },
+    {
+      "path": "I01-red-1.json",
+      "bytes": 2128,
+      "sha256": "BBC3F3588CA18E756E0160665E74234890EBCCA74F9B77F7605AFFC99FE839C3"
+    },
+    {
+      "path": "I01-red-1.log",
+      "bytes": 850,
+      "sha256": "4D0A832AEB698BE5C2E40FE6648FF58F899D76A81649C375B53831B21C330BBA"
+    },
+    {
+      "path": "I01-red-1.trx",
+      "bytes": 7763,
+      "sha256": "288778429896FC47BF38781285643027A733FBF04006B90513FC7B08C8CAB5F3"
+    },
+    {
+      "path": "I01-red-2.json",
+      "bytes": 2128,
+      "sha256": "240A02FB1ACF001D9AE51A7FA3F49AD6A0F30E77E87F7B2D2335E77A4B746373"
+    },
+    {
+      "path": "I01-red-2.log",
+      "bytes": 850,
+      "sha256": "9E5DA6E4244D96B6A6691B5DEAA3092192B6C2281550CE2D1CD6D94685558E24"
+    },
+    {
+      "path": "I01-red-2.trx",
+      "bytes": 7763,
+      "sha256": "4453B254D386E9138929AE933DAA179BECCBB3C39AF680FEAA37E7766CEF5B21"
+    },
+    {
+      "path": "I01-restored-build.json",
+      "bytes": 1698,
+      "sha256": "93C5BEAC10B883EFB67D5D1D5C45E5CB995CD568FC92E8143A132618868E2E5E"
+    },
+    {
+      "path": "I01-restored-build.log",
+      "bytes": 310,
+      "sha256": "AF72BC57EAF0083C7034AFC43D645B0C86756E7AE94B2E042BA06F94AA4A27CE"
+    },
+    {
+      "path": "I01.diff",
+      "bytes": 1310,
+      "sha256": "E792153FCEAE568409552EFB2967450D11834CCA83F5337F921478E51AF9B57A"
+    },
+    {
+      "path": "I02-green.json",
+      "bytes": 2043,
+      "sha256": "A9B3750ED94C85A983B3AFA51732AA575676698C44528295BF5B023B43D02325"
+    },
+    {
+      "path": "I02-green.log",
+      "bytes": 689,
+      "sha256": "96C29A06321C735BDDB88DCF579F5C493214983AE1736F21631481EA5F6FF785"
+    },
+    {
+      "path": "I02-green.trx",
+      "bytes": 3077,
+      "sha256": "2A1312A50AD00658BC6DB5AEE97B81BD04445C10BDADD41D00D18ACA1D622FB8"
+    },
+    {
+      "path": "I02-mutant-build.json",
+      "bytes": 1696,
+      "sha256": "63CF48C938FDA6F9581145144EC8787571AAB0AC0ADD3F7A4B3E8AE69E33EAF5"
+    },
+    {
+      "path": "I02-mutant-build.log",
+      "bytes": 310,
+      "sha256": "F359231D9DA4805243FEA00BA6DA4A34C26CD03C4E4A9934F24CAEA6D1D992E7"
+    },
+    {
+      "path": "I02-red-1.json",
+      "bytes": 2205,
+      "sha256": "32B07192F3A46DC736D891BE33625AE91525F423FB9184EC92A6F8E781BCF56F"
+    },
+    {
+      "path": "I02-red-1.log",
+      "bytes": 851,
+      "sha256": "921364E8C2EFE9805E8AFC6DF7C4EB69D21AC77E0E5BD405F58257963BBD18AC"
+    },
+    {
+      "path": "I02-red-1.trx",
+      "bytes": 8378,
+      "sha256": "8802D0EF46163B2747093A24EAF2079E849CF4B7A92B0AA9BDB992BF3FD17714"
+    },
+    {
+      "path": "I02-red-2.json",
+      "bytes": 2205,
+      "sha256": "B44B8AF80DE18B8CBCABC45A06F6E922543647E72A9C6EE79944E66DAE79C83D"
+    },
+    {
+      "path": "I02-red-2.log",
+      "bytes": 851,
+      "sha256": "78ECDD6C91FB3E58FA49D20FE1070DD7F54BF65E1D1C8B5EB6633997C242535C"
+    },
+    {
+      "path": "I02-red-2.trx",
+      "bytes": 8378,
+      "sha256": "F69020054E56249CA34B41E47D23163E7DDD641253601CCF172FE4168F846601"
+    },
+    {
+      "path": "I02-restored-build.json",
+      "bytes": 1698,
+      "sha256": "CC86CEAE1C3F24C81382D6F0C82FD9BA8265D5BEF8B7EC98C6DF3CA8CD43245B"
+    },
+    {
+      "path": "I02-restored-build.log",
+      "bytes": 310,
+      "sha256": "90B07EE8BADABF375DCA636D947A8225F3D639D8A4A18EA44FFD8FE23FAF68EF"
+    },
+    {
+      "path": "I02.diff",
+      "bytes": 1014,
+      "sha256": "29599A11E3974F939A92AC29F45D0A6DDE3A74A56B70AF6A6630A3283FA2D3AF"
+    },
+    {
+      "path": "I03-green.json",
+      "bytes": 2007,
+      "sha256": "B4F20740D990D46469257A8AA9063C6263C62ED6A4DFD5B73653FC216525D647"
+    },
+    {
+      "path": "I03-green.log",
+      "bytes": 689,
+      "sha256": "A7452929D2FAD6CFA48CD3ADAE2309360D96BC7C74BBDC7CFA8CFB3FBA02F675"
+    },
+    {
+      "path": "I03-green.trx",
+      "bytes": 3023,
+      "sha256": "07008BFA40C74E68C3786AAE5507ED0C8723BFB0B0664E75F2A469A000F0C12C"
+    },
+    {
+      "path": "I03-mutant-build.json",
+      "bytes": 1696,
+      "sha256": "92B80CD5470AB6158D3C26A82DF4B1A63D3F53FF136D0BECEA754D46CBC66548"
+    },
+    {
+      "path": "I03-mutant-build.log",
+      "bytes": 310,
+      "sha256": "B19344BFBAB52133E589E128ED59BF0B06F126E86F839350549286AA51333707"
+    },
+    {
+      "path": "I03-red-1.json",
+      "bytes": 2056,
+      "sha256": "A44F1A6278760A5B5C78826210A2C0E23D676AB7C48649049F4EFAC442528D28"
+    },
+    {
+      "path": "I03-red-1.log",
+      "bytes": 833,
+      "sha256": "F9B8DA7BFD5C28BD14E7431C721FAF60800F2A7EA0BA167E605D865ACE2488F2"
+    },
+    {
+      "path": "I03-red-1.trx",
+      "bytes": 7487,
+      "sha256": "CF342D8D5A708DC8604BE7C2F1FAD7871E3FD4F34E7A4FD12D440E32D9D288BC"
+    },
+    {
+      "path": "I03-red-2.json",
+      "bytes": 2056,
+      "sha256": "909A78EEB24BC1E81B7E9AC120151C4A9FD85F861D1EADC8DA18E45D65211E00"
+    },
+    {
+      "path": "I03-red-2.log",
+      "bytes": 833,
+      "sha256": "C61FB0BA299AB31D32F139E68AC32B06E35409EAE15C4DD94BA8554C39D9FB5D"
+    },
+    {
+      "path": "I03-red-2.trx",
+      "bytes": 7487,
+      "sha256": "C6D16E0B2D1D6B09CF7173BA6E1E2A2B6980D1BEE55F6ED57B2E3EE3863E0001"
+    },
+    {
+      "path": "I03-restored-build.json",
+      "bytes": 1698,
+      "sha256": "4F550866D3E7F310E1C8A711F7EA107DD24E5270DDFB1482E13E318BD67C6E05"
+    },
+    {
+      "path": "I03-restored-build.log",
+      "bytes": 310,
+      "sha256": "1729366909E57F276F660B29712A65FABF3555A611CAAA2335FC02B8387E76F9"
+    },
+    {
+      "path": "I03.diff",
+      "bytes": 1243,
+      "sha256": "87E05C7E0A59B4FB1277D10FCE619DCE9077DE32274FBD9DEA809C343D0EA265"
+    },
+    {
+      "path": "results.json",
+      "bytes": 36714,
+      "sha256": "A26B217A07288017D56AB39479B1B27A28C71D630B945E01F1486D2CA744E546"
+    }
+  ]
+}

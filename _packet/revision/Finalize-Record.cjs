@@ -10,7 +10,7 @@ const ownFiles={
   'PR-SETTINGS-002':['src/Marrow.App/Window/WindowManager.cs',tests+'WindowManagerNativeTests.cs',tests+'WindowManagerSettingsScreenTests.cs',tests+'WindowManagerChildEnvironmentTests.cs',...['WindowManagerNativeMonitorTopology','WindowManagerNativePlacementGeometry','WindowManagerNativePlacementExercise','WindowManagerNativeChildProtocol','WindowManagerProcessProtocol'].map(n=>fixtures+n+'.cs')],
   'PR-WIN-010':[tests+'WindowManagerSettingsSurfaceTests.cs',tests+'WindowManagerRestartTests.cs',fixtures+'WindowManagerProcessCollection.cs',...['WindowManagerRestartChild','WindowManagerRestartExpectations','WindowManagerRestartPhase','WindowManagerRestartProof','WindowManagerRestartProtocol','WindowManagerRestartScenario'].map(n=>fixtures+n+'.cs')],
   'PR-WIN-003':[tests+'WindowManagerProcessTests.cs',tests+'WindowManagerTerminationWaitTests.cs',fixtures+'WindowManagerProcessCollection.cs',fixtures+'WindowManagerProcessChild.cs',fixtures+'WindowManagerProcessProof.cs'],
-  'PR-WIN-008':[], 'PR-WIN-017':[], 'PR-WIN-007':[], 'PR-WIN-011':[], 'UI-SETTINGS-001':[],
+  'PR-WIN-008':[], 'PR-WIN-017':[], 'PR-WIN-007':[], 'PR-WIN-011':[], 'UI-SETTINGS-001':[tests+'WindowManagerNextTests.cs'],
   'PR-WIN-006':[], 'PR-WIN-009':[tests+'WindowManagerTitleMutationTests.cs'], 'PR-THEME-039':[],
 };
 if(!Object.hasOwn(ownFiles,record))throw Error('No approved file list for this record');
