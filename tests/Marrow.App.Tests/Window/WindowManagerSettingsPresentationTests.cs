@@ -15,6 +15,8 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
     [Trait("Req", "PR-WIN-011")]
     public void Cached_show_centers_before_the_platform_show_request()
     {
+        // STOP DISPLAY-PASS: Move-before-Show does not prove Swift setFrame(display:false)
+        // suppresses an immediate native display pass; do not infer first-paint policy from order.
         // WindowManager.swift:36 precedes :37. B14 cannot hide behind a correct final Position.
         WithManager((_, manager) =>
         {
@@ -72,6 +74,9 @@ public sealed class WindowManagerSettingsPresentationTests(HeadlessSession headl
     [Trait("Req", "PR-WIN-010")]
     public void Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties()
     {
+        // STOP SETTINGS-OWNER: WIN.json PR-WIN-010 says owned, but MakeSettingsWindow/
+        // Present and raw WindowManager.swift:80-84,57-60 establish no owner relationship.
+        // These fixed-size/style assertions must not be read as a tested owner assignment.
         // WindowManager.swift:80-84,92-110. Border content prevents SettingsView's probe masking missing Configure.
         WithManager((_, manager) =>
         {
