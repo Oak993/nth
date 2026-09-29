@@ -515,4 +515,36 @@ public sealed class HydraHeadPopoversTests(HeadlessSession headless)
             }
         });
     }
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-047")] // App/Views/Chat/HydraHeadPopovers.swift:19-28 HStack(alignment: .firstTextBaseline)
+    public void Header_name_and_caption_share_their_first_text_baseline()
+    {
+        headless.OnUiThread(() =>
+        {
+            var header = new HydraPopoverHeader(Persona, caption: "Finished");
+            var window = new Avalonia.Controls.Window { Content = header, Width = 400, Height = 200 };
+            window.Show();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var name = LogicalQuery.SelfAndDescendants<Control>(header).OfType<HydraNameText>().Single();
+            var nameBlock = LogicalQuery.SelfAndDescendants<Control>(name).OfType<TextBlock>().First();
+            var caption = Text(header, "Finished");
+            double Baseline(TextBlock block) => block.TranslatePoint(new Point(0, block.TextLayout.TextLines[0].Baseline), header)!.Value.Y;
+            Assert.Equal(Baseline(nameBlock), Baseline(caption), 0.01);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-047")] // App/Views/Chat/HydraHeadPopovers.swift:26-27 .lineLimit(1): an embedded newline never makes a second line
+    public void Header_caption_is_limited_to_one_line_with_an_ellipsis()
+    {
+        headless.OnUiThread(() =>
+        {
+            var header = new HydraPopoverHeader(Persona, caption: "Failed\nsecond line");
+            var caption = Text(header, "Failed\nsecond line");
+            Assert.Equal(1, caption.MaxLines);
+            Assert.Equal(TextTrimming.CharacterEllipsis, caption.TextTrimming);
+        });
+    }
 }
