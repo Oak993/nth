@@ -103,6 +103,28 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-012")] // AppModel.swift:535-547
+    public void The_folder_panel_allows_several_folders_adds_each_and_returns_the_last_added()
+    {
+        using var h = new AppModelHarness();
+        var first = h.NewFolder("panel-a");
+        var last = h.NewFolder("panel-b");
+        var model = h.MakeModel();
+        var runner = new RecordingOpenPanelRunner([FolderURL(first), FolderURL(last)]);
+
+        h.Main.OnMain(() =>
+        {
+            using var scope = OpenPanel.Runner.Override(runner);
+            var added = model.AddProjectsFromPanel();
+
+            Assert.Equal((true, false, true, "Add project", "Choose a folder for your agents to work in."), Assert.Single(runner.Shown));
+            Assert.Equal(2, model.Projects.Count);
+            Assert.Equal(model.Projects[1], added);
+            Assert.Empty(model.Threads);
+        });
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
