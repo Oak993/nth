@@ -1198,4 +1198,125 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             window.Close();
         });
     }
+
+    private static (EffortSlider Slider, ObservableIntBox Index, Panel Knob, Avalonia.Controls.Window Window) OpenSlider(int index, bool fast = false, EffortBrand brand = EffortBrand.Purple)
+    {
+        var box = new ObservableIntBox { Value = index };
+        var slider = new EffortSlider(3, box.AsBinding(), "Title", fast, brand);
+        var window = Show(slider);
+        var knob = Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == 42 && p.Height == 42);
+        return (slider, box, knob, window);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:802-810 the first drag change assigns dragX inside withAnimation(.spring(response: 0.22, dampingFraction: 0.8))
+    public void The_first_contact_springs_the_knob_from_its_resting_stop_to_the_pointer()
+    {
+        headless.OnUiThread(() =>
+        {
+            var time = new ManualTimeProvider();
+            var frames = new ManualFrameSource();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var (slider, _, knob, window) = OpenSlider(0);
+            var origin = slider.TranslatePoint(default, window)!.Value;
+            Assert.Equal(0, Canvas.GetLeft(knob));
+
+            window.MouseDown(new Point(origin.X + 200, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
+            Assert.Equal(0, Canvas.GetLeft(knob)); // no jump to the pointer
+            time.Advance(TimeSpan.FromMilliseconds(60)); frames.Advance(TimeSpan.FromMilliseconds(60)); Dispatcher.UIThread.RunJobs();
+            Assert.InRange(Canvas.GetLeft(knob), 1, 178);
+            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
+            Assert.Equal(179, Canvas.GetLeft(knob)); // pointer 200 minus the 21 point lens radius
+            window.MouseUp(new Point(origin.X + 200, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:793 .scaleEffect(dragX == nil ? 1 : 1.06): SwiftUI scales about the centre
+    public void The_dragged_knob_scales_about_its_centre()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var (_, _, knob, window) = OpenSlider(0);
+            Assert.Equal(RelativePoint.Center, knob.RenderTransformOrigin);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:763-799 .animation(.smooth(duration: 0.3), value: look) covers the stops and the knob glow
+    public void A_look_change_crossfades_the_stop_dots_and_the_knob_glow_too()
+    {
+        headless.OnUiThread(() =>
+        {
+            var time = new ManualTimeProvider();
+            var frames = new ManualFrameSource();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var (slider, _, _, window) = OpenSlider(2, fast: false, brand: EffortBrand.Silver);
+            var stop = slider.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().First(e => e.Width == 5);
+            var glow = slider.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().First(e => e.Effect is not null);
+            var stopBefore = ((ISolidColorBrush)stop.Fill!).Color;
+            var glowBefore = ((ISolidColorBrush)glow.Fill!).Color;
+
+            slider.UpdateLook(true, "High", null); // silver maximum, then fast mode on: supercharged becomes fusion
+            Assert.Equal(stopBefore, ((ISolidColorBrush)stop.Fill!).Color); // the crossfade starts from the old colours
+            Assert.Equal(glowBefore, ((ISolidColorBrush)glow.Fill!).Color);
+            time.Advance(TimeSpan.FromMilliseconds(120)); frames.Advance(TimeSpan.FromMilliseconds(120)); Dispatcher.UIThread.RunJobs();
+            var stopMid = ((ISolidColorBrush)stop.Fill!).Color;
+            var glowMid = ((ISolidColorBrush)glow.Fill!).Color;
+            Assert.NotEqual(stopBefore, stopMid);
+            Assert.NotEqual(glowBefore, glowMid);
+            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
+            Assert.NotEqual(stopMid, ((ISolidColorBrush)stop.Fill!).Color);
+            Assert.NotEqual(glowMid, ((ISolidColorBrush)glow.Fill!).Color);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:799,822-830 an adjustable-action step changes the look inside .smooth(0.3): the knob and fill glide
+    public void An_accessibility_step_that_changes_the_look_glides_the_knob()
+    {
+        headless.OnUiThread(() =>
+        {
+            var time = new ManualTimeProvider();
+            var frames = new ManualFrameSource();
+            using var source = FrameClock.Source.Override(frames);
+            using var clock = SwiftClock.Provider.Override(time);
+            var (slider, _, knob, window) = OpenSlider(0);
+            Assert.Equal(0, Canvas.GetLeft(knob));
+
+            Assert.IsAssignableFrom<IRangeValueProvider>(ControlAutomationPeer.CreatePeerForElement(slider)).SetValue(2);
+            Dispatcher.UIThread.RunJobs(); // the tracked index change reaches the slider
+            Assert.Equal(0, Canvas.GetLeft(knob)); // not a jump to the last stop
+            time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
+            Assert.InRange(Canvas.GetLeft(knob), 1, 287);
+            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
+            Assert.Equal(288, Canvas.GetLeft(knob)); // width 330: inset 21, step 144, stop 2 centre 309 minus 21
+            window.Close();
+        });
+    }
+
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-128")] // App/Views/Composer/EffortSlider.swift:889-909 brand.fill: Meta and silver are two-stop gradients at maximum effort
+    [InlineData(EffortBrand.Meta, 0.0, 0.39, 0.88, 0.0, 0.51, 0.98)]
+    [InlineData(EffortBrand.Silver, 1.0, 1.0, 1.0, 0.88, 0.88, 0.91)]
+    public void Meta_and_silver_maximum_effort_fills_are_their_source_gradients(EffortBrand brand, double r1, double g1, double b1, double r2, double g2, double b2)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var (slider, _, _, window) = OpenSlider(2, fast: false, brand: brand);
+            var fill = Assert.Single(slider.GetVisualDescendants().OfType<Border>(), b => b.Name == "EffortFill");
+            var gradient = Assert.IsType<LinearGradientBrush>(fill.Background);
+            Assert.Equal(2, gradient.GradientStops.Count);
+            Assert.Equal(new SwiftColor(r1, g1, b1).Resolve(Avalonia.Styling.ThemeVariant.Light), gradient.GradientStops[0].Color);
+            Assert.Equal(new SwiftColor(r2, g2, b2).Resolve(Avalonia.Styling.ThemeVariant.Light), gradient.GradientStops[1].Color);
+            window.Close();
+        });
+    }
 }
