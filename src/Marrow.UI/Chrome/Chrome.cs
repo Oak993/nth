@@ -1092,9 +1092,12 @@ namespace Marrow.UI.Chrome
             }
             ApplyText();
 
-            // :711 HStack(spacing: 8): icon, title, then Spacer(minLength: 4) (:720). The line gives the title what the icon and
-            // the spacer leave, so a long title is compressed and tail-truncated rather than laid out at its intrinsic width.
-            var row = new SidebarRowLine { Orientation = Orientation.Horizontal, Spacing = 8, Children = { iconSlot, text } };
+            var row = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                Spacing = 8, // :711 HStack(spacing: 8)
+                Children = { iconSlot, text }, // :712-720 Spacer(minLength: 4) satisfied by stretch below
+            };
             foreach (var part in row.Children) part.VerticalAlignment = VerticalAlignment.Center;
 
             var shape = new Border // :722 RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous).fill(fill)
@@ -1601,32 +1604,6 @@ namespace Marrow.UI.Chrome
                 x = left + size.Width + Spacing;
             }
             return finalSize;
-        }
-    }
-
-    /// <summary>PORT-ONLY: the SidebarRow <c>HStack(spacing: 8)</c> of icon and title with <c>Spacer(minLength: 4)</c>
-    /// (:711-720). Still a horizontal StackPanel to every caller; the title is measured against the width the icon, the
-    /// spacing and the spacer leave, so its tail truncation (:718-719) applies instead of an intrinsic-width layout.</summary>
-    internal sealed class SidebarRowLine : StackPanel
-    {
-        private const double SpacerMinLength = 4; // :720
-
-        protected override Size MeasureOverride(Size availableSize)
-        {
-            var visible = Children.Where(c => c.IsVisible).ToList();
-            if (visible.Count == 0) return default;
-            var title = visible[^1];
-            double used = 0, height = 0;
-            foreach (var child in visible.Where(c => !ReferenceEquals(c, title)))
-            {
-                child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
-                used += child.DesiredSize.Width + Spacing;
-                height = Math.Max(height, child.DesiredSize.Height);
-            }
-            var room = double.IsInfinity(availableSize.Width) ? double.PositiveInfinity : Math.Max(0, availableSize.Width - used - SpacerMinLength);
-            title.Measure(new Size(room, availableSize.Height));
-            height = Math.Max(height, title.DesiredSize.Height);
-            return new Size(used + title.DesiredSize.Width, height);
         }
     }
 
