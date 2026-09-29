@@ -302,47 +302,70 @@ public sealed class PopoverItem : Decorator
         }
 
         var leadingSlot = new Panel { Width = 16, Height = 16 }; // :284, :289, :294, :299, :304 the leading 16pt column
+        Control? shown = null; // the view the slot currently holds
+        var shownTransitional = false; // whether it leaves under its .transition (:300, :305)
+        bool? builtConfirmed = null;
         void UpdateLeading()
         {
-            leadingSlot.Children.Clear();
+            if (builtConfirmed == state.IsConfirmed) return;
+            builtConfirmed = state.IsConfirmed;
+            Control? next = null;
+            var transitional = false;
             if (leading is not null) // :282-284
             {
                 leading.Width = 16;
                 leading.Height = 16;
-                leadingSlot.Children.Add(leading);
+                next = leading;
             }
             else if (asset is not null) // :285-289
             {
                 var assetImage = SwiftImage.Named(asset).Resizable().AspectRatio(ContentMode.Fit);
                 assetImage.Width = 16;
                 assetImage.Height = 16;
-                leadingSlot.Children.Add(assetImage);
+                next = assetImage;
             }
             else if (image is not null) // :290-294
             {
                 var imageControl = new Image { Source = image, Width = 16, Height = 16, Stretch = Stretch.Uniform };
                 RenderOptions.SetBitmapInterpolationMode(imageControl, BitmapInterpolationMode.HighQuality);
-                leadingSlot.Children.Add(imageControl);
+                next = imageControl;
             }
             else if (state.IsConfirmed) // :295-300
             {
                 var confirmed = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold))
                     .ForegroundStyle(Chrome.Success);
                 confirmed.Width = 16;
-                leadingSlot.Children.Add(confirmed);
+                next = confirmed;
+                transitional = true;
             }
             else if (symbol is not null) // :301-305
             {
                 var glyph = SwiftImage.SystemName(symbol).Font(SwiftFont.Callout);
                 glyph.Width = 16;
-                leadingSlot.Children.Add(glyph);
+                next = glyph;
+                transitional = true;
             }
+
+            // :300, :305 .transition(.scale(scale: 0.6).combined(with: .opacity)) on the checkmark and the symbol; the
+            // swap runs under the snappy transaction of :263.
+            if (shown is not null)
+            {
+                if (shownTransitional) SwiftTransition.Remove(leadingSlot, shown);
+                else leadingSlot.Children.Remove(shown);
+            }
+            if (next is not null)
+            {
+                if (transitional) SwiftTransition.Insert(leadingSlot, leadingSlot.Children.Count, next.Transition(SwiftTransition.Scale(0.6).Combined(SwiftTransition.Opacity)));
+                else leadingSlot.Children.Add(next);
+            }
+            shown = next;
+            shownTransitional = transitional;
 
             // :282-305 the leading slot exists only when one of the branches produced a view; a plain row has no
             // slot, so its title follows the row padding (and the checkmark column, if any) directly.
             var present = row.Children.Contains(leadingSlot);
-            if (leadingSlot.Children.Count > 0 && !present) row.Children.Insert(isChecked is null ? 0 : 1, leadingSlot);
-            else if (leadingSlot.Children.Count == 0 && present) row.Children.Remove(leadingSlot);
+            if (next is not null && !present) row.Children.Insert(isChecked is null ? 0 : 1, leadingSlot);
+            else if (next is null && present) row.Children.Remove(leadingSlot);
         }
         UpdateLeading();
         row.Track(() => state.IsConfirmed, _ => UpdateLeading()); // on the row: the slot itself is detached while empty

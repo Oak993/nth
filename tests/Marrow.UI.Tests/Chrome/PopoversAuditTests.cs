@@ -2,8 +2,10 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
 using Avalonia.Layout;
+using Avalonia.Media;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Port;
 using Marrow.UI.Chrome;
@@ -59,6 +61,7 @@ public sealed class PopoversAuditTests(HeadlessSession headless)
     [Trait("Req", "PR-SIDEBAR-106")] // UI/Chrome/Popovers.swift:295-300: a confirmed row without an icon gets the checkmark column once confirmed
     public void PopoverItem_without_an_icon_gains_the_checkmark_column_when_confirmed() => headless.OnUiThread(() =>
     {
+        using var source = FrameClock.Source.Override(new ManualFrameSource()); // the checkmark's swap animates (Popovers.swift:263)
         var item = new PopoverItem("Copy", () => { }, confirmation: "Copied");
         var window = Show(item);
         var title = Assert.Single(VisualQuery.Descendants<MiddleTruncatingText>(item));
@@ -149,4 +152,37 @@ public sealed class PopoversAuditTests(HeadlessSession headless)
             Assert.Equal(expected, MiddleTruncatingText.Candidate(text, kept));
         }
     }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-106")] // UI/Chrome/Popovers.swift:263,295-305: the symbol-to-checkmark swap runs under snappy(0.22) with .transition(.scale(scale: 0.6).combined(with: .opacity))
+    public void PopoverItem_confirmation_swaps_the_icon_with_a_scale_and_opacity_transition() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var time = new ManualTimeProvider();
+        using var clock = SwiftClock.Provider.Override(time);
+        var item = new PopoverItem("Copy", () => { }, symbol: "doc.on.doc", confirmation: "Copied");
+        var window = Show(item);
+        var slot = Assert.Single(VisualQuery.Descendants<Panel>(item), p => p.Width == 16 && p.Height == 16);
+        var button = Assert.Single(VisualQuery.Descendants<Button>(item));
+        button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        Assert.True(item.IsConfirmed);
+        for (var i = 0; i < 3; i++)
+        {
+            time.Advance(TimeSpan.FromMilliseconds(10));
+            frames.Advance(TimeSpan.FromMilliseconds(10));
+            Dispatcher.UIThread.RunJobs();
+        }
+        var mid = VisualQuery.Descendants<Control>(slot).Prepend(slot).Where(c => c != slot).ToList();
+        Assert.Contains(mid, c => c.Opacity is > 0 and < 1); // 30 ms into 220: a view is part-way through its opacity transition
+        Assert.Contains(mid, c => c.RenderTransform is ScaleTransform { ScaleX: > 0.6 and < 1 }); // and part-way through scale 0.6 -> 1 (or out to 0.6)
+        for (var i = 0; i < 40; i++)
+        {
+            time.Advance(TimeSpan.FromMilliseconds(10));
+            frames.Advance(TimeSpan.FromMilliseconds(10));
+            Dispatcher.UIThread.RunJobs();
+        }
+        Assert.Single(slot.Children); // the symbol has finished leaving, only the checkmark remains
+        window.Close();
+    });
 }
