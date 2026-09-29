@@ -457,3 +457,6 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
         finally { runtime.OnMain(window.Close); }
     });
 }
+
+// B3 review fixes: animation STOP #1 is satisfied for persistent ticks and the preview's fade/offset/glide logic.
+// PR-CHAT-073 remains partly proven until the required light/dark capture comparison exists.

@@ -244,3 +244,10 @@ public sealed class QuestionTabTests(HeadlessSession headless)
         });
     }
 }
+
+// STOP App.Views.Composer.QuestionTab #1 (verifier, 2026-09-29)
+// Kind: coverage gap, not a known code defect.
+// Swift: App/Views/Composer/QuestionTab.swift:58 measures every page with selections: .constant([:]) and written: .constant([:]).
+// Record: UI-COMPOSER-067. The QuestionSheet constructor probe now uses constant empty bindings (source-matched), but no test
+// proves it: the probe is a discarded local and headless font metrics do not reproduce a weight-dependent wrap.
+// Needed: a real-font capture where a recommended (semibold) choice wraps differently from the unselected one.

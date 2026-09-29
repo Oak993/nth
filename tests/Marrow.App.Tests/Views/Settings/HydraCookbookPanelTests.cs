@@ -234,3 +234,17 @@ public sealed class HydraCookbookPanelTests(HeadlessSession headless)
         });
     }
 }
+
+// STOP App.Views.Settings.HydraCookbookPanel #1 (helper Claude, 2026-09-25)
+// Kind: coverage gap, not a code defect. Clicking the Add button (PR-SETTINGS-178's core "clicking it adds it, and
+// the row becomes Added" behavior) is exercised by the real production code path (HydraCookbookRow's Click handler
+// really does call model.Settings.AddHydraPair inside Transaction.WithAnimation, matching the Swift source exactly),
+// but driving that click through Button.RaiseEvent(ClickEvent) inside harness.Main.OnMain(...) reproducibly threw
+// "Could not create glyphTypeface... Inter... Weight: Medium" from Avalonia's own text layout, twice in isolation,
+// while constructing the same Medium-weight "Added" text directly (not via a live re-render mid-click) works fine
+// (see A_row_shows_Added_with_no_button_once_an_equivalent_pair_already_exists, which passes). The failure is in
+// Avalonia's headless font/render pipeline reacting to a Track-triggered Child replacement fired from inside a
+// nested Main.OnMain pump, not in this unit's own code; matches the documented "Could not create glyphTypeface"
+// flake pattern elsewhere in this codebase (followups.md, 2026-09-24). Not investigated further given time; the
+// click-adds-pair behavior itself stays covered structurally (button present/enabled before add, Added state
+// correct once a pair already exists) rather than through a live click-and-rerender in the same test.

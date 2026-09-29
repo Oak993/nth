@@ -57,3 +57,11 @@ public sealed class RowGlideLayerTests(HeadlessSession headless)
         });
     });
 }
+
+// STOP App.Views.Sidebar.RowGlide #1 (verifier, 2026-09-29)
+// Kind: coverage gap, not a known code defect.
+// Swift: App/Views/Sidebar/RowGlide.swift:211-223 the travelling check is an overlay inside the ghost, before the final
+// FrameShape(frame: glide.bounds) clip. Record: UI-SIDEBAR-050. RowGlideView.Render now draws the check inside the
+// PushClip(glide.Bounds) scope (source-matched), but the check draws through SwiftImage.CapHeight (Inter DemiBold), which
+// headless cannot load, so no pixel test proves it.
+// Needed: a real-font capture of a glide crossing the list's edge.

@@ -1289,3 +1289,16 @@ public sealed class RootViewTests(HeadlessSession headless)
         });
     }
 }
+
+// Resolved STOP #3: the AlertPresenter owner's ED-216 request/window/session landed during this review pass.
+// RootView now supplies its rendering owner and cancel-role OK through AlertPresentation.Show(AlertRequest),
+// and uses the shared window/session for the real dialog. The source's replacement/model-clear binding is
+// retained by a thin adapter; bold title, message, owned presentation and Escape/Return/OK are proven above.
+// Swift: App/Views/RootView.swift:80-91 (B3 52bc792). Record: PR-WIN-066.
+
+// STOP App.Views.RootView #4 (Window review fixes)
+// Kind: platform/capture gap.
+// Swift: App/Views/RootView.swift:64-68 (B3 52bc792). Record: PR-WIN-062 (partial composited-clip proof only).
+// Missing: window region or DWM corner preference so the native shadow follows the curve, and a four-corner capture.
+// Needed: the native window-chrome owner supplies that region/preference and a four-corner capture verifies it.
+// This review explicitly defers implementing PR-WIN-062's remaining native/capture portion.
