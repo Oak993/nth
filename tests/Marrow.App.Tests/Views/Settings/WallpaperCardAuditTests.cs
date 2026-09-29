@@ -45,4 +45,20 @@ public sealed class WallpaperCardAuditTests(HeadlessSession headless)
         Assert.Equal(1, reset.Opacity);
     });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-142")] // WallpaperCard.swift:95-99 dropDestination(for: URL.self): a non-URL payload never targets the well
+    public void A_drag_carrying_no_file_does_not_activate_the_drop_target() => headless.OnUiThread(() => {
+        using var scope = new WallpaperCardScope();
+        var button = CardQuery.All<Button>(scope.Card).First(); var content = (Panel)button.Content!;
+        var data = new DataTransfer();
+        data.Add(DataTransferItem.Create(DataFormat.Text, "selected text"));
+        var enter = new DragEventArgs(DragDrop.DragEnterEvent, data, button, new Point(10, 10), KeyModifiers.None);
+        button.RaiseEvent(enter); scope.Pump();
+        var over = new DragEventArgs(DragDrop.DragOverEvent, data, button, new Point(10, 10), KeyModifiers.None);
+        button.RaiseEvent(over); scope.Pump();
+        Assert.DoesNotContain(content.Children.OfType<Border>(), b => b.Background is Avalonia.Media.SolidColorBrush brush && brush.Color == Chrome.Accent.Opacity(.18).Resolve(b.ActualThemeVariant));
+        Assert.NotEqual(DragDropEffects.Copy, enter.DragEffects);
+        Assert.NotEqual(DragDropEffects.Copy, over.DragEffects);
+    });
+
 }

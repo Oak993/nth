@@ -213,14 +213,21 @@ public sealed class WallpaperCard : Decorator
 
         // :95-99 dropDestination(for: URL.self, ...)
         DragDrop.SetAllowDrop(button, true);
+        // :95 `for: URL.self`: only a payload carrying a URL (a file, here) targets the well.
+        static bool CarriesUrl(DragEventArgs e) => e.DataTransfer.Items.Any(item => item.TryGetFile() is not null);
         button.AddHandler(DragDrop.DragEnterEvent, (_, e) =>
         {
+            if (!CarriesUrl(e))
+            {
+                e.DragEffects = DragDropEffects.None;
+                return;
+            }
             state.IsTargeted = true; // :99 isTargeted: { isTargeted = $0 }
             e.DragEffects = DragDropEffects.Copy;
         });
         button.AddHandler(DragDrop.DragOverEvent, (_, e) =>
         {
-            e.DragEffects = DragDropEffects.Copy;
+            e.DragEffects = CarriesUrl(e) ? DragDropEffects.Copy : DragDropEffects.None;
             e.Handled = true;
         });
         button.AddHandler(DragDrop.DragLeaveEvent, (_, _) => state.IsTargeted = false);
@@ -435,6 +442,7 @@ public sealed class WallpaperCard : Decorator
             AutomationProperties.SetName(group, "Wallpaper softness"); // :164
 
             Control? reset = null;
+            var resetInitialized = false;
             void SyncReset()
             {
                 if (IsOffStock) // :146
