@@ -1078,7 +1078,10 @@ public sealed class WorkingIndicator : Decorator
             if (canExpand) { var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)).ForegroundStyle(SwiftColor.Tertiary).Transition(SwiftTransition.Opacity); chevron.RenderTransform = new RotateTransform(isExpanded ? 90 : 0); header.Children.Add(chevron); }
             var inner = new StackPanel { Spacing = 10, Children = { header } };
             if (showsCard) inner.Children.Add(new HydraProgressBar(runtime, startedAt, finishedAt, running ? HydraHeadInfo.Status.Running : HydraHeadInfo.Status.Stopped, Chrome.Accent, turnEntries));
-            var frame = new Border { Padding = showsCard ? new Thickness(14, 11) : new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical), CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Child = inner, HorizontalAlignment = HorizontalAlignment.Left };
+            var frame = new Border { Padding = showsCard ? new Thickness(14, 11) : new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical), CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Child = inner, HorizontalAlignment = HorizontalAlignment.Left,
+                // SwiftUI taps a Button across its whole label rect; a null background lets presses fall
+                // through to the card behind, so the frame carries a transparent (invisible but hittable) fill.
+                Background = Brushes.Transparent };
             if (showsCard) frame.Width = CardWidth;
             var button = PlainControls.Button(frame, () => { if (!canExpand) return; Transaction.WithAnimation(Animation.Snappy(0.24), () => { isExpanded = !isExpanded; if (isExpanded) ThreadTimeline.GetRevealTimelineEnd(this)?.Follow(); Draw(); }); });
             ToolTip.SetTip(button, canExpand ? isExpanded ? "Hide these steps" : "Show these steps" : ""); Avalonia.Automation.AutomationProperties.SetHelpText(button, canExpand ? "Shows what the agent is doing" : "");
