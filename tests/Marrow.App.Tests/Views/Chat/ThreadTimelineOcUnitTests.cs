@@ -633,16 +633,17 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
             tracking.IsPinnedToBottom = false; state.ShowsJumpButton = true; tracking.NoteGeometry(0, 900, 0);
             Put(view, "viewportHeight", 480.0);
             Put(view, "anchorsBottomOnGrowth", false);
-            Animation? during = null;
-            using var probe = new OnChange<bool>(() => tracking.IsPinnedToBottom, (_, _) => during = Transaction.Current);
             RealClick(panel, LogicalQuery.SelfAndDescendants<Button>(card).Single());
             Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card));
             Assert.Single(LogicalQuery.SelfAndDescendants<WorkSteps>(card));
             Assert.Equal("Hide these steps", Avalonia.Controls.ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(card).Single()));
             Assert.True(tracking.IsPinnedToBottom);
-            Assert.Equal(Animation.Snappy(0.24), during); // Follow runs inside the open animation, on the open curve
+            var frame = Field<object?>(view, "scrollFrame");
+            Assert.NotNull(frame); // FollowEnd scrolls to the end with animation (not a synchronous jump)
+            var target = ((Delegate)frame!).Target ?? throw new Xunit.Sdk.XunitException("scroll frame has no target");
+            var anim = (Animation)target.GetType().GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance).First(f => f.FieldType == typeof(Animation)).GetValue(target)!;
+            Assert.Equal(Animation.Snappy(0.24), anim); // Follow runs inside the open animation, on the open curve
             Assert.True(Field<bool>(view, "anchorsBottomOnGrowth")); // FollowEnd holds the bottom
-            Assert.NotNull(Field<object?>(view, "scrollFrame")); // FollowEnd scrolls to the end with animation
             Assert.True(tracking.IsReaderScrolling); // FollowEnd notes the movement
         }
         finally { panel.Close(); }
@@ -671,8 +672,8 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119 (nothing to open: no tooltip, no body, no toggle)
-    public void Oc_Working_without_steps_or_work_does_not_open() => WithTimeline((view, runtime, _, _, _) =>
+    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119 (nothing to open: no tooltip, no body, no toggle, no follow)
+    public void Oc_Working_without_steps_or_work_does_not_open() => WithTimeline((view, runtime, _, state, _) =>
     {
         var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), new([]), new([]), true);
         var host = new Border { Child = card };
@@ -683,10 +684,18 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
             panel.Show(); Settle(panel);
             var button = LogicalQuery.SelfAndDescendants<Button>(card).Single();
             Assert.Equal("", Avalonia.Controls.ToolTip.GetTip(button));
+            Assert.Equal("", Avalonia.Automation.AutomationProperties.GetHelpText(button));
+            var tracking = Field<TimelineScrollTracking>(view, "tracking");
+            ThreadTimeline.SetRevealTimelineEnd(card, Field<TimelineRevealBox>(view, "revealBox"));
+            tracking.IsPinnedToBottom = false;
+            Put(view, "anchorsBottomOnGrowth", false);
             RealClick(panel, button);
             Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card));
             Assert.Empty(LogicalQuery.SelfAndDescendants<WorkSteps>(card));
             Assert.Single(((StackPanel)((Border)card.Child!).Child!).Children);
+            Assert.False(tracking.IsPinnedToBottom);
+            Assert.False(Field<bool>(view, "anchorsBottomOnGrowth"));
+            Assert.Null(Field<object?>(view, "scrollFrame"));
         }
         finally { panel.Close(); }
     });
@@ -719,6 +728,9 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
         {
             panel.Show(); Settle(panel);
             RealClick(panel, LogicalQuery.SelfAndDescendants<Button>(card).Single());
+            var frame = Assert.IsType<Border>(LogicalQuery.SelfAndDescendants<Button>(card).Single().Content);
+            Assert.Equal(380, frame.Width); // :2085 cardWidth
+            Assert.Equal(new Thickness(14, 11), frame.Padding);
             var column = (StackPanel)((Border)card.Child!).Child!;
             var opened = Assert.IsType<Border>(column.Children[1]);
             Assert.Equal(new Thickness(14, 0, 14, 11), opened.Padding);
@@ -734,12 +746,37 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2156-2168 (late thinking still lands before the steps)
+    public void Oc_Working_late_thinking_lands_before_steps() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), new([Tool("a")]), new([]), true);
+        var host = new Border { Child = card };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var panel = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            panel.Show(); Settle(panel);
+            RealClick(panel, LogicalQuery.SelfAndDescendants<Button>(card).Single());
+            var details = Assert.IsType<StackPanel>(Assert.IsType<Border>(((StackPanel)((Border)card.Child!).Child!).Children[1]).Child);
+            Assert.IsType<WorkSteps>(Assert.Single(details.Children));
+            typeof(WorkingIndicator).GetMethod("UpdateValues", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)!.Invoke(card, [new ValueList<ThinkingStep>([new ThinkingStep("late", false)]), new ValueList<TimelineEntry>([Tool("b")]), new ValueList<TimelineEntry>([]), true]);
+            Settle(panel);
+            var thinking = Assert.IsType<StackPanel>(details.Children[0]);
+            Assert.IsType<WorkSteps>(details.Children[1]);
+            Assert.NotEmpty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(thinking));
+            var toolRow = Assert.Single(LogicalQuery.SelfAndDescendants<ToolRow>(details));
+            Assert.Equal("b", ((TimelineEntry)toolRow.GetType().GetField("entry", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(toolRow)!).Id);
+        }
+        finally { panel.Close(); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119 (the chevron rests at 0 and points down open at 90)
     public void Oc_Working_chevron_rotates_open() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var h = new AppModelHarness(); using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var model = new Marrow.App.AppModel(); var id = Guid.NewGuid(); DiskWriter.Shared.WriteSynchronously(new ThreadDocument(id), Storage.ThreadURL(id)); DocumentPrefetch.Shared.Warm([id], urgent: true)!.Completion.GetAwaiter().GetResult(); var runtime = new ThreadRuntime(id, model);
-        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([Tool("a")]), new([]), false);
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([Tool("a")]), new([]), true);
         var host = new Border { Child = card };
         AppEnvironment.SetAppModel(host, model);
         var panel = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
@@ -748,12 +785,16 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
         {
             panel.Show(); Settle(panel);
             Assert.Equal(0, Angle(card));
+            var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(card).Single(i => i.SymbolName == "chevron.right");
+            Assert.Equal(10, SwiftImage.GetFont(glyph)!.Resolve().FontSize); // caption2 semibold, ED-059
+            Assert.Equal(Avalonia.Media.FontWeight.SemiBold, SwiftImage.GetFont(glyph)!.Resolve().FontWeight);
             h.Main.OnMain(() =>
             {
                 RealClick(panel, LogicalQuery.SelfAndDescendants<Button>(card).Single());
             });
             h.Main.OnMain(() =>
             {
+                Assert.NotEmpty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card));
                 Assert.Equal(90, Angle(card));
             });
         }
