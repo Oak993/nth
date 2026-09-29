@@ -276,6 +276,35 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-085")] // AppModel.swift:766-781
+    public void Archiving_a_thread_releases_its_Hydra_copy()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("archive-copy"));
+        var copy = h.NewFolder("head-copy");
+        var lead = AppModelSamples.Thread(project);
+        var head = AppModelSamples.Thread(project) with
+        {
+            ParentThreadID = lead.Id,
+            IsInPanel = true,
+            Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Stopped, baseTree: "tree"),
+            WorktreePath = copy,
+            Branch = "head-branch",
+        };
+        h.WriteLibrary([project], [lead, head]);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() => model.Archive(head.Id));
+
+        var archived = model.Thread(head.Id)!;
+        Assert.True(archived.IsArchived);
+        Assert.Null(archived.WorktreePath);
+        Assert.Null(archived.Branch);
+        Assert.Null(archived.Hydra!.BaseTree);
+        h.Main.Loop.RunUntil(() => !Directory.Exists(copy), AppModelHarness.Bound); // the copy's folder goes with the release
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }

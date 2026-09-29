@@ -843,6 +843,7 @@ public sealed partial class AppModel : MainActorModel
         foreach (var helper in Helpers(id)) Archive(helper.Id);
         if (SelectedThreadID == id) SelectNeighbor(id);
         ExistingRuntime(id)?.StopSession();
+        ReleaseHydraCopy(id); // AppModel.swift:771
         UpdateThread(id, thread => thread with
         {
             IsArchived = true,
