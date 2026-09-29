@@ -124,8 +124,12 @@ function resolveSpawnTarget(command, args) {
   if (!resolved) resolved = command;
   const extension = path.extname(resolved).toLowerCase();
   if (extension === ".cmd" || extension === ".bat") {
-    const quote = (value) => "\"" + String(value).replace(/"/g, '\\"') + "\"";
-    const commandLine = [quote(resolved), ...args.map(quote)].join(" ");
+    // cmd.exe toggles its quote state at every quote and knows no backslash escape, so an embedded quote is doubled
+    // (the state is unchanged and & | < > ^ stay argument data, as spawn's no-shell argv keeps them, :79-84). A trailing
+    // run of backslashes is doubled so it cannot escape the closing quote, and % is split so %VAR% never expands.
+    const quote = (value) => "\"" + String(value).replace(/(\\*)"/g, '$1$1""').replace(/(\\+)$/, "$1$1").replace(/%/g, "%%cd:~,%") + "\"";
+    // /s strips the first and last quote of the line, so the whole line is wrapped in one more pair.
+    const commandLine = "\"" + [quote(resolved), ...args.map(quote)].join(" ") + "\"";
     return { file: process.env.COMSPEC || "cmd.exe", args: ["/d", "/s", "/c", commandLine], verbatim: true };
   }
   return { file: resolved, args, verbatim: false };
