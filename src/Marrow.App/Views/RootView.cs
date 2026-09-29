@@ -836,10 +836,37 @@ public sealed class WelcomeView : Decorator
     // the Track-nesting bug this port keeps re-finding): the whole page rebuilds on either the model attaching or
     // the activity style changing, since :331 `ChromeRow(detail: settings.activityThreadStyle.detail)` reads a
     // plain string computed once, not a reactive binding.
+    private StackPanel? column;
+    private ActivityThreadStyle? builtStyle;
+
     public WelcomeView()
     {
         this.Track(() => AppEnvironment.GetAppModel(this), Build);
-        this.Track(() => AppEnvironment.GetAppModel(this).Settings.ActivityThreadStyle, _ => Build(AppEnvironment.GetAppModel(this)));
+        // :331 ChromeRow(detail: settings.activityThreadStyle.detail): only that section is evaluated again; the ScrollView
+        // (its offset, its focus) keeps its identity as SwiftUI keeps it.
+        this.Track(() => AppEnvironment.GetAppModel(this).Settings.ActivityThreadStyle, style =>
+        {
+            if (column is null || builtStyle == style) return;
+            builtStyle = style;
+            column.Children[2] = MakeActivitySection(AppEnvironment.GetAppModel(this));
+        });
+    }
+
+    // :329-338 "Activity list" section, capped at 480
+    private static ChromeSection MakeActivitySection(AppModel model)
+    {
+        var settings = model.Settings;
+        var activityBinding = new Binding<ActivityThreadStyle>(
+            () => settings.ActivityThreadStyle,
+            value => settings.ActivityThreadStyle = value);
+        var activityPicker = new ChromeVisualPicker<ActivityThreadStyle, Control>(
+            [(ActivityThreadStyle.Icon, ActivityThreadStyle.Icon.Title), (ActivityThreadStyle.ProjectName, ActivityThreadStyle.ProjectName.Title)],
+            activityBinding,
+            style => SwiftImage.SystemName(style == ActivityThreadStyle.Icon ? "list.bullet" : "text.alignleft"));
+        var activityRow = new ChromeRow("Project mark", () => activityPicker, settings.ActivityThreadStyle.Detail);
+        var activitySection = new ChromeSection("Activity list", () => new ChromeCard(() => activityRow));
+        activitySection.MaxWidth = 480;
+        return activitySection;
     }
 
     private void Build(AppModel model)
@@ -881,17 +908,8 @@ public sealed class WelcomeView : Decorator
         addProjectStack.Children.Add(addProjectButton);
         addProjectStack.Children.Add(dropHint);
 
-        // :329-338 "Activity list" section, capped at 480
-        var activityBinding = new Binding<ActivityThreadStyle>(
-            () => settings.ActivityThreadStyle,
-            value => settings.ActivityThreadStyle = value);
-        var activityPicker = new ChromeVisualPicker<ActivityThreadStyle, Control>(
-            [(ActivityThreadStyle.Icon, ActivityThreadStyle.Icon.Title), (ActivityThreadStyle.ProjectName, ActivityThreadStyle.ProjectName.Title)],
-            activityBinding,
-            style => SwiftImage.SystemName(style == ActivityThreadStyle.Icon ? "list.bullet" : "text.alignleft"));
-        var activityRow = new ChromeRow("Project mark", () => activityPicker, settings.ActivityThreadStyle.Detail);
-        var activitySection = new ChromeSection("Activity list", () => new ChromeCard(() => activityRow));
-        activitySection.MaxWidth = 480;
+        var activitySection = MakeActivitySection(model);
+        builtStyle = settings.ActivityThreadStyle;
 
         // :339-342 "Providers" section, capped at 480
         var providersSection = new ChromeSection("Providers", () => new ProviderChecklist());
@@ -903,6 +921,7 @@ public sealed class WelcomeView : Decorator
         column.Children.Add(addProjectStack);
         column.Children.Add(activitySection);
         column.Children.Add(providersSection);
+        this.column = column;
 
         var padded = new Border { Padding = new Thickness(48), Child = column, HorizontalAlignment = HorizontalAlignment.Stretch };
 
@@ -962,6 +981,7 @@ internal sealed class ProviderStatusRow : Decorator
     private readonly StackPanel textStack = new() { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly TextBlock statusText = new();
     private readonly ContentControl trailing = new() { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
+    private int trailingBranch = -1;
 
     // :367 let provider: ProviderKind; :369-409 body
     public ProviderStatusRow(ProviderKind provider)
@@ -1005,6 +1025,15 @@ internal sealed class ProviderStatusRow : Decorator
 
         var status = model.Providers.Status(provider); // :370
         statusText.Text = status.IsChecking ? "Checking…" : status.Summary; // :379, U+2026
+
+        // :383-405 the trailing control keeps its structural identity while the row stays in the same branch: another
+        // provider's status change must not replace a focused Login button or restart a spinner.
+        var branch = status.IsChecking ? 0
+            : !status.IsInstalled ? 1
+            : status.ProviderStatusAuth is ProviderStatus.Auth.SignedOut ? 2
+            : 3;
+        if (branch == trailingBranch && trailing.Content is not null) return;
+        trailingBranch = branch;
 
         Control? content = null;
         if (status.IsChecking) // :383-386
@@ -1083,15 +1112,27 @@ public sealed class NoThreadView : Decorator
         stack.Children.Add(heading);
         this.Track(() => AppEnvironment.GetAppModel(this), model =>
         {
-            stack.Children.Add(WelcomeView.GlassProminentButton(newThreadLabel, LargeControlHeight, () => model.NewThread())); // :434-440
-            // :441-446 the chord hint, omitted entirely when the shortcut has been cleared
-            if (ShortcutStore.Label(AppShortcut.NewThread) is { } chord)
+            stack.Children.Insert(2, WelcomeView.GlassProminentButton(newThreadLabel, LargeControlHeight, () => model.NewThread())); // :434-440
+        });
+        // :441-446 the chord hint, omitted entirely when the shortcut has been cleared: the body reads the store's label, so a
+        // remap shows at once.
+        TextBlock? chordText = null;
+        this.Track(() => ShortcutStore.Label(AppShortcut.NewThread), chord =>
+        {
+            if (chord is null)
             {
-                var chordText = new TextBlock { Text = chord };
+                if (chordText is not null) stack.Children.Remove(chordText);
+                chordText = null;
+                return;
+            }
+            if (chordText is null)
+            {
+                chordText = new TextBlock();
                 SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(chordText);
                 chordText.Foreground = Chrome.SecondaryText.Brush(chordText);
                 stack.Children.Add(chordText);
             }
+            chordText.Text = chord;
         });
 
         HorizontalAlignment = HorizontalAlignment.Stretch;
