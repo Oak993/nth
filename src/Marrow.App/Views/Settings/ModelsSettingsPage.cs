@@ -4,10 +4,12 @@ using System.Linq;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Marrow.App.Port;
+using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Providers;
@@ -289,6 +291,14 @@ public sealed class ModelsSettingsPage : Decorator
 /// <summary>:160-274 <c>private struct PinnedModelRow: View</c>: one chosen model, with its reorder grip.</summary>
 internal sealed class PinnedModelRow : Decorator
 {
+    // :169 @State private var isPresented = false
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isPresented;
+
+        public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+    }
+
     private Point? dragOrigin;
     private TopLevel? dragRoot;
 
@@ -298,6 +308,7 @@ internal sealed class PinnedModelRow : Decorator
     // and reading the environment here would need the same not-yet-attached deferral HydraCookbookRow required.
     public PinnedModelRow(AppModel model, ModelPin pin, bool isDragged, Action<double> onDragChanged, Action onDragEnded, Action<PointerPressedEventArgs>? onGripPressed = null)
     {
+        var state = new ViewState();
         var registry = model.Providers;
         var settings = model.Settings;
         var option = registry.Model(pin.ModelID, pin.Provider);
@@ -366,11 +377,32 @@ internal sealed class PinnedModelRow : Decorator
             Padding = new Thickness(0),
             HorizontalContentAlignment = HorizontalAlignment.Left,
         };
-        // BLOCKED: PR-SETTINGS-189's effort/fast-mode popover needs App.Views.Composer.EffortSlider's
-        // EffortSliderCard, which is still MARROW_STUB at nearly every member (39 sites) and not this unit's own
-        // file. Left unwired rather than guessed; revisit once that unit is ported.
+        // :192-194, :217-241. Click presents the effort card; `arrowEdge: .trailing` is PlacementMode.Right, as
+        // SidebarView.cs and HydraSettingsPage.cs already read it. Each closure re-reads the settings' preference,
+        // so a write to one field keeps the other (:227-229, :235-237 `var updated = settings.preference(...)`).
+        var isPresented = new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value);
+        block.Click += (_, _) => isPresented.Value = true; // :192-194
+        var popover = PlainControls.Popover(block, isPresented, () =>
+        {
+            var card = new EffortSliderCard(
+                option?.ShortName ?? pin.ModelID, // :219
+                pin.Provider, // :220
+                option?.Efforts ?? ValueList<string>.Empty, // :221
+                option?.DefaultEffort, // :222
+                option?.SupportsFast ?? false, // :223
+                new Binding<string?>(
+                    () => settings.Preference(pin.Provider, pin.ModelID).Effort, // :225
+                    effort => settings.SetPreference(settings.Preference(pin.Provider, pin.ModelID) with { Effort = effort }, pin.Provider, pin.ModelID)), // :224-230
+                new Binding<bool>(
+                    () => settings.Preference(pin.Provider, pin.ModelID).FastMode, // :233
+                    isOn => settings.SetPreference(settings.Preference(pin.Provider, pin.ModelID) with { FastMode = isOn }, pin.Provider, pin.ModelID)), // :234-237
+                () => settings.SetPreference(new ModelPreference(), pin.Provider, pin.ModelID)); // :240
+            card.Width = 330; // :242 .frame(width: 330)
+            return card.PresentedChrome(); // :243 .presentedChrome()
+        }, PlacementMode.Right);
         Grid.SetColumn(block, 2);
         row.Children.Add(block);
+        row.Children.Add(popover);
 
         var hint = SwiftImage.SystemName("slider.horizontal.3").Font(SwiftFont.System(12));
         hint.ForegroundStyle(Chrome.SecondaryText);

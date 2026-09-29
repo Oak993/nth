@@ -1029,8 +1029,6 @@ public sealed class ThreadRuntime : MainActorModel
     {
         if (IsReverting || Draft.IsEmpty || Phase == RuntimePhase.Idle) return;
 
-        // Blocked: dispatchSentHead requires AppModel's Hydra launch/dispatch surface,
-        // which is not present in the owned AppModel API for this port slice.
         if (DispatchSentHead(Draft.OutgoingText, Draft.Attachments))
         {
             Draft = new ComposerDraft();
@@ -1289,15 +1287,19 @@ public sealed class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1028-1040.
     private bool DispatchHead(FollowUpPrompt prompt, HydraHeadInfo.Origin origin)
     {
-        if (appReference is null || !appReference.TryGetTarget(out var app)) return false;
-        if (app.Thread(ThreadID) is not { } thread || thread.IsArchived) return false;
-
-        // BLOCKED: this AppModel slice does not expose hydraLaunch(for:),
-        // runningDroppyHeads(of:), hydraChatContext(for:), or spawnDroppyHead(...).
-        // Do not infer a launch or create a head without those authoritative APIs.
-        _ = prompt;
-        _ = origin;
-        return false;
+        if (appReference is null || !appReference.TryGetTarget(out var app)) return false; // :1029
+        if (app.Thread(ThreadID) is not { } thread || thread.IsArchived // :1029
+            || app.HydraLaunch(thread) is not { } launch // :1029
+            || !launch.HasRoom(app.RunningDroppyHeads(ThreadID))) return false; // :1030
+        var task = TextCleanup.SingleLine(prompt.Text, 60); // :1031 the head's title; the brief carries the full text
+        // :1032 read now, so the head sees the chat as it stands at dispatch, not as the closure later runs.
+        var (lastUserPrompt, lastReply, touchedPaths) = app.HydraChatContext(ThreadID);
+        var context = new HydraPrompts.ChatContext { LastUserPrompt = lastUserPrompt, LastReply = lastReply, TouchedPaths = touchedPaths };
+        var leadIsWorking = phase != RuntimePhase.Idle; // :1033 captured here, not re-read inside the closure
+        var text = prompt.Text; // :1034
+        // :1035-1037 no batch, no preferred index, no project, no profile: such a head is never part of a batch.
+        return app.SpawnDroppyHead(ThreadID, task, origin, prompt.Attachments, null, null, null, null,
+            (persona, workplace) => HydraPrompts.QueuedHeadPrompt(persona, text, context, workplace, leadIsWorking)) is not null;
     }
 
     // ThreadRuntime.swift:1042-1053.
@@ -1895,7 +1897,7 @@ public sealed class ThreadRuntime : MainActorModel
 
                 ProviderSession created = thread.Provider switch
                 {
-                    ProviderKind.Deepseek => throw new NotImplementedException("BLOCKED: DeepSeekSession is not present in the owned provider tree."),
+                    ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1490
                     ProviderKind.Meta => new MetaSession(configuration),
                     ProviderKind.Zai => new ZaiSession(configuration),
                     _ => throw new InvalidOperationException($"{thread.Provider} is not an API-key provider."),
@@ -1973,10 +1975,10 @@ public sealed class ThreadRuntime : MainActorModel
                 ProviderKind.Claude => new ClaudeSession(configuration),
                 ProviderKind.Antigravity => new AntigravitySession(configuration),
                 ProviderKind.Copilot => new CopilotSession(configuration),
-                ProviderKind.Commandcode => throw new NotImplementedException("BLOCKED: CommandCodeSession is not present in the owned provider tree."),
-                ProviderKind.Pi => throw new NotImplementedException("BLOCKED: PiSession is not present in the owned provider tree."),
+                ProviderKind.Commandcode => new CommandCodeSession(configuration), // :1554
+                ProviderKind.Pi => new PiSession(configuration), // :1555
                 ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Devin => new ACPSession(configuration),
-                ProviderKind.Deepseek => throw new NotImplementedException("BLOCKED: DeepSeekSession is not present in the owned provider tree."),
+                ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1557
                 ProviderKind.Meta => new MetaSession(configuration),
                 ProviderKind.Zai => new ZaiSession(configuration),
                 _ => throw new InvalidOperationException($"Unsupported provider session: {thread.Provider}."),
@@ -2363,7 +2365,6 @@ public sealed class ThreadRuntime : MainActorModel
         foreach (var (agentID, headID) in hydraNativeHeads.ToArray())
         {
             if (App?.Runtime(headID)?.Thread?.Hydra is not { IsBackground: false, IsFinished: false }) continue;
-            // HydraAgentFinished is blocked on this slice until its AppModel Hydra operations are ported.
             HydraAgentFinished(agentID,
                 status == TurnStatus.Completed ? TurnStatus.Completed : TurnStatus.Interrupted,
                 summary: null);
@@ -3744,11 +3745,8 @@ public sealed class ThreadRuntime : MainActorModel
                 }
                 if (value.Update.Status is { } status
                     && status != ToolCall.Status.Running
-                    && HydraToolHeads.TryGetValue(value.Id, out _))
-                {
-                    // Blocked: finishing a native head requires AppModel's Hydra completion surface,
-                    // which is not present in the owned AppModel API for this port slice.
-                }
+                    && HydraToolHeads.TryGetValue(value.Id, out var toolHeadID))
+                    HydraToolFinished(toolHeadID, status, value.Update.Output); // :2151-2153
                 break;
             case ProviderEvent.PlanDelta value:
                 QueueDelta(value.Id, DeltaKind.Plan, value.Text);
@@ -3875,12 +3873,119 @@ public sealed class ThreadRuntime : MainActorModel
         }
     }
 
-    // Blocked until the owned AppModel port exposes the native-Hydra operations. Keep these
-    // event entry points explicit so other ProviderEvent cases remain exhaustively routed.
-    private void HydraAgentStarted(AgentSpawn spawn) { }
-    private void HydraAgentEvent(string agentID, ProviderEvent @event) { }
-    private void HydraAgentFinished(string agentID, TurnStatus status, string? summary) { }
-    private void HydraToolFinished(Guid headID, ToolCall.Status status, string? output) { }
+    // :2576-2603. A head the provider started inside this session, or more said about one already known: a name for
+    // the tool call that spawned it, its brief. PR-RUNTIME-104.
+    private void HydraAgentStarted(AgentSpawn spawn)
+    {
+        if (App is not { } app || Thread is not { } thread || !app.HydraIsOn(thread)) return; // :2579
+        if (hydraNativeHeads.TryGetValue(spawn.Id, out var knownHeadID)) // :2580
+        {
+            var named = spawn.Description.Length != 0 && spawn.Description != "Subagent"; // :2581
+            app.UpdateThread(knownHeadID, head => // :2582
+            {
+                if (head.Hydra is not { } info) return head; // :2583
+                var title = head.Title;
+                if (named && info.Task != spawn.Description) // :2584
+                {
+                    info = info with { Task = spawn.Description }; // :2585
+                    title = $"{info.Persona.Name} \u00B7 {TextCleanup.SingleLine(spawn.Description, 60)}"; // :2586
+                }
+                if (info.ToolUseID is null) info = info with { ToolUseID = spawn.ToolUseID }; // :2588
+                return head with { Title = title, Hydra = info }; // :2589
+            });
+            if (spawn.ToolUseID is { } knownToolUseID) RehearseHydraHead(knownToolUseID, knownHeadID); // :2591
+            if (spawn.Prompt is { } prompt && app.ExistingRuntime(knownHeadID) is { HasSentPrompts: false } headRuntime)
+                headRuntime.RehearseBrief(prompt); // :2592-2594
+            return; // :2595
+        }
+        if (app.SpawnNativeHead(ThreadID, spawn) is not { } head) return; // :2597
+        hydraNativeHeads[spawn.Id] = head.Id; // :2598
+        // :2599-2601 pendingNativeSpend is filled only by the unreachable second .tokenSpend arm (PR-RUNTIME-252,
+        // PR-RUNTIME-104 windows_path: do not buffer spend for it), so its flush finds nothing and is not ported.
+        if (spawn.ToolUseID is { } toolUseID) RehearseHydraHead(toolUseID, head.Id); // :2602
+    }
+
+    // :2606-2641. An event from inside a head's transcript, rehearsed on the head's own timeline. PR-RUNTIME-105.
+    private void HydraAgentEvent(string agentID, ProviderEvent @event)
+    {
+        if (App is not { } app) return; // :2607
+        // :2610-2612. A head heard from before it was announced: on Claude the agent id is the tool call that spawned
+        // it, so the row already names its task.
+        if (!hydraNativeHeads.ContainsKey(agentID)
+            && entryIndex.TryGetValue(agentID, out var entry)
+            && entry.Item.TimelineItemContent is TimelineItem.Content.Tool { Value.ToolCallKind: ToolCall.Kind.Agent } agentRow)
+        {
+            HydraAgentStarted(new AgentSpawn
+            {
+                Id = agentID,
+                TaskID = null,
+                ToolUseID = agentID,
+                Description = agentRow.Value.Title,
+                Prompt = null,
+                Model = null,
+                IsBackground = false,
+            });
+        }
+        if (!hydraNativeHeads.TryGetValue(agentID, out var headID) || app.ExistingRuntime(headID) is not { } headRuntime) return; // :2613
+        switch (@event) // :2614
+        {
+            case ProviderEvent.TurnStarted: // :2615-2624 a head briefed again by its lead works another turn
+                if (!headRuntime.IsRunning)
+                {
+                    headRuntime.RehearseTurn(null);
+                    app.UpdateHydraHead(headID, info => info with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running, FinishedAt = null });
+                }
+                break;
+            case ProviderEvent.TurnCompleted completed: // :2625-2626
+                HydraAgentFinished(agentID, completed.Status, null);
+                break;
+            case ProviderEvent.ToolStarted started: // :2627-2634
+                headRuntime.HydraToolCalls += 1;
+                headRuntime.HydraActivity = Marrow.App.Views.Chat.ToolPresentation.Label(started.Call);
+                headRuntime.HydraLastEventAt = SwiftDate.Now;
+                NoteHydraEdits(started.Call.Edits);
+                if (started.Call.ToolCallKind == ToolCall.Kind.Command) WatchHydraCommand($"{agentID}-{started.Id}", started.Call);
+                headRuntime.Rehearse(@event);
+                break;
+            case ProviderEvent.ToolUpdated updated: // :2635-2639
+                if (updated.Update.Edits is { } edits) NoteHydraEdits(edits);
+                if (updated.Update.Status is { } status && status != ToolCall.Status.Running) SettleHydraCommand($"{agentID}-{updated.Id}");
+                headRuntime.Rehearse(@event);
+                break;
+            case ProviderEvent.Usage or ProviderEvent.SessionReady or ProviderEvent.Models or ProviderEvent.Commands
+                or ProviderEvent.Title or ProviderEvent.AssistantMessageID: // :2640-2641 a native head's own usage, ids and catalogs update nothing
+                break;
+            default: // :2642-2643
+                headRuntime.Rehearse(@event);
+                break;
+        }
+    }
+
+    // :2646-2652. A head finished: its timeline closes and its status lands. hydraNativeHeads is NOT pruned here, so
+    // a head can be finished more than once; only StopNativeHeads clears the map (PR-RUNTIME-107).
+    private void HydraAgentFinished(string agentID, TurnStatus status, string? summary)
+    {
+        if (App is not { } app || !hydraNativeHeads.TryGetValue(agentID, out var headID)) return; // :2647
+        app.FinishHydraHead(headID, status, summary); // :2648
+        if (app.ExistingRuntime(headID) is { IsRunning: true } headRuntime)
+            headRuntime.Rehearse(new ProviderEvent.TurnCompleted(status, null)); // :2649-2651
+    }
+
+    // :2657-2666. The tool call that sent out a foreground head has returned: the head is done, and the result is
+    // its report. A background head's call returns at once and says nothing about the head (PR-RUNTIME-108).
+    private void HydraToolFinished(Guid headID, ToolCall.Status status, string? output)
+    {
+        if (App is not { } app || app.Thread(headID) is not { } head || head.Hydra is not { } info
+            || info.HydraHeadInfoKind != HydraHeadInfo.Kind.Native || info.IsBackground || info.IsFinished
+            || info.NativeID is not { } nativeID) return; // :2658-2659
+        var outcome = status switch // :2660-2664
+        {
+            ToolCall.Status.Completed => TurnStatus.Completed,
+            ToolCall.Status.Declined => TurnStatus.Interrupted,
+            _ => TurnStatus.Failed,
+        };
+        HydraAgentFinished(nativeID, outcome, output); // :2665
+    }
 
     // The provider event routes call this teardown on release and exit. :2680-2690. Review fix
     // (PR-RUNTIME-103): this was previously a no-op pending AppModel.FinishHydraHead/ExistingRuntime, which
