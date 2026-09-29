@@ -58,7 +58,7 @@ public sealed class ACPSession : ProviderSession
     private string? thoughtID; // :40
     private int counter; // :41
     private readonly Dictionary<string, RPCID> pendingPermissions = new(); // :42; R-COLL-2: iteration order unspecified
-    private readonly HashSet<string> todoToolCallIDs = new(); // :45-48; R-COLL-2: iteration order unspecified
+    private readonly HashSet<string> todoToolCallIDs = new(SwiftStringComparer.Instance); // :45-48; R-COLL-2: iteration order unspecified; R-STR-2: Set<String> is canonical
     private RuntimeMode runtimeMode; // :38
 
     // :50-62. Model/mode/effort state discovered from the session reply and config options.
@@ -464,7 +464,7 @@ public sealed class ACPSession : ProviderSession
                     currentModel = current is { } cur ? (UsesParameterizedModels ? BaseModelID(cur) : cur) : currentModel; // :339
                     // :340-343. One lookup per value: the walk over OpenCode's four hundred models replies
                     // four hundred times, and a linear search per value on each reply stalled the main actor.
-                    var knownByID = new Dictionary<string, ModelOption>();
+                    var knownByID = new Dictionary<string, ModelOption>(SwiftStringComparer.Instance); // R-STR-2: Dictionary<String, _> is canonical
                     foreach (var known in models)
                     {
                         var baseID = BaseModelID(known.Id);
