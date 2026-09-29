@@ -1,4 +1,5 @@
+_packet/revision/evidence/candidate-clauses-pr-win-006-2026-09-29T16-13-44-000Z-944d84
 _packet/revision/evidence/lifecycle-pr-win-006-2026-09-29T15-47-54-717Z-185cbf
 _packet/revision/evidence/pr-win-006-original-2026-09-29T14-21-07-237Z-e756b4
 _packet/revision/evidence/pr-win-006-own-2026-09-29T14-18-10-000Z-c86a3d
-_packet/revision/evidence/supplement-gate-pr-win-006-2026-09-29T16-06-51-011Z-b077eb
+_packet/revision/evidence/candidate-gate-pr-win-006-2026-09-29T16-14-49-219Z-0090ec
