@@ -41,6 +41,27 @@ public sealed class ChromeVisualPickerAuditTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-THEME-183")] // ChromeVisualPicker.swift:44-46: the body calls preview(option.value) again whenever state it read changes
+    public void The_preview_is_reevaluated_when_state_it_reads_changes() => headless.OnUiThread(() =>
+    {
+        using var frameSource = FrameClock.Source.Override(new ManualFrameSource());
+        var flag = new CellSample<bool>(false);
+        var cell = new CellSample<int>(1);
+        var picker = new ChromeVisualPicker<int, TextBlock>(
+            new[] { (1, "One"), (2, "Two") },
+            new Binding<int>(() => cell.Value, v => cell.Value = v),
+            value => new TextBlock { Text = flag.Value ? "B" + value : "A" + value });
+        var window = Show(picker);
+        Assert.Contains(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == "A1");
+        flag.Value = true;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Contains(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == "B1");
+        Assert.DoesNotContain(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == "A1");
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+    });
+
+    [Fact]
     [Trait("Req", "PR-THEME-183")] // ChromeVisualPicker.swift:76-84: lineLimit(2), and SwiftUI's default truncation is the tail ellipsis
     public void A_caption_longer_than_two_lines_ends_with_a_tail_ellipsis() => headless.OnUiThread(() =>
     {

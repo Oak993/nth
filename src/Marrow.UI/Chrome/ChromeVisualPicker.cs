@@ -166,6 +166,13 @@ public sealed class ChromeVisualTile : Decorator
         stack.Track(() => state.IsHovering, _ => UpdateStageVisuals());
 
         Child = button;
+
+        AttachedToVisualTree += (_, _) => WatchContent();
+        DetachedFromVisualTree += (_, _) =>
+        {
+            contentWatch?.Dispose();
+            contentWatch = null;
+        };
     }
 
     /// <summary>
@@ -174,28 +181,20 @@ public sealed class ChromeVisualTile : Decorator
     /// </summary>
     private Control CreateStage()
     {
-        // The content itself
-        var contentControl = content();
-
-        // Apply the content styling (font and color)
-        // :88 .font(.system(.title2, weight: .medium))
-        var titleFont = SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium);
-        ApplyFontToContent(contentControl, titleFont);
-
         // Create a border for the background and ring
         stageBack = new Border
         {
             Width = width,
             Height = ChromeVisualTileMetrics.Height,
             CornerRadius = new CornerRadius(ChromeVisualTileMetrics.CornerRadius),
-            Child = contentControl,
         };
 
         // Apply the background fill: Chrome.overlay(isHovering || isSelected ? 0.10 : 0.06)
         UpdateStageBrush();
 
-        // :89 .foregroundStyle(isSelected ? Chrome.accent : Chrome.secondaryText)
-        UpdateContentColor(contentControl);
+        // The content itself, built where the tile reads observable state (:44-46 the body calls preview again after
+        // anything it read changes); it takes the font and colour below when installed.
+        WatchContent();
 
         // Wrap in a border to add the ring overlay
         paddedStage = new Border
@@ -209,6 +208,23 @@ public sealed class ChromeVisualTile : Decorator
         UpdateRing();
 
         return paddedStage;
+    }
+
+    // :44-46 content() is part of the body: SwiftUI evaluates it again after any state it read changes, so the stage
+    // holds a tracked evaluation that swaps in the fresh view. Torn down on detach and re-armed on attach.
+    private Tracked<Control>? contentWatch;
+
+    private void WatchContent() => contentWatch ??= new Tracked<Control>(content, InstallContent);
+
+    private void InstallContent(Control contentControl)
+    {
+        if (stageBack is null) return;
+        // :88 .font(.system(.title2, weight: .medium))
+        ApplyFontToContent(contentControl, SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium));
+        stageBack.Child = null;
+        stageBack.Child = contentControl;
+        // :89 .foregroundStyle(isSelected ? Chrome.accent : Chrome.secondaryText)
+        UpdateContentColor(contentControl);
     }
 
     /// <summary>
