@@ -143,6 +143,12 @@ namespace Marrow.UI.Chrome
 
         protected override AutomationPeer OnCreateAutomationPeer() => new SelectableSegmentPeer(this, _state);
 
+        // :55 Button(action: select): accessibility activation runs the same action a click does.
+        internal void Activate()
+        {
+            if (IsEffectivelyEnabled) OnClick();
+        }
+
         /// <summary>
         /// Automation peer for the selectable segment button.
         /// </summary>
@@ -161,8 +167,11 @@ namespace Marrow.UI.Chrome
             ISelectionProvider? ISelectionItemProvider.SelectionContainer => null;
             void ISelectionItemProvider.AddToSelection() { }
             void ISelectionItemProvider.RemoveFromSelection() { }
-            void ISelectionItemProvider.Select() { }
-            void IInvokeProvider.Invoke() => ((Button)Owner).Focus();
+            void ISelectionItemProvider.Select()
+            {
+                if (!_state.IsSelected) ((SelectableSegmentButton)Owner).Activate();
+            }
+            void IInvokeProvider.Invoke() => ((SelectableSegmentButton)Owner).Activate();
         }
     }
 
