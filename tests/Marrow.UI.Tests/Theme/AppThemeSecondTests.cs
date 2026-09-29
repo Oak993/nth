@@ -301,7 +301,15 @@ public sealed class AppThemeSecondTests(HeadlessSession headless)
     {
         var swatch = (ThemeSwatch)AppTheme.Claude.Swatch();
         Assert.IsAssignableFrom<Ellipse>(swatch);
-        Assert.Equal(Stretch.Fill, swatch.Stretch);
+        // Fills its (non-square) frame exactly; the 0.5 rim is inside it (:152 strokeBorder), so the outer edge is the frame.
+        swatch.Width = 30;
+        swatch.Height = 20;
+        Show(swatch);
+        var edge = swatch.RenderedGeometry!.Bounds.Inflate(swatch.StrokeThickness / 2);
+        Assert.Equal(0, edge.X, 3);
+        Assert.Equal(0, edge.Y, 3);
+        Assert.Equal(30, edge.Width, 3);
+        Assert.Equal(20, edge.Height, 3);
         Assert.False(swatch.IsHitTestVisible); // ENGINEERING DECISION: not interactive, clicks fall through
     });
 
@@ -321,4 +329,19 @@ public sealed class AppThemeSecondTests(HeadlessSession headless)
         Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         return window;
     }
+
+    [Fact]
+    [Trait("Req", "PR-THEME-035")] // UI/Theme/AppTheme.swift:152 Circle().strokeBorder keeps the 0.5 rim inside the circle
+    public void Swatch_rim_lies_entirely_inside_the_swatch_bounds() => headless.OnUiThread(() =>
+    {
+        var swatch = (ThemeSwatch)AppTheme.Claude.Swatch();
+        swatch.Width = 16;
+        swatch.Height = 16;
+        Show(swatch);
+        var edge = swatch.RenderedGeometry!.Bounds.Inflate(swatch.StrokeThickness / 2);
+        Assert.Equal(0, edge.X, 3);
+        Assert.Equal(0, edge.Y, 3);
+        Assert.Equal(16, edge.Width, 3);
+        Assert.Equal(16, edge.Height, 3);
+    });
 }
