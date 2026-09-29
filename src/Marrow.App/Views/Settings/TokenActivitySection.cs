@@ -342,6 +342,9 @@ public sealed class TokenActivitySection : Decorator
             isSelected = value;
         }
 
+        /// <summary>:62-75 the SwiftUI Button's action: what a UI Automation invoke runs, exactly like a click.</summary>
+        internal void Activate() => OnClick();
+
         private sealed class Peer(ChipButton owner) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
         {
             protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
@@ -350,7 +353,7 @@ public sealed class TokenActivitySection : Decorator
             void ISelectionItemProvider.AddToSelection() { }
             void ISelectionItemProvider.RemoveFromSelection() { }
             void ISelectionItemProvider.Select() { }
-            void IInvokeProvider.Invoke() => owner.Focus();
+            void IInvokeProvider.Invoke() => owner.Activate();
         }
     }
 
