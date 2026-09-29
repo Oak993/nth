@@ -46,7 +46,7 @@ public sealed class WorkingTreeWatch
                 if (!info.Exists) return new(null, null);
                 return new(info.LastWriteTimeUtc, info.Length);
             }
-            catch (Exception error) when (error is IOException or UnauthorizedAccessException)
+            catch (Exception error) when (SwiftTry.IsThrownError(error)) // :26 try? attributesOfItem: any failure is an empty stamp
             {
                 return new(null, null);
             }
