@@ -1,0 +1,463 @@
+using System.Reflection;
+using System.Globalization;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.Media;
+using Avalonia.Threading;
+using Marrow.App;
+using Marrow.App.Port;
+using Marrow.App.Runtime;
+using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Terminal;
+using Marrow.App.Views.Terminal.Port;
+using Marrow.App.Window;
+using Marrow.Core.Models;
+using Marrow.UI.Chrome;
+using Marrow.UI.Port;
+using Xunit;
+using AvaloniaWindow = Avalonia.Controls.Window;
+
+namespace Marrow.App.Tests.Views.Terminal;
+
+// Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B3 52bc792), :191-318.
+// These are deliberately real Windows tests: TerminalSession starts a ConPTY-backed PowerShell process and the
+// resize tests drive the same Win32 window messages consumed by WindowLiveResize. The application executable is never
+// launched.
+[Collection("Headless")]
+public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
+{
+    [Fact]
+    [Trait("Req", "PR-TERM-031")] // App/Views/Terminal/TerminalPanel.swift:214-221
+    public void Bare_Escape_closes_at_the_shell_prompt_but_modified_Escape_and_a_foreground_child_do_not()
+    {
+        var closeCount = 0;
+        WithAttachedHost("escape prompt", null, (session, host, window, _, runtime) =>
+        {
+            Assert.True(UiPump.Until(
+                () => session.IsRunning && TerminalSession.ForegroundJobIsTheShell(session.View.ProcessId),
+                TimeSpan.FromSeconds(15)), "the real ConPTY shell did not reach the prompt");
+
+            Assert.True(session.View.Focus());
+            Assert.True(session.View.IsFocused);
+            // The host was created with this callback; the first bare Escape is the only one that should close.
+            foreach (var modifier in new[] { RawInputModifiers.Control, RawInputModifiers.Shift,
+                         RawInputModifiers.Alt, RawInputModifiers.Meta })
+                window.KeyPress(Key.Escape, modifier, PhysicalKey.Escape, null);
+            Assert.Equal(0, closeCount);
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Assert.Equal(1, closeCount);
+
+            // The real child is launched by the same PowerShell process inside the ConPTY. While it owns the
+            // foreground, the host must leave Escape for the terminal rather than closing the drawer.
+            var childCommand = "$exe=(Get-Process -Id $PID).Path; Start-Process -FilePath $exe -ArgumentList '-NoLogo','-NoProfile','-Command','Start-Sleep -Seconds 10'; Start-Sleep -Seconds 2";
+            var childSession = new TerminalSession(Guid.NewGuid(), TerminalTestFolders.Create("escape child"), "PowerShell", childCommand);
+            var childHost = new TerminalHost(childSession, runtime, () => closeCount++);
+            var childRoot = new Border { Child = childHost };
+            var childWindow = new AvaloniaWindow { Content = childRoot, Width = 640, Height = 240 };
+            var childResize = new WindowLiveResize(childWindow);
+            AppEnvironment.SetWindowLiveResize(childRoot, childResize);
+            childWindow.Show();
+            Settle(childWindow);
+            try
+            {
+                Assert.True(UiPump.Until(
+                    () => childSession.IsRunning && !TerminalSession.ForegroundJobIsTheShell(childSession.View.ProcessId),
+                    TimeSpan.FromSeconds(15)), "the real ConPTY foreground child was not observed");
+                Assert.True(childSession.View.Focus());
+                Assert.True(childSession.View.IsFocused);
+                childWindow.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+                Assert.Equal(1, closeCount);
+            }
+            finally
+            {
+                childWindow.Close();
+                childSession.Terminate();
+                Dispatcher.UIThread.RunJobs();
+            }
+
+            // Keep this assertion tied to the source guard, rather than merely to the callback count.
+            Assert.False(TerminalSession.ForegroundJobIsTheShell(childSession.View.ProcessId));
+        }, (session, _, _, _, _) => { }, () => closeCount++);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-032")] // App/Views/Terminal/TerminalPanel.swift:199-205,225-251
+    public void Escape_listener_is_scoped_to_the_attached_terminal_and_is_removed_on_detach()
+    {
+        var closes = 0;
+        Assert.Equal(0, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+        WithAttachedHost("escape listener", null, (session, host, window, _, _) =>
+        {
+            var attached = StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount");
+            Assert.Equal(1, attached);
+            var originalRoot = Assert.IsType<Border>(window.Content);
+            originalRoot.Child = null;
+            window.Content = null;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(0, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+
+            // Reattaching the same session creates one fresh scoped listener, never an accumulating document listener.
+            var root = new Border { Child = host };
+            var resize = new WindowLiveResize(window);
+            AppEnvironment.SetWindowLiveResize(root, resize);
+            window.Content = root;
+            window.Show();
+            Settle(window);
+            Assert.Equal(1, StaticMetric(typeof(TerminalHost), "ActiveEscapeListenerCount"));
+            Assert.True(UiPump.Until(() => TerminalSession.ForegroundJobIsTheShell(session.View.ProcessId),
+                TimeSpan.FromSeconds(15)), "the ConPTY shell did not reach its prompt");
+            Assert.True(session.View.Focus());
+            window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+            Assert.Equal(1, closes);
+        }, (session, _, _, _, _) => { }, () => closes++);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-033")] // App/Views/Terminal/TerminalPanel.swift:268-303
+    public void Live_resize_parks_autoresizing_and_coalesces_multiple_frames_to_one_50ms_sync()
+    {
+        WithAttachedHost("resize coalescing", null, (session, host, window, resize, _) =>
+        {
+            var container = LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single();
+            var view = Assert.IsAssignableFrom<Control>(session.View);
+            var before = IntMetric(container, "SyncFrameCount");
+            var original = view.Bounds;
+
+            BeginWin32Resize(resize);
+            window.Width = 800;
+            window.Height = 360;
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(BoolMetric(container, "IsAutoResizing"));
+            Assert.True(BoolMetric(container, "IsResizePending"));
+            var firstBeat = Field(container, "pendingSync").GetValue(container);
+            Assert.NotNull(firstBeat);
+            Assert.Equal(original, view.Bounds);
+
+            window.Width = 860;
+            window.Height = 400;
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(before, IntMetric(container, "SyncFrameCount"));
+            Assert.Same(firstBeat, Field(container, "pendingSync").GetValue(container));
+
+            Assert.True(UiPump.Until(() => !BoolMetric(container, "IsResizePending"), TimeSpan.FromSeconds(2)));
+            Assert.Equal(before + 1, IntMetric(container, "SyncFrameCount"));
+            Assert.Equal(new Size(860, 400), view.Bounds.Size);
+            EndWin32Resize(resize);
+        }, (session, _, _, _, _) => { });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-034")] // App/Views/Terminal/TerminalPanel.swift:305-312
+    public void Ending_live_resize_cancels_pending_work_and_syncs_the_final_frame_once()
+    {
+        WithAttachedHost("resize finish", null, (session, host, window, resize, _) =>
+        {
+            var container = LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single();
+            var view = Assert.IsAssignableFrom<Control>(session.View);
+            var before = IntMetric(container, "SyncFrameCount");
+            BeginWin32Resize(resize);
+            window.Width = 900;
+            window.Height = 420;
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(BoolMetric(container, "IsResizePending"));
+
+            EndWin32Resize(resize);
+            Assert.False(BoolMetric(container, "IsResizePending"));
+            Assert.True(BoolMetric(container, "IsAutoResizing"));
+            Assert.Equal(before + 1, IntMetric(container, "SyncFrameCount"));
+            Assert.Equal(new Size(900, 420), view.Bounds.Size);
+
+            UiPump.For(TimeSpan.FromMilliseconds(120));
+            Assert.Equal(before + 1, IntMetric(container, "SyncFrameCount"));
+        }, (session, _, _, _, _) => { });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-034")]
+    [Trait("Req", "UI-TERM-010")]
+    public void A_layout_change_outside_live_resize_updates_the_real_ConPTY_grid()
+    {
+        const string command = "Write-Output ('BEFOREGRID=' + [Console]::WindowWidth + 'x' + [Console]::WindowHeight); "
+            + "$null = [Console]::ReadLine(); "
+            + "Write-Output ('AFTERGRID=' + [Console]::WindowWidth + 'x' + [Console]::WindowHeight); "
+            + "Start-Sleep -Seconds 5";
+        WithAttachedHost("outside live resize", command, (session, host, window, _, _) =>
+        {
+            Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains("BEFOREGRID=", StringComparison.Ordinal),
+                TimeSpan.FromSeconds(15)), "the real ConPTY child did not report its initial grid");
+            var initial = session.View.LastPseudoConsoleSize;
+            var initialFont = session.View.Font!.Resolve();
+            var initialTypeface = new Typeface(initialFont.FontFamily, initialFont.FontStyle, initialFont.FontWeight);
+            var initialGlyph = new FormattedText("W", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                initialTypeface, initialFont.FontSize, Brushes.White);
+            var initialScale = window.RenderScaling;
+            Assert.Equal((int)Math.Floor(640 / (Math.Round(initialGlyph.Width * initialScale) / initialScale)), initial.Columns);
+            Assert.Equal((int)Math.Floor(240 / (Math.Ceiling(initialGlyph.Height * initialScale) / initialScale)), initial.Rows);
+            Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains(
+                $"BEFOREGRID={initial.Columns}x{initial.Rows}", StringComparison.Ordinal),
+                TimeSpan.FromSeconds(15)), "the real ConPTY child did not observe its measured initial grid");
+            // TerminalFont.preferred() may select a user's 16-point terminal face (TerminalFont.swift:20-90).
+            // A 16-point W advance distinguishes font measurement from the old 0.6-point-size guess.
+            session.View.Font = SwiftFont.MonospacedSystemFont(16, SwiftFont.Weight.Regular);
+
+            window.Width = 1000;
+            window.Height = 600;
+            Settle(window);
+            Assert.Equal(new Size(1000, 600), session.View.Bounds.Size);
+            Assert.True(UiPump.Until(() => session.View.LastPseudoConsoleSize.Columns > initial.Columns,
+                TimeSpan.FromSeconds(5)), "the layout change did not resize the pseudoconsole");
+
+            session.View.SendBytes("go\r"u8.ToArray());
+            var final = session.View.LastPseudoConsoleSize;
+            var font = session.View.Font!.Resolve();
+            var typeface = new Typeface(font.FontFamily, font.FontStyle, font.FontWeight);
+            var glyph = new FormattedText("W", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                typeface, font.FontSize, Brushes.White);
+            var scale = window.RenderScaling;
+            var cellWidth = Math.Max(1, Math.Round(glyph.Width * scale) / scale);
+            var cellHeight = Math.Clamp(Math.Ceiling(glyph.Height * scale) / scale, 1, 8192);
+            Assert.Equal((int)Math.Floor(1000 / cellWidth), final.Columns);
+            Assert.Equal((int)Math.Floor(600 / cellHeight), final.Rows);
+            Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains(
+                $"AFTERGRID={final.Columns}x{final.Rows}", StringComparison.Ordinal),
+                TimeSpan.FromSeconds(15)), "the real ConPTY child did not observe the settled grid");
+        }, (session, _, _, _, _) => { });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-TERM-010")]
+    public void The_real_ConPTY_child_starts_at_the_measured_640_by_240_frame_before_attachment()
+    {
+        headless.OnUiThread(() =>
+        {
+            var session = new TerminalSession(Guid.NewGuid(), TerminalTestFolders.Create("initial cell grid"),
+                "PowerShell", "Write-Output ('INITIALGRID=' + [Console]::WindowWidth + 'x' + [Console]::WindowHeight); Start-Sleep -Seconds 5");
+            try
+            {
+                var font = session.View.Font!.Resolve();
+                var typeface = new Typeface(font.FontFamily, font.FontStyle, font.FontWeight);
+                var glyph = new FormattedText("W", CultureInfo.InvariantCulture, FlowDirection.LeftToRight,
+                    typeface, font.FontSize, Brushes.White);
+                var width = Math.Max(1, Math.Round(glyph.Width));
+                var height = Math.Clamp(Math.Ceiling(glyph.Height), 1, 8192);
+                var expected = $"INITIALGRID={(int)Math.Floor(640 / width)}x{(int)Math.Floor(240 / height)}";
+                Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains(expected, StringComparison.Ordinal),
+                    TimeSpan.FromSeconds(15)), $"the unattached ConPTY child did not start at {expected}");
+            }
+            finally { session.Terminate(); Dispatcher.UIThread.RunJobs(); }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-036")] // App/Views/Terminal/TerminalPanel.swift:259-266
+    public void Resize_observers_follow_the_current_window_and_are_removed_when_detached()
+    {
+        WithAttachedHost("resize observers", null, (session, host, window, _, _) =>
+        {
+            var container = LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single();
+            Assert.Equal(2, IntMetric(container, "ResizeObserverCount"));
+
+            var originalRoot = Assert.IsType<Border>(window.Content);
+            originalRoot.Child = null;
+            window.Content = null;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(0, IntMetric(container, "ResizeObserverCount"));
+
+            var secondWindow = new AvaloniaWindow { Width = 640, Height = 240 };
+            var secondRoot = new Border { Child = host };
+            var secondResize = new WindowLiveResize(secondWindow);
+            AppEnvironment.SetWindowLiveResize(secondRoot, secondResize);
+            secondWindow.Content = secondRoot;
+            secondWindow.Show();
+            Settle(secondWindow);
+            try
+            {
+                Assert.Equal(2, IntMetric(container, "ResizeObserverCount"));
+            }
+            finally
+            {
+                secondWindow.Close();
+                Dispatcher.UIThread.RunJobs();
+            }
+        }, (session, _, _, _, _) => { });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-TERM-010")] // App/Views/Terminal/TerminalPanel.swift:191-251; TerminalStore.swift:21-23,47-56
+    public void The_terminal_surface_starts_at_the_source_frame_before_its_container_resizes_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            var view = new TerminalHostView();
+            Assert.Equal(640, view.Width); // TerminalStore.swift:21
+            Assert.Equal(240, view.Height);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-TERM-010")] // App/Views/Terminal/TerminalPanel.swift:191-251; TerminalStore.swift:21-23,47-56
+    public void The_session_hosts_a_focusable_font_configured_ConPTY_surface_with_live_output_and_theme_values()
+    {
+        WithAttachedHost("terminal surface", "Write-Output 'terminal-surface-proof'; Start-Sleep -Seconds 10", (session, host, _, _, runtime) =>
+        {
+            var view = Assert.IsAssignableFrom<Control>(session.View);
+            Assert.True(view.Focusable);
+            Assert.Equal(new Size(640, 240), session.View.InitialFrame); // TerminalStore.swift:21
+            Assert.Equal(new Size(640, 240), view.Bounds.Size); // TerminalPanel.swift:58-63 immediately hosts the existing frame
+            Assert.Equal(TerminalFont.Preferred(), session.View.Font); // TerminalStore.swift:22
+            Assert.True(session.View.OptionAsMetaKey); // TerminalStore.swift:23
+            session.ApplyAppearance(isDark: true);
+            Assert.Equal(new SwiftColor(0.08, 1).Resolve(Avalonia.Styling.ThemeVariant.Dark), session.View.NativeBackgroundColor!.Resolve(Avalonia.Styling.ThemeVariant.Dark));
+            Assert.Equal(new SwiftColor(0.9, 1).Resolve(Avalonia.Styling.ThemeVariant.Dark), session.View.NativeForegroundColor!.Resolve(Avalonia.Styling.ThemeVariant.Dark));
+            Assert.Same(Chrome.AccentNSColor, session.View.CaretColor);
+            Assert.Equal(Chrome.AccentNSColor.Opacity(0.3).Resolve(Avalonia.Styling.ThemeVariant.Dark), session.View.SelectedTextBackgroundColor!.Resolve(Avalonia.Styling.ThemeVariant.Dark));
+            session.ApplyAppearance(isDark: false);
+            Assert.Equal(new SwiftColor(0.985, 1).Resolve(Avalonia.Styling.ThemeVariant.Light), session.View.NativeBackgroundColor!.Resolve(Avalonia.Styling.ThemeVariant.Light));
+            Assert.Equal(new SwiftColor(0.12, 1).Resolve(Avalonia.Styling.ThemeVariant.Light), session.View.NativeForegroundColor!.Resolve(Avalonia.Styling.ThemeVariant.Light));
+            Assert.Same(Chrome.AccentNSColor, session.View.CaretColor);
+            Assert.Equal(Chrome.AccentNSColor.Opacity(0.3).Resolve(Avalonia.Styling.ThemeVariant.Light), session.View.SelectedTextBackgroundColor!.Resolve(Avalonia.Styling.ThemeVariant.Light));
+            Assert.True(view.IsFocused);
+            Assert.False(runtime.TerminalWantsFocus); // TerminalPanel.swift:354-364, one focus request per attachment
+
+            Assert.True(UiPump.Until(
+                () => AllText(view).Contains("terminal-surface-proof", StringComparison.Ordinal),
+                TimeSpan.FromSeconds(15)), "the real ConPTY output did not reach the hosted surface");
+            Assert.Contains("terminal-surface-proof", session.View.ScrollbackText, StringComparison.Ordinal); // exited scrollback remains on the long-lived view
+            var container = LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single();
+            Assert.Same(session.View, container.HostedView);
+            Assert.NotNull(LogicalQuery.SelfAndDescendants<TextBlock>(view).SingleOrDefault());
+        }, (session, _, _, _, _) => { });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-TERM-010")]
+    public void Hit_tested_terminal_text_and_Enter_reach_the_real_ConPTY_child()
+    {
+        WithAttachedHost("terminal keyboard", "Write-Output 'INPUTREADY'; "
+            + "$line = Read-Host; Write-Output ('RECEIVED=' + $line); Start-Sleep -Seconds 5",
+            (session, _, window, _, _) =>
+            {
+                Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains("INPUTREADY", StringComparison.Ordinal),
+                    TimeSpan.FromSeconds(15)), "the real ConPTY child did not ask for input");
+                window.MouseDown(new Point(30, 30), MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(new Point(30, 30), MouseButton.Left, RawInputModifiers.None);
+                Assert.True(session.View.IsFocused);
+                window.KeyTextInput("terminal-key-proof");
+                window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+                Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains(
+                    "RECEIVED=terminal-key-proof", StringComparison.Ordinal), TimeSpan.FromSeconds(15)),
+                    "the real ConPTY child did not receive the typed line");
+            }, (session, _, _, _, _) => { });
+    }
+
+    private void WithAttachedHost(
+        string label,
+        string? command,
+        Action<TerminalSession, TerminalHost, AvaloniaWindow, WindowLiveResize, ThreadRuntime> body,
+        Action<TerminalSession, TerminalHost, AvaloniaWindow, WindowLiveResize, ThreadRuntime> beforeBody,
+        Action? onEscape = null)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var project = AppModelSamples.Project("Terminal high risk", harness.NewFolder("terminal-high-risk"));
+            var thread = AppModelSamples.Thread(project);
+            harness.WriteLibrary([project], [thread]);
+            AppModelHarness.WriteDocument(thread.Id);
+            var app = harness.MakeModel();
+            var runtime = harness.Main.OnMain(() => new ThreadRuntime(thread.Id, app));
+
+            TerminalSession? session = null;
+            AvaloniaWindow? window = null;
+            try
+            {
+                harness.Main.OnMain(() =>
+                {
+                    var currentSession = new TerminalSession(Guid.NewGuid(), TerminalTestFolders.Create(label), "PowerShell", command);
+                    session = currentSession;
+                    runtime.TerminalWantsFocus = true;
+                    var host = new TerminalHost(currentSession, runtime, onEscape ?? (() => runtime.IsTerminalVisible = false));
+                    var root = new Border { Child = host };
+                    window = new AvaloniaWindow { Content = root, Width = 640, Height = 240 };
+                    var resize = new WindowLiveResize(window);
+                    AppEnvironment.SetAppModel(root, app);
+                    AppEnvironment.SetWindowLiveResize(root, resize);
+                    window.Show();
+                    Settle(window);
+                    beforeBody(currentSession, host, window, resize, runtime);
+                    body(currentSession, host, window, resize, runtime);
+                });
+            }
+            finally
+            {
+                harness.Main.OnMain(() =>
+                {
+                    window?.Close();
+                    session?.Terminate();
+                    Dispatcher.UIThread.RunJobs();
+                });
+            }
+        });
+    }
+
+    private static void BeginWin32Resize(WindowLiveResize resize)
+    {
+        var handled = false;
+        resize.WndProc(0, 0x0231, 0, 0, ref handled); // WM_ENTERSIZEMOVE
+        resize.WndProc(0, 0x0214, 0, 0, ref handled); // WM_SIZING
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void EndWin32Resize(WindowLiveResize resize)
+    {
+        var handled = false;
+        resize.WndProc(0, 0x0232, 0, 0, ref handled); // WM_EXITSIZEMOVE
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static void Settle(TopLevel window)
+    {
+        for (var pass = 0; pass < 5; pass++)
+        {
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+        }
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+    }
+
+    private static string AllText(Control control) =>
+        string.Join("\n", LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(block => block.Text ?? ""));
+
+    private static int StaticMetric(Type type, string name)
+    {
+        var property = type.GetProperty(name, BindingFlags.Static | BindingFlags.Public | BindingFlags.NonPublic);
+        Assert.NotNull(property);
+        return Assert.IsType<int>(property.GetValue(null));
+    }
+
+    private static int IntMetric(object instance, string name) =>
+        Assert.IsType<int>(Property(instance, name).GetValue(instance));
+
+    private static bool BoolMetric(object instance, string name) =>
+        Assert.IsType<bool>(Property(instance, name).GetValue(instance));
+
+    private static PropertyInfo Property(object instance, string name)
+    {
+        var property = instance.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic);
+        Assert.NotNull(property);
+        return property;
+    }
+
+    private static FieldInfo Field(object instance, string name)
+    {
+        var field = instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return field;
+    }
+}
