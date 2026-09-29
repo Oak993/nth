@@ -7,6 +7,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.Documents;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
+using Avalonia.Input.Platform;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Marrow.App.Port;
@@ -997,6 +998,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             var more = Assert.IsAssignableFrom<Control>(Invoke(new TurnFileCard(Changes108(14), canUndo: false, onRevert: () => { }, onReview: _ => { }), "FilesPopover"));
             var overflow = TextNamed(more, "and 2 more files");
             Assert.Equal(Resolved(ChromeTokens.SecondaryText, overflow), BrushColor(overflow.Foreground));
+            Assert.Equal(new Thickness(12, 7), overflow.Margin); // the overflow line is padded like the file rows
         });
     });
 
@@ -1011,6 +1013,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         var reverts = 0;
         TurnFileCard? card = null;
         AvaloniaWindow? window = null;
+        Button? cancelButton = null, goButton = null;
         h.Main.OnMain(() =>
         {
             card = new TurnFileCard(Changes108(2), canUndo: true, onRevert: () => reverts++, onReview: _ => { });
@@ -1037,9 +1040,16 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 var go = LogicalQuery.SelfAndDescendants<Button>(confirm).Single(button => LogicalTexts(button).Contains("Revert"));
                 Assert.True(go.IsDefault);
                 Assert.False(cancel.IsDefault);
+                cancelButton = cancel;
+                goButton = go;
                 Press(cancel);
-                Assert.Equal(0, reverts); // cancelling closes the popover and does nothing
-                Press(go);
+            });
+            h.Main.Loop.RunUntilIdle();
+            h.Main.OnMain(() =>
+            {
+                Assert.False(presenter.Calls[^1].Presented); // cancelling closes the popover ...
+                Assert.Equal(0, reverts); // ... and does nothing
+                Press(goButton!);
                 Assert.Equal(1, reverts);
             });
         }
@@ -3458,4 +3468,1328 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         }
         finally { h.Main.OnMain(() => Close(window!)); }
     });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-148")]
+    public void The_shimmer_is_a_band_a_third_as_wide_as_the_text_masked_to_it_and_nothing_under_reduced_motion()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+            var genie = new FakeGeniePlatform();
+            using var reduce = ChromeTokens.ReduceMotionPlatform.Override(genie);
+            runtime.OnMain(() =>
+            {
+                var plain = new TextBlock { Text = "Merging" };
+                genie.AccessibilityDisplayShouldReduceMotion = true;
+                Assert.Same(plain, new HydraShimmer().Body(plain));
+                genie.AccessibilityDisplayShouldReduceMotion = false;
+                var text = new TextBlock { Text = "Pushing the branch", Width = 150 };
+                var shimmer = new HydraShimmer().Body(text);
+                var window = Show(shimmer);
+                var band = LogicalQuery.SelfAndDescendants<Border>(shimmer).Single(border => border.Background is LinearGradientBrush);
+                Assert.Equal(50, band.Width);
+                var gradient = (LinearGradientBrush)band.Background!;
+                Assert.Equal([0.0, 0.5, 1.0], gradient.GradientStops.Select(stop => stop.Offset));
+                Assert.Equal(
+                    [Resolved(ChromeTokens.PrimaryText.Opacity(0), band), Resolved(ChromeTokens.PrimaryText.Opacity(0.9), band), Resolved(ChromeTokens.PrimaryText.Opacity(0), band)],
+                    gradient.GradientStops.Select(stop => stop.Color));
+                var layer = (Control)band.Parent!;
+                Assert.False(layer.IsHitTestVisible);
+                Assert.Same(text, Assert.IsType<VisualBrush>(layer.OpacityMask).Visual);
+                // A narrow text still gets a 24-point band.
+                var narrow = new TextBlock { Text = "Go", Width = 30 };
+                var small = new HydraShimmer().Body(narrow);
+                var smallWindow = Show(small);
+                Assert.Equal(24, LogicalQuery.SelfAndDescendants<Border>(small).Single(border => border.Background is LinearGradientBrush).Width);
+                Close(smallWindow);
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-151")]
+    [Trait("Req", "PR-HYDRAMERGE-102")]
+    [Trait("Req", "PR-HYDRAMERGE-103")]
+    public void The_track_is_drawn_from_its_three_values_dots_lit_as_the_head_reaches_them_and_the_head_arcing_between_dots()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            runtime.OnMain(() =>
+            {
+                var body = new HydraMergeTrackBody(position: 2, done: 0, rest: 0, count: 7, hops: true);
+                var window = Show(new StackPanel { Children = { body } });
+                // :868-870 seven 4-point dots 3 apart: 46 wide, 20 high.
+                Assert.Equal(46, body.Width);
+                Assert.Equal(20, body.Height);
+                var dots = LogicalQuery.SelfAndDescendants<Panel>(body).Where(panel => panel.Width == 4 && panel.Height == 4).ToList();
+                Assert.Equal(7, dots.Count);
+                Assert.Equal([0.0, 7, 14, 21, 28, 35, 42], dots.Select(Canvas.GetLeft));
+                Assert.All(dots, dot => Assert.Equal(16, Canvas.GetTop(dot)));
+                double Lit(Panel dot) => ((Control)dot.Children[1]).Opacity;
+                Assert.Equal([1.0, 1, 1, 0, 0, 0, 0], dots.Select(Lit));
+                Assert.Equal(Resolved(ChromeTokens.Overlay(0.28), dots[0]), BrushColor(((Avalonia.Controls.Shapes.Ellipse)dots[0].Children[0]).Fill));
+                Assert.Equal(Resolved(ChromeTokens.Accent, dots[0]), BrushColor(((Avalonia.Controls.Shapes.Ellipse)dots[0].Children[1]).Fill));
+                var head = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMarkImage>(body));
+                Assert.Equal(12, head.Width);
+                Assert.Equal(10, Canvas.GetLeft(head), 9);
+                Assert.Equal(0, Canvas.GetTop(head), 9);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, head), BrushColor(LogicalQuery.SelfAndDescendants<SwiftImage>(head).Single().Foreground));
+                // Half way between two dots the head is at the top of its 4-point arc; 2.7 lights the fourth dot early.
+                body.AnimatableData = (2.5, (0, 0));
+                Assert.Equal(-4, Canvas.GetTop(head), 9);
+                Assert.Equal(2.5 * 7 + 2 - 6, Canvas.GetLeft(head), 9);
+                body.AnimatableData = (2.7, (0, 0));
+                Assert.Equal([1.0, 1, 1, 1, 0, 0, 0], dots.Select(Lit));
+                // The outcome: the wave lights the dots left to right and the head pops once.
+                body.AnimatableData = (6, (0.5, 0));
+                Assert.Equal(1.18, Assert.IsType<ScaleTransform>(head.RenderTransform).ScaleX, 9);
+                body.AnimatableData = (0, (0.5625, 0));
+                Assert.Equal([1.0, 1, 1, 1, 0.5, 0, 0], dots.Select(Lit));
+                // Settled: the dots faded, the head at 18 points pinned to the leading edge, the frame shrunk to it.
+                body.AnimatableData = (6, (1, 1));
+                Assert.Equal(18, head.Width);
+                Assert.Equal(0, Canvas.GetLeft(head), 9);
+                Assert.Equal(1, Canvas.GetTop(head), 9);
+                Assert.Equal(18, body.Width);
+                Assert.All(dots, dot => Assert.Equal(0, ((Control)dot.Parent!).Opacity));
+                Assert.Equal(1, Assert.IsType<ScaleTransform>(head.RenderTransform).ScaleX, 9);
+                // Without hops (reduced motion) there is no arc and no pop.
+                var still = new HydraMergeTrackBody(position: 2.5, done: 0.5, rest: 0, count: 7, hops: false);
+                var stillWindow = Show(new StackPanel { Children = { still } });
+                var stillHead = LogicalQuery.SelfAndDescendants<HydraMarkImage>(still).Single();
+                Assert.Equal(0, Canvas.GetTop(stillHead), 9);
+                Assert.Equal(1, Assert.IsType<ScaleTransform>(stillHead.RenderTransform).ScaleX, 9);
+                Close(stillWindow);
+                Close(window);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-151")]
+    [Trait("Req", "PR-HYDRAMERGE-103")]
+    public void The_track_glides_to_a_new_step_from_where_the_head_is_and_eases_into_the_outcome()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            HydraMergeTrack? track = null;
+            AvaloniaWindow? window = null;
+            HydraMergeTrackBody Body() => LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(track!).Single();
+            void Frames(double milliseconds)
+            {
+                frames.Advance(System.TimeSpan.Zero);
+                runtime.AdvanceMilliseconds(milliseconds);
+                frames.Advance(System.TimeSpan.FromMilliseconds(milliseconds));
+            }
+            runtime.OnMain(() =>
+            {
+                track = new HydraMergeTrack(step: 0, count: 7, mode: HydraMergeTrack.Mode.Running);
+                window = Show(new StackPanel { Children = { track } });
+                Assert.Equal((0.0, (0.0, 0.0)), Body().AnimatableData);
+                track.Update(step: 3, count: 7, mode: HydraMergeTrack.Mode.Running);
+            });
+            Frames(100);
+            var midway = runtime.OnMain(() => Body().AnimatableData.Position);
+            Assert.InRange(midway, 0.01, 2.99);
+            // Retargeted mid-flight: the head goes on from where it is, not from the ground.
+            runtime.OnMain(() => track!.Update(step: 5, count: 7, mode: HydraMergeTrack.Mode.Running));
+            frames.Advance(System.TimeSpan.Zero);
+            Assert.InRange(runtime.OnMain(() => Body().AnimatableData.Position), midway - 0.01, 5);
+            Frames(2000);
+            Assert.Equal(5, runtime.OnMain(() => Body().AnimatableData.Position));
+            runtime.OnMain(() => track!.Update(step: 6, count: 7, mode: HydraMergeTrack.Mode.Resting));
+            Frames(2000);
+            runtime.OnMain(() =>
+            {
+                Assert.Equal((6.0, (1.0, 1.0)), Body().AnimatableData);
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-150")]
+    [Trait("Req", "PR-HYDRAMERGE-101")]
+    [Trait("Req", "PR-HYDRAMERGE-106")]
+    public void The_merge_pill_shows_the_stage_under_way_with_an_ellipsis_and_goes_once_the_merge_is_over_without_a_note()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = Harness();
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+            HydraMergeRow? row = null;
+            AvaloniaWindow? window = null;
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.IsHydraMerging = true;
+                h.Runtime.HydraMergeStep = HydraMergeStage.Pushing;
+                h.Runtime.HydraMergeStage = HydraMergeStage.Pushing.Words;
+                row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging());
+                window = Show(row);
+                Assert.Contains("Pushing the branch\U00002026", Texts(row)); // U+2026 HORIZONTAL ELLIPSIS
+                var pill = LogicalQuery.SelfAndDescendants<Border>(row).Single(border => AutomationProperties.GetName(border) is not null);
+                Assert.Equal("Merging the team's work: Pushing the branch\U00002026", AutomationProperties.GetName(pill)); // U+2026 HORIZONTAL ELLIPSIS
+                Assert.Equal(new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical), pill.Padding);
+                Assert.Equal(Resolved(ChromeTokens.Accent.Opacity(0.1), pill), BrushColor(pill.Background));
+                var body = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(row));
+                Assert.Equal(3, body.AnimatableData.Position);
+                Assert.DoesNotContain(Texts(row), text => text.Contains("Open", System.StringComparison.Ordinal));
+                h.Runtime.HydraMergeStage = null;
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Contains("Merging\U00002026", Texts(row!)); // U+2026 HORIZONTAL ELLIPSIS
+                h.Runtime.IsHydraMerging = false;
+            });
+            // :949-952 removal uses the glide spring. Complete its source-defined transition before asserting absence.
+            frames.Advance(System.TimeSpan.Zero);
+            h.Main.AdvanceMilliseconds(2000);
+            frames.Advance(System.TimeSpan.FromMilliseconds(2000));
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<HydraMergeTrack>(row!));
+                Assert.Empty(Texts(row!));
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-150")]
+    [Trait("Req", "PR-HYDRAMERGE-104")]
+    [Trait("Req", "PR-HYDRAMERGE-107")]
+    public void When_the_note_lands_the_pill_morphs_to_its_title_and_link_and_a_successful_merge_flourishes_for_1100_milliseconds()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = Harness();
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+            using var browser = Marrow.Services.Port.Workspace.Open.Override(_ => true);
+            HydraMergeRow? row = null;
+            AvaloniaWindow? window = null;
+            (double Position, (double Done, double Resting) Outcome) Track() => LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(row!).Single().AnimatableData;
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.IsHydraMerging = true;
+                h.Runtime.HydraMergeStep = HydraMergeStage.Opening;
+                h.Runtime.HydraMergeStage = HydraMergeStage.Opening.Words;
+                row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging());
+                window = Show(row);
+                Assert.Equal((4.0, (0.0, 0.0)), Track());
+                h.Runtime.IsHydraMerging = false;
+                h.Runtime.HydraMergeStep = null;
+                row.Update(new HydraMergePhase.Outcome(new UserMessage { Text = "Hydra merged the team's work.\nhttps://gitlab.com/g/p/-/merge_requests/7\nThree heads landed." }));
+            });
+            void Frames(double milliseconds)
+            {
+                frames.Advance(System.TimeSpan.Zero);
+                h.Main.AdvanceMilliseconds(milliseconds);
+                frames.Advance(System.TimeSpan.FromMilliseconds(milliseconds));
+            }
+            // Under 1.1 s: the outcome has landed and the flourish is still on.
+            Frames(1000);
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Contains("Hydra merged the team's work", Texts(row!));
+                Assert.DoesNotContain(Texts(row!), text => text.EndsWith("…", System.StringComparison.Ordinal)); // U+2026 HORIZONTAL ELLIPSIS
+                var pill = LogicalQuery.SelfAndDescendants<Border>(row!).Single(border => AutomationProperties.GetName(border) is not null);
+                Assert.Equal("Hydra merged the team's work", AutomationProperties.GetName(pill));
+                var open = LogicalQuery.SelfAndDescendants<Button>(row!).Single(button => Texts(button).Contains("Open"));
+                Assert.Equal("Open in the browser", ToolTip.GetTip(open));
+                var title = LogicalQuery.SelfAndDescendants<Button>(row!).Single(button => Texts(button).Contains("Hydra merged the team's work"));
+                Assert.Equal("Show the message", ToolTip.GetTip(title));
+                Assert.Contains("chevron.right", Symbols(title));
+                // :1036-1042 done: the head on the last dot, every dot lit, not yet settled.
+                Assert.Equal((6.0, (1.0, 0.0)), Track());
+            });
+            // Past 1.1 s the flourish ends and the head settles to its resting size.
+            h.Main.AdvanceMilliseconds(200);
+            Frames(2000);
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal((6.0, (1.0, 1.0)), Track());
+                Close(window!);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-150")]
+    [Trait("Req", "PR-HYDRAMERGE-105")]
+    public void An_outcome_that_is_not_a_merge_settles_at_once_with_no_flourish_and_an_outcome_with_nothing_behind_it_is_disabled()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = Harness();
+            var frames = new ManualFrameSource();
+            using var frameSeam = FrameClock.Source.Override(frames);
+            using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+            HydraMergeRow? row = null;
+            AvaloniaWindow? window = null;
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.IsHydraMerging = true;
+                row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging());
+                window = Show(row);
+                h.Runtime.IsHydraMerging = false;
+                row.Update(new HydraMergePhase.Outcome(new UserMessage { Text = "The merge stopped." }));
+            });
+            frames.Advance(System.TimeSpan.Zero);
+            h.Main.AdvanceMilliseconds(2000);
+            frames.Advance(System.TimeSpan.FromMilliseconds(2000));
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Equal((6.0, (1.0, 1.0)), LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(row!).Single().AnimatableData);
+                var title = LogicalQuery.SelfAndDescendants<Button>(row!).Single();
+                Assert.False(title.IsEnabled);
+                Assert.Equal("", ToolTip.GetTip(title)); // Swift :1103 .help(outcome.details.isEmpty ? "" : "Show the message")
+                Assert.DoesNotContain("chevron.right", Symbols(row!));
+                Close(window!);
+            });
+        });
+    }
+
+    // ---- Tool rows: what the survivors of the mechanical gate left open (PR-CHAT-093, -096, -097, -098, -153) ----
+
+    private static string ImageFile(ThreadRuntimePart12Harness h, string name)
+    {
+        var full = System.IO.Path.Combine(h.Project.Path, name);
+        System.IO.File.WriteAllBytes(full, []);
+        return new Uri(full).AbsoluteUri; // a file:// address resolves the same on every platform (AttachmentPreview.cs:66-67)
+    }
+
+    private static (ToolRow Row, AvaloniaWindow Window) MountRow(ThreadRuntime runtime, ToolCall call, string? workingDirectory = null)
+    {
+        var row = new ToolRow(ToolEntry(call), runtime, workingDirectory);
+        var window = Show(row);
+        Hover(window, LogicalQuery.SelfAndDescendants<MiddleTruncatingTextBlock>(row).Single());
+        return (row, window);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-097")]
+    [Trait("Req", "PR-CHAT-098")]
+    public void A_read_of_an_image_opens_the_image_however_much_output_it_has_and_any_other_row_with_output_unfolds() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var path = ImageFile(h, "shot.png");
+        (ToolRow Row, AvaloniaWindow Window) read = (null!, null!), command = (null!, null!), bare = (null!, null!);
+        h.Main.OnMain(() =>
+        {
+            _ = AppCurrentEvent.CurrentWindow;
+            read = MountRow(h.Runtime, Call(ToolCall.Kind.Read, path) with { Output = "some text" });
+            command = MountRow(h.Runtime, Call(ToolCall.Kind.Command, path) with { Output = "some text" });
+            bare = MountRow(h.Runtime, Call(ToolCall.Kind.Command, path));
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                foreach (var (row, window) in new[] { read, command, bare }) Settle(window);
+                // The tooltip, the chevron and the icon say what a tap will do.
+                var readButton = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(read.Row));
+                Assert.Equal("Show the image", ToolTip.GetTip(readButton));
+                Assert.Contains("chevron.down", Symbols(read.Row));
+                Assert.Contains("photo", Symbols(read.Row));
+                Assert.Equal("Show the output", ToolTip.GetTip(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(command.Row))));
+                Assert.Contains("chevron.right", Symbols(command.Row));
+                Assert.DoesNotContain("photo", Symbols(command.Row));
+                var bareButton = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(bare.Row));
+                Assert.Equal("Show the image", ToolTip.GetTip(bareButton));
+                Assert.Contains("chevron.down", Symbols(bare.Row));
+                // The line is a hit target across its width whatever it draws.
+                Assert.Equal(0, BrushColor(Assert.IsAssignableFrom<Panel>(readButton.Content).Background).A);
+                Press(readButton);
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(read.Window);
+                Assert.Single(presenter.Calls, call => call.Presented);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ToolDetailView>(read.Row));
+                Press(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(command.Row)));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(command.Window);
+                // Unfolded in place: the output, and no image panel.
+                Assert.Single(presenter.Calls, call => call.Presented);
+                Assert.Single(LogicalQuery.SelfAndDescendants<ToolDetailView>(command.Row));
+                Press(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(bare.Row)));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(bare.Window);
+                Assert.Equal(2, presenter.Calls.Count(call => call.Presented));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ToolDetailView>(bare.Row));
+            });
+        }
+        finally { h.Main.OnMain(() => { Close(read.Window); Close(command.Window); Close(bare.Window); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-097")]
+    public void An_unfolded_output_folds_away_again_when_the_row_is_tapped_a_second_time() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        (ToolRow Row, AvaloniaWindow Window) mounted = (null!, null!);
+        h.Main.OnMain(() => mounted = MountRow(h.Runtime, Call(ToolCall.Kind.Command, "ls") with { Output = "a\nb" }));
+        try
+        {
+            void Tick() { for (var i = 0; i < 30; i++) { h.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+            h.Main.OnMain(() => Press(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(mounted.Row))));
+            Tick();
+            h.Main.OnMain(() =>
+            {
+                Assert.Single(LogicalQuery.SelfAndDescendants<ToolDetailView>(mounted.Row));
+                Press(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(mounted.Row)));
+            });
+            Tick();
+            h.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ToolDetailView>(mounted.Row));
+                Assert.Empty(mounted.Row.GetVisualDescendants().OfType<ToolDetailView>());
+            });
+        }
+        finally { h.Main.OnMain(() => Close(mounted.Window)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-097")]
+    public void A_row_becomes_a_control_when_its_call_is_linked_to_a_head_even_before_the_heads_record_exists() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        ToolRow? row = null;
+        AvaloniaWindow? window = null;
+        var entry = ToolEntry(Call(ToolCall.Kind.Agent, "Pip: the merge popover", ToolCall.Status.Running));
+        h.Main.OnMain(() =>
+        {
+            row = new ToolRow(entry, h.Runtime);
+            var host = new Border { Child = row };
+            Marrow.App.Port.AppEnvironment.SetAppModel(host, h.App);
+            window = Show(host);
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(row));
+            h.Runtime.RehearseHydraHead(entry.Id, System.Guid.NewGuid()); // the model holds no thread for it
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Equal("Show the head's steps", ToolTip.GetTip(Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row!))));
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-153")]
+    public void A_departing_heads_generic_titles_and_missing_names_read_as_a_head_and_a_named_face_leads_the_title() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            string One(string title, ToolCall.Status status = ToolCall.Status.Completed)
+            {
+                var row = new ToolRow(ToolEntry(Call(ToolCall.Kind.Agent, title, status)), h.Runtime);
+                var window = Show(row);
+                try { return LogicalQuery.SelfAndDescendants<MiddleTruncatingTextBlock>(row).Single().FullText + "#" + LogicalQuery.SelfAndDescendants<HydraGlyph>(row).Single().Persona.Name; }
+                finally { Close(window); }
+            }
+            var first = HydraRoster.Persona(0).Name;
+            Assert.Equal("Sent out a head#" + first, One("Subagent"));
+            Assert.Equal("Sent out a head#" + first, One("AGENT"));
+            Assert.Equal("Sent out a head#" + first, One("task"));
+            Assert.Equal("Sent out a head#" + first, One(""));
+            Assert.Equal("Sent out a head#" + first, One("  Task  "));
+            Assert.Equal("Sent out a head: Task force#" + first, One("Task force"));
+            Assert.Equal("Sent out a head: tidy things#" + first, One("tidy things"));
+            Assert.Equal("Sending out a head: tidy things#" + first, One("tidy things", ToolCall.Status.Running));
+            Assert.Equal("Could not send out a head: tidy things#" + first, One("tidy things", ToolCall.Status.Failed));
+            var second = HydraRoster.Persona(1).Name;
+            Assert.Equal("Sent out " + second + ": the merge popover#" + second, One("  " + second + " :  the merge popover  "));
+            Assert.Equal("Sent out " + second + "#" + second, One(second + ":"));
+            Assert.Equal("Sent out a head: Nobody: the merge popover#" + first, One("Nobody: the merge popover"));
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-093")]
+    public void Every_root_word_of_a_kind_is_dropped_from_the_front_of_its_subject_whatever_its_case_and_no_other_word_is() => headless.OnUiThread(() =>
+    {
+        var roots = new Dictionary<ToolCall.Kind, string[]>
+        {
+            [ToolCall.Kind.Command] = ["run", "bash", "shell", "exec", "execute", "command"],
+            [ToolCall.Kind.Read] = ["read", "view", "open", "cat"],
+            [ToolCall.Kind.Edit] = ["edit", "write", "multiedit", "create", "notebookedit", "apply_patch", "patch"],
+            [ToolCall.Kind.Search] = ["search", "grep", "glob", "find"],
+            [ToolCall.Kind.Web] = ["fetch", "webfetch", "websearch", "browse"],
+            [ToolCall.Kind.Mcp] = ["call"],
+            [ToolCall.Kind.Agent] = ["delegate", "agent", "task"],
+            [ToolCall.Kind.Other] = ["use"],
+        };
+        foreach (var (kind, words) in roots)
+        {
+            var verb = ToolPresentation.Verb(Call(kind, "x"));
+            foreach (var word in words)
+            {
+                Assert.Equal(verb + " the subject", ToolPresentation.Label(Call(kind, word + " the subject")));
+                Assert.Equal(verb + " the subject", ToolPresentation.Label(Call(kind, word.ToUpperInvariant() + " the subject")));
+                Assert.Equal(verb + " " + word + "s the subject", ToolPresentation.Label(Call(kind, word + "s the subject")));
+                Assert.Equal(verb, ToolPresentation.Label(Call(kind, word)));
+            }
+            Assert.Equal(verb + " zzz the subject", ToolPresentation.Label(Call(kind, "zzz the subject")));
+            // Only a leading word counts.
+            Assert.Equal(verb + " the " + words[0] + " subject", ToolPresentation.Label(Call(kind, "the " + words[0] + " subject")));
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-098")]
+    [Trait("Req", "PR-CHAT-097")]
+    public void A_failed_rows_exit_code_sits_at_the_trailing_edge_on_the_labels_line_and_the_run_is_laid_out_left_to_right_from_zero() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var call = Call(ToolCall.Kind.Edit, "src/a.cs", ToolCall.Status.Failed) with { Output = "out", ExitCode = 2, Edits = new ValueList<FileEdit>([new FileEdit("src/a.cs", "diff", 3, 2)]) };
+            var row = new ToolRow(ToolEntry(call), h.Runtime);
+            var window = Show(new Border { Width = 400, Child = row });
+            try
+            {
+                Settle(window);
+                var label = Assert.Single(LogicalQuery.SelfAndDescendants<MiddleTruncatingTextBlock>(row));
+                var run = Assert.IsAssignableFrom<Panel>(label.Parent);
+                Assert.Equal(0, run.Children[0].Bounds.Left, precision: 3);
+                var pill = LogicalQuery.SelfAndDescendants<Border>(row).Single(border => border.Child == run);
+                Assert.NotNull(pill.Background); // a plain row's line is a solid hit area, drawn clear
+                Assert.Equal(0, BrushColor(pill.Background).A);
+                for (var index = 1; index < run.Children.Count; index++)
+                    Assert.InRange(run.Children[index].Bounds.Left - run.Children[index - 1].Bounds.Right, TimelineMetrics.IconSpacing - 1, TimelineMetrics.IconSpacing + 1);
+                Assert.True(run.Children.Count >= 4); // glyph, label, stat, chevron
+                Assert.All(run.Children, child => Assert.True(child.Bounds.Width > 0 && child.Bounds.Height > 0)); // each one measured to its own size
+                Assert.InRange(run.Children[0].Bounds.Width, TimelineMetrics.IconWidth - 1, TimelineMetrics.IconWidth + 1);
+                var midline = run.Children.Select(child => child.Bounds.Top + child.Bounds.Height / 2).ToList();
+                Assert.All(midline, y => Assert.InRange(y, midline[0] - 1, midline[0] + 1)); // centred on one line
+                var exit = TextNamed(row, "exit 2");
+                Assert.True(exit.TranslatePoint(default, row)!.Value.X > label.TranslatePoint(default, row)!.Value.X + label.Bounds.Width);
+                var exitMid = exit.TranslatePoint(new Point(0, exit.Bounds.Height / 2), window)!.Value.Y;
+                var labelMid = label.TranslatePoint(new Point(0, label.Bounds.Height / 2), window)!.Value.Y;
+                Assert.Equal(labelMid, exitMid, precision: 1);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-148")]
+    [Trait("Req", "PR-HYDRAMERGE-104")]
+    public void The_shimmer_band_runs_left_to_right_moves_only_every_thirtieth_of_a_second_and_rests_while_the_reader_scrolls() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var reduce = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        Control? shimmer = null;
+        AvaloniaWindow? window = null;
+        var scroller = System.Guid.NewGuid();
+        double Offset() => Assert.IsType<TranslateTransform>(LogicalQuery.SelfAndDescendants<Border>(shimmer!).Single(border => border.Background is LinearGradientBrush).RenderTransform).X;
+        void Advance(double milliseconds)
+        {
+            h.Main.AdvanceMilliseconds(milliseconds);
+            frames.Advance(TimeSpan.FromMilliseconds(milliseconds));
+        }
+        h.Main.OnMain(() =>
+        {
+            shimmer = new HydraShimmer().Body(new TextBlock { Text = "Pushing the branch", Width = 150 });
+            window = Show(shimmer);
+            var gradient = (LinearGradientBrush)LogicalQuery.SelfAndDescendants<Border>(shimmer).Single(border => border.Background is LinearGradientBrush).Background!;
+            Assert.Equal(new RelativePoint(0, 0.5, RelativeUnit.Relative), gradient.StartPoint);
+            Assert.Equal(new RelativePoint(1, 0.5, RelativeUnit.Relative), gradient.EndPoint);
+        });
+        try
+        {
+            double start = 0;
+            h.Main.OnMain(() => start = Offset());
+            Advance(10); // less than a thirtieth of a second: no new frame is drawn
+            h.Main.OnMain(() => Assert.Equal(start, Offset()));
+            Advance(60);
+            double moved = 0;
+            h.Main.OnMain(() => { moved = Offset(); Assert.NotEqual(start, moved); });
+            h.Main.OnMain(() => ScrollActivity.Shared.Current.SetScrolling(true, scroller));
+            Advance(200);
+            h.Main.OnMain(() => Assert.Equal(moved, Offset())); // held still while the reader scrolls
+            h.Main.OnMain(() => ScrollActivity.Shared.Current.SetScrolling(false, scroller));
+            Advance(200);
+            h.Main.OnMain(() => Assert.NotEqual(moved, Offset()));
+        }
+        finally { h.Main.OnMain(() => { ScrollActivity.Shared.Current.SetScrolling(false, scroller); Close(window!); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-089")]
+    public void The_copy_actions_put_the_message_the_markdown_and_the_last_code_block_on_the_clipboard() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        AvaloniaWindow? window = null;
+        const string text = "answer\n\n```\nfirst\n```\n\n```\nlast\n```";
+        var actions = AssistantMessageRow.MessageActions(text, TimelineRows.LastCodeBlock(text), h.Runtime);
+        h.Main.OnMain(() =>
+        {
+            _ = AppCurrentEvent.CurrentWindow; // warms the lazy event subscription before Show presses its key
+            window = Show(new Border());
+        });
+        try
+        {
+            string Copied(string title)
+            {
+                h.Main.OnMain(actions.Single(item => item.Title == title).Action);
+                return h.Main.OnMain(() =>
+                {
+                    Settle(window!);
+                    return window!.Clipboard!.TryGetTextAsync().GetAwaiter().GetResult() ?? "";
+                });
+            }
+            Assert.Equal("last", Copied("Copy last code block"));
+            Assert.Equal(text, Copied("Copy as markdown"));
+            Assert.Equal(ProseReflow.Reflowed(MessageText.Plain(text)), Copied("Copy message"));
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-088")]
+    public void A_reply_is_rebuilt_only_when_its_text_or_streaming_flag_moves_and_its_hover_line_shows_only_on_hover_of_a_finished_reply() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        AvaloniaWindow? window = null;
+        var entry = Reply("first words");
+        AssistantMessageRow? row = null;
+        h.Main.OnMain(() =>
+        {
+            row = new AssistantMessageRow(entry, null, h.Runtime);
+            window = Show(row);
+            var column = Assert.IsType<StackPanel>(row.Child);
+            Assert.Equal(0, BrushColor(column.Background).A); // the whole reply is a hover target
+            var line = column.Children.OfType<StackPanel>().Single(stack => stack.Height == TimelineMetrics.HoverLineHeight);
+            Assert.Equal(0, line.Opacity); // the line is hidden until the pointer is over the reply
+        });
+        try
+        {
+            Control? before = null;
+            h.Main.OnMain(() =>
+            {
+                before = row!.Child;
+                entry.Item = new TimelineItem(entry.Item.TurnID, new TimelineItem.Content.Assistant(new AssistantMessage { Text = "first words" }));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Same(before, row!.Child); // same text and streaming flag: not rebuilt
+                entry.Item = new TimelineItem(entry.Item.TurnID, new TimelineItem.Content.Assistant(new AssistantMessage { Text = "first words", IsStreaming = true }));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.NotSame(before, row!.Child);
+                before = row!.Child;
+                entry.Item = new TimelineItem(entry.Item.TurnID, new TimelineItem.Content.Assistant(new AssistantMessage { Text = "more words", IsStreaming = true }));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.NotSame(before, row!.Child);
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    // ---- The work group, its steps and the tool detail: what the mechanical gate's survivors left open (PR-CHAT-090, -092, -097, -101) ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-090")]
+    public void A_group_of_one_is_the_row_alone_until_a_second_call_joins_it_and_then_it_gets_its_header() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var first = ToolEntry(Call(ToolCall.Kind.Read, "a.cs"));
+        var second = ToolEntry(Call(ToolCall.Kind.Command, "ls"));
+        WorkGroup? group = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            group = new WorkGroup(new ValueList<TimelineEntry>([first]), h.Runtime);
+            window = Show(group);
+            Assert.IsType<ToolRow>(group.Child);
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(group));
+            group.Update(new ValueList<TimelineEntry>([first, second]), false);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.IsNotType<ToolRow>(group!.Child);
+                var header = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(group), button => Avalonia.Automation.AutomationProperties.GetName(button) == "Hide these steps");
+                Assert.Contains("Read files, ran commands", LogicalTexts(header));
+                group.Update(new ValueList<TimelineEntry>([second]), false);
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.IsType<ToolRow>(group!.Child); // and back to the row alone
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-090")]
+    public void The_group_header_is_a_full_width_hit_target_with_its_glyph_summary_and_chevron_in_the_secondary_style() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        WorkGroup? group = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            group = new WorkGroup(new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Edit, "a.cs")), ToolEntry(Call(ToolCall.Kind.Command, "ls"))]), h.Runtime);
+            window = Show(group);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                var header = LogicalQuery.SelfAndDescendants<Button>(group!).First();
+                var row = Assert.IsType<StackPanel>(header.Content);
+                Assert.Equal(Orientation.Horizontal, row.Orientation);
+                Assert.Equal(TimelineMetrics.IconSpacing, row.Spacing);
+                Assert.Equal(new Thickness(0, 0, 12, 0), row.Margin);
+                Assert.Equal(0, BrushColor(row.Background).A);
+                var glyph = LogicalQuery.SelfAndDescendants<SwiftImage>(row).First(image => image.SymbolName == "pencil");
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption), glyph.GetValue(SwiftImage.FontProperty));
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, glyph), BrushColor(glyph.Foreground));
+                Assert.Equal(TimelineMetrics.IconWidth, glyph.Width);
+                var summary = TextNamed(row, "Edited files, ran commands");
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, summary), BrushColor(summary.Foreground));
+                var chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(image => image.SymbolName == "chevron.right");
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold), chevron.GetValue(SwiftImage.FontProperty));
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, chevron), BrushColor(chevron.Foreground));
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-092")]
+    public void The_earlier_steps_line_comes_back_when_more_steps_arrive_after_it_went_and_is_a_full_width_hit_target() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        var entries = Enumerable.Range(1, 5).Select(i => ToolEntry(Call(ToolCall.Kind.Read, "file" + i))).ToArray();
+        WorkGroup? group = null;
+        AvaloniaWindow? window = null;
+        void Tick() { for (var i = 0; i < 30; i++) { h.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        Button? More() => LogicalQuery.SelfAndDescendants<WorkSteps>(group!).SingleOrDefault() is { } steps ? LogicalQuery.SelfAndDescendants<Button>(steps).FirstOrDefault() : null;
+        h.Main.OnMain(() =>
+        {
+            group = new WorkGroup(new ValueList<TimelineEntry>(entries.Take(3)), h.Runtime);
+            window = Show(group);
+            var line = Assert.IsType<StackPanel>(Assert.IsType<Button>(More()).Content);
+            Assert.Contains("1 earlier step", LogicalTexts(line));
+            Assert.Equal(TimelineMetrics.IconSpacing, line.Spacing);
+            Assert.Equal(new Thickness(0, 0, 12, 0), line.Margin);
+            Assert.Equal(0, BrushColor(line.Background).A);
+            var ellipsis = LogicalQuery.SelfAndDescendants<SwiftImage>(line).Single();
+            Assert.Equal("ellipsis", ellipsis.SymbolName);
+            Assert.Equal(TimelineMetrics.IconWidth, ellipsis.Width);
+            Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption), ellipsis.GetValue(SwiftImage.FontProperty));
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, ellipsis), BrushColor(ellipsis.Foreground));
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, line), BrushColor(TextNamed(line, "1 earlier step").Foreground));
+            group.Update(new ValueList<TimelineEntry>(entries.Take(2)), false); // nothing is hidden any more
+        });
+        try
+        {
+            h.Main.Loop.RunUntilIdle();
+            Tick();
+            h.Main.OnMain(() =>
+            {
+                Assert.Null(More());
+                group!.Update(new ValueList<TimelineEntry>(entries), false); // three are hidden again
+            });
+            h.Main.Loop.RunUntilIdle();
+            Tick();
+            h.Main.OnMain(() =>
+            {
+                Assert.Contains("3 earlier steps", LogicalTexts(Assert.IsType<Button>(More())));
+                Press(More()!);
+            });
+            h.Main.Loop.RunUntilIdle();
+            Tick();
+            h.Main.OnMain(() => Assert.Null(More()));
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-091")]
+    public void A_kind_reads_in_the_present_tense_when_any_of_its_calls_is_still_running_wherever_in_the_list_it_is() => headless.OnUiThread(() =>
+    {
+        TimelineEntry Entry(ToolCall.Kind kind, ToolCall.Status status) => ToolEntry(Call(kind, "x", status));
+        string Text(params TimelineEntry[] entries) => WorkGroupSummary.Text(entries);
+        Assert.Equal("Read files", Text(Entry(ToolCall.Kind.Read, ToolCall.Status.Completed), Entry(ToolCall.Kind.Read, ToolCall.Status.Completed)));
+        Assert.Equal("Reading files", Text(Entry(ToolCall.Kind.Read, ToolCall.Status.Completed), Entry(ToolCall.Kind.Read, ToolCall.Status.Running)));
+        Assert.Equal("Reading files", Text(Entry(ToolCall.Kind.Read, ToolCall.Status.Running), Entry(ToolCall.Kind.Read, ToolCall.Status.Completed)));
+        Assert.Equal("Reading files", Text(Entry(ToolCall.Kind.Read, ToolCall.Status.Running), Entry(ToolCall.Kind.Read, ToolCall.Status.Completed), Entry(ToolCall.Kind.Read, ToolCall.Status.Failed)));
+        Assert.Equal("Read files, ran commands", Text(Entry(ToolCall.Kind.Read, ToolCall.Status.Completed), Entry(ToolCall.Kind.Command, ToolCall.Status.Completed), Entry(ToolCall.Kind.Read, ToolCall.Status.Failed)));
+        Assert.Equal("Read files, running commands", Text(Entry(ToolCall.Kind.Read, ToolCall.Status.Completed), Entry(ToolCall.Kind.Command, ToolCall.Status.Running), Entry(ToolCall.Kind.Read, ToolCall.Status.Declined)));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-101")]
+    public void The_detail_stacks_the_detail_the_diff_files_and_the_output_top_to_bottom_with_the_path_directly_above_its_diff() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            // Built, not laid out: the diff lines are drawn in a monospaced key that only a themed app resolves.
+            var edit = new FileEdit("src/a.cs", "@@ -1 +1 @@\n-a\n+b\n", 1, 1);
+            var detail = new ToolDetailView(Call(ToolCall.Kind.Edit, "src/a.cs") with { Detail = "the detail", Edits = new ValueList<FileEdit>([edit]), Output = "the output" });
+            var stack = Assert.IsType<StackPanel>(detail.Child);
+            Assert.Equal(Orientation.Vertical, stack.Orientation);
+            Assert.Equal(TimelineMetrics.RowSpacing, stack.Spacing);
+            Assert.Equal(3, stack.Children.Count);
+            var plate = Assert.IsType<Border>(stack.Children[1]);
+            var file = Assert.IsType<StackPanel>(plate.Child);
+            Assert.Equal(Orientation.Vertical, file.Orientation);
+            Assert.Equal(0, file.Spacing); // the path sits directly above its diff
+            Assert.Equal(new Thickness(10, 6), TextNamed(file, "src/a.cs").Margin);
+            Assert.Equal(2, file.Children.Count);
+        });
+    });
+
+    // ---- The merge track: initial values per mode, the tap target, the reduced-motion hops and the resting size (PR-CHAT-151, PR-HYDRAMERGE-102, -103) ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-151")]
+    [Trait("Req", "PR-HYDRAMERGE-103")]
+    public void A_track_starts_from_the_values_of_its_mode_and_is_a_tap_target_across_its_frame() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            (double Position, (double Done, double Resting) Outcome) Start(HydraMergeTrack.Mode mode)
+            {
+                var track = new HydraMergeTrack(step: 6, count: 7, mode: mode);
+                var window = Show(track);
+                try { return LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(track).Single().AnimatableData; }
+                finally { Close(window); }
+            }
+            Assert.Equal((6.0, (0.0, 0.0)), Start(HydraMergeTrack.Mode.Running));
+            Assert.Equal((6.0, (1.0, 0.0)), Start(HydraMergeTrack.Mode.Done));
+            Assert.Equal((6.0, (1.0, 1.0)), Start(HydraMergeTrack.Mode.Resting));
+            var body = new HydraMergeTrackBody(position: 6, done: 1, rest: 1, count: 7, hops: true);
+            var canvas = Assert.IsType<Canvas>(body.Child);
+            Assert.Equal(0, BrushColor(canvas.Background).A);
+            Assert.NotNull(canvas.Background); // transparent, not absent: it takes the tap across the whole frame
+            // Built already at rest: the head at its resting size and the dots gone, with no animation to get there.
+            var window = Show(body);
+            try
+            {
+                Assert.Equal(18, Assert.Single(LogicalQuery.SelfAndDescendants<HydraMarkImage>(body)).Width);
+                Assert.Equal(18, body.Width);
+                Assert.Equal(0, canvas.Children.OfType<Canvas>().Single().Opacity);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-151")]
+    [Trait("Req", "PR-HYDRAMERGE-102")]
+    public void The_head_hops_unless_the_reader_asked_for_reduced_motion_wherever_that_setting_is_made_above_the_track() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            double HeadTop(bool reduced)
+            {
+                var track = new HydraMergeTrack(step: 0, count: 7, mode: HydraMergeTrack.Mode.Running);
+                var host = new Border { Child = track };
+                EnvironmentValues.SetAccessibilityReduceMotion(host, reduced);
+                var window = Show(host);
+                try
+                {
+                    var body = LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(track).Single();
+                    body.AnimatableData = (2.5, (0, 0)); // half way between two dots: the top of the arc
+                    return Canvas.GetTop(LogicalQuery.SelfAndDescendants<HydraMarkImage>(body).Single());
+                }
+                finally { Close(window); }
+            }
+            Assert.Equal(-4, HeadTop(reduced: false), 9);
+            Assert.Equal(0, HeadTop(reduced: true), 9);
+        });
+    });
+
+    // ---- The sent message row and the attachment thumbnail: what the gate's survivors left open (PR-CHAT-077, -079, -088) ----
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-077")]
+    public void The_sent_row_is_a_hit_target_across_its_width_with_the_bubble_drawn_behind_its_text_and_the_pencil_frame_a_22_point_target() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        UserMessageRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            row = new UserMessageRow(UserEntry("hello there", Guid.NewGuid()), h.Runtime, canRevert: true);
+            window = Show(row);
+            var outer = Assert.IsType<Border>(row.Child);
+            Assert.Equal(new Thickness(96, 0, 0, 0), outer.Padding);
+            Assert.NotNull(outer.Background);
+            Assert.Equal(0, BrushColor(outer.Background).A);
+            // The bubble's shape is behind the text's padding, never over it.
+            var shape = Assert.Single(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Shapes.Path>(row));
+            var bubble = Assert.IsType<Panel>(shape.Parent);
+            Assert.Same(shape, bubble.Children[0]);
+            Assert.Equal(new Thickness(14, 9, 14 + UserBubble.Tail, 9), Assert.IsType<Border>(bubble.Children[1]).Padding);
+            var frame = LogicalQuery.SelfAndDescendants<Border>(row).Single(border => border.Width == 22 && border.Height == 22);
+            Assert.NotNull(frame.Background);
+            Assert.Equal(0, BrushColor(frame.Background).A);
+        });
+        h.Main.OnMain(() => Close(window!));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-080")]
+    public void A_message_being_edited_keeps_its_hover_line_up_with_no_pointer_over_it() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var turn = Guid.NewGuid();
+        UserMessageRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            row = new UserMessageRow(UserEntry("edit me", turn), h.Runtime, canRevert: true);
+            window = Show(row);
+            Assert.Equal(0, HoverLine080(row).Opacity);
+            h.Runtime.MessageEdit = new PromptEdit(turn, "edit me", ValueList<Attachment>.Empty);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Equal(1, HoverLine080(row!).Opacity);
+                h.Runtime.MessageEdit = null;
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Equal(0, HoverLine080(row!).Opacity);
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-088")]
+    public void The_summary_line_reads_a_duration_of_minutes_as_minutes_and_not_as_a_count_of_seconds() => headless.OnUiThread(() =>
+    {
+        var turn = Guid.NewGuid();
+        string Label(double seconds) => TurnEndRow.Label(new TurnSummary { TurnID = turn, Status = TurnStatus.Completed, Duration = seconds, FilesChanged = 0, Additions = 0, Deletions = 0 });
+        Assert.StartsWith("Worked for ", Label(75), StringComparison.Ordinal);
+        Assert.Contains("15", Label(75), StringComparison.Ordinal);
+        Assert.DoesNotContain("75", Label(75), StringComparison.Ordinal);
+        Assert.DoesNotContain("3725", Label(3725), StringComparison.Ordinal);
+        Assert.NotEqual(Label(75), Label(15));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-079")]
+    public void A_thumbnail_mounts_its_anchor_only_after_a_hover_and_only_when_it_is_not_anchorless_and_asks_the_thumbnail_cache_only_for_images() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var cache = new ThumbnailCache();
+        using var cacheSeam = ThumbnailCache.Shared.Override(cache);
+        var path = System.IO.Path.Combine(h.Project.Path, "seeded.png");
+        h.Main.OnMain(() => ThumbnailMemory.Store(new DecodedBitmap(2, 2, 8, new byte[16]), path, 56));
+        var image = new Attachment { Name = "seeded.png", Path = path, MimeType = "image/png" };
+        var text = new Attachment { Name = "notes.txt", Path = System.IO.Path.Combine(h.Project.Path, "notes.txt"), MimeType = "text/plain" };
+        AttachmentThumbnail? withPanel = null, anchorless = null, plain = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var strip = new StackPanel { Spacing = 10 };
+            withPanel = new AttachmentThumbnail(image, new AttachmentPreviewCoordinator());
+            anchorless = new AttachmentThumbnail(image, new AttachmentPreviewSlot(), anchorless: true);
+            plain = new AttachmentThumbnail(text, new AttachmentPreviewSlot());
+            foreach (var thumbnail in new[] { withPanel, anchorless, plain }) strip.Children.Add(thumbnail);
+            window = Show(strip);
+            foreach (var thumbnail in new[] { withPanel, anchorless, plain })
+                Assert.Empty(LogicalQuery.SelfAndDescendants<AttachmentAnchorCapture>(thumbnail));
+            // A photo shown before starts out drawn: in the plate at once, with no fade wrapper.
+            var drawn = Assert.Single(LogicalQuery.SelfAndDescendants<Image>(withPanel));
+            var plateContent = Assert.IsAssignableFrom<Panel>(drawn.Parent);
+            Assert.Same(drawn, Assert.Single(plateContent.Children)); // straight in, not inside a fade wrapper
+            Assert.Equal(1, drawn.Opacity);
+            Assert.Equal(56, Assert.IsType<Border>(plateContent.Parent).Width);
+            Hover(window, LogicalQuery.SelfAndDescendants<Button>(withPanel).Single());
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Single(LogicalQuery.SelfAndDescendants<AttachmentAnchorCapture>(withPanel!));
+                Hover(window!, LogicalQuery.SelfAndDescendants<Button>(anchorless!).Single());
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<AttachmentAnchorCapture>(anchorless!));
+            });
+            Assert.Equal(0, h.Main.Loop.Run(() => cache.Decodes(), AppModelHarness.Bound)); // the text file never asked the cache for a photo
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    // ---- The plan card, the checklist and the finished turn: what the gate's survivors left open (PR-CHAT-104, -106, -111 to -115) ----
+
+    private static void RaiseClosed(Avalonia.Controls.Primitives.Popup popup) =>
+        ((MulticastDelegate?)typeof(Avalonia.Controls.Primitives.Popup).GetField("Closed", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup))?.DynamicInvoke(popup, EventArgs.Empty);
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-113")]
+    [Trait("Req", "PR-CHAT-112")]
+    public void A_plan_popover_dismissed_from_outside_can_be_opened_again_and_its_two_buttons_sit_8_apart_the_first_one_prominent() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        PlanCard? card = null;
+        AvaloniaWindow? window = null;
+        var entry = PlanEntry(ProposedPlan.State.Proposed);
+        h.Main.OnMain(() =>
+        {
+            _ = AppCurrentEvent.CurrentWindow;
+            card = new PlanCard(entry, h.Runtime);
+            window = Show(card);
+            Press(LogicalQuery.SelfAndDescendants<Button>(card).First());
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                var shown = Assert.Single(presenter.Calls, call => call.Presented);
+                var implement = LogicalQuery.SelfAndDescendants<Button>(shown.Popup.Child!).Single(button => LogicalTexts(button).Contains("Implement plan"));
+                var dismiss = LogicalQuery.SelfAndDescendants<Button>(shown.Popup.Child!).Single(button => LogicalTexts(button).Contains("Dismiss"));
+                var row = Assert.IsType<StackPanel>(implement.Parent);
+                Assert.Equal(8, row.Spacing);
+                Assert.Same(row, dismiss.Parent);
+                Assert.True(row.Children.IndexOf(implement) < row.Children.IndexOf(dismiss));
+                // Only the first is prominent: an accent fill at 0.3 behind its label.
+                var implementFrame = Assert.IsType<Border>(implement.Content);
+                Assert.Equal(Resolved(ChromeTokens.Accent.Opacity(0.3), implementFrame), BrushColor(implementFrame.Background));
+                Assert.Null(Assert.IsType<Border>(dismiss.Content).Background);
+                RaiseClosed(shown.Popup); // the reader clicks away
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Press(LogicalQuery.SelfAndDescendants<Button>(card!).First());
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Equal(2, presenter.Calls.Count(call => call.Presented)); // it opens again on the next tap, not closes
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-115")]
+    public void A_baseline_row_lays_its_children_out_left_to_right_by_their_spacing_on_one_fractional_baseline_through_wrappers() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            Assert.False(new TimelineBaselineRow().UseLayoutRounding); // a font's fractional first baseline is kept
+            var plain = new TextBlock { Text = "plain", FontSize = 14 };
+            var wrapped = new TextBlock { Text = "wrapped", FontSize = 14 };
+            var wrapper = new Border { Padding = new Thickness(0, 6, 0, 0), Child = wrapped };
+            var row = new TimelineBaselineRow { Spacing = 9 };
+            row.Children.Add(plain);
+            row.Children.Add(wrapper);
+            var window = Show(row);
+            try
+            {
+                Settle(window);
+                Assert.Equal(plain.Bounds.Right + 9, wrapper.Bounds.Left, precision: 1);
+                // The text inside the wrapper shares the plain text's baseline: the wrapper's own top is lifted by its padding.
+                var plainBaseline = plain.Bounds.Top + plain.TextLayout.TextLines[0].Baseline;
+                var wrappedBaseline = wrapper.Bounds.Top + 6 + wrapped.TextLayout.TextLines[0].Baseline;
+                Assert.Equal(plainBaseline, wrappedBaseline, precision: 1);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")]
+    public void A_finished_turn_stacks_its_parts_without_a_gap_and_its_header_row_is_a_hit_target_6_points_wide_between_label_and_chevron() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var prompt = UserEntry("the prompt", turn);
+            var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), new ValueList<TimelineEntry>([prompt]),
+                new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "file"), turn), new TimelineEntry(new TimelineItem(turn, new TimelineItem.Content.Assistant(new AssistantMessage { Text = "the answer" })))]), null, false, false);
+            var stack = Assert.IsType<StackPanel>(block.Child);
+            Assert.Equal(new Thickness(0, 0, 0, TimelineMetrics.RowSpacing), Assert.IsType<UserMessageRow>(stack.Children[0]).Margin); // one row gap under each prompt
+            Assert.Equal(Orientation.Vertical, stack.Orientation);
+            Assert.Equal(0, stack.Spacing);
+            var header = Assert.IsType<Button>(stack.Children.OfType<Button>().First());
+            var row = Assert.IsType<StackPanel>(header.Content);
+            Assert.Equal(6, row.Spacing);
+            Assert.Equal(0, BrushColor(row.Background).A);
+            Assert.NotNull(row.Background);
+            var derived = Invoke(block, "DerivedFor", true)!;
+            var steps = Assert.IsAssignableFrom<Control>(Invoke(block, "Steps", derived, false));
+            var card = Assert.IsType<Border>(steps);
+            Assert.Equal(Orientation.Vertical, Assert.IsType<StackPanel>(card.Child).Orientation);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-144")]
+    public void A_note_with_a_leading_address_keeps_its_title_less_the_stop_its_96_points_and_a_pill_that_toggles_the_report() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        HydraReportRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            _ = AppCurrentEvent.CurrentWindow;
+            row = new HydraReportRow(Note143("Hydra merged the team's work.\nhttps://gitlab.com/g/p/-/merge_requests/7\nThree heads landed."));
+            window = Show(row);
+            Assert.Equal(new Thickness(0, 0, 96, 0), row.Padding);
+            Assert.Contains("Hydra merged the team's work", Texts(row));
+            Assert.DoesNotContain("Hydra merged the team's work.", Texts(row));
+            Press(LogicalQuery.SelfAndDescendants<Button>(row).Single(button => !LogicalTexts(button).Contains("Open")));
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Equal(1, presenter.Calls.Count(call => call.Presented));
+                Press(LogicalQuery.SelfAndDescendants<Button>(row!).Single(button => !LogicalTexts(button).Contains("Open")));
+            });
+            h.Main.Loop.RunUntilIdle();
+            h.Main.OnMain(() => Assert.False(presenter.Calls[^1].Presented)); // a second tap folds it away again
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-079")]
+    public void An_image_attachments_plate_is_rounded_12_points_in_the_continuous_style() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var path = System.IO.Path.Combine(h.Project.Path, "plate.png");
+            ThumbnailMemory.Store(new DecodedBitmap(2, 2, 8, new byte[16]), path, 56);
+            var thumbnail = new AttachmentThumbnail(new Attachment { Name = "plate.png", Path = path, MimeType = "image/png" }, new AttachmentPreviewSlot());
+            var window = Show(thumbnail);
+            try
+            {
+                var plate = LogicalQuery.SelfAndDescendants<Border>(thumbnail).First(border => border.Width == 56);
+                Assert.Equal(new CornerRadius(12), plate.CornerRadius);
+                Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(plate));
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")]
+    public void The_file_cards_title_row_is_a_hit_target_across_its_width() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var card = new TurnFileCard(Changes108(2), canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var window = Show(card);
+            try
+            {
+                var titleRow = LogicalQuery.SelfAndDescendants<StackPanel>(card).First(stack => LogicalTexts(stack).Contains("Edited 2 files") && stack.Spacing == 8 && stack.Orientation == Orientation.Horizontal && stack.Background is not null);
+                Assert.Equal(0, BrushColor(titleRow.Background).A);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    // ---- The merge pill's track tap, its sizing copies and its width glide (PR-CHAT-150, PR-HYDRAMERGE-105, -107) ----
+
+    private static void MergeFrames(TestRuntime main, ManualFrameSource frames, double milliseconds)
+    {
+        frames.Advance(TimeSpan.Zero);
+        for (var elapsed = 0.0; elapsed < milliseconds; elapsed += 16)
+        {
+            main.AdvanceMilliseconds(16);
+            frames.Advance(TimeSpan.FromMilliseconds(16));
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-150")]
+    [Trait("Req", "PR-HYDRAMERGE-105")]
+    [Trait("Req", "PR-HYDRAMERGE-107")]
+    public void Tapping_the_track_of_a_landed_merge_toggles_its_report_without_passing_the_tap_on_and_its_sizing_copies_match_the_drawn_words() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        HydraMergeRow? row = null;
+        AvaloniaWindow? window = null;
+        var bubbled = 0;
+        h.Main.OnMain(() =>
+        {
+            _ = AppCurrentEvent.CurrentWindow;
+            h.Runtime.IsHydraMerging = true;
+            row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging());
+            row.AddHandler(Avalonia.Input.InputElement.PointerReleasedEvent, (_, _) => bubbled++, Avalonia.Interactivity.RoutingStrategies.Bubble);
+            window = Show(row);
+            h.Runtime.IsHydraMerging = false;
+            row.Update(new HydraMergePhase.Outcome(new UserMessage { Text = "The merge stopped.\nhttps://gitlab.com/g/p/-/merge_requests/7\nBecause of a conflict." }));
+        });
+        try
+        {
+            MergeFrames(h.Main, frames, 2000);
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                // Every "Open" the pill holds, the drawn link and the hidden sizing copy, is set the same way.
+                var opens = LogicalQuery.SelfAndDescendants<TextBlock>(row!).Where(block => block.Text == "Open").ToList();
+                Assert.True(opens.Count >= 2);
+                var expected = ChatFont.Chat(SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold).Resolve();
+                Assert.All(opens, block => { Assert.Equal(expected.FontWeight, block.FontWeight); Assert.Equal(expected.FontSize, block.FontSize); });
+                // The sizing slots hang 6 points past the pill's vertical padding, the outer one 2 past its sides.
+                var slots = LogicalQuery.SelfAndDescendants<Panel>(row!).Where(panel => panel.GetType().Name == "MorphSlot").ToList();
+                Assert.Contains(slots, slot => slot.Margin == new Thickness(-2, -6));
+                var track = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMergeTrack>(row!));
+                Click(window!, track);
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Equal(0, bubbled); // the track takes its own tap
+                Assert.Single(presenter.Calls, call => call.Presented);
+                Click(window!, Assert.Single(LogicalQuery.SelfAndDescendants<HydraMergeTrack>(row!)));
+            });
+            h.Main.Loop.RunUntilIdle();
+            h.Main.OnMain(() => Assert.False(presenter.Calls[^1].Presented));
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-150")]
+    [Trait("Req", "PR-HYDRAMERGE-107")]
+    public void The_capsule_grows_to_the_width_of_each_longer_stage_as_the_merge_advances() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        HydraMergeRow? row = null;
+        AvaloniaWindow? window = null;
+        double Width() => LogicalQuery.SelfAndDescendants<Border>(row!).First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical)).Bounds.Width;
+        h.Main.OnMain(() =>
+        {
+            h.Runtime.IsHydraMerging = true;
+            h.Runtime.HydraMergeStep = HydraMergeStage.Merging;
+            h.Runtime.HydraMergeStage = HydraMergeStage.Merging.Words;
+            row = new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging());
+            window = Show(row);
+        });
+        try
+        {
+            double before = 0;
+            MergeFrames(h.Main, frames, 800);
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                // While merging, the pill's slot hangs 2 past its sides and the stage's own slot none, both 6 past the padding.
+                var slots = LogicalQuery.SelfAndDescendants<Panel>(row!).Where(panel => panel.GetType().Name == "MorphSlot").Select(panel => panel.Margin).ToList();
+                Assert.Contains(new Thickness(-2, -6), slots);
+                Assert.Contains(new Thickness(0, -6), slots);
+                before = Width();
+                h.Runtime.HydraMergeStep = HydraMergeStage.Syncing;
+                h.Runtime.HydraMergeStage = HydraMergeStage.Syncing.Words;
+            });
+            h.Main.Loop.RunUntilIdle();
+            h.Main.OnMain(() => Settle(window!)); // the layout pass is what starts the width's glide
+            MergeFrames(h.Main, frames, 1500);
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.True(Width() > before + 20, $"{before} -> {Width()}");
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
 }
