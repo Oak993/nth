@@ -396,17 +396,6 @@ public sealed class ComposerTextViewTests(HeadlessSession headless)
         Assert.Equal("abcXYZdef", pasted);
     });
 
-    private sealed class DelayedTextTransfer(Task<object?> text) : IAsyncDataTransfer, IAsyncDataTransferItem
-    {
-        public IReadOnlyList<DataFormat> Formats { get; } = [DataFormat.Text];
-
-        public IReadOnlyList<IAsyncDataTransferItem> Items => [this];
-
-        public Task<object?> TryGetRawAsync(DataFormat format) => format == DataFormat.Text ? text : Task.FromResult<object?>(null);
-
-        public void Dispose() { }
-    }
-
     [Fact]
     [Trait("Req", "PR-COMPOSER-019")] // ComposerTextView.swift:293-327 updateNSView replaces coordinator.parent: the latest onCursorChange and onBlur run
     public void Update_replaces_the_cursor_and_blur_callbacks() => headless.OnUiThread(() =>
