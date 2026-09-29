@@ -27,4 +27,30 @@ public sealed class AppModelAuditFixTests
             Assert.Equal(["changed", "second"], model.Threads.Select(thread => thread.Title).ToList());
         });
     }
+
+    [Fact]
+    [Trait("Req", "PR-STORE-171")] // AppModel.swift:189-210
+    public void A_live_parent_keeps_its_empty_child_cell_so_the_observer_hears_of_its_first_child()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("child-cell"));
+        var parent = AppModelSamples.Thread(project);
+        var other = AppModelSamples.Thread(project);
+        h.WriteLibrary([project], [parent, other]);
+        var model = h.MakeModel();
+        var heard = 0;
+
+        h.Main.OnMain(() =>
+        {
+            var (before, tracker) = ObservationTracking.Track(() => model.Children(parent.Id), () => heard++);
+            Assert.Empty(before);
+
+            model.UpdateThread(other.Id, thread => thread with { Title = "unrelated" });
+            Assert.Equal(0, heard);
+
+            model.InsertThread(AppModelSamples.Thread(project) with { ParentThreadID = parent.Id });
+            Assert.Equal(1, heard);
+            GC.KeepAlive(tracker);
+        });
+    }
 }

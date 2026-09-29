@@ -255,24 +255,19 @@ public sealed partial class AppModel : MainActorModel
             if (!children.TryGetValue(parentID, out var ids)) children[parentID] = ids = [];
             ids.Add(thread.Id);
         }
-        foreach (var (parentID, ids) in children)
+        // A parent that still exists keeps its cell even with nothing under it, because that is exactly the cell a chat
+        // with no heads yet is watching for its first one; only a parent that is gone loses its cell.
+        foreach (var (parentID, cell) in childCells.ToArray()) // AppModel.swift:196-199
         {
-            var value = new ValueList<Guid>(ids);
-            if (childCells.TryGetValue(parentID, out var cell))
-            {
-                if (!cell.Value.Equals(value)) cell.Value = value;
-            }
-            else
-            {
-                childCells[parentID] = new ObservedValue<ValueList<Guid>>(value);
-            }
+            var value = children.TryGetValue(parentID, out var present) ? new ValueList<Guid>(present) : ValueList<Guid>.Empty;
+            if (!cell.Value.Equals(value)) cell.Value = value;
         }
-        foreach (var parentID in childCells.Keys.ToArray())
-        {
-            if (children.ContainsKey(parentID)) continue;
-            childCells[parentID].Value = ValueList<Guid>.Empty;
-            childCells.Remove(parentID);
-        }
+        foreach (var (parentID, ids) in children) // AppModel.swift:200-202
+            if (!childCells.ContainsKey(parentID)) childCells[parentID] = new ObservedValue<ValueList<Guid>>(new ValueList<Guid>(ids));
+        if (childCells.Count == children.Count) return; // AppModel.swift:203
+        var live = values.Select(thread => thread.Id).ToHashSet(); // AppModel.swift:204
+        foreach (var parentID in childCells.Keys.ToArray()) // AppModel.swift:205-207
+            if (!live.Contains(parentID) && !children.ContainsKey(parentID)) childCells.Remove(parentID);
     } // AppModel.swift:189-210
 
     private ValueList<Guid> ChildIDs(Guid parentID)
