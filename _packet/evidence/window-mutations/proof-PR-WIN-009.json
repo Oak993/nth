@@ -1,0 +1,709 @@
+{
+    "record":  "PR-WIN-009",
+    "mutations":  [
+                      {
+                          "id":  "OWN-WIN009-01",
+                          "records":  [
+                                          "PR-WIN-009"
+                                      ],
+                          "clause":  "Swift:63 display name, not version metadata",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                          "replacements":  [
+                                               {
+                                                   "before":  "MakeWindow(AppInfo.Current.Name, Size.Main",
+                                                   "after":  "MakeWindow(AppInfo.Current.Version, Size.Main"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN009-02",
+                          "records":  [
+                                          "PR-WIN-009"
+                                      ],
+                          "clause":  "Swift:97 native and accessibility title is populated",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                          "replacements":  [
+                                               {
+                                                   "before":  "window.Title = title;",
+                                                   "after":  "window.Title = string.Empty;"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN009-03",
+                          "records":  [
+                                          "PR-WIN-009"
+                                      ],
+                          "clause":  "Swift:63 main factory wires RootView, not Settings content",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                          "replacements":  [
+                                               {
+                                                   "before":  "Size.Main, resizable: true, MainContent,",
+                                                   "after":  "Size.Main, resizable: true, SettingsContent,"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN009-04",
+                          "records":  [
+                                          "PR-WIN-009"
+                                      ],
+                          "clause":  "The actual RootView survives host composition",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                          "replacements":  [
+                                               {
+                                                   "before":  "Child = rootView; // :199",
+                                                   "after":  "Child = new Border(); // :199"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN009-05",
+                          "records":  [
+                                          "PR-WIN-009"
+                                      ],
+                          "clause":  "The actual RootView host is installed on the window",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                          "replacements":  [
+                                               {
+                                                   "before":  "window.Content = container; // :108",
+                                                   "after":  "window.Content = new Border(); // :108"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN009-06",
+                          "records":  [
+                                          "PR-WIN-009"
+                                      ],
+                          "clause":  "Main content is actually visible, not only present in a detached/hidden tree",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                          "replacements":  [
+                                               {
+                                                   "before":  "MainContent { get; set; } = () =\u003e new RootView();",
+                                                   "after":  "MainContent { get; set; } = () =\u003e new RootView { IsVisible = false };"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN009-07",
+                          "records":  [
+                                          "PR-WIN-009"
+                                      ],
+                          "clause":  "Hosted RootView remains enabled for its normal interaction",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                          "replacements":  [
+                                               {
+                                                   "before":  "MainContent { get; set; } = () =\u003e new RootView();",
+                                                   "after":  "MainContent { get; set; } = () =\u003e new RootView { IsEnabled = false };"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN009-08",
+                          "records":  [
+                                          "PR-WIN-009"
+                                      ],
+                          "clause":  "Display name is not case-normalized",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                          "replacements":  [
+                                               {
+                                                   "before":  "window.Title = title;",
+                                                   "after":  "window.Title = title.ToUpperInvariant();"
+                                               }
+                                           ]
+                      }
+                  ],
+    "results":  [
+                    {
+                        "id":  "OWN-WIN009-01",
+                        "record":  "PR-WIN-009",
+                        "clause":  "Swift:63 display name, not version metadata",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN009-01-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-ae23e7e4-9306-462f-add9-9b204f79bb13",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-01-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal --logger trx;LogFileName=OWN-WIN009-01-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-b76c8a9b-231b-4dc4-8987-995d6d7ef6b6",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                                                              "message":  "Assert.Equal() Failure: Strings differ\r\n           ↓ (pos 0)\r\nExpected: \"Window proof Ω 007\"\r\nActual:   \"1.0.0\"\r\n           ↑ (pos 0)"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-01-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal --logger trx;LogFileName=OWN-WIN009-01-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-aa98df4f-1a5c-4797-bdca-88db8932d534",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                                                              "message":  "Assert.Equal() Failure: Strings differ\r\n           ↓ (pos 0)\r\nExpected: \"Window proof Ω 007\"\r\nActual:   \"1.0.0\"\r\n           ↑ (pos 0)"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-01-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-27abe8e2-96b8-4a46-af45-47bc7baa1d06",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-01-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal --logger trx;LogFileName=OWN-WIN009-01-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-eb304d5f-af5e-4d86-9a2d-e9679961c101",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "A988633CAFF3A28098ACE51363FA0950005899F1D08E567E161D5606E4E3CF01",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN009-02",
+                        "record":  "PR-WIN-009",
+                        "clause":  "Swift:97 native and accessibility title is populated",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN009-02-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-67bcb257-b0a0-4c9f-a51e-4294feb527b4",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-02-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal --logger trx;LogFileName=OWN-WIN009-02-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-66776f0e-62ad-4216-92cf-3006d46694f7",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                                                              "message":  "Assert.Equal() Failure: Strings differ\r\n           ↓ (pos 0)\r\nExpected: \"Window proof Ω 007\"\r\nActual:   \"\""
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-02-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal --logger trx;LogFileName=OWN-WIN009-02-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-3df37bed-65f9-429e-9720-990386859ae4",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                                                              "message":  "Assert.Equal() Failure: Strings differ\r\n           ↓ (pos 0)\r\nExpected: \"Window proof Ω 007\"\r\nActual:   \"\""
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-02-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-3f67b3ab-1878-4f2c-908a-727986ee387b",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-02-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal --logger trx;LogFileName=OWN-WIN009-02-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-1301668c-b474-472a-8bdf-0720b04a9543",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "69634353A5D4DCF37C9A4D8BB80B2212B64069D066A2FB7EFD963A917F2AC90F",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN009-03",
+                        "record":  "PR-WIN-009",
+                        "clause":  "Swift:63 main factory wires RootView, not Settings content",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN009-03-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-90ebcaa2-8936-470f-a3f9-933f598a9d07",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-03-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-03-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-dfc73b04-1536-4412-9950-cc6991bd06bc",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                                                              "message":  "Assert.Single() Failure: The collection was empty"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-03-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-03-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-f3d2742c-0762-4f36-88e9-d6d59d703c6f",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                                                              "message":  "Assert.Single() Failure: The collection was empty"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-03-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-f87519d4-b6a3-469e-b0a9-a82f4576e641",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-03-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-03-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-8b13d027-89a7-40f0-aa72-84807c34400e",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "B94CE449EF76D4A874DB4373C730062D7C0E0CBF214B5B29A2C776DB6F881F73",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN009-04",
+                        "record":  "PR-WIN-009",
+                        "clause":  "The actual RootView survives host composition",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN009-04-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-71b011b9-2a0c-40cd-8933-3b9131ea46d9",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-04-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-04-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-fd410fd0-2ab7-43d6-b882-afcc4615c9da",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                                                              "message":  "Assert.Single() Failure: The collection was empty"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-04-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-04-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-34cc5484-ddbe-4a8a-9177-5e390a349028",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                                                              "message":  "Assert.Single() Failure: The collection was empty"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-04-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-7532cc44-e3b6-41dc-a047-c606025b971b",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-04-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-04-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-3fde6615-af41-47e4-9bb1-0c0a833e5209",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "4518E6386935E30442DD27BA902623CDF0AFBBA2374122D661903E9614978750",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN009-05",
+                        "record":  "PR-WIN-009",
+                        "clause":  "The actual RootView host is installed on the window",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN009-05-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-1e9a14cc-8d5c-4b2d-8644-2cfb543c1659",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-05-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-05-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c08836f7-20c2-4d7a-bfcc-a1fefe946991",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                                                              "message":  "Assert.Single() Failure: The collection was empty"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-05-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-05-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-21540fc9-3e3d-431d-bbb1-812133a732ab",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                                                              "message":  "Assert.Single() Failure: The collection was empty"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-05-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-ff3f428d-a513-46c7-bfd0-2aa7f9b70f8e",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-05-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-05-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-19cf9b24-d98f-4ee1-b167-8cb0362c4d77",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "E72249CECE771F87C63ED9287857C5E0A6D57A47159B797FD8CC4F387B48E2D5",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN009-06",
+                        "record":  "PR-WIN-009",
+                        "clause":  "Main content is actually visible, not only present in a detached/hidden tree",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN009-06-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-2320727e-1b17-4c02-8add-f9b47228328b",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-06-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-06-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c516b381-4375-456e-b722-c172ea1c0ed3",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                                                              "message":  "Assert.True() Failure\r\nExpected: True\r\nActual:   False"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-06-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-06-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-aa01b97e-7563-4474-b3ac-6cddab48cb51",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                                                              "message":  "Assert.True() Failure\r\nExpected: True\r\nActual:   False"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-06-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-83a78c73-9aa2-4cad-a69c-8c61d78acc13",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-06-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-06-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-2231e717-caaa-4479-bdbb-e0d854e359e8",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "9B0B6EC3594248FD7D056CECCF694A97E55124B6980D5815B7AE5AA30AE1DB5D",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN009-07",
+                        "record":  "PR-WIN-009",
+                        "clause":  "Hosted RootView remains enabled for its normal interaction",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN009-07-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c32aa799-23b6-4ca8-b092-e7ce148fb292",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-07-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-07-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c8b5257a-bbd3-49bc-b5af-be8b3cb5a467",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                                                              "message":  "Assert.True() Failure\r\nExpected: True\r\nActual:   False"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-07-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-07-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-62df317f-c3f2-40e6-b264-56c787b60c2f",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+                                                              "message":  "Assert.True() Failure\r\nExpected: True\r\nActual:   False"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-07-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-e4536095-cf4a-4d3b-9495-2dfafb7758a0",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-07-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment --logger trx;LogFileName=OWN-WIN009-07-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-cdd6d97b-3919-4ba6-99f6-bb6a5d4d0de9",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "9A513C68E415FB06816C6830A0A6164C8D3A785E235E091BEDAE35A99AC39EB9",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN009-08",
+                        "record":  "PR-WIN-009",
+                        "clause":  "Display name is not case-normalized",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN009-08-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-3f1b567a-f987-40bf-a5c5-70f653bed842",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-08-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal --logger trx;LogFileName=OWN-WIN009-08-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-8b35a88f-e311-4242-bc60-130c2e1e7dff",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                                                              "message":  "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"Window proof Ω 007\"\r\nActual:   \"WINDOW PROOF Ω 007\"\r\n            ↑ (pos 1)"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-08-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal --logger trx;LogFileName=OWN-WIN009-08-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-017113e2-3a25-41b2-806b-4575bbf81b45",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+                                                              "message":  "Assert.Equal() Failure: Strings differ\r\n            ↓ (pos 1)\r\nExpected: \"Window proof Ω 007\"\r\nActual:   \"WINDOW PROOF Ω 007\"\r\n            ↑ (pos 1)"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-08-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-d6548fd5-717f-4abd-83c3-8942baec8283",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN009-08-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal --logger trx;LogFileName=OWN-WIN009-08-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-8952afbf-a03c-4a1e-9385-c18aa11d13e5",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "AE8B7D382F35B6BD98D792BF32F1D95A554322E955014CB595D9B52C20DEEA16",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    }
+                ],
+    "gate":  {
+                 "name":  "PR-WIN-009-class-and-trace",
+                 "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName~WindowManagerTitleMutationTests|FullyQualifiedName~TraceabilityTests --logger trx;LogFileName=PR-WIN-009-class-and-trace.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                 "exit":  0,
+                 "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-e41037cd-15f2-4fee-90d4-c34b4a9ea92e",
+                 "total":  5,
+                 "passed":  5,
+                 "failed":  0,
+                 "failures":  [
+
+                              ]
+             },
+    "run_directory":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+    "scope":  "Executed mutation evidence only; final REPORT decides complete-clause candidacy."
+}
