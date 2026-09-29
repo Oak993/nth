@@ -1,0 +1,22 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-provider-original-newline-gate-1-2026-09-29T18-47-21-153Z-d9cd2d",
+  "archive": "_packet/revision/evidence-archives/resume-provider-original-newline-gate-1-2026-09-29T18-47-21-153Z-d9cd2d.zip",
+  "archive_sha256": "E2D8A2A75B826FBA0C4D73D297A8DDB95A94E829D514FE5E984663D8C105F326",
+  "files": [
+    {
+      "path": "tests.json",
+      "bytes": 8071,
+      "sha256": "2C037DEDDCB06C0EEE96D9D494F6926DFF0D2CDC368EB8261BEA0DCA9E8547E9"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 738,
+      "sha256": "7B2921B4B4876D314DF4438DB2E0441A7753CA53A4D5A273BE37AACD7685D01B"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 41980,
+      "sha256": "9298FF1D2A60B287C8828FCDB4DBC486B25C132675FCFEC42B593923641CE45E"
+    }
+  ]
+}

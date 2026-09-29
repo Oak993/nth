@@ -1,0 +1,436 @@
+{
+    "at":  "2026-09-29T18:24:02.5024469Z",
+    "reason":  "Recovered ordinary repeat made no log progress since 17:30:57Z and essentially no CPU progress across repeated inspection; active Fact is not identified. Stop only pinned owned campaign/testhost and its descendants, preserve partial evidence, do not call an abort a pass.",
+    "status":  "OWNED_ABORT_COMPLETE_NOT_A_SUITE_PASS",
+    "head":  "ac9e7663c7c0e5fc5be470802637849625bbd0a7",
+    "evidence":  "_packet/revision/evidence/final-app-ordinary-2-2026-09-29T17-24-03-670Z-d4f6c5",
+    "log_last_write_utc":  "2026-09-29T17:30:57.6863311Z",
+    "log_bytes":  515726,
+    "log_sha256":  "43093C3D4A5B2D840DE5EEA6B73106C8D22FB668449289FA54A44A30FF09CCF6",
+    "processes":  [
+                      {
+                          "pid":  11340,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:07.0920720Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:07.0920728Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  13568,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:36.4130940Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.4130946Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  17588,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:36.5189530Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.5189532Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  20236,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:05.4652910Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:05.4652912Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  20264,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:05.6142460Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:05.6142465Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  20932,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:06.6658200Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:06.6658201Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  22220,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:36.3650570Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.3650579Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  27116,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:05.9878610Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:05.9878612Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  27208,
+                          "parent_pid":  78868,
+                          "name":  "testhost.exe",
+                          "started_utc":  "2026-09-29T17:24:04.5082640Z",
+                          "pinned_start_utc":  "2026-09-29T17:24:04.5082645Z",
+                          "role":  "testhost"
+                      },
+                      {
+                          "pid":  27588,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:42.8347970Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:42.8347976Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  28732,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:36.4557550Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.4557554Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  34912,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:07.5212080Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:07.5212085Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  42116,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:07.3928120Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:07.3928124Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  45116,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:36.4201110Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.4201119Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  51488,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:36.5246420Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.5246425Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  56872,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:36.4598980Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.4598981Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  66692,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:36.4048600Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.4048604Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  75580,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:42.8304910Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:42.8304910Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  87292,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:05.6620220Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:05.6620226Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  88256,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:05.4563680Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:05.4563683Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  91232,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:07.5254500Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:07.5254505Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  96436,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:24:04.5192680Z",
+                          "pinned_start_utc":  "2026-09-29T17:24:04.5192687Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  101232,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:06.6702590Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:06.6702598Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  102828,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:36.4711890Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.4711893Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  106136,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:07.0875530Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:07.0875535Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  111340,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:36.5148270Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.5148277Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  116372,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:05.4521390Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:05.4521398Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  116428,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:05.6101000Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:05.6101000Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  119568,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:05.6570180Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:05.6570181Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  119936,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:36.4170390Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.4170390Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  120452,
+                          "parent_pid":  126856,
+                          "name":  "node.exe",
+                          "started_utc":  "2026-09-29T17:14:36.0181150Z",
+                          "pinned_start_utc":  "2026-09-29T17:14:36.0181154Z",
+                          "role":  "campaign"
+                      },
+                      {
+                          "pid":  121552,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:36.4668910Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:36.4668911Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  124204,
+                          "parent_pid":  27208,
+                          "name":  "powershell.exe",
+                          "started_utc":  "2026-09-29T17:29:05.4689010Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:05.4689010Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  128240,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:05.9539400Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:05.9539408Z",
+                          "role":  "verified testhost descendant"
+                      },
+                      {
+                          "pid":  128704,
+                          "parent_pid":  27208,
+                          "name":  "conhost.exe",
+                          "started_utc":  "2026-09-29T17:29:07.3886140Z",
+                          "pinned_start_utc":  "2026-09-29T17:29:07.3886144Z",
+                          "role":  "verified testhost descendant"
+                      }
+                  ],
+    "stopped":  [
+                    {
+                        "exited":  true,
+                        "pid":  27588
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  111340
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  45116
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  128240
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  116372
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  28732
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  87292
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  96436
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  121552
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  27208
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  20264
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  27116
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  22220
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  88256
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  17588
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  119936
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  124204
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  106136
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  51488
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  119568
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  13568
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  101232
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  11340
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  120452
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  102828
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  20236
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  66692
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  34912
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  42116
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  20932
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  116428
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  75580
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  128704
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  91232
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  56872
+                    }
+                ],
+    "cleanup_complete":  true,
+    "ended":  "2026-09-29T18:24:02.6540087Z"
+}

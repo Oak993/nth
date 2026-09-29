@@ -1,0 +1,22 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-provider-icon-repro-1-2026-09-29T18-42-49-588Z-a08389",
+  "archive": "_packet/revision/evidence-archives/resume-provider-icon-repro-1-2026-09-29T18-42-49-588Z-a08389.zip",
+  "archive_sha256": "46C12FED9A525BA216275B587312CF1594F94420B9D1381C424C7FA918D0AD8D",
+  "files": [
+    {
+      "path": "tests.json",
+      "bytes": 2413,
+      "sha256": "E0C24A19DF5187A773157216E62A960B674286A6043A92A4C56D0766F0A9BC18"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 726,
+      "sha256": "D1653C4921504A71F47CE5E3465047BB68A656B314ACA95F118A30F7ECA25FB3"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 3149,
+      "sha256": "6B915A6AD13C9A805B24972094443E7AD2D19074844814CE1010AF8B9D89216E"
+    }
+  ]
+}

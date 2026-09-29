@@ -1,0 +1,17 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-provider-original-newline-build-2026-09-29T18-47-16-973Z-264e4a",
+  "archive": "_packet/revision/evidence-archives/resume-provider-original-newline-build-2026-09-29T18-47-16-973Z-264e4a.zip",
+  "archive_sha256": "8AB8B260C2B832781CE3BD3424CC5CE9685181519BB03861D085F99DC114F661",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 2413,
+      "sha256": "976810C298C0E141A0305324C8FC0D4370E2F7FC6769C6411028D510E8A9A9ED"
+    },
+    {
+      "path": "build.log",
+      "bytes": 343,
+      "sha256": "B6E83EA11B283179A7B805D71F9AB0E05B3A1E3CC84CFD9C5EB849A39D2B88BA"
+    }
+  ]
+}

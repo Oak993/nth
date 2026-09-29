@@ -1,0 +1,17 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-icon-diagnostic-build-2026-09-29T18-43-30-759Z-7b158c",
+  "archive": "_packet/revision/evidence-archives/resume-icon-diagnostic-build-2026-09-29T18-43-30-759Z-7b158c.zip",
+  "archive_sha256": "212E775B99A74E9403D7206F8D2BE679EDA01B6010B1227EFECDA6FC344CBF0D",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 2413,
+      "sha256": "D40B418D44AC6C214FB3A70C6571176DB4A6324899A730F39A3C162980DA51BF"
+    },
+    {
+      "path": "build.log",
+      "bytes": 343,
+      "sha256": "6FC639FC760F964A6F995A0C7AFCA688F43DC36DECFFEB72E19E9725851EC0E5"
+    }
+  ]
+}

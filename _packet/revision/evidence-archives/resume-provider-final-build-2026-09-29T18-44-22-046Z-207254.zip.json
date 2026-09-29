@@ -1,0 +1,17 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-provider-final-build-2026-09-29T18-44-22-046Z-207254",
+  "archive": "_packet/revision/evidence-archives/resume-provider-final-build-2026-09-29T18-44-22-046Z-207254.zip",
+  "archive_sha256": "A14C33F779B8059EF02B397CA5D15453FF3B1ACB2985E413FFCB047D0BA5D190",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 2413,
+      "sha256": "6529D4E08DFBFBB6B06630BE5B3339488A4B594FD0FBC76082C29D4C2A823734"
+    },
+    {
+      "path": "build.log",
+      "bytes": 343,
+      "sha256": "01F29480EDD20B90F984E8F54201BE6FA6D34A3BD59A0CBE9C68B6BFC839CA94"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-stall-observer-build-2026-09-29T18-28-09-117Z-51fff1",
+  "archive": "_packet/revision/evidence-archives/resume-stall-observer-build-2026-09-29T18-28-09-117Z-51fff1.zip",
+  "archive_sha256": "AF44001D3374E63103F7C1D9537A837ABD301D70ABE84A7C01A4E3A2E8AED7F1",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 2413,
+      "sha256": "C87B6971D5CA89C0CD3275A2C638CF63F11E518D41560DA46AAD538378F4B0D9"
+    },
+    {
+      "path": "build.log",
+      "bytes": 343,
+      "sha256": "F72E3636C4219A7C394AD120917F7B8CB6DEFF9C167CF1CA79B5126AC8AC052B"
+    }
+  ]
+}

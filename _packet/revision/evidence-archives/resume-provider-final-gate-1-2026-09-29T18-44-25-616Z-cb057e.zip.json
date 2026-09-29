@@ -1,0 +1,22 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-provider-final-gate-1-2026-09-29T18-44-25-616Z-cb057e",
+  "archive": "_packet/revision/evidence-archives/resume-provider-final-gate-1-2026-09-29T18-44-25-616Z-cb057e.zip",
+  "archive_sha256": "DEC4E25AF5A02226834DDEA79EB76DC9C7DFC4579FD88BFB4E9A9F9670CEE502",
+  "files": [
+    {
+      "path": "tests.json",
+      "bytes": 8060,
+      "sha256": "6007029B04D363172597366613F43C3C16403A1193C5CE3482BB08E38D4A8256"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 727,
+      "sha256": "846D30597A73E648583FBCC89A7379E6FB8FB053AF497F018A108AFC2B91694C"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 41980,
+      "sha256": "39F06CE444DB79A202A226C711D876F5D1D637ADCDA4815D12D979297FE72D0B"
+    }
+  ]
+}

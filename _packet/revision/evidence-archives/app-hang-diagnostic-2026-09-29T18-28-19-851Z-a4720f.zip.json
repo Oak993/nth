@@ -1,0 +1,52 @@
+{
+  "original_directory": "_packet/revision/evidence/app-hang-diagnostic-2026-09-29T18-28-19-851Z-a4720f",
+  "archive": "_packet/revision/evidence-archives/app-hang-diagnostic-2026-09-29T18-28-19-851Z-a4720f.zip",
+  "archive_sha256": "237D79B3D17678ECEDF0BA948900A53156042B8FA293ADA91740213FAA538327",
+  "files": [
+    {
+      "path": "console.log",
+      "bytes": 539034,
+      "sha256": "561B4AD59C008790E4DDAA6574220C6592218551A0346A71D587E4E144135500"
+    },
+    {
+      "path": "diagnostic-result.json",
+      "bytes": 1190,
+      "sha256": "A636A000042A1D44EB63A15A5CFE2054BD11A81B2CDD8FB5E883C60128F5BAF5"
+    },
+    {
+      "path": "diagnostic.trx",
+      "bytes": 5378168,
+      "sha256": "F726517230A6D8990BD8606A8021874281BA7E3FB117B8F5C2A6172C0EDB5454"
+    },
+    {
+      "path": "invocation.json",
+      "bytes": 775,
+      "sha256": "139FA07BDE3B41F5CC2D30EB65020648BD98C15FCD2FDD853FBDF6FA065ACD8F"
+    },
+    {
+      "path": "latest-progress.json",
+      "bytes": 64,
+      "sha256": "63ED696625BBF79ED0E2DD438D4E4725B485008E1CD3EFF7D194BC4365B769A3"
+    },
+    {
+      "path": "self-stack-request.json",
+      "bytes": 171,
+      "sha256": "F7CB1C3A58156E19931D9AA45ED3EB92984DC59BB9748A5527772BD17889B9FA"
+    },
+    {
+      "path": "vstest-diag.datacollector.26-09-29_21-28-20_71259_5.log",
+      "bytes": 7615263,
+      "sha256": "5AD6A5E9C055D42C87B90B0CBCA79EB7C8A31B457E848EEEB783D574CF1C06C7"
+    },
+    {
+      "path": "vstest-diag.host.26-09-29_21-28-20_86112_5.log",
+      "bytes": 15704037,
+      "sha256": "78628482C4A1D5B0BBD8329B4D2ECBD37618679171702A44B6D3DA1717CE17A9"
+    },
+    {
+      "path": "vstest-diag.log",
+      "bytes": 11525294,
+      "sha256": "ACF5E9C39ABCF9BB3984EB1C38B4B380D045A26EB721BBFFAC18C0F69379B17B"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+// DIAGNOSTIC ONLY. Remove this file and rebuild before any final ordinary gate.
+// Observes this authenticated testhost only; it does not alter tests, clocks or product code.
+using System.Diagnostics;
+using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Text.Json;
+using Marrow.Core.Port;
+
+namespace Marrow.App.Tests.Fixtures;
+
+internal static class TemporaryResumeStackProbe
+{
+    [ModuleInitializer]
+    internal static void Start()
+    {
+        var directory = Environment.GetEnvironmentVariable("MARROW_SUITE_STACK_DIAGNOSTIC");
+        if (directory is null) return;
+        const string prefix = @"E:\Droppy\wt\oc\chatgpt-1\_packet\revision\evidence\app-hang-diagnostic-";
+        var full = Path.GetFullPath(directory);
+        if (!full.StartsWith(prefix, StringComparison.OrdinalIgnoreCase) || !Directory.Exists(full))
+            throw new InvalidOperationException("Diagnostic directory is not an existing owned run.");
+        using var request = JsonDocument.Parse(File.ReadAllText(Path.Combine(full, "self-stack-request.json")));
+        var nonce = request.RootElement.GetProperty("nonce").GetString();
+        if (!Guid.TryParseExact(nonce, "N", out _) || request.RootElement.GetProperty("directory").GetString() != full)
+            throw new InvalidOperationException("Diagnostic request identity mismatch.");
+        var thread = new Thread(() => Observe(full, nonce!))
+        {
+            IsBackground = true,
+            Name = "Owned stalled-suite stack diagnostic",
+        };
+        if (ExecutionContext.IsFlowSuppressed()) thread.Start();
+        else { using (ExecutionContext.SuppressFlow()) thread.Start(); }
+    }
+
+    private static void Observe(string directory, string nonce)
+    {
+        var lifetime = Stopwatch.StartNew();
+        var observed = DateTime.UtcNow;
+        var lastCapture = TimeSpan.MinValue;
+        var captures = 0;
+        var progress = Path.Combine(directory, "latest-progress.json");
+        while (lifetime.Elapsed < TimeSpan.FromMinutes(20) && captures < 3)
+        {
+            Thread.Sleep(1000);
+            var written = File.GetLastWriteTimeUtc(progress);
+            if (written > observed) observed = written;
+            if (DateTime.UtcNow - observed < TimeSpan.FromSeconds(40)) continue;
+            if (captures > 0 && lifetime.Elapsed - lastCapture < TimeSpan.FromSeconds(30)) continue;
+            lastCapture = lifetime.Elapsed;
+            var destination = Path.Combine(directory, $"stalled-self-stack-{Environment.ProcessId}-{++captures}.txt");
+            using var output = new StreamWriter(new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.Read), new UTF8Encoding(false)) { AutoFlush = true };
+            output.WriteLine($"DIAGNOSTIC SELF ONLY; pid={Environment.ProcessId}; nonce={nonce}; utc={DateTime.UtcNow:O}; last_progress_utc={observed:O}");
+            try
+            {
+                // System clock belongs only to the observer thread, never to a running test.
+                using var clock = SwiftClock.Provider.Override(TimeProvider.System);
+                var type = typeof(SwiftClock).Assembly.GetType("Marrow.Core.Port.StackSampler", throwOnError: true)!;
+                var method = type.GetMethod("Capture", BindingFlags.NonPublic | BindingFlags.Static, null, [typeof(TimeSpan), typeof(uint?)], null)
+                    ?? throw new MissingMethodException(type.FullName, "Capture(TimeSpan,uint?)");
+                output.WriteLine((string?)method.Invoke(null, [TimeSpan.FromSeconds(2), null]));
+            }
+            catch (Exception error) { output.WriteLine(error); }
+        }
+    }
+}

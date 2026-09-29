@@ -1,0 +1,17 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-popup-fixed-build-2026-09-29T18-41-46-678Z-1b04d0",
+  "archive": "_packet/revision/evidence-archives/resume-popup-fixed-build-2026-09-29T18-41-46-678Z-1b04d0.zip",
+  "archive_sha256": "B9E5848030A7845C578411EA3A0570D87E0D01AB9F60AF77C1FF16481553FB55",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 2413,
+      "sha256": "3C193B5D79F987B7AF251B021179AB841DFEE9BAEA75028FD7019B98948631C7"
+    },
+    {
+      "path": "build.log",
+      "bytes": 343,
+      "sha256": "10AA4E2CF86004E59153950437533C56F76CFE807C4EF569B6AEBDE9B89AB779"
+    }
+  ]
+}

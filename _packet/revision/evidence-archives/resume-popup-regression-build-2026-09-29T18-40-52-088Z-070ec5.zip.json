@@ -1,0 +1,17 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-popup-regression-build-2026-09-29T18-40-52-088Z-070ec5",
+  "archive": "_packet/revision/evidence-archives/resume-popup-regression-build-2026-09-29T18-40-52-088Z-070ec5.zip",
+  "archive_sha256": "3E2AEEC5A2CE816A924D215D0486F0BA0957BB6F06F1D92CDA56AD75D91FED10",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 2413,
+      "sha256": "B086D9AAF63048737DBAAF2500486FF1FCEB0CE71C29DAA6987090989EA8F3BB"
+    },
+    {
+      "path": "build.log",
+      "bytes": 343,
+      "sha256": "FAE7801FA37ECAB5D40ECAD1CE1694CD5B0B39CCF47920B5C7B99D98F4FB0265"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-icon-hit-diagnostic-3-2026-09-29T18-43-41-917Z-0070d7",
+  "archive": "_packet/revision/evidence-archives/resume-icon-hit-diagnostic-3-2026-09-29T18-43-41-917Z-0070d7.zip",
+  "archive_sha256": "539B97D246464A85B4390FC35B03518552E2A97F1F0586E2D76C2E6413EC66A7",
+  "files": [
+    {
+      "path": "tests.json",
+      "bytes": 2452,
+      "sha256": "F16330C307BC57795BD4645C6085C74BA518E66938A4C80A7F77323E4C8C32EC"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 912,
+      "sha256": "B9F64C9BA9200BF39F7B13F26BA6BA06FAB18D5883427F57576CCE1D56DB3A39"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 8068,
+      "sha256": "774F598ED01AF956277958F7AFDDC031B9C3C8C811C23D5209145C0E08174123"
+    }
+  ]
+}

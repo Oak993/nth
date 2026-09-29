@@ -87,10 +87,47 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             seed?.Invoke(model);
             var host = new Border(); AppEnvironment.SetAppModel(host, model); var view = make(); host.Child = view;
             var window = new Avalonia.Controls.Window { Content = new Avalonia.Controls.Primitives.VisualLayerManager { EnableOverlayLayer = true, Child = host }, Width = 780, Height = view is SettingsView ? 580 : 6000 };
+            SettingsProviderPopupLayers.Install(window);
             try { window.Show(); Layout(view); check(view, model, h); }
             finally { window.Close(); Sync(); SettingsNavigation.Shared.RequestedPage = null; }
         });
     }
+    [Fact]
+    [Trait("Rule", "R-TEST-7")]
+    public void The_provider_fixture_hosts_a_real_tooltip_and_preserves_pointer_delivery() => WithView(
+        () => new Border { Width = 220, Height = 40, Background = Brushes.White, Child = new TextBlock { Text = "Owned fixture target" } },
+        (root, _, _) =>
+        {
+            var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(root));
+            var tip = new ToolTip { Content = "Owned fixture tooltip" };
+            ToolTip.SetTip(root, tip);
+            root.SetValue(ToolTip.ShowDelayProperty, 0);
+            var opened = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var watch = ToolTip.ToolTipOpeningEvent.AddClassHandler(typeof(Control), (sender, _) =>
+            {
+                if (ReferenceEquals(sender, root)) opened.TrySetResult();
+            }, RoutingStrategies.Direct | RoutingStrategies.Bubble, handledEventsToo: true);
+            var presses = 0;
+            root.PointerPressed += (_, _) => presses++;
+            try
+            {
+                Layout(root);
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Sync();
+                window.MouseMove(new Point(1, 1)); Sync();
+                var at = root.TranslatePoint(new Point(root.Bounds.Width / 2, root.Bounds.Height / 2), window)!.Value;
+                var hit = Assert.IsAssignableFrom<Control>(window.InputHitTest(at));
+                Assert.True(ReferenceEquals(hit, root) || hit.GetVisualAncestors().Contains(root));
+                window.MouseMove(at); Sync();
+                HeadlessSession.RunDispatcherUntil(opened.Task, TimeSpan.FromSeconds(5)); Sync();
+                Assert.True(ToolTip.GetIsOpen(root));
+                Assert.Same(window, TopLevel.GetTopLevel(tip));
+                Assert.Contains(window.GetVisualDescendants(), visual => visual is Avalonia.Controls.Primitives.OverlayPopupHost);
+                window.MouseDown(at, MouseButton.Left); window.MouseUp(at, MouseButton.Left); Sync();
+                Assert.Equal(1, presses);
+            }
+            finally { ToolTip.SetIsOpen(root, false); window.MouseMove(new Point(1, 1)); Sync(); }
+        });
+
     private static void ColorIs(Control owner, IBrush? actual, SwiftColor expected)
     {
         // Chrome.swift:76,79 / ED-051,062: appearance-dependent tokens, including the 0.7 alpha derivation.
@@ -271,6 +308,9 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
             var image = Assert.IsType<SwiftImage>(icon.Child); Assert.Equal(18, image.Width); Assert.Equal(18, image.Height); Assert.True(image.IsResizable); Assert.Equal(ContentMode.Fit, image.AspectContentMode); Assert.Equal(assets[i], image.AssetName); ColorIs(image, image.Foreground, SwiftColor.LabelColor); seen.Add(image.AssetName!);
             Assert.Empty(Nodes<Button>(icon)); Open(section, h); var before = Draw(image);
             var window = Assert.IsType<Avalonia.Controls.Window>(TopLevel.GetTopLevel(image));
+            // Draw(image) renders the icon alone. Refresh the window hit-test scene after the card's
+            // layout change before delivering real input, as PointerClick already does above.
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick(); Sync(); using var rendered = window.CaptureRenderedFrame();
             var point = image.TranslatePoint(new Point(9, 9), window)!.Value; Assert.NotNull(window.InputHitTest(point));
             window.MouseMove(point); Sync(); Assert.Equal(before, Draw(image));
             window.MouseDown(point, MouseButton.Left); Sync(); Assert.Equal(before, Draw(image)); window.MouseUp(point, MouseButton.Left);

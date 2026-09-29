@@ -1,0 +1,22 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-popup-regression-red-1-2026-09-29T18-41-01-022Z-c49fee",
+  "archive": "_packet/revision/evidence-archives/resume-popup-regression-red-1-2026-09-29T18-41-01-022Z-c49fee.zip",
+  "archive_sha256": "D20BE606A97813799269EC374AAA70F86033F2495C4AB239B90F647079729444",
+  "files": [
+    {
+      "path": "tests.json",
+      "bytes": 2495,
+      "sha256": "D4D7C6FEABFCA2299D07C27743CC31F0AE7442CFFE03B4792487BC0F097AD24A"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 899,
+      "sha256": "9D01DE85A308C9B4B64D2669D44603534B9BDC214B0F5D8D876E0F7FAD466796"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 18833,
+      "sha256": "35932463CC89B3C23D0BE874F33EAEF0495B2998CA24CA1A67D492883A132247"
+    }
+  ]
+}
