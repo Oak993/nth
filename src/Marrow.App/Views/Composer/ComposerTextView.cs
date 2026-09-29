@@ -40,8 +40,15 @@ public enum ComposerKey
 /// <summary>Lets the owner reach into the text view for focus and in-place replacements. :17-114</summary>
 public sealed class ComposerController
 {
-    // :20 fileprivate weak var textView: ComposerNSTextView?
-    internal ComposerNSTextView? TextViewInstance;
+    // :20 fileprivate weak var textView: ComposerNSTextView?: a dropped text view is not kept alive, and
+    // cursorLocation reads 0 / replaceCharacters does nothing once it is gone.
+    private WeakReference<ComposerNSTextView>? textViewReference;
+
+    internal ComposerNSTextView? TextViewInstance
+    {
+        get => textViewReference is { } reference && reference.TryGetTarget(out var target) ? target : null;
+        set => textViewReference = value is null ? null : new WeakReference<ComposerNSTextView>(value);
+    }
 
     // :21 private var suggestionPopover: NSPopover?
     private Popup? suggestionPopover;
@@ -122,6 +129,25 @@ public sealed class ComposerController
     // leading edge of the visible text, offset 4, sized 1 by 18.
     private static Rect CaretRect(ComposerNSTextView textView)
     {
+        // :99-107 the selected range's own rect (firstRect(forCharacterRange:)) in the text view's coordinates, at least
+        // 1 wide, and 18 tall when under 4. The text is laid out here the way UpdateHeight lays it out (the TextBox
+        // exposes no caret-rect query and may have no template), then offset by the container inset.
+        var contentWidth = textView.Bounds.Width - textView.Padding.Left - textView.Padding.Right;
+        if (contentWidth > 0)
+        {
+            var text = textView.Text ?? "";
+            var start = Math.Min(Math.Min(textView.SelectionStart, textView.SelectionEnd), text.Length);
+            var end = Math.Min(Math.Max(textView.SelectionStart, textView.SelectionEnd), text.Length);
+            var typeface = new Typeface(textView.FontFamily, textView.FontStyle, textView.FontWeight);
+            using var layout = new TextLayout(text, typeface, textView.FontSize, null, textWrapping: TextWrapping.Wrap, maxWidth: contentWidth);
+            var first = layout.HitTestTextPosition(start);
+            var last = end > start ? layout.HitTestTextPosition(end) : first;
+            var width = Math.Abs(last.Top - first.Top) > 0.5 ? 0 : Math.Abs(last.Left - first.Left); // the first line's own rect only
+            var rect = new Rect(textView.Padding.Left + first.Left, textView.Padding.Top + first.Top, width, first.Height);
+            if (rect.Width < 1) rect = rect.WithWidth(1); // :104
+            if (rect.Height < 4) rect = rect.WithHeight(18); // :105
+            return rect;
+        }
         var visible = new Rect(textView.Bounds.Size);
         return new Rect(visible.X + 4, visible.Y, 1, 18); // :109-111
     }
@@ -209,7 +235,11 @@ public sealed class ComposerNSTextView : TextBox
         if (e.Key == Key.V && e.KeyModifiers == KeyModifiers.Control)
         {
             e.Handled = true;
-            MainActor.Spawn(PasteAsync);
+            // :163-178 paste(_:) runs synchronously at the selection of this key event; the clipboard read here is
+            // asynchronous, so the range is taken now and a later caret move does not redirect the pasted text.
+            var start = Math.Min(SelectionStart, SelectionEnd);
+            var end = Math.Max(SelectionStart, SelectionEnd);
+            MainActor.Spawn(() => PasteAsync(start, end));
             return;
         }
         HandleComposerCommand(e); // :329-357 textView(_:doCommandBy:)
@@ -232,9 +262,16 @@ public sealed class ComposerNSTextView : TextBox
                 if ((e.KeyModifiers & KeyModifiers.Control) != 0) // :338 command -> Ctrl chord mapping
                 {
                     e.Handled = OnKeyCallback?.Invoke(ComposerKey.Steer) ?? false; // :339
-                    return;
                 }
-                e.Handled = OnKeyCallback?.Invoke(ComposerKey.Submit) ?? false; // :341
+                else
+                {
+                    e.Handled = OnKeyCallback?.Invoke(ComposerKey.Submit) ?? false; // :341
+                }
+                if (!e.Handled) // :339, :341 returning false hands the selector back to AppKit: insertNewline inserts one
+                {
+                    InsertNewlineIgnoringFieldEditor();
+                    e.Handled = true;
+                }
                 return;
             case Key.Up: // :342-343 #selector(NSResponder.moveUp(_:))
                 e.Handled = OnKeyCallback?.Invoke(ComposerKey.Up) ?? false;
@@ -268,7 +305,7 @@ public sealed class ComposerNSTextView : TextBox
     }
 
     // :163-178 override func paste(_ sender: Any?)
-    private async Task PasteAsync()
+    private async Task PasteAsync(int selectionStart, int selectionEnd)
     {
         var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
         var data = clipboard is null ? null : await clipboard.TryGetDataAsync();
@@ -310,18 +347,18 @@ public sealed class ComposerNSTextView : TextBox
             }
             if (text is not null)
             {
-                InsertPlainText(text); // :177 pasteAsPlainText(sender)
+                InsertPlainText(text, selectionStart, selectionEnd); // :177 pasteAsPlainText(sender)
                 return;
             }
         }
         // Nothing usable on the clipboard: matches pasteAsPlainText(sender) pasting nothing.
     }
 
-    private void InsertPlainText(string text)
+    private void InsertPlainText(string text, int selectionStart, int selectionEnd)
     {
-        var start = Math.Min(SelectionStart, SelectionEnd);
-        var end = Math.Max(SelectionStart, SelectionEnd);
         var current = Text ?? "";
+        var start = Math.Min(selectionStart, current.Length);
+        var end = Math.Min(Math.Max(selectionEnd, start), current.Length);
         Text = current[..start] + text + current[end..];
         SelectionStart = SelectionEnd = start + text.Length;
     }
@@ -376,8 +413,8 @@ public sealed class ComposerTextView : Decorator
     private readonly ComposerController controller; // :218
     private Func<ComposerKey, bool> onKey; // :219
     private Action<IReadOnlyList<AttachmentSource>> onAttach; // :220
-    private readonly Action<int> onCursorChange; // :221
-    private readonly Action onBlur; // :222
+    private Action<int> onCursorChange; // :221
+    private Action onBlur; // :222
     private readonly ComposerNSTextView textView;
     private readonly ScrollViewer scroll;
 
@@ -411,7 +448,7 @@ public sealed class ComposerTextView : Decorator
         textView.OnAttach = sources => this.onAttach(sources); // :271
         textView.OnKeyCallback = key => this.onKey(key);
         textView.OnWidthChange = () => MainActor.Spawn(RunUpdateHeight); // :277-279
-        textView.OnResign = () => this.onBlur(); // :280-282
+        textView.OnResign = () => MainActor.Spawn(() => { this.onBlur(); return Task.CompletedTask; }); // :280-282 Task { @MainActor in ... }
         textView.TextChanged += (_, _) => OnTextDidChange(); // :317-322 Coordinator.textDidChange
         textView.PropertyChanged += (_, e) =>
         {
@@ -457,8 +494,11 @@ public sealed class ComposerTextView : Decorator
     }
 
     // :293-306 func updateNSView(_ scrollView: NSScrollView, context: Context)
-    public void Update(string newPlaceholder, Func<ComposerKey, bool> newOnKey, Action<IReadOnlyList<AttachmentSource>> newOnAttach)
+    public void Update(string newPlaceholder, Func<ComposerKey, bool> newOnKey, Action<IReadOnlyList<AttachmentSource>> newOnAttach, Action<int>? newOnCursorChange = null, Action? newOnBlur = null)
     {
+        // :294 context.coordinator.parent = self: the later selection and blur events call the latest closures.
+        if (newOnCursorChange is not null) onCursorChange = newOnCursorChange;
+        if (newOnBlur is not null) onBlur = newOnBlur;
         onKey = newOnKey;
         onAttach = newOnAttach; // :296
         if (placeholder != newPlaceholder) // :297
