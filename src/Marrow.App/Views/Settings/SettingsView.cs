@@ -183,7 +183,7 @@ public sealed class SettingsView : Decorator
         });
         this.Track(() => state.Page, _ => { RebuildSidebar(); RebuildDetail(); });
         this.Track(() => UpdateChecker.Shared.UpdateAvailable, _ => RebuildSidebar());
-        this.Track(() => { var model = AppEnvironment.GetAppModel(this); _ = model.Threads; return model.ArchivedThreads.Count; }, _ => { if (state.Page == SettingsPage.Archive) RebuildDetail(); }); // :198 observe the collection behind the computed archive count.
+        this.Track(() => { var model = AppEnvironment.GetAppModel(this); _ = model.Threads; return model.ArchivedThreads.Count; }, count => { if (state.Page == SettingsPage.Archive && (count == 0) != (pageStack is null)) RebuildDetail(); }); // :198 observe the collection behind the computed archive count; the page's ScrollView identity is its page (:231), so only the empty placeholder swap rebuilds.
         rows.Track(() => scrollTracker.IsFrozen, value => rows.IsHitTestVisible = !value); // :182
         DetachedFromVisualTree += (_, _) => scrollTracker.End(); // :117
     }
@@ -287,6 +287,7 @@ internal sealed class SmallSwitch : Control
     private const double KnobDiameter = TrackHeight - Inset * 2;
 
     private readonly Binding<bool> isOn;
+    private bool pressed;
 
     public SmallSwitch(Binding<bool> isOn)
     {
@@ -297,14 +298,27 @@ internal sealed class SmallSwitch : Control
         Cursor = new Cursor(StandardCursorType.Hand);
         this.Track(() => isOn.Value, _ => InvalidateVisual());
         KeyDown += (_, e) => { if (e.Key == Key.Space && IsEffectivelyEnabled) { isOn.Value = !isOn.Value; e.Handled = true; InvalidateVisual(); } };
+        // :296-305 the native switch acts on a primary press that is released inside it: a secondary or middle press,
+        // or a press dragged away before release, changes nothing.
         PointerPressed += (_, e) =>
         {
-            if (!IsEffectivelyEnabled) return;
+            if (!IsEffectivelyEnabled || !e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
             Focus();
-            isOn.Value = !isOn.Value;
+            pressed = true;
+            e.Pointer.Capture(this);
             e.Handled = true;
+        };
+        PointerReleased += (_, e) =>
+        {
+            if (!pressed) return;
+            pressed = false;
+            e.Pointer.Capture(null);
+            e.Handled = true;
+            if (!IsEffectivelyEnabled || !new Rect(Bounds.Size).Contains(e.GetPosition(this))) return;
+            isOn.Value = !isOn.Value;
             InvalidateVisual();
         };
+        PointerCaptureLost += (_, _) => pressed = false;
     }
 
     protected override AutomationPeer OnCreateAutomationPeer() => new SwitchPeer(this);
@@ -754,7 +768,12 @@ internal sealed class ArchiveSettingsPage : Decorator
             var labels = (StackPanel)((Grid)((Border)((ChromeRow)row).Child!).Child!).Children[0]; ((TextBlock)labels.Children[0]).Text = thread.Title;
             SettingsRowDetails.Update((ChromeRow)row, AppEnvironment.GetAppModel(this).Project(thread.ProjectID)?.Name);
         });
-        this.Track(() => AppEnvironment.GetAppModel(this).ArchivedThreads, threads =>
+        this.Track(() =>
+        {
+            var model = AppEnvironment.GetAppModel(this); var threads = model.ArchivedThreads;
+            foreach (var thread in threads) _ = model.Project(thread.ProjectID)?.Name; // :912-934 each row's detail is read in the observed body
+            return threads;
+        }, threads =>
         {
             entries.Apply(threads); var items = rows.Children.OfType<ChromeRow>().ToArray(); rows.Children.Clear();
             for (var i = 0; i < items.Length; i++) { if (i > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(items[i]); }
@@ -815,7 +834,7 @@ internal sealed class AboutSettingsPage : Decorator
     private Control AppCard()
     {
         var icon = new Image { Source = new Bitmap(AssetLoader.Open(new Uri("avares://Marrow.App/Assets/icon.png"))), Width = 56, Height = 56 };
-        var labels = new StackPanel { Spacing = 3, Children = { new TextBlock { Text = "Marrow" }.Font(SwiftFont.System(15, SwiftFont.Weight.Semibold)), new TextBlock { Text = $"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(12)) } };
+        var labels = new StackPanel { Spacing = 3, VerticalAlignment = VerticalAlignment.Center, Children = { new TextBlock { Text = "Marrow" }.Font(SwiftFont.System(15, SwiftFont.Weight.Semibold)), new TextBlock { Text = $"Version {AppInfo.Current.Version} ({AppInfo.Current.Build})", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(12)) } };
         return new StackPanel { Children =
         {
             new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14, Margin = new Thickness(16), Children = { icon, labels } }, new ChromeRowDivider(),

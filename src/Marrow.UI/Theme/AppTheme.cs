@@ -284,8 +284,10 @@ public sealed class ThemeSwatch : Ellipse
     public ThemeSwatch(AppTheme theme)
     {
         this.theme = theme;
-        // Circle() fills whatever frame its caller gives it, even a non-square one; Stretch.Fill matches that.
-        Stretch = Stretch.Fill;
+        // Circle() fills whatever frame its caller gives it: the defining geometry of an unstretched Ellipse is its own
+        // bounds deflated by half the stroke, so the 0.5 rim lies inside them as strokeBorder's does (Stretch.Fill would
+        // scale the geometry to the full bounds and centre the rim on the edge).
+        Stretch = Stretch.None;
         Fill = gradient;
         // :152 let rim = Circle().strokeBorder(Color.primary.opacity(0.22), lineWidth: 0.5), applied by both
         // branches at :162 and :174. SwiftColor.Brush(Control) already tracks ActualThemeVariantChanged itself

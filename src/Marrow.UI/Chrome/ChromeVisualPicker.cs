@@ -71,7 +71,7 @@ public sealed class ChromeVisualPicker<TValue, TPreview> : Decorator
             var option = options[i];
             var tile = new ChromeVisualTile(
                 title: option.title,
-                isSelected: selection.Value.Equals(option.value),
+                isSelected: SwiftEquality.Equal(option.value, selection.Value), // :40 option.value == selection
                 width: tileWidth,
                 action: () => {
                     // :40-41 withAnimation(Chrome.hover) { selection = option.value }
@@ -87,7 +87,7 @@ public sealed class ChromeVisualPicker<TValue, TPreview> : Decorator
             var optionValue = option.value;
             tile.Track(() => selection.Value, selected =>
             {
-                tile.UpdateSelected(selected.Equals(optionValue));
+                tile.UpdateSelected(SwiftEquality.Equal(optionValue, selected));
             });
 
             stack.Children.Add(tile);
@@ -121,6 +121,15 @@ public sealed class ChromeVisualTile : Decorator
     private Border? stageBack;
     private Border? paddedStage;
     private TextBlock? captionBlock;
+
+    /// <summary>
+    /// :53-63 The memberwise form that omits the optional width (<c>var width: CGFloat = regularWidth</c>, :56): the
+    /// overload without the parameter, so a call that names every argument still binds to the full constructor.
+    /// </summary>
+    public ChromeVisualTile(string title, bool isSelected, Action action, Func<Control> content)
+        : this(title, isSelected, ChromeVisualTileMetrics.RegularWidth, action, content)
+    {
+    }
 
     /// <summary>
     /// Constructor for ChromeVisualTile.
@@ -166,6 +175,13 @@ public sealed class ChromeVisualTile : Decorator
         stack.Track(() => state.IsHovering, _ => UpdateStageVisuals());
 
         Child = button;
+
+        AttachedToVisualTree += (_, _) => WatchContent();
+        DetachedFromVisualTree += (_, _) =>
+        {
+            contentWatch?.Dispose();
+            contentWatch = null;
+        };
     }
 
     /// <summary>
@@ -174,28 +190,20 @@ public sealed class ChromeVisualTile : Decorator
     /// </summary>
     private Control CreateStage()
     {
-        // The content itself
-        var contentControl = content();
-
-        // Apply the content styling (font and color)
-        // :88 .font(.system(.title2, weight: .medium))
-        var titleFont = SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium);
-        ApplyFontToContent(contentControl, titleFont);
-
         // Create a border for the background and ring
         stageBack = new Border
         {
             Width = width,
             Height = ChromeVisualTileMetrics.Height,
             CornerRadius = new CornerRadius(ChromeVisualTileMetrics.CornerRadius),
-            Child = contentControl,
         };
 
         // Apply the background fill: Chrome.overlay(isHovering || isSelected ? 0.10 : 0.06)
         UpdateStageBrush();
 
-        // :89 .foregroundStyle(isSelected ? Chrome.accent : Chrome.secondaryText)
-        UpdateContentColor(contentControl);
+        // The content itself, built where the tile reads observable state (:44-46 the body calls preview again after
+        // anything it read changes); it takes the font and colour below when installed.
+        WatchContent();
 
         // Wrap in a border to add the ring overlay
         paddedStage = new Border
@@ -211,6 +219,23 @@ public sealed class ChromeVisualTile : Decorator
         return paddedStage;
     }
 
+    // :44-46 content() is part of the body: SwiftUI evaluates it again after any state it read changes, so the stage
+    // holds a tracked evaluation that swaps in the fresh view. Torn down on detach and re-armed on attach.
+    private Tracked<Control>? contentWatch;
+
+    private void WatchContent() => contentWatch ??= new Tracked<Control>(content, InstallContent);
+
+    private void InstallContent(Control contentControl)
+    {
+        if (stageBack is null) return;
+        // :88 .font(.system(.title2, weight: .medium))
+        ApplyFontToContent(contentControl, SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium));
+        stageBack.Child = null;
+        stageBack.Child = contentControl;
+        // :89 .foregroundStyle(isSelected ? Chrome.accent : Chrome.secondaryText)
+        UpdateContentColor(contentControl);
+    }
+
     /// <summary>
     /// Create the caption (the title text below the stage).
     /// :76-84 Text(verbatim: title).font(.system(.subheadline)).foregroundStyle(...)
@@ -223,7 +248,8 @@ public sealed class ChromeVisualTile : Decorator
             Width = width,
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
-            MaxLines = 2,
+            MaxLines = 2, // :76-84 .lineLimit(2)
+            TextTrimming = TextTrimming.CharacterEllipsis, // SwiftUI's default truncation is the tail ellipsis
         };
 
         // :79 .font(.system(.subheadline))

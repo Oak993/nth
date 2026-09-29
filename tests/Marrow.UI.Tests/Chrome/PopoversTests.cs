@@ -283,6 +283,7 @@ public sealed class PopoversTests(HeadlessSession headless)
     [Trait("Req", "PR-SIDEBAR-104")] // UI/Chrome/Popovers.swift:258-268 a confirming row runs action() at once, then closes after a hold
     public void A_confirming_row_runs_its_action_at_once_and_closes_after_the_confirmation_hold() => headless.OnUiThread(() =>
     {
+        using var source = FrameClock.Source.Override(new ManualFrameSource()); // the checkmark's snappy(0.22) swap animates (Popovers.swift:263)
         var time = new ManualTimeProvider();
         using var clock = SwiftClock.Provider.Override(time);
         var ran = false;

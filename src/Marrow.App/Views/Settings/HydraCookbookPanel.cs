@@ -185,15 +185,19 @@ public sealed class HydraCookbookRow : Decorator
         {
             Width = 52,
             HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center,
         };
         Grid.SetColumn(mark, 0);
         row.Children.Add(mark);
 
-        var texts = new StackPanel { Spacing = 2, Margin = new Avalonia.Thickness(12, 0, 8, 0) };
+        // :81 HStack(alignment: .center, spacing: 12): the texts sit 12 before the Spacer(minLength: 8) and another 12 before the
+        // trailing control (32 in all); with no pair the Spacer still follows the texts (12 + 8).
+        var texts = new StackPanel { Spacing = 2, Margin = new Avalonia.Thickness(12, 0, pair is null ? 20 : 32, 0), VerticalAlignment = VerticalAlignment.Center };
         var rowTitle = new TextBlock // :89-91
         {
             Text = pair is { } titlePair ? HydraPairSummary.Title(titlePair, registry) : recipe.Title,
             Foreground = Chrome.PrimaryText.Brush(texts),
+            TextWrapping = TextWrapping.Wrap, // no line limit: the title wraps at the width it is offered
         };
         SwiftFont.Body.FontWeight(SwiftFont.Weight.Semibold).Apply(rowTitle);
         texts.Children.Add(rowTitle);
@@ -267,6 +271,7 @@ public sealed class HydraCookbookRow : Decorator
                     Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settings.AddHydraPair(actionPair)); // :121-123
                 trailing = addButton;
             }
+            trailing.VerticalAlignment = VerticalAlignment.Center; // :81 alignment: .center
             Grid.SetColumn(trailing, 2);
             row.Children.Add(trailing);
         }

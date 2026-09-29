@@ -267,7 +267,14 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             var runtime = Unresolved(h);
             var area = h.Main.OnMain(() => new ComposerArea(runtime, workingDirectory: null));
             var window = h.Main.OnMain(() => Show(area, h.App, width: 900));
-            h.Main.OnMain(() => runtime.EnqueueFollowUp("queued prompt", []));
+            // A prompt stays queued behind a running turn; an idle lead would take it out of the queue at once
+            // (ThreadRuntime.swift:1003-1007, :1054-1061). The running pill's working dots draw on the frame clock.
+            using var frameScope = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                runtime.RehearseTurn(null);
+                runtime.EnqueueFollowUp("queued prompt", []);
+            });
             Pump(h, window);
             h.Main.OnMain(() =>
             {
@@ -406,7 +413,14 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             var runtime = Unresolved(h);
             var area = h.Main.OnMain(() => new ComposerArea(runtime, workingDirectory: null));
             var window = h.Main.OnMain(() => Show(area, h.App, width: 900));
-            h.Main.OnMain(() => runtime.EnqueueFollowUp("queued prompt", []));
+            // A prompt stays queued behind a running turn; an idle lead would take it out of the queue at once
+            // (ThreadRuntime.swift:1003-1007, :1054-1061). The running pill's working dots draw on the frame clock.
+            using var frameScope = FrameClock.Source.Override(new ManualFrameSource());
+            h.Main.OnMain(() =>
+            {
+                runtime.RehearseTurn(null);
+                runtime.EnqueueFollowUp("queued prompt", []);
+            });
             Pump(h, window);
             h.Main.OnMain(() =>
             {
@@ -1346,6 +1360,76 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             Assert.True(h.Main.OnMain(() => Press(view, Key.Enter, KeyModifiers.Control)));
             Assert.Empty(runtime.FollowUps);
             Assert.True(runtime.IsRunning);
+        });
+    }
+
+    // An idle lead with a head at work can queue: canQueue is `isRunning || hasWorkingHeads` (ThreadRuntime.swift:
+    // 771-773), so the default chord takes queueDraftAsFollowUp (ComposerView.swift:392-394), which queues the draft
+    // and clears the box (ThreadRuntime.swift:786-787, :1000). The queue never waits behind an idle lead, though:
+    // enqueueFollowUp ends with flushFollowUpsIfIdle (:1003-1007), whose Task (:1056-1061) drains the queue as after a
+    // completed turn (:1066-1071), so the prompt leaves the queue and starts a turn of its own (:1116-1137), counted as
+    // one that started on its own (:1134-1135), which send() never counts (:743-755). The head is put to work after
+    // the model is made, since a loaded library stops a running head (AppModel.swift:132-136).
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-031")] // App/Views/Composer/ComposerView.swift:392-394; App/Runtime/ThreadRuntime.swift:664-666, :771-773, :786-787
+    [Trait("Req", "PR-RUNTIME-197")] // App/Runtime/ThreadRuntime.swift:1003-1007, :1056-1071, :1116-1137
+    public void Command_Return_on_an_idle_lead_with_a_head_at_work_queues_the_draft_and_the_idle_lead_takes_it_at_once()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new AppModelHarness();
+            using var shared = ShortcutStore.Shared.Override(FreshStore());
+            var project = AppModelSamples.Project("Thread runtime", h.NewFolder("thread-runtime"));
+            var lead = AppModelSamples.Thread(project);
+            var head = new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised)
+            {
+                Title = "head",
+                ParentThreadID = lead.Id,
+                IsInPanel = true,
+                Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Stopped),
+            };
+            h.WriteLibrary([project], [lead, head]);
+            AppModelHarness.WriteDocument(lead.Id);
+            AppModelHarness.WriteDocument(head.Id);
+            var model = h.MakeModel();
+            h.PrepareBootstrap(model); // R-TEST-10: the turn's CLI is a path that does not exist, so no real CLI runs.
+            var runtime = h.Main.OnMain(() => new ThreadRuntime(lead.Id, model));
+            h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+            var view = h.Main.OnMain(() =>
+            {
+                model.UpdateThread(head.Id, thread => thread with { Hydra = thread.Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running } });
+                var pill = new ComposerView(runtime, workingDirectory: null);
+                AppEnvironment.SetAppModel(pill, model);
+                Drain();
+                runtime.Draft = new ComposerDraft { Text = "after the heads report" };
+                return pill;
+            });
+            Assert.False(runtime.IsRunning);
+            Assert.True(h.Main.OnMain(() => runtime.HasWorkingHeads));
+
+            h.Main.OnMain(() =>
+            {
+                Assert.True(Press(view, Key.Enter, KeyModifiers.Control));
+                // The press itself, before the main actor runs the Task the flush scheduled (:1060): queued behind
+                // nothing but an idle lead (:786, :1000), the box cleared (:787), nothing sent yet.
+                Assert.True(runtime.Draft.IsEmpty);
+                Assert.Equal(["after the heads report"], runtime.FollowUps.Select(prompt => prompt.Text).ToArray());
+                Assert.Empty(runtime.SentPrompts);
+                Assert.Equal(0L, runtime.AutoStartedTurnToken); // :226
+            });
+
+            // :1066-1071, :1116-1137 the flush's Task takes the prompt out of the queue and starts its turn on it; the
+            // missing CLI then ends that turn as failed (:1376-1380).
+            h.Main.Loop.RunUntil(() => runtime.Phase == RuntimePhase.Idle, AppModelHarness.Bound);
+            h.Main.OnMain(() =>
+            {
+                Assert.Single(runtime.Turns);
+                Assert.Equal(["after the heads report"], runtime.SentPrompts);
+                Assert.Empty(runtime.FollowUps);
+                Assert.Equal(1L, runtime.AutoStartedTurnToken); // :1134-1135
+                Assert.True(runtime.Draft.IsEmpty);
+            });
         });
     }
 

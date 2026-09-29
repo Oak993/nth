@@ -14,6 +14,9 @@ public sealed class ThreadRuntimePart12Harness : IDisposable
         Store = new AppModelHarness();
         Project = AppModelSamples.Project("Thread runtime", Store.NewFolder("thread-runtime"));
         Thread = AppModelSamples.Thread(Project) with { Provider = provider };
+        // R-TEST-9: FileOps.WriteAtomic refuses to create a missing parent folder (ED-121), and AppModelHarness
+        // only creates Scratch/Home, not Root, so the first WriteLibrary before any AppModel load needs this.
+        Directory.CreateDirectory(Path.GetDirectoryName(Marrow.Services.Store.Storage.LibraryURL)!);
         Store.WriteLibrary([Project], [Thread]);
         AppModelHarness.WriteDocument(Thread.Id);
         App = Store.MakeModel();

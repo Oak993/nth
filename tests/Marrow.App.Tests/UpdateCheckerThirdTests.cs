@@ -149,7 +149,18 @@ public sealed class UpdateCheckerThirdTests
         var checker = runtime.OnMain(() => new UpdateChecker(Running("1.0.0"), [], server.Url("/releases")));
         var available = runtime.Loop.Run(() => checker.Check());
         Assert.False(available);
-        Assert.Equal("Couldn’t reach GitLab.", checker.LastError); // U+2019, PR-UPDATE-019's exact message
+        Assert.Equal("Couldn't reach GitLab.", checker.LastError); // ASCII U+0027, UpdateChecker.swift:182 byte 0x27 (PR-UPDATE-019)
+    }
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-011")] // UpdateChecker.swift:114-116 try? decode: a URL string Foundation rejects is a decoding error, not a trap
+    public void A_stored_update_with_an_invalid_url_string_leaves_update_nil_without_trapping()
+    {
+        using var runtime = new TestRuntime();
+        var json = "{\"version\":\"2.0.0\",\"tag\":\"v2.0.0\",\"downloadURL\":{\"relative\":\"http://[::1\"},\"notes\":\"n\",\"pageURL\":{\"relative\":\"https://example.com/p\"}}";
+        runtime.Defaults.Set("updateChecker_release", System.Text.Encoding.UTF8.GetBytes(json));
+        var checker = runtime.OnMain(() => new UpdateChecker(Running("1.0.0"), [], UpdateChecker.DefaultFeed));
+        Assert.Null(runtime.OnMain(() => checker.Update));
     }
 
     // ---- PR-UPDATE-028: released_at, fractional first then plain, nil otherwise ----

@@ -65,6 +65,10 @@ namespace Marrow.UI.Chrome
             this.VerticalAlignment = VerticalAlignment.Top;
         }
 
+        // :40 .fixedSize(): the strip keeps its ideal size; a narrower proposal neither compresses nor clips it.
+        protected override Size MeasureOverride(Size availableSize) =>
+            PlainControls.MeasureFixed(this, Child, availableSize);
+
         /// <summary>
         /// :25-27 Initializer taking (value, title) pairs and mapping them to options with no symbol.
         /// </summary>
@@ -143,6 +147,12 @@ namespace Marrow.UI.Chrome
 
         protected override AutomationPeer OnCreateAutomationPeer() => new SelectableSegmentPeer(this, _state);
 
+        // :55 Button(action: select): accessibility activation runs the same action a click does.
+        internal void Activate()
+        {
+            if (IsEffectivelyEnabled) OnClick();
+        }
+
         /// <summary>
         /// Automation peer for the selectable segment button.
         /// </summary>
@@ -161,8 +171,11 @@ namespace Marrow.UI.Chrome
             ISelectionProvider? ISelectionItemProvider.SelectionContainer => null;
             void ISelectionItemProvider.AddToSelection() { }
             void ISelectionItemProvider.RemoveFromSelection() { }
-            void ISelectionItemProvider.Select() { }
-            void IInvokeProvider.Invoke() => ((Button)Owner).Focus();
+            void ISelectionItemProvider.Select()
+            {
+                if (!_state.IsSelected) ((SelectableSegmentButton)Owner).Activate();
+            }
+            void IInvokeProvider.Invoke() => ((SelectableSegmentButton)Owner).Activate();
         }
     }
 
@@ -227,7 +240,7 @@ namespace Marrow.UI.Chrome
         {
             _option = option;
             _selection = selection;
-            _isSelected = EqualityComparer<TValue>.Default.Equals(option.Value, selection.Value);
+            _isSelected = SwiftEquality.Equal(option.Value, selection.Value);
             _selectionState.IsSelected = _isSelected;
 
             // Build the visual tree once (ED-095, R-VIEW-1).
@@ -239,7 +252,7 @@ namespace Marrow.UI.Chrome
 
             // Track changes to the selection binding and update visuals accordingly (R-VIEW-5).
             this.Track(
-                () => EqualityComparer<TValue>.Default.Equals(_option.Value, _selection.Value),
+                () => SwiftEquality.Equal(_option.Value, _selection.Value),
                 isNowSelected => UpdateSelected(isNowSelected));
         }
 
@@ -366,6 +379,8 @@ namespace Marrow.UI.Chrome
             }
             else if (labelControl is SwiftImage img)
             {
+                // :56-58 the font modifier reaches the Image as well as the Text: callout, semibold when chosen else medium.
+                img.Font(font);
                 // For images, apply foreground color as well
                 var foreground = (_isSelected ? Chrome.PrimaryText : Chrome.SecondaryText);
                 img.ForegroundStyle(foreground);

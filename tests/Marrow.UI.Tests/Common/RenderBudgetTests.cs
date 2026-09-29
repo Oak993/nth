@@ -645,4 +645,29 @@ public sealed class RenderBudgetTests
             Assert.True(activity.IsScrolling);
         });
     }
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static WeakReference<ScrollActivity> StartWatchedActivity(MockScrollActivityReporter reporter)
+    {
+        var activity = new ScrollActivity();
+        activity.SetScrolling(true, Guid.NewGuid(), reporter);
+        Assert.True(activity.IsScrolling);
+        return new WeakReference<ScrollActivity>(activity);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-263")] // RenderBudget.swift:45-48 the watchdog captures the activity weakly ([weak self])
+    public void WatchdogDoesNotKeepAReleasedActivityAlive()
+    {
+        using var runtime = new TestRuntime();
+        var reporter = new MockScrollActivityReporter { IsScrollingNow = true };
+        WeakReference<ScrollActivity> weak = null!;
+        runtime.OnMain(() => weak = StartWatchedActivity(reporter));
+        runtime.Advance(TimeSpan.FromSeconds(0.5)); // the watchdog is now inside its two-second sleep
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        Assert.False(weak.TryGetTarget(out _));
+        GC.KeepAlive(reporter);
+    }
 }

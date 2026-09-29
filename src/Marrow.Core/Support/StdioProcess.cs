@@ -137,12 +137,21 @@ public sealed class StdioProcess
     }
 
     // :106-112 (B3)
-    public void Write(byte[] data) => writeQueue.Async(() =>
+    public void Write(byte[] data)
+    {
+        var snapshot = (byte[])data.Clone(); // Swift Data is a value: the queued closure keeps the bytes as they were at the call
+        writeQueue.Async(() =>
+        {
+            WriteSnapshot(snapshot);
+        });
+    }
+
+    private void WriteSnapshot(byte[] data)
     {
         try { stdin.Write(data); }
         catch (IOException) { }
         catch (ObjectDisposedException) { }
-    });
+    }
 
     // :114-118 (B3)
     public void CloseInput() => writeQueue.Async(() =>

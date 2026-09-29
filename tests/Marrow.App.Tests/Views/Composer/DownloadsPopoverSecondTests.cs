@@ -4,6 +4,8 @@ using Avalonia.Headless;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
+using System.Linq;
 using System.Threading;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Composer;
@@ -201,7 +203,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     {
         var button = Assert.IsType<Button>(item.Child);
         var background = Assert.IsType<Border>(button.Content);
-        var row = Assert.IsType<StackPanel>(background.Child);
+        var row = Assert.IsAssignableFrom<StackPanel>(background.Child);
         var title = Assert.IsType<MiddleTruncatingText>(row.Children[1]); // [0] is the 16pt leading glyph column
         return title.FullText;
     }
@@ -317,7 +319,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
         var rowDecorator = Assert.IsAssignableFrom<Decorator>(Assert.Single(rowsPanel.Children)); // DownloadRow, file-private
         var button = Assert.IsType<Button>(rowDecorator.Child);
         var background = Assert.IsType<Border>(button.Content);
-        var row = Assert.IsType<StackPanel>(background.Child);
+        var row = Assert.IsAssignableFrom<StackPanel>(background.Child);
         Assert.Equal(38, row.Height); // :204
         Assert.Equal(new Thickness(8, 0), row.Margin); // :203
         Assert.Equal(10, row.Spacing); // :188
@@ -346,9 +348,69 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
         var rowDecorator = Assert.IsAssignableFrom<Decorator>(Assert.Single(rowsPanel.Children)); // DownloadRow, file-private
         var button = Assert.IsType<Button>(rowDecorator.Child);
         var background = Assert.IsType<Border>(button.Content);
-        var row = Assert.IsType<StackPanel>(background.Child);
+        var row = Assert.IsAssignableFrom<StackPanel>(background.Child);
         var sizeBlock = Assert.IsType<TextBlock>(row.Children[3]);
         Assert.False(sizeBlock.IsVisible);
+        window.Close();
+    });
+
+    private static (StackPanel Row, DownloadsPopover Popover) LoadedRow(DownloadsPopover popover, Panel listSlot)
+    {
+        PumpUntil(() => IsPastLoading(listSlot));
+        var rowsPanel = Assert.IsType<StackPanel>(Assert.Single(listSlot.Children));
+        var rowDecorator = Assert.IsAssignableFrom<Decorator>(Assert.Single(rowsPanel.Children)); // DownloadRow, file-private
+        var button = Assert.IsType<Button>(rowDecorator.Child);
+        var background = Assert.IsType<Border>(button.Content);
+        return (Assert.IsAssignableFrom<StackPanel>(background.Child), popover);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-026")] // DownloadsPopover.swift:194 Spacer(minLength: 16): the name truncates, the size stays visible
+    public void A_long_file_name_truncates_and_keeps_the_size_inside_the_popover() => headless.OnUiThread(() =>
+    {
+        using var folder = new ScratchDownloads();
+        folder.File(new string('a', 160) + ".txt", new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), bytes: 2048);
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+        using var directed = Directed(folder.Path);
+        var popover = new DownloadsPopover(_ => { }, () => { });
+        var window = Show(popover);
+        var (_, listSlot) = Parts(popover);
+        var (row, _) = LoadedRow(popover, listSlot);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var sizeBlock = Assert.IsType<TextBlock>(row.Children[3]);
+        var nameBlock = Assert.IsType<MiddleTruncatingTextBlock>(row.Children[1]);
+        var sizeRight = sizeBlock.TranslatePoint(new Point(sizeBlock.Bounds.Width, 0), popover)!.Value.X;
+        Assert.True(sizeRight <= 360 - 8 + 0.5, $"size right edge {sizeRight} is outside the 360pt popover");
+        var nameRight = nameBlock.TranslatePoint(new Point(nameBlock.Bounds.Width, 0), popover)!.Value.X;
+        var sizeLeft = sizeBlock.TranslatePoint(new Point(0, 0), popover)!.Value.X;
+        Assert.True(sizeLeft - nameRight >= 16 - 0.5, "the Spacer(minLength: 16) gap is kept between the name and the size");
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-026")] // DownloadsPopover.swift:188 HStack default alignment .center inside the 38pt row
+    public void The_preview_and_texts_are_vertically_centered_in_the_row() => headless.OnUiThread(() =>
+    {
+        using var folder = new ScratchDownloads();
+        folder.File("photo.txt", new DateTime(2024, 1, 1, 0, 0, 0, DateTimeKind.Utc), bytes: 2048);
+        using var directed = Directed(folder.Path);
+        var popover = new DownloadsPopover(_ => { }, () => { });
+        var window = Show(popover);
+        var (_, listSlot) = Parts(popover);
+        var (row, _) = LoadedRow(popover, listSlot);
+        Dispatcher.UIThread.RunJobs();
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+
+        var preview = Assert.Single(row.Children[0].GetVisualDescendants().OfType<Image>()); // the 28pt icon
+        var leaves = new Control[] { preview, row.Children[1], row.Children[3] };
+        foreach (var leaf in leaves)
+        {
+            Assert.True(leaf.Bounds.Height < 38, $"{leaf.GetType().Name} is stretched to {leaf.Bounds.Height}pt instead of hugging its content");
+            var centre = leaf.TranslatePoint(new Point(0, leaf.Bounds.Height / 2), row)!.Value.Y;
+            Assert.True(Math.Abs(centre - 19) < 0.75, $"{leaf.GetType().Name} centre {centre} is not the 38pt row's centre");
+        }
         window.Close();
     });
 }

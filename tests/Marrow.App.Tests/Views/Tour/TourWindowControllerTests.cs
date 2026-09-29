@@ -319,4 +319,26 @@ public sealed class TourWindowControllerTests(HeadlessSession headless)
             }
         });
     }
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-096")] // DroppyCode/App/Views/Tour/TourWindowController.swift:75-80 the borderless style mask has no .resizable: the user cannot resize or maximize the tour
+    public void The_tour_window_cannot_be_resized_by_the_user()
+    {
+        headless.OnUiThread(() =>
+        {
+            var pages = new[] { CreateTestPage("page1", "Welcome", "Test") };
+            var controller = TourWindowController.Shared;
+            var window = controller.Present(pages);
+            createdWindow = window;
+            try
+            {
+                Assert.False(window.CanResize);
+            }
+            finally
+            {
+                Cleanup(window);
+                controller.Close();
+            }
+        });
+    }
 }

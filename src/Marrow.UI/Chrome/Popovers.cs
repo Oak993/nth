@@ -291,7 +291,7 @@ public sealed class PopoverItem : Decorator
         bool isDestructive,
         string? confirmation)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :275 HStack(spacing: 8)
+        var row = new PopoverRowPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :275 HStack(spacing: 8)
 
         if (isChecked is { } isCheckedValue) // :276-281
         {
@@ -302,45 +302,73 @@ public sealed class PopoverItem : Decorator
         }
 
         var leadingSlot = new Panel { Width = 16, Height = 16 }; // :284, :289, :294, :299, :304 the leading 16pt column
-        row.Children.Add(leadingSlot);
+        Control? shown = null; // the view the slot currently holds
+        var shownTransitional = false; // whether it leaves under its .transition (:300, :305)
+        bool? builtConfirmed = null;
         void UpdateLeading()
         {
-            leadingSlot.Children.Clear();
+            if (builtConfirmed == state.IsConfirmed) return;
+            builtConfirmed = state.IsConfirmed;
+            Control? next = null;
+            var transitional = false;
             if (leading is not null) // :282-284
             {
                 leading.Width = 16;
                 leading.Height = 16;
-                leadingSlot.Children.Add(leading);
+                next = leading;
             }
             else if (asset is not null) // :285-289
             {
                 var assetImage = SwiftImage.Named(asset).Resizable().AspectRatio(ContentMode.Fit);
                 assetImage.Width = 16;
                 assetImage.Height = 16;
-                leadingSlot.Children.Add(assetImage);
+                next = assetImage;
             }
             else if (image is not null) // :290-294
             {
                 var imageControl = new Image { Source = image, Width = 16, Height = 16, Stretch = Stretch.Uniform };
                 RenderOptions.SetBitmapInterpolationMode(imageControl, BitmapInterpolationMode.HighQuality);
-                leadingSlot.Children.Add(imageControl);
+                next = imageControl;
             }
             else if (state.IsConfirmed) // :295-300
             {
                 var confirmed = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold))
                     .ForegroundStyle(Chrome.Success);
                 confirmed.Width = 16;
-                leadingSlot.Children.Add(confirmed);
+                next = confirmed;
+                transitional = true;
             }
             else if (symbol is not null) // :301-305
             {
                 var glyph = SwiftImage.SystemName(symbol).Font(SwiftFont.Callout);
                 glyph.Width = 16;
-                leadingSlot.Children.Add(glyph);
+                next = glyph;
+                transitional = true;
             }
+
+            // :300, :305 .transition(.scale(scale: 0.6).combined(with: .opacity)) on the checkmark and the symbol; the
+            // swap runs under the snappy transaction of :263.
+            if (shown is not null)
+            {
+                if (shownTransitional) SwiftTransition.Remove(leadingSlot, shown);
+                else leadingSlot.Children.Remove(shown);
+            }
+            if (next is not null)
+            {
+                if (transitional) SwiftTransition.Insert(leadingSlot, leadingSlot.Children.Count, next.Transition(SwiftTransition.Scale(0.6).Combined(SwiftTransition.Opacity)));
+                else leadingSlot.Children.Add(next);
+            }
+            shown = next;
+            shownTransitional = transitional;
+
+            // :282-305 the leading slot exists only when one of the branches produced a view; a plain row has no
+            // slot, so its title follows the row padding (and the checkmark column, if any) directly.
+            var present = row.Children.Contains(leadingSlot);
+            if (next is not null && !present) row.Children.Insert(isChecked is null ? 0 : 1, leadingSlot);
+            else if (next is null && present) row.Children.Remove(leadingSlot);
         }
         UpdateLeading();
-        leadingSlot.Track(() => state.IsConfirmed, _ => UpdateLeading());
+        row.Track(() => state.IsConfirmed, _ => UpdateLeading()); // on the row: the slot itself is detached while empty
 
         var titleBlock = new MiddleTruncatingText(); // :307-311 .lineLimit(1).truncationMode(.middle)
         SwiftFont.Body.Apply(titleBlock); // :308
@@ -352,16 +380,15 @@ public sealed class PopoverItem : Decorator
             }
             else
             {
-                // A styled title (:242-255) is rare and unused by any record in this part; the middle-truncation
-                // stand-in below only understands plain text, so a styled title renders unclipped.
-                titleText.Render(titleBlock);
+                titleBlock.StyledFullText = titleText; // :307 the styled Text, middle-truncated like a plain one
             }
         }
         UpdateTitle();
         titleBlock.Track(() => state.IsConfirmed, _ => UpdateTitle());
         row.Children.Add(titleBlock);
 
-        row.Children.Add(new Control { Width = 16, HorizontalAlignment = HorizontalAlignment.Stretch }); // :312 Spacer(minLength: 16)
+        row.Spacer = new Control { MinWidth = 16, HorizontalAlignment = HorizontalAlignment.Stretch }; // :312 Spacer(minLength: 16), takes the row's spare width (PopoverRowPanel)
+        row.Children.Add(row.Spacer);
 
         if (detail is not null) // :313-318
         {
@@ -430,6 +457,58 @@ public sealed class PopoverItem : Decorator
 }
 
 /// <summary>
+/// PORT-ONLY: the port's stand-in for the row's <c>HStack(spacing: 8)</c> with a <c>Spacer(minLength: 16)</c>
+/// (Popovers.swift :275, :312). Children take their natural width; the <see cref="Spacer"/> takes 16 plus whatever
+/// width the row is given beyond that, so the detail sits at the trailing edge; when the row is narrower than its
+/// content the <see cref="MiddleTruncatingText"/> title is given what is left, as SwiftUI compresses a truncating
+/// Text before anything else (:307-311). Still a horizontal StackPanel to every caller.
+/// </summary>
+internal sealed class PopoverRowPanel : StackPanel
+{
+    /// <summary>:312 the <c>Spacer(minLength: 16)</c> child.</summary>
+    public Control? Spacer { get; set; }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var visible = Children.Where(c => c.IsVisible).ToList();
+        var infinite = new Size(double.PositiveInfinity, availableSize.Height);
+        var title = visible.OfType<MiddleTruncatingText>().FirstOrDefault();
+        double total = 0, height = 0;
+        foreach (var child in visible.Where(c => c != title))
+        {
+            child.Measure(infinite);
+            total += child.DesiredSize.Width;
+            height = Math.Max(height, child.DesiredSize.Height);
+        }
+        if (title is not null)
+        {
+            var others = total + Spacing * (visible.Count - 1);
+            var room = double.IsInfinity(availableSize.Width) ? double.PositiveInfinity : Math.Max(0, availableSize.Width - others);
+            title.Measure(new Size(room, availableSize.Height));
+            total += title.DesiredSize.Width;
+            height = Math.Max(height, title.DesiredSize.Height);
+        }
+        return new Size(total + Spacing * Math.Max(0, visible.Count - 1), height);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var visible = Children.Where(c => c.IsVisible).ToList();
+        var spacer = Spacer;
+        var natural = visible.Sum(c => c.DesiredSize.Width) + Spacing * Math.Max(0, visible.Count - 1);
+        var extra = Math.Max(0, finalSize.Width - natural);
+        double x = 0;
+        foreach (var child in visible)
+        {
+            var width = child.DesiredSize.Width + (child == spacer ? extra : 0);
+            child.Arrange(new Rect(x, 0, width, finalSize.Height));
+            x += width + Spacing;
+        }
+        return finalSize;
+    }
+}
+
+/// <summary>
 /// PORT-ONLY (R-FILE-2 exception noted at header): the port's stand-in for `.lineLimit(1).truncationMode(.middle)`
 /// (PR-SIDEBAR-106, UI-SIDEBAR-013). Avalonia's TextBlock has no middle-truncation mode, so this measures the full
 /// text and, when it does not fit, replaces the centre with U+2026 HORIZONTAL ELLIPSIS, widening from an empty
@@ -440,6 +519,7 @@ public sealed class MiddleTruncatingText : TextBlock
 {
     private const char Ellipsis = '…'; // U+2026 HORIZONTAL ELLIPSIS
     private string full = "";
+    private StyledText? styled;
 
     public string FullText
     {
@@ -447,41 +527,68 @@ public sealed class MiddleTruncatingText : TextBlock
         set
         {
             full = value;
+            styled = null;
             InvalidateMeasure();
+        }
+    }
+
+    /// <summary>:242-255, :307 a styled title (<c>titleText</c>): it passes through the same middle truncation as a
+    /// plain one, the cut taken from the runs' combined text and the ellipsis styled like the run it follows.</summary>
+    public StyledText? StyledFullText
+    {
+        get => styled;
+        set
+        {
+            styled = value;
+            InvalidateMeasure();
+        }
+    }
+
+    private string PlainFull => styled is null ? full : string.Concat(styled.Runs.Select(run => run.Text));
+
+    private void Present(string text, StyledText? runs)
+    {
+        if (runs is null)
+        {
+            Inlines?.Clear();
+            Text = text;
+        }
+        else
+        {
+            Text = null;
+            runs.Render(this);
+            OnMeasureInvalidated(); // an inline change made while measuring keeps the cached text layout; its width is read straight after
         }
     }
 
     protected override Size MeasureOverride(Size availableSize)
     {
-        Text = full;
-        if (full.Length == 0 || double.IsInfinity(availableSize.Width))
+        Present(full, styled);
+        if (PlainFull.Length == 0 || double.IsInfinity(availableSize.Width))
             return base.MeasureOverride(availableSize);
         var natural = base.MeasureOverride(availableSize);
         if (natural.Width <= availableSize.Width)
             return natural;
-        Text = Truncate(full, availableSize.Width);
+        Truncate(availableSize.Width);
         return base.MeasureOverride(availableSize);
     }
 
-    private string Truncate(string text, double maxWidth)
+    /// <summary>Leaves the widest candidate that fits (an ellipsis alone if none does) presented.</summary>
+    private void Truncate(double maxWidth)
     {
+        var text = PlainFull;
         var lo = 0;
-        var hi = text.Length;
-        var best = Ellipsis.ToString();
+        var hi = System.Globalization.StringInfo.ParseCombiningCharacters(text).Length;
+        var best = 0;
         var unconstrained = new Size(double.PositiveInfinity, double.PositiveInfinity);
         while (lo <= hi)
         {
             var mid = (lo + hi) / 2;
-            var head = mid / 2;
-            var tail = mid - head;
-            var candidate = tail == 0
-                ? text.Substring(0, head) + Ellipsis
-                : text.Substring(0, head) + Ellipsis + text.Substring(text.Length - tail);
-            Text = candidate;
+            PresentCandidate(text, mid);
             var width = base.MeasureOverride(unconstrained).Width;
             if (width <= maxWidth)
             {
-                best = candidate;
+                best = mid;
                 lo = mid + 1;
             }
             else
@@ -489,8 +596,71 @@ public sealed class MiddleTruncatingText : TextBlock
                 hi = mid - 1;
             }
         }
-        return best;
+        PresentCandidate(text, best);
     }
+
+    /// <summary>The first kept/2 characters, U+2026, then the last kept - kept/2 characters of <paramref name="text"/>.</summary>
+    public static string Candidate(string text, int kept)
+    {
+        var (headEnd, tailStart) = Cut(text, kept);
+        return text.Substring(0, headEnd) + Ellipsis + text.Substring(tailStart);
+    }
+
+    // UTF-16 offsets where the head ends and the tail starts for `kept` kept characters. A Swift Character is an
+    // extended grapheme cluster (:307-311 Text truncates by Character), so the cut falls only between clusters.
+    private static (int HeadEnd, int TailStart) Cut(string text, int kept)
+    {
+        var starts = System.Globalization.StringInfo.ParseCombiningCharacters(text);
+        var head = kept / 2;
+        var tail = kept - head;
+        int At(int cluster) => cluster >= starts.Length ? text.Length : starts[cluster];
+        return (At(head), At(starts.Length - tail));
+    }
+
+    private void PresentCandidate(string text, int kept)
+    {
+        if (styled is null)
+        {
+            Present(Candidate(text, kept), null);
+            return;
+        }
+        var (headEnd, tailStart) = Cut(text, kept);
+        var runs = new List<StyledText.Run>();
+        var offset = 0;
+        var ellipsisAdded = false;
+        StyledText.Run? style = null;
+        foreach (var run in styled.Runs)
+        {
+            var start = offset;
+            var end = offset + run.Text.Length;
+            offset = end;
+            if (run.Image is not null)
+            {
+                if (start < headEnd || start >= tailStart)
+                {
+                    if (start >= tailStart && !ellipsisAdded) { runs.Add(style is null ? EllipsisRun(run) : EllipsisRun(style)); ellipsisAdded = true; }
+                    runs.Add(run);
+                }
+                continue;
+            }
+            var headPart = Math.Max(0, Math.Min(end, headEnd) - start);
+            if (headPart > 0)
+            {
+                runs.Add(run with { Text = run.Text.Substring(0, headPart) });
+                style = run;
+            }
+            var tailFrom = Math.Max(start, tailStart);
+            if (tailFrom < end)
+            {
+                if (!ellipsisAdded) { runs.Add(EllipsisRun(style ?? run)); ellipsisAdded = true; }
+                runs.Add(run with { Text = run.Text.Substring(tailFrom - start) });
+            }
+        }
+        if (!ellipsisAdded) runs.Add(EllipsisRun(style ?? styled.Runs[0]));
+        Present("", StyledText.FromRuns(runs));
+    }
+
+    private static StyledText.Run EllipsisRun(StyledText.Run like) => like with { Text = Ellipsis.ToString(), Image = null, Link = null };
 }
 
 // MARK: - Row actions

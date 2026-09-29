@@ -162,6 +162,14 @@ public sealed record UserMessage
 
     // :69
     public bool IsHydraBrief => HydraBrief == true;
+
+    // :58 Hashable: the synthesized equality and hash compare the String text canonically (R-STR-2), where a record's
+    // own is ordinal, so "e" + U+0301 and U+00E9 are one text.
+    public bool Equals(UserMessage? other) => other is not null && SwiftString.Equal(Text, other.Text) &&
+        Attachments.Equals(other.Attachments) && Equals(HydraHeads, other.HydraHeads) && HydraBrief == other.HydraBrief;
+
+    public override int GetHashCode() =>
+        HashCode.Combine(SwiftStringComparer.Instance.GetHashCode(Text), Attachments, HydraHeads, HydraBrief);
 }
 
 internal sealed class UserMessageConverter : JsonConverter<UserMessage>

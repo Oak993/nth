@@ -81,7 +81,8 @@ namespace Marrow.UI.Common
             if (now && watch == null)
             {
                 // :45 watch = Task { @MainActor [weak self] in
-                watch = MainActor.Spawn(WatchdogTask);
+                var weakSelf = new WeakReference<ScrollActivity>(this); // [weak self]: the task must not keep the activity alive
+                watch = MainActor.Spawn(() => WatchdogTask(weakSelf));
             }
             // :64-67 } else if !now { watch?.cancel(); watch = nil }
             else if (!now)
@@ -92,7 +93,7 @@ namespace Marrow.UI.Common
         }
 
         // :44-63 The watchdog task that polls every 2 seconds and drops dead reporters
-        private async Task WatchdogTask()
+        private static async Task WatchdogTask(WeakReference<ScrollActivity> weakSelf)
         {
             // :46 while !Task.isCancelled
             while (!SwiftTask.IsCancelled)
@@ -104,11 +105,22 @@ namespace Marrow.UI.Common
                 }
 
                 // :48 guard let self, !Task.isCancelled else { return }
-                if (SwiftTask.IsCancelled)
+                if (SwiftTask.IsCancelled || !weakSelf.TryGetTarget(out var self))
                 {
                     return;
                 }
 
+                if (self.WatchdogPass())
+                {
+                    return;
+                }
+            }
+        }
+
+        // :49-63 one pass of the watchdog body; true when nothing is scrolling any more and the task ends.
+        private bool WatchdogPass()
+        {
+            {
                 // :49-55 for id in Array(scrolling) { ... }
                 // Make a copy to iterate safely while mutating
                 var ids = new List<Guid>(scrolling);
@@ -146,9 +158,11 @@ namespace Marrow.UI.Common
                 if (!still)
                 {
                     watch = null;
-                    return;
+                    return true;
                 }
             }
+
+            return false;
         }
     }
 

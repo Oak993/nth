@@ -11,6 +11,7 @@ using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Testing;
+using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Views.Composer;
 
@@ -212,4 +213,41 @@ public sealed class QuestionTabTests(HeadlessSession headless)
     }
 
     private static QuestionRequest.Choice Choice(string label, string? detail = null) => new(label, detail);
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-067")] // App/Views/Composer/QuestionTab.swift:203-208,236-238 the header Text wraps at the page width
+    public void A_long_question_header_wraps_within_the_page_width()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var header = string.Join(" ", Enumerable.Repeat("very long header", 20));
+            var sheet = new QuestionSheet(Request(Question("q", header: header, choices: [Choice("A")])), null!);
+            var block = LogicalQuery.SelfAndDescendants<TextBlock>(sheet).Single(text => text.Text == header.ToUpperInvariant());
+            block.Measure(new Size(428, double.PositiveInfinity)); // the page's content width: 460 less its 16 point padding either side
+            Assert.True(block.TextLayout.TextLines.Count > 1, "the header measured one long line: " + block.DesiredSize);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-076")] // App/Views/Composer/QuestionTab.swift:117-162 HStack spacing 8 only between children: the last button is flush with the footer edge
+    public void The_incomplete_state_next_button_has_no_trailing_margin()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var sheet = new QuestionSheet(Request(
+                Question("one", prompt: "First", choices: [Choice("A")]),
+                Question("two", prompt: "Second", choices: [Choice("B")])), null!);
+            var next = LogicalQuery.SelfAndDescendants<Button>(sheet).Single(button => ButtonText(button) == "Next");
+            Assert.Equal(0, next.Margin.Right);
+        });
+    }
 }
+
+// STOP App.Views.Composer.QuestionTab #1 (verifier, 2026-09-29)
+// Kind: coverage gap, not a known code defect.
+// Swift: App/Views/Composer/QuestionTab.swift:58 measures every page with selections: .constant([:]) and written: .constant([:]).
+// Record: UI-COMPOSER-067. The QuestionSheet constructor probe now uses constant empty bindings (source-matched), but no test
+// proves it: the probe is a discarded local and headless font metrics do not reproduce a weight-dependent wrap.
+// Needed: a real-font capture where a recommended (semibold) choice wraps differently from the unselected one.

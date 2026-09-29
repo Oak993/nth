@@ -1,3 +1,4 @@
+using Avalonia.Layout;
 using Avalonia.Controls;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
@@ -205,6 +206,33 @@ public sealed class HydraCookbookPanelTests(HeadlessSession headless)
 
     private static string HydraPairSummaryTitleForTests(HydraPair pair, Marrow.Services.Providers.ProviderRegistry registry) =>
         Marrow.App.Views.Chat.HydraPairSummary.Title(pair, registry);
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-037")] // App/Views/Settings/HydraCookbookPanel.swift:81-129 HStack(spacing: 12) { mark; texts; Spacer(minLength: 8); trailing }: 12 + 8 + 12 points at least before the trailing control, centred, wrapping title
+    public void A_ready_row_keeps_thirty_two_points_before_its_trailing_control_and_centres_and_wraps()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var recipe = HydraCookbook.Recipes[0];
+            var pair = new HydraPair(ProviderKind.Claude) { OrchestratorModel = "claude-model" };
+            var host = new Border();
+            AppEnvironment.SetAppModel(host, model);
+            var row = new HydraCookbookRow(recipe, pair, null);
+            host.Child = row;
+            var window = new AvaloniaWindow { Content = host, Width = 300, Height = 400 };
+            window.Show();
+            var grid = LogicalQuery.SelfAndDescendants<Grid>(row).First();
+            var texts = grid.Children.OfType<StackPanel>().Single();
+            var trailing = grid.Children.Single(child => Grid.GetColumn(child) == 2);
+            Assert.Equal(32, trailing.Bounds.Left - texts.Bounds.Right, 0.5);
+            Assert.Equal(VerticalAlignment.Center, trailing.VerticalAlignment);
+            var title = texts.Children.OfType<TextBlock>().First();
+            Assert.Equal(TextWrapping.Wrap, title.TextWrapping);
+            window.Close();
+        });
+    }
 }
 
 // STOP App.Views.Settings.HydraCookbookPanel #1 (helper Claude, 2026-09-25)

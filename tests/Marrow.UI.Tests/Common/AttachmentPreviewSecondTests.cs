@@ -405,4 +405,117 @@ public sealed class AttachmentPreviewSecondTests(HeadlessSession headless)
             Assert.Equal(1, image.Opacity);
         });
     }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-081")] // DroppyCode/UI/Common/AttachmentPreview.swift:202-216 (ZStack centers the badge)
+    public void AttachmentVideoThumbnail_badge_is_centered_in_the_box()
+    {
+        headless.OnUiThread(() =>
+        {
+            var attachment = new Attachment { Name = "clip.mp4", Path = Path.Combine(NewRoot(), "clip.mp4"), MimeType = "video/mp4" };
+            var thumbnail = new AttachmentVideoThumbnail(attachment);
+            Show(thumbnail);
+            var circle = VisualQuery.Descendants<Avalonia.Controls.Shapes.Ellipse>(thumbnail).Single();
+            var center = circle.TranslatePoint(new Point(circle.Bounds.Width / 2, circle.Bounds.Height / 2), thumbnail)!.Value;
+            Assert.Equal(28, center.X, 1);
+            Assert.Equal(28, center.Y, 1);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-203")] // DroppyCode/UI/Common/AttachmentPreview.swift:304-323 (the video frame is overlaid with AttachmentPlayBadge)
+    public void Large_video_preview_carries_the_play_badge_for_the_frame()
+    {
+        headless.OnUiThread(() =>
+        {
+            var attachment = new Attachment { Name = "clip.mp4", Path = Path.Combine(NewRoot(), "clip.mp4"), MimeType = "video/mp4" };
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            var preview = new AttachmentLargePreview(attachment);
+            Show(preview);
+            Assert.Single(VisualQuery.Descendants<AttachmentPlayBadge>(preview));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-075")] // DroppyCode/UI/Common/AttachmentPreview.swift:324-333 (Text wraps inside the 440 box)
+    public void Text_preview_wraps_a_long_line_inside_the_box()
+    {
+        var path = Path.Combine(NewRoot(), "long.txt");
+        File.WriteAllText(path, string.Join(" ", Enumerable.Repeat("word", 400)), System.Text.Encoding.UTF8);
+        var attachment = new Attachment { Name = "long.txt", Path = path, MimeType = "text/plain" };
+        AttachmentLargePreview preview = null!;
+        headless.OnUiThread(() =>
+        {
+            preview = new AttachmentLargePreview(attachment);
+            Show(preview);
+        });
+        PumpUntil(() => VisualQuery.Descendants<TextBlock>(preview).Any(t => (t.Text?.Length ?? 0) > 1000));
+        headless.OnUiThread(() =>
+        {
+            var textBlock = VisualQuery.Descendants<TextBlock>(preview).First(t => (t.Text?.Length ?? 0) > 1000);
+            Assert.Equal(TextWrapping.Wrap, textBlock.TextWrapping);
+            Assert.True(textBlock.Bounds.Width <= 440, $"width {textBlock.Bounds.Width}");
+            Assert.True(textBlock.Bounds.Height > textBlock.FontSize * 3, $"height {textBlock.Bounds.Height}");
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-075")] // DroppyCode/UI/Common/AttachmentPreview.swift:325-333 (.textSelection(.enabled))
+    public void Text_preview_is_selectable()
+    {
+        var path = Path.Combine(NewRoot(), "sel.txt");
+        File.WriteAllText(path, new string('a', 2000), System.Text.Encoding.UTF8);
+        var attachment = new Attachment { Name = "sel.txt", Path = path, MimeType = "text/plain" };
+        AttachmentLargePreview preview = null!;
+        headless.OnUiThread(() =>
+        {
+            preview = new AttachmentLargePreview(attachment);
+            Show(preview);
+        });
+        PumpUntil(() => VisualQuery.Descendants<TextBlock>(preview).Any(t => (t.Text?.Length ?? 0) > 1000));
+        headless.OnUiThread(() =>
+        {
+            var textBlock = VisualQuery.Descendants<TextBlock>(preview).First(t => (t.Text?.Length ?? 0) > 1000);
+            Assert.IsType<SelectableTextBlock>(textBlock);
+        });
+    }
+
+    [Theory]
+    [Trait("Req", "UI-COMPOSER-083")] // DroppyCode/UI/Common/AttachmentPreview.swift:422-433 (Spacer(minLength: 8) puts Open at the trailing edge)
+    [InlineData("read.bmp")]
+    [InlineData("a-very-long-file-name-that-needs-truncating-a-very-long-file-name-that-needs-truncating-a-very-long-file-name-that-needs-truncating-a-very-long-file-name-that-needs-truncating.bmp")]
+    public void ToolImagePreview_open_button_sits_at_the_trailing_edge(string fileName)
+    {
+        var path = Path.Combine(NewRoot(), fileName);
+        WriteBmp(path, 20, 10);
+        headless.OnUiThread(() =>
+        {
+            var preview = new ToolImagePreview(path);
+            Show(preview);
+            var open = VisualQuery.Descendants<Button>(preview).Single(b => (b.Content as TextBlock)?.Text == "Open");
+            var right = open.TranslatePoint(new Point(open.Bounds.Width, 0), preview)!.Value.X;
+            Assert.Equal(preview.Bounds.Width, right, 1);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-083")] // DroppyCode/UI/Common/AttachmentPreview.swift:409-419 (the spinner branch is replaced by the image)
+    public void ToolImagePreview_spinner_is_gone_once_the_image_loads()
+    {
+        var path = Path.Combine(NewRoot(), "read.bmp");
+        WriteBmp(path, 20, 10);
+        headless.OnUiThread(() =>
+        {
+            var preview = new ToolImagePreview(path);
+            Show(preview);
+            var deadline = DateTime.UtcNow.AddSeconds(4);
+            while (!VisualQuery.Descendants<Image>(preview).Any(i => i.Source is not null))
+            {
+                if (DateTime.UtcNow > deadline) throw new TimeoutException("The thumbnail never loaded.");
+                Dispatcher.UIThread.RunJobs();
+                Thread.Sleep(15);
+            }
+            Assert.DoesNotContain(VisualQuery.Descendants<ProgressBar>(preview), p => p.IsVisible);
+        });
+    }
 }

@@ -208,13 +208,17 @@ public sealed partial class ProviderRegistry : MainActorModel
         // :164
         if (UserDefaults.Standard.Current.Dictionary("recentSlashCommands") is { } storedRecent)
         {
+            // :172 `as? [String: [String]] ?? [:]` is one conditional cast of the whole dictionary: an entry that is not an
+            // array of strings fails it, and every entry (the valid ones too) is dropped.
             var recent = new Dictionary<string, ValueList<string>>();
+            var castHolds = true;
             foreach (var (key, value) in storedRecent)
             {
                 if (value is IReadOnlyList<object> list && list.All(item => item is string))
                     recent[key] = new ValueList<string>(list.Cast<string>());
+                else castHolds = false;
             }
-            recentCommands = new ValueMap<string, ValueList<string>>(recent, SwiftStringComparer.Instance);
+            if (castHolds) recentCommands = new ValueMap<string, ValueList<string>>(recent, SwiftStringComparer.Instance);
         }
 
         // :165-178

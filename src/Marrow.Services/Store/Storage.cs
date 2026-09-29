@@ -178,7 +178,18 @@ public abstract record AttachmentSource
     // :225-226. ENGINEERING DECISION: Swift's payload type is UTType, a system type with no port twin anywhere in
     // the tree; Storage.swift reads only one fact from it (:191 type == .png), so it is ported as the MIME-style
     // identifier MimeType (below) already uses for the same distinction.
-    public sealed record Image(byte[] Data, string MimeType) : AttachmentSource;
+    // Swift Data is a value: the source keeps a private copy of the bytes it was built with.
+    public sealed record Image : AttachmentSource
+    {
+        public Image(byte[] data, string mimeType)
+        {
+            Data = (byte[])data.Clone();
+            MimeType = mimeType;
+        }
+
+        public byte[] Data { get; }
+        public string MimeType { get; }
+    }
 
     public const string PngMimeType = "image/png";
 }
@@ -665,11 +676,11 @@ public static partial class Storage
             if (referenced.Contains(name)) continue; // :142
             if (!OrphanFileNamePattern().IsMatch(name)) continue; // :143, wholeMatch
             var url = SwiftPath.AppendingPathComponent(attachmentsDirectory, name); // :144
-            if (!File.Exists(url)) continue; // :145 a modification date that cannot be read is skipped and kept.
+            if (!File.Exists(url) && !Directory.Exists(url)) continue; // :145 a modification date that cannot be read is skipped and kept; a folder has one too.
             DateTimeOffset modified;
             try
             {
-                modified = new DateTimeOffset(File.GetLastWriteTimeUtc(url), TimeSpan.Zero); // :145, contentModificationDateKey
+                modified = new DateTimeOffset(File.GetLastWriteTimeUtc(url), TimeSpan.Zero); // :145, contentModificationDateKey (File.GetLastWriteTimeUtc reads a folder's too)
             }
             catch (Exception e) when (SwiftTry.IsThrownError(e))
             {

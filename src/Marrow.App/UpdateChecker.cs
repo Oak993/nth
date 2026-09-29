@@ -120,7 +120,7 @@ public sealed record AvailableUpdate
     private static SwiftURL ReadUrl(JsonElement element)
     {
         var relative = SwiftDecoding.Decode(element, "relative", SwiftDecoding.ReadString);
-        return SwiftURL.Create(relative) ?? throw new SwiftTrapException("Invalid URL string: " + relative);
+        return SwiftURL.Create(relative) ?? throw new DecodingError("dataCorrupted", "Invalid URL string."); // Foundation URL Codable throws, never traps
     }
 
     // :233-237 the bytes persist() writes (or reads back), a plain JSONEncoder()/JSONDecoder() (R-CODE-4).
@@ -326,7 +326,7 @@ public sealed class UpdateChecker : MainActorModel
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error)) // :181
             {
-                LastError = (error as UpdateError)?.ErrorDescription ?? "Couldn’t reach GitLab."; // U+2019, :182
+                LastError = (error as UpdateError)?.ErrorDescription ?? "Couldn't reach GitLab."; // ASCII U+0027 (byte 0x27 at :182)
                 LastCheckedAt = SwiftDate.Now; // :183
                 UserDefaults.Standard.Current.Set(Keys.LastChecked, LastCheckedAt); // :184
             }

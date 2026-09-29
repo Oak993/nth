@@ -71,7 +71,10 @@ public sealed record NativeFileTools(string WorkingDirectory) // :3-4
     /// <summary>
     /// :40-77 readFile(_:startLine:lineCount:). PR-PROVAPI-178, PR-PROVAPI-179, PR-PROVAPI-180, PR-PROVAPI-181.
     /// </summary>
-    public async Task<string> ReadFile(string path, int? startLine = null, int? lineCount = null)
+    public Task<string> ReadFile(string path, int? startLine = null, int? lineCount = null) =>
+        Task.Run(() => ReadFileBody(path, startLine, lineCount)); // :40 @concurrent (R-ISO-2)
+
+    private async Task<string> ReadFileBody(string path, int? startLine, int? lineCount)
     {
         SwiftTask.CheckCancellation(); // :41
         var url = ResolveURL(path); // :42
@@ -125,7 +128,10 @@ public sealed record NativeFileTools(string WorkingDirectory) // :3-4
     private static string? DecodeLatin1OrNull(byte[] bytes) => System.Text.Encoding.Latin1.GetString(bytes);
 
     /// <summary>:79-90 writeFile(path:content:). PR-PROVAPI-182.</summary>
-    public async Task WriteFile(string path, string content)
+    public Task WriteFile(string path, string content) =>
+        Task.Run(() => WriteFileBody(path, content)); // :79 @concurrent (R-ISO-2)
+
+    private async Task WriteFileBody(string path, string content)
     {
         SwiftTask.CheckCancellation(); // :80
         await Serializer.Run(() =>
@@ -153,7 +159,10 @@ public sealed record NativeFileTools(string WorkingDirectory) // :3-4
     }
 
     /// <summary>:92-120 editFile(path:old:new:). PR-PROVAPI-182, PR-PROVAPI-183.</summary>
-    public async Task EditFile(string path, string old, string @new)
+    public Task EditFile(string path, string old, string @new) =>
+        Task.Run(() => EditFileBody(path, old, @new)); // :92 @concurrent (R-ISO-2)
+
+    private async Task EditFileBody(string path, string old, string @new)
     {
         SwiftTask.CheckCancellation(); // :93
         await Serializer.Run(() =>
@@ -224,7 +233,10 @@ public sealed record NativeFileTools(string WorkingDirectory) // :3-4
     }
 
     /// <summary>:122-159 listFiles(_:recursive:). PR-PROVAPI-184, PR-PROVAPI-185, PR-PROVAPI-186.</summary>
-    public async Task<string> ListFiles(string path, bool recursive)
+    public Task<string> ListFiles(string path, bool recursive) =>
+        Task.Run(() => ListFilesBody(path, recursive)); // :122 @concurrent (R-ISO-2)
+
+    private async Task<string> ListFilesBody(string path, bool recursive)
     {
         SwiftTask.CheckCancellation(); // :123
         var trimmedIsEmpty = path.Trimmed().Length == 0; // :124

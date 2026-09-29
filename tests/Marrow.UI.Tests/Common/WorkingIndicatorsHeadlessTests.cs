@@ -289,4 +289,23 @@ public sealed class WorkingIndicatorsHeadlessTests(HeadlessSession headless)
         }
         finally { ThemeManager.Current = previous; }
     });
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "UI-THEME-049")] // WorkingIndicators.swift:141-163, :274-293 the cell grid is centred in whatever frame it is given
+    public void A_spinner_in_a_larger_slot_is_centred(bool mini) => headless.OnUiThread(() =>
+    {
+        using var source = FrameClock.Source.Override(new ManualFrameSource());
+        Control spinner = mini ? new MiniSpinner() : new WorkingSpinner();
+        var slot = new Border { Width = 100, Height = 100, Child = spinner };
+        var window = new Window { Width = 200, Height = 200, Content = new Canvas { Children = { slot } } };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var view = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(spinner).OfType<Control>().First(c => c.Bounds.Width > 0 && c.Bounds.Width < 100);
+        var center = view.TranslatePoint(new Point(view.Bounds.Width / 2, view.Bounds.Height / 2), slot)!.Value;
+        Assert.InRange(center.X, 49.5, 50.5); // layout rounding, as Swift rounds the origin
+        Assert.InRange(center.Y, 49.5, 50.5);
+        window.Close();
+    });
 }

@@ -392,6 +392,7 @@ public sealed class AttachmentLargePreview : Border
     private readonly Image mediaImage = new(); // :236 @State private var image / :237 videoFrame, one control for either
     private readonly LoadingMark loadingMark = new() { Width = 48, Height = 48, IsVisible = false }; // OD-0016 deviation
     private readonly Panel contentArea = new();
+    private readonly AttachmentPlayBadge videoBadge = new() { IsVisible = false }; // :312 overlay { AttachmentPlayBadge() }, shown with the frame
     private Marrow.Core.Port.WorkItem? loadingMarkTimer;
 
     // :232-234
@@ -424,7 +425,7 @@ public sealed class AttachmentLargePreview : Border
             {
                 Width = slot.Width,
                 Height = slot.Height,
-                Child = new Panel { Children = { mediaImage, loadingMark } },
+                Child = attachment.IsVideo ? new Panel { Children = { mediaImage, videoBadge, loadingMark } } : new Panel { Children = { mediaImage, loadingMark } },
                 HorizontalAlignment = HorizontalAlignment.Center, // :303, :323 .frame(maxWidth: .infinity, alignment: .center)
             }.RoundedRectangle(12, RoundedCornerStyle.Continuous);
             clip.ClipToBounds = true;
@@ -440,10 +441,10 @@ public sealed class AttachmentLargePreview : Border
         contentArea.Children.Clear();
         if (textPreview is { } text)
         {
-            var textBlock = new TextBlock { Text = text };
+            var textBlock = new SelectableTextBlock { Text = text, TextWrapping = TextWrapping.Wrap }; // :325-326, :328 Text wraps in the finite box, :328 .textSelection(.enabled)
             SwiftFont.System(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(textBlock); // :327
             textBlock.HorizontalAlignment = HorizontalAlignment.Stretch; // :329
-            var scroll = new ScrollViewer { Content = textBlock, Padding = new Thickness(10) }; // :330
+            var scroll = new ScrollViewer { Content = textBlock, Padding = new Thickness(10), HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :330
             var height = Math.Min(320, Math.Max(120, SwiftString.Count(text) / 4)); // :332
             var box = new Border // :333 .background(.quaternary.opacity(0.45), in: .rect(cornerRadius: 10, style: .continuous))
             {
@@ -543,6 +544,7 @@ public sealed class AttachmentLargePreview : Border
             {
                 mediaImage.Source = frame.ToBitmap();
                 mediaImage.Opacity = 1;
+                videoBadge.IsVisible = true; // :312
             });
         }
         else // :384-386
@@ -588,7 +590,7 @@ public sealed class ToolImagePreview : StackPanel
         box.ClipToBounds = true;
         box.Background = SwiftColor.Quaternary.Opacity(0.45).Brush(box); // UNVERIFIED OD-0001, see SwiftColor.Quaternary
 
-        var caption = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :422
+        var caption = new DockPanel(); // :422 HStack(spacing: 8): the name, Spacer(minLength: 8), Open at the trailing edge
         var name = new MiddleTruncatingTextBlock { FullText = SwiftPath.LastPathComponent(path) }; // :423, :427 .truncationMode(.middle)
         SwiftFont.Caption.Apply(name); // :424
         name.Foreground = Chrome.SecondaryText.Brush(name); // :425
@@ -597,8 +599,10 @@ public sealed class ToolImagePreview : StackPanel
         open.Foreground = SwiftColor.AccentColor.Brush(open);
         var openButton = PlainControls.Button(open, () => ShellWorkspace.OpenWithDefaultApp(path));
 
-        caption.Children.Add(name);
+        openButton.Margin = new Thickness(8, 0, 0, 0); // :428 Spacer(minLength: 8)
+        DockPanel.SetDock(openButton, Dock.Right);
         caption.Children.Add(openButton);
+        caption.Children.Add(name);
         Children.Add(box);
         Children.Add(caption);
 
@@ -608,6 +612,7 @@ public sealed class ToolImagePreview : StackPanel
             if (SwiftTask.IsCancelled || loaded is null) return;
             image.Source = loaded.Image.ToBitmap();
             image.Opacity = 1;
+            spinner.IsVisible = false; // :409-419 the ProgressView branch is replaced by the image
         });
     }
 }

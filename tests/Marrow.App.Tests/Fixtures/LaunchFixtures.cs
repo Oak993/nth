@@ -105,6 +105,7 @@ public sealed class LaunchHarness : IDisposable
 
     public void Dispose()
     {
+        UpdateCheckerLoop.Stop(Checker);
         MarkdownDelegationCard.Render = savedDelegationBlock;
         URLCache.Shared = savedUrlCache;
         for (var index = scopes.Count - 1; index >= 0; index--) scopes[index].Dispose();

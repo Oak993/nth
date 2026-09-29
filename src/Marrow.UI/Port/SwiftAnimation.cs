@@ -85,8 +85,8 @@ public sealed record SwiftTransition
     private static readonly ConditionalWeakTable<Control, Attachment> attachments = new();
 
     // ED-218: collection reconciliation uses the transition's actual panel child (modifier wrapper, if any).
-    internal static bool HasTransition(Control child) => attachments.TryGetValue(child, out _);
-    internal static Control Container(Control child) => attachments.TryGetValue(child, out var state) ? state.Wrapper ?? child : child;
+    public static bool HasTransition(Control child) => attachments.TryGetValue(child, out _);
+    public static Control Container(Control child) => attachments.TryGetValue(child, out var state) ? state.Wrapper ?? child : child;
     internal static void FinishRemoval(Panel panel, Control child)
     {
         if (!attachments.TryGetValue(child, out var state)) return;
@@ -129,6 +129,20 @@ public sealed record SwiftTransition
         }
         state.Present(child, 0, inserting: true);
         state.Run(animation, (p, _) => state.Present(child, p, inserting: true));
+    }
+
+    /// <summary>
+    /// A view already in its parent when the parent first appears: the same placement as <see cref="Insert"/> without the
+    /// arrival animation (SwiftUI runs a transition only for a view that joins a parent already on screen), yet with the
+    /// transition's wrappers in place so a later <see cref="Remove(Panel, Control)"/> can animate the view away.
+    /// </summary>
+    public static void Place(Panel panel, int index, Control child)
+    {
+        var state = attachments.GetValue(child, _ => new Attachment(Opacity));
+        state.Stop();
+        state.Wrapper ??= state.Transition.CreateBody(child, state.Bodies);
+        panel.Children.Insert(index, state.Wrapper);
+        state.Present(child, 1, inserting: true);
     }
 
     public static void Remove(Panel panel, Control child) => Remove(panel, child, null);

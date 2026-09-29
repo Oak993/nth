@@ -75,7 +75,8 @@ public sealed class AppModelMoveThreadAndFinishActionTests
         {
             model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
             model.SelectedThreadID = helper.Id;
-            AssertFinish(model, "Archive thread", "archivebox");
+            // AppModel.swift:855-863 has no helper case in the title or the symbol: a settled helper reads as any settled thread.
+            AssertFinish(model, "Reopen thread", "arrow.uturn.backward");
 
             model.FinishSelectedThread();
             Assert.True(model.Thread(helper.Id)!.IsArchived);

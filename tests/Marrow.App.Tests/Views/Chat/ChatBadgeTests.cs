@@ -314,4 +314,29 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
             Assert.Equal("Plan", buttonPeer.GetName()); // the one exposed element carries the label
         });
     }
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-062")] // App/Views/Chat/ChatBadge.swift:55-62 reduceMotion only sets animated: false; the field stays rendered
+    public void With_reduce_motion_the_attention_dot_field_stays_visible_and_static()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var presented = false;
+            var badge = new ChatBadge(
+                "Plan",
+                new Binding<bool>(() => presented, value => presented = value),
+                () => new Border { Width = 18, Height = 18 },
+                () => new Border(),
+                needsAttention: true);
+            var host = new Border { Child = badge };
+            EnvironmentValues.SetAccessibilityReduceMotion(host, true);
+            var window = new AvaloniaWindow { Content = host, Width = 200, Height = 100 };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var field = Assert.Single(LogicalQuery.SelfAndDescendants<DotFieldControl>(badge));
+            Assert.True(field.IsVisible);
+            window.Close();
+        });
+    }
 }

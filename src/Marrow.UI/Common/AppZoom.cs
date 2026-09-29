@@ -55,17 +55,42 @@ public sealed record AppZoomModifier(int Percent)
     public Control Body(Control content)
     {
         var scale = (double)AppZoom.Normalized(Percent) / 100;
-        content.RenderTransform = new ScaleTransform(scale, scale);
-        content.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative);
         // The body evaluated again for a new percent (the setting changed, WindowManager.swift:175): SwiftUI keeps the
         // same ZoomLayout and content (structural identity) and only the scale changes, so the content already in a
         // ZoomLayout keeps it and is never detached and attached again.
         if (content.Parent is ZoomLayout zoom)
         {
+            Scale(content, scale);
             zoom.Scale = scale;
             return zoom;
         }
+        if (content.Parent is ZoomScaler hostedScaler && hostedScaler.Parent is ZoomLayout hostedZoom)
+        {
+            Scale(hostedScaler, scale);
+            hostedZoom.Scale = scale;
+            return hostedZoom;
+        }
+        // :24 scaleEffect is an outer effect, so a transform the content already carries (and its origin) stays
+        // in force: the scale goes on a wrapper around such content instead of replacing its transform.
+        if (content.RenderTransform is { } own && !own.Value.IsIdentity)
+        {
+            var scaler = new ZoomScaler { Children = { content } };
+            Scale(scaler, scale);
+            return new ZoomLayout(scale) { Children = { scaler } };
+        }
+        Scale(content, scale);
         return new ZoomLayout(scale) { Children = { content } };
+    }
+
+    private static void Scale(Control target, double scale)
+    {
+        target.RenderTransform = new ScaleTransform(scale, scale);
+        target.RenderTransformOrigin = new RelativePoint(0, 0, RelativeUnit.Relative);
+    }
+
+    // Carries the zoom scale for content that already has a render transform of its own (:24).
+    private sealed class ZoomScaler : Panel
+    {
     }
 }
 

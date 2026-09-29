@@ -65,7 +65,7 @@ public sealed class ClaudeSession : ProviderSession
     internal struct StreamState
     {
         public string? CurrentMessageID;                        // :23
-        public Dictionary<int, string> BlockIDs = new();         // :24
+        public Dictionary<long, string> BlockIDs = new();        // :24 Swift Int is 64-bit
         public Dictionary<string, List<string>> OpenText = new(SwiftStringComparer.Instance);     // :25
         public Dictionary<string, List<string>> OpenThinking = new(SwiftStringComparer.Instance); // :26
 
@@ -535,7 +535,7 @@ public sealed class ClaudeSession : ProviderSession
             case "content_block_start": // :460-481
             {
                 if (@event["index"]?.JSONValueInt is not { } indexLong || @event["content_block"] is not { } block) return;
-                var index = (int)indexLong;
+                var index = indexLong;
                 var messageID = stream.CurrentMessageID ?? "message";
                 var id = $"{messageID}-{index}";
                 switch (block["type"]?.JSONValueString)
@@ -565,7 +565,7 @@ public sealed class ClaudeSession : ProviderSession
             }
             case "content_block_delta": // :482-491
             {
-                if (@event["index"]?.JSONValueInt is not { } deltaIndexLong || !stream.BlockIDs.TryGetValue((int)deltaIndexLong, out var deltaID) || @event["delta"] is not { } delta) return;
+                if (@event["index"]?.JSONValueInt is not { } deltaIndexLong || !stream.BlockIDs.TryGetValue(deltaIndexLong, out var deltaID) || @event["delta"] is not { } delta) return;
                 switch (delta["type"]?.JSONValueString)
                 {
                     case "text_delta":

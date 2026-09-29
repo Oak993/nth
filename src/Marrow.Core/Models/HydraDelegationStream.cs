@@ -182,7 +182,9 @@ public sealed class HydraDelegationStreamParser
     public Guid TurnID { get; }    // :130
     public string EntryID { get; } // :131
 
-    private readonly List<HydraDelegation> _delegations = new();
+    // :132 Swift `[HydraDelegation]` is a value array: a saved snapshot never sees later appends, so each append
+    // replaces the array instead of mutating a list the caller may have kept.
+    private HydraDelegation[] _delegations = Array.Empty<HydraDelegation>();
     public IReadOnlyList<HydraDelegation> Delegations => _delegations; // :132
 
     public bool IsComplete { get; private set; } // :133
@@ -302,7 +304,7 @@ public sealed class HydraDelegationStreamParser
                     {
                         if (JSONValue.Parse(SwiftText.DecodeUtf8Repairing(_entry.ToArray())) is { } json &&
                             HydraPrompts.Delegation(json) is { } delegation)
-                            _delegations.Add(delegation);
+                            _delegations = [.. _delegations, delegation];
                         _entry.Clear();
                         if (!_isArray) IsComplete = true;
                     }

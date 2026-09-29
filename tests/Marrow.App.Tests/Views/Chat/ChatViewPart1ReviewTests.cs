@@ -78,6 +78,11 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
         {
             using var harness = new AppModelHarness();
             var model = harness.MakeModel();
+            // The two soft-appear buttons leave with a fade (ChatView.swift:1129-1131,1139-1140): time and frames are driven by hand.
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 9, 27, 0, 0, 0, TimeSpan.Zero));
+            using var timeScope = SwiftClock.Provider.Override(time);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
             ChatChromeRow row = null!;
             Avalonia.Controls.Window window = null!;
             harness.Main.OnMain(() =>
@@ -97,6 +102,7 @@ public sealed class ChatViewPart1ReviewTests(HeadlessSession headless)
                 model.Settings.HydraEnabled = true;
             });
             harness.Main.RunUntilIdle();
+            for (var i = 0; i < 40; i++) { time.Advance(TimeSpan.FromMilliseconds(16)); frames.Advance(TimeSpan.FromMilliseconds(16)); harness.Main.RunUntilIdle(); }
             Assert.Empty(LogicalQuery.SelfAndDescendants<ThreadsButton>(row));
             Assert.Single(LogicalQuery.SelfAndDescendants<HydraButton>(row));
             window.Close();

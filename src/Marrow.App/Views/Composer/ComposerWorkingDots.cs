@@ -63,13 +63,31 @@ public sealed class DotFieldSweep : Border
         IsHitTestVisible = false;
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
 
-        // :30-34 Only show if not reduce motion
+        // :30-34 Only show if not reduce motion. The environment value is inherited from the hosting window, so it is read
+        // again on attach and whenever it changes: the body re-evaluates, removing the field or making a fresh one that
+        // starts its wave.
         var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
-        if (!reduceMotion)
+        Apply(reduceMotion);
+        // The attached environment property is not observable state: attaching applies the inherited value once (Track), and a
+        // later change reaches the sweep through the property notification.
+        this.Track(() => EnvironmentValues.GetAccessibilityReduceMotion(this), Apply);
+        PropertyChanged += (_, e) =>
         {
-            var dotField = new DotFieldControl(Tint, animated: true, sweeps: true);
-            Child = dotField;
-        }
+            if (e.Property == EnvironmentValues.AccessibilityReduceMotionProperty) Apply(EnvironmentValues.GetAccessibilityReduceMotion(this));
+        };
+    }
+
+    private void Apply(bool reduceMotion)
+    {
+        if (reduceMotion) Child = null;
+        else if (Child is null) Child = new DotFieldControl(Tint, animated: true, sweeps: true);
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        // :24-34 the supplied tint reaches the field on every update (configure(color:animated:) recolors the layer).
+        if (change.Property == TintProperty && Child is DotFieldControl field) field.UpdateColor(Tint);
     }
 }
 

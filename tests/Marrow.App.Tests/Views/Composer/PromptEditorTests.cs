@@ -245,4 +245,105 @@ public sealed class PromptEditorTests(HeadlessSession headless)
         Path = "",
         MimeType = "",
     };
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-179")] // App/Views/Composer/PromptEditor.swift:74-87 the body reads the attachments binding: the add button follows its count
+    public void The_add_files_plus_follows_the_attachments_binding_after_construction() => headless.OnUiThread(() =>
+    {
+        var box = new ObservableAttachmentsBox { Value = new ValueList<Attachment>(Enumerable.Range(0, 8).Select(_ => NewAttachment())) };
+        var editor = new PromptEditor(
+            "Edit follow-up",
+            new Binding<string>(() => "", _ => { }),
+            box.AsBinding(),
+            () => { },
+            () => { },
+            () => new Border(),
+            () => new Border());
+        var window = new Avalonia.Controls.Window { Width = 600, Height = 400, Content = editor };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var plus = FindAddFilesButton(editor);
+        Assert.False(plus.IsEnabled);
+
+        box.Value = new ValueList<Attachment>(Enumerable.Range(0, 7).Select(_ => NewAttachment())); // a removal elsewhere
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(plus.IsEnabled);
+
+        box.Value = ValueList<Attachment>.Empty;
+        Dispatcher.UIThread.RunJobs();
+        Assert.True(plus.IsEnabled);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-182")] // App/Views/Composer/PromptEditor.swift:247-252 the monitor matches only leftMouseDown and rightMouseDown
+    public void A_middle_click_in_the_window_does_not_dismiss_the_editor_popover() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var anchor = new Border { Width = 40, Height = 30, Background = Brushes.Transparent, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var window = new Avalonia.Controls.Window { Width = 600, Height = 300, Content = anchor };
+        window.Show(); Dispatcher.UIThread.RunJobs();
+        var popover = new PromptEditorPopover<Border>();
+        popover.SetAnchor(anchor);
+        var edit = runtime.OnMain(() => new PromptEdit(Guid.NewGuid(), "hello", ValueList<Attachment>.Empty));
+        var dismissed = 0;
+        runtime.OnMain(() => popover.Sync(edit, () => dismissed++, _ => new Border { Width = 400, Height = 100 }));
+        Assert.Single(presenter.Calls);
+
+        window.MouseDown(new Point(100, 100), MouseButton.Middle); window.MouseUp(new Point(100, 100), MouseButton.Middle);
+        Assert.Equal(0, dismissed);
+        window.MouseDown(new Point(100, 100), MouseButton.Right); window.MouseUp(new Point(100, 100), MouseButton.Right);
+        Assert.Equal(1, dismissed);
+        runtime.OnMain(popover.Close);
+        window.Close(); Dispatcher.UIThread.RunJobs();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-182")] // App/Views/Composer/PromptEditor.swift:240-246 the Escape monitor is application-wide, not one window's
+    public void Escape_in_another_window_of_the_application_dismisses_the_editor_popover() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var anchor = new Border { Width = 40, Height = 30, Background = Brushes.Transparent, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var window = new Avalonia.Controls.Window { Width = 600, Height = 300, Content = anchor };
+        window.Show(); Dispatcher.UIThread.RunJobs();
+        var other = new Avalonia.Controls.Window { Width = 300, Height = 200, Content = new Border() };
+        other.Show(); Dispatcher.UIThread.RunJobs();
+        var popover = new PromptEditorPopover<Border>();
+        popover.SetAnchor(anchor);
+        var edit = runtime.OnMain(() => new PromptEdit(Guid.NewGuid(), "hello", ValueList<Attachment>.Empty));
+        var dismissed = 0;
+        runtime.OnMain(() => popover.Sync(edit, () => dismissed++, _ => new Border { Width = 400, Height = 100 }));
+        Assert.Single(presenter.Calls);
+
+        other.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        other.KeyRelease(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(1, dismissed);
+        runtime.OnMain(popover.Close);
+        other.Close(); window.Close(); Dispatcher.UIThread.RunJobs();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-179")] // App/Views/Composer/PromptEditor.swift:88 the default SwiftUI .popover is transient: a click outside dismisses it
+    public void The_add_files_popover_is_light_dismissed() => headless.OnUiThread(() =>
+    {
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var editor = MakeEditor("Edit follow-up", "", []);
+        var window = new Avalonia.Controls.Window { Width = 600, Height = 400, Content = editor };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var plus = FindAddFilesButton(editor);
+
+        plus.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        var popup = Assert.Single(presenter.Calls).Popup;
+        Assert.True(popup.IsLightDismissEnabled);
+
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+    });
 }

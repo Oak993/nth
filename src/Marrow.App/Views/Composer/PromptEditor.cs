@@ -174,6 +174,9 @@ public sealed class PromptEditor : Decorator
         Width = EditorWidth; // :100
         Child = stack;
 
+        // :74-87 the body reads the attachments binding, so its section and the add button follow every change to it,
+        // whoever makes it (a removal in EditorAttachments, a caller).
+        this.Track(() => attachments.Value, _ => UpdateAttachments());
         AttachedToVisualTree += (_, _) =>
         {
             isAttached = true;
@@ -281,7 +284,14 @@ public sealed class PromptEditor : Decorator
         }
 
         if (addFilesButton is not { } anchor) return;
-        var popup = filesPopup ??= new Popup { IsLightDismissEnabled = false };
+        if (filesPopup is null)
+        {
+            // :88 a plain SwiftUI .popover is transient: a click outside it dismisses it (the editor's own popover
+            // is the application-defined one), and the state then reads as closed again.
+            filesPopup = new Popup { IsLightDismissEnabled = true };
+            filesPopup.Closed += (_, _) => showingFiles = false;
+        }
+        var popup = filesPopup;
         popup.PlacementTarget = anchor;
         popup.Placement = PlacementMode.Bottom;
         popup.Child = new DownloadsPopover(
@@ -324,6 +334,7 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
     private Rect? anchorRect;
     private Action dismiss = static () => { };
     private Avalonia.Controls.Window? monitorWindow;
+    private IDisposable? applicationEscape;
     private int generation;
     private bool popupSized;
     private bool presented; // :176-216 shown state across the R-VIEW-9 presenter
@@ -452,11 +463,24 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
         monitorWindow = window;
         window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
         window.AddHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+        // :240-244 NSEvent.addLocalMonitorForEvents sees every key-down of the application, whichever of its windows
+        // (a nested popup, the attachment preview) has the focus; the anchor window's own handler above covers that window.
+        applicationEscape = InputElement.KeyDownEvent.AddClassHandler<TopLevel>(
+            OnOtherTopLevelKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    private void OnOtherTopLevelKeyDown(TopLevel topLevel, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape || ReferenceEquals(topLevel, monitorWindow)) return; // the window handler owns that one
+        dismiss();
+        e.Handled = true; // :243 return nil: the key is consumed
     }
 
     // :258-274 private func handleMouseDown(_ event: NSEvent)
     private void OnWindowPointerPressed(object? sender, PointerPressedEventArgs e)
     {
+        // :247 matching: [.leftMouseDown, .rightMouseDown]: any other button passes untouched.
+        if (e.GetCurrentPoint(null).Properties.PointerUpdateKind is not (PointerUpdateKind.LeftButtonPressed or PointerUpdateKind.RightButtonPressed)) return;
         if (anchor?.Value is { } view && ReferenceEquals(TopLevel.GetTopLevel(view), monitorWindow))
         {
             if (new Rect(view.Bounds.Size).Contains(e.GetPosition(view))) return;
@@ -481,6 +505,8 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
     // :276-279 private func stopMonitors()
     private void StopMonitors()
     {
+        applicationEscape?.Dispose();
+        applicationEscape = null;
         if (monitorWindow is not { } window) return;
         window.RemoveHandler(InputElement.KeyDownEvent, OnWindowKeyDown);
         window.RemoveHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed);

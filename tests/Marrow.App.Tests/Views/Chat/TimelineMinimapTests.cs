@@ -416,6 +416,46 @@ public sealed class TimelineMinimapTests(HeadlessSession headless)
 
     private static TValue Invoke<TValue>(object instance, string name, params object[] arguments) =>
         (TValue)instance.GetType().GetMethod(name, BindingFlags.Instance | BindingFlags.Public)!.Invoke(instance, arguments)!;
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-073")] // App/Views/Chat/TimelineMinimap.swift:112-130 mid-resize the column keeps the outline as last built; new user messages wait for the settle
+    public void A_new_user_message_tick_waits_for_the_live_resize_to_settle() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var tracking = new TimelineScrollTracking();
+        var first = Block("first", "First prompt");
+        var second = Block("second", "Second prompt");
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 300 };
+        Marrow.App.Window.WindowLiveResize resize = null!;
+        try
+        {
+            runtime.OnMain(() =>
+            {
+                resize = new Marrow.App.Window.WindowLiveResize(window);
+                Marrow.App.Port.AppEnvironment.SetWindowLiveResize(window, resize);
+                window.Content = new TimelineMinimapColumn(new[] { first }, tracking, 200, (_, _) => { });
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Single(LogicalQuery.SelfAndDescendants<Button>(window));
+                var handled = false;
+                resize.WndProc(0, 0x0231, 0, 0, ref handled); // WM_ENTERSIZEMOVE
+                resize.WndProc(0, 0x0214, 0, 0, ref handled); // WM_SIZING
+                Assert.True(resize.IsActive);
+                window.Content = new TimelineMinimapColumn(new[] { first, second }, tracking, 200, (_, _) => { });
+                Dispatcher.UIThread.RunJobs();
+                Assert.Single(LogicalQuery.SelfAndDescendants<Button>(window)); // held back while resizing
+                var exited = false;
+                resize.WndProc(0, 0x0232, 0, 0, ref exited); // WM_EXITSIZEMOVE
+            });
+            runtime.RunUntilIdle();
+            runtime.OnMain(() =>
+            {
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal(2, LogicalQuery.SelfAndDescendants<Button>(window).Count());
+            });
+        }
+        finally { runtime.OnMain(window.Close); }
+    });
 }
 
 // B3 review fixes: animation STOP #1 is satisfied for persistent ticks and the preview's fade/offset/glide logic.

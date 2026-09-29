@@ -169,4 +169,35 @@ public sealed class MessageEditorTests(HeadlessSession headless)
         Assert.Equal("src/kept.cs", preview.Files[1].Path);
         Assert.True(preview.Files[1].IsKept);
     }
+
+    [Fact]
+    [Trait("Req", "UI-GIT-052")] // App/Views/Chat/MessageEditor.swift:46-53,85-89 the notice and the unavailable Label have no line limit: they wrap
+    public void Long_unavailable_and_notice_text_wraps_inside_the_box_instead_of_overflowing() => headless.OnUiThread(() =>
+    {
+        var state = State();
+        var reason = string.Join(" ", Enumerable.Repeat("The preview could not be produced", 8));
+        SetState(state, "Changes", Changes("Unavailable", reason));
+        var box = FileChanges(state);
+        box.Measure(new Size(240, double.PositiveInfinity));
+        box.Arrange(new Rect(0, 0, 240, box.DesiredSize.Height));
+        var text = LogicalQuery.SelfAndDescendants<TextBlock>(box).Single(block => block.Text == reason);
+        Assert.Equal(Avalonia.Media.TextWrapping.Wrap, text.TextWrapping);
+        Assert.True(text.Bounds.Right <= 240, "the text overflows the box: " + text.Bounds);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-GIT-054")] // App/Views/Chat/MessageEditor.swift:100-109 HStack(spacing: 8) { title; Spacer(minLength: 8); count; stat }: 24 points minimum before the count
+    public void The_restore_toggle_keeps_twenty_four_points_between_its_title_and_the_count() => headless.OnUiThread(() =>
+    {
+        var state = State();
+        var preview = new RevertPreview(new ValueList<RevertPreview.File>([new("one.txt", 3, 2, false)]));
+        SetState(state, "Changes", Changes("Found", preview));
+        var toggle = Assert.Single(LogicalQuery.SelfAndDescendants<ToggleSwitch>(FileChanges(state)));
+        var label = Assert.IsType<Grid>(toggle.Content);
+        label.Measure(new Size(260, double.PositiveInfinity));
+        label.Arrange(new Rect(0, 0, 260, label.DesiredSize.Height));
+        var title = label.Children[0];
+        var count = label.Children[1];
+        Assert.Equal(24, count.Bounds.Left - title.Bounds.Right, 1);
+    });
 }

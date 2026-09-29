@@ -78,7 +78,7 @@ public sealed class LinkPopoverTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-THEME-042")] // DroppyCode/UI/Markdown/LinkPopover.swift:96-97: 220 wide, 6 point padding
+    [Trait("Req", "UI-THEME-042")] // DroppyCode/UI/Markdown/LinkPopover.swift:96-97: 220 wide, 6 point padding, leading-aligned
     public void The_content_is_220_points_wide_with_6_point_padding() => headless.OnUiThread(() =>
     {
         var content = new LinkPopoverContent(SwiftURL.Create("https://example.com/x")!, null, _ => { });
@@ -86,6 +86,7 @@ public sealed class LinkPopoverTests(HeadlessSession headless)
 
         Assert.Equal(220, border.Width);
         Assert.Equal(new Thickness(6), border.Padding);
+        Assert.Equal(HorizontalAlignment.Left, border.HorizontalAlignment); // :97 alignment: .leading
     });
 
     // ---- PR-THEME-145/PR-THEME-147: Open Link runs MarkdownLinkOpener.open ----

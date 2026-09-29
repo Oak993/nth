@@ -370,6 +370,24 @@ public sealed class AppZoomTests(HeadlessSession headless)
         Assert.Null(Record.Exception(() => layout.Arrange(new Rect(0, 0, HostWidth, HostHeight))));
     });
 
+    [Fact]
+    [Trait("Req", "PR-WIN-219")] // UI/Common/AppZoom.swift:22-25 (scaleEffect is an outer effect: the content's own transform stays)
+    public void Zoom_composes_with_a_transform_the_content_already_has() => headless.OnUiThread(() =>
+    {
+        var content = new LayoutProbe(ContentWants);
+        var own = new Avalonia.Media.TranslateTransform(7, 3);
+        var ownOrigin = new RelativePoint(0.25, 0.75, RelativeUnit.Relative);
+        content.RenderTransform = own;
+        content.RenderTransformOrigin = ownOrigin;
+        var zoomed = Layout(new AppZoomModifier(150).Body(content));
+
+        Assert.Same(own, content.RenderTransform);
+        Assert.Equal(ownOrigin, content.RenderTransformOrigin);
+        var toHost = content.TransformToVisual(zoomed);
+        Assert.NotNull(toHost);
+        Assert.Equal(new Point(7 * 1.5, 3 * 1.5), toHost.Value.Transform(new Point(0, 0)));
+    });
+
     // Measures and arranges the modifier's body as a host of HostWidth by HostHeight would, with layout
     // rounding off so the probe records the exact double quotients (:48-50).
     private static Control Layout(Control zoomed)
