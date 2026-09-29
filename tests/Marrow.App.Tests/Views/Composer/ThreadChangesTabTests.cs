@@ -1,3 +1,6 @@
+using Avalonia.Headless;
+using Avalonia.Input;
+using Avalonia.VisualTree;
 using System;
 using System.Collections.Generic;
 using Avalonia;
@@ -476,4 +479,39 @@ public sealed class ThreadChangesTabTests(HeadlessSession headless)
 
         return false;
     }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-199")] // App/Views/Composer/ThreadChangesTab.swift:42 .fixedSize(): the tab keeps its ideal size in a larger cell
+    public void The_tab_keeps_its_ideal_size_in_a_larger_cell() => headless.OnUiThread(() =>
+    {
+        using var defaults = UserDefaults.Standard.Override(new InMemorySettingsStore());
+        var tab = new ThreadChangesTab(new FileChangeSummary(new ValueList<FileChangeSummary.File>([new("a", 2, 3, false)]), 2, 3), _ => { }, () => { });
+        var cell = new Grid { Width = 400, Height = 100, Children = { tab } };
+        var window = ShowInFrame(cell, 400, 100);
+        Assert.Equal(tab.DesiredSize.Width, tab.Bounds.Width, 0.5);
+        Assert.Equal(tab.DesiredSize.Height, tab.Bounds.Height, 0.5);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-199")] // App/Views/Composer/ThreadChangesTab.swift:14-15,31-34 .contentShape(shape): a press outside the 12 point top corner is not on the tab
+    public void A_press_outside_the_rounded_top_corner_does_not_reach_the_tab() => headless.OnUiThread(() =>
+    {
+        using var defaults = UserDefaults.Standard.Override(new InMemorySettingsStore());
+        var clicks = 0;
+        var tab = new ThreadChangesTab(new FileChangeSummary(new ValueList<FileChangeSummary.File>([new("a", 2, 3, false)]), 2, 3), _ => { }, () => clicks++)
+        { HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        var window = ShowInFrame(new Grid { Children = { tab } }, 400, 100);
+        void Click(Point point)
+        {
+            window.MouseMove(point);
+            window.MouseDown(point, MouseButton.Left);
+            window.MouseUp(point, MouseButton.Left);
+        }
+        Click(new Point(tab.Bounds.Width / 2, 10)); // inside the shape
+        Assert.Equal(1, clicks);
+        Click(new Point(1, 1)); // inside the rectangle, outside the 12 point arc
+        Assert.Equal(1, clicks);
+        window.Close();
+    });
 }
