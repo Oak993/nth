@@ -460,6 +460,30 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-WIN-112")] // AppModel.swift:864-866
+    public void Finishing_with_archive_chosen_archives_inside_the_panel_slide_animation()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("finish-archive"));
+        var thread = AppModelSamples.Thread(project);
+        h.WriteLibrary([project], [thread]);
+        var model = h.MakeModel();
+        Animation? seen = null;
+
+        h.Main.OnMain(() =>
+        {
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Archive;
+            model.SelectedThreadID = thread.Id;
+            var (_, tracker) = ObservationTracking.Track(() => model.Thread(thread.Id)!.IsArchived, () => seen = Transaction.Current);
+            model.FinishSelectedThread();
+
+            Assert.True(model.Thread(thread.Id)!.IsArchived);
+            Assert.Equal(Chrome.PanelSlide, seen);
+            tracker.Cancel();
+        });
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
