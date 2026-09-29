@@ -1,0 +1,1053 @@
+{
+    "record":  "PR-WIN-006",
+    "mutations":  [
+                      {
+                          "id":  "OWN-WIN006-01",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Swift:24 exact logical autosave name",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                          "replacements":  [
+                                               {
+                                                   "before":  "private const string MainFrameName = \"DroppyCodeMainWindow\";",
+                                                   "after":  "private const string MainFrameName = \"DroppyCodeMainWindow-mutant\";"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-02",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Swift:67-68 restore versus center branch",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                          "replacements":  [
+                                               {
+                                                   "before":  "if (!SetFrameUsingName(window, MainFrameName))",
+                                                   "after":  "if (SetFrameUsingName(window, MainFrameName))"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-03",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Restored x is independent of y",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                          "replacements":  [
+                                               {
+                                                   "before":  "saved.TryGetValue(FrameKey.X, out var xValue)",
+                                                   "after":  "saved.TryGetValue(FrameKey.Y, out var xValue)"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-04",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Restored y is independent of x",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                          "replacements":  [
+                                               {
+                                                   "before":  "saved.TryGetValue(FrameKey.Y, out var yValue)",
+                                                   "after":  "saved.TryGetValue(FrameKey.X, out var yValue)"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-05",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Restored width is not height",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                          "replacements":  [
+                                               {
+                                                   "before":  "saved.TryGetValue(FrameKey.Width, out var widthValue)",
+                                                   "after":  "saved.TryGetValue(FrameKey.Height, out var widthValue)"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-06",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Restored height is not width",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                          "replacements":  [
+                                               {
+                                                   "before":  "saved.TryGetValue(FrameKey.Height, out var heightValue)",
+                                                   "after":  "saved.TryGetValue(FrameKey.Width, out var heightValue)"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-07",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Swift:70 move event installs autosave",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                          "replacements":  [
+                                               {
+                                                   "before":  "        window.PositionChanged += (_, _) =\u003e Save();",
+                                                   "after":  ""
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-08",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Swift:70 resize event installs autosave",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                          "replacements":  [
+                                               {
+                                                   "before":  "        window.Resized += (_, _) =\u003e Save();",
+                                                   "after":  ""
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-09",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Saved x comes from current x",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                          "replacements":  [
+                                               {
+                                                   "before":  "[FrameKey.X] = (long)window.Position.X,",
+                                                   "after":  "[FrameKey.X] = (long)window.Position.Y,"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-10",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Saved y comes from current y",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                          "replacements":  [
+                                               {
+                                                   "before":  "[FrameKey.Y] = (long)window.Position.Y,",
+                                                   "after":  "[FrameKey.Y] = (long)window.Position.X,"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-11",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Saved width comes from current width",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                          "replacements":  [
+                                               {
+                                                   "before":  "[FrameKey.Width] = window.Width,",
+                                                   "after":  "[FrameKey.Width] = window.Height,"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-WIN006-12",
+                          "records":  [
+                                          "PR-WIN-006"
+                                      ],
+                          "clause":  "Saved height comes from current height",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                          "replacements":  [
+                                               {
+                                                   "before":  "[FrameKey.Height] = window.Height,",
+                                                   "after":  "[FrameKey.Height] = window.Width,"
+                                               }
+                                           ]
+                      }
+                  ],
+    "results":  [
+                    {
+                        "id":  "OWN-WIN006-01",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Swift:24 exact logical autosave name",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-01-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-3d54db1e-8be0-4b67-95da-4aace70d25fc",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-01-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-01-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-688827ca-9103-4796-8267-531e8418ab11",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 6007, 4509\r\nActual:   300, 140"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-01-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-01-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-f424ecd8-d509-4877-a4f7-2d3ee9214e03",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 6007, 4509\r\nActual:   300, 140"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-01-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-54c87e33-284e-4590-a260-e05d3fe76bcf",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-01-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-01-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-26c4fec4-c13a-489d-b101-625aa694087a",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "08D7BD84E721CFEC8F6831FA97C8807E624373EE228A706567B66145FE60512F",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-02",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Swift:67-68 restore versus center branch",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-02-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-e83acf5c-7260-4048-af53-a440e70dadaa",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-02-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-02-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c78c67cd-2e35-41f4-ae8f-c09ce98843d7",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 6007, 4509\r\nActual:   0, 0"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-02-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-02-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-d23b8172-2c25-4470-9590-1acc0fdedce4",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 6007, 4509\r\nActual:   0, 0"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-02-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-64302e13-1eef-4959-b1d3-dd18f453334a",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-02-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-02-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-0593960d-5def-4fa4-b24d-666ff73c3e20",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "03C05CE921939E5E078213B6882C0D3B59726157660DD8491AD3D6D89E2E0CBC",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-03",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Restored x is independent of y",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-03-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-7fafffc8-e054-4c0a-b81d-22171edffb91",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-03-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-03-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-21b07438-21df-4d8f-9b7a-1202a85a3945",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 6007, 4509\r\nActual:   4509, 4509"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-03-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-03-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-047f3e62-ab7b-4c05-ae3a-6e928ddef576",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 6007, 4509\r\nActual:   4509, 4509"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-03-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-95d3b15c-a575-495d-99bc-51ba4cce2612",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-03-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-03-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c6072b3e-d508-45db-a2fc-5f817796afcb",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "2E9F9FE3A02A8B4B7999B7DCC241336FA303F6A8CF19439892E166FBD9192579",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-04",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Restored y is independent of x",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-04-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-dfe4e866-b7dc-4378-bade-c19e58eefc0c",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-04-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-04-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-f57ce68b-0cc1-4a52-b160-6a8f197d1477",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 6007, 4509\r\nActual:   6007, 6007"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-04-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-04-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-b62d5fa1-1363-4ada-ac4a-db4efb86289e",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 6007, 4509\r\nActual:   6007, 6007"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-04-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-903f1a59-51d2-4e3e-80dd-5ab19f3a29c6",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-04-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-04-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-56669b5f-8206-4362-bb4e-0f680d4d006a",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "DD04023673269D861DBDDD426817E6266E1AC438E92D9722352AE65F2AF5A567",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-05",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Restored width is not height",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-05-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-8188c239-a3de-4dac-8108-c34230c61c1f",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-05-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-05-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-b24cb916-8d78-4525-a057-294268fe48ff",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 4096\r\nActual:   3072"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-05-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-05-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-a9dcf8d5-d57b-435b-9bf4-b46017318b44",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 4096\r\nActual:   3072"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-05-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-07dac574-d089-4d32-9c8c-59666a066fab",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-05-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-05-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-89def04f-a65c-4d09-b253-fbb6103a6ca9",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "540B411EA6A7DC6AF753946037A43C843D8745AB0A6B46234753CAE5A516A044",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-06",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Restored height is not width",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-06-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c081ada0-741f-4dfc-9db7-77cf09df5202",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-06-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-06-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-d88260ba-28a0-4e9d-9712-f3256d2fd0dc",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 3072\r\nActual:   4096"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-06-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-06-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-63cc996d-5b9b-4c91-9ae8-7f0dd5d8635d",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 3072\r\nActual:   4096"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-06-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-72dc7d40-a40e-492f-8da5-36e222786bae",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-06-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping --logger trx;LogFileName=OWN-WIN006-06-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-5a30391c-73ca-4bfc-8a02-e1c9cef323e7",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "4823ACD9D3EDC588BDED76AADF0BD501C929A247042F42CAE5A8A998910A4A60",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-07",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Swift:70 move event installs autosave",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-07-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-6e7741b0-e57e-4caf-9b68-8d8ec4df0185",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-07-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name --logger trx;LogFileName=OWN-WIN006-07-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-b6af79f2-b691-4b4f-b4da-1f2d79d5bf8e",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                                                              "message":  "Assert.NotEmpty() Failure: Collection was empty"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-07-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name --logger trx;LogFileName=OWN-WIN006-07-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-31f0e144-3eb1-4a17-ba57-e01098c6f2de",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                                                              "message":  "Assert.NotEmpty() Failure: Collection was empty"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-07-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-104dfd91-4948-4a9d-9841-916d9a98b67f",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-07-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name --logger trx;LogFileName=OWN-WIN006-07-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-278a74a9-e427-43d4-8771-1a546288f306",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "DA7DD2F9E59163CA2D9ED570E3E87F834654FC3646774B239E20665BFBC6BCC1",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-08",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Swift:70 resize event installs autosave",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-08-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-13497bf0-7df9-4ac5-ba80-df843ee96713",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-08-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position --logger trx;LogFileName=OWN-WIN006-08-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-033b0b9a-6d15-472f-a1df-c35947ca7cdf",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                                                              "message":  "Assert.Contains() Failure: Item not found in collection\r\nCollection: []\r\nNot found:  \"DroppyCodeMainWindow\""
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-08-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position --logger trx;LogFileName=OWN-WIN006-08-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-82a3c6e5-ca6c-46ff-ba59-fb4aba115c76",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                                                              "message":  "Assert.Contains() Failure: Item not found in collection\r\nCollection: []\r\nNot found:  \"DroppyCodeMainWindow\""
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-08-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-afda8732-f818-4e83-b4a3-fa32354a2257",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-08-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position --logger trx;LogFileName=OWN-WIN006-08-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-68763f27-31f5-4e30-a5c7-b08796348628",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "1609CB631A848FD0EE1F75055F6658C02CF338DE05FAC2E7D1BDBCEB3A7759DC",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-09",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Saved x comes from current x",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-09-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c35b2889-63d6-4526-8a01-3170b6f981e8",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-09-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name --logger trx;LogFileName=OWN-WIN006-09-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-059c078a-6bc7-488a-afdc-aaf6733bd9dc",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 2345\r\nActual:   6789"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-09-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name --logger trx;LogFileName=OWN-WIN006-09-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-498a6db7-d072-4496-9701-0c0010858ef1",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 2345\r\nActual:   6789"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-09-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-da3b1bf9-82ab-4711-a6f6-dc9d049ba29b",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-09-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name --logger trx;LogFileName=OWN-WIN006-09-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-282460b2-8d60-4985-a23c-3f278897e086",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "ADA87BFD2D9A142EA018383023348580A70C7D12C035E57786D27B51AD434C05",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-10",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Saved y comes from current y",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-10-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-efe2d64b-712a-4b4f-a6cf-6b6257cc4806",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-10-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name --logger trx;LogFileName=OWN-WIN006-10-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-0456fb69-1125-4427-92b8-b8b05930b2d4",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 6789\r\nActual:   2345"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-10-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name --logger trx;LogFileName=OWN-WIN006-10-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-3d7d7d12-2afb-44e8-be82-586d7d4a4d58",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 6789\r\nActual:   2345"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-10-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-9da9ca33-328a-4f05-9517-3ff50d84966e",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-10-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Moving_the_main_window_persists_all_four_independent_frame_values_under_the_exact_name --logger trx;LogFileName=OWN-WIN006-10-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-203a78d7-95d7-4cd1-8e22-bb577b93fb15",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "F3DF22844E862319CB654E4856EE675A43143EBF4F5894B05CB40C5A63C48306",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-11",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Saved width comes from current width",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-11-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-a441e92b-95d5-4516-9d61-034d9e410dcd",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-11-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position --logger trx;LogFileName=OWN-WIN006-11-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-bfccaedc-4550-460a-a902-40a4ca51a347",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 1583\r\nActual:   997"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-11-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position --logger trx;LogFileName=OWN-WIN006-11-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-08863368-df37-4dee-b74b-965c4a167e81",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 1583\r\nActual:   997"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-11-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-b8866a76-6581-4062-9023-07c08a7ce55e",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-11-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position --logger trx;LogFileName=OWN-WIN006-11-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-2e28470e-b5b9-48c1-8920-bf266ade2eb2",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "467DEAAD271864FF1388739756CC1F885DFD7E095AA6262B013DBFA4EE654B90",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-WIN006-12",
+                        "record":  "PR-WIN-006",
+                        "clause":  "Saved height comes from current height",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-WIN006-12-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-ac69c180-f940-4781-82b8-7a98a63bc48c",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-12-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position --logger trx;LogFileName=OWN-WIN006-12-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-7098a988-239d-4341-8994-0905cb3f12a5",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 997\r\nActual:   1583"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-12-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position --logger trx;LogFileName=OWN-WIN006-12-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-9cfac621-bc95-4d19-a02f-65cd5e31cb83",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: 997\r\nActual:   1583"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-12-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-ea0a5a81-c863-4113-914d-12015f866d13",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-WIN006-12-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerFrameMutationTests.Resizing_without_moving_persists_both_client_dimensions_and_preserves_the_position --logger trx;LogFileName=OWN-WIN006-12-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-a7aabc28-011e-45b7-8dbb-31d0f17116bb",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "0086AF8A3DF2FBE429895CEFC2F6520FE7158D1A99213F8CCA07DDE25AD0B54B",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    }
+                ],
+    "gate":  {
+                 "name":  "PR-WIN-006-class-and-trace",
+                 "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName~WindowManagerFrameMutationTests|FullyQualifiedName~TraceabilityTests --logger trx;LogFileName=PR-WIN-006-class-and-trace.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                 "exit":  0,
+                 "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-6404e665-76ef-4589-a278-9aad0f4ae317",
+                 "total":  8,
+                 "passed":  8,
+                 "failed":  0,
+                 "failures":  [
+
+                              ]
+             },
+    "run_directory":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+    "scope":  "Executed mutation evidence only; final REPORT decides complete-clause candidacy."
+}
