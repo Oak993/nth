@@ -355,6 +355,33 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-083")] // AppModel.swift:865-882
+    public void Finish_on_an_already_settled_thread_reopens_it_when_no_row_takes_the_request()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("finish-reopen"));
+        var settled = AppModelSamples.Thread(project) with { IsSettled = true, SettledAt = new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero) };
+        h.WriteLibrary([project], [settled]);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+            model.SelectedThreadID = settled.Id;
+            model.FinishSelectedThread();
+
+            var request = Assert.IsType<AppModel.FinishRequest>(model.AppModelFinishRequest);
+            Assert.Equal(settled.Id, request.ThreadID);
+            Assert.True(request.Reopens);
+            Assert.True(model.Thread(settled.Id)!.IsSettled);
+        });
+        h.Main.Advance(TimeSpan.FromMilliseconds(100));
+
+        Assert.False(h.Main.OnMain(() => model.Thread(settled.Id)!.IsSettled));
+        Assert.Null(h.Main.OnMain(() => model.AppModelFinishRequest));
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
