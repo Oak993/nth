@@ -1,0 +1,2478 @@
+{
+  "record": "PR-THEME-039",
+  "status": "MUTATION_BATCH_COMPLETE",
+  "candidate": false,
+  "candidate_note": "Final clause-by-clause and full-suite acceptance is reported separately; a mutation count alone is not certification.",
+  "head_before_commit": "2596aa179e93090761b800b39e5b741412a808d4",
+  "window_manager_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+  "additional_count": 8,
+  "verifier_recheck_count": 0,
+  "ordinary_record_gate": {
+    "name": "tests",
+    "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'Req=PR-THEME-039|FullyQualifiedName~TraceabilityTests' '--logger' 'trx;LogFileName=tests.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-record-gate-2026-09-29T14-26-48-150Z-8d9323'",
+    "exit": 0,
+    "start": "2026-09-29T14:26:48.151Z",
+    "end": "2026-09-29T14:26:52.925Z",
+    "environment": {
+      "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+      "outer_opt_in_variables": [],
+      "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-749e8a8c-9509-4c6c-a3ad-30d6b4ca99e8",
+      "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+    },
+    "source_hashes": [
+      {
+        "name": "src/Marrow.App/Window/WindowManager.cs",
+        "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+      },
+      {
+        "name": "src/Marrow.App/Port/AppShell.cs",
+        "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+      },
+      {
+        "name": "src/Marrow.App/AppDelegate.cs",
+        "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+      },
+      {
+        "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+        "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+      },
+      {
+        "name": "src/Marrow.App/Window/ThreadWindow.cs",
+        "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+      },
+      {
+        "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+        "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+      }
+    ],
+    "tests": [
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Test_source_has_one_class_per_file_single_line_attributes_and_no_stray_type_keywords",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.At_first_build_the_theme_sets_the_window_colour_scheme_and_the_process_appearance",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.Changing_the_theme_sets_both_the_colour_scheme_and_the_process_appearance",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerNextTests.Theme_changes_reach_both_cached_windows_and_a_hidden_Settings_view_without_rebuilding_it",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Test_classes_and_Req_tests_have_the_shape_req_verify_can_read",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.Window.WindowManagerTests.The_System_theme_leaves_both_the_colour_scheme_and_the_process_appearance_to_Windows",
+        "outcome": "Passed",
+        "error": ""
+      },
+      {
+        "name": "Marrow.App.Tests.TraceabilityTests.Every_test_names_a_requirement_a_rule_or_a_decision_and_every_id_is_well_formed",
+        "outcome": "Passed",
+        "error": ""
+      }
+    ],
+    "total": 11,
+    "passed": 11,
+    "failed": 0,
+    "child_evidence": [
+      {
+        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-749e8a8c-9509-4c6c-a3ad-30d6b4ca99e8\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e",
+        "files": [
+          {
+            "name": "restart-root.json",
+            "retained": "children\\tests\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e\\restart-root.json",
+            "sha256": "DA13A344CF90815EFCC3BB4060DDAB8B0937E19DEC876E1C9164ADDF7DB29F4A"
+          },
+          {
+            "name": "restart-result.json",
+            "retained": "children\\tests\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e\\restart-result.json",
+            "sha256": "8F251D05DE3E782079F617EA86604AEA47713FF76D8167B168DBB838A48B67CC"
+          },
+          {
+            "name": "phase-1-complete.json",
+            "retained": "children\\tests\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e\\phase-1-complete.json",
+            "sha256": "5B2C1C0A02271DD14B8F87067730507AA78E72BBF2EAFB98FEFD9D3755361EAD"
+          }
+        ]
+      },
+      {
+        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-749e8a8c-9509-4c6c-a3ad-30d6b4ca99e8\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e\\phase-1\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7",
+        "files": [
+          {
+            "name": "request.json",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\request.json",
+            "sha256": "6E78D2CDF677D331868C12474F412D982CB58A5F36B8C6348D916D66D478E179"
+          },
+          {
+            "name": "invocation.json",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\invocation.json",
+            "sha256": "1707FDF32B17E201AF177CA05CE944EB939CA6B319B134CBA631AD8B99DAFA87"
+          },
+          {
+            "name": "ready.json",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\ready.json",
+            "sha256": "0F21F2CEFD200ED9050E6EFE7A6179F89EBBFC74532DDA9D68CC3A91C80D4BA9"
+          },
+          {
+            "name": "permit.json",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\permit.json",
+            "sha256": "511447A48FD8E675E719303B40573FE65CE564E540B1FA652E7921009D65BA39"
+          },
+          {
+            "name": "child.log",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\child.log",
+            "sha256": "765828B369F1D7BD4A0B1E3104DFEB6110EDDD9F84A52746D466E4ED4C2EF064"
+          },
+          {
+            "name": "parent-result.json",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\parent-result.json",
+            "sha256": "55E20DAC1580D7BD7ECC02DD927A1C5136470E5FBB010BB724082D5769168DC1"
+          },
+          {
+            "name": "runner.stdout.log",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\runner.stdout.log",
+            "sha256": "D04A0D13101B3A6468A5DE92EA9917C52AF38384B6604B73D89548DDBADD92F1"
+          },
+          {
+            "name": "runner.stderr.log",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\runner.stderr.log",
+            "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+          },
+          {
+            "name": "results/child.trx",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\results\\child.trx",
+            "sha256": "26F14A961F3BB3884BAD80A5F4C600F84D44D1ED94E9FE0CD379E165C455D76C"
+          },
+          {
+            "name": "restart-request.json",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\restart-request.json",
+            "sha256": "3721229D0715E238331063F8C6FDEBBD9F76F5EAB003C7B648CFC52C0371FDEF"
+          },
+          {
+            "name": "phase-result.json",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\phase-result.json",
+            "sha256": "858E86A8D93DA0AE99B88BB7AE8F72AB2ED4D10646D91A9600A01BDB1D377FDF"
+          },
+          {
+            "name": "output-store.bin",
+            "retained": "children\\tests\\marrow-window-process-40657b5a10f14869bbeec83701d60bf7\\output-store.bin",
+            "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+          }
+        ]
+      },
+      {
+        "source": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-749e8a8c-9509-4c6c-a3ad-30d6b4ca99e8\\marrow-window-process-11d44b0e29344eb7a5b8930e1a6d931e\\phase-2\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6",
+        "files": [
+          {
+            "name": "request.json",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\request.json",
+            "sha256": "EAA01B41CCA59335B8B21EFFE5E0D8E309061906E2D309CA78A78D3294D89D27"
+          },
+          {
+            "name": "invocation.json",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\invocation.json",
+            "sha256": "09DE72B0F8441D42DCB99AAF90D34E97261C31D2CB0BF9C586936424FB163480"
+          },
+          {
+            "name": "ready.json",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\ready.json",
+            "sha256": "E7551A656C49EFE145A75373041A12B38D3E7D6CB6FA4C891E32CD8F80FCF004"
+          },
+          {
+            "name": "permit.json",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\permit.json",
+            "sha256": "F5B1C567DA1C387730744522198A2734AF6718377E09E698E24192D14238CDE2"
+          },
+          {
+            "name": "child.log",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\child.log",
+            "sha256": "C9B7CAA23AF15E47D2C368B6C2BF5F6829DDB82E5B740AF8E77C4278E505A9F0"
+          },
+          {
+            "name": "parent-result.json",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\parent-result.json",
+            "sha256": "7791B6767CC0F524C7C04C3DFB04D6E2BA7BBB3D6D3FB60A6175F3E67602C69B"
+          },
+          {
+            "name": "runner.stdout.log",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\runner.stdout.log",
+            "sha256": "CF297E1FE42C4BAD692FEE0B923BFEA005CAF68BE80ABE80C404A560EE3CD3D2"
+          },
+          {
+            "name": "runner.stderr.log",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\runner.stderr.log",
+            "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+          },
+          {
+            "name": "results/child.trx",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\results\\child.trx",
+            "sha256": "0E69CAAC2FDC9B4CDFA8C1C53F93CA6CCF433735AEE1C4529538F68D2695D0E8"
+          },
+          {
+            "name": "restart-request.json",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\restart-request.json",
+            "sha256": "C1FFB4DD96C3D9F5E2F31C75F888D3B87D3A8459DCE6817C8A0D638513DBC037"
+          },
+          {
+            "name": "phase-result.json",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\phase-result.json",
+            "sha256": "E2E96D4BD5927B90130673D85C747521B268B8523EFD959D4FE2423CFBB3D55F"
+          },
+          {
+            "name": "input-store.bin",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\input-store.bin",
+            "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+          },
+          {
+            "name": "output-store.bin",
+            "retained": "children\\tests\\marrow-window-process-804db6eb7070444e9cfdb2265eff9ad6\\output-store.bin",
+            "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+          }
+        ]
+      }
+    ],
+    "evidence": "_packet/revision/evidence/pr-theme-039-record-gate-2026-09-29T14-26-48-150Z-8d9323/tests.json"
+  },
+  "mutations": [
+    {
+      "id": "OWN-THEME039-01",
+      "records": [
+        "PR-THEME-039"
+      ],
+      "clause": "Swift:151 hosted-tree scheme is not ignored",
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "native": false,
+      "killer": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+      "replacements": [
+        {
+          "before": "scheme => RequestedThemeVariant = scheme ?? ThemeVariant.Default",
+          "after": "scheme => RequestedThemeVariant = ThemeVariant.Default"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "OWN-THEME039-01-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:24:51.603Z",
+          "end": "2026-09-29T14:24:58.269Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0c3055bd-683f-4950-93f1-473288945339",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "B97485C79BA34F49F2ED619043BB0462325B83F11BB65B0E70E2805D76F84F36"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "F5BDEC4BE5C542D97E91196C7FAE597FF36C0B51E16420A80C440C5E8B076229"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-01-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-01-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:24:58.275Z",
+          "end": "2026-09-29T14:25:00.448Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-cbbcca25-79f7-4788-8347-bc304c98b875",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "B97485C79BA34F49F2ED619043BB0462325B83F11BB65B0E70E2805D76F84F36"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Default"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-01-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-01-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:25:00.450Z",
+          "end": "2026-09-29T14:25:02.128Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-fe7eecf2-7cac-480d-a307-2006e57fce82",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "B97485C79BA34F49F2ED619043BB0462325B83F11BB65B0E70E2805D76F84F36"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Default"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-01-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:02.195Z",
+          "end": "2026-09-29T14:25:06.466Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-34642e5f-8399-49d7-9500-ac6e73443c8d",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "6A409BBDF099E4548450CA02784CCE16CE8EC6DA5D5FB3A81A35EC15A3177823"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-01-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-01-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:06.472Z",
+          "end": "2026-09-29T14:25:08.398Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-9539fe31-d4d5-4f1a-a81c-cfad882ca284",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "B97485C79BA34F49F2ED619043BB0462325B83F11BB65B0E70E2805D76F84F36",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1/results.json"
+    },
+    {
+      "id": "OWN-THEME039-02",
+      "records": [
+        "PR-THEME-039"
+      ],
+      "clause": "Swift:151 dark host is not mapped to light",
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "native": false,
+      "killer": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+      "replacements": [
+        {
+          "before": "scheme => RequestedThemeVariant = scheme ?? ThemeVariant.Default",
+          "after": "scheme => RequestedThemeVariant = scheme == ThemeVariant.Dark ? ThemeVariant.Light : scheme ?? ThemeVariant.Default"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "OWN-THEME039-02-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:08.454Z",
+          "end": "2026-09-29T14:25:12.848Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-3a649bf1-7c1d-4307-a5bc-2a012e040bea",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "58B9F56EB321FF489AE4721144F8EA3E057500F5BE85B27FAAEC1AD821B177BA"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "1058961F7ED3CD3B902D2B35E84112D194D39CA1CE216EA27D45D74F905A39A7"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-02-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-02-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:25:12.854Z",
+          "end": "2026-09-29T14:25:14.757Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-539b57f3-6eb0-4b45-8784-0ba93d5b3851",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "58B9F56EB321FF489AE4721144F8EA3E057500F5BE85B27FAAEC1AD821B177BA"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-02-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-02-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:25:14.758Z",
+          "end": "2026-09-29T14:25:16.484Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-c3de4418-7351-474e-8ff0-b24905d79f17",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "58B9F56EB321FF489AE4721144F8EA3E057500F5BE85B27FAAEC1AD821B177BA"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-02-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:16.517Z",
+          "end": "2026-09-29T14:25:20.781Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-2b6b9774-b058-489a-9198-37d8117ba713",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "6A409BBDF099E4548450CA02784CCE16CE8EC6DA5D5FB3A81A35EC15A3177823"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-02-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-02-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:20.787Z",
+          "end": "2026-09-29T14:25:22.660Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-3bd92ddb-f43d-4c1c-aa7e-9f89920917fc",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "58B9F56EB321FF489AE4721144F8EA3E057500F5BE85B27FAAEC1AD821B177BA",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1/results.json"
+    },
+    {
+      "id": "OWN-THEME039-03",
+      "records": [
+        "PR-THEME-039"
+      ],
+      "clause": "Swift:152 initial and subsequent process observer is wired",
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "native": false,
+      "killer": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+      "replacements": [
+        {
+          "before": "(_, theme) => SetAppearance(theme), initial: true",
+          "after": "(_, theme) => { _ = theme; }, initial: true"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "OWN-THEME039-03-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:22.750Z",
+          "end": "2026-09-29T14:25:27.011Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ecff04a2-bc73-4352-8938-531d942c503f",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "15E9CBEABFFD1F79EB8F1C7E32B3C5A430AF69B93F7D69278BD8AF3CE9BC813F"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-03-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-03-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:25:27.016Z",
+          "end": "2026-09-29T14:25:28.944Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-2cef3d6d-1ca9-4f0f-bb7b-042e21a7719a",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-03-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-03-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:25:28.945Z",
+          "end": "2026-09-29T14:25:30.645Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-18f55885-ab6d-4497-8a24-76d6b3cadcfa",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-03-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:30.678Z",
+          "end": "2026-09-29T14:25:34.825Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ea45ce62-4fbd-4c7d-852f-aa8fa6362a04",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "6A409BBDF099E4548450CA02784CCE16CE8EC6DA5D5FB3A81A35EC15A3177823"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-03-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-03-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:34.830Z",
+          "end": "2026-09-29T14:25:36.733Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-7170710c-3bab-4181-8320-6c76ef525dd8",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "AF39C132F3E5339F769531A4B9FA4E7B06A572D79AC181DF9B6B868A11C97317",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1/results.json"
+    },
+    {
+      "id": "OWN-THEME039-04",
+      "records": [
+        "PR-THEME-039"
+      ],
+      "clause": "Process observer forwards the selected theme instead of a constant",
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "native": false,
+      "killer": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+      "replacements": [
+        {
+          "before": "(_, theme) => SetAppearance(theme), initial: true",
+          "after": "(_, theme) => SetAppearance(AppTheme.System), initial: true"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "OWN-THEME039-04-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:36.822Z",
+          "end": "2026-09-29T14:25:41.095Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-3ef4071f-94de-4c5c-913a-9bde711a79ac",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "FE0E7D71BE15358103DA6576A7A16D79825D8687B90EDE1BBC95C7A217FE10B2"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "D8E25F5D37F699D13E1B8D43E4497BA6B6B67BE9E1E0638119CF15C34D3E736B"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-04-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-04-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:25:41.100Z",
+          "end": "2026-09-29T14:25:43.014Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-7b575149-b507-42b1-a03e-e60e0c3f388c",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "FE0E7D71BE15358103DA6576A7A16D79825D8687B90EDE1BBC95C7A217FE10B2"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Default"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-04-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-04-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:25:43.015Z",
+          "end": "2026-09-29T14:25:44.726Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-7aefd2ce-5801-44ed-acb2-99afe6169bb4",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "FE0E7D71BE15358103DA6576A7A16D79825D8687B90EDE1BBC95C7A217FE10B2"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Default"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-04-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:44.793Z",
+          "end": "2026-09-29T14:25:49.112Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-a65f5383-f083-4d5f-86b1-6745c8d62f60",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "6A409BBDF099E4548450CA02784CCE16CE8EC6DA5D5FB3A81A35EC15A3177823"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-04-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-04-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:49.118Z",
+          "end": "2026-09-29T14:25:51.046Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-d726d980-c541-4ffa-a5b5-1514ea9e97a9",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "FE0E7D71BE15358103DA6576A7A16D79825D8687B90EDE1BBC95C7A217FE10B2",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1/results.json"
+    },
+    {
+      "id": "OWN-THEME039-05",
+      "records": [
+        "PR-THEME-039"
+      ],
+      "clause": "Swift:155 process Light maps to Light",
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "native": false,
+      "killer": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+      "replacements": [
+        {
+          "before": "scheme == ThemeVariant.Light ? ThemeVariant.Light",
+          "after": "scheme == ThemeVariant.Light ? ThemeVariant.Dark"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "OWN-THEME039-05-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:51.100Z",
+          "end": "2026-09-29T14:25:55.474Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0530af65-6047-4aba-96bc-2976d6520b45",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "E6A1411CA6C2F6FDC778A2735BA65F2B57A95BF5BDA81D5FA2174F0FC900E4B8"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "A3335CBF684295BDF85A8A88FBDC2C33448ED8C9D722FF3622007148649706FE"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-05-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-05-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:25:55.480Z",
+          "end": "2026-09-29T14:25:57.392Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-0be34a2d-0fd7-490e-ba93-6d0ec72dd73e",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "E6A1411CA6C2F6FDC778A2735BA65F2B57A95BF5BDA81D5FA2174F0FC900E4B8"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Light\r\nActual:   Dark"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-05-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-05-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:25:57.393Z",
+          "end": "2026-09-29T14:25:59.136Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-03a3954a-a0f3-4a07-a78e-d09a031b8512",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "E6A1411CA6C2F6FDC778A2735BA65F2B57A95BF5BDA81D5FA2174F0FC900E4B8"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Light\r\nActual:   Dark"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-05-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:25:59.169Z",
+          "end": "2026-09-29T14:26:03.423Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-78196cea-ba5b-4e8a-ad9b-b9249f6ff5d7",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "6A409BBDF099E4548450CA02784CCE16CE8EC6DA5D5FB3A81A35EC15A3177823"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-05-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-05-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 0,
+          "start": "2026-09-29T14:26:03.428Z",
+          "end": "2026-09-29T14:26:05.313Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-34355890-2428-4dcc-9200-78fb43499c3a",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "E6A1411CA6C2F6FDC778A2735BA65F2B57A95BF5BDA81D5FA2174F0FC900E4B8",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1/results.json"
+    },
+    {
+      "id": "OWN-THEME039-06",
+      "records": [
+        "PR-THEME-039"
+      ],
+      "clause": "Swift:156 process Dark maps to Dark",
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "native": false,
+      "killer": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+      "replacements": [
+        {
+          "before": "scheme == ThemeVariant.Dark ? ThemeVariant.Dark",
+          "after": "scheme == ThemeVariant.Dark ? ThemeVariant.Light"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "OWN-THEME039-06-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:26:05.401Z",
+          "end": "2026-09-29T14:26:09.698Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-dae70371-02e7-4fb6-82b0-b41f2a35afd8",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "29E3B177DE981C47E28BC6563B130A94F2EFD380EA0FE84A810C207BD364E840"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "AA90503028BEFDEA033867A9F618C621C602BDDC1BF269C48528F089B65130DB"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-06-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-06-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:26:09.704Z",
+          "end": "2026-09-29T14:26:11.629Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-910dc4b1-35bc-44e4-a9bc-1537d1953c6a",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "29E3B177DE981C47E28BC6563B130A94F2EFD380EA0FE84A810C207BD364E840"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-06-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-06-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:26:11.630Z",
+          "end": "2026-09-29T14:26:13.317Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-c63c56ad-a976-4069-9f06-335e1645a82d",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "29E3B177DE981C47E28BC6563B130A94F2EFD380EA0FE84A810C207BD364E840"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-06-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:26:13.385Z",
+          "end": "2026-09-29T14:26:17.751Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-b468320b-0336-4197-8143-20cb275f3552",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "6A409BBDF099E4548450CA02784CCE16CE8EC6DA5D5FB3A81A35EC15A3177823"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-06-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-06-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 0,
+          "start": "2026-09-29T14:26:17.757Z",
+          "end": "2026-09-29T14:26:19.673Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-ef15324b-3c4a-43f7-a646-a40a90dfe3b0",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "29E3B177DE981C47E28BC6563B130A94F2EFD380EA0FE84A810C207BD364E840",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1/results.json"
+    },
+    {
+      "id": "OWN-THEME039-07",
+      "records": [
+        "PR-THEME-039"
+      ],
+      "clause": "Swift:154 System clears the process preference",
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "native": false,
+      "killer": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+      "replacements": [
+        {
+          "before": "scheme is null ? ThemeVariant.Default",
+          "after": "scheme is null ? ThemeVariant.Dark"
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "OWN-THEME039-07-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:26:19.731Z",
+          "end": "2026-09-29T14:26:24.025Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-6276c8ed-0c52-4fa1-99ba-f06f96b5d18e",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "DA5A9C5F2EFEA4B8CE140573692FE50B8A0D9CE83CCAD3CFA8B9105CA75A7480"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "88B110D085B81AFEF2BCF22FCC7C867D4EB3B7EE4C635B3E9747B441FE9A0881"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-07-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-07-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:26:24.031Z",
+          "end": "2026-09-29T14:26:25.935Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-46bc961c-eb92-47dc-be9b-a6bbbcd634d0",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "DA5A9C5F2EFEA4B8CE140573692FE50B8A0D9CE83CCAD3CFA8B9105CA75A7480"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Default\r\nActual:   Dark"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-07-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-07-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:26:25.936Z",
+          "end": "2026-09-29T14:26:27.671Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-20610754-810c-41d6-9454-22e3efbcd98f",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "DA5A9C5F2EFEA4B8CE140573692FE50B8A0D9CE83CCAD3CFA8B9105CA75A7480"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Default\r\nActual:   Dark"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-07-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:26:27.704Z",
+          "end": "2026-09-29T14:26:31.913Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-700036e8-b276-4a73-bd45-003351cd2b4d",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "6A409BBDF099E4548450CA02784CCE16CE8EC6DA5D5FB3A81A35EC15A3177823"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-07-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-07-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 0,
+          "start": "2026-09-29T14:26:31.918Z",
+          "end": "2026-09-29T14:26:33.810Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-81f42fe5-733f-4e4e-a9b6-c80660e87647",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "DA5A9C5F2EFEA4B8CE140573692FE50B8A0D9CE83CCAD3CFA8B9105CA75A7480",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1/results.json"
+    },
+    {
+      "id": "OWN-THEME039-08",
+      "records": [
+        "PR-THEME-039"
+      ],
+      "clause": "Reattached host reinstalls its initial/later process observer",
+      "path": "src/Marrow.App/Window/WindowManager.cs",
+      "native": false,
+      "killer": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
+      "replacements": [
+        {
+          "before": "            appearance = null;",
+          "after": ""
+        }
+      ],
+      "original_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "runs": [
+        {
+          "name": "OWN-THEME039-08-mutant-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:26:33.903Z",
+          "end": "2026-09-29T14:26:38.088Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-90a8460b-8591-42bc-836d-9a0ec4196092",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "443D58CA4718CF4BA381D4CF6ED2F367FF7F90F37BF426348324385C39C48B37"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "BF135D402392B44040233AFF6ADB45C3136CB0AC6215BBD833A6ACEC7BD2D5AF"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-08-red-1",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-08-red-1.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:26:38.093Z",
+          "end": "2026-09-29T14:26:40.020Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-39e51c55-34ae-4cb2-b98d-248b3950f3b5",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "443D58CA4718CF4BA381D4CF6ED2F367FF7F90F37BF426348324385C39C48B37"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-08-red-2",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-08-red-2.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 1,
+          "start": "2026-09-29T14:26:40.021Z",
+          "end": "2026-09-29T14:26:41.709Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-8396f879-60d3-4b55-907a-b7b9b534cf06",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "443D58CA4718CF4BA381D4CF6ED2F367FF7F90F37BF426348324385C39C48B37"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
+              "outcome": "Failed",
+              "error": "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+            }
+          ],
+          "total": 1,
+          "passed": 0,
+          "failed": 1,
+          "child_evidence": []
+        },
+        {
+          "name": "OWN-THEME039-08-restored-build",
+          "command": "dotnet 'build' 'Marrow.sln' '-c' 'Debug' '--nologo' '-v' 'q'",
+          "exit": 0,
+          "start": "2026-09-29T14:26:41.777Z",
+          "end": "2026-09-29T14:26:46.155Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-e1d72b90-40ba-44a8-a973-13dc2fc90999",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "clean": true,
+          "binaries": [
+            {
+              "name": "Marrow.App.dll",
+              "sha256": "6A409BBDF099E4548450CA02784CCE16CE8EC6DA5D5FB3A81A35EC15A3177823"
+            },
+            {
+              "name": "Marrow.App.Tests.dll",
+              "sha256": "D2A8564CB94AA0C52C3CE60AC8F08A209EB381BEA23CB4BFFAE691690829D480"
+            }
+          ]
+        },
+        {
+          "name": "OWN-THEME039-08-green",
+          "command": "dotnet 'test' 'tests\\Marrow.App.Tests' '--no-build' '--nologo' '-v' 'q' '--filter' 'FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer&Req=PR-THEME-039' '--logger' 'trx;LogFileName=OWN-THEME039-08-green.trx' '--results-directory' 'E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\revision\\evidence\\pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1'",
+          "exit": 0,
+          "start": "2026-09-29T14:26:46.160Z",
+          "end": "2026-09-29T14:26:48.092Z",
+          "environment": {
+            "temp": "C:\\Users\\omera\\AppData\\Local\\Temp",
+            "outer_opt_in_variables": [],
+            "data": "C:\\Users\\omera\\AppData\\Local\\Temp\\marrow-bb0bac45-bd32-4567-bcca-0c36cf66d07f",
+            "tmp": "C:\\Users\\omera\\AppData\\Local\\Temp"
+          },
+          "source_hashes": [
+            {
+              "name": "src/Marrow.App/Window/WindowManager.cs",
+              "sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+            },
+            {
+              "name": "src/Marrow.App/Port/AppShell.cs",
+              "sha256": "FD1C900D2E421EA2B68BFE49C583B3BD41CD93C9EBC4AAF0208A1EB4B7C0C40A"
+            },
+            {
+              "name": "src/Marrow.App/AppDelegate.cs",
+              "sha256": "53C95B4B801CF9F7B81855DFA654C45487BB136145563B53EA020FF57FCD2D46"
+            },
+            {
+              "name": "src/Marrow.App/Views/Settings/SettingsView.cs",
+              "sha256": "6D27358BA7EC962FC36D95D0C24DBE54417B08FF834F7492D0ED270DBF83FD59"
+            },
+            {
+              "name": "src/Marrow.App/Window/ThreadWindow.cs",
+              "sha256": "3054827250CB1DDD1FC125BFDFE69556FF41A3336480A063D727959DF89C60AE"
+            },
+            {
+              "name": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+              "sha256": "A4D41510D9CA809AE8100804847831A99367CCF60B33BCAFD070AE08CA9CE1A0"
+            }
+          ],
+          "tests": [
+            {
+              "name": "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
+              "outcome": "Passed",
+              "error": ""
+            }
+          ],
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "child_evidence": []
+        }
+      ],
+      "status": "KILLED_TWICE_ALONE_AND_ORDINARY_GREEN",
+      "restored": true,
+      "mutant_sha256": "443D58CA4718CF4BA381D4CF6ED2F367FF7F90F37BF426348324385C39C48B37",
+      "restored_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE",
+      "git_diff_unchanged": true,
+      "kind": "additional",
+      "evidence": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1/results.json"
+    }
+  ],
+  "excluded_attempts": []
+}

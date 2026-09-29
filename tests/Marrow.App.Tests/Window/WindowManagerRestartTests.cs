@@ -11,6 +11,8 @@ public sealed class WindowManagerRestartTests
     [Fact]
     [Trait("Req", "PR-WIN-006")] // WindowManager.swift:24, :67-70; restart preserves main placement through ED-006/ED-156.
     [Trait("Req", "PR-WIN-010")] // WindowManager.swift:21, :32-55, :80-84; Settings has no persisted placement.
+    [Trait("Req", "PR-SETTINGS-001")] // WindowManager.swift:80-84, no Settings frame persistence across processes.
+    [Trait("Req", "PR-THEME-039")] // WindowManager.swift:151-159, the persisted theme applies initially in the second process.
     public void Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement()
     {
         WindowManagerRestartProof.Execute(typeof(WindowManagerRestartTests).FullName + "." +

@@ -1,0 +1,19 @@
+{
+  "record": "PR-THEME-039",
+  "archives": [
+    {
+      "original_directory": "_packet/revision/evidence/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1",
+      "archive": "_packet/revision/evidence-archives/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1.zip",
+      "archive_sha256": "5296A6B4B7DD9490F87F548DB1D0C82AEE5504C1D931FF86E8826D5DC0AC6950",
+      "manifest": "_packet/revision/evidence-archives/pr-theme-039-own-2026-09-29T14-24-51-513Z-495af1.zip.json",
+      "file_count": 113
+    },
+    {
+      "original_directory": "_packet/revision/evidence/pr-theme-039-record-gate-2026-09-29T14-26-48-150Z-8d9323",
+      "archive": "_packet/revision/evidence-archives/pr-theme-039-record-gate-2026-09-29T14-26-48-150Z-8d9323.zip",
+      "archive_sha256": "B51450FA616139C2A976F08247DFED12F2E5F4342D0930C0186318F63052C5FB",
+      "manifest": "_packet/revision/evidence-archives/pr-theme-039-record-gate-2026-09-29T14-26-48-150Z-8d9323.zip.json",
+      "file_count": 31
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Styling;
 using Avalonia.Threading;
 using Marrow.App.Window;
 using Marrow.Core.Port;
@@ -77,12 +78,18 @@ internal static class WindowManagerRestartScenario
         {
             Assert.Empty(manager.Model.Projects);
             Assert.Empty(manager.Model.Threads);
+            if (request.Phase == 1) manager.Model.Settings.Theme = AppTheme.Dark;
+            // The second process must obtain Dark from the production persistent store, not a setter.
+            Assert.Equal(AppTheme.Dark, manager.Model.Settings.Theme);
+            application.RequestedThemeVariant = ThemeVariant.Light;
             manager.ShowMain();
             var main = Assert.IsType<ThreadWindow>(manager.MainWindow);
             WindowManagerMutationScope.Settle(main);
             RequireHeadlessGeometry(main);
             Assert.True(main.IsVisible);
             Assert.Equal(WindowState.Normal, main.WindowState);
+            Assert.Equal(ThemeVariant.Dark, application.RequestedThemeVariant);
+            Assert.Equal(ThemeVariant.Dark, Assert.Single(LogicalQuery.SelfAndDescendants<HostedRoot>((Control)main.Content!)).RequestedThemeVariant);
             if (request.Phase == 1)
             {
                 // Swift:67-69 plus ED-225 on the asserted headless work area. The Mac bias remains
@@ -127,6 +134,8 @@ internal static class WindowManagerRestartScenario
             Assert.False(settings.CanMaximize);
             Assert.True(settings.CanMinimize);
             Assert.True(settings.IsVisible);
+            Assert.Equal(ThemeVariant.Dark, application.RequestedThemeVariant);
+            Assert.Equal(ThemeVariant.Dark, Assert.Single(LogicalQuery.SelfAndDescendants<HostedRoot>((Control)settings.Content!)).RequestedThemeVariant);
             Assert.Equal(new Size(780, 580), settings.ClientSize);
             // Swift:48-52: rounded AppKit origin (2682,-6286), clamped to (1140,0),
             // hence Windows top-left (1140,700). The old Settings location is (23,45).

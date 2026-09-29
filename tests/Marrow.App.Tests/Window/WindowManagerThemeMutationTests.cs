@@ -54,6 +54,7 @@ public sealed class WindowManagerThemeMutationTests(HeadlessSession headless)
                     Assert.Equal(expected, host.RequestedThemeVariant);
                 }
                 if (expected != ThemeVariant.Default) Assert.Equal(expected, foreign.ActualThemeVariant);
+                Assert.Equal(Application.Current.ActualThemeVariant, foreign.ActualThemeVariant);
             }
         }
         finally { foreign.Close(); }
