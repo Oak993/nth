@@ -1,0 +1,464 @@
+[
+  {
+    "id": "A08",
+    "records": [
+      "PR-SETTINGS-001",
+      "PR-WIN-007"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact statement deletion identified in verifier",
+    "replacements": [
+      {
+        "before": "        Win32Properties.AddWndProcHookCallback(window, (nint hWnd, uint message, nint wParam, nint lParam, ref bool handled) =>\n            HandleNativeWindowMessage(window, hWnd, message, wParam, lParam, ref handled));",
+        "after": ""
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Factory_hooks_capture_the_caption_press_and_complete_a_real_minimize_click",
+    "clause": "Verifier A08: Exact statement deletion identified in verifier"
+  },
+  {
+    "id": "H04",
+    "records": [
+      "PR-WIN-017"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact statement deletion identified in verifier",
+    "replacements": [
+      {
+        "before": "        Win32Properties.AddWndProcHookCallback(window, WndProc);",
+        "after": ""
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.A_real_edge_drag_activates_only_the_factory_created_resize_state_and_clears_it_on_release",
+    "clause": "Verifier H04: Exact statement deletion identified in verifier"
+  },
+  {
+    "id": "A13",
+    "records": [
+      "PR-WIN-007",
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Behavior specified; replacement reconstructed because original harness is outside permitted worktree",
+    "replacements": [
+      {
+        "before": "if (hitTest == wParam && IsCaptionButton(hitTest, window))",
+        "after": "if (IsCaptionButton(hitTest, window))"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Release_over_a_different_caption_control_cancels_the_original_command",
+    "clause": "Verifier A13: Behavior specified; replacement reconstructed because original harness is outside permitted worktree"
+  },
+  {
+    "id": "A14",
+    "records": [
+      "PR-WIN-007",
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Behavior specified; replacement reconstructed",
+    "replacements": [
+      {
+        "before": "if (OperatingSystem.IsWindows() && hWnd != 0) _ = SetCapture(hWnd);\n                handled = true;",
+        "after": "if (OperatingSystem.IsWindows() && hWnd != 0) _ = SetCapture(hWnd);\n                handled = false;"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Factory_hooks_capture_the_caption_press_and_complete_a_real_minimize_click",
+    "clause": "Verifier A14: Behavior specified; replacement reconstructed"
+  },
+  {
+    "id": "A16b-A17-context",
+    "records": [
+      "PR-WIN-007",
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Grouped report does not map individual IDs to exact replacements; reconstructed WM_CONTEXTMENU omission",
+    "replacements": [
+      {
+        "before": "            case WM_CONTEXTMENU:\n                if (TryShowSystemMenu(window, hWnd, lParam))",
+        "after": "            case WM_CONTEXTMENU:\n                if (hWnd == new nint(-1) && TryShowSystemMenu(window, hWnd, lParam))"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.A_real_caption_right_click_opens_a_menu_with_each_windows_native_capabilities",
+    "clause": "Verifier A16b-A17-context: Grouped report does not map individual IDs to exact replacements; reconstructed WM_CONTEXTMENU omission"
+  },
+  {
+    "id": "A16b-A17-key",
+    "records": [
+      "PR-WIN-007",
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Grouped report does not map individual IDs to exact replacements; reconstructed SC_KEYMENU omission",
+    "replacements": [
+      {
+        "before": "if ((rawCommand & 0xFFF0) == SC_KEYMENU)",
+        "after": "if ((rawCommand & 0xFFF0) == 0xFFFF)"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Space_key_menu_is_anchored_to_its_factory_window_instead_of_decoding_the_character_as_coordinates",
+    "clause": "Verifier A16b-A17-key: Grouped report does not map individual IDs to exact replacements; reconstructed SC_KEYMENU omission"
+  },
+  {
+    "id": "A18-items",
+    "records": [
+      "PR-WIN-007",
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Grouped report; reconstructed flipped menu enabled/disabled states",
+    "replacements": [
+      {
+        "before": "(enabled ? MF_ENABLED : MF_GRAYED)",
+        "after": "(enabled ? MF_GRAYED : MF_ENABLED)"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.A_real_caption_right_click_opens_a_menu_with_each_windows_native_capabilities",
+    "clause": "Verifier A18-items: Grouped report; reconstructed flipped menu enabled/disabled states"
+  },
+  {
+    "id": "A19-cancel",
+    "records": [
+      "PR-WIN-007",
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Grouped report; reconstructed capture-cancel state not clearing",
+    "replacements": [
+      {
+        "before": "            case WM_CANCELMODE:\n            case WM_CAPTURECHANGED:\n                state.PendingHitTest = 0;",
+        "after": "            case WM_CANCELMODE:\n            case WM_CAPTURECHANGED:"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Cancel_mode_and_real_capture_transfer_clear_the_pending_caption_press",
+    "clause": "Verifier A19-cancel: Grouped report; reconstructed capture-cancel state not clearing"
+  },
+  {
+    "id": "A09",
+    "records": [
+      "PR-WIN-007",
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Two guards identified in report; this is caption hit-test guard removal",
+    "replacements": [
+      {
+        "before": "9 => window.CanMaximize,",
+        "after": "9 => true,"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_maximize_is_rejected_at_caption_acceptance_and_at_system_command_dispatch",
+    "clause": "Verifier A09: Two guards identified in report; this is caption hit-test guard removal"
+  },
+  {
+    "id": "A10",
+    "records": [
+      "PR-WIN-007",
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact non-caption SC_MAXIMIZE guard removal described in report; rebased to the minimal denied-command-consumed correction",
+    "replacements": [
+      {
+        "before": "SC_MAXIMIZE => !window.CanMaximize || SetWindowState(window, WindowState.Maximized),",
+        "after": "SC_MAXIMIZE => SetWindowState(window, WindowState.Maximized),"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Settings_maximize_is_rejected_at_caption_acceptance_and_at_system_command_dispatch",
+    "clause": "Verifier A10: Exact non-caption SC_MAXIMIZE guard removal described in report"
+  },
+  {
+    "id": "A01",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact false-to-true change identified in report",
+    "replacements": [
+      {
+        "before": "Size.Settings, resizable: false, SettingsContent",
+        "after": "Size.Settings, resizable: true, SettingsContent"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties",
+    "clause": "Verifier A01: Exact false-to-true change identified in report"
+  },
+  {
+    "id": "A03",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact assignment change identified in report",
+    "replacements": [
+      {
+        "before": "window.CanMinimize = true;",
+        "after": "window.CanMinimize = false;"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties",
+    "clause": "Verifier A03: Exact assignment change identified in report"
+  },
+  {
+    "id": "A07",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact statement removal identified in report",
+    "replacements": [
+      {
+        "before": "        WindowChrome.Configure(window); // :101",
+        "after": ""
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties",
+    "clause": "Verifier A07: Exact statement removal identified in report"
+  },
+  {
+    "id": "B12",
+    "records": [
+      "PR-SETTINGS-002",
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact screen-selection change described in report",
+    "replacements": [
+      {
+        "before": "(main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary)",
+        "after": "(main.Screens.Primary)"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Reopening_requeries_the_main_windows_current_monitor",
+    "clause": "Verifier B12: Exact screen-selection change described in report"
+  },
+  {
+    "id": "B18",
+    "records": [
+      "PR-SETTINGS-002",
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact property substitution described in report",
+    "replacements": [
+      {
+        "before": "var working = screen.WorkingArea.ToRect(scale);",
+        "after": "var working = screen.Bounds.ToRect(scale);"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor",
+    "clause": "Verifier B18: Exact property substitution described in report"
+  },
+  {
+    "id": "B15",
+    "records": [
+      "PR-SETTINGS-002"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact statement removal identified in report",
+    "replacements": [
+      {
+        "before": "        window.Activate();",
+        "after": ""
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Visible_inactive_settings_receives_explicit_activation",
+    "clause": "Verifier B15: Exact statement removal identified in report"
+  },
+  {
+    "id": "B14",
+    "records": [
+      "PR-SETTINGS-002",
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact statement reorder described in report",
+    "replacements": [
+      {
+        "before": "        CenterOverMainWindow(window); // :36\n        Present(window); // :37",
+        "after": "        Present(window); // :37\n        CenterOverMainWindow(window); // :36"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Cached_show_centers_before_the_platform_show_request",
+    "clause": "Verifier B14: Exact statement reorder described in report"
+  },
+  {
+    "id": "B13",
+    "records": [
+      "PR-SETTINGS-002",
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Scale ignored as described; constant substitution reconstructed",
+    "replacements": [
+      {
+        "before": "var scale = main.DesktopScaling;",
+        "after": "var scale = 1d;"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+    "clause": "Verifier B13: Scale ignored as described; constant substitution reconstructed"
+  },
+  {
+    "id": "F01",
+    "records": [
+      "PR-WIN-009"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact literal substitution identified in report",
+    "replacements": [
+      {
+        "before": "MakeWindow(AppInfo.Current.Name, Size.Main",
+        "after": "MakeWindow(\"Marrow\", Size.Main"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal",
+    "clause": "Verifier F01: Exact literal substitution identified in report"
+  },
+  {
+    "id": "F02",
+    "records": [
+      "PR-WIN-009"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Exact constructor substitution identified in report",
+    "replacements": [
+      {
+        "before": "MainContent { get; set; } = () => new RootView();",
+        "after": "MainContent { get; set; } = () => new Border();"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.The_unmodified_main_factory_hosts_one_real_RootView_with_the_managers_model_and_window_environment",
+    "clause": "Verifier F02: Exact constructor substitution identified in report"
+  },
+  {
+    "id": "S01",
+    "records": [
+      "PR-WIN-003",
+      "PR-WIN-008"
+    ],
+    "path": "src/Marrow.App/Port/AppShell.cs",
+    "precision": "Exact callback no-op described in report",
+    "replacements": [
+      {
+        "before": "windows.MainWindowClose = () => MainActor.Post(Terminate);",
+        "after": "windows.MainWindowClose = () => { };"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerProcessTests.Closing_main_after_FinishLaunching_exits_the_child_process_and_Settings_is_retained",
+    "clause": "Verifier S01: Exact callback no-op described in report"
+  },
+  {
+    "id": "E11",
+    "records": [
+      "PR-WIN-006"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Report explicitly supplies x <= 1000; exact expression reconstructed",
+    "replacements": [
+      {
+        "before": "window.Position = new PixelPoint((int)x, (int)y);",
+        "after": "window.Position = new PixelPoint(Math.Min((int)x, 1000), (int)y);"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+    "clause": "Verifier E11: Report explicitly supplies x <= 1000; exact expression reconstructed"
+  },
+  {
+    "id": "E12",
+    "records": [
+      "PR-WIN-006"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Report explicitly supplies y <= 1000; exact expression reconstructed",
+    "replacements": [
+      {
+        "before": "window.Position = new PixelPoint((int)x, (int)y);",
+        "after": "window.Position = new PixelPoint((int)x, Math.Min((int)y, 1000));"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+    "clause": "Verifier E12: Report explicitly supplies y <= 1000; exact expression reconstructed"
+  },
+  {
+    "id": "E13",
+    "records": [
+      "PR-WIN-006"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Report says size clamped but omits limit; reconstructed width clamp 1920, NOT exact original",
+    "replacements": [
+      {
+        "before": "window.Width = width;",
+        "after": "window.Width = Math.Min(width, 1920);"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+    "clause": "Verifier E13: Report says size clamped but omits limit; reconstructed width clamp 1920, NOT exact original"
+  },
+  {
+    "id": "E14",
+    "records": [
+      "PR-WIN-006"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "precision": "Report says size clamped but omits limit; reconstructed height clamp 1280, NOT exact original",
+    "replacements": [
+      {
+        "before": "window.Height = height;",
+        "after": "window.Height = Math.Min(height, 1280);"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.A_positive_offscreen_oversized_saved_frame_is_applied_before_presentation_without_clamping",
+    "clause": "Verifier E14: Report says size clamped but omits limit; reconstructed height clamp 1280, NOT exact original"
+  },
+  {
+    "id": "I01",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+    "precision": "Corner 26-to-25 as described; replacement at Settings-specific use site",
+    "replacements": [
+      {
+        "before": ".RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous);",
+        "after": ".RoundedRectangle(25, RoundedCornerStyle.Continuous);"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+    "clause": "Verifier I01: Corner 26-to-25 as described; replacement at Settings-specific use site"
+  },
+  {
+    "id": "I02",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+    "precision": "Report only says ignores opacity; reconstructed constant zero update",
+    "replacements": [
+      {
+        "before": "value => backdrop.Update(value, null)",
+        "after": "value => backdrop.Update(0, null)"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.A_live_opacity_change_reaches_the_actual_retained_Settings_backdrop",
+    "clause": "Verifier I02: Report only says ignores opacity; reconstructed constant zero update"
+  },
+  {
+    "id": "I03",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+    "precision": "Sidebar not WindowDragArea as described; replacement by inert Border",
+    "replacements": [
+      {
+        "before": "PlainControls.Background(column, new WindowDragArea())",
+        "after": "PlainControls.Background(column, new Border())"
+      }
+    ],
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+    "clause": "Verifier I03: Sidebar not WindowDragArea as described; replacement by inert Border"
+  }
+]

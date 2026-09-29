@@ -1,0 +1,770 @@
+[
+  {
+    "id": "REV-PR-SETTINGS-001-01",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:21 fixed content height",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties",
+    "replacements": [
+      {
+        "before": "Settings = new(780, 580);",
+        "after": "Settings = new(780, 579);"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-001-02",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:21 fixed content width",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties",
+    "replacements": [
+      {
+        "before": "Settings = new(780, 580);",
+        "after": "Settings = new(779, 580);"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-001-03",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:16,34 independent Settings cache",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_movement_close_and_reopen_do_not_write_frame_preferences",
+    "replacements": [
+      {
+        "before": "var window = settingsWindow ?? MakeSettingsWindow();",
+        "after": "var window = mainWindow ?? MakeSettingsWindow();"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-001-04",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:35 Settings cache retains Settings rather than main",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_movement_close_and_reopen_do_not_write_frame_preferences",
+    "replacements": [
+      {
+        "before": "settingsWindow = window; // :35",
+        "after": "settingsWindow = mainWindow; // :35"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-001-05",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:98 retained content is not discarded",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_movement_close_and_reopen_do_not_write_frame_preferences",
+    "replacements": [
+      {
+        "before": "window.Hide();",
+        "after": "window.Content = null; window.Hide();"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-001-06",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "OD-0008 C3 Settings shortcut reaches factory",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Default_and_remapped_shortcuts_reopen_the_same_page_and_search",
+    "replacements": [
+      {
+        "before": "_ = MenuKeyEquivalents.Attach(window, shortcut => new AppCommands(Model).PerformKeyEquivalent(shortcut));",
+        "after": "_ = window; // mutation: omit shortcut dispatch"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-001-07",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:81 correct secondary window type",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties",
+    "replacements": [
+      {
+        "before": "windowClass: () => new SecondaryWindow()",
+        "after": "windowClass: () => new ThreadWindow()"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-001-08",
+    "records": [
+      "PR-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:98 close hides, not mere invisible paint",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_movement_close_and_reopen_do_not_write_frame_preferences",
+    "replacements": [
+      {
+        "before": "window.Hide();",
+        "after": "window.Opacity = 0;"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-002-01",
+    "records": [
+      "PR-SETTINGS-002"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:46 converts the main x coordinate using its scale",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+    "replacements": [
+      {
+        "before": "main.Position.X / scale",
+        "after": "main.Position.X"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-002-02",
+    "records": [
+      "PR-SETTINGS-002"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:46 converts the main y coordinate using its scale",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+    "replacements": [
+      {
+        "before": "main.Position.Y / scale",
+        "after": "main.Position.Y"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-002-03",
+    "records": [
+      "PR-SETTINGS-002"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:46 parent frame includes decorations",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings",
+    "replacements": [
+      {
+        "before": "var parentSize = FrameSizeOf(main);",
+        "after": "var parentSize = main.ClientSize;"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-002-04",
+    "records": [
+      "PR-SETTINGS-002"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:48 centers with half child width",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+    "replacements": [
+      {
+        "before": "parent.Center.X - frame.Width / 2",
+        "after": "parent.Center.X - frame.Width / 3"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-002-05",
+    "records": [
+      "PR-SETTINGS-002"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:49 centers with half child height",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+    "replacements": [
+      {
+        "before": "parent.Center.Y - frame.Height / 2",
+        "after": "parent.Center.Y - frame.Height / 3"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-002-06",
+    "records": [
+      "PR-SETTINGS-002"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:50 work area retains its left origin",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Workarea_edges_exclude_taskbars_on_the_main_monitor",
+    "replacements": [
+      {
+        "before": "new Rect(working.Left, up - working.Bottom, working.Width, working.Height)",
+        "after": "new Rect(working.Right, up - working.Bottom, working.Width, working.Height)"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-002-07",
+    "records": [
+      "PR-SETTINGS-002"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:50 missing main screen falls back to primary",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Missing_main_screen_uses_primary_workarea",
+    "replacements": [
+      {
+        "before": "(main.Screens.ScreenFromWindow(main) ?? main.Screens.Primary)",
+        "after": "(main.Screens.ScreenFromWindow(main))"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-SETTINGS-002-08",
+    "records": [
+      "PR-SETTINGS-002"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:46-54 use main DPI, not the child previous monitor DPI",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+    "replacements": [
+      {
+        "before": "var scale = main.DesktopScaling;",
+        "after": "var scale = window.DesktopScaling;"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-010-01",
+    "records": [
+      "PR-WIN-010"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:81 cannot inherit main minimum width",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties",
+    "replacements": [
+      {
+        "before": "WindowCentering.Center(window, FrameSizeOf(window)); // :82",
+        "after": "window.MinWidth = Size.MainMinimum.Width; WindowCentering.Center(window, FrameSizeOf(window)); // :82"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-010-02",
+    "records": [
+      "PR-WIN-010"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:81 cannot inherit an excessive minimum height",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_factory_itself_installs_fixed_sizing_and_native_chrome_properties",
+    "replacements": [
+      {
+        "before": "WindowCentering.Center(window, FrameSizeOf(window)); // :82",
+        "after": "window.MinHeight = 860; WindowCentering.Center(window, FrameSizeOf(window)); // :82"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-010-03",
+    "records": [
+      "PR-WIN-010"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:81 hosts the Settings factory",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+    "replacements": [
+      {
+        "before": "Size.Settings, resizable: false, SettingsContent,",
+        "after": "Size.Settings, resizable: false, MainContent,"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-010-04",
+    "records": [
+      "PR-WIN-010"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:80-84 does not attach frame autosave",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Settings_movement_close_and_reopen_do_not_write_frame_preferences",
+    "replacements": [
+      {
+        "before": "WindowCentering.Center(window, FrameSizeOf(window)); // :82",
+        "after": "SetFrameAutosaveName(window, \"MutatedSettingsFrame\"); WindowCentering.Center(window, FrameSizeOf(window)); // :82"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-010-05",
+    "records": [
+      "PR-WIN-010"
+    ],
+    "path": "src/Marrow.App/Window/ThreadWindow.cs",
+    "clause": "SecondaryWindow Escape leaves an editing field open",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Secondary_keyboard_close_preserves_state_and_field_Escape_keeps_the_window_open",
+    "replacements": [
+      {
+        "before": "FocusManager?.GetFocusedElement() is not TextBox)",
+        "after": "true)"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-010-06",
+    "records": [
+      "PR-WIN-010"
+    ],
+    "path": "src/Marrow.App/Window/ThreadWindow.cs",
+    "clause": "SecondaryWindow close yields to an attached sheet",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Secondary_close_chord_yields_while_a_sheet_is_attached",
+    "replacements": [
+      {
+        "before": "if (AttachedSheet is null && KeyCode(e) is { } keyCode &&",
+        "after": "if (KeyCode(e) is { } keyCode &&"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-010-07",
+    "records": [
+      "PR-WIN-010"
+    ],
+    "path": "src/Marrow.App/Window/ThreadWindow.cs",
+    "clause": "SecondaryWindow Ctrl-W uses the defined physical chord",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Secondary_keyboard_close_preserves_state_and_field_Escape_keeps_the_window_open",
+    "replacements": [
+      {
+        "before": "new KeyChord(0x11, ChordModifiers.Control)) // :59",
+        "after": "new KeyChord(0x11, ChordModifiers.Control | ChordModifiers.Shift)) // :59"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-010-08",
+    "records": [
+      "PR-WIN-010"
+    ],
+    "path": "src/Marrow.App/Window/ThreadWindow.cs",
+    "clause": "SecondaryWindow Escape outside fields closes it",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Secondary_keyboard_close_preserves_state_and_field_Escape_keeps_the_window_open",
+    "replacements": [
+      {
+        "before": "KeyCode(e) == 0x01 &&",
+        "after": "KeyCode(e) == 0x02 &&"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-011-01",
+    "records": [
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:46 parent is main, not Settings",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings",
+    "replacements": [
+      {
+        "before": "var parentSize = FrameSizeOf(main);",
+        "after": "var parentSize = FrameSizeOf(window);"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-011-02",
+    "records": [
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:47 child frame includes decorations",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Outer_frame_extents_are_used_for_both_parent_and_settings",
+    "replacements": [
+      {
+        "before": "var frame = FrameSizeOf(window); // :47",
+        "after": "var frame = new Avalonia.Size(window.Width, window.Height); // :47"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-011-03",
+    "records": [
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:48 positive half-point rounds away from zero",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.A_positive_half_point_center_rounds_up_before_the_workarea_clamp",
+    "replacements": [
+      {
+        "before": "SwiftNumber.Rounded(parent.Center.X - frame.Width / 2)",
+        "after": "Math.Floor(parent.Center.X - frame.Width / 2)"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-011-04",
+    "records": [
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:49 negative logical coordinate does not ceil",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+    "replacements": [
+      {
+        "before": "SwiftNumber.Rounded(parent.Center.Y - frame.Height / 2)",
+        "after": "Math.Ceiling(parent.Center.Y - frame.Height / 2)"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-011-05",
+    "records": [
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:51 outer min wins for an undersized work area",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Smaller_workarea_preserves_outer_min_without_resizing_settings",
+    "replacements": [
+      {
+        "before": "SwiftMin(SwiftMax(x, working.Left), working.Right - frame.Width)",
+        "after": "SwiftMax(SwiftMin(x, working.Right - frame.Width), working.Left)"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-011-06",
+    "records": [
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:52 upward-space outer min wins for an undersized area",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Smaller_workarea_preserves_outer_min_without_resizing_settings",
+    "replacements": [
+      {
+        "before": "SwiftMin(SwiftMax(y, working.Top), working.Bottom - frame.Height)",
+        "after": "SwiftMax(SwiftMin(y, working.Bottom - frame.Height), working.Top)"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-011-07",
+    "records": [
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:36 already-visible Settings is recentered too",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsPresentationTests.Visible_inactive_settings_receives_explicit_activation",
+    "replacements": [
+      {
+        "before": "CenterOverMainWindow(window); // :36",
+        "after": "if (!window.IsVisible) CenterOverMainWindow(window); // :36"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-011-08",
+    "records": [
+      "PR-WIN-011"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Swift:54 converts logical x back to native pixels",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsScreenTests.Mixed_DPI_centering_uses_both_parent_coordinates_and_rounds_before_pixel_conversion",
+    "replacements": [
+      {
+        "before": "SwiftNumber.Rounded(centered.X * scale)",
+        "after": "SwiftNumber.Rounded(centered.X)"
+      }
+    ]
+  },
+  {
+    "id": "REV-UI-SETTINGS-001-01",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+    "clause": "SettingsView.swift:120 clips the content",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+    "replacements": [
+      {
+        "before": "frame.ClipToBounds = true;",
+        "after": "frame.ClipToBounds = false;"
+      }
+    ]
+  },
+  {
+    "id": "REV-UI-SETTINGS-001-02",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+    "clause": "SettingsView.swift:118 backdrop is behind controls",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+    "replacements": [
+      {
+        "before": "Children = { backdrop, new WindowChromeProbe(), grid }",
+        "after": "Children = { grid, new WindowChromeProbe(), backdrop }"
+      }
+    ]
+  },
+  {
+    "id": "REV-UI-SETTINGS-001-03",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+    "clause": "SettingsView.swift:119 configuration probe cannot intercept input",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+    "replacements": [
+      {
+        "before": "Children = { backdrop, new WindowChromeProbe(), grid }",
+        "after": "Children = { backdrop, new WindowChromeProbe { IsHitTestVisible = true }, grid }"
+      }
+    ]
+  },
+  {
+    "id": "REV-UI-SETTINGS-001-04",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+    "clause": "SettingsView.swift:122 fixed view width",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+    "replacements": [
+      {
+        "before": "Width = 780; Height = 580; // :122",
+        "after": "Width = 781; Height = 580; // :122"
+      }
+    ]
+  },
+  {
+    "id": "REV-UI-SETTINGS-001-05",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+    "clause": "SettingsView.swift:112 sidebar drag region spans 212 points",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Sidebar_background_is_a_hit_tested_caption_region",
+    "replacements": [
+      {
+        "before": "sidebar.Width = 212;",
+        "after": "sidebar.Width = 211;"
+      }
+    ]
+  },
+  {
+    "id": "REV-UI-SETTINGS-001-06",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+    "clause": "SettingsView.swift:122 fixed view height",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsSurfaceTests.Actual_Settings_content_has_26_point_clip_and_full_window_backdrop",
+    "replacements": [
+      {
+        "before": "Width = 780; Height = 580; // :122",
+        "after": "Width = 780; Height = 581; // :122"
+      }
+    ]
+  },
+  {
+    "id": "REV-UI-SETTINGS-001-07",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Settings/SettingsView.cs",
+    "clause": "SettingsView.swift:123-127 requested page replaces retained selection",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerNextTests.The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen",
+    "replacements": [
+      {
+        "before": "state.Page = page;\n            SettingsNavigation.Shared.RequestedPage = null;",
+        "after": "state.Page = SettingsPage.General;\n            SettingsNavigation.Shared.RequestedPage = null;"
+      }
+    ]
+  },
+  {
+    "id": "REV-UI-SETTINGS-001-08",
+    "records": [
+      "UI-SETTINGS-001"
+    ],
+    "path": "src/Marrow.App/Views/Palette/CommandPalette.cs",
+    "clause": "CommandPalette.swift:176-178 Settings action is connected",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerSettingsOpenerTests.Palette_row_click_closes_palette_then_reopens_retained_Settings",
+    "replacements": [
+      {
+        "before": "() => WindowManager.Shared.ShowSettings()));",
+        "after": "() => { }));"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-007-01",
+    "records": [
+      "PR-WIN-007"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "ED-063 minimize caption routes to minimize, not close",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Factory_hooks_capture_the_caption_press_and_complete_a_real_minimize_click",
+    "replacements": [
+      {
+        "before": "8 => SC_MINIMIZE,",
+        "after": "8 => SC_CLOSE,"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-007-02",
+    "records": [
+      "PR-WIN-007"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "ED-063 close caption routes to close, not minimize",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Actual_close_clicks_request_main_termination_and_retain_the_hidden_Settings_window",
+    "replacements": [
+      {
+        "before": "20 => SC_CLOSE,",
+        "after": "20 => SC_MINIMIZE,"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-007-03",
+    "records": [
+      "PR-WIN-007"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "ED-063 maximized caption toggles to restore",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerHighRiskTests.Real_user32_nonclient_button_messages_drive_close_minimise_and_maximise_and_keep_Settings_zoom_inert",
+    "replacements": [
+      {
+        "before": "9 when window.WindowState == WindowState.Maximized => SC_RESTORE,",
+        "after": "9 when window.WindowState == WindowState.Maximized => SC_MAXIMIZE,"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-007-04",
+    "records": [
+      "PR-WIN-007"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "ED-063 normal maximize caption routes to maximize",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.WindowManagerHighRiskTests.Real_user32_nonclient_button_messages_drive_close_minimise_and_maximise_and_keep_Settings_zoom_inert",
+    "replacements": [
+      {
+        "before": "9 => SC_MAXIMIZE,",
+        "after": "9 => SC_MINIMIZE,"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-007-05",
+    "records": [
+      "PR-WIN-007"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "ED-063 minimize command sets minimized state",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Factory_hooks_capture_the_caption_press_and_complete_a_real_minimize_click",
+    "replacements": [
+      {
+        "before": "SC_MINIMIZE when window.CanMinimize => SetWindowState(window, WindowState.Minimized),",
+        "after": "SC_MINIMIZE when window.CanMinimize => SetWindowState(window, WindowState.Normal),"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-007-06",
+    "records": [
+      "PR-WIN-007"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "ED-063 captured client release is re-hit-tested",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Factory_hooks_capture_the_caption_press_and_complete_a_real_minimize_click",
+    "replacements": [
+      {
+        "before": "if (message == WM_LBUTTONUP) wParam = CaptionHitAtClientPoint(hWnd, lParam);",
+        "after": "if (message == WM_LBUTTONUP) wParam = 0;"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-007-07",
+    "records": [
+      "PR-WIN-007"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "ED-063 menu always enables close",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.A_real_caption_right_click_opens_a_menu_with_each_windows_native_capabilities",
+    "replacements": [
+      {
+        "before": "SetMenuItemState(menu, SC_CLOSE, true);",
+        "after": "SetMenuItemState(menu, SC_CLOSE, false);"
+      }
+    ]
+  },
+  {
+    "id": "REV-PR-WIN-007-08",
+    "records": [
+      "PR-WIN-007"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "ED-063 normal window has no restore menu action",
+    "precision": "Own additional exact replacement, not a copied verifier survivor",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.A_real_caption_right_click_opens_a_menu_with_each_windows_native_capabilities",
+    "replacements": [
+      {
+        "before": "SetMenuItemState(menu, SC_RESTORE, window.WindowState != WindowState.Normal);",
+        "after": "SetMenuItemState(menu, SC_RESTORE, window.WindowState == WindowState.Normal);"
+      }
+    ]
+  }
+]

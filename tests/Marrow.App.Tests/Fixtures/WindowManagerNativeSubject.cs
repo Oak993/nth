@@ -1,0 +1,142 @@
+using System.Collections;
+using System.Reflection;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Templates;
+using Avalonia.Threading;
+using Marrow.App.Port;
+using Marrow.App.Window;
+using AvaloniaWindow = Avalonia.Controls.Window;
+
+namespace Marrow.App.Tests.Window.Native;
+
+internal sealed class WindowManagerNativeSubject : IDisposable
+{
+    private readonly WindowManagerNativeSession session;
+    private int quitRequests;
+
+    internal WindowManagerNativeSubject(WindowManagerNativeSession session)
+    {
+        Dispatcher.UIThread.VerifyAccess();
+        this.session = session;
+        Manager = new WindowManager
+        {
+            MainContent = () => MainContent,
+            SettingsContent = () => SettingsContent,
+            MainWindowClose = () => Interlocked.Increment(ref quitRequests),
+        };
+        Manager.ShowMain();
+        Main = Manager.MainWindow ?? throw new InvalidOperationException("ShowMain did not retain its window.");
+        session.Register(Main);
+        Template(Main);
+        Manager.ShowSettings();
+        Settings = (AvaloniaWindow)(typeof(WindowManager).GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!
+            .GetValue(Manager) ?? throw new InvalidOperationException("ShowSettings did not retain its window."));
+        session.Register(Settings);
+        Template(Settings);
+        Place(Main, 880, 570);
+        Place(Settings, 780, 580);
+        // Reads the exact instances created by MakeWindow and attached by HostedEnvironment.
+        _ = AppEnvironment.GetWindowLiveResize(MainContent);
+        _ = AppEnvironment.GetWindowLiveResize(SettingsContent);
+        MainProbe = new WindowManagerNativeProbe(Main, MainContent, () => ReadPendingCaption(Main));
+        SettingsProbe = new WindowManagerNativeProbe(Settings, SettingsContent, () => ReadPendingCaption(Settings));
+    }
+
+    internal WindowManager Manager { get; }
+    internal AvaloniaWindow Main { get; }
+    internal AvaloniaWindow Settings { get; }
+    internal WindowManagerNativeContent MainContent { get; } = new();
+    internal WindowManagerNativeContent SettingsContent { get; } = new();
+    internal WindowManagerNativeProbe MainProbe { get; }
+    internal WindowManagerNativeProbe SettingsProbe { get; }
+    internal int QuitRequests => Volatile.Read(ref quitRequests);
+    internal WindowManagerNativeSession Session => session;
+
+    // A bare Application has no production theme/Window template. The test supplies only the host
+    // template needed to display the factory's unchanged Panel/FrameHostingView/HostedRoot subtree.
+    private static void Template(AvaloniaWindow window)
+    {
+        window.ShowInTaskbar = false;
+        window.Template = new FuncControlTemplate<AvaloniaWindow>((owner, _) => new ContentPresenter { Content = owner.Content });
+        window.ApplyTemplate();
+        window.UpdateLayout();
+    }
+
+    private static void Place(AvaloniaWindow window, double width, double height)
+    {
+        var screen = window.Screens.ScreenFromWindow(window) ?? window.Screens.Primary
+            ?? throw new InvalidOperationException("No native screen is available.");
+        var area = screen.WorkingArea;
+        var scale = window.DesktopScaling;
+        if (area.Width < width * scale + 192 || area.Height < height * scale + 160)
+            throw new InvalidOperationException("The native fixture needs enough working area for the factory minimum size and guarded edge drag.");
+        window.Width = width;
+        window.Height = height;
+        window.Position = new PixelPoint(area.Position.X + 96, area.Position.Y + 96);
+        window.UpdateLayout();
+    }
+
+    internal void Focus(AvaloniaWindow window, WindowManagerNativeProbe probe)
+    {
+        try
+        {
+            session.OnUi(() =>
+            {
+                foreach (var owned in new[] { Main, Settings }) owned.Topmost = ReferenceEquals(owned, window);
+                window.Show();
+                window.UpdateLayout();
+                WindowManagerNativeForeground.Acquire(probe.Handle, session.ThreadId);
+            });
+        }
+        catch (TimeoutException error)
+        {
+            throw new InvalidOperationException("NATIVE_PRECONDITION: the owned STA did not complete foreground acquisition; no test pointer input was sent. The child job owns bounded cleanup.", error);
+        }
+        probe.Fence();
+        WindowManagerNativeForeground.RequireStillForeground(probe.Handle, session.ThreadId);
+    }
+
+    internal NativeWindowPoint Center(Control control) => session.OnUi(() =>
+    {
+        var point = control.PointToScreen(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2));
+        return new NativeWindowPoint(point.X, point.Y);
+    });
+
+    internal NativeWindowPoint Caption(WindowManagerNativeContent content) => session.OnUi(() =>
+    {
+        var point = content.CaptionZone.PointToScreen(new Point(280, content.CaptionZone.Bounds.Height / 2));
+        return new NativeWindowPoint(point.X, point.Y);
+    });
+
+    // Supplemental mutation evidence only: observe state reached by real native delivery, never write it
+    // and never invoke HandleNativeWindowMessage. A09/A19 are otherwise masked by redundant guards/routing.
+    internal nint PendingCaption(AvaloniaWindow window) => session.OnUi(() => ReadPendingCaption(window));
+
+    private nint ReadPendingCaption(AvaloniaWindow window)
+    {
+        Dispatcher.UIThread.VerifyAccess();
+        var field = typeof(WindowManager).GetField("captionStates", BindingFlags.Instance | BindingFlags.NonPublic)
+            ?? throw new MissingFieldException(nameof(WindowManager), "captionStates");
+        var states = (IDictionary)field.GetValue(Manager)!;
+        if (!states.Contains(window)) return (nint)0;
+        var state = states[window]!;
+        return (nint)state.GetType().GetField("PendingHitTest", BindingFlags.Instance | BindingFlags.Public)!.GetValue(state)!;
+    }
+
+    internal void RestoreForNextCheck(AvaloniaWindow window, WindowManagerNativeProbe probe)
+    {
+        session.OnUi(() => window.WindowState = WindowState.Normal);
+        WindowManagerNativeMethods.Until(() => !WindowManagerNativeMethods.IsIconic(probe.Handle) && !WindowManagerNativeMethods.IsZoomed(probe.Handle),
+            "Fixture normalization did not restore the native window.");
+        Focus(window, probe);
+    }
+
+    public void Dispose()
+    {
+        Dispatcher.UIThread.VerifyAccess();
+        MainProbe.Dispose();
+        SettingsProbe.Dispose();
+    }
+}

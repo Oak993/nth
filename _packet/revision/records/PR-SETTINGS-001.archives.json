@@ -1,0 +1,40 @@
+{
+  "record": "PR-SETTINGS-001",
+  "archives": [
+    {
+      "original_directory": "_packet/revision/evidence/original-settings001-ordinary-2026-09-29T13-02-42-241Z-4886da",
+      "archive": "_packet/revision/evidence-archives/original-settings001-ordinary-2026-09-29T13-02-42-241Z-4886da.zip",
+      "archive_sha256": "181741780C19BA646438332F4633DF08AE07A17D449561E0AFDF6B64A4100DAC",
+      "manifest": "_packet/revision/evidence-archives/original-settings001-ordinary-2026-09-29T13-02-42-241Z-4886da.zip.json",
+      "file_count": 56
+    },
+    {
+      "original_directory": "_packet/revision/evidence/original-settings001-remaining-2026-09-29T13-06-12-209Z-706bce",
+      "archive": "_packet/revision/evidence-archives/original-settings001-remaining-2026-09-29T13-06-12-209Z-706bce.zip",
+      "archive_sha256": "EA77EF75142903662D5EE9D71828E61D0FE98416FAE043C25379178CEEB9AFB0",
+      "manifest": "_packet/revision/evidence-archives/original-settings001-remaining-2026-09-29T13-06-12-209Z-706bce.zip.json",
+      "file_count": 371
+    },
+    {
+      "original_directory": "_packet/revision/evidence/own-settings001-ordinary-2026-09-29T12-59-36-673Z-b1ba0b",
+      "archive": "_packet/revision/evidence-archives/own-settings001-ordinary-2026-09-29T12-59-36-673Z-b1ba0b.zip",
+      "archive_sha256": "B46F57BA974AAA208F6A0BB9CDE975B432B1A946DF5D0FB369E3E5466F123383",
+      "manifest": "_packet/revision/evidence-archives/own-settings001-ordinary-2026-09-29T12-59-36-673Z-b1ba0b.zip.json",
+      "file_count": 51
+    },
+    {
+      "original_directory": "_packet/revision/evidence/own-settings001-remaining-2026-09-29T13-01-26-344Z-55b38d",
+      "archive": "_packet/revision/evidence-archives/own-settings001-remaining-2026-09-29T13-01-26-344Z-55b38d.zip",
+      "archive_sha256": "DDDC7EB53069B3C29939A8E548FCD84E4DD73E4023FFD3D1EBA7CD10FAC7F808",
+      "manifest": "_packet/revision/evidence-archives/own-settings001-remaining-2026-09-29T13-01-26-344Z-55b38d.zip.json",
+      "file_count": 71
+    },
+    {
+      "original_directory": "_packet/revision/evidence/settings001-record-gate-2026-09-29T13-09-42-170Z-0c74b1",
+      "archive": "_packet/revision/evidence-archives/settings001-record-gate-2026-09-29T13-09-42-170Z-0c74b1.zip",
+      "archive_sha256": "E19FCA04DB42AE7387EB0BD6C9CD45369AB899D3992EDA2A878CAE3654A44957",
+      "manifest": "_packet/revision/evidence-archives/settings001-record-gate-2026-09-29T13-09-42-170Z-0c74b1.zip.json",
+      "file_count": 75
+    }
+  ]
+}

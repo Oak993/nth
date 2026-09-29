@@ -72,6 +72,8 @@ public sealed class WindowManager
     private const uint WM_CONTEXTMENU = 0x007B;
     private const uint WM_NCLBUTTONDOWN = 0x00A1;
     private const uint WM_NCLBUTTONUP = 0x00A2;
+    private const uint WM_LBUTTONUP = 0x0202;
+    private const uint WM_NCHITTEST = 0x0084;
     private const uint WM_SYSCOMMAND = 0x0112;
     private const uint WM_CANCELMODE = 0x001F;
     private const uint WM_CAPTURECHANGED = 0x0215;
@@ -317,7 +319,11 @@ public sealed class WindowManager
                 return 0;
 
             case WM_NCLBUTTONUP when state.PendingHitTest != 0:
+            case WM_LBUTTONUP when state.PendingHitTest != 0:
             {
+                // SetCapture routes the physical release through WM_LBUTTONUP in client coordinates.
+                // Re-hit-test that release against this HWND; a release over another control cancels.
+                if (message == WM_LBUTTONUP) wParam = CaptionHitAtClientPoint(hWnd, lParam);
                 var hitTest = state.PendingHitTest;
                 state.PendingHitTest = 0;
                 if (OperatingSystem.IsWindows() && hWnd != 0) _ = ReleaseCapture();
@@ -351,7 +357,9 @@ public sealed class WindowManager
                 var rawCommand = unchecked((uint)wParam.ToInt64());
                 if ((rawCommand & 0xFFF0) == SC_KEYMENU)
                 {
-                    if (TryShowSystemMenu(window, hWnd, lParam))
+                    // ED-063/P7: only Space requests the window menu. Other mnemonics belong to
+                    // normal platform handling; lParam is a character here, not packed coordinates.
+                    if (lParam == (nint)' ' && TryShowSystemMenu(window, hWnd, lParam, keyboard: true))
                     {
                         handled = true;
                         return 0;
@@ -396,7 +404,8 @@ public sealed class WindowManager
         {
             SC_CLOSE => CloseWindow(window),
             SC_MINIMIZE when window.CanMinimize => SetWindowState(window, WindowState.Minimized),
-            SC_MAXIMIZE when window.CanMaximize => SetWindowState(window, WindowState.Maximized),
+            // Consume a denied maximize too: falling through lets DefWindowProc maximize a fixed Settings HWND.
+            SC_MAXIMIZE => !window.CanMaximize || SetWindowState(window, WindowState.Maximized),
             SC_RESTORE when window.WindowState != WindowState.Normal => SetWindowState(window, WindowState.Normal),
             _ => false,
         };
@@ -413,7 +422,17 @@ public sealed class WindowManager
         return true;
     }
 
-    private static bool TryShowSystemMenu(AvaloniaWindow window, nint hWnd, nint lParam)
+    private static nint CaptionHitAtClientPoint(nint hWnd, nint lParam)
+    {
+        if (!OperatingSystem.IsWindows() || hWnd == 0) return 0;
+        var packed = unchecked((int)lParam.ToInt64());
+        var point = new NativePoint { X = (short)(packed & 0xFFFF), Y = (short)(packed >> 16) };
+        if (!ClientToScreen(hWnd, ref point)) return 0;
+        var screen = unchecked((nint)(uint)((ushort)(short)point.X | ((uint)(ushort)(short)point.Y << 16)));
+        return SendMessage(hWnd, WM_NCHITTEST, 0, screen);
+    }
+
+    private static bool TryShowSystemMenu(AvaloniaWindow window, nint hWnd, nint lParam, bool keyboard = false)
     {
         if (!OperatingSystem.IsWindows() || hWnd == 0) return false;
         var menu = GetSystemMenu(hWnd, false);
@@ -426,6 +445,12 @@ public sealed class WindowManager
         SetMenuItemState(menu, SC_CLOSE, true);
 
         var point = ContextMenuPoint(lParam);
+        if (keyboard)
+        {
+            // Preserve the proven P7 keyboard-menu anchor at the leading caption, not (' ', 0).
+            if (!GetWindowRect(hWnd, out var frame)) return false;
+            point = new ScreenPoint(frame.Left + 8, frame.Top + 44);
+        }
         var command = TrackPopupMenuEx(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, point.X, point.Y, hWnd, 0);
         if (command != 0) _ = PostMessage(hWnd, WM_SYSCOMMAND, (nint)command, 0);
         return true;
@@ -450,6 +475,15 @@ public sealed class WindowManager
         public int Y;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
     [DllImport("user32.dll", SetLastError = true)] private static extern nint SetCapture(nint hWnd);
     [DllImport("user32.dll", SetLastError = true)] private static extern bool ReleaseCapture();
     [DllImport("user32.dll", SetLastError = true)] private static extern nint GetSystemMenu(nint hWnd, bool revert);
@@ -457,6 +491,9 @@ public sealed class WindowManager
     [DllImport("user32.dll", SetLastError = true)] private static extern uint TrackPopupMenuEx(
         nint menu, uint flags, int x, int y, nint hWnd, nint reserved);
     [DllImport("user32.dll", SetLastError = true)] private static extern bool GetCursorPos(out NativePoint point);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool ClientToScreen(nint hWnd, ref NativePoint point);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool GetWindowRect(nint hWnd, out NativeRect frame);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern nint SendMessage(nint hWnd, uint message, nint wParam, nint lParam);
     [DllImport("user32.dll", SetLastError = true)] private static extern bool PostMessage(
         nint hWnd, uint message, nint wParam, nint lParam);
 
