@@ -1007,17 +1007,21 @@ public sealed class ThreadRuntime : MainActorModel
 
     // MARK: - Follow-up queue
 
-    // :772-774
-    public bool CanQueue => phase != RuntimePhase.Idle && !isReverting && !draft.IsEmpty; // ThreadRuntime.swift:772-774
+    // :768-773 While a turn runs, and while heads are out with the lead waiting on them. Reads neither the draft nor a
+    // revert.
+    public bool CanQueue => IsRunning || HasWorkingHeads; // ThreadRuntime.swift:771-773
 
-    // :781-789
-    public void QueueDraftAsFollowUp() // ThreadRuntime.swift:781-789
+    // :775-788 With nothing to queue behind, the draft simply goes out: the queue chord is never a dead key.
+    public void QueueDraftAsFollowUp() // ThreadRuntime.swift:780-788
     {
-        if (!CanQueue) return;
-        var text = FoundationText.Trim(draft.OutgoingText, includeNewlines: true);
-        var attachments = draft.Attachments;
-        Draft = new ComposerDraft();
-        EnqueueFollowUpCore(text, attachments);
+        if (IsReverting || Draft.IsEmpty) return; // :781
+        if (!CanQueue) // :782-785
+        {
+            Send();
+            return;
+        }
+        EnqueueFollowUp(Draft.OutgoingText, Draft.Attachments); // :786
+        Draft = new ComposerDraft(); // :787
     }
 
     // :809-830
@@ -1310,11 +1314,11 @@ public sealed class ThreadRuntime : MainActorModel
         }
     }
 
-    // :992-1009. Swift: enqueueFollowUp(text:attachments:).
+    // :991-1008. Swift: enqueueFollowUp(text:attachments:).
     public void EnqueueFollowUp(string text, IReadOnlyList<Attachment> attachments) =>
-        EnqueueFollowUpCore(text, attachments); // ThreadRuntime.swift:992-1009
+        EnqueueFollowUpCore(text, attachments); // ThreadRuntime.swift:991-1008
 
-    // ThreadRuntime.swift:992-1009
+    // ThreadRuntime.swift:991-1008
     private void EnqueueFollowUpCore(string text, IReadOnlyList<Attachment> attachments)
     {
         var prompt = new FollowUpPrompt
@@ -1327,6 +1331,9 @@ public sealed class ThreadRuntime : MainActorModel
         FollowUps = followUps.Appending(prompt);
         saveRevision++;
         ScheduleSave();
+        // :1003-1007 An idle lead takes the next queued message at once, even with heads still out: the queue only
+        // ever waits behind a running turn, never behind an idle lead.
+        FlushFollowUpsIfIdle();
     }
 
     // :1074-1079
