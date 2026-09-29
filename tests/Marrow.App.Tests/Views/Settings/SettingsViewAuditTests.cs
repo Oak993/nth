@@ -71,4 +71,16 @@ public sealed class SettingsViewAuditTests(HeadlessSession headless) : SettingsR
         Assert.Equal("Renamed", Text(Row(view, "Archived 0"))[1]);
     }, before: h => Library(h, 1));
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-238")] // SettingsView.swift:989-998 the app-icon HStack centres the two-line label block against the 56-point icon
+    public void The_about_label_block_is_centred_beside_the_icon() => With(() => new AboutSettingsPage(), (view, _, _, _) =>
+    {
+        var icon = Nodes<Image>(view).First(i => i.Width == 56);
+        var name = Nodes<TextBlock>(view).First(t => t.Text == "Marrow");
+        var version = Nodes<TextBlock>(view).First(t => t.Text?.StartsWith("Version ", StringComparison.Ordinal) == true);
+        var iconCentre = icon.TranslatePoint(new Point(0, icon.Bounds.Height / 2), view)!.Value.Y;
+        var top = name.TranslatePoint(default, view)!.Value.Y;
+        var bottom = version.TranslatePoint(new Point(0, version.Bounds.Height), view)!.Value.Y;
+        Assert.InRange(Math.Abs(iconCentre - (top + bottom) / 2), 0, 1);
+    });
 }
