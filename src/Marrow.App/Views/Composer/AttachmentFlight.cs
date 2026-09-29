@@ -131,15 +131,21 @@ public sealed class ScreenFrameReader : Control
         AttachedToVisualTree += (_, _) => Report(); // :163-166
     }
 
-    // :168-171 Convert the reader's bounds into a screen rectangle whenever it has a window.
+    // The view this reader stands behind. In SwiftUI the reader is the content's background and so is exactly the content's
+    // frame; here the reader is a sibling, so it measures the content it backs. Null: the reader's own bounds.
+    public Func<Control?>? Subject { get; set; }
+
+    // :168-171 Convert the subject's bounds into a screen rectangle whenever it has a window, through the view hierarchy so
+    // that a visual transform is part of the frame (convert(bounds, to: nil)).
     private void Report()
     {
         if (TopLevel.GetTopLevel(this) is not { } topLevel) return;
-        var inWindow = this.TranslatePoint(new Point(0, 0), topLevel);
-        if (inWindow is null) return;
-        var origin = topLevel.PointToScreen(inWindow.Value);
+        var subject = Subject?.Invoke() ?? this;
+        if (subject.TransformToVisual(topLevel) is not { } transform) return;
+        var inWindow = new Rect(subject.Bounds.Size).TransformToAABB(transform);
+        var origin = topLevel.PointToScreen(inWindow.TopLeft);
         var scale = topLevel.RenderScaling;
-        OnChange(new Rect(origin.X / scale, origin.Y / scale, Bounds.Width, Bounds.Height));
+        OnChange(new Rect(origin.X / scale, origin.Y / scale, inWindow.Width, inWindow.Height));
     }
 }
 
@@ -157,7 +163,7 @@ public sealed class AttachmentArrival : Grid
         this.isNew = isNew;
         this.drops = drops ?? AttachmentDrops.Shared.Current;
         this.flight = flight ?? AttachmentFlight.Shared.Current;
-        reader = new ScreenFrameReader(Report);
+        reader = new ScreenFrameReader(Report) { Subject = () => Children.Count > 1 ? Children[1] : null }; // :192-193 background of the content
         Children.Add(reader);
         if (content is not null) Children.Add(content);
     }
