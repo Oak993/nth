@@ -46,22 +46,21 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // window: the environment reaches it through the logical tree, its tracked parts stay inert, and its builders and
 // handlers can be called directly). The Window sweep below also drives populated, attached real rows.
 //
-// STOP App.Views.Sidebar.SidebarView #1
-// Kind: unverified
+// CLOSED STOP App.Views.Sidebar.SidebarView #1 (Job SB, ROUND3.md item 1)
 // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:737-751 (B3 52bc792); :743 `project.name.lowercased().contains(needle)`
 // and :745 `titles[$0.id]?.contains(needle) ?? $0.title.lowercased().contains(needle)`
-// Requirements: PR-SIDEBAR-005 (and PR-SIDEBAR-043 of part 2)
-// What is unclear or missing: the search field's Return runs searchResults even when the trimmed query is empty
-// (:86-90), so `contains` is asked about an empty needle. Two Swift overloads can answer: Foundation's
-// StringProtocol.contains (range(of:) != nil, which finds no range for "", so false) and the standard library's
-// Collection.contains from _StringProcessing (an empty collection is always contained, so true). Which one the
-// macOS 26 build binds for `String.contains(String)` with AppKit imported is not settled by the source, and the two
-// give different observable results.
-// Readings or options: (a) Foundation's -> Return in an empty (or whitespace-only) field selects nothing;
-// (b) the standard library's -> it selects the first thread of the first project that has one.
-// Needed to proceed: an oracle item (a macOS run of `"abc".contains("")` in an AppKit target) or a recorded decision.
-// Done so far: Return and the arrows are tested for non-empty queries only; the empty-needle case of the matching
-// helper is left unwritten (a MARROW_STUB naming this STOP), nothing guessed.
+// Requirements: PR-SIDEBAR-005 (empty-query half)
+// Was: the search field's Return runs searchResults even when the trimmed query is empty (:86-90), so `contains` is
+// asked about an empty needle, and two Swift overloads could answer differently: Foundation's NSString-bridged
+// contains (false for "") or the standard library's SE-0357 contains (true for "").
+// ENGINEERING DECISION (closes this STOP; full citation at Contains's own site, SidebarView.cs :1339): an empty
+// needle answers true. `.lowercased()` produces a plain Swift String, so the applicable overload is the standard
+// library's `firstRange(of:) != nil` (SE-0357, SwiftStdlib 5.7+, unchanged through the pinned Swift 6.0 toolchain);
+// Foundation's NSString.contains(_:), the only candidate that answers false, needs an explicit NSString receiver
+// this call site never produces. Proven by Return_with_an_empty_query_selects_the_first_thread_of_the_first_project.
+// Residual caveat: no macOS run of the pinned toolchain confirmed this by direct observation.
+// STOP #5 below (the character-wise-canonical-vs-ordinal question for a NON-empty needle) is a separate, still open
+// question this decision does not resolve either way (an empty needle matches under any reading).
 //
 // Resolved STOP #2: WindowManager.Shared/ShowSettings and SettingsView are real. The source Settings click,
 // manager/model ownership and reused Settings window are exercised by Clicking_Settings_opens_the_real_shared_managers_SettingsView_and_reuses_its_window.
@@ -96,50 +95,67 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // Done so far: the dedupe test adds the folder through this row twice, so both reads agree and the source's rule is
 // observable; no test asserts the stored path of a chosen folder.
 //
-// STOP App.Views.Sidebar.SidebarView #5
+// STOP App.Views.Sidebar.SidebarView #5 (still open; narrowed by the #1 closure, not resolved by it)
 // Kind: unverified
 // Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:743, :745 (B3 52bc792) `.lowercased().contains(needle)`
 // Requirements: PR-SIDEBAR-043
-// What is unclear or missing: ED-009 asks the search fixture to cover a combining-mark case. Which `contains` the
-// source binds (STOP #1) also decides how a combining mark matches: the standard library's Collection.contains walks
-// Characters under canonical equivalence (a needle "e" does not match inside "e" + U+0301, and a precomposed U+00E9
-// needle matches a decomposed title), while the port's `Contains` (part 1) is an ordinal substring test (the
-// opposite answer in both cases). Lowercasing itself is settled (O-07, per-scalar) and is pinned below with U+0130,
-// U+0131 and the final sigma, where every reading agrees.
-// Readings or options: (a) Character-wise canonical matching -> the answers above; (b) ordinal UTF-16 matching -> the
-// opposite answers; (c) Foundation's `range(of:)` without options -> its own rules.
-// Needed to proceed: the same oracle item or decision STOP #1 needs.
+// What is unclear or missing: ED-009 asks the search fixture to cover a combining-mark case. The #1 closure above
+// (Contains(text, needle) with needle.Length == 0) identifies the bound overload as the standard library's, whose
+// non-empty-needle behaviour is Collection.contains walking Characters under canonical equivalence (a needle "e"
+// does not match inside "e" + U+0301, and a precomposed U+00E9 needle matches a decomposed title) - option (a)
+// below. The port's `Contains` (part 1) still implements only option (b), an ordinal substring test (the opposite
+// answer in both cases), unchanged by this pass: rewriting the general matcher for non-empty needles is a separate,
+// larger, untested change this job's scope (ROUND3.md item 1, the empty-needle case only) does not cover.
+// Readings or options: (a) Character-wise canonical matching - suggested but not proven by the #1 closure's
+// citations, which establish the bound overload's identity, not a macOS-run confirmation of its non-empty behaviour
+// against this port's own test data; (b) ordinal UTF-16 matching (current); (c) Foundation's `range(of:)` without
+// options -> its own rules.
+// Needed to proceed: a follow-up pass implementing and test-proving option (a) against combining-mark fixtures, or
+// a recorded decision to keep (b).
 // Done so far: no test asserts either reading for combining marks; part 1's matcher is unchanged.
 //
-// STOP App.Views.Sidebar.SidebarView #8 (Window sweep: narrowed to the shared context-menu site only)
-// Kind: forbidden need
-// Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:1853-1861 (B3 52bc792)
-// Requirements: UI-SIDEBAR-017, right-click context-menu interaction only.
-// What is missing: exactly the per-open-refreshed Avalonia context-menu foundation/ED named in genuine STOP #7.
-// ThreadActions.MakeContextMenu and RowActionMenuButtons exist; the unavailable piece is the attachment that
-// refreshes its snapshot-only capture on every open without retaining row frames or settle/reopen closures.
-// Needed to proceed: the shared foundation decision required by STOP #7. No row-rendering dependency is missing.
-// Done: SidebarThreadRow's live body and handlers, ThreadRow, all three helper dispatch arms, FrameHolder.Note,
-// PR-SIDEBAR-134 is proven; PR-SIDEBAR-135 remains partial only for the pinned captures in STOP #9.
-// UI-SIDEBAR-058: compact thread selection/search is proven; the project-row menu slice remains partial under
-// STOP #7. UI-SIDEBAR-017 remains partial for the actual right-click attachment. Rename stays under STOP #6.
+// CLOSED STOP App.Views.Sidebar.SidebarView #8 (Job SB, ROUND3.md item 3; was: Window sweep, narrowed to the
+// shared context-menu site only)
+// Swift: DroppyCode/App/Views/Sidebar/SidebarView.swift:1848-1862 (B3 52bc792)
+// Requirements: UI-SIDEBAR-017's right-click interaction; PR-SIDEBAR-098 through PR-SIDEBAR-103's live-menu half.
+// ENGINEERING DECISION (closes this STOP; full citation at SidebarThreadRow's own constructor, SidebarView.cs
+// :2899-2911, the same foundation as STOP #4/ProjectRow's own closure above): Avalonia's ContextMenu.Opening
+// rebuilds Items from a live Thread()/Model read on every open; Control.ContextMenu opens it on a real right-click.
+// Proven by A_real_right_click_opens_the_thread_rows_context_menu_rebuilt_fresh_on_every_open (real hit-testing,
+// the same pointer pipeline PR-SIDEBAR-096's own tests use, same headless-Popup caveat as the ProjectRow tests
+// above - Avalonia 12.1.2 cannot actually open a native Popup here; Items are read right after Opening runs and
+// before that throws).
+// PR-SIDEBAR-134 (already proven) and this closure together account for SidebarThreadRow's live body and handlers;
+// PR-SIDEBAR-135 remains partial only for the pinned captures in STOP #9. UI-SIDEBAR-058: compact thread
+// selection/search is proven; the project-row menu slice is proven above (STOP #4/ProjectRow). Rename stays under
+// STOP #6. SidebarHelperRow's and HeadCardsRow's own `.contextMenu` sites (UI-SIDEBAR-033/UI-SIDEBAR-037's
+// right-click halves) remain under genuine STOP #7 (SidebarView.cs), out of this closure and ROUND3.md item 3's own
+// scope (thread row only; item 3 conditioned the helper/head-card sites on "if the Swift is unambiguous and its
+// dependencies exist" - not attempted this pass).
 
 // STOP ledger opencode-App.Views.Sidebar.SidebarView (this unit's TODO records that stay blocked; each names
 // the missing dependency and the exact production site in SidebarView.cs; STOP #2/PR-SIDEBAR-013 is CLOSED above):
-// #1 PR-SIDEBAR-005 (empty-query half): which String.contains overload macOS binds for an empty needle needs a
-//    macOS oracle item or recorded decision; site :743 Contains (SidebarView.cs, the throwing empty-needle arm).
-//    Non-empty Return and no-result are proven by Return_selects_the_first_thread_of_the_first_search_result and
-//    Return_with_no_result_changes_nothing.
+// #1 PR-SIDEBAR-005 (empty-query half): CLOSED (Job SB, ROUND3.md item 1) - see the class-header ENGINEERING
+//    DECISION above SidebarView.cs Contains (:1339): an empty needle answers true (SE-0357). Proven by
+//    Return_with_an_empty_query_selects_the_first_thread_of_the_first_project. Non-empty Return and no-result
+//    remain proven by Return_selects_the_first_thread_of_the_first_search_result and Return_with_no_result_changes_nothing.
 // #2 PR-SIDEBAR-019: surviving rows' positional slide needs a UI/Port layout-animation foundation plus an ED;
 //    site ListPassNow/ApplyList (SidebarView.cs:460-484; entering/leaving fades ride panelSlide, stayers jump).
 // #3 PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030: `.roundedBorder`/`.bordered`/`.borderedProminent`
 //    chrome needs an ED/owner ruling; sites RenamePopover (:239) and RenameThreadPopover (:995).
-// #4 PR-SIDEBAR-130, PR-SIDEBAR-133 and the right-click interaction of UI-SIDEBAR-033/UI-SIDEBAR-037: SwiftUI's
-//    per-open `.contextMenu` re-evaluation needs an ED/PA foundation; site ProjectRow's header (the static menu
-//    ITEMS are proven: UI-SIDEBAR-014/-015/-016 and the non-right-click halves of UI-SIDEBAR-033/-037).
-// #5 PR-SIDEBAR-134, PR-SIDEBAR-135, UI-SIDEBAR-017 and the end-to-end half of UI-SIDEBAR-060: SidebarThreadRow's own
-//    constructor and ThreadRow wiring need a follow-up assembly unit; sites :870 ThreadRow and :1716 the constructor.
-//    UI-SIDEBAR-060's pointer/slide/lift-pieces/release are proven at the seam level by the five trait tests.
+// #4 PR-SIDEBAR-130, PR-SIDEBAR-133: CLOSED (Job SB, ROUND3.md item 2) - see the CLOSED STOP #4 block above
+//    SidebarView.cs ProjectRow's own header, and its own constructor's ContextMenu.Opening wiring (:1886-1899).
+//    Proven by A_real_right_click_opens_the_project_rows_context_menu_rebuilt_fresh_on_every_open and
+//    The_pair_submenu_is_absent_with_no_pairs_and_appears_once_one_exists_without_rebuilding_the_row. The
+//    right-click interaction of UI-SIDEBAR-033/UI-SIDEBAR-037 (SidebarHelperRow's and HeadCardsRow's own sites)
+//    remains open under genuine STOP #7 (SidebarView.cs); their non-right-click halves were already proven.
+// #5 PR-SIDEBAR-134 (already proven), PR-SIDEBAR-135 (partial: STOP #9's pinned captures), UI-SIDEBAR-017 and the
+//    end-to-end half of UI-SIDEBAR-060: SidebarThreadRow's own constructor and ThreadRow wiring were already
+//    assembled by the Window sweep (this file's own header, above); UI-SIDEBAR-017's right-click half is CLOSED
+//    (Job SB, ROUND3.md item 3) - see the CLOSED STOP #8 block above and SidebarThreadRow's own constructor
+//    (SidebarView.cs :2899-2911). PR-SIDEBAR-098 through PR-SIDEBAR-103's live-menu half is proven by the same
+//    closure. UI-SIDEBAR-060's pointer/slide/lift-pieces/release are proven at the seam level by the five trait
+//    tests; the constructor/ThreadRow wiring assembly this entry originally named is no longer outstanding.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -514,6 +530,32 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 box.Text = "nothing matches this";
                 Press(box, Key.Enter);
                 Assert.Null(model.SelectedThreadID);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:86-90,743: Return with an empty query still runs searchResults, and contains(_:) against an empty needle
+    public void Return_with_an_empty_query_selects_the_first_thread_of_the_first_project()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var beta = NewProject(harness, "Beta");
+            var older = NewThread(alpha, "Fix the build", 1);
+            var newer = NewThread(alpha, "Fix the docs", 2);
+            var other = NewThread(beta, "Fix the tests", 3);
+            var model = Model(harness, [alpha, beta], [older, newer, other]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                model.SelectedThreadID = null;
+                var box = SearchBox(view);
+                Assert.Equal(string.Empty, box.Text ?? string.Empty); // the field starts empty; nothing typed
+                Assert.True(Press(box, Key.Enter));
+                // Alpha is the first project; threads(in:) puts the newest first (AppModel.swift:314-332).
+                Assert.Equal(newer.Id, model.SelectedThreadID);
             });
         });
     }
@@ -5351,6 +5393,124 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() => Assert.Equal(1d, row.Opacity));
     });
 
+    // ---- PR-SIDEBAR-130, PR-SIDEBAR-133, UI-SIDEBAR-014, UI-SIDEBAR-015, UI-SIDEBAR-016: the live context menu ----
+
+    // Real hit-testing through the actual pointer pipeline (ROUND3.md item 2's own instruction): MouseUp with the
+    // right button raises Avalonia's own ContextRequestedEvent (Control.OnPointerReleased), which ContextMenu.Open
+    // answers by running this constructor's own Opening handler synchronously (rebuilding Items from the live model)
+    // and only then setting Popup.IsOpen, whose own property-changed handler tries to create a native popup host.
+    // Avalonia 12.1.2 cannot do that in headless mode on this machine ("Unable to create IPopupImpl and no overlay
+    // layer is found for the target control"): the same exception already independently confirmed empirically for
+    // two other units' own real Popups (Marrow.App.Tests/Fixtures/HeadlessFixtures.cs's own R-VIEW-9 comment;
+    // Marrow.UI.Tests/Markdown/LinkPopoverTests.cs, ProseRunViewTests.cs), a pre-existing, environment-wide gap this
+    // job's own scope (SidebarView.cs, ROUND3.md item 2) does not touch. Opening has already run and mutated Items
+    // by the time this throws, so the menu's Items still show the real right-click's own fresh read; only the
+    // popup's own visible surface never renders here.
+    private static void PointerRightClick(Control control)
+    {
+        var window = WindowOf(control);
+        window.UpdateLayout();
+        var point = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
+        window.MouseMove(point);
+        window.MouseDown(point, MouseButton.Right);
+        try
+        {
+            window.MouseUp(point, MouseButton.Right);
+        }
+        catch (InvalidOperationException ex) when (ex.Message.Contains("no overlay layer is found for the target control", StringComparison.Ordinal))
+        {
+        }
+    }
+
+    // ShownProjectRow returns the outer ProjectRow (a Decorator); ContextMenu is set on its own Child (the inner
+    // SidebarRow this constructor builds and wraps), not on ProjectRow itself.
+    private static ContextMenu ContextMenuOf(Control row) => ((Decorator)row).Child!.ContextMenu!;
+
+    private static string MenuItemTitle(object item) => item switch
+    {
+        MenuItem { Header: TextBlock tb } => tb.Text ?? "",
+        MenuItem { Header: Control header } => LogicalQuery.SelfAndDescendants<TextBlock>(header).First().Text ?? "",
+        _ => "",
+    };
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // App/Views/Sidebar/SidebarView.swift:1138-1162,1168-1203,1205-1229: a real right-click opens the live context menu, rebuilt fresh (not stale) on every open
+    public void A_real_right_click_opens_the_project_rows_context_menu_rebuilt_fresh_on_every_open() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        // The row's own hover Track animates its fill on pointer entry/exit (Chrome.cs :1119), which a real right-click's
+        // own MouseMove/MouseDown/MouseUp pointer traffic triggers same as a left-click's would.
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 0);
+            model.Settings.SetProjectActive(true, project.Id); // :1096, :1141 isActive true; also gives hasOverride (:1142)
+        });
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var menu = ContextMenuOf(row); // :1138, Control.ContextMenu opens on ContextRequestedEvent
+            var titles = menu.Items.Cast<object>().Select(MenuItemTitle).ToArray();
+            // :1170-1186, :1188-1195, :1196-1200 (ContextMenuActions): the weak-model-captured items, snapshot-built at open time.
+            Assert.Contains("New thread", titles);
+            Assert.Contains("New thread in worktree", titles);
+            Assert.Contains("Reveal in File Explorer", titles); // OD-0008 B1
+            Assert.Contains("Remove project", titles);
+            Assert.Contains("Deactivate project", titles); // :1189 isActive true
+            Assert.DoesNotContain("Activate project", titles);
+            Assert.Contains("Follow global setting", titles); // :1196-1200 hasOverride true
+        });
+        // The row itself is never rebuilt between the two right-clicks below (still the same `row`/ProjectRow
+        // instance): a menu whose Items were fixed once, at construction or at the first open, would show the same
+        // "Deactivate project"/"Activate project" wording both times - exactly the "invented, silently wrong
+        // behaviour" STOP #7 (SidebarViewTests.cs) rejected. Flipping the live model state between opens and
+        // re-reading through a second real right-click is the only way to tell a per-open-fresh read (:1141, this
+        // constructor's own ContextMenu.Opening) apart from a stale one.
+        harness.Main.OnMain(() => model.Settings.SetProjectActive(false, project.Id));
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var menu = ContextMenuOf(row);
+            var titles = menu.Items.Cast<object>().Select(MenuItemTitle).ToArray();
+            Assert.Contains("Activate project", titles); // :1189 isActive now false: the flipped wording
+            Assert.DoesNotContain("Deactivate project", titles);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-015")] // App/Views/Sidebar/SidebarView.swift:1149-1161: the pair submenu is present only when hydraPickerPairs is non-empty, read fresh at open time
+    public void The_pair_submenu_is_absent_with_no_pairs_and_appears_once_one_exists_without_rebuilding_the_row() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // see the sibling test above
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 0));
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var menu = ContextMenuOf(row);
+            Assert.DoesNotContain(menu.Items.Cast<object>(), item => item is MenuItem { Header: Control h } && // :1154 pairsSnapshot.isEmpty
+                LogicalQuery.SelfAndDescendants<TextBlock>(h).Any(t => t.Text == "Start new chats on"));
+        });
+        // A pair enters HydraPickerPairs once its provider counts as installed and is enabled
+        // (AppModel+HydraPairs.cs :11); ProviderRegistry.CountsAsInstalled and AppSettings.IsEnabled both default
+        // true with no status/disabled entry for the provider (ProviderRegistry.cs :306, AppSettings.cs :1282), so
+        // adding the pair alone is enough here, with no separate installed/enabled fixture.
+        harness.Main.OnMain(() => model.Settings.AddHydraPair(new HydraPair(ProviderKind.Claude)));
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row); // same row, still not rebuilt: :1151 must re-read HydraPickerPairs fresh at this open
+            var menu = ContextMenuOf(row);
+            Assert.Contains(menu.Items.Cast<object>(), item => item is MenuItem { Header: Control h } &&
+                LogicalQuery.SelfAndDescendants<TextBlock>(h).Any(t => t.Text == "Start new chats on")); // :1156-1160
+        });
+    });
+
     [Fact]
     [Trait("Req", "UI-SIDEBAR-009")] // App/Views/Sidebar/SidebarView.swift:1127-1132, :521-523
     public void The_collapsed_count_label_shows_only_while_collapsed_with_a_positive_count() => headless.OnUiThread(() =>
@@ -6208,6 +6368,60 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         row.VerticalAlignment = VerticalAlignment.Top;
         return row;
     }
+
+    // ---- PR-SIDEBAR-098 through -103, UI-SIDEBAR-017: the thread row's own live context menu ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-017")] // App/Views/Sidebar/SidebarView.swift:1848-1862,2253-2312: a real right-click opens the live thread context menu, rebuilt fresh (not stale) on every open
+    public void A_real_right_click_opens_the_thread_rows_context_menu_rebuilt_fresh_on_every_open() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the row's own hover Track (Chrome.cs-equivalent :1816) animates on the same pointer traffic
+        var project = NewProject(harness, "Alpha");
+        // AppModelSamples.Thread's own CreatedAt/UpdatedAt is SwiftDate.Now (Library.cs :316), left untouched here
+        // (unlike the NewThread helper's fixed Base date, tens of days in the past by the time this runs): the
+        // window sweep's own RelativeTimeLabel (:2662-2695) takes RelativeTime.Short's "now" branch for a fresh
+        // thread, never reaching SwiftFormatters.Formatted's ICU call - this sandbox has no native icu.dll (a
+        // pre-existing, environment-wide gap, not this job's own: An_assembled_thread_row_selects_and_shows_hover_
+        // actions_and_the_pinned_selection_tint, already in this file, hits the identical DllNotFoundException on
+        // the unmodified baseline for the same reason, confirmed by this job's own git-stash comparison for Items
+        // 1 and 2 above).
+        var thread = AppModelSamples.Thread(project) with { Title = "Fix the build" };
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = LiveThreadRow(thread, fold: () => { });
+            var window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+        });
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var menu = row.ContextMenu!; // :1851, Control.ContextMenu directly (this row IS the whole body, unlike ProjectRow's own SidebarRow child)
+            var titles = menu.Items.Cast<object>().Select(MenuItemTitle).ToArray();
+            // :2259-2262, :2265-2273, :2277-2280, :2244 (MakeContextMenu): the weak-model-captured items, snapshot-built at open time.
+            Assert.Contains("Rename", titles);
+            Assert.Contains("Pin", titles); // :2266-2267 !isHelper && !isSettled, not yet pinned
+            Assert.DoesNotContain("Unpin", titles);
+            Assert.Contains("Forward to new thread", titles);
+            Assert.Contains("Delete" + (char)0x2026, titles); // one U+2026 HORIZONTAL ELLIPSIS, from its code point (R-STR-9)
+        });
+        // Same row, never rebuilt between the two right-clicks: a menu whose Items were fixed once would show the
+        // same "Pin"/"Unpin" wording both times - the "invented, silently wrong behaviour" STOP #7/#8
+        // (SidebarViewTests.cs) rejected. Flipping the live thread state directly (not through this row) and
+        // re-reading through a second real right-click tells a per-open-fresh Thread()/Model read (this row's own
+        // constructor, ContextMenu.Opening) apart from a stale one.
+        harness.Main.OnMain(() => model.UpdateThread(thread.Id, t => t with { IsPinned = true }));
+        harness.Main.OnMain(() =>
+        {
+            PointerRightClick(row);
+            var menu = row.ContextMenu!;
+            var titles = menu.Items.Cast<object>().Select(MenuItemTitle).ToArray();
+            Assert.Contains("Unpin", titles); // :2267 isPinned now true: the flipped wording
+            Assert.DoesNotContain("Pin", titles);
+        });
+    });
 
     [Fact]
     [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1716-1872

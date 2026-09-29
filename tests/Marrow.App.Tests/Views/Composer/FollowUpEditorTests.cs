@@ -109,7 +109,14 @@ public sealed class FollowUpEditorTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness();
-            h.Main.OnMain(() => h.Runtime.EnqueueFollowUp("original text", []));
+            // A prompt stays queued behind a running turn; an idle lead would take it out of the queue at once
+            // (ThreadRuntime.swift:1003-1007, :1054-1061). The load lands first, as it would before any turn.
+            h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.RehearseTurn(null);
+                h.Runtime.EnqueueFollowUp("original text", []);
+            });
             var id = h.Main.OnMain(() => h.Runtime.FollowUps.Single().Id);
             var edit = h.Main.OnMain(() => new PromptEdit(id, "hello world", ValueList<Attachment>.Empty));
             h.Main.OnMain(() =>
@@ -137,7 +144,14 @@ public sealed class FollowUpEditorTests(HeadlessSession headless)
             using var h = RuntimeHarness();
             var attachment = new Attachment { Name = "a.txt", Path = @"C:
 o-such-folder.txt", MimeType = "text/plain" };
-            h.Main.OnMain(() => h.Runtime.EnqueueFollowUp("original text", []));
+            // A prompt stays queued behind a running turn; an idle lead would take it out of the queue at once
+            // (ThreadRuntime.swift:1003-1007, :1054-1061). The load lands first, as it would before any turn.
+            h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.RehearseTurn(null);
+                h.Runtime.EnqueueFollowUp("original text", []);
+            });
             var id = h.Main.OnMain(() => h.Runtime.FollowUps.Single().Id);
             var edit = h.Main.OnMain(() => new PromptEdit(id, "with a file", new ValueList<Attachment>([attachment])));
             h.Main.OnMain(() =>
@@ -160,7 +174,14 @@ o-such-folder.txt", MimeType = "text/plain" };
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness();
-            h.Main.OnMain(() => h.Runtime.EnqueueFollowUp("original text", []));
+            // A prompt stays queued behind a running turn; an idle lead would take it out of the queue at once
+            // (ThreadRuntime.swift:1003-1007, :1054-1061). The load lands first, as it would before any turn.
+            h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+            h.Main.OnMain(() =>
+            {
+                h.Runtime.RehearseTurn(null);
+                h.Runtime.EnqueueFollowUp("original text", []);
+            });
             var id = h.Main.OnMain(() => h.Runtime.FollowUps.Single().Id);
             var edit = h.Main.OnMain(() => new PromptEdit(id, "should not be saved", ValueList<Attachment>.Empty));
             h.Main.OnMain(() =>

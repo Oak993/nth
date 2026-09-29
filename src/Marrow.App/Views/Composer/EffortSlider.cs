@@ -172,13 +172,25 @@ public sealed class ModelEffortPanel : Decorator
     public ModelEffortPanel(Guid threadID, bool hasHistory)
     {
         Width = 330; Child = pages; // :186
-        this.Track(() => (AppEnvironment.GetAppModel(this), AppEnvironment.GetAppModel(this).Thread(threadID), state.ShowsModels), snapshot =>
+        this.Track(() =>
         {
-            var (app, thread, showsModels) = snapshot; model = app;
+            var app = AppEnvironment.GetAppModel(this);
+            var thread = app.Thread(threadID);
+            // :196 the body reads hydraLaunch's resolved heads effort, so the caption follows it.
+            return (app, thread, state.ShowsModels, HeadsEffort: thread is null ? null : app.HydraLaunch(thread)?.WorkerEffort);
+        }, snapshot =>
+        {
+            var (app, thread, showsModels, headsEffort) = snapshot; model = app;
             if (thread is null) { pages.Children.Clear(); displayedModels = null; return; } // :162
             var key = (thread.Provider, thread.Model, model.HydraIsOn(thread) ? model.HydraPair(thread) : null, model.Providers.Model(thread.Model, thread.Provider));
             // :163-185 the branch retains its view/state while only the bound effort or fast mode changes.
-            if (!showsModels && displayedModels == false && Equals(sliderKey, key)) return;
+            if (!showsModels && displayedModels == false && Equals(sliderKey, key))
+            {
+                // Only the resolved heads effort can differ here: the caption is the one part of the card it reaches.
+                if (key.Item3 is { } keptPair && pages.Children.FirstOrDefault() is EffortSliderCard card)
+                    card.UpdateHeadsEffort(new EffortPairLook(keptPair, model.Providers, headsEffort));
+                return;
+            }
             sliderKey = key;
             Control content;
             if (showsModels)
@@ -416,6 +428,15 @@ public sealed class EffortSliderCard : Decorator
     /// <param name="onReset">:517 <c>let onReset: () -> Void</c>; moves before onTitleTap (ED-095).</param>
     /// <param name="pair">:510 <c>var pair: EffortPairLook? = nil</c>.</param>
     /// <param name="onTitleTap">:516 <c>var onTitleTap: (() -> Void)?</c>.</param>
+    private TextBlock? pairCaption;
+
+    /// <summary>:191-197, :500-503 the body runs again with the pair's freshly resolved heads effort: the caption is the
+    /// only part of the look that reads it.</summary>
+    internal void UpdateHeadsEffort(EffortPairLook look)
+    {
+        if (pairCaption is { } caption && caption.Text != look.Caption) caption.Text = look.Caption;
+    }
+
     // :557-656 body
     public EffortSliderCard(
         string modelName,
@@ -480,6 +501,7 @@ public sealed class EffortSliderCard : Decorator
         if (pair is not null && efforts.Count > 0)
         {
             var caption = EffortView.Text(pair.Caption, SwiftFont.System(SwiftFont.TextStyle.Subheadline), Chrome.SecondaryText);
+            pairCaption = caption;
             caption.Margin = new Thickness(0, -6, 0, 0); caption.TextTrimming = TextTrimming.CharacterEllipsis;
             var scaledCaption = TextScaling.Apply(caption, 0.9); // :648 (ED-214).
             rows.Children.Add(scaledCaption);
@@ -654,7 +676,11 @@ public sealed class EffortSlider : Decorator
     private EffortPairBrand? pair;
     private double? dragX;
     private double? animatedX;
+    private double? dragSpring; // :806 the spring that carries the first drag change from the resting x to the pointer
+    private double dragFromX;
     private double drawnX;
+    private SwiftColor?[] stopTargets = [];
+    private SwiftColor? glowTarget;
     private double knobScale = 1;
     private readonly Canvas canvas = new();
     private readonly Border track = new() { Height = TrackHeight };
@@ -694,7 +720,7 @@ public sealed class EffortSlider : Decorator
         {
             if (dragX is null) return;
             var fromX = drawnX; var fromScale = knobScale;
-            dragX = null;
+            dragX = null; dragSpring = null;
             var step = count > 1 ? (Bounds.Width - ThumbSize) / (count - 1) : 0;
             var toX = ThumbSize / 2 + index.Value * step;
             animatedX = fromX;
@@ -706,7 +732,7 @@ public sealed class EffortSlider : Decorator
             }); // :817
             e.Pointer.Capture(null); e.Handled = true;
         };
-        PointerCaptureLost += (_, _) => { if (dragX is not null) { dragX = null; LayoutTrack(); } };
+        PointerCaptureLost += (_, _) => { if (dragX is not null) { dragX = null; dragSpring = null; LayoutTrack(); } };
         SizeChanged += (_, _) => LayoutTrack();
         ActualThemeVariantChanged += (_, _) => LayoutTrack();
         DetachedFromVisualTree += (_, _) =>
@@ -717,7 +743,29 @@ public sealed class EffortSlider : Decorator
             outgoingEffects.Clear();
             if (currentEffect is not null) currentEffect.Opacity = 1;
         };
-        this.Track(() => index.Value, _ => LayoutTrack());
+        this.Track(() => index.Value, _ => IndexChanged());
+    }
+
+    // :799, :822-830 a step that changes the look (an accessibility step, a reset) runs inside .smooth(duration: 0.3),
+    // so the knob and the fill's width glide with the colours instead of jumping; a drag positions them itself.
+    private void IndexChanged()
+    {
+        var width = Bounds.Width;
+        if (dragX is not null || drawnLook is null || width < ThumbSize || Equals(drawnLook, Look))
+        {
+            LayoutTrack();
+            return;
+        }
+        const double inset = ThumbSize / 2;
+        var step = count > 1 ? (width - inset * 2) / (count - 1) : 0;
+        var fromX = drawnX;
+        var toX = Math.Clamp(inset + index.Value * step, inset, width - inset);
+        animatedX = fromX;
+        EffortView.Animate(knob, Animation.Smooth(0.3), progress =>
+        {
+            animatedX = progress >= 1 ? null : fromX + (toX - fromX) * progress;
+            LayoutTrack();
+        });
     }
 
     // :729-738, :822-830. A range peer exposes the increment/decrement step to Windows accessibility clients.
@@ -737,10 +785,16 @@ public sealed class EffortSlider : Decorator
         if (dragX is null)
         {
             dragX = x; animatedX = null;
+            dragFromX = drawnX; dragSpring = 0; // :806 dragX is assigned inside the spring: the knob glides to the pointer
             var fromScale = knobScale;
-            EffortView.Animate(knob, Animation.Spring(response: 0.22, dampingFraction: 0.8), progress => { knobScale = fromScale + (1.06 - fromScale) * progress; LayoutTrack(); });
+            EffortView.Animate(knob, Animation.Spring(response: 0.22, dampingFraction: 0.8), progress =>
+            {
+                knobScale = fromScale + (1.06 - fromScale) * progress;
+                if (dragSpring is not null) dragSpring = progress >= 1 ? null : progress;
+                LayoutTrack();
+            });
         }
-        else dragX = x;
+        else { dragX = x; dragSpring = null; } // :808 later changes assign directly
         var step = count > 1 ? (Bounds.Width - ThumbSize) / (count - 1) : 0;
         var nearest = count > 1 && step > 0 ? Math.Clamp((int)Math.Round((x - ThumbSize / 2) / step, MidpointRounding.AwayFromZero), 0, count - 1) : 0;
         if (nearest != index.Value) { index.Value = nearest; Haptics.Perform(HapticPattern.Alignment); } // PR-COMPOSER-125 windows_path: silent Windows no-op, no substitute cue.
@@ -754,7 +808,8 @@ public sealed class EffortSlider : Decorator
         if (width < ThumbSize) return;
         const double inset = ThumbSize / 2;
         var step = count > 1 ? (width - inset * 2) / (count - 1) : 0;
-        var x = Math.Clamp(dragX ?? animatedX ?? inset + index.Value * step, inset, width - inset);
+        var dragged = dragX is { } pointer ? (dragSpring is { } eased ? dragFromX + (pointer - dragFromX) * eased : pointer) : (double?)null;
+        var x = Math.Clamp(dragged ?? animatedX ?? inset + index.Value * step, inset, width - inset);
         drawnX = x;
         var look = Look;
         track.Width = width; track.Background = Chrome.Overlay(0.1).Brush(track);
@@ -763,13 +818,28 @@ public sealed class EffortSlider : Decorator
         if (drawnLook is null) fill.Background = EffortView.Fill(look, ActualThemeVariant);
         else if (!Equals(drawnLook, look)) EffortView.AnimateBrush(fill, () => fill.Background, brush => fill.Background = brush, EffortView.Fill(look, ActualThemeVariant), Animation.Smooth(0.3));
         Canvas.SetTop(fill, (ThumbSize - TrackHeight) / 2);
+        var lookChanged = drawnLook is not null && !Equals(drawnLook, look);
+        if (stopTargets.Length != count) stopTargets = new SwiftColor?[count];
         for (var stop = 0; stop < count; stop++)
         {
             var stopX = inset + stop * step;
-            stops[stop].Fill = (stopX <= x ? look.StopColor : Chrome.Overlay(0.32)).Brush(stops[stop]);
-            Canvas.SetLeft(stops[stop], stopX - 2.5); Canvas.SetTop(stops[stop], ThumbSize / 2 - 2.5);
+            var dot = stops[stop];
+            var stopColor = stopX <= x ? look.StopColor : Chrome.Overlay(0.32);
+            if (!Equals(stopTargets[stop], stopColor)) // an unchanged target leaves a crossfade in flight alone
+            {
+                stopTargets[stop] = stopColor;
+                // :799 .animation(.smooth(duration: 0.3), value: look) reaches the stops as well as the fill.
+                if (lookChanged) EffortView.AnimateBrush(dot, () => dot.Fill, brush => dot.Fill = brush, stopColor.Brush(dot), Animation.Smooth(0.3));
+                else dot.Fill = stopColor.Brush(dot);
+            }
+            Canvas.SetLeft(dot, stopX - 2.5); Canvas.SetTop(dot, ThumbSize / 2 - 2.5);
         }
-        glow.Fill = look.Glow.Brush(glow);
+        if (!Equals(glowTarget, look.Glow))
+        {
+            glowTarget = look.Glow;
+            if (lookChanged) EffortView.AnimateBrush(glow, () => glow.Fill, brush => glow.Fill = brush, look.Glow.Brush(glow), Animation.Smooth(0.3));
+            else glow.Fill = look.Glow.Brush(glow);
+        }
         glow.Effect = CometPainter.GaussianBlur(look.TrackLookKind == TrackLook.Kind.Plain ? 4 : 8);
         glow.RenderTransform = new TranslateTransform(0, 1);
         lens.Fill = Brushes.Transparent; // :785 fill(.clear); the material/tint is retained below per ED-180.
@@ -956,7 +1026,13 @@ internal static class EffortView
         return look.TrackLookKind switch
         {
             TrackLook.Kind.Plain => new SolidColorBrush(Chrome.Accent.Resolve(theme)),
-            TrackLook.Kind.Supercharged => look.Brand == EffortBrand.Antigravity ? Gradient(EffortBrand.Gemini, theme) : new SolidColorBrush(look.Brand.FillColor.Resolve(theme)),
+            TrackLook.Kind.Supercharged => look.Brand switch // :889-909 brand.fill
+            {
+                EffortBrand.Antigravity => Gradient(EffortBrand.Gemini, theme),
+                EffortBrand.Meta => Gradient([new SwiftColor(0.0, 0.39, 0.88), new SwiftColor(0.0, 0.51, 0.98)], theme), // :894-897
+                EffortBrand.Silver => Gradient([SwiftColor.White, new SwiftColor(0.88, 0.88, 0.91)], theme), // :902-905
+                _ => new SolidColorBrush(look.Brand.FillColor.Resolve(theme)),
+            },
             TrackLook.Kind.Fast => new SolidColorBrush(EffortPalette.FastFill.Resolve(theme)),
             _ => Gradient([look.Brand.FillColor, look.Brand.FillColor, EffortPalette.FastFill], theme), // :993-996
         };

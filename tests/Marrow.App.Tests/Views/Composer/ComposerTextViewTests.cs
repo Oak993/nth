@@ -1,8 +1,12 @@
+using System.Collections.Generic;
+using System;
 using System.Linq;
+using System.Threading.Tasks;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
@@ -190,8 +194,8 @@ public sealed class ComposerTextViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-047")] // ComposerTextView.swift:108-112 the fallback caret rect
-    public void The_suggestion_panel_anchors_to_a_1_by_18_rect_at_the_visible_text_leading_edge() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-COMPOSER-047")] // ComposerTextView.swift:98-107 the caret rect; the :108-112 fallback only serves a view with no window
+    public void The_suggestion_panel_anchors_to_the_empty_caret_at_the_container_inset() => headless.OnUiThread(() =>
     {
         var recorder = new PopoverRecorder();
         using var presenter = Presentation.Presenter.Override(recorder);
@@ -202,10 +206,11 @@ public sealed class ComposerTextViewTests(HeadlessSession headless)
         var (popup, _) = Assert.Single(recorder.Calls);
         Assert.NotNull(popup.PlacementRect);
         var rect = popup.PlacementRect!.Value;
-        Assert.Equal(4, rect.X);
-        Assert.Equal(0, rect.Y);
+        // :98-107 the shown view's caret rect (primary branch): the container inset origin, at least 1 wide, the line's height.
+        Assert.Equal(0, rect.X);
+        Assert.Equal(2, rect.Y);
         Assert.Equal(1, rect.Width);
-        Assert.Equal(18, rect.Height);
+        Assert.True(rect.Height >= 4);
     });
 
     [Fact]
@@ -332,5 +337,184 @@ public sealed class ComposerTextViewTests(HeadlessSession headless)
         ComposerTextViewHarness.Pump();
         Assert.Equal(2, recorder.Calls.Count);
         Assert.False(recorder.Calls[^1].Presented);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-024")] // ComposerTextView.swift:341 return parent.onKey(.submit) == false: AppKit's insertNewline runs
+    public void An_unhandled_return_inserts_a_newline() => headless.OnUiThread(() =>
+    {
+        var h = new ComposerTextViewHarness();
+        h.Answer = _ => false;
+        h.Focus();
+        h.Type("hi");
+        h.Press(Key.Enter, PhysicalKey.Enter);
+        Assert.Equal([ComposerKey.Submit], h.Keys);
+        Assert.Equal("hi\n", h.Text);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-024")] // ComposerTextView.swift:339 return parent.onKey(.steer) == false: AppKit's insertNewline runs
+    public void An_unhandled_command_return_inserts_a_newline() => headless.OnUiThread(() =>
+    {
+        var h = new ComposerTextViewHarness();
+        h.Answer = _ => false;
+        h.Focus();
+        h.Type("hi");
+        h.Press(Key.Enter, PhysicalKey.Enter, RawInputModifiers.Control);
+        Assert.Equal([ComposerKey.Steer], h.Keys);
+        Assert.Equal("hi\n", h.Text);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-064")] // ComposerTextView.swift:163-178 paste is synchronous: plain text lands at the selection of the key event
+    public void A_plain_text_paste_lands_at_the_selection_of_the_key_press() => headless.OnUiThread(() =>
+    {
+        var h = new ComposerTextViewHarness();
+        h.Focus();
+        h.Type("abcdef");
+        h.TextView.SelectionStart = h.TextView.SelectionEnd = 3;
+        var gate = new TaskCompletionSource<object?>();
+        var clipboard = h.Window.Clipboard!;
+        var set = clipboard.SetDataAsync(new DelayedTextTransfer(gate.Task));
+        ComposerTextViewHarness.Pump(() => set.IsCompleted);
+
+        h.Window.KeyPress(Key.V, RawInputModifiers.Control, PhysicalKey.V, null);
+        h.Window.KeyRelease(Key.V, RawInputModifiers.Control, PhysicalKey.V, null);
+        h.TextView.SelectionStart = h.TextView.SelectionEnd = 6; // the caret moves before the clipboard read completes
+        gate.SetResult("XYZ");
+        var deadline = DateTime.UtcNow + TimeSpan.FromSeconds(10);
+        while (h.TextView.Text!.Length < 9 && DateTime.UtcNow < deadline) // the clipboard read hops threads
+        {
+            System.Threading.Thread.Sleep(5);
+            ComposerTextViewHarness.Pump();
+        }
+
+        var pasted = h.TextView.Text;
+        ComposerTextViewHarness.Pump();
+        h.Window.Close();
+        ComposerTextViewHarness.Pump();
+        Assert.Equal("abcXYZdef", pasted);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-019")] // ComposerTextView.swift:293-327 updateNSView replaces coordinator.parent: the latest onCursorChange and onBlur run
+    public void Update_replaces_the_cursor_and_blur_callbacks() => headless.OnUiThread(() =>
+    {
+        var oldCursor = new List<int>();
+        var newCursor = new List<int>();
+        var oldBlur = 0;
+        var newBlur = 0;
+        var text = "abc";
+        var view = new ComposerTextView(
+            new Binding<string>(() => text, value => text = value),
+            new Binding<double>(() => 0, _ => { }),
+            "",
+            new ComposerController(),
+            _ => true,
+            _ => { },
+            oldCursor.Add,
+            () => oldBlur++);
+        var other = new Button { Content = "other", Focusable = true };
+        var window = new Avalonia.Controls.Window { Width = 400, Height = 200, Content = new StackPanel { Children = { view, other } } };
+        window.Show();
+        ComposerTextViewHarness.Pump();
+        var box = view.GetLogicalDescendants().OfType<ComposerNSTextView>().Single();
+
+        view.Update("", _ => true, _ => { }, newCursor.Add, () => newBlur++);
+        oldCursor.Clear();
+        box.SelectionStart = box.SelectionEnd = 1;
+        ComposerTextViewHarness.Pump();
+        Assert.Empty(oldCursor);
+        Assert.Equal(1, newCursor[^1]);
+
+        box.Focus();
+        ComposerTextViewHarness.Pump();
+        other.Focus();
+        ComposerTextViewHarness.Pump();
+        Assert.Equal(0, oldBlur);
+        Assert.Equal(1, newBlur);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-019")] // ComposerTextView.swift:280-282 onResign schedules a MainActor Task: the blur callback runs after the focus change
+    public void The_blur_callback_is_queued_not_run_inside_the_focus_loss() => headless.OnUiThread(() =>
+    {
+        var blurred = 0;
+        var text = "";
+        var view = new ComposerTextView(
+            new Binding<string>(() => text, value => text = value),
+            new Binding<double>(() => 0, _ => { }),
+            "",
+            new ComposerController(),
+            _ => true,
+            _ => { },
+            _ => { },
+            () => blurred++);
+        var other = new Button { Content = "other", Focusable = true };
+        var window = new Avalonia.Controls.Window { Width = 400, Height = 200, Content = new StackPanel { Children = { view, other } } };
+        window.Show();
+        ComposerTextViewHarness.Pump();
+        var box = view.GetLogicalDescendants().OfType<ComposerNSTextView>().Single();
+        box.Focus();
+        ComposerTextViewHarness.Pump();
+        Assert.Equal(0, blurred);
+
+        other.Focus();
+        Assert.Equal(0, blurred); // still inside the resign: the Task has not run
+        ComposerTextViewHarness.Pump();
+        Assert.Equal(1, blurred);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-047")] // ComposerTextView.swift:20 fileprivate weak var textView: a controller does not keep a dropped text view alive
+    public void The_controller_does_not_keep_a_dropped_text_view_alive() => headless.OnUiThread(() =>
+    {
+        var controller = new ComposerController();
+        BuildDropped(controller);
+        ComposerTextViewHarness.Pump(); // the queued text-change jobs no longer reference the dropped view
+        for (var i = 0; i < 3; i++)
+        {
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+        }
+        Assert.Equal(0, controller.CursorLocation);
+    });
+
+    [System.Runtime.CompilerServices.MethodImpl(System.Runtime.CompilerServices.MethodImplOptions.NoInlining)]
+    private static void BuildDropped(ComposerController controller)
+    {
+        var text = "hello";
+        var view = new ComposerTextView(
+            new Binding<string>(() => text, value => text = value),
+            new Binding<double>(() => 0, _ => { }),
+            "",
+            controller,
+            _ => true,
+            _ => { },
+            _ => { });
+        var box = view.GetLogicalDescendants().OfType<ComposerNSTextView>().Single();
+        box.SelectionStart = box.SelectionEnd = 5;
+        Assert.Equal(5, controller.CursorLocation);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-047")] // ComposerTextView.swift:98-107 the popover anchors to the caret's own rect, not the text's leading edge
+    public void The_suggestion_panel_anchors_to_the_caret_on_the_second_line() => headless.OnUiThread(() =>
+    {
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var h = new ComposerTextViewHarness("first line\nsecond line");
+        h.Focus();
+        h.TextView.SelectionStart = h.TextView.SelectionEnd = h.TextView.Text!.Length;
+        h.Layout();
+        h.Controller.ShowSuggestions(() => new TextBlock { Text = "item" }, itemCount: 1);
+        ComposerTextViewHarness.Pump();
+        var (popup, _) = Assert.Single(recorder.Calls);
+        var rect = popup.PlacementRect!.Value;
+        Assert.True(rect.Y > 12, $"the caret is on the second line, the anchor's Y was {rect.Y}");
+        Assert.True(rect.X > 20, $"the caret is at the end of 'second line', the anchor's X was {rect.X}");
+        Assert.True(rect.Width >= 1 && rect.Height >= 4); // :104-105
     });
 }

@@ -770,6 +770,42 @@ public sealed class AppCommandsTests(HeadlessSession headless)
         window.Close();
     });
 
+    // The case STOP #5 left unwritten: the chord on an idle thread with no heads at work. canQueue is
+    // `isRunning || hasWorkingHeads` (ThreadRuntime.swift:771-773), so queueDraftAsFollowUp sends the draft
+    // (:782-785), and send() handles "/plan" locally (:746-749, :1159-1162).
+    [Fact]
+    [Trait("Req", "PR-WIN-105")] // App/AppCommands.swift:69-77; App/Runtime/ThreadRuntime.swift:743-749, :771-785, :1157-1162
+    [Trait("Req", "UI-WIN-018")] // App/AppCommands.swift:71-74; App/Runtime/ThreadRuntime.swift:778-785
+    public void Queue_a_chat_with_nothing_to_queue_behind_sends_the_draft_so_a_plan_command_flips_the_thread_to_plan()
+    {
+        using var h = new AppModelHarness();
+        using var shared = ShortcutStore.Shared.Override(h.Main.OnMain(FreshStore));
+        var project = AppModelSamples.Project("P", h.NewFolder("p"));
+        var thread = AppModelSamples.Thread(project);
+        var model = Model(h, [project], [thread]);
+        h.PrepareBootstrap(model); // R-TEST-10: no real CLI, should anything start a turn
+        var runtime = h.Main.OnMain(() => model.Runtime(thread.Id));
+        h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+
+        h.Main.OnMain(() =>
+        {
+            model.SelectedThreadID = thread.Id;
+            runtime.Draft = new ComposerDraft { Text = "/plan" };
+            var commands = new AppCommands(model);
+            Assert.False(runtime.IsRunning);
+            Assert.False(runtime.HasWorkingHeads);
+            Assert.Equal(InteractionMode.Build, model.Thread(thread.Id)!.InteractionMode);
+            Assert.False(Named(commands, "Queue a chat").IsDisabled); // :76-77
+
+            Assert.True(commands.PerformKeyEquivalent(CtrlReturn));
+
+            Assert.Equal(InteractionMode.Plan, model.Thread(thread.Id)!.InteractionMode); // ThreadRuntime.swift:1161
+            Assert.True(runtime.DraftIsEmpty); // ThreadRuntime.swift:748
+            Assert.Empty(runtime.FollowUps);
+            Assert.Empty(runtime.SentPrompts); // a local command starts no turn
+        });
+    }
+
     // ===== PR-WIN-106: Toggle plan mode =====
 
     [Fact]
@@ -2729,7 +2765,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // row with the same three titles (UI-WIN-024) and the "Welcome tour" row (UI-WIN-027, as PR-WIN-115). Nothing is
 // tested for them here; the items themselves are tested above (green).
 
-// STOP App.AppCommands #5 (build agent, part 3, 2026-09-26)
+// STOP App.AppCommands #5 - RESOLVED by fix/canqueue (2026-09-27); first raised by the build agent, part 3, 2026-09-26.
 // Kind: conflict
 // Swift: DroppyCode/App/Runtime/ThreadRuntime.swift:771-788 (B3 52bc792), which AppCommands.swift:74 calls:
 //   var canQueue: Bool { isRunning || hasWorkingHeads }
@@ -2748,6 +2784,11 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // in part 1 (green). Not written, because it would fail on the dependency rather than on this unit: Ctrl+Return with
 // a draft such as "/plan" on a selected idle thread (Swift: send() handles it locally, ThreadRuntime.swift:743-750,
 // :1157-1162, so the thread flips to plan and the draft is emptied; no follow-up is queued).
+// Resolution (fix/canqueue): ThreadRuntime.CanQueue is now IsRunning || HasWorkingHeads and QueueDraftAsFollowUp
+// sends the draft when it cannot queue (ThreadRuntime.swift:771-788). The case above is now written:
+// Queue_a_chat_with_nothing_to_queue_behind_sends_the_draft_so_a_plan_command_flips_the_thread_to_plan (green).
+// fix/canqueue round 2: enqueueFollowUp now ends with flushFollowUpsIfIdle (ThreadRuntime.swift:1003-1007), so a draft
+// this item queues on an idle lead with heads at work goes out at once as its own turn (ThreadRuntimeQueueDraftTests).
 
 // STOP App.AppCommands #6 (repair agent, 2026-09-26)
 // Kind: missing dependency
@@ -2819,8 +2860,9 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // Sweep B recheck (2026-09-27, base d62329d42): STOP #2 and #7 still lack character-key / AltGr decisions.
 // STOP #3 still needs AppModel.FinishActionTitle's helper branch repaired, delayed finish/reopen and archive fallback,
 // and empty loaded-thread deletion (AppModel.swift:855-921). AppModel.cs:850-899 still has all four divergences.
-// STOP #5 still needs ThreadRuntime.CanQueue and QueueDraftAsFollowUp repaired: :1020-1025 still reject an idle draft
-// instead of sending it (Swift ThreadRuntime.swift:771-788). No AppModel or ThreadRuntime file is changed by this sweep.
+// STOP #5 still needed ThreadRuntime.CanQueue and QueueDraftAsFollowUp repaired at that base: :1020-1025 rejected an
+// idle draft instead of sending it (Swift ThreadRuntime.swift:771-788). No AppModel or ThreadRuntime file is changed by
+// this sweep. Later note (fix/canqueue, 2026-09-27): STOP #5 is RESOLVED; see its resolution above.
 
 // STOP App.AppCommands #8 (opencode citation correction, 2026-09-27)
 // Kind: unresolved precedence, macOS menu key-equivalent dispatch.

@@ -1,4 +1,4 @@
-using Avalonia.Platform.Storage;
+using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Terminal;
 using Marrow.Core.Models;
@@ -49,7 +49,7 @@ public sealed partial class AppModel : MainActorModel
             for (var index = 0; index < threads.Count; index++)
             {
                 var thread = threads[index];
-                positions[thread.Id] = index;
+                positions.TryAdd(thread.Id, index); // AppModel.swift:57 `if positions[thread.id] == nil`: the first position stands
                 if (!projects.TryGetValue(thread.ProjectID, out var indices)) projects[thread.ProjectID] = indices = [];
                 indices.Add(index);
             }
@@ -255,24 +255,19 @@ public sealed partial class AppModel : MainActorModel
             if (!children.TryGetValue(parentID, out var ids)) children[parentID] = ids = [];
             ids.Add(thread.Id);
         }
-        foreach (var (parentID, ids) in children)
+        // A parent that still exists keeps its cell even with nothing under it, because that is exactly the cell a chat
+        // with no heads yet is watching for its first one; only a parent that is gone loses its cell.
+        foreach (var (parentID, cell) in childCells.ToArray()) // AppModel.swift:196-199
         {
-            var value = new ValueList<Guid>(ids);
-            if (childCells.TryGetValue(parentID, out var cell))
-            {
-                if (!cell.Value.Equals(value)) cell.Value = value;
-            }
-            else
-            {
-                childCells[parentID] = new ObservedValue<ValueList<Guid>>(value);
-            }
+            var value = children.TryGetValue(parentID, out var present) ? new ValueList<Guid>(present) : ValueList<Guid>.Empty;
+            if (!cell.Value.Equals(value)) cell.Value = value;
         }
-        foreach (var parentID in childCells.Keys.ToArray())
-        {
-            if (children.ContainsKey(parentID)) continue;
-            childCells[parentID].Value = ValueList<Guid>.Empty;
-            childCells.Remove(parentID);
-        }
+        foreach (var (parentID, ids) in children) // AppModel.swift:200-202
+            if (!childCells.ContainsKey(parentID)) childCells[parentID] = new ObservedValue<ValueList<Guid>>(new ValueList<Guid>(ids));
+        if (childCells.Count == children.Count) return; // AppModel.swift:203
+        var live = values.Select(thread => thread.Id).ToHashSet(); // AppModel.swift:204
+        foreach (var parentID in childCells.Keys.ToArray()) // AppModel.swift:205-207
+            if (!live.Contains(parentID) && !children.ContainsKey(parentID)) childCells.Remove(parentID);
     } // AppModel.swift:189-210
 
     private ValueList<Guid> ChildIDs(Guid parentID)
@@ -435,15 +430,21 @@ public sealed partial class AppModel : MainActorModel
         if (index < 0) return false; // AppModel.swift:362
         order.Insert(placeAfter ? index + 1 : index, id); // AppModel.swift:363
         if (order.SequenceEqual(peers)) return false; // AppModel.swift:364
-        var localZone = TimeZoneInfo.Local;
+        var zone = SwiftFormatters.CurrentTimeZone.Current; // AppModel.swift:374 Calendar.current's zone (ED-094)
         UpdateThreads(order, (position, thread) =>
-        {
-            var date = thread.UpdatedAt;
-            var local = TimeZoneInfo.ConvertTime(date, localZone);
-            var start = new DateTimeOffset(local.Year, local.Month, local.Day, 0, 0, 0, local.Offset);
-            return thread with { ActivityOrder = position, ActivityOrderDay = start };
-        }); // AppModel.swift:365-369
+            thread with { ActivityOrder = position, ActivityOrderDay = StartOfDay(thread.UpdatedAt, zone) }); // AppModel.swift:375-378
         return true;
+    }
+
+    // Calendar.startOfDay(for:) in the zone: the first instant of the wall-clock day the moment falls on. The offset is the one
+    // in force at that midnight, not the moment's own (they differ on a day the clocks change); a midnight that does not
+    // exist (a spring-forward gap) starts the day at the first valid time, and a repeated one at its earlier occurrence.
+    private static DateTimeOffset StartOfDay(DateTimeOffset date, TimeZoneInfo zone)
+    {
+        var midnight = TimeZoneInfo.ConvertTime(date, zone).DateTime.Date;
+        while (zone.IsInvalidTime(midnight)) midnight = midnight.AddMinutes(15);
+        var offset = zone.IsAmbiguousTime(midnight) ? zone.GetAmbiguousTimeOffsets(midnight).Max() : zone.GetUtcOffset(midnight);
+        return new DateTimeOffset(midnight, offset);
     }
 
     // AppModel.swift:373-375
@@ -558,7 +559,16 @@ public sealed partial class AppModel : MainActorModel
     // MARK: - Projects
 
     // AppModel.swift:515-524. Swift: addProject(at:), @discardableResult.
-    public Project AddProject(SwiftURL url) => AddProjectPath(SwiftPath.StandardizedFileURLPath(url.Path, null), url); // AppModel.swift:516-524
+    public Project AddProject(SwiftURL url) => AddProjectPath(SwiftPath.StandardizedFileURLPath(FileSystemPath(url), null), url); // AppModel.swift:516-524
+
+    // url.path as the file system reads it: a Windows folder's file URL ("file:///C:/x") has the Path "/C:/x", whose leading
+    // slash is the URL's, not the drive's (ProjectFile.Scripts strips it the same way); without this the folder chosen in the
+    // panel resolves against the current directory (SidebarViewTests STOP App.Views.Sidebar.SidebarView #4).
+    private static string FileSystemPath(SwiftURL url)
+    {
+        var path = url.Path;
+        return OperatingSystem.IsWindows() && path.Length >= 3 && path[0] == '/' && char.IsAsciiLetter(path[1]) && path[2] == ':' ? path[1..] : path;
+    }
 
     private Project AddProjectPath(string path, SwiftURL? projectURL = null)
     {
@@ -574,24 +584,28 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:526-529
     public void ChooseProjectFolder()
     {
-        if (Avalonia.Application.Current?.ApplicationLifetime is not Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-            || desktop.MainWindow is not { } window) return; // AppModel.swift:526-529
-        MainActor.Spawn(async () =>
-        {
-            var folders = await window.StorageProvider.OpenFolderPickerAsync(new Avalonia.Platform.Storage.FolderPickerOpenOptions
-            {
-                AllowMultiple = false,
-            });
-            if (folders.FirstOrDefault()?.TryGetLocalPath() is { } path) AddProjectPath(path);
-        });
+        if (AddProjectsFromPanel() is not { } added) return; // AppModel.swift:527
+        NewThread(added); // AppModel.swift:528
     }
 
-    // AppModel.swift:535-547. @discardableResult.
+    // AppModel.swift:535-547. @discardableResult. The folder panel: every chosen folder joins the sidebar as a project and the
+    // last one added comes back, or null when the panel was cancelled. Nothing else is made here, so a caller that already has
+    // a thread on screen (the new-thread prompt) can move that thread into the folder instead of leaving a second empty one.
+    // NSOpenPanel is the OpenPanel seam (PR-SIDEBAR-012), the same one the sidebar's Add project row drives.
     public Project? AddProjectsFromPanel() // AppModel.swift:535-547
     {
-        // Avalonia's picker is asynchronous; the Windows entry point adds the chosen folder from its completion.
-        ChooseProjectFolder();
-        return null;
+        var panel = new OpenPanel
+        {
+            CanChooseDirectories = true, // AppModel.swift:537
+            CanChooseFiles = false, // AppModel.swift:538
+            AllowsMultipleSelection = true, // AppModel.swift:539
+            Prompt = "Add project", // AppModel.swift:540
+            Message = "Choose a folder for your agents to work in.", // AppModel.swift:541
+        };
+        if (panel.RunModal() != ModalResponse.OK) return null; // AppModel.swift:542
+        Project? added = null; // AppModel.swift:543
+        foreach (var url in panel.Urls) added = AddProject(url); // AppModel.swift:544
+        return added; // AppModel.swift:545
     }
 
     // AppModel.swift:549-556
@@ -702,22 +716,60 @@ public sealed partial class AppModel : MainActorModel
         return thread;
     }
 
+    // AppModel.swift:657-712. A chat as it would start in `project`: on `current`'s provider, model and pair when made from an
+    // open chat, otherwise on what was last used. Not yet in `threads`.
     private ChatThread MakeThread(Project project, ChatThread? current)
     {
-        var projectPair = global::Marrow.Core.Models.HydraPair.ProjectPair(project.HydraPairID, Settings.HydraEnabled, Settings.HydraPairs); // AppModel.swift:653
-        var lastPair = current is null && Settings.HydraEnabled ? Settings.HydraPair(Settings.LastHydraPairID) : null; // AppModel.swift:658-660
-        var provider = projectPair?.Provider ?? current?.Provider ?? lastPair?.Provider ?? Settings.DefaultProvider; // AppModel.swift:663-664
-        var carriesModel = projectPair?.OrchestratorModel is null && current?.Provider == provider; // AppModel.swift:667
-        var model = carriesModel ? current?.Model : Providers.DefaultModel(provider)?.Id; // AppModel.swift:668
-        var preference = Settings.Preference(provider, model); // AppModel.swift:669
-        var effort = carriesModel ? current?.Effort : preference.Effort ?? Settings.LastEffort(provider); // AppModel.swift:670
-        var fastMode = carriesModel ? current?.FastMode ?? false : preference.FastMode; // AppModel.swift:671
-        var thread = new ChatThread(project.Id, provider, model, effort, Settings.DefaultRuntimeMode, fastMode); // AppModel.swift:672
-        return thread with
+        var installed = SwiftEnum<ProviderKind>.AllCases
+            .Where(kind => Providers.Status(kind).IsInstalled && Settings.IsEnabled(kind)).ToList(); // AppModel.swift:660
+        var pickerPairs = HydraPickerPairs; // AppModel.swift:662
+        // The project's own pair, when it has one, sets the provider before anything else.
+        var projectPair = global::Marrow.Core.Models.HydraPair.ProjectPair(project.HydraPairID, Settings.HydraEnabled, pickerPairs); // AppModel.swift:662
+        // With no chat to carry from (a fresh launch), the pair last entered from the picker is where the new chat starts.
+        // Before any pair has been entered since this was remembered, the chat last worked in stands in: its pair if it led
+        // one, and none if it had left its pair for a model of its own.
+        var lastPairID = Settings.LastHydraPairID; // AppModel.swift:667
+        if (lastPairID is null)
         {
-            HydraPairID = projectPair?.Id ?? lastPair?.Id,
-            HydraEnabled = projectPair is not null || thread.HydraEnabled,
-        }; // AppModel.swift:672-702
+            ChatThread? recentThread = null; // AppModel.swift:668 max { $0.updatedAt < $1.updatedAt }: the first of the latest
+            foreach (var candidate in threads)
+            {
+                if (candidate.IsHelper) continue;
+                if (recentThread is null || candidate.UpdatedAt > recentThread.UpdatedAt) recentThread = candidate;
+            }
+            lastPairID = recentThread?.HydraPairID;
+        }
+        var lastPair = current is null && Settings.HydraEnabled
+            ? lastPairID is { } lastID ? pickerPairs.FirstOrDefault(pair => pair.Id == lastID) : null
+            : null; // AppModel.swift:669-671
+        var provider = projectPair?.Provider ?? current?.Provider ?? lastPair?.Provider ?? Settings.DefaultProvider; // AppModel.swift:672
+        if (installed.Count > 0 && !installed.Contains(provider)) provider = installed[0]; // AppModel.swift:673
+        // A chat that starts on the project's pair takes that pair's lead model. A pair with no lead model keeps the current
+        // chat's model, as the picker does.
+        var carriesModel = projectPair?.OrchestratorModel is null && current?.Provider == provider; // AppModel.swift:676
+        var model = carriesModel ? current?.Model : Providers.DefaultModel(provider)?.Id; // AppModel.swift:677
+        var preference = Settings.Preference(provider, model); // AppModel.swift:678
+        var effort = carriesModel ? current?.Effort : preference.Effort ?? Settings.LastEffort(provider); // AppModel.swift:679
+        var fastMode = carriesModel ? current?.FastMode ?? false : preference.FastMode; // AppModel.swift:680
+        var thread = new ChatThread(project.Id, provider, model, effort, Settings.DefaultRuntimeMode, fastMode); // AppModel.swift:681-688
+        // A chat made from one that leads a pair carries the pair along with the model. With no chat to carry from, the last
+        // pair is where the new chat starts, on its lead model and effort, provided its provider is still installed. The
+        // project's pair wins over all of that: the user set it as the rule for this project, so every new chat here starts on it.
+        if (projectPair is { } pair)
+        {
+            var lead = HydraLead(pair, thread); // AppModel.swift:695
+            thread = thread with { Model = lead.Model, Effort = lead.Effort, FastMode = lead.FastMode, HydraPairID = pair.Id, HydraEnabled = true }; // AppModel.swift:696-700
+        }
+        else if (carriesModel)
+        {
+            thread = thread with { HydraPairID = current?.HydraPairID }; // AppModel.swift:702
+        }
+        else if (lastPair is { } last && last.Provider == provider)
+        {
+            var lead = HydraLead(last, thread); // AppModel.swift:704
+            thread = thread with { Model = lead.Model, Effort = lead.Effort, FastMode = lead.FastMode, HydraPairID = last.Id, HydraEnabled = true }; // AppModel.swift:705-709
+        }
+        return thread;
     }
 
     // AppModel.swift:623-646. @discardableResult.
@@ -751,14 +803,31 @@ public sealed partial class AppModel : MainActorModel
     {
         if (!threadIndex.Positions.TryGetValue(id, out var position)) return; // AppModel.swift:705-708
         var index = checked((int)position);
-        Threads = threads.SetItem(index, change(threads[index])); // AppModel.swift:709-711
-        ScheduleSave(); // AppModel.swift:712
+        var changed = change(threads[index]); // AppModel.swift:709-710
+        if (changed == threads[index]) return; // AppModel.swift:711: nothing changed, nothing assigned or saved
+        Threads = threads.SetItem(index, changed); // AppModel.swift:712
+        ScheduleSave(); // AppModel.swift:713
     }
 
-    // AppModel.swift:720-732. Swift: moveThread(_:toProject:).
-    // GD-004: The project-picker contract documents projectID as the move's only changed field.
-    public void MoveThread(Guid id, Project toProject) =>
-        UpdateThread(id, thread => thread with { ProjectID = toProject.Id });
+    // AppModel.swift:723-741. Swift: moveThread(_:toProject:). Moves a thread to another project's folder: what the old folder's
+    // session and worktree left on it goes, the destination project opens so the row has a place to land, the last-worked-in
+    // project follows, and the sidebar is asked to bring the moved row into view. The runtime stops first, so no turn carries
+    // on against a folder the chat has left. The model itself never animates (callers wrap it in withAnimation).
+    public void MoveThread(Guid id, Project toProject)
+    {
+        ExistingRuntime(id)?.StopSession(); // AppModel.swift:730
+        UpdateThread(id, thread => thread with
+        {
+            ProjectID = toProject.Id,
+            WorktreePath = null,
+            Branch = null,
+            ProviderSessionID = null,
+            ProviderResumeAt = null,
+        }); // AppModel.swift:731-737
+        UpdateProject(toProject.Id, project => project with { IsExpanded = true }); // AppModel.swift:738
+        RememberLastProject(toProject.Id); // AppModel.swift:739
+        SidebarRevealThreadID = id; // AppModel.swift:740
+    }
 
     // AppModel.swift:748-755. Swift: rename(_:to:).
     public void Rename(Guid id, string title) // AppModel.swift:748-755
@@ -774,6 +843,7 @@ public sealed partial class AppModel : MainActorModel
         foreach (var helper in Helpers(id)) Archive(helper.Id);
         if (SelectedThreadID == id) SelectNeighbor(id);
         ExistingRuntime(id)?.StopSession();
+        ReleaseHydraCopy(id); // AppModel.swift:771
         UpdateThread(id, thread => thread with
         {
             IsArchived = true,
@@ -844,61 +914,86 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:839-842
     public void ReopenIfSettled(Guid id) // AppModel.swift:839-842
     {
-        if (Thread(id)?.IsSettled == true) Reopen(id);
+        if (Thread(id)?.IsSettled == true) ReopenAnimated(id); // AppModel.swift:850
     }
 
-    // AppModel.swift:846-849
-    // GD-005: A settle action archives helper threads, matching the existing finish action path.
-    public string FinishActionTitle // AppModel.swift:846-849
-        => Settings.ThreadFinishAction switch
-        {
-            ThreadFinishAction.Archive => "Archive thread",
-            ThreadFinishAction.Settle when SelectedThread is { IsHelper: true } => "Archive thread",
-            ThreadFinishAction.Settle when SelectedThread is { IsSettled: true } => "Reopen thread",
-            ThreadFinishAction.Settle => "Settle thread",
-            _ => throw new ArgumentOutOfRangeException(nameof(Settings.ThreadFinishAction)),
-        };
+    // AppModel.swift:853-858. What the menu's, the shortcut's and the palette's finish command does to the selected thread:
+    // settles or archives it as Settings chose, and reopens a settled one. The title has no helper case (a settled helper
+    // reads "Reopen thread", an unsettled one "Settle thread"), the source's own reading.
+    public string FinishActionTitle // AppModel.swift:855-858
+        => Settings.ThreadFinishAction == ThreadFinishAction.Settle && SelectedThread?.IsSettled == true
+            ? "Reopen thread"
+            : Settings.ThreadFinishAction.Title + " thread";
 
-    // AppModel.swift:851-854
-    public string FinishActionSymbol => Settings.ThreadFinishAction switch
+    // AppModel.swift:860-863
+    public string FinishActionSymbol
     {
-        ThreadFinishAction.Archive => "archivebox",
-        ThreadFinishAction.Settle when SelectedThread is { IsHelper: true } => "archivebox",
-        ThreadFinishAction.Settle when SelectedThread is { IsSettled: true } => "arrow.uturn.backward",
-        ThreadFinishAction.Settle => "checkmark.circle",
-        _ => throw new ArgumentOutOfRangeException(nameof(Settings.ThreadFinishAction)),
-    };
-
-    // AppModel.swift:856-873
-    public void FinishSelectedThread() // AppModel.swift:856-873
-    {
-        if (SelectedThread is not { } thread) return;
-        switch (Settings.ThreadFinishAction)
+        get
         {
-            case ThreadFinishAction.Archive:
-                Archive(thread.Id);
-                break;
-            case ThreadFinishAction.Settle when thread.IsHelper:
-                Archive(thread.Id);
-                break;
-            case ThreadFinishAction.Settle:
-                SettleAnimated(thread.Id);
-                break;
+            if (Settings.ThreadFinishAction == ThreadFinishAction.Settle && SelectedThread?.IsSettled == true) return "arrow.uturn.backward";
+            return Settings.ThreadFinishAction == ThreadFinishAction.Settle ? "checkmark.circle" : "archivebox";
         }
     }
 
-    // AppModel.swift:878-889
-    public void SettleSelectedThread() // AppModel.swift:878-889
+    // AppModel.swift:865-882
+    public void FinishSelectedThread() // AppModel.swift:865-882
     {
-        if (SelectedThread is not { } thread) return;
-        AppModelFinishRequest = new FinishRequest(thread.Id, thread.IsSettled);
+        if (SelectedThreadID is not { } id || Thread(id) is not { } thread) return; // AppModel.swift:866
+        if (Settings.ThreadFinishAction == ThreadFinishAction.Archive || thread.IsHelper)
+        {
+            // A helper has no place of its own to settle into; it goes the archive's way.
+            Transaction.WithAnimation(Chrome.PanelSlide, () => Archive(id)); // AppModel.swift:869-870
+            return;
+        }
+        PostFinishRequest(id, thread.IsSettled); // AppModel.swift:872-880
     }
 
-    // AppModel.swift:893-912
-    public void AskToArchiveSelectedThread() // AppModel.swift:893-912
+    // AppModel.swift:887-898. Settles the selected thread, or reopens it when it is settled already: the shortcut's toggle,
+    // whatever General chose for Finish. A helper has no place of its own to settle into, so it stays as it is.
+    public void SettleSelectedThread() // AppModel.swift:887-898
     {
-        if (SelectedThread is not { } thread) return;
-        AppModelArchiveRequest = new ArchiveRequest(thread.Id);
+        if (SelectedThreadID is not { } id || Thread(id) is not { IsHelper: false } thread) return; // AppModel.swift:888
+        PostFinishRequest(id, thread.IsSettled); // AppModel.swift:889-897
+    }
+
+    // AppModel.swift:872-880, :889-897. The request is posted for the thread's row to take up; with no row to take it (the
+    // sidebar is hidden, say) the thread just moves 80 ms later.
+    private void PostFinishRequest(Guid id, bool reopens)
+    {
+        var request = new FinishRequest(id, reopens);
+        AppModelFinishRequest = request;
+        MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(80)); // AppModel.swift:876
+            if (AppModelFinishRequest != request) return; // AppModel.swift:877
+            AppModelFinishRequest = null; // AppModel.swift:878
+            if (request.Reopens) ReopenAnimated(id); else SettleAnimated(id); // AppModel.swift:879
+        });
+    }
+
+    // AppModel.swift:900-921. Asks before archiving the selected thread: its row shows the question, with Archive the answer
+    // Return gives and Delete beside it.
+    public void AskToArchiveSelectedThread() // AppModel.swift:902-921
+    {
+        if (SelectedThreadID is not { } id || Thread(id) is null) return; // AppModel.swift:903
+        // Nothing in it, nothing typed for it: there is nothing to keep, so it goes the way an empty tab does, with no
+        // question. A history still being read is not "nothing".
+        if (ExistingRuntime(id) is { } runtime && !runtime.IsLoadingHistory && runtime.Turns.Count == 0
+            && runtime.Continuation is null && runtime.Draft.IsEmpty && runtime.FollowUps.Count == 0 && !runtime.IsRunning)
+        {
+            Transaction.WithAnimation(Chrome.PanelSlide, () => Delete(id)); // AppModel.swift:908
+            return; // AppModel.swift:909
+        }
+        var request = new ArchiveRequest(id); // AppModel.swift:911
+        AppModelArchiveRequest = request; // AppModel.swift:912
+        MainActor.Spawn(async () =>
+        {
+            // No row to ask on (the sidebar is hidden, say): the thread is archived, which is what Return would have done.
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(80)); // AppModel.swift:916
+            if (AppModelArchiveRequest != request) return; // AppModel.swift:917
+            AppModelArchiveRequest = null; // AppModel.swift:918
+            Transaction.WithAnimation(Chrome.PanelSlide, () => Archive(id)); // AppModel.swift:919
+        });
     }
 
     // AppModel.swift:923. Swift: finishRequest (R-NAME-3).
@@ -916,6 +1011,9 @@ public sealed partial class AppModel : MainActorModel
         if (Thread(id) is not { } thread) return; // AppModel.swift:935
         foreach (var helper in Children(id)) Delete(helper.Id); // AppModel.swift:936-937
         if (SelectedThreadID == id) SelectNeighbor(id); // AppModel.swift:938
+        // A head deleted mid-job reports to its lead as stopped, so the batch it was in settles and the lead's waiting heads and
+        // merge go on rather than waiting for it.
+        if (thread.IsHydraHead && thread.Hydra?.IsFinished == false) FinishHydraHead(id, TurnStatus.Interrupted, null); // AppModel.swift:950-952
         DiscardThreadState(thread); // AppModel.swift:944
         Threads = new ValueList<ChatThread>(threads.Where(candidate => candidate.Id != id)); // AppModel.swift:945
         if (Project(thread.ProjectID) is { } project)
@@ -1189,9 +1287,10 @@ public sealed partial class AppModel : MainActorModel
         Notify(id, thread.Title, body, sound: !chimed);
     }
 
-    private bool IsOnScreen(ChatThread thread) =>
-        thread.Id == SelectedThreadID
-        || thread.ParentThreadID == SelectedThreadID && thread.IsInPanel && !thread.IsArchived && !thread.IsSettled;
+    // AppModel.swift:1158-1165: the selected thread itself, a helper in its parent's floating panel, or a sidebar helper shown
+    // inline beneath its selected parent (only while the parent is unfolded and not settled). One reading of it, shared with
+    // the notification gate.
+    private bool IsOnScreen(ChatThread thread) => Marrow.App.Port.ToastNotifications.IsOnScreen(this, thread);
 
     // NSApp.isActive (AppModel.swift:1163, :1177, :1250, AppModel+HydraMerge.swift:869): the port's one reading of it,
     // shared with AppDelegate.swift's presentation gate (Port/ApplicationLifecycle.cs NSApplication.IsActive).

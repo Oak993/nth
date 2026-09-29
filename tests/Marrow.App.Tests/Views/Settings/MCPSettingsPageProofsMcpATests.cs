@@ -351,7 +351,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             runtime.OnMain(() => { ObservableState(model, "github", new MCPConnectionState.Connected(3)); ObservableState(model, "gitlab", new MCPConnectionState.Connected(2)); });
             Assert.IsType<MCPLeadCard>(root.Children[0]); var section = Assert.IsType<ChromeSection>(root.Children[1]); Assert.IsType<MCPCustomSection>(root.Children[2]);
             var heading = Text(section, "Connected"); Font(heading, 13, FontWeight.SemiBold); Colour(heading.Foreground, Chrome.SecondaryText, heading);
-            var sectionStack = Assert.IsType<StackPanel>(section.Child); Assert.Equal(10, sectionStack.Spacing); Assert.Equal(4, Assert.IsType<StackPanel>(sectionStack.Children[0]).Spacing);
+            var sectionStack = Assert.IsType<StackPanel>(section.Child); Assert.Equal(10, sectionStack.Spacing); Assert.Equal(4, Assert.IsAssignableFrom<StackPanel>(sectionStack.Children[0]).Spacing);
             var card = Assert.Single(Nodes<ChromeCard>(section)); Assert.True(card.Lazy); var surface = Assert.IsType<Border>(card.Child);
             Assert.Equal(new CornerRadius(16), surface.CornerRadius); Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(surface)); Colour(surface.Background, Chrome.PrimaryText.Opacity(0.03), surface);
             Assert.False(surface.ClipToBounds); Assert.Equal(HorizontalAlignment.Stretch, surface.HorizontalAlignment);
@@ -559,7 +559,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
         {
             var section = new MCPCustomSection(""); using var window = runtime.OnMain(() => Attach(section, model));
             var header = Text(section, "Custom"); Font(header, 13, FontWeight.SemiBold); Colour(header.Foreground, Chrome.SecondaryText, header);
-            var shell = Assert.IsType<StackPanel>(Assert.IsType<ChromeSection>(section.Child).Child); Assert.Equal(10, shell.Spacing); Assert.Equal(4, Assert.IsType<StackPanel>(shell.Children[0]).Spacing);
+            var shell = Assert.IsType<StackPanel>(Assert.IsType<ChromeSection>(section.Child).Child); Assert.Equal(10, shell.Spacing); Assert.Equal(4, Assert.IsAssignableFrom<StackPanel>(shell.Children[0]).Spacing);
             var note = Text(section, "Servers of your own: a command that runs on this PC, or a remote address, with the variables they need."); Font(note, 12); Colour(note.Foreground, Chrome.SecondaryText, note); Assert.Equal(new Thickness(16, 11), note.Margin); Assert.Equal(TextWrapping.Wrap, note.TextWrapping); Assert.Equal(TextTrimming.None, note.TextTrimming);
             Assert.Equal(new Thickness(16, 0, 0, 0), Assert.Single(Nodes<ChromeRowDivider>(section)).Margin);
             var add = Button(section, "Add server"); var surface = Assert.IsType<Border>(add.Content); Assert.Equal(new Thickness(16, 11, 10, 11), surface.Padding); Colour(surface.Background, SwiftColor.Clear, surface);
