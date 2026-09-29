@@ -39,19 +39,12 @@ public sealed class HydraPopoverHeader : Decorator
             Margin = new Thickness(0, 1, 0, 0),
         };
 
-        // :19-28 HStack(alignment: .firstTextBaseline, spacing: 8). No baseline guide exists yet (PR-THEME-151
-        // part 2); centering the differently sized name and caption on one line is the closest approximation
-        // (ENGINEERING DECISION, same precedent as TokenActivitySection.cs:461).
-        var firstLine = new StackPanel
-        {
-            Orientation = Orientation.Horizontal,
-            Spacing = 8,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
+        // :19-28 HStack(alignment: .firstTextBaseline, spacing: 8): the name and caption sit on one first-line baseline.
+        var firstLine = new TimelineBaselineRow { Spacing = 8 };
         firstLine.Children.Add(new HydraNameText(persona, 14, SwiftFont.Weight.Semibold, Chrome.PrimaryText)); // :20
         if (caption is { Length: > 0 }) // :21
         {
-            var captionText = new TextBlock { Text = caption, TextWrapping = TextWrapping.NoWrap }; // :22, :26 lineLimit(1)
+            var captionText = new TextBlock { Text = caption, TextWrapping = TextWrapping.NoWrap, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :22, :26 lineLimit(1) truncates
             SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium) // :23
                 .MonospacedDigit() // :25
                 .Apply(captionText);

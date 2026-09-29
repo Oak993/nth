@@ -259,7 +259,7 @@ public sealed class UpdateCheckerSecondTests
     }
 
     [Fact]
-    [Trait("Req", "PR-UPDATE-019")] // UpdateChecker.swift:181-185, U+2019
+    [Trait("Req", "PR-UPDATE-019")] // UpdateChecker.swift:181-185, ASCII apostrophe (byte 0x27 at :182)
     public void An_unreachable_server_fails_with_the_exact_could_not_reach_message()
     {
         using var runtime = new TestRuntime();
@@ -269,7 +269,7 @@ public sealed class UpdateCheckerSecondTests
         listener.Stop(); // nothing listens here now
         var checker = runtime.OnMain(() => new UpdateChecker(Running(), [], "http://127.0.0.1:" + port + "/releases"));
         runtime.Loop.Run(() => checker.Check());
-        Assert.Equal("Couldn’t reach GitLab.", runtime.OnMain(() => checker.LastError));
+        Assert.Equal("Couldn't reach GitLab.", runtime.OnMain(() => checker.LastError)); // ASCII U+0027: UpdateChecker.swift:182 byte 0x27
     }
 
     // ---- PR-UPDATE-021 / PR-UPDATE-022 / PR-UPDATE-023: the notification ----

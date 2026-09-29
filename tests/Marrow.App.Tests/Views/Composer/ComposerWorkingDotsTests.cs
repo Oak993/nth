@@ -226,4 +226,38 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
         // With no layout, layer might be null or in initial state
         Assert.NotNull(control.Layer);
     });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-104")] // :24-34,37-53 DotFieldSweep passes its tint to the representable, and every update configures the layer again
+    public void A_sweep_draws_its_dots_in_the_tint_it_was_given_and_follows_a_later_change() => OnUiThread(() =>
+    {
+        var red = new SwiftColor(1, 0, 0, 1);
+        var sweep = new DotFieldSweep { Tint = red };
+        var window = ShowInFrame(sweep, width: 200, height: 100);
+        Color? DotColor() => ((sweep.Child as DotFieldControl)!.Layer as Canvas)!.Children.OfType<Avalonia.Controls.Shapes.Ellipse>().Select(dot => (dot.Fill as ISolidColorBrush)?.Color).FirstOrDefault();
+        Assert.Equal(red.Resolve(Avalonia.Styling.ThemeVariant.Default), DotColor());
+        var blue = new SwiftColor(0, 0, 1, 1);
+        sweep.Tint = blue;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(blue.Resolve(Avalonia.Styling.ThemeVariant.Default), DotColor());
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-104")] // :24-34 the reduce-motion environment value re-evaluates the body: a sweep draws nothing while it is on and starts afresh when it goes off
+    public void A_sweep_follows_reduced_motion_changes_while_it_stays_in_the_tree() => OnUiThread(() =>
+    {
+        using var actor = Marrow.Core.Port.MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        var sweep = new DotFieldSweep();
+        var host = new Border { Child = sweep };
+        var window = ShowInFrame(host, width: 200, height: 100);
+        Assert.IsType<DotFieldControl>(sweep.Child);
+        EnvironmentValues.SetAccessibilityReduceMotion(host, true);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Null(sweep.Child);
+        EnvironmentValues.SetAccessibilityReduceMotion(host, false);
+        Dispatcher.UIThread.RunJobs();
+        Assert.IsType<DotFieldControl>(sweep.Child);
+        window.Close();
+    });
 }

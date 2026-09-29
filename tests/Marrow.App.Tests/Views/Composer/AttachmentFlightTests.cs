@@ -228,4 +228,45 @@ public sealed class AttachmentFlightTests(HeadlessSession headless)
         runtime.OnMain(() => frameClock.Advance(AttachmentFlight.SettlingDuration));
         Assert.Equal(10, platform.Created[0].Surface.States[^1].Radius);
     }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-084")] // App/Views/Composer/AttachmentFlight.swift:192-204 ScreenFrameReader is the background of the content: it reports the chip's own frame
+    public void Arrival_reports_the_chips_frame_not_the_wrapper_frame() => headless.OnUiThread(() =>
+    {
+        var chip = new Avalonia.Controls.Border
+        {
+            Width = 72, Height = 32,
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
+        };
+        var arrival = new AttachmentArrival(false, new AttachmentDrops(), new AttachmentFlight(new FlightPlatform()), chip);
+        var window = new Avalonia.Controls.Window { Width = 240, Height = 80, Content = arrival };
+        window.Show(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var reports = new List<Rect>();
+        var reader = arrival.Children.OfType<ScreenFrameReader>().Single();
+        reader.OnChange = reports.Add;
+        window.Width = 241; window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.NotEmpty(reports);
+        Assert.Equal(72, reports[^1].Width);
+        Assert.Equal(32, reports[^1].Height);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-084")] // App/Views/Composer/AttachmentFlight.swift:167-169 the reader's bounds convert through the view hierarchy, so a transform is part of the frame
+    public void The_screen_frame_includes_a_visual_transform() => headless.OnUiThread(() =>
+    {
+        var reports = new List<Rect>();
+        var reader = new ScreenFrameReader(reports.Add)
+        {
+            Width = 72, Height = 32, RenderTransform = new Avalonia.Media.ScaleTransform(2, 2),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+        };
+        var window = new Avalonia.Controls.Window { Width = 300, Height = 200, Content = reader };
+        window.Show(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Equal(144, reports[^1].Width);
+        Assert.Equal(64, reports[^1].Height);
+        window.Close();
+    });
 }

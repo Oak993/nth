@@ -86,7 +86,7 @@ public sealed class TourView : Panel
         Action? onFinish = null, // :45
         Action? onClose = null) // :46
     {
-        this.pages = pages;
+        this.pages = [.. pages]; // :24 a Swift array is a value: the view keeps its own copy, whatever the caller does to its list
         this.width = width;
         this.height = height;
         this.continueButtonTitle = continueButtonTitle;
@@ -340,6 +340,7 @@ public sealed class TourView : Panel
     private void SetIndex(int newIndex)
     {
         currentIndex = newIndex;
+        if (pages.Count == 0) return; // :64-72 the body shows the empty state and never indexes pages
         Transaction.WithAnimation(Animation.EaseInOut(duration: 0.25), () =>
         {
             SetPage(newIndex, animate: true);

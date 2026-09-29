@@ -1206,6 +1206,88 @@ public sealed class RootViewTests(HeadlessSession headless)
         }
         finally { harness.Main.OnMain(() => { window?.Close(); Dispatcher.UIThread.RunJobs(); }); }
     });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-081")] // App/Views/RootView.swift:301-349 the ScrollView keeps its identity and offset while the activity style changes
+    public void Changing_the_activity_style_keeps_the_welcome_page_scrolled()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            model.Settings.ActivityThreadStyle = ActivityThreadStyle.Icon;
+            Control host = null!;
+            ScrollViewer before = null!;
+            harness.Main.OnMain(() =>
+            {
+                host = Build(model, () => new WelcomeView());
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                before = LogicalQuery.SelfAndDescendants<ScrollViewer>(host).First();
+                model.Settings.ActivityThreadStyle = ActivityThreadStyle.ProjectName;
+            });
+            harness.Main.RunUntilIdle();
+            harness.Main.OnMain(() =>
+            {
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Assert.Same(before, LogicalQuery.SelfAndDescendants<ScrollViewer>(host).First());
+                Assert.Contains(ActivityThreadStyle.ProjectName.Detail, AllText(host), StringComparison.Ordinal);
+                ((AvaloniaWindow)TopLevel.GetTopLevel(host)!).Close();
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-084")] // App/Views/RootView.swift:367-408 a row whose branch does not change keeps its trailing control (focus, spinner) when another provider's status changes
+    public void A_provider_row_keeps_its_trailing_control_when_its_own_branch_is_unchanged()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var cli = SwiftEnum<ProviderKind>.AllCases.First(kind => !kind.IsAPIKeyBased);
+            harness.Main.OnMain(() =>
+            {
+                var host = Build(model, () => new ProviderStatusRow(cli));
+                var row = LogicalQuery.SelfAndDescendants<ProviderStatusRow>(host).Single();
+                var trailing = (ContentControl)typeof(ProviderStatusRow).GetField("trailing", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(row)!;
+                var before = trailing.Content;
+                Assert.NotNull(before);
+                typeof(ProviderStatusRow).GetMethod("Rebuild", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.Invoke(row, null);
+                Assert.Same(before, trailing.Content);
+                ((AvaloniaWindow)TopLevel.GetTopLevel(host)!).Close();
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-088")] // App/Views/RootView.swift:441-446 the body reads the ShortcutStore label, so a remap shows at once
+    public void The_new_thread_chord_follows_a_shortcut_remap()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            using var store = ShortcutStore.Shared.Override(harness.Main.OnMain(() => (ShortcutStore)Activator.CreateInstance(typeof(ShortcutStore), nonPublic: true)!));
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var model = harness.MakeModel();
+            Control host = null!;
+            harness.Main.OnMain(() =>
+            {
+                host = Build(model, () => new NoThreadView());
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Assert.Contains("Ctrl+N", AllText(host), StringComparison.Ordinal);
+                ShortcutStore.Shared.Current.Set(null, AppShortcut.NewThread);
+            });
+            harness.Main.RunUntilIdle();
+            harness.Main.OnMain(() =>
+            {
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Assert.DoesNotContain("Ctrl+N", AllText(host), StringComparison.Ordinal);
+                Assert.Contains("New thread", AllText(host), StringComparison.Ordinal);
+                ((AvaloniaWindow)TopLevel.GetTopLevel(host)!).Close();
+            });
+        });
+    }
 }
 
 // Resolved STOP #3: the AlertPresenter owner's ED-216 request/window/session landed during this review pass.

@@ -38,6 +38,10 @@ public sealed class ThreadChangesTab : Button
         // :37 .focusable(false)
         Focusable = false;
 
+        // :42 .fixedSize(): the tab keeps its ideal size in a larger cell; its parent places it, centred unless told otherwise.
+        HorizontalAlignment = HorizontalAlignment.Center;
+        VerticalAlignment = VerticalAlignment.Center;
+
         // :16 Set the click action
         Click += (_, _) => action();
 

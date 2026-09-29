@@ -174,9 +174,10 @@ public sealed class RowGlideAnimator : MainActorModel
     // :127-134 PR-SIDEBAR-135 windows_path: SidebarThreadRow supplies its own window's DPI (minimum 2).
     internal IImage? Render(Control face, Size size, ThemeVariant colorScheme, double scale)
     {
-        face.Width = size.Width; // :133 .frame(width: size.width, height: size.height, alignment: .topLeading)
-        face.Height = size.Height;
-        var scope = new ThemeVariantScope { RequestedThemeVariant = colorScheme, Child = face }; // :134
+        // :133 .frame(width: size.width, height: size.height, alignment: .topLeading): a new frame view around the face; the
+        // caller's own control keeps the width and height it has.
+        var framed = new Border { Width = size.Width, Height = size.Height, Child = face };
+        var scope = new ThemeVariantScope { RequestedThemeVariant = colorScheme, Child = framed }; // :134
         return platform.RenderImage(scope, scale); // :136
     }
 }
@@ -204,7 +205,7 @@ public sealed class RowGlideLayer : Panel
         {
             seen.Add(glide.Id);
             if (rows.TryGetValue(glide.Id, out var row)) row.Update(glide);
-            else Children.Add(rows[glide.Id] = new RowGlideView(glide));
+            else Children.Add(rows[glide.Id] = new RowGlideView(glide, model));
         }
         foreach (var gone in rows.Keys.Where(id => !seen.Contains(id)).ToArray())
         {
@@ -227,6 +228,7 @@ public sealed class RowGlideView : Control
     public const double LeadingCheckInset = 16;
 
     private RowGlideAnimator.Glide glide;
+    private readonly RowGlideAnimator animator; // :15, :233-235 the layer's own animator (RowGlideAnimator.shared unless a caller injects one)
     private readonly SwiftImage check;
     private Action<TimeSpan>? frame;
     private IFrameSource? source;
@@ -234,9 +236,10 @@ public sealed class RowGlideView : Control
     private bool waitingFrame;
     private double progress;
 
-    public RowGlideView(RowGlideAnimator.Glide glide)
+    public RowGlideView(RowGlideAnimator.Glide glide, RowGlideAnimator? animator = null)
     {
         this.glide = glide;
+        this.animator = animator ?? RowGlideAnimator.Shared.Current;
         IsHitTestVisible = false;
         var settles = glide.GlideDirection == RowGlideAnimator.Glide.Direction.Settle; // :185
         // :215-217 Image(systemName: settles ? "checkmark.circle.fill" : "checkmark.circle"); OD-0010: Lucide
@@ -296,9 +299,9 @@ public sealed class RowGlideView : Control
     {
         var duration = RowGlideAnimator.Spring.SettlingDuration; // :231
         await SwiftTask.TrySleep(TimeSpan.FromSeconds(Math.Max(duration - 0.12, 0))); // :232
-        RowGlideAnimator.Shared.Current.Arrive(glide.Id); // :233
+        animator.Arrive(glide.Id); // :233
         await SwiftTask.TrySleep(TimeSpan.FromSeconds(0.12)); // :234
-        RowGlideAnimator.Shared.Current.Finish(glide.Id); // :235
+        animator.Finish(glide.Id); // :235
     }
 
     public override void Render(DrawingContext context)
@@ -338,22 +341,23 @@ public sealed class RowGlideView : Control
                     context.DrawImage(glide.Arrival, new Rect(glide.Arrival.Size), new Rect(frameRect.Position, to.Size)); // :197-200
                 }
             }
-        }
 
-        // :211-220. The check crosses on its own, over the crossfading faces, at the ghost's vertical centre.
-        var checkX = checkStart + (checkEnd - checkStart) * checkTravel; // :220
-        var checkY = frameRect.Center.Y; // :220
-        var checkScale = settles ? 1.35 - 0.35 * Smoothstep(0, 0.5, p) : 1; // :218
-        var checkOpacity = settles ? 1 - 0.2 * p : 1 - Smoothstep(0.55, 0.9, p); // :219
-        check.Measure(Size.Infinity);
-        check.Arrange(new Rect(check.DesiredSize));
-        using (context.PushOpacity(Math.Clamp(checkOpacity, 0, 1)))
-        using (context.PushTransform(
-            Matrix.CreateTranslation(-check.DesiredSize.Width / 2, -check.DesiredSize.Height / 2) *
-            Matrix.CreateScale(checkScale, checkScale) *
-            Matrix.CreateTranslation(checkX, checkY)))
-        {
-            check.Render(context);
+            // :211-223 the check is part of the ghost, before the final FrameShape clip: it is cut at the list's bounds too.
+            // :211-220. The check crosses on its own, over the crossfading faces, at the ghost's vertical centre.
+            var checkX = checkStart + (checkEnd - checkStart) * checkTravel; // :220
+            var checkY = frameRect.Center.Y; // :220
+            var checkScale = settles ? 1.35 - 0.35 * Smoothstep(0, 0.5, p) : 1; // :218
+            var checkOpacity = settles ? 1 - 0.2 * p : 1 - Smoothstep(0.55, 0.9, p); // :219
+            check.Measure(Size.Infinity);
+            check.Arrange(new Rect(check.DesiredSize));
+            using (context.PushOpacity(Math.Clamp(checkOpacity, 0, 1)))
+            using (context.PushTransform(
+                Matrix.CreateTranslation(-check.DesiredSize.Width / 2, -check.DesiredSize.Height / 2) *
+                Matrix.CreateScale(checkScale, checkScale) *
+                Matrix.CreateTranslation(checkX, checkY)))
+            {
+                check.Render(context);
+            }
         }
     }
 

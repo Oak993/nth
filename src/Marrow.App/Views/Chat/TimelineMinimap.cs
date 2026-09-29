@@ -186,17 +186,37 @@ public sealed class TimelineMinimapColumn : Decorator
 
         lastEntries = TimelineMinimap.Entries(blocks);
         var outlineBlocks = new List<MinimapOutlineBlock>();
-        foreach (var entry in lastEntries)
-            outlineBlocks.Add(new MinimapOutlineBlock { Id = entry.Id, HasUserMessage = true });
+        foreach (var block in blocks)
+            outlineBlocks.Add(new MinimapOutlineBlock { Id = block.Id, HasUserMessage = block.HasUserMessage }); // :117 blocks.map
         outline = outlineBlocks;
 
         Child = MakeSelection(lastEntries);
 
+        // :107-109,112-130 @State lastEntries: the ticks as last built. The owning timeline redraws by creating a new
+        // column each time, so the previous outline lives beside the tracking object that outlasts every column.
         AttachedToVisualTree += (_, _) =>
         {
-            lastEntries = TimelineMinimap.Entries(this.blocks);
+            var resizing = GetValue(AppEnvironment.WindowLiveResizeProperty)?.IsActive == true;
+            if (resizing && Held.TryGetValue(tracking, out var held)) lastEntries = held.Value!; // :114 liveResize.isActive ? lastEntries
+            else Remember(TimelineMinimap.Entries(this.blocks)); // :126 onAppear
             Child = MakeSelection(lastEntries);
         };
+        // :120-124 rebuilt once the resize settles, so the ticks land correct after scaling in place.
+        this.Track(() => GetValue(AppEnvironment.WindowLiveResizeProperty)?.IsActive == true, resizing =>
+        {
+            if (resizing) return;
+            Remember(TimelineMinimap.Entries(this.blocks));
+            Child = MakeSelection(lastEntries);
+        });
+    }
+
+    private static readonly System.Runtime.CompilerServices.ConditionalWeakTable<TimelineScrollTracking, System.Runtime.CompilerServices.StrongBox<ValueList<TimelineMinimapEntry>>> Held = new();
+
+    private void Remember(ValueList<TimelineMinimapEntry> entries)
+    {
+        lastEntries = entries;
+        Held.Remove(tracking);
+        Held.Add(tracking, new System.Runtime.CompilerServices.StrongBox<ValueList<TimelineMinimapEntry>>(entries));
     }
 
     // :112-130
@@ -471,7 +491,30 @@ public sealed class TimelineMinimapRail : Decorator
         var animation = Transaction.Current;
         var entry = hoveredID is { } id ? FindEntry(id) : null;
         var previous = previewCard;
-        if (entry is not null && (previous is null || !OptionalStringEqual(previewID, entry.Id)))
+        Panel? crossfadeHost = null;
+        Control? fadingOut = null;
+        Control? fadingIn = null;
+        double fadingOutFrom = 1;
+        if (entry is not null && previous is not null && !OptionalStringEqual(previewID, entry.Id) && (previous as Border)?.Child is Panel host)
+        {
+            // :303-318 the same preview stays mounted: the title and the snippet change under .contentTransition(.opacity), so
+            // the old text fades out while the new one fades in, inside the hover animation.
+            while (host.Children.Count > 1) host.Children.RemoveAt(0); // an earlier crossfade cut short: only the latest text remains
+            fadingOut = host.Children[0];
+            fadingOutFrom = fadingOut.Opacity;
+            fadingIn = CreatePreviewContent(entry);
+            fadingIn.Opacity = animation is null ? 1 : 0;
+            host.Children.Add(fadingIn);
+            crossfadeHost = host;
+            previewID = entry.Id;
+            if (animation is null)
+            {
+                host.Children.Remove(fadingOut);
+                fadingOut = null;
+                crossfadeHost = null;
+            }
+        }
+        else if (entry is not null && (previous is null || !OptionalStringEqual(previewID, entry.Id)))
         {
             var card = CreatePreviewCard(entry, metrics);
             var offset = (TranslateTransform)card.RenderTransform!;
@@ -502,6 +545,12 @@ public sealed class TimelineMinimapRail : Decorator
         var yTo = entry is null ? yFrom : PreviewY(entry, metrics, Bounds.Height);
         void Place(double progress)
         {
+            if (fadingOut is not null && fadingIn is not null)
+            {
+                fadingOut.Opacity = fadingOutFrom * (1 - progress);
+                fadingIn.Opacity = progress;
+                if (progress == 1) crossfadeHost!.Children.Remove(fadingOut);
+            }
             preview.Opacity = opacityFrom + (opacityTo - opacityFrom) * progress;
             transform.X = xFrom + (xTo - xFrom) * progress;
             transform.Y = yFrom + (yTo - yFrom) * progress;
@@ -512,7 +561,7 @@ public sealed class TimelineMinimapRail : Decorator
                 previewID = null;
             }
         }
-        if (animation is null || (opacityFrom == opacityTo && xFrom == xTo && yFrom == yTo))
+        if (animation is null || (opacityFrom == opacityTo && xFrom == xTo && yFrom == yTo && fadingOut is null))
         {
             Place(1);
             return;
@@ -657,6 +706,28 @@ public sealed class TimelineMinimapRail : Decorator
     {
         var y = PreviewY(entry, metrics, Bounds.Height);
 
+        var content = CreatePreviewContent(entry);
+
+        var card = new Border
+        {
+            Width = CardWidth,
+            Padding = new Thickness(12, 10),
+            Child = new Panel { Children = { content } }, // the host the title and snippet crossfade in
+        }.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous);
+        SwiftGlass.SetEffect(card, GlassEffect.Regular(GlassShape.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous))); // :324
+        card.Width = CardWidth;
+        card.Margin = new Thickness(34, 0, 0, 0);
+        card.HorizontalAlignment = HorizontalAlignment.Left;
+        card.VerticalAlignment = VerticalAlignment.Center;
+        card.IsHitTestVisible = false;
+        card.RenderTransform = new TranslateTransform(0, y);
+        AutomationProperties.SetAccessibilityView(card, AccessibilityView.Raw);
+        return card;
+    }
+
+    // :303-318 the card's title and snippet.
+    private static Control CreatePreviewContent(TimelineMinimapEntry entry)
+    {
         var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 3 };
         var title = new TextBlock
         {
@@ -684,21 +755,7 @@ public sealed class TimelineMinimapRail : Decorator
             content.Children.Add(snippet);
         }
 
-        var card = new Border
-        {
-            Width = CardWidth,
-            Padding = new Thickness(12, 10),
-            Child = content,
-        }.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous);
-        SwiftGlass.SetEffect(card, GlassEffect.Regular(GlassShape.RoundedRectangle(Chrome.CardCornerRadius, RoundedCornerStyle.Continuous))); // :324
-        card.Width = CardWidth;
-        card.Margin = new Thickness(34, 0, 0, 0);
-        card.HorizontalAlignment = HorizontalAlignment.Left;
-        card.VerticalAlignment = VerticalAlignment.Center;
-        card.IsHitTestVisible = false;
-        card.RenderTransform = new TranslateTransform(0, y);
-        AutomationProperties.SetAccessibilityView(card, AccessibilityView.Raw);
-        return card;
+        return content;
     }
 
     // :333-340

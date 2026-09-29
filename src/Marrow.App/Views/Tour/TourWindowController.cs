@@ -127,6 +127,7 @@ public sealed class TourWindowController
             Width = width,
             Height = totalHeight,
             WindowDecorations = Avalonia.Controls.WindowDecorations.None,
+            CanResize = false, // :75-80 the borderless style mask has no .resizable: no resizing or maximizing by the user
             Content = rootView,
             Topmost = true,
             ShowInTaskbar = false,

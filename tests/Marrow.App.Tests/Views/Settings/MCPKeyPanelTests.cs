@@ -395,4 +395,39 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
             Assert.Equal(26, Chrome.WindowCornerRadius);
         });
     }
+
+    [Fact]
+    [Trait("Req", "UI-MCP-076")] // App/Views/Settings/MCPKeyPanel.swift:126-168 HStack(spacing: 6): six points between the path field and its folder button
+    public void The_folder_button_sits_six_points_after_the_path_field()
+    {
+        OnMain(() =>
+        {
+            var view = new MCPKeyPanelView(Entry(fields: [Field("root", "Root", "Choose a folder", MCPField.Kind.Path)]), new AppModel(), () => { });
+            var button = ButtonWithSymbol(view, "folder")!;
+            var grid = (Grid)button.Parent!;
+            var field = grid.Children.OfType<TextBox>().Single();
+            grid.Measure(new Avalonia.Size(300, double.PositiveInfinity));
+            grid.Arrange(new Avalonia.Rect(0, 0, 300, grid.DesiredSize.Height));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Equal(6, button.Bounds.Left - field.Bounds.Right, 0.5);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-MCP-071")] // App/Views/Settings/MCPKeyPanel.swift:66-87 HStack(spacing: 10) { icon; texts; Spacer(minLength: 8); close }: 10 + 8 + 10 points at least between the texts and the close button
+    public void The_header_keeps_twenty_eight_points_between_the_title_and_the_close_button()
+    {
+        OnMain(() =>
+        {
+            var view = new MCPKeyPanelView(Entry(name: "A very long connector name that has to wrap inside the narrow panel header", fields: [Secret()]), new AppModel(), () => { });
+            var close = ButtonWithSymbol(view, "xmark")!;
+            var header = (Grid)close.Parent!;
+            var title = header.Children.OfType<StackPanel>().Single();
+            header.Measure(new Avalonia.Size(344, double.PositiveInfinity));
+            header.Arrange(new Avalonia.Rect(0, 0, 344, header.DesiredSize.Height));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Equal(28, close.Bounds.Left - title.Bounds.Right, 0.5);
+            Assert.True(header.DesiredSize.Width <= 344.5, "the title did not wrap: " + header.DesiredSize);
+        });
+    }
 }
