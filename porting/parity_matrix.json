@@ -14906,7 +14906,7 @@
       ],
       "preconditions": "An auto-merge of the team's work is under way.",
       "action": "The merging pill and the sidebar show the current stage.",
-      "expected_result": "Seven stages in this order, one dot each on the pill's track, with the words exactly: Gathering the team's files / Writing the commit / Writing the commit message / Pushing the branch / Opening the merge request / Merging / Bringing the checkout up to date. The apostrophe in \"team's\" is U+2019 as written in source. With several projects, the stages after the first run once per project, so the track starts over with the project's name on the words.",
+      "expected_result": "Seven stages in this order, one dot each on the pill's track, with the words exactly: Gathering the team's files / Writing the commit / Writing the commit message / Pushing the branch / Opening the merge request / Merging / Bringing the checkout up to date. With several projects, the stages after the first run once per project, so the track starts over with the project's name on the words.",
       "side_effects": [],
       "persistence": "The raw Int value is the case's ordinal; it is not persisted by this file.",
       "failure_cases": [],
