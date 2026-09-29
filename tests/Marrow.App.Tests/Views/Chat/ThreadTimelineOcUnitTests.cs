@@ -827,11 +827,83 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
         {
             window.Show(); Settle(window);
             Assert.Empty(LogicalQuery.SelfAndDescendants<WorkSteps>(card));
-            LogicalQuery.SelfAndDescendants<Button>(card).Single().RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+            RealClick(window, LogicalQuery.SelfAndDescendants<Button>(card).Single());
             Settle(window);
             var steps = LogicalQuery.SelfAndDescendants<WorkSteps>(card).Single();
             Assert.Equal(2, LogicalQuery.SelfAndDescendants<ToolRow>(steps).Count());
             Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(steps), text => text.Text == "1 earlier step");
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-125")] // App/Views/Chat/ThreadTimeline.swift:325-331 (a finished turn opens folded through row dispatch)
+    public void Oc_Finished_turn_row_opens_folded_through_dispatch() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var done = Guid.NewGuid();
+        var turn = Assert.IsType<DisplayBlock.Turn>(Blocks(new[] { User("u", done), Entry("e", new TimelineItem.Content.TurnEnd(Summary(done)), done) }).Single());
+        Assert.NotNull(turn.Summary);
+        var row = new DisplayBlockView(turn, runtime, new RowContext(null, false, false));
+        var host = new Border { Child = row };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var window = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            window.Show(); Settle(window);
+            var finished = Assert.Single(LogicalQuery.SelfAndDescendants<TurnFinishedBlock>(row));
+            var finishedState = finished.GetType().GetField("state", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(finished)!;
+            Assert.False((bool)finishedState.GetType().GetProperty("IsExpanded")!.GetValue(finishedState)!);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-125")] // App/Views/Chat/ThreadTimeline.swift:2185-2188 (a working line opens folded through the running-turn dispatch)
+    public void Oc_Working_line_opens_folded_through_dispatch() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var turn = Guid.NewGuid();
+        var row = new TurnRunningBlock(runtime, new ValueList<TimelineEntry>(new[] { User("u", turn), Tool("t1", turn), Tool("t2", turn), Tool("t3", turn) }), false, new RowContext(null, false, false));
+        var host = new Border { Child = row };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var window = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            window.Show(); Settle(window);
+            Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(row));
+            Assert.Empty(LogicalQuery.SelfAndDescendants<WorkSteps>(row));
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-125")] // App/Views/Chat/ThreadTimeline.swift:2185-2188 (two hidden steps read in the plural)
+    public void Oc_Two_hidden_steps_read_in_the_plural() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var steps = new WorkSteps(new ValueList<TimelineEntry>(new[] { Tool("t1"), Tool("t2"), Tool("t3"), Tool("t4") }), runtime, new Binding<bool>(() => false, _ => { }), null);
+        var host = new Border { Child = steps };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var window = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            window.Show(); Settle(window);
+            Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(steps), text => text.Text == "2 earlier steps");
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-125")] // App/Views/Chat/ThreadTimeline.swift:2185-2188 (showing all hides the earlier-steps line)
+    public void Oc_Showing_all_hides_the_earlier_steps_line() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var steps = new WorkSteps(new ValueList<TimelineEntry>(new[] { Tool("t1"), Tool("t2"), Tool("t3"), Tool("t4") }), runtime, new Binding<bool>(() => true, _ => { }), null);
+        var host = new Border { Child = steps };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var window = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            window.Show(); Settle(window);
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(steps), text => (text.Text ?? "").Contains("earlier step", StringComparison.Ordinal));
+            Assert.Equal(4, LogicalQuery.SelfAndDescendants<ToolRow>(steps).Count());
         }
         finally { window.Close(); }
     });
