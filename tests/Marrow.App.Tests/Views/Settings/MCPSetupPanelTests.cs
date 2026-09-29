@@ -234,4 +234,58 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
             Assert.Same(bodyField.GetValue(view), layers.Children[2]);
         });
     }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-223")] // App/Views/Settings/MCPSetupPanel.swift:135-141 onChange(of: state.isConnected) does not run for the initial value: a panel presented while already connected is not dismissed
+    public void A_panel_presented_while_already_connected_is_not_dismissed_on_its_own()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            SetState(model, "gitlab", new MCPConnectionState.Connected(3));
+            var done = 0;
+            MCPSetupPanelView view = null!;
+            Avalonia.Controls.Window window = null!;
+            harness.Main.OnMain(() =>
+            {
+                view = new MCPSetupPanelView(Entry("gitlab"), Guide(), model, () => done++);
+                window = new Avalonia.Controls.Window { Content = view };
+                window.Show();
+            });
+            harness.Main.RunUntilIdle();
+            harness.Main.AdvanceMilliseconds(2000);
+            Assert.Equal(0, done);
+            Assert.Contains("Connected", AllText(view), StringComparison.Ordinal);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-223")] // App/Views/Settings/MCPSetupPanel.swift:135-141 a change to connected dismisses the panel after 1.2 seconds
+    public void A_transition_to_connected_dismisses_the_panel_after_one_point_two_seconds()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var done = 0;
+            Avalonia.Controls.Window window = null!;
+            harness.Main.OnMain(() =>
+            {
+                var host = new Border { Child = new MCPSetupPanelView(Entry("gitlab"), Guide(), model, () => done++) };
+                window = new Avalonia.Controls.Window { Content = host };
+                window.Show();
+            });
+            harness.Main.RunUntilIdle();
+            var field = typeof(MCPStore).GetField("statesField", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var next = new Dictionary<string, MCPConnectionState>((Dictionary<string, MCPConnectionState>)field.GetValue(model.Mcp)!) { ["gitlab"] = new MCPConnectionState.Connected(2) };
+            harness.Main.OnMain(() => typeof(MCPStore).GetProperty("States")!.SetValue(model.Mcp, next));
+            harness.Main.RunUntilIdle();
+            Assert.Equal(0, done);
+            harness.Main.AdvanceMilliseconds(1300);
+            Assert.Equal(1, done);
+            window.Close();
+        });
+    }
 }

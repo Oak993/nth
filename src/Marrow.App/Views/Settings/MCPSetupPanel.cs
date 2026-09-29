@@ -89,6 +89,8 @@ public sealed class MCPSetupPanelView : Decorator
     private bool checkedOnce; // :62
     private bool successPopped; // :63
     private readonly StackPanel body; // :67-144
+    private bool wasConnectedState;
+    private bool builtOnce;
 
     // :56-59 let entry, let guide, let model, let onDone; :67-144 body
     public MCPSetupPanelView(MCPCatalogEntry entry, MCPSetupGuide guide, AppModel model, Action onDone)
@@ -106,6 +108,7 @@ public sealed class MCPSetupPanelView : Decorator
         };
         PaddingHost(body);
         UpdateBody();
+        builtOnce = true;
         SizeChanged += (_, _) => MCPSetupPanel.Shared.Fit(Bounds.Height);
         this.Track(() => model.Mcp.State(entry.Id), _ => UpdateBody());
         this.Track(() => EnvironmentValues.GetAccessibilityReduceMotion(this), _ => UpdateBody());
@@ -140,9 +143,18 @@ public sealed class MCPSetupPanelView : Decorator
         body.Children.Add(Header());
 
         var state = model.Mcp.State(entry.Id);
+        var wasConnected = wasConnectedState;
+        wasConnectedState = state.IsConnected;
         if (state.IsConnected)
         {
             body.Children.Add(SuccessView(state));
+            // :135-141 onChange(of: state.isConnected) runs on a change, not for the value the panel opened with.
+            if (!wasConnected && builtOnce)
+                MainActor.Spawn(async () =>
+                {
+                    await SwiftTask.TrySleep(TimeSpan.FromSeconds(1.2));
+                    onDone();
+                });
             return;
         }
 
@@ -337,11 +349,6 @@ public sealed class MCPSetupPanelView : Decorator
                 _ = animation.RunAsync(glyph);
             }
 
-            MainActor.Spawn(async () =>
-            {
-                await SwiftTask.TrySleep(TimeSpan.FromSeconds(1.2));
-                onDone();
-            });
         }
         return success;
     }
