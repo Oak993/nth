@@ -1640,7 +1640,7 @@ namespace Marrow.UI.Chrome
         // at the trailing edge.
         public ChromeRow(string title, Func<Control> control, string? detail = null)
         {
-            var titleText = new TextBlock { Text = title }; // :1064-1065
+            var titleText = new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap }; // :1064-1065 normal Text wrapping
             SwiftFont.System(SwiftFont.TextStyle.Body).Apply(titleText); // :1064
             titleText.Foreground = Chrome.PrimaryText.Brush(titleText); // :1065
             var textStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left }; // :1063, :1066

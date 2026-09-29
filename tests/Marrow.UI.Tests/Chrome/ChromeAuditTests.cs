@@ -60,4 +60,20 @@ public sealed class ChromeAuditTests(HeadlessSession headless)
         Assert.True(TextOf(section, title).Bounds.Height > lineHeight * 1.5, "the heading stayed on one line");
         window.Close();
     });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-204")] // Chrome.swift:1061-1064: the row title Text has normal wrapping, so a long title takes more lines
+    public void ChromeRow_title_wraps_when_the_control_leaves_little_room() => headless.OnUiThread(() =>
+    {
+        var one = new ChromeRow("Mode", () => new Border { Width = 60, Height = 20 });
+        var oneWindow = Show(one, 200);
+        var lineHeight = TextOf(one, "Mode").Bounds.Height;
+        oneWindow.Close();
+
+        const string title = "Allow every command without asking first";
+        var row = new ChromeRow(title, () => new Border { Width = 60, Height = 20 });
+        var window = Show(row, 200);
+        Assert.True(TextOf(row, title).Bounds.Height > lineHeight * 1.5, "the title stayed on one line");
+        window.Close();
+    });
 }
