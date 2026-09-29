@@ -74,7 +74,11 @@ public sealed class QuestionSheet : Decorator
         var largest = 0.0;
         foreach (var question in request.Questions)
         {
-            var probe = new QuestionPage(question, BindingForSelections(), BindingForWritten(), () => Advance(), () => { });
+            // :58 selections and written are .constant([:]): every choice is measured unselected, in the regular font.
+            var probe = new QuestionPage(question,
+                new Binding<ValueMap<string, ValueList<string>>>(() => ValueMap<string, ValueList<string>>.Empty, _ => { }),
+                new Binding<ValueMap<string, string>>(() => ValueMap<string, string>.Empty, _ => { }),
+                () => Advance(), () => { });
             probe.Measure(new Size(QuestionSheetWidth, double.PositiveInfinity));
             largest = Math.Max(largest, probe.DesiredSize.Height);
         }
@@ -293,8 +297,7 @@ public sealed class QuestionSheet : Decorator
             {
                 Content = new TextBlock { Text = "Next" },
                 Padding = new Thickness(10, 4),
-                Margin = new Thickness(0, 0, 8, 0),
-                IsDefault = true,
+                IsDefault = true, // the last child of the HStack: spacing 8 only lies between neighbours
             };
             next.Click += (_, _) => Advance();
             ToolTip.SetTip(next, "Goes to the next question");
@@ -408,7 +411,7 @@ internal sealed class QuestionPage : Decorator
         var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 10 };
         if (SwiftString.Count(question.Header) != 0)
         {
-            var header = new TextBlock { Text = SwiftString.Uppercased(question.Header) };
+            var header = new TextBlock { Text = SwiftString.Uppercased(question.Header), TextWrapping = TextWrapping.Wrap }; // a Text wraps at the width it is offered
             SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium).Apply(header);
             header.Foreground = Chrome.SecondaryText.Brush(header);
             content.Children.Add(header);
