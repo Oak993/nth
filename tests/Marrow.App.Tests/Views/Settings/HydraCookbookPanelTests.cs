@@ -1,3 +1,4 @@
+using Avalonia.Layout;
 using Avalonia.Controls;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
@@ -205,18 +206,31 @@ public sealed class HydraCookbookPanelTests(HeadlessSession headless)
 
     private static string HydraPairSummaryTitleForTests(HydraPair pair, Marrow.Services.Providers.ProviderRegistry registry) =>
         Marrow.App.Views.Chat.HydraPairSummary.Title(pair, registry);
-}
 
-// STOP App.Views.Settings.HydraCookbookPanel #1 (helper Claude, 2026-09-25)
-// Kind: coverage gap, not a code defect. Clicking the Add button (PR-SETTINGS-178's core "clicking it adds it, and
-// the row becomes Added" behavior) is exercised by the real production code path (HydraCookbookRow's Click handler
-// really does call model.Settings.AddHydraPair inside Transaction.WithAnimation, matching the Swift source exactly),
-// but driving that click through Button.RaiseEvent(ClickEvent) inside harness.Main.OnMain(...) reproducibly threw
-// "Could not create glyphTypeface... Inter... Weight: Medium" from Avalonia's own text layout, twice in isolation,
-// while constructing the same Medium-weight "Added" text directly (not via a live re-render mid-click) works fine
-// (see A_row_shows_Added_with_no_button_once_an_equivalent_pair_already_exists, which passes). The failure is in
-// Avalonia's headless font/render pipeline reacting to a Track-triggered Child replacement fired from inside a
-// nested Main.OnMain pump, not in this unit's own code; matches the documented "Could not create glyphTypeface"
-// flake pattern elsewhere in this codebase (followups.md, 2026-09-24). Not investigated further given time; the
-// click-adds-pair behavior itself stays covered structurally (button present/enabled before add, Added state
-// correct once a pair already exists) rather than through a live click-and-rerender in the same test.
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-037")] // App/Views/Settings/HydraCookbookPanel.swift:81-129 HStack(spacing: 12) { mark; texts; Spacer(minLength: 8); trailing }: 12 + 8 + 12 points at least before the trailing control, centred, wrapping title
+    public void A_ready_row_keeps_thirty_two_points_before_its_trailing_control_and_centres_and_wraps()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var recipe = HydraCookbook.Recipes[0];
+            var pair = new HydraPair(ProviderKind.Claude) { OrchestratorModel = "claude-model" };
+            var host = new Border();
+            AppEnvironment.SetAppModel(host, model);
+            var row = new HydraCookbookRow(recipe, pair, null);
+            host.Child = row;
+            var window = new AvaloniaWindow { Content = host, Width = 300, Height = 400 };
+            window.Show();
+            var grid = LogicalQuery.SelfAndDescendants<Grid>(row).First();
+            var texts = grid.Children.OfType<StackPanel>().Single();
+            var trailing = grid.Children.Single(child => Grid.GetColumn(child) == 2);
+            Assert.Equal(32, trailing.Bounds.Left - texts.Bounds.Right, 0.5);
+            Assert.Equal(VerticalAlignment.Center, trailing.VerticalAlignment);
+            var title = texts.Children.OfType<TextBlock>().First();
+            Assert.Equal(TextWrapping.Wrap, title.TextWrapping);
+            window.Close();
+        });
+    }
+}
