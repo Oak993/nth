@@ -180,7 +180,7 @@ public sealed class MCPSettingsPageRound2Tests(HeadlessSession headless)
         var border = Assert.IsType<Border>(button.Content); Assert.Equal(new CornerRadius(6), border.CornerRadius);
         Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(border));
         ColorIs(border, border.Background, SwiftColor.Clear);
-        var row = Assert.IsType<StackPanel>(border.Child); Assert.Equal(8, row.Spacing); Assert.Equal(26, row.Bounds.Height); Assert.Equal(new Thickness(8, 0), row.Margin);
+        var row = Assert.IsAssignableFrom<StackPanel>(border.Child); Assert.Equal(8, row.Spacing); Assert.Equal(26, row.Bounds.Height); Assert.Equal(new Thickness(8, 0), row.Margin);
         var text = Assert.Single(Nodes<MiddleTruncatingText>(button)); Assert.Equal(title, text.FullText);
         TextStyle(text, 13, FontWeight.Normal, destructive ? Chrome.Danger : Chrome.PrimaryText);
         Glyph(Assert.Single(Nodes<SwiftImage>(button)), symbol, 12, FontWeight.Normal, destructive ? Chrome.Danger : Chrome.PrimaryText);

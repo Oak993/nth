@@ -138,7 +138,7 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
         var border = Assert.IsType<Border>(button.Content); Assert.Equal(new CornerRadius(6), border.CornerRadius);
         Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(border));
         ColorIs(border, border.Background, SwiftColor.Clear);
-        var row = Assert.IsType<StackPanel>(border.Child); Assert.Equal(8, row.Spacing); Assert.Equal(26, row.Height); Assert.Equal(new Thickness(8, 0), row.Margin);
+        var row = Assert.IsAssignableFrom<StackPanel>(border.Child); Assert.Equal(8, row.Spacing); Assert.Equal(26, row.Height); Assert.Equal(new Thickness(8, 0), row.Margin);
         var text = Assert.Single(Nodes<MiddleTruncatingText>(button));
         TextStyle(text, 13, FontWeight.Normal, destructive ? Chrome.Danger : Chrome.PrimaryText);
         Glyph(Assert.Single(Nodes<SwiftImage>(button)), symbol, 12, FontWeight.Normal, destructive ? Chrome.Danger : Chrome.PrimaryText);
@@ -461,7 +461,7 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
             Assert.All(sections, s =>
             {
                 var section = Assert.IsType<StackPanel>(s.Child); Assert.Equal(10, section.Spacing);
-                var header = Assert.IsType<StackPanel>(section.Children[0]); Assert.Equal(4, header.Spacing);
+                var header = Assert.IsAssignableFrom<StackPanel>(section.Children[0]); Assert.Equal(4, header.Spacing);
                 TextStyle(Assert.IsType<TextBlock>(header.Children[0]), 13, FontWeight.SemiBold, Chrome.SecondaryText);
             });
             page.SetQuery("absent in every catalog"); Assert.Empty(Nodes<ChromeSection>(page)); Assert.Same(footer, stack.Children[^1]);

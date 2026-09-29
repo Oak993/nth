@@ -33,7 +33,7 @@ public sealed class SettingsRestArchiveTests(HeadlessSession headless) : Setting
             var menu = popup.Child!; Assert.Equal(count == 1 ? "Delete the archived thread?" : "Delete all archived threads?", Text(Assert.Single(Nodes<PopoverSectionHeader>(menu))).Single());
             Assert.Equal(count == 1 ? "Its history will be removed. Files in your project stay as they are." : "The histories of all 2 threads will be removed. Files in your projects stay as they are.", Text(Assert.Single(Nodes<PopoverNote>(menu))).Single());
             var item = Assert.Single(Nodes<PopoverItem>(menu)); Assert.Equal(count == 1 ? "Delete thread" : "Delete 2 threads", Text(item).Single());
-            var row = Assert.IsType<StackPanel>(Assert.IsType<Border>(Assert.Single(Nodes<Button>(item)).Content).Child); Ink(row, Avalonia.Controls.Documents.TextElement.GetForeground(row), Chrome.Danger);
+            var row = Assert.IsAssignableFrom<StackPanel>(Assert.IsType<Border>(Assert.Single(Nodes<Button>(item)).Content).Child); Ink(row, Avalonia.Controls.Documents.TextElement.GetForeground(row), Chrome.Danger);
             Click(w, Assert.Single(Nodes<Button>(item))); Assert.Empty(model.ArchivedThreads); Assert.False(popup.IsOpen);
         }, before: h => { var project = new Project("Project", h.NewFolder("project")); h.WriteLibrary([project], Enumerable.Range(0, count).Select(i => new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised) with { IsArchived = true, Title = "Archived " + i })); }, nativePopup: true);
     }

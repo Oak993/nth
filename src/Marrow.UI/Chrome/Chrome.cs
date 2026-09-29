@@ -1092,14 +1092,9 @@ namespace Marrow.UI.Chrome
             }
             ApplyText();
 
-            // :711 HStack(spacing: 8): icon, 8, title, then Spacer(minLength: 4) (:720). The title column is the flexible
-            // one, so a long title is compressed and tail-truncated rather than laid out at its intrinsic width.
-            var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,8,*,4") };
-            Grid.SetColumn(iconSlot, 0);
-            Grid.SetColumn(text, 2);
-            text.HorizontalAlignment = HorizontalAlignment.Left;
-            row.Children.Add(iconSlot);
-            row.Children.Add(text);
+            // :711 HStack(spacing: 8): icon, title, then Spacer(minLength: 4) (:720). The line gives the title what the icon and
+            // the spacer leave, so a long title is compressed and tail-truncated rather than laid out at its intrinsic width.
+            var row = new SidebarRowLine { Orientation = Orientation.Horizontal, Spacing = 8, Children = { iconSlot, text } };
             foreach (var part in row.Children) part.VerticalAlignment = VerticalAlignment.Center;
 
             var shape = new Border // :722 RoundedRectangle(cornerRadius: rowCornerRadius, style: .continuous).fill(fill)
@@ -1565,6 +1560,76 @@ namespace Marrow.UI.Chrome
         }
     }
 
+    /// <summary>PORT-ONLY: the ChromeSection header <c>HStack(spacing: 4)</c> (:1039-1048) with its <c>Spacer(minLength: 8)</c>
+    /// before the trailing control. Still a horizontal StackPanel to every caller: the heading and accessory keep their
+    /// natural widths from the leading edge, the trailing control is placed at the far edge, and the heading (a Text
+    /// with no lineLimit) is given what is left, so it wraps instead of running under the trailing control.</summary>
+    internal sealed class ChromeSectionHeaderPanel : StackPanel
+    {
+        /// <summary>:1046 the trailing control, when the section has one.</summary>
+        public Control? Trailing { get; set; }
+
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            var visible = Children.Where(c => c.IsVisible).ToList();
+            var others = visible.Where(c => !ReferenceEquals(c, visible[0])).ToList();
+            double used = 0, height = 0;
+            foreach (var child in others)
+            {
+                child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+                used += child.DesiredSize.Width;
+                height = Math.Max(height, child.DesiredSize.Height);
+            }
+            if (visible.Count == 0) return default;
+            var lead = visible[0];
+            var gaps = Spacing * (visible.Count - 1);
+            var room = double.IsInfinity(availableSize.Width) ? double.PositiveInfinity : Math.Max(0, availableSize.Width - used - gaps);
+            lead.Measure(new Size(room, availableSize.Height));
+            height = Math.Max(height, lead.DesiredSize.Height);
+            return new Size(lead.DesiredSize.Width + used + gaps, height);
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            var visible = Children.Where(c => c.IsVisible).ToList();
+            double x = 0;
+            foreach (var child in visible)
+            {
+                var size = child.DesiredSize;
+                var left = ReferenceEquals(child, Trailing) ? Math.Max(x, finalSize.Width - size.Width) : x;
+                child.Arrange(new Rect(left, Math.Max(0, (finalSize.Height - size.Height) / 2), size.Width, size.Height));
+                x = left + size.Width + Spacing;
+            }
+            return finalSize;
+        }
+    }
+
+    /// <summary>PORT-ONLY: the SidebarRow <c>HStack(spacing: 8)</c> of icon and title with <c>Spacer(minLength: 4)</c>
+    /// (:711-720). Still a horizontal StackPanel to every caller; the title is measured against the width the icon, the
+    /// spacing and the spacer leave, so its tail truncation (:718-719) applies instead of an intrinsic-width layout.</summary>
+    internal sealed class SidebarRowLine : StackPanel
+    {
+        private const double SpacerMinLength = 4; // :720
+
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            var visible = Children.Where(c => c.IsVisible).ToList();
+            if (visible.Count == 0) return default;
+            var title = visible[^1];
+            double used = 0, height = 0;
+            foreach (var child in visible.Where(c => !ReferenceEquals(c, title)))
+            {
+                child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+                used += child.DesiredSize.Width + Spacing;
+                height = Math.Max(height, child.DesiredSize.Height);
+            }
+            var room = double.IsInfinity(availableSize.Width) ? double.PositiveInfinity : Math.Max(0, availableSize.Width - used - SpacerMinLength);
+            title.Measure(new Size(room, availableSize.Height));
+            height = Math.Max(height, title.DesiredSize.Height);
+            return new Size(used + title.DesiredSize.Width, height);
+        }
+    }
+
     // MARK: - Cards
 
     // :1006-1027 struct ChromeCard<Content: View>: View. B3 (PR-WIN-202, UI-WIN-052) adds `lazy: Bool = false`
@@ -1610,26 +1675,16 @@ namespace Marrow.UI.Chrome
             var heading = new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap }; // :1040 no lineLimit: a long title wraps
             SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1041
             heading.Foreground = Chrome.SecondaryText.Brush(heading); // :1042
-            // :1039 HStack(spacing: 4). A DockPanel stands in for the Spacer: the trailing control is docked first at the far
-            // right, so it keeps its width and the title and accessory take what is left of the row.
-            var header = new DockPanel { LastChildFill = false };
-            heading.VerticalAlignment = VerticalAlignment.Center;
+            var header = new ChromeSectionHeaderPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; // :1039 HStack(spacing: 4)
+            header.Children.Add(heading);
+            if (accessory is not null) header.Children.Add(accessory); // :1043
             if (trailing is not null)
             {
                 trailing.Margin = new Thickness(8, 0, 0, 0); // :1045 Spacer(minLength: 8)
-                trailing.VerticalAlignment = VerticalAlignment.Center;
-                DockPanel.SetDock(trailing, Dock.Right); // :1046
-                header.Children.Add(trailing);
+                header.Children.Add(trailing); // :1046
+                header.Trailing = trailing;
             }
-            DockPanel.SetDock(heading, Dock.Left);
-            header.Children.Add(heading);
-            if (accessory is not null)
-            {
-                accessory.Margin = new Thickness(4, 0, 0, 0); // :1039 spacing 4
-                accessory.VerticalAlignment = VerticalAlignment.Center;
-                DockPanel.SetDock(accessory, Dock.Left);
-                header.Children.Add(accessory); // :1043
-            }
+            foreach (var part in header.Children) part.VerticalAlignment = VerticalAlignment.Center;
             var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1038, :1050
             stack.Children.Add(header);
             stack.Children.Add(content()); // :1049
