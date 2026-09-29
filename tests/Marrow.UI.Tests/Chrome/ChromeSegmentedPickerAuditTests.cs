@@ -52,4 +52,20 @@ public sealed class ChromeSegmentedPickerAuditTests(HeadlessSession headless)
         window.Close();
         Dispatcher.UIThread.RunJobs();
     });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-184")] // ChromeSegmentedPicker.swift:40: .fixedSize(): the strip keeps its ideal width under a narrower proposal
+    public void Strip_keeps_its_natural_width_under_a_narrower_parent() => headless.OnUiThread(() =>
+    {
+        var alone = IntPicker(new CellSample<int>(1));
+        var aloneWindow = Show(alone);
+        var natural = alone.Bounds.Width;
+        aloneWindow.Close();
+        var picker = IntPicker(new CellSample<int>(1));
+        var window = Show(new Grid { Width = 60, HorizontalAlignment = HorizontalAlignment.Left, Children = { picker } });
+        Assert.True(natural > 60);
+        Assert.Equal(natural, picker.Bounds.Width, 0.5);
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+    });
 }

@@ -65,6 +65,10 @@ namespace Marrow.UI.Chrome
             this.VerticalAlignment = VerticalAlignment.Top;
         }
 
+        // :40 .fixedSize(): the strip keeps its ideal size; a narrower proposal neither compresses nor clips it.
+        protected override Size MeasureOverride(Size availableSize) =>
+            PlainControls.MeasureFixed(this, Child, availableSize);
+
         /// <summary>
         /// :25-27 Initializer taking (value, title) pairs and mapping them to options with no symbol.
         /// </summary>
