@@ -174,6 +174,32 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-STORE-094")] // AppModel.swift:667-702
+    public void A_thread_started_on_a_projects_pair_takes_the_pairs_lead_model_and_effort()
+    {
+        using var h = new AppModelHarness();
+        var pair = new HydraPair(ProviderKind.Codex) { OrchestratorModel = "lead-model", OrchestratorEffort = "high" };
+        var project = AppModelSamples.Project("P", h.NewFolder("project-pair")) with { HydraPairID = pair.Id };
+        h.WriteLibrary([project], []);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            HydraCookbookResolveFixture.SetInstalled(model.Providers, ProviderKind.Codex, true);
+            HydraCookbookResolveFixture.SetModels(model.Providers, ProviderKind.Codex, HydraCookbookResolveFixture.Model("lead-model", "Lead", ["low", "high"]), HydraCookbookResolveFixture.Model("other", "Other", ["low"]));
+            model.Settings.AddHydraPair(pair);
+            model.Settings.HydraEnabled = true;
+
+            var made = model.NewThread(project)!;
+
+            Assert.Equal("lead-model", made.Model);
+            Assert.Equal("high", made.Effort);
+            Assert.Equal(pair.Id, made.HydraPairID);
+            Assert.True(made.HydraEnabled);
+        });
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
