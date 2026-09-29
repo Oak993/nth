@@ -39,4 +39,23 @@ public sealed class ChromeVisualPickerAuditTests(HeadlessSession headless)
         window.Close();
         Dispatcher.UIThread.RunJobs();
     });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-183")] // ChromeVisualPicker.swift:76-84: lineLimit(2), and SwiftUI's default truncation is the tail ellipsis
+    public void A_caption_longer_than_two_lines_ends_with_a_tail_ellipsis() => headless.OnUiThread(() =>
+    {
+        using var frameSource = FrameClock.Source.Override(new ManualFrameSource());
+        const string title = "A very long option name that needs three lines";
+        var cell = new CellSample<int>(1);
+        var picker = new ChromeVisualPicker<int, TextBlock>(
+            new[] { (1, title), (2, "Two") },
+            new Binding<int>(() => cell.Value, v => cell.Value = v),
+            value => new TextBlock { Text = "x" });
+        var window = Show(picker);
+        var caption = Assert.Single(VisualQuery.Descendants<TextBlock>(picker), t => t.Text == title);
+        Assert.Equal(2, caption.MaxLines);
+        Assert.Equal(TextTrimming.CharacterEllipsis, caption.TextTrimming);
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+    });
 }

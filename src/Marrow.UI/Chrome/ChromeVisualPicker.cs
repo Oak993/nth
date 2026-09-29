@@ -223,7 +223,8 @@ public sealed class ChromeVisualTile : Decorator
             Width = width,
             TextAlignment = TextAlignment.Center,
             TextWrapping = TextWrapping.Wrap,
-            MaxLines = 2,
+            MaxLines = 2, // :76-84 .lineLimit(2)
+            TextTrimming = TextTrimming.CharacterEllipsis, // SwiftUI's default truncation is the tail ellipsis
         };
 
         // :79 .font(.system(.subheadline))
