@@ -1,0 +1,709 @@
+{
+    "record":  "PR-THEME-039",
+    "mutations":  [
+                      {
+                          "id":  "OWN-THEME039-01",
+                          "records":  [
+                                          "PR-THEME-039"
+                                      ],
+                          "clause":  "Swift:151 hosted-tree scheme is not ignored",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                          "replacements":  [
+                                               {
+                                                   "before":  "scheme =\u003e RequestedThemeVariant = scheme ?? ThemeVariant.Default",
+                                                   "after":  "scheme =\u003e RequestedThemeVariant = ThemeVariant.Default"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-THEME039-02",
+                          "records":  [
+                                          "PR-THEME-039"
+                                      ],
+                          "clause":  "Swift:151 dark host is not mapped to light",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                          "replacements":  [
+                                               {
+                                                   "before":  "scheme =\u003e RequestedThemeVariant = scheme ?? ThemeVariant.Default",
+                                                   "after":  "scheme =\u003e RequestedThemeVariant = scheme == ThemeVariant.Dark ? ThemeVariant.Light : scheme ?? ThemeVariant.Default"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-THEME039-03",
+                          "records":  [
+                                          "PR-THEME-039"
+                                      ],
+                          "clause":  "Swift:152 initial and subsequent process observer is wired",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                          "replacements":  [
+                                               {
+                                                   "before":  "(_, theme) =\u003e SetAppearance(theme), initial: true",
+                                                   "after":  "(_, theme) =\u003e { _ = theme; }, initial: true"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-THEME039-04",
+                          "records":  [
+                                          "PR-THEME-039"
+                                      ],
+                          "clause":  "Process observer forwards the selected theme instead of a constant",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                          "replacements":  [
+                                               {
+                                                   "before":  "(_, theme) =\u003e SetAppearance(theme), initial: true",
+                                                   "after":  "(_, theme) =\u003e SetAppearance(AppTheme.System), initial: true"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-THEME039-05",
+                          "records":  [
+                                          "PR-THEME-039"
+                                      ],
+                          "clause":  "Swift:155 process Light maps to Light",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                          "replacements":  [
+                                               {
+                                                   "before":  "scheme == ThemeVariant.Light ? ThemeVariant.Light",
+                                                   "after":  "scheme == ThemeVariant.Light ? ThemeVariant.Dark"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-THEME039-06",
+                          "records":  [
+                                          "PR-THEME-039"
+                                      ],
+                          "clause":  "Swift:156 process Dark maps to Dark",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                          "replacements":  [
+                                               {
+                                                   "before":  "scheme == ThemeVariant.Dark ? ThemeVariant.Dark",
+                                                   "after":  "scheme == ThemeVariant.Dark ? ThemeVariant.Light"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-THEME039-07",
+                          "records":  [
+                                          "PR-THEME-039"
+                                      ],
+                          "clause":  "Swift:154 System clears the process preference",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                          "replacements":  [
+                                               {
+                                                   "before":  "scheme is null ? ThemeVariant.Default",
+                                                   "after":  "scheme is null ? ThemeVariant.Dark"
+                                               }
+                                           ]
+                      },
+                      {
+                          "id":  "OWN-THEME039-08",
+                          "records":  [
+                                          "PR-THEME-039"
+                                      ],
+                          "clause":  "Reattached host reinstalls its initial/later process observer",
+                          "path":  "src/Marrow.App/Window/WindowManager.cs",
+                          "native":  false,
+                          "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
+                          "replacements":  [
+                                               {
+                                                   "before":  "            appearance = null;",
+                                                   "after":  ""
+                                               }
+                                           ]
+                      }
+                  ],
+    "results":  [
+                    {
+                        "id":  "OWN-THEME039-01",
+                        "record":  "PR-THEME-039",
+                        "clause":  "Swift:151 hosted-tree scheme is not ignored",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-THEME039-01-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-6e37131d-06ba-4f8a-83e0-21bb0838eed0",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-01-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-01-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c45d5fa9-294c-4859-9725-43d89e6b8ca9",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Default"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-01-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-01-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c03ed3a5-a330-4cd6-8874-c509e76feb9d",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Default"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-01-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-621186d5-45fe-40f0-804f-0720b0f90edd",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-01-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-01-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-eab8e307-83db-4f0b-b259-daac285cf6aa",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "F4DC7E230B5109A8AB5D88C1DEAB3C6ACEAB80F6813C5C5680C05194E95D9936",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-THEME039-02",
+                        "record":  "PR-THEME-039",
+                        "clause":  "Swift:151 dark host is not mapped to light",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-THEME039-02-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-28349cc1-6fef-4ecb-b1db-9e94e2e92465",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-02-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-02-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-db0219bd-3819-45de-abb5-b191b53d762b",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-02-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-02-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-6023aed9-35bd-4ca7-9ba9-4f6c118d6839",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-02-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-40ce0f75-c0c6-4bec-8035-f576b8c21015",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-02-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-02-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-93177b96-b072-430f-b342-bb804c67455a",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "F5EE3D02A83A69CFC60B956463FFEF6168AD37BFDDFDBF1C9CC1A52B493893CD",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-THEME039-03",
+                        "record":  "PR-THEME-039",
+                        "clause":  "Swift:152 initial and subsequent process observer is wired",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-THEME039-03-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-4f94064b-61ab-4ea0-878f-ad381a207088",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-03-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-03-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-c822c77d-99d1-4a31-ace8-2ad0338d9202",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-03-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-03-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-f496f2eb-ea9c-4a93-8942-5ed8911803aa",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-03-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-2e8a2859-f936-4836-8771-71c8479df148",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-03-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-03-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-a2264728-1c34-490c-99fa-8612f09b5494",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "CBFC67E38D2E9397B2ACF0163C25045F40A34766BD2167C3DB7A0E2C43D74EF2",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-THEME039-04",
+                        "record":  "PR-THEME-039",
+                        "clause":  "Process observer forwards the selected theme instead of a constant",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-THEME039-04-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-3ca8ec50-2824-42e3-8620-2a0793aaeca6",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-04-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window --logger trx;LogFileName=OWN-THEME039-04-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-f1275430-cefc-437f-adf8-fa6b8f21fad9",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Default"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-04-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window --logger trx;LogFileName=OWN-THEME039-04-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-ce290bfd-0d7f-4f64-9755-89c1c36e5b2c",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Default"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-04-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-eae958f9-ac54-4181-8843-15fd213f2c32",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-04-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window --logger trx;LogFileName=OWN-THEME039-04-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-52a1d009-b9f9-4945-bfde-0235a3b8c105",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "995E9EB461FC9B4CAE609E6D1CC477255D03887573183E48487D2AF2A097AFF1",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-THEME039-05",
+                        "record":  "PR-THEME-039",
+                        "clause":  "Swift:155 process Light maps to Light",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-THEME039-05-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-e5d5f197-1c08-4a02-8b46-c38c30227f25",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-05-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window --logger trx;LogFileName=OWN-THEME039-05-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-0761c840-f354-4b9a-b1db-e6ffb2b30baa",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Light\r\nActual:   Dark"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-05-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window --logger trx;LogFileName=OWN-THEME039-05-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-1959e42d-8695-4182-b57f-37ce4f41ed24",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Light\r\nActual:   Dark"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-05-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-30b2a76b-d630-499a-8c30-c50bba7c53f4",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-05-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window --logger trx;LogFileName=OWN-THEME039-05-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-df443154-5e1b-49e4-b617-aa443b1f7db0",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "224F179CAD9181C690CF7F9EBB67E5FE22B17B712B1EE7A9DBADD35220C30523",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-THEME039-06",
+                        "record":  "PR-THEME-039",
+                        "clause":  "Swift:156 process Dark maps to Dark",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-THEME039-06-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-e3a5f602-5740-409c-bc6f-c5ed8ba6fa13",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-06-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-06-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-3c3989f5-6812-4e2d-81f8-3199fb017f3b",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-06-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-06-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-db9e0285-ebfe-49cb-823b-5ef01610fa04",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-06-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-e83ce343-c090-46c2-9a38-8f006b373618",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-06-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change --logger trx;LogFileName=OWN-THEME039-06-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-5bdb5bc6-6d97-435b-bdae-bc51ce9e62ee",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "B2E784FAFE715AFD1DFB597D6350AD9E3CA6457EDDAD0917755DA15A293026FB",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-THEME039-07",
+                        "record":  "PR-THEME-039",
+                        "clause":  "Swift:154 System clears the process preference",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-THEME039-07-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-1e986272-00b5-42b6-8fbb-a3d6f2a0b899",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-07-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window --logger trx;LogFileName=OWN-THEME039-07-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-934e901a-6815-4972-a4a3-8811726882de",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Default\r\nActual:   Dark"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-07-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window --logger trx;LogFileName=OWN-THEME039-07-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-a69ce464-e8dc-42d4-9ee6-cf02b4105511",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Default\r\nActual:   Dark"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-07-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-d249b0e4-18f7-4f22-9cbd-bf57f5f55208",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-07-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window --logger trx;LogFileName=OWN-THEME039-07-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-601b3849-719c-4f98-8645-1f16bb71182e",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "F0B0D4BE618E2E7FBB5185BBFD38A3DE650245049CBFAAA345E6EBA60229EFF6",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    },
+                    {
+                        "id":  "OWN-THEME039-08",
+                        "record":  "PR-THEME-039",
+                        "clause":  "Reattached host reinstalls its initial/later process observer",
+                        "killer":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
+                        "before_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "runs":  [
+                                     {
+                                         "name":  "OWN-THEME039-08-mutant-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-1b2385f4-0a8b-430b-b2bb-63a3b13a25ee",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-08-red-1",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer --logger trx;LogFileName=OWN-THEME039-08-red-1.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-fe52d1bf-5093-416c-9f31-96c372297167",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-08-red-2",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer --logger trx;LogFileName=OWN-THEME039-08-red-2.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  1,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-3d9e7635-40bb-417d-98f9-8523aba58619",
+                                         "total":  1,
+                                         "passed":  0,
+                                         "failed":  1,
+                                         "failures":  [
+                                                          {
+                                                              "test":  "Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer",
+                                                              "message":  "Assert.Equal() Failure: Values differ\r\nExpected: Dark\r\nActual:   Light"
+                                                          }
+                                                      ]
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-08-restored-build",
+                                         "command":  "dotnet build Marrow.sln -c Debug --nologo -v q",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-b5ebeadf-8468-4818-905b-3e0ab38e32a7",
+                                         "clean":  true
+                                     },
+                                     {
+                                         "name":  "OWN-THEME039-08-green",
+                                         "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName=Marrow.App.Tests.Window.WindowManagerThemeMutationTests.Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer --logger trx;LogFileName=OWN-THEME039-08-green.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                                         "exit":  0,
+                                         "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-b3ad989b-c8d4-4880-96e5-b4da6a4c892d",
+                                         "total":  1,
+                                         "passed":  1,
+                                         "failed":  0,
+                                         "failures":  [
+
+                                                      ]
+                                     }
+                                 ],
+                        "status":  "KILLED_TWICE_ALONE_AND_GREEN",
+                        "mutant_sha256":  "AC8389AEE3FF79C6D72E5B277312D7146C40D27E2F56B07492DF833D9AD383D8",
+                        "restored_sha256":  "480DED9A9827221EC6B2E72ADCE0A05E4E367A2AA77D473719C7786AD4233822",
+                        "git_diff_unchanged":  true,
+                        "restored":  true
+                    }
+                ],
+    "gate":  {
+                 "name":  "PR-THEME-039-class-and-trace",
+                 "command":  "dotnet test tests\\Marrow.App.Tests --no-build --nologo -v q --filter FullyQualifiedName~WindowManagerThemeMutationTests|FullyQualifiedName~TraceabilityTests --logger trx;LogFileName=PR-THEME-039-class-and-trace.trx --results-directory E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+                 "exit":  0,
+                 "data":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\tmp\\marrow-3bd95a3e-9212-4f29-baaa-230de413e08b",
+                 "total":  6,
+                 "passed":  6,
+                 "failed":  0,
+                 "failures":  [
+
+                              ]
+             },
+    "run_directory":  "E:\\Droppy\\wt\\oc\\chatgpt-1\\_packet\\evidence\\window-mutations\\own-headless-20260929-145626",
+    "scope":  "Executed mutation evidence only; final REPORT decides complete-clause candidacy."
+}
