@@ -176,6 +176,8 @@ internal static class WindowManagerNativePlacementExercise
                 ObservedMainDpi = visitedDpi.Order().ToArray(),
                 RecordedCaseCount = results.Count,
                 AvailableMonitorPlacementPassed = finished,
+                // STOP TWO-PHYSICAL-MONITORS: the saved machine has one physical region.
+                // A passing available-monitor run must not be promoted to WIN-011's two-monitor clause.
                 TwoMonitorPlacementClauseExercised = finished && completedMonitors.Count >= 2,
                 MixedDpiTransitionExercised = results.Any(item => item.BeforeMain.Dpi != item.BeforeSettings.Dpi),
                 WorkareaVsBoundsDiscriminatorCases = results.Count(item => item.DistinguishesBounds),
