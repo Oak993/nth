@@ -436,6 +436,184 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:257-278 (paging floors at the first block)
+    public void Oc_Paging_floors_at_the_first_block() => WithTimeline((view, _, _, _, _) =>
+    {
+        var blocks = Enumerable.Range(0, 30).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Put(view, "windowStartID", "b10"); Put(view, "historyLoadPending", false);
+        Invoke<object?>(view, "LoadEarlier", blocks, null);
+        Assert.Equal("b0", Field<string?>(view, "windowStartID"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:595-608 (the initial load floors at the first block)
+    public void Oc_Initial_load_floors_at_the_first_block() => WithTimeline((view, _, _, _, h) =>
+    {
+        var ten = Enumerable.Range(0, 10).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Invoke<object?>(view, "StartInitialHistoryLoad", (object)ten);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        h.Main.AdvanceMilliseconds(251); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Equal("b0", Field<string?>(view, "windowStartID"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:257-278 (paging only moves to an earlier target)
+    public void Oc_Paging_ignores_a_target_at_the_window_start() => WithTimeline((view, _, _, _, _) =>
+    {
+        var blocks = Enumerable.Range(0, 60).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Put(view, "historyLoadPending", false);
+        Invoke<object?>(view, "LoadEarlier", blocks, 3);
+        Assert.False(Field<bool>(view, "historyLoadPending"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:257-278 (paging holds the bottom while loading)
+    public void Oc_Paging_holds_the_bottom_while_loading() => WithTimeline((view, _, _, _, _) =>
+    {
+        var blocks = Enumerable.Range(0, 60).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Put(view, "historyLoadPending", false);
+        Put(view, "anchorsBottomOnGrowth", false);
+        Invoke<object?>(view, "LoadEarlier", blocks, 24);
+        Assert.True(Field<bool>(view, "anchorsBottomOnGrowth"));
+        Assert.True(Field<bool>(view, "historyLoadPending"));
+        Assert.Equal("b36", Field<string?>(view, "windowStartID"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:595-608 (the initial load arms the blank watch)
+    public void Oc_Initial_load_arms_the_blank_watch() => WithTimeline((view, _, _, _, h) =>
+    {
+        var thirty = Enumerable.Range(0, 30).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Invoke<object?>(view, "StartInitialHistoryLoad", (object)thirty);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        h.Main.AdvanceMilliseconds(251); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var tracking = Field<TimelineScrollTracking>(view, "tracking");
+        Assert.NotNull(typeof(TimelineScrollTracking).GetField("blankWatch", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(tracking));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:595-608 (the initial load warms finished markdown)
+    public void Oc_Initial_load_warms_finished_markdown() => WithTimeline((view, runtime, _, _, h) =>
+    {
+        const string warmed = "warmed dessert spoonsyntax 7z9q";
+        typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { User("u", Turn), Entry("r", new TimelineItem.Content.Assistant(new AssistantMessage { Text = warmed }), Turn) }));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var thirty = Enumerable.Range(0, 30).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Invoke<object?>(view, "StartInitialHistoryLoad", (object)thirty);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        h.Main.AdvanceMilliseconds(251); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        h.Main.AdvanceMilliseconds(1000); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var cache = typeof(Marrow.UI.Markdown.MarkdownView).GetField("blockCache", BindingFlags.NonPublic | BindingFlags.Static)!.GetValue(null)!;
+        Assert.True((bool)cache.GetType().GetMethod("Contains")!.Invoke(cache, [warmed])!);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:595-608 (a cancelled initial load does nothing further)
+    public void Oc_Cancelled_initial_load_does_nothing_further() => WithTimeline((view, _, _, _, h) =>
+    {
+        var thirty = Enumerable.Range(0, 30).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Invoke<object?>(view, "StartInitialHistoryLoad", (object)thirty);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Field<Marrow.Core.Port.TaskHandle?>(view, "initialHistoryTask")!.Cancel();
+        h.Main.AdvanceMilliseconds(300); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Assert.Null(Field<string?>(view, "windowStartID"));
+        Assert.False(Field<TimelineScrollTracking>(view, "tracking").IsArriving);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:703-707 (the eager drop keeps a ninety-six-block window)
+    public void Oc_Eager_drop_keeps_ninety_six_blocks() => WithTimeline((view, _, _, state, _) =>
+    {
+        var grown = Enumerable.Range(0, 120).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Put(view, "windowStartID", "b24"); Put(view, "historyLoadPending", false);
+        var tracking = Field<TimelineScrollTracking>(view, "tracking");
+        tracking.IsPinnedToBottom = false; tracking.NoteGeometry(0, 0, 0);
+        state.ShowsJumpButton = true;
+        Invoke<object?>(view, "NoteArrival", "b119", grown);
+        Assert.Equal("b24", Field<string?>(view, "windowStartID"));
+        Assert.True(tracking.IsPinnedToBottom);
+        Assert.False(state.ShowsJumpButton);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:703-707 (no eager drop while the reader is followed)
+    public void Oc_No_eager_drop_while_a_load_is_pending() => WithTimeline((view, _, _, _, _) =>
+    {
+        var grown = Enumerable.Range(0, 120).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Put(view, "windowStartID", "b0"); Put(view, "historyLoadPending", true);
+        Invoke<object?>(view, "NoteArrival", "b119", grown);
+        Assert.Equal("b0", Field<string?>(view, "windowStartID"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:257-278 (rows are built for the window only)
+    public void Oc_Rows_cover_only_the_window() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var h = new AppModelHarness();
+        using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var model = new Marrow.App.AppModel(); var id = Guid.NewGuid(); DiskWriter.Shared.WriteSynchronously(new ThreadDocument(id), Storage.ThreadURL(id)); DocumentPrefetch.Shared.Warm([id], urgent: true)!.Completion.GetAwaiter().GetResult(); var runtime = new ThreadRuntime(id, model);
+        // A two-pixel window: the EarlierPill can never reach its 0.1 visibility fraction,
+        // so its auto-load callback cannot grow the window mid-test; six turns render safely.
+        var chrome = new ChromeScrollModel(); var state = new TimelineScrollState(); var view = new ThreadTimeline(runtime, chrome, state, "Project", null, false, 2); var host = new Border(); AppEnvironment.SetAppModel(host, model); host.Child = view; var window = new Avalonia.Controls.Window { Content = host, Width = 960, Height = 2 };
+        AppEnvironment.SetWindowLiveResize(host, new Marrow.App.Window.WindowLiveResize(window));
+        try
+        {
+            window.Show(); window.UpdateLayout();
+            var entries = Enumerable.Range(0, 6).Select(i => User("u" + i, Guid.NewGuid())).ToArray();
+            typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(entries));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs(); window.UpdateLayout(); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            var dict = Field<System.Collections.Generic.Dictionary<string, (DisplayBlock Block, RowContext Context, Control Row)>>(view, "rowViews");
+            Assert.Equal(3, dict.Count);
+            Assert.Null(Field<string?>(view, "windowStartID"));
+        }
+        finally { window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:703-707 (no arrival processing while the user scrolls)
+    public void Oc_No_arrival_processing_while_the_user_scrolls() => WithTimeline((view, _, _, _, _) =>
+    {
+        var grown = Enumerable.Range(0, 120).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray();
+        Put(view, "windowStartID", "b0"); Put(view, "historyLoadPending", false);
+        var tracking = Field<TimelineScrollTracking>(view, "tracking");
+        tracking.IsPinnedToBottom = true; tracking.IsUserScrolling = true;
+        Invoke<object?>(view, "NoteArrival", "b119", grown);
+        Assert.Equal("b0", Field<string?>(view, "windowStartID"));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:595-608 (the initial load redraws with the new window)
+    public void Oc_Initial_load_redraws_with_the_new_window() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var h = new AppModelHarness();
+        using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var model = new Marrow.App.AppModel(); var id = Guid.NewGuid(); DiskWriter.Shared.WriteSynchronously(new ThreadDocument(id), Storage.ThreadURL(id)); DocumentPrefetch.Shared.Warm([id], urgent: true)!.Completion.GetAwaiter().GetResult(); var runtime = new ThreadRuntime(id, model);
+        // Two-pixel window again: the hidden pill cannot auto-load, so only the initial
+        // load's own redraw moves the window.
+        var chrome = new ChromeScrollModel(); var state = new TimelineScrollState(); var view = new ThreadTimeline(runtime, chrome, state, "Project", null, false, 2); var host = new Border(); AppEnvironment.SetAppModel(host, model); host.Child = view; var window = new Avalonia.Controls.Window { Content = host, Width = 960, Height = 2 };
+        AppEnvironment.SetWindowLiveResize(host, new Marrow.App.Window.WindowLiveResize(window));
+        try
+        {
+            window.Show(); window.UpdateLayout();
+            var turns = new[] { Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb0"), Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1"), Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2"), Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3"), Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4"), Guid.Parse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb5") };
+            // Finished turns render statically, so the 251 time steps below stay cheap.
+            var entries = turns.SelectMany((turn, i) => new[] { User("u" + i, turn), Entry("e" + i, new TimelineItem.Content.TurnEnd(Summary(turn)), turn) }).ToArray();
+            typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(entries));
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            string Id(int i) => "turn-" + turns[i].ToString("D").ToUpperInvariant() + "-u" + i;
+            Assert.Equal(3, Field<System.Collections.Generic.Dictionary<string, (DisplayBlock Block, RowContext Context, Control Row)>>(view, "rowViews").Count);
+            var blocks = DisplayBlock.Build(entries, TimelineMeta.Build(entries), false, false, null, null);
+            Invoke<object?>(view, "StartInitialHistoryLoad", (object)blocks.ToArray());
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            h.Main.AdvanceMilliseconds(251); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Id(0), Field<string?>(view, "windowStartID"));
+            Assert.Equal(6, Field<System.Collections.Generic.Dictionary<string, (DisplayBlock Block, RowContext Context, Control Row)>>(view, "rowViews").Count);
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(view).Select(text => text.Text ?? ""), text => text.Contains("earlier messages", StringComparison.Ordinal));
+        }
+        finally { window.Close(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119,2152-2176,822-829
     public void Oc_Working_click_opens_thinking_and_steps_and_follows_end_despite_jump() => WithTimeline((view, runtime, _, state, _) =>
     {
