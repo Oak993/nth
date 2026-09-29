@@ -917,11 +917,67 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
         Assert.Equal(13, title.FontSize);
         Assert.Equal(Avalonia.Media.FontWeight.Medium, title.FontWeight);
         Assert.Equal(Chrome.PrimaryText.Resolve(finished.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground).Color);
+        Assert.Equal(Avalonia.Media.TextAlignment.Left, title.TextAlignment);
+        Assert.Equal(2, title.MaxLines);
+        Assert.Equal(Avalonia.Media.TextWrapping.Wrap, title.TextWrapping);
+        Assert.Equal(Avalonia.Layout.HorizontalAlignment.Stretch, title.HorizontalAlignment);
         var running = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), new([Tool("t1")]), new([]), false);
         Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(running), text => text.Text == "Earlier steps");
         var finishedOpenable = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([]), new([]), false, SwiftDate.Now);
         Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(finishedOpenable), text => text.Text == "Earlier steps");
         Assert.NotEmpty(LogicalQuery.SelfAndDescendants<Button>(finishedOpenable));
+        var headerTitle = Assert.Single(LogicalQuery.SelfAndDescendants<HydraWorkingTitle>(finishedOpenable));
+        var headerElapsed = Assert.Single(LogicalQuery.SelfAndDescendants<HydraElapsedTime>(finishedOpenable));
+        var header = (Panel)headerTitle.Parent!;
+        Assert.True(header.Children.IndexOf(headerTitle) < header.Children.IndexOf(headerElapsed));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-069")] // App/Views/Chat/ThreadTimeline.swift:2104,2123; HydraProgressBar.swift:487-534 (finished segments do not breathe: opaque with no dip)
+    public void Oc_Finished_title_does_not_breathe() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var h = new AppModelHarness();
+        var model = h.MakeModel();
+        var runtime = h.Main.OnMain(() => new ThreadRuntime(System.Guid.NewGuid(), model));
+        var title = new HydraWorkingTitle("Earlier steps", false, Avalonia.Media.TextAlignment.Left);
+        var host = new Border { Child = title };
+        AppEnvironment.SetAppModel(host, model);
+        var window = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            window.Show(); Settle(window);
+            var label = LogicalQuery.SelfAndDescendants<TextBlock>(title).Single(text => text.Text == "Earlier steps");
+            Assert.Equal(1, label.Opacity);
+            var gradient = Assert.IsAssignableFrom<Avalonia.Media.LinearGradientBrush>(label.Foreground);
+            var primary = Chrome.PrimaryText.Resolve(title.ActualThemeVariant);
+            Assert.All(gradient.GradientStops, stop => Assert.Equal(primary.A, stop.Color.A));
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-069")] // App/Views/Chat/ThreadTimeline.swift:2107-2119 (a finished card stills its own title)
+    public void Oc_Finished_card_stills_its_title() => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness();
+        var model = h.MakeModel();
+        var runtime = h.Main.OnMain(() => new ThreadRuntime(System.Guid.NewGuid(), model));
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), new([]), new([]), false, SwiftDate.Now);
+        var host = new Border { Child = card };
+        AppEnvironment.SetAppModel(host, model);
+        var window = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            window.Show(); Settle(window);
+            var label = LogicalQuery.SelfAndDescendants<TextBlock>(card).Single(text => text.Text == "Earlier steps");
+            Assert.Equal(1, label.Opacity);
+            var gradient = Assert.IsAssignableFrom<Avalonia.Media.LinearGradientBrush>(label.Foreground);
+            var primary = Chrome.PrimaryText.Resolve(card.ActualThemeVariant);
+            Assert.All(gradient.GradientStops, stop => Assert.Equal(primary.A, stop.Color.A));
+        }
+        finally { window.Close(); }
     });
 
     [Fact]
