@@ -1,0 +1,152 @@
+{
+  "original_directory": "_packet/revision/evidence/pr-win-009-original-2026-09-29T14-24-18-538Z-43799a",
+  "archive": "_packet/revision/evidence-archives/pr-win-009-original-2026-09-29T14-24-18-538Z-43799a.zip",
+  "archive_sha256": "44423A71E1AB900F9A64ADF66E86550D6B2D3DBB0D6A006280AC6609A415DD73",
+  "files": [
+    {
+      "path": "F01-green.json",
+      "bytes": 2074,
+      "sha256": "059D3EA34F28F1BEFD6A3340A1037A46CC5D71375948029D75510F9F31CF63C2"
+    },
+    {
+      "path": "F01-green.log",
+      "bytes": 691,
+      "sha256": "E20BF2E1124C3738EDAB7B761F8E804D625EE85C204D97FC26F4B7734190EC49"
+    },
+    {
+      "path": "F01-green.trx",
+      "bytes": 3128,
+      "sha256": "043FE7EEC5FAB89756D7D24113AE3CDE3A4F6D67546B3F860B8C360389896DA9"
+    },
+    {
+      "path": "F01-mutant-build.json",
+      "bytes": 1696,
+      "sha256": "3EF1EEB605593960D9CAEDE69084A6A611CBB34AB3CCA4CDED0B987F51AB5440"
+    },
+    {
+      "path": "F01-mutant-build.log",
+      "bytes": 310,
+      "sha256": "BCE832D8790C8121139195313F6F8A529D01FE6E238BF2A1BEDAF091B8D09A8F"
+    },
+    {
+      "path": "F01-red-1.json",
+      "bytes": 2225,
+      "sha256": "24F3C2620565F969B618FF0AA5D8EB1FB4A630F265E76EFEE9198B3CAC15311A"
+    },
+    {
+      "path": "F01-red-1.log",
+      "bytes": 870,
+      "sha256": "23D36D253B824E4EB78624BE76861CCE1ACEC52A3580ABCD6C94841DCF3A83B1"
+    },
+    {
+      "path": "F01-red-1.trx",
+      "bytes": 8159,
+      "sha256": "F3603525FA6AE5FA3C2B7E8AFCDA660D37501173F0C115A056E9F3BF86E9352E"
+    },
+    {
+      "path": "F01-red-2.json",
+      "bytes": 2225,
+      "sha256": "5E68F5768B991326206A7BFE1C357FA29E68F986C4856D0045B4E573744B2C55"
+    },
+    {
+      "path": "F01-red-2.log",
+      "bytes": 870,
+      "sha256": "2BEF0D219E7D2AC3086FCBE2D7342591FF68F8D7237406C1AAEDE5D496B840CA"
+    },
+    {
+      "path": "F01-red-2.trx",
+      "bytes": 8159,
+      "sha256": "F1A00FE24D2290C972AA931681F7464C4C88E8EA31560A2BAC5FF0D773AEEDDF"
+    },
+    {
+      "path": "F01-restored-build.json",
+      "bytes": 1698,
+      "sha256": "7567F2CF964C939E8E01B4CE980C5D5765E123B032BBA957369FDF96777FD340"
+    },
+    {
+      "path": "F01-restored-build.log",
+      "bytes": 310,
+      "sha256": "FD7CA74166BCD614C0E057E33EB60FF029B7580459304ABAB8C46DE660C6ECD9"
+    },
+    {
+      "path": "F01.diff",
+      "bytes": 805,
+      "sha256": "2462FE7D5AA3CF698ACA1BDF35C84BD528D2354D82D95C88935135EAA1473B21"
+    },
+    {
+      "path": "F02-green.json",
+      "bytes": 2098,
+      "sha256": "0307E0D92FBC0CECE75028C2261E991A216BC0ACAC92CCB5AE0DA0D09F84B0A8"
+    },
+    {
+      "path": "F02-green.log",
+      "bytes": 691,
+      "sha256": "8894F49304E7A2BEF06E6576B8853642704B55561561F3C56541E900E5093C30"
+    },
+    {
+      "path": "F02-green.trx",
+      "bytes": 3164,
+      "sha256": "50B7ACA0AE21DE28F770EDB79F043BDA9759B07E3C0BE03B6B5AD5969EDB3B1C"
+    },
+    {
+      "path": "F02-mutant-build.json",
+      "bytes": 1696,
+      "sha256": "11A6DFE07D6BBD078359813FE04CA15A37B0663BDB5EAA0B0CD4E0DA77C46BB7"
+    },
+    {
+      "path": "F02-mutant-build.log",
+      "bytes": 310,
+      "sha256": "3D2DA979E5E345D2CC68C1B2E2552750197F4EE6248ABF789E7CD2F151B15BCF"
+    },
+    {
+      "path": "F02-red-1.json",
+      "bytes": 2147,
+      "sha256": "3C01A77BF8E83831B038EED9C06C409FDFBD40BA65A5C92095C973ACF30C60C0"
+    },
+    {
+      "path": "F02-red-1.log",
+      "bytes": 882,
+      "sha256": "853490260DBF74D62325F0B1B35343AFA93B3A422DF29A87244664CFA54D8FC1"
+    },
+    {
+      "path": "F02-red-1.trx",
+      "bytes": 7923,
+      "sha256": "0218133526C6849EB2B62FB1C8564ACC2B374F7B1F0A12DE8D56FA15EC84C709"
+    },
+    {
+      "path": "F02-red-2.json",
+      "bytes": 2147,
+      "sha256": "36F286AD0B85F132CED44DC7B6CF475D7D23D75C670D033227E5170E4F1485AA"
+    },
+    {
+      "path": "F02-red-2.log",
+      "bytes": 882,
+      "sha256": "2EFBA6533B0AF2BB06B1B9C5F5E6E69F3ADD805F781F8D44242F281666CD0B8A"
+    },
+    {
+      "path": "F02-red-2.trx",
+      "bytes": 7923,
+      "sha256": "30A3071897613E72F0D981A0AB556FAE8B247DC9C044A48617E22FB254B8D1D1"
+    },
+    {
+      "path": "F02-restored-build.json",
+      "bytes": 1698,
+      "sha256": "1CAE6B7C9EA252A11E311C9E8A7EB89A3E6B1FA11DB875366E6E5D277A986109"
+    },
+    {
+      "path": "F02-restored-build.log",
+      "bytes": 310,
+      "sha256": "866B9DA94E75E0EADAB801CB0F3812AC11F70624360D28DCCA096578EF36E67E"
+    },
+    {
+      "path": "F02.diff",
+      "bytes": 992,
+      "sha256": "56A48C849A0AE30971FE0471CD33CC809E5394DB51EE04154A9E2AF226504F7A"
+    },
+    {
+      "path": "results.json",
+      "bytes": 24739,
+      "sha256": "031E33ACC35AC473635AC774C3E9695F8BA12518708FC86233071D2018366FF5"
+    }
+  ]
+}

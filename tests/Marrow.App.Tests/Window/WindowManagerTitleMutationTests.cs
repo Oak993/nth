@@ -17,7 +17,7 @@ public sealed class WindowManagerTitleMutationTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-009")]
     public void The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal() => WindowManagerMutationScope.Run(headless, (_, manager) =>
     {
-        const string displayName = "Window proof \u03a9 007";
+        const string displayName = "Window proof \U000003A9 007"; // U+03A9 GREEK CAPITAL LETTER OMEGA
         using var metadata = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?> { ["CFBundleDisplayName"] = displayName }, isDevelopment: true));
         manager.ShowMain();
         var window = Assert.IsType<ThreadWindow>(manager.MainWindow);

@@ -1,0 +1,22 @@
+{
+  "original_directory": "_packet/revision/evidence/pr-win-009-record-gate-2026-09-29T14-24-47-980Z-c56fc0",
+  "archive": "_packet/revision/evidence-archives/pr-win-009-record-gate-2026-09-29T14-24-47-980Z-c56fc0.zip",
+  "archive_sha256": "81E36427B05A33028FA57B765BC3EDF3602C3342D66FB5A5A2FD6648C3EB599B",
+  "files": [
+    {
+      "path": "tests.json",
+      "bytes": 3101,
+      "sha256": "4418DCFC6607B52099AB31F0CAB21DF163E5DE96639AF4CB48D8AEC5458C6F3C"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 690,
+      "sha256": "8717DF566D726C91C1299C868B1C4CAD723E30A90033F1A11D3D9869D77E2A9D"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 11855,
+      "sha256": "0D5EBC04845C06B626A666000BB9341ED5031A2F28834DC8A79990FBCE88689D"
+    }
+  ]
+}
