@@ -204,6 +204,7 @@ public sealed class ThreadRuntimeQueueDraftTests
         // :1057 `phase == .idle`: behind a running turn the flush does nothing; that turn's end drains the queue.
         h.Main.OnMain(() =>
         {
+            model.Settings.HydraQueueHeads = false; // plain follow-up queue: with Hydra's default queue-heads switch on, ThreadRuntime.swift:999 hands a prompt queued behind a running turn to a Droppy-run head instead (PR-RUNTIME-237)
             runtime.RehearseTurn("working");
             Assert.True(runtime.IsRunning);
             runtime.EnqueueFollowUp("next step", []);
