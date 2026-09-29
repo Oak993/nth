@@ -484,6 +484,37 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-090")] // AppModel.swift:947-953
+    public void Deleting_an_unfinished_Hydra_head_reports_it_stopped_to_its_lead()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("delete-head"));
+        // A lead whose last turn was stopped takes no report flush, so the report stays where the test can read it.
+        var lead = AppModelSamples.Thread(project) with { LastStatus = TurnStatus.Interrupted };
+        var head = AppModelSamples.Thread(project) with
+        {
+            ParentThreadID = lead.Id,
+            IsInPanel = true,
+            Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Running),
+        };
+        h.WriteLibrary([project], [lead, head]);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            // A head at work when the app last quit comes back stopped (AppModel.swift:134-137), so this one is set running now.
+            model.UpdateThread(head.Id, thread => thread with { Hydra = thread.Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running } });
+            model.Delete(head.Id);
+
+            var leadRuntime = Assert.IsType<ThreadRuntime>(model.ExistingRuntime(lead.Id));
+            var pending = (System.Collections.IList)typeof(ThreadRuntime)
+                .GetField("hydraPendingReports", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.GetValue(leadRuntime)!;
+            var report = Assert.IsType<HydraReport>(Assert.Single(pending));
+            Assert.Equal(HydraHeadInfo.Status.Stopped, report.Status);
+        });
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
