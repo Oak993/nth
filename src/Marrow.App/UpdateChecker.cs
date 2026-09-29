@@ -326,7 +326,7 @@ public sealed class UpdateChecker : MainActorModel
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error)) // :181
             {
-                LastError = (error as UpdateError)?.ErrorDescription ?? "Couldn’t reach GitLab."; // U+2019, :182
+                LastError = (error as UpdateError)?.ErrorDescription ?? "Couldn't reach GitLab."; // ASCII U+0027 (byte 0x27 at :182)
                 LastCheckedAt = SwiftDate.Now; // :183
                 UserDefaults.Standard.Current.Set(Keys.LastChecked, LastCheckedAt); // :184
             }

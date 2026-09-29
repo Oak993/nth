@@ -149,7 +149,7 @@ public sealed class UpdateCheckerThirdTests
         var checker = runtime.OnMain(() => new UpdateChecker(Running("1.0.0"), [], server.Url("/releases")));
         var available = runtime.Loop.Run(() => checker.Check());
         Assert.False(available);
-        Assert.Equal("Couldn’t reach GitLab.", checker.LastError); // U+2019, PR-UPDATE-019's exact message
+        Assert.Equal("Couldn't reach GitLab.", checker.LastError); // ASCII U+0027, UpdateChecker.swift:182 byte 0x27 (PR-UPDATE-019)
     }
 
     // ---- PR-UPDATE-028: released_at, fractional first then plain, nil otherwise ----
