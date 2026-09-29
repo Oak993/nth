@@ -242,6 +242,40 @@ public sealed class AppModelAuditFixTests
         Assert.Same(before, h.Main.OnMain(() => model.Threads));
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-021")] // AppModel.swift:720-741
+    public void Moving_a_thread_to_another_project_clears_its_folder_state_opens_the_project_and_asks_for_the_row()
+    {
+        using var h = new AppModelHarness();
+        var source = AppModelSamples.Project("Source", h.NewFolder("move-source"));
+        var target = AppModelSamples.Project("Target", h.NewFolder("move-target")) with { IsExpanded = false };
+        var thread = AppModelSamples.Thread(source) with
+        {
+            WorktreePath = "old-worktree",
+            Branch = "old-branch",
+            ProviderSessionID = "old-session",
+            ProviderResumeAt = "old-resume",
+        };
+        h.WriteLibrary([source, target], [thread]);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            model.Settings.LastProjectID = source.Id;
+            model.MoveThread(thread.Id, target);
+
+            var moved = model.Thread(thread.Id)!;
+            Assert.Equal(target.Id, moved.ProjectID);
+            Assert.Null(moved.WorktreePath);
+            Assert.Null(moved.Branch);
+            Assert.Null(moved.ProviderSessionID);
+            Assert.Null(moved.ProviderResumeAt);
+            Assert.True(model.Project(target.Id)!.IsExpanded);
+            Assert.Equal(target.Id, model.Settings.LastProjectID);
+            Assert.Equal(thread.Id, model.SidebarRevealThreadID);
+        });
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }

@@ -809,10 +809,25 @@ public sealed partial class AppModel : MainActorModel
         ScheduleSave(); // AppModel.swift:713
     }
 
-    // AppModel.swift:720-732. Swift: moveThread(_:toProject:).
-    // GD-004: The project-picker contract documents projectID as the move's only changed field.
-    public void MoveThread(Guid id, Project toProject) =>
-        UpdateThread(id, thread => thread with { ProjectID = toProject.Id });
+    // AppModel.swift:723-741. Swift: moveThread(_:toProject:). Moves a thread to another project's folder: what the old folder's
+    // session and worktree left on it goes, the destination project opens so the row has a place to land, the last-worked-in
+    // project follows, and the sidebar is asked to bring the moved row into view. The runtime stops first, so no turn carries
+    // on against a folder the chat has left. The model itself never animates (callers wrap it in withAnimation).
+    public void MoveThread(Guid id, Project toProject)
+    {
+        ExistingRuntime(id)?.StopSession(); // AppModel.swift:730
+        UpdateThread(id, thread => thread with
+        {
+            ProjectID = toProject.Id,
+            WorktreePath = null,
+            Branch = null,
+            ProviderSessionID = null,
+            ProviderResumeAt = null,
+        }); // AppModel.swift:731-737
+        UpdateProject(toProject.Id, project => project with { IsExpanded = true }); // AppModel.swift:738
+        RememberLastProject(toProject.Id); // AppModel.swift:739
+        SidebarRevealThreadID = id; // AppModel.swift:740
+    }
 
     // AppModel.swift:748-755. Swift: rename(_:to:).
     public void Rename(Guid id, string title) // AppModel.swift:748-755
