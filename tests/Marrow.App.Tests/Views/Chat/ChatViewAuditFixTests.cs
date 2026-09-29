@@ -9,6 +9,7 @@ using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.Git;
+using Marrow.Testing;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
@@ -99,6 +100,71 @@ public sealed class ChatViewAuditFixTests(HeadlessSession headless)
             h.Main.RunUntilIdle();
             Dispatcher.UIThread.RunJobs();
             Assert.False(h.Main.OnMain(() => Feature().IsEnabled));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-173")] // App/Views/Chat/ChatView.swift:1127-1131,1242-1265 the ThreadsButton keeps its identity (and its @State) while the row re-evaluates
+    public void The_threads_button_survives_a_row_refresh_in_place()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            ThreadRuntime runtime = null!;
+            ChatChromeRow row = null!;
+            ThreadsButton before = null!;
+            h.Main.OnMain(() =>
+            {
+                var thread = model.NewThread(model.AddProject(new Project("P", h.NewFolder("proj")).Url))!;
+                runtime = model.Runtime(thread.Id);
+                row = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
+                var window = new AvaloniaWindow { Content = row };
+                ChatHeadlessFixtures.Track(window);
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+                before = LogicalQuery.SelfAndDescendants<ThreadsButton>(row).Single();
+                runtime.IsTerminalVisible = !runtime.IsTerminalVisible;
+            });
+            h.Main.RunUntilIdle();
+            Dispatcher.UIThread.RunJobs();
+            var after = h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ThreadsButton>(row).Single());
+            Assert.Same(before, after);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-171")] // App/Views/Chat/ChatView.swift:1138-1141 HydraButton carries .transition(.softAppear): it leaves with a fade, not at once
+    public void The_hydra_button_leaves_and_arrives_with_the_soft_appear_transition()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 9, 27, 0, 0, 0, TimeSpan.Zero));
+            using var timeScope = SwiftClock.Provider.Override(time);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            ChatChromeRow row = null!;
+            h.Main.OnMain(() =>
+            {
+                model.Settings.HydraEnabled = true;
+                var thread = model.NewThread(model.AddProject(new Project("P", h.NewFolder("proj")).Url))!;
+                row = new ChatChromeRow(model, model.Runtime(thread.Id), new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
+                var window = new AvaloniaWindow { Content = row };
+                ChatHeadlessFixtures.Track(window);
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Single(LogicalQuery.SelfAndDescendants<HydraButton>(row));
+                model.Settings.HydraEnabled = false;
+            });
+            h.Main.RunUntilIdle();
+            Dispatcher.UIThread.RunJobs();
+            // The removal half is .opacity.animation(.easeOut(duration: 0.12)): the button is still on screen mid-flight.
+            Assert.Single(h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<HydraButton>(row)));
+            for (var i = 0; i < 40; i++) { time.Advance(TimeSpan.FromMilliseconds(16)); frames.Advance(TimeSpan.FromMilliseconds(16)); h.Main.RunUntilIdle(); Dispatcher.UIThread.RunJobs(); }
+            Assert.Empty(h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<HydraButton>(row)));
         });
     }
 }

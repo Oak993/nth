@@ -1217,7 +1217,19 @@ internal sealed class ChatChromeRow : Decorator
         var host = new Panel();
         Child = host;
         var titleView = new ChatChromeTitle(model, runtime, title); // :1194-1196 title state survives other row changes.
-        StackPanel? titleParent = null;
+        // The row's own children persist across refreshes, as SwiftUI keeps a view's identity (and its @State, such as an open
+        // popover) while its body re-evaluates: only the controls whose branch changes come and go, and the two that carry
+        // .transition(.softAppear) (ThreadsButton :1129-1131, HydraButton :1139-1140) arrive and leave through it.
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center }; // :1124
+        var container = new GlassEffectContainer(2, () => row); // :1123
+        host.Children.Add(container);
+        ThreadsButton? threadsButton = null;
+        var threadsFloats = false;
+        HydraButton? hydraButton = null;
+        ChatThread? hydraThread = null;
+        var placed = new List<Control>();
+        var leaving = new HashSet<Control>();
+        var built = false;
 
         var clearanceAnimation = new ChatFrameAnimation(this);
         clearanceAnimation.AttachLifetime();
@@ -1229,18 +1241,87 @@ internal sealed class ChatChromeRow : Decorator
             titleView.UpdateTitle(title); // :1147-1151 no title animation.
             Build();
         };
+        void Drop(Control old)
+        {
+            placed.Remove(old);
+            row.Children.Remove(SwiftTransition.Container(old));
+        }
+        void Reconcile(List<Control> desired, HashSet<Control> transitioning, HashSet<Control> silent)
+        {
+            leaving.RemoveWhere(control => !row.Children.Contains(SwiftTransition.Container(control)));
+            var wanted = desired.Select(SwiftTransition.Container).ToHashSet();
+            var lingering = leaving.Select(SwiftTransition.Container).ToHashSet();
+            foreach (var child in row.Children.ToArray())
+            {
+                if (wanted.Contains(child) || lingering.Contains(child)) continue;
+                var owner = placed.FirstOrDefault(control => ReferenceEquals(SwiftTransition.Container(control), child));
+                if (owner is not null && built)
+                {
+                    placed.Remove(owner);
+                    leaving.Add(owner);
+                    SwiftTransition.Remove(row, owner); // :1139-1140,1129-1131 .transition(.softAppear): a quick fade out
+                }
+                else
+                {
+                    if (owner is not null) placed.Remove(owner);
+                    row.Children.Remove(child);
+                }
+            }
+            var position = 0;
+            foreach (var control in desired)
+            {
+                var wrapped = SwiftTransition.Container(control);
+                if (leaving.Remove(control)) row.Children.Remove(wrapped); // taken back mid-flight: it arrives again
+                while (position < row.Children.Count && lingering.Contains(row.Children[position])) position++;
+                if (position < row.Children.Count && ReferenceEquals(row.Children[position], wrapped))
+                {
+                    position++;
+                    continue;
+                }
+                var at = row.Children.IndexOf(wrapped);
+                if (at >= 0)
+                {
+                    row.Children.Move(at, position++);
+                    continue;
+                }
+                if (transitioning.Contains(control))
+                {
+                    placed.Add(control);
+                    if (built && !silent.Contains(control)) SwiftTransition.Insert(row, position, control);
+                    else SwiftTransition.Place(row, position, control);
+                }
+                else row.Children.Insert(position, control);
+                position++;
+            }
+        }
         void Build()
         {
-            titleParent?.Children.Remove(titleView);
-            host.Children.Clear();
             var sidebarVisible = model.Sidebar.HoldsTrafficLights; // :1119
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10, VerticalAlignment = VerticalAlignment.Center }; // :1124
+            var desired = new List<Control>();
+            var transitioning = new HashSet<Control>();
+            var silent = new HashSet<Control>();
 
             if (!sidebarVisible && !(model.Settings.SidebarFloats && model.Settings.SidebarOnlyFloats)) // :1128
             {
-                row.Children.Add(new ThreadsButton(model)); // :1129-1131
+                var floats = model.Settings.SidebarFloats;
+                var renewed = false;
+                if (threadsButton is not null && threadsFloats != floats)
+                {
+                    Drop(threadsButton); // the same view with another label: no arrival or exit of its own
+                    threadsButton = null;
+                    renewed = true;
+                }
+                if (threadsButton is null)
+                {
+                    threadsButton = new ThreadsButton(model).Transition(SwiftTransition.SoftAppear); // :1129-1131
+                    threadsFloats = floats;
+                    if (renewed) silent.Add(threadsButton);
+                }
+                desired.Add(threadsButton);
+                transitioning.Add(threadsButton);
             }
-            row.Children.Add(new ChromeCircleButton(
+            else threadsButton = null;
+            desired.Add(new ChromeCircleButton(
                 "square.and.pencil",
                 "New thread" + ShortcutStore.Hint(AppShortcut.NewThread), // :1132
                 () => model.NewThread(project))); // :1133
@@ -1249,16 +1330,31 @@ internal sealed class ChatChromeRow : Decorator
             {
                 if (model.Settings.HydraEnabled && !thread.IsHelper) // :1138
                 {
-                    row.Children.Add(new HydraButton(thread, runtime)); // :1139-1140
+                    var renewed = false;
+                    if (hydraButton is not null && !Equals(hydraThread, thread))
+                    {
+                        Drop(hydraButton);
+                        hydraButton = null;
+                        renewed = true;
+                    }
+                    if (hydraButton is null)
+                    {
+                        hydraButton = new HydraButton(thread, runtime).Transition(SwiftTransition.SoftAppear); // :1139-1140
+                        hydraThread = thread;
+                        if (renewed) silent.Add(hydraButton);
+                    }
+                    desired.Add(hydraButton);
+                    transitioning.Add(hydraButton);
                 }
-                row.Children.Add(new PermissionMenu(model, thread)); // :1142
+                else hydraButton = null;
+                desired.Add(new PermissionMenu(model, thread)); // :1142
             }
+            else hydraButton = null;
             if (git.IsRepository) // :1144
             {
-                row.Children.Add(new BranchMenu(model, runtime, directory, git)); // :1145
+                desired.Add(new BranchMenu(model, runtime, directory, git)); // :1145
             }
-            row.Children.Add(titleView); // :1147-1151: no title animation; its popover state is retained.
-            titleParent = row;
+            desired.Add(titleView); // :1147-1151: no title animation; its popover state is retained.
 
             var trailing = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :1152
             trailing.Children.Add(new ChromeCapsule(() =>
@@ -1293,9 +1389,10 @@ internal sealed class ChatChromeRow : Decorator
                     isActive: runtime.IsDiffVisible));
                 return capsule;
             })); // :1164-1172
-            row.Children.Add(trailing);
+            desired.Add(trailing);
+            Reconcile(desired, transitioning, silent);
+            built = true;
 
-            var container = new GlassEffectContainer(2, () => row); // :1123
             // :1177-1180 padding follows ownership of the caption buttons through panelSlide frames.
             var target = Chrome.ChromeHorizontalPadding + (sidebarVisible ? 0 : Chrome.TrafficLightsWidth + Chrome.TrafficLightClearance);
             void ApplyClearance(double leading)
@@ -1312,7 +1409,6 @@ internal sealed class ChatChromeRow : Decorator
             }
             else ApplyClearance(clearance ?? target);
             previousSidebarVisible = sidebarVisible;
-            host.Children.Add(container);
         }
 
         // :1165-1170 the terminal and changes buttons read runtime.isTerminalVisible/isDiffVisible directly inside
