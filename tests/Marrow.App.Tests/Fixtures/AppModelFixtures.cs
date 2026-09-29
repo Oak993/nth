@@ -2,6 +2,7 @@ using System.Collections;
 using System.Reflection;
 using System.Text;
 using Avalonia.Threading;
+using Marrow.App.Port;
 using Marrow.App.Views.Composer;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -110,6 +111,7 @@ public sealed class AppModelHarness : IDisposable
         Credentials = new AppModelCredentialBackend();
         scopes.Add(SecretStore.Shared.Override(new SecretStore(Credentials)));
         scopes.Add(Workspace.Open.Override(_ => true));
+        scopes.Add(OpenPanel.Runner.Override(new RecordingOpenPanelRunner(null))); // R-TEST-10: a click on Add project must never show the real Windows folder dialog (it blocks the test host); a test that drives the panel overrides this again.
     }
 
     public TestRuntime? Runtime { get; }
