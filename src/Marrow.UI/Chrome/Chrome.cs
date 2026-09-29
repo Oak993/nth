@@ -1602,13 +1602,25 @@ namespace Marrow.UI.Chrome
             var heading = new TextBlock { Text = title, MaxLines = 1 }; // :1040
             SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1041
             heading.Foreground = Chrome.SecondaryText.Brush(heading); // :1042
-            var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; // :1039 HStack(spacing: 4)
-            header.Children.Add(heading);
-            if (accessory is not null) header.Children.Add(accessory); // :1043
+            // :1039 HStack(spacing: 4). A DockPanel stands in for the Spacer: the trailing control is docked first at the far
+            // right, so it keeps its width and the title and accessory take what is left of the row.
+            var header = new DockPanel { LastChildFill = false };
+            heading.VerticalAlignment = VerticalAlignment.Center;
             if (trailing is not null)
             {
                 trailing.Margin = new Thickness(8, 0, 0, 0); // :1045 Spacer(minLength: 8)
-                header.Children.Add(trailing); // :1046
+                trailing.VerticalAlignment = VerticalAlignment.Center;
+                DockPanel.SetDock(trailing, Dock.Right); // :1046
+                header.Children.Add(trailing);
+            }
+            DockPanel.SetDock(heading, Dock.Left);
+            header.Children.Add(heading);
+            if (accessory is not null)
+            {
+                accessory.Margin = new Thickness(4, 0, 0, 0); // :1039 spacing 4
+                accessory.VerticalAlignment = VerticalAlignment.Center;
+                DockPanel.SetDock(accessory, Dock.Left);
+                header.Children.Add(accessory); // :1043
             }
             var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1038, :1050
             stack.Children.Add(header);
