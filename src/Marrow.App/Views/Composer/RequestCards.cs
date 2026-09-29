@@ -52,7 +52,7 @@ public sealed class ApprovalCard : Decorator
     {
         var row = new Grid
         {
-            ColumnDefinitions = new ColumnDefinitions("Auto,8,Auto,*"), // the 8 is the HStack's own spacing
+            ColumnDefinitions = new ColumnDefinitions("Auto,8,*,8"), // the 8s are the HStack's own spacing before the headline and before the trailing Spacer; the headline takes the star width so it wraps
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
         var icon = SwiftImage.SystemName(request.Symbol).ForegroundStyle(Chrome.Warning); // :10-11
@@ -108,7 +108,7 @@ public sealed class ApprovalCard : Decorator
     // :34-39 if let detail = request.detail, !detail.isEmpty { Text(detail).font(.caption).foregroundStyle(Chrome.secondaryText).lineLimit(3) }
     private static Control Detail(string detail)
     {
-        var text = new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap, MaxLines = 3 }; // :35, :38
+        var text = new TextBlock { Text = detail, TextWrapping = TextWrapping.Wrap, MaxLines = 3, TextTrimming = TextTrimming.CharacterEllipsis }; // :35, :38 lineLimit(3) truncates with an ellipsis
         SwiftFont.Caption.Apply(text); // :36
         text.Foreground = Chrome.SecondaryText.Brush(text); // :37
         return text;

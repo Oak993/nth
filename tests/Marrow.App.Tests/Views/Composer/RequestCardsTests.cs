@@ -394,4 +394,33 @@ public sealed class RequestCardsTests(HeadlessSession headless)
             });
         });
     }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-186")] // App/Views/Composer/RequestCards.swift:9-14 HStack(spacing: 8) { icon; headline; Spacer() }: the headline wraps once icon, 8, headline and 8 no longer fit
+    public void The_header_headline_wraps_when_both_hstack_gaps_no_longer_fit()
+    {
+        headless.OnUiThread(() =>
+        {
+            var card = new ApprovalCard(Sample(), null!);
+            card.Measure(Size.Infinity);
+            var headline = LogicalQuery.SelfAndDescendants<TextBlock>(card).First(block => block.FontWeight == FontWeight.Bold);
+            var natural = headline.DesiredSize.Width;
+            var icon = LogicalQuery.SelfAndDescendants<Control>(card).First(control => control.Parent is Grid grid && Grid.GetColumn(control) == 0 && grid.Children.Contains(headline));
+            var width = 32 + icon.DesiredSize.Width + 8 + natural + 4; // 4 points short of icon + 8 + headline + 8
+            card.Measure(new Size(width, double.PositiveInfinity));
+            Assert.True(headline.TextLayout.TextLines.Count > 1, "the headline stayed on one line at width " + width);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-186")] // App/Views/Composer/RequestCards.swift:35-38 .lineLimit(3) truncates with a trailing ellipsis
+    public void A_detail_longer_than_three_lines_is_cut_with_an_ellipsis()
+    {
+        headless.OnUiThread(() =>
+        {
+            var card = new ApprovalCard(Sample(detail: "detail"), null!);
+            var detail = LogicalQuery.SelfAndDescendants<TextBlock>(card).First(block => block.Text == "detail");
+            Assert.Equal(TextTrimming.CharacterEllipsis, detail.TextTrimming);
+        });
+    }
 }
