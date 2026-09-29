@@ -32,9 +32,8 @@ public sealed class WorkingTreeWatch
     private ulong cookieSeen;
     private ulong waitersAdded;
     private Snapshot? snapshot;
-    private (ulong Generation, ulong Version, Task<string?> Task)? capture;
+    private (ulong Generation, Task<string?> Task)? capture;
     private FileWatcher? stream;
-    private ulong teardownVersion;
 
     private sealed record IndexStamp(DateTimeOffset? Modified, long? Size)
     {
@@ -153,7 +152,6 @@ public sealed class WorkingTreeWatch
         {
             taken = stream;
             stream = null;
-            if (taken is not null) teardownVersion++;
         }
         if (taken is null) return;
         queue.Async(() =>
@@ -312,7 +310,6 @@ public sealed class WorkingTreeWatch
             Task<string?>? task = null;
             var own = false;
             var sameGeneration = false;
-            ulong captureVersion = 0;
             lock (gate)
             {
                 if (snapshot is { } saved && saved.Generation == generationAtStart && saved.Index == index) cached = saved.Tree;
@@ -320,24 +317,20 @@ public sealed class WorkingTreeWatch
                 {
                     task = running.Task;
                     sameGeneration = running.Generation == generationAtStart;
-                    captureVersion = running.Version;
                 }
                 else
                 {
                     var paths = snapshot?.Index == index && changed is not null ? Pathspecs(changed) : null;
                     changed = new(StringComparer.Ordinal);
-                    var startVersion = teardownVersion;
-                    captureVersion = startVersion;
                     task = Task.Run(async () =>
                     {
                         try
                         {
-                            var tree = await captureTree(ScratchPath, paths);
-                            lock (gate) return teardownVersion == startVersion ? tree : null;
+                            return await captureTree(ScratchPath, paths); // :319 tearDown never invalidates the capture task
                         }
                         catch (Exception error) when (SwiftTry.IsThrownError(error)) { return null; }
                     });
-                    capture = (generationAtStart, startVersion, task);
+                    capture = (generationAtStart, task);
                     own = true;
                 }
             }
@@ -346,16 +339,12 @@ public sealed class WorkingTreeWatch
             var treeResult = await task;
             if (!own)
             {
-                if (treeResult is not null && sameGeneration)
-                {
-                    lock (gate) if (teardownVersion == captureVersion) return treeResult;
-                }
+                if (treeResult is not null && sameGeneration) return treeResult;
                 continue;
             }
             lock (gate)
             {
                 if (capture?.Task == task) capture = null;
-                if (teardownVersion != captureVersion) treeResult = null;
                 if (treeResult is not null) snapshot = new(treeResult, generationAtStart, index, null);
                 else changed = null;
             }
