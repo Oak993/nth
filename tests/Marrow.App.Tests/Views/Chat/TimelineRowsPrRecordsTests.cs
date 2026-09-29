@@ -3990,6 +3990,8 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 for (var index = 1; index < run.Children.Count; index++)
                     Assert.InRange(run.Children[index].Bounds.Left - run.Children[index - 1].Bounds.Right, TimelineMetrics.IconSpacing - 1, TimelineMetrics.IconSpacing + 1);
                 Assert.True(run.Children.Count >= 4); // glyph, label, stat, chevron
+                Assert.All(run.Children, child => Assert.True(child.Bounds.Width > 0 && child.Bounds.Height > 0)); // each one measured to its own size
+                Assert.InRange(run.Children[0].Bounds.Width, TimelineMetrics.IconWidth - 1, TimelineMetrics.IconWidth + 1);
                 var midline = run.Children.Select(child => child.Bounds.Top + child.Bounds.Height / 2).ToList();
                 Assert.All(midline, y => Assert.InRange(y, midline[0] - 1, midline[0] + 1)); // centred on one line
                 var exit = TextNamed(row, "exit 2");
@@ -4465,8 +4467,10 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 Assert.Empty(LogicalQuery.SelfAndDescendants<AttachmentAnchorCapture>(thumbnail));
             // A photo shown before starts out drawn: in the plate at once, with no fade wrapper.
             var drawn = Assert.Single(LogicalQuery.SelfAndDescendants<Image>(withPanel));
-            Assert.IsAssignableFrom<Panel>(drawn.Parent);
+            var plateContent = Assert.IsAssignableFrom<Panel>(drawn.Parent);
+            Assert.Same(drawn, Assert.Single(plateContent.Children)); // straight in, not inside a fade wrapper
             Assert.Equal(1, drawn.Opacity);
+            Assert.Equal(56, Assert.IsType<Border>(plateContent.Parent).Width);
             Hover(window, LogicalQuery.SelfAndDescendants<Button>(withPanel).Single());
         });
         try
@@ -4580,9 +4584,11 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         h.Main.OnMain(() =>
         {
             var turn = Guid.NewGuid();
-            var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), ValueList<TimelineEntry>.Empty,
+            var prompt = UserEntry("the prompt", turn);
+            var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn), new ValueList<TimelineEntry>([prompt]),
                 new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "file"), turn), new TimelineEntry(new TimelineItem(turn, new TimelineItem.Content.Assistant(new AssistantMessage { Text = "the answer" })))]), null, false, false);
             var stack = Assert.IsType<StackPanel>(block.Child);
+            Assert.Equal(new Thickness(0, 0, 0, TimelineMetrics.RowSpacing), Assert.IsType<UserMessageRow>(stack.Children[0]).Margin); // one row gap under each prompt
             Assert.Equal(Orientation.Vertical, stack.Orientation);
             Assert.Equal(0, stack.Spacing);
             var header = Assert.IsType<Button>(stack.Children.OfType<Button>().First());
@@ -4766,6 +4772,10 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             h.Main.OnMain(() =>
             {
                 Settle(window!);
+                // While merging, the pill's slot hangs 2 past its sides and the stage's own slot none, both 6 past the padding.
+                var slots = LogicalQuery.SelfAndDescendants<Panel>(row!).Where(panel => panel.GetType().Name == "MorphSlot").Select(panel => panel.Margin).ToList();
+                Assert.Contains(new Thickness(-2, -6), slots);
+                Assert.Contains(new Thickness(0, -6), slots);
                 before = Width();
                 h.Runtime.HydraMergeStep = HydraMergeStage.Syncing;
                 h.Runtime.HydraMergeStage = HydraMergeStage.Syncing.Words;
