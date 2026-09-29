@@ -1,4 +1,5 @@
 using Marrow.App.Port;
+using Marrow.App.Runtime;
 using Marrow.App.Tests.App.Fixtures;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
@@ -327,6 +328,30 @@ public sealed class AppModelAuditFixTests
             Assert.NotNull(seen);
             Assert.Equal(Chrome.SettleFlight, seen);
             tracker.Cancel();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-112")] // AppModel.swift:855-863
+    public void The_finish_title_and_symbol_have_no_helper_case()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("finish-labels"));
+        var parent = AppModelSamples.Thread(project);
+        var helper = AppModelSamples.Thread(project) with { ParentThreadID = parent.Id };
+        var settledHelper = AppModelSamples.Thread(project) with { ParentThreadID = parent.Id, IsSettled = true };
+        h.WriteLibrary([project], [parent, helper, settledHelper]);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+            model.SelectedThreadID = helper.Id;
+            Assert.Equal("Settle thread", model.FinishActionTitle);
+            Assert.Equal("checkmark.circle", model.FinishActionSymbol);
+            model.SelectedThreadID = settledHelper.Id;
+            Assert.Equal("Reopen thread", model.FinishActionTitle);
+            Assert.Equal("arrow.uturn.backward", model.FinishActionSymbol);
         });
     }
 

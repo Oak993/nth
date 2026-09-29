@@ -917,58 +917,83 @@ public sealed partial class AppModel : MainActorModel
         if (Thread(id)?.IsSettled == true) ReopenAnimated(id); // AppModel.swift:850
     }
 
-    // AppModel.swift:846-849
-    // GD-005: A settle action archives helper threads, matching the existing finish action path.
-    public string FinishActionTitle // AppModel.swift:846-849
-        => Settings.ThreadFinishAction switch
-        {
-            ThreadFinishAction.Archive => "Archive thread",
-            ThreadFinishAction.Settle when SelectedThread is { IsHelper: true } => "Archive thread",
-            ThreadFinishAction.Settle when SelectedThread is { IsSettled: true } => "Reopen thread",
-            ThreadFinishAction.Settle => "Settle thread",
-            _ => throw new ArgumentOutOfRangeException(nameof(Settings.ThreadFinishAction)),
-        };
+    // AppModel.swift:853-858. What the menu's, the shortcut's and the palette's finish command does to the selected thread:
+    // settles or archives it as Settings chose, and reopens a settled one. The title has no helper case (a settled helper
+    // reads "Reopen thread", an unsettled one "Settle thread"), the source's own reading.
+    public string FinishActionTitle // AppModel.swift:855-858
+        => Settings.ThreadFinishAction == ThreadFinishAction.Settle && SelectedThread?.IsSettled == true
+            ? "Reopen thread"
+            : Settings.ThreadFinishAction.Title + " thread";
 
-    // AppModel.swift:851-854
-    public string FinishActionSymbol => Settings.ThreadFinishAction switch
+    // AppModel.swift:860-863
+    public string FinishActionSymbol
     {
-        ThreadFinishAction.Archive => "archivebox",
-        ThreadFinishAction.Settle when SelectedThread is { IsHelper: true } => "archivebox",
-        ThreadFinishAction.Settle when SelectedThread is { IsSettled: true } => "arrow.uturn.backward",
-        ThreadFinishAction.Settle => "checkmark.circle",
-        _ => throw new ArgumentOutOfRangeException(nameof(Settings.ThreadFinishAction)),
-    };
-
-    // AppModel.swift:856-873
-    public void FinishSelectedThread() // AppModel.swift:856-873
-    {
-        if (SelectedThread is not { } thread) return;
-        switch (Settings.ThreadFinishAction)
+        get
         {
-            case ThreadFinishAction.Archive:
-                Archive(thread.Id);
-                break;
-            case ThreadFinishAction.Settle when thread.IsHelper:
-                Archive(thread.Id);
-                break;
-            case ThreadFinishAction.Settle:
-                SettleAnimated(thread.Id);
-                break;
+            if (Settings.ThreadFinishAction == ThreadFinishAction.Settle && SelectedThread?.IsSettled == true) return "arrow.uturn.backward";
+            return Settings.ThreadFinishAction == ThreadFinishAction.Settle ? "checkmark.circle" : "archivebox";
         }
     }
 
-    // AppModel.swift:878-889
-    public void SettleSelectedThread() // AppModel.swift:878-889
+    // AppModel.swift:865-882
+    public void FinishSelectedThread() // AppModel.swift:865-882
     {
-        if (SelectedThread is not { } thread) return;
-        AppModelFinishRequest = new FinishRequest(thread.Id, thread.IsSettled);
+        if (SelectedThreadID is not { } id || Thread(id) is not { } thread) return; // AppModel.swift:866
+        if (Settings.ThreadFinishAction == ThreadFinishAction.Archive || thread.IsHelper)
+        {
+            // A helper has no place of its own to settle into; it goes the archive's way.
+            Transaction.WithAnimation(Chrome.PanelSlide, () => Archive(id)); // AppModel.swift:869-870
+            return;
+        }
+        PostFinishRequest(id, thread.IsSettled); // AppModel.swift:872-880
     }
 
-    // AppModel.swift:893-912
-    public void AskToArchiveSelectedThread() // AppModel.swift:893-912
+    // AppModel.swift:887-898. Settles the selected thread, or reopens it when it is settled already: the shortcut's toggle,
+    // whatever General chose for Finish. A helper has no place of its own to settle into, so it stays as it is.
+    public void SettleSelectedThread() // AppModel.swift:887-898
     {
-        if (SelectedThread is not { } thread) return;
-        AppModelArchiveRequest = new ArchiveRequest(thread.Id);
+        if (SelectedThreadID is not { } id || Thread(id) is not { IsHelper: false } thread) return; // AppModel.swift:888
+        PostFinishRequest(id, thread.IsSettled); // AppModel.swift:889-897
+    }
+
+    // AppModel.swift:872-880, :889-897. The request is posted for the thread's row to take up; with no row to take it (the
+    // sidebar is hidden, say) the thread just moves 80 ms later.
+    private void PostFinishRequest(Guid id, bool reopens)
+    {
+        var request = new FinishRequest(id, reopens);
+        AppModelFinishRequest = request;
+        MainActor.Spawn(async () =>
+        {
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(80)); // AppModel.swift:876
+            if (AppModelFinishRequest != request) return; // AppModel.swift:877
+            AppModelFinishRequest = null; // AppModel.swift:878
+            if (request.Reopens) ReopenAnimated(id); else SettleAnimated(id); // AppModel.swift:879
+        });
+    }
+
+    // AppModel.swift:900-921. Asks before archiving the selected thread: its row shows the question, with Archive the answer
+    // Return gives and Delete beside it.
+    public void AskToArchiveSelectedThread() // AppModel.swift:902-921
+    {
+        if (SelectedThreadID is not { } id || Thread(id) is null) return; // AppModel.swift:903
+        // Nothing in it, nothing typed for it: there is nothing to keep, so it goes the way an empty tab does, with no
+        // question. A history still being read is not "nothing".
+        if (ExistingRuntime(id) is { } runtime && !runtime.IsLoadingHistory && runtime.Turns.Count == 0
+            && runtime.Continuation is null && runtime.Draft.IsEmpty && runtime.FollowUps.Count == 0 && !runtime.IsRunning)
+        {
+            Transaction.WithAnimation(Chrome.PanelSlide, () => Delete(id)); // AppModel.swift:908
+            return; // AppModel.swift:909
+        }
+        var request = new ArchiveRequest(id); // AppModel.swift:911
+        AppModelArchiveRequest = request; // AppModel.swift:912
+        MainActor.Spawn(async () =>
+        {
+            // No row to ask on (the sidebar is hidden, say): the thread is archived, which is what Return would have done.
+            await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(80)); // AppModel.swift:916
+            if (AppModelArchiveRequest != request) return; // AppModel.swift:917
+            AppModelArchiveRequest = null; // AppModel.swift:918
+            Transaction.WithAnimation(Chrome.PanelSlide, () => Archive(id)); // AppModel.swift:919
+        });
     }
 
     // AppModel.swift:923. Swift: finishRequest (R-NAME-3).
@@ -986,6 +1011,9 @@ public sealed partial class AppModel : MainActorModel
         if (Thread(id) is not { } thread) return; // AppModel.swift:935
         foreach (var helper in Children(id)) Delete(helper.Id); // AppModel.swift:936-937
         if (SelectedThreadID == id) SelectNeighbor(id); // AppModel.swift:938
+        // A head deleted mid-job reports to its lead as stopped, so the batch it was in settles and the lead's waiting heads and
+        // merge go on rather than waiting for it.
+        if (thread.IsHydraHead && thread.Hydra?.IsFinished == false) FinishHydraHead(id, TurnStatus.Interrupted, null); // AppModel.swift:950-952
         DiscardThreadState(thread); // AppModel.swift:944
         Threads = new ValueList<ChatThread>(threads.Where(candidate => candidate.Id != id)); // AppModel.swift:945
         if (Project(thread.ProjectID) is { } project)
@@ -1259,9 +1287,10 @@ public sealed partial class AppModel : MainActorModel
         Notify(id, thread.Title, body, sound: !chimed);
     }
 
-    private bool IsOnScreen(ChatThread thread) =>
-        thread.Id == SelectedThreadID
-        || thread.ParentThreadID == SelectedThreadID && thread.IsInPanel && !thread.IsArchived && !thread.IsSettled;
+    // AppModel.swift:1158-1165: the selected thread itself, a helper in its parent's floating panel, or a sidebar helper shown
+    // inline beneath its selected parent (only while the parent is unfolded and not settled). One reading of it, shared with
+    // the notification gate.
+    private bool IsOnScreen(ChatThread thread) => Marrow.App.Port.ToastNotifications.IsOnScreen(this, thread);
 
     // NSApp.isActive (AppModel.swift:1163, :1177, :1250, AppModel+HydraMerge.swift:869): the port's one reading of it,
     // shared with AppDelegate.swift's presentation gate (Port/ApplicationLifecycle.cs NSApplication.IsActive).
