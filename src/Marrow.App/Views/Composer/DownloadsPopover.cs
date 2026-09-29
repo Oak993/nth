@@ -307,10 +307,17 @@ file sealed class DownloadRow : Decorator
         sizeBlock.Foreground = Chrome.SecondaryText.Brush(sizeBlock); // :198
         sizeBlock.MaxLines = 1; // :199 .lineLimit(1)
 
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 }; // :188 HStack(spacing: 10)
+        var row = new FlexHStack { Orientation = Orientation.Horizontal, Spacing = 10 }; // :188 HStack(spacing: 10)
+        // :188 HStack's default .center alignment: every child hugs its own height in the 38pt row.
+        previewSlot.VerticalAlignment = VerticalAlignment.Center;
+        nameBlock.VerticalAlignment = VerticalAlignment.Center;
+        sizeBlock.VerticalAlignment = VerticalAlignment.Center;
+        var spacer = new Control { Width = 16 }; // :194 Spacer(minLength: 16): the flexible gap FlexHStack stretches
+        row.Compressible = nameBlock;
+        row.Spacer = spacer;
         row.Children.Add(previewSlot);
         row.Children.Add(nameBlock);
-        row.Children.Add(new Control { Width = 16, HorizontalAlignment = HorizontalAlignment.Stretch }); // :194 Spacer(minLength: 16)
+        row.Children.Add(spacer);
         row.Children.Add(sizeBlock);
         row.HorizontalAlignment = HorizontalAlignment.Stretch;
         row.SetValue(TextElement.ForegroundProperty, Chrome.PrimaryText.Brush(row)); // :202
@@ -385,5 +392,58 @@ file sealed class DownloadRow : Decorator
     {
         Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering); // :213
         fill.Set(hovering ? Chrome.Overlay(0.1) : SwiftColor.Clear, Chrome.Hover); // :207 .fill(isHovering ? Chrome.overlay(0.1) : Color.clear)
+    }
+}
+
+/// <summary>:188-205 the row's <c>HStack(spacing: 10)</c> with its <c>Spacer(minLength: 16)</c>: the name takes only
+/// what it needs and truncates when the row is too narrow, the spacer takes all that is left (never less than its
+/// minimum), so the size stays at the right edge. A plain horizontal StackPanel gives every child its desired width
+/// and lets a long name push the size out of the popover (Avalonia has no flexible stack child).</summary>
+file sealed class FlexHStack : StackPanel
+{
+    public Control? Compressible { get; set; }
+    public Control? Spacer { get; set; }
+
+    private double SpacerMinimum => Spacer is { IsVisible: true } spacer ? spacer.Width : 0;
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var visible = Children.Where(child => child.IsVisible).ToList();
+        var gaps = Math.Max(0, visible.Count - 1) * Spacing;
+        double fixedWidth = 0, height = 0;
+        foreach (var child in visible.Where(child => child != Compressible && child != Spacer))
+        {
+            child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+            fixedWidth += child.DesiredSize.Width;
+            height = Math.Max(height, child.DesiredSize.Height);
+        }
+        var room = double.IsInfinity(availableSize.Width)
+            ? double.PositiveInfinity
+            : Math.Max(0, availableSize.Width - fixedWidth - gaps - SpacerMinimum);
+        var compressible = 0.0;
+        if (Compressible is { IsVisible: true } name)
+        {
+            name.Measure(new Size(room, availableSize.Height));
+            compressible = name.DesiredSize.Width;
+            height = Math.Max(height, name.DesiredSize.Height);
+        }
+        Spacer?.Measure(new Size(SpacerMinimum, availableSize.Height));
+        return new Size(fixedWidth + compressible + SpacerMinimum + gaps, height);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var visible = Children.Where(child => child.IsVisible).ToList();
+        var gaps = Math.Max(0, visible.Count - 1) * Spacing;
+        var others = visible.Where(child => child != Spacer).Sum(child => child.DesiredSize.Width);
+        var spacerWidth = Math.Max(SpacerMinimum, finalSize.Width - others - gaps);
+        var x = 0.0;
+        foreach (var child in visible)
+        {
+            var width = child == Spacer ? spacerWidth : child.DesiredSize.Width;
+            child.Arrange(new Rect(x, 0, width, finalSize.Height));
+            x += width + Spacing;
+        }
+        return finalSize;
     }
 }
