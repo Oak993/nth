@@ -1614,6 +1614,16 @@ internal sealed class BranchMenu : Decorator
     // :1360-1379, extracted so a test can inspect the menu without a real popup (headless cannot open one).
     internal static Control BuildMenu(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git)
     {
+        // :1354-1378 the menu body reads runtime.isRunning, git.branches and the thread's worktree and turns, so an open
+        // menu re-evaluates (a running turn disables every non-current branch) instead of keeping a stale snapshot.
+        var host = new Decorator { Child = BuildItems(model, runtime, directory, git) };
+        host.Track(() => (runtime.IsRunning, git.Branches, runtime.Thread?.WorktreePath, runtime.Turns.Count),
+            _ => host.Child = BuildItems(model, runtime, directory, git));
+        return host;
+    }
+
+    private static Control BuildItems(AppModel model, ThreadRuntime runtime, string directory, GitStatusModel git)
+    {
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
         stack.Children.Add(new PopoverSectionHeader("Switch branch")); // :1360
         foreach (var branch in git.Branches.Take(25)) // :1361 .prefix(25)

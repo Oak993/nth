@@ -67,4 +67,38 @@ public sealed class ChatViewAuditFixTests(HeadlessSession headless)
         var after = h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ThreadTimeline>(view).Single());
         Assert.Same(before, after);
     });
+
+    [Fact]
+    [Trait("Req", "UI-GIT-040")] // App/Views/Chat/ChatView.swift:1354-1378 BranchMenu observes runtime.isRunning: an open menu disables the other branches
+    public void An_open_branch_menu_disables_the_other_branches_when_a_turn_starts()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            ThreadRuntime runtime = null!;
+            Control menu = null!;
+            h.Main.OnMain(() =>
+            {
+                var thread = model.NewThread(model.AddProject(new Project("P", h.NewFolder("proj")).Url))!;
+                runtime = model.Runtime(thread.Id);
+                var git = new GitStatusModel();
+                typeof(GitStatusModel).GetProperty(nameof(GitStatusModel.Branches))!.SetValue(git,
+                    new ValueList<GitBranch>([new GitBranch("main", true, null), new GitBranch("feature", false, null)]));
+                menu = BranchMenu.BuildMenu(model, runtime, h.Scratch, git);
+                var window = new AvaloniaWindow { Content = menu };
+                ChatHeadlessFixtures.Track(window);
+                window.Show();
+                Dispatcher.UIThread.RunJobs();
+            });
+            Button Feature() => LogicalQuery.SelfAndDescendants<PopoverItem>(menu)
+                .Where(item => LogicalQuery.SelfAndDescendants<TextBlock>(item).Any(text => text.Text == "feature"))
+                .Select(item => LogicalQuery.SelfAndDescendants<Button>(item).Single()).Single();
+            Assert.True(h.Main.OnMain(() => Feature().IsEnabled));
+            h.Main.OnMain(() => typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Phase))!.SetValue(runtime, RuntimePhase.Running));
+            h.Main.RunUntilIdle();
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(h.Main.OnMain(() => Feature().IsEnabled));
+        });
+    }
 }
