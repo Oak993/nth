@@ -14,8 +14,19 @@ public abstract record ProjectIcon
 {
     private ProjectIcon() { }
 
-    public sealed record Emoji(string Value) : ProjectIcon;  // :7
-    public sealed record Symbol(string Name) : ProjectIcon;  // :8
+    // :7-8. The synthesized Hashable compares the associated String canonically (R-STR-2), where a record's own
+    // equality is ordinal: "e" + U+0301 and U+00E9 are one icon in Swift.
+    public sealed record Emoji(string Value) : ProjectIcon  // :7
+    {
+        public bool Equals(Emoji? other) => other is not null && SwiftString.Equal(Value, other.Value);
+        public override int GetHashCode() => SwiftStringComparer.Instance.GetHashCode(Value);
+    }
+
+    public sealed record Symbol(string Name) : ProjectIcon  // :8
+    {
+        public bool Equals(Symbol? other) => other is not null && SwiftString.Equal(Name, other.Name);
+        public override int GetHashCode() => SwiftStringComparer.Instance.GetHashCode(Name);
+    }
 
     // :11-14. Swift: emoji (R-NAME-3: collides with the nested Emoji case type).
     public string? ProjectIconEmoji => this is Emoji emoji ? emoji.Value : null;
