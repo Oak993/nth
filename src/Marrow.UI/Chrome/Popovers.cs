@@ -302,7 +302,6 @@ public sealed class PopoverItem : Decorator
         }
 
         var leadingSlot = new Panel { Width = 16, Height = 16 }; // :284, :289, :294, :299, :304 the leading 16pt column
-        row.Children.Add(leadingSlot);
         void UpdateLeading()
         {
             leadingSlot.Children.Clear();
@@ -338,9 +337,15 @@ public sealed class PopoverItem : Decorator
                 glyph.Width = 16;
                 leadingSlot.Children.Add(glyph);
             }
+
+            // :282-305 the leading slot exists only when one of the branches produced a view; a plain row has no
+            // slot, so its title follows the row padding (and the checkmark column, if any) directly.
+            var present = row.Children.Contains(leadingSlot);
+            if (leadingSlot.Children.Count > 0 && !present) row.Children.Insert(isChecked is null ? 0 : 1, leadingSlot);
+            else if (leadingSlot.Children.Count == 0 && present) row.Children.Remove(leadingSlot);
         }
         UpdateLeading();
-        leadingSlot.Track(() => state.IsConfirmed, _ => UpdateLeading());
+        row.Track(() => state.IsConfirmed, _ => UpdateLeading()); // on the row: the slot itself is detached while empty
 
         var titleBlock = new MiddleTruncatingText(); // :307-311 .lineLimit(1).truncationMode(.middle)
         SwiftFont.Body.Apply(titleBlock); // :308
