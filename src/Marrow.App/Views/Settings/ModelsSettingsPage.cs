@@ -314,7 +314,7 @@ internal sealed class PinnedModelRow : Decorator
             .Font(SwiftFont.System(11, SwiftFont.Weight.Medium)); // :179 literal size 11, not a text style
         grip.ForegroundStyle(Chrome.SecondaryText);
         grip.Opacity = 0.7;
-        var gripHost = new Border { Width = 24, Height = 24, Child = grip };
+        var gripHost = new Border { Width = 24, Height = 24, Child = grip, Margin = new Thickness(0, 0, 10, 0) }; // :173 HStack(spacing: 10)
         gripHost.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle); // :184
         ToolTip.SetTip(gripHost, "Drag to reorder");
         AutomationProperties.SetName(gripHost, "Drag to reorder");
@@ -350,7 +350,7 @@ internal sealed class PinnedModelRow : Decorator
         Grid.SetColumn(iconHost, 1);
         row.Children.Add(iconHost);
 
-        var texts = new StackPanel { Spacing = 2, Margin = new Thickness(8, 0, 8, 0) };
+        var texts = new StackPanel { Spacing = 2, Margin = new Thickness(12, 0, 8, 0) }; // :197 label HStack(spacing: 12), :210 Spacer(minLength: 8)
         var title = new TextBlock { Text = option?.ShortName ?? pin.ModelID, Foreground = Chrome.PrimaryText.Brush(texts) }; // :200
         SwiftFont.System(13).Apply(title);
         texts.Children.Add(title);
@@ -375,7 +375,7 @@ internal sealed class PinnedModelRow : Decorator
         var hint = SwiftImage.SystemName("slider.horizontal.3").Font(SwiftFont.System(12));
         hint.ForegroundStyle(Chrome.SecondaryText);
         hint.Opacity = 0;
-        hint.Margin = new Thickness(0, 0, 8, 0);
+        hint.Margin = new Thickness(0, 0, 10, 0); // :173 HStack(spacing: 10) before the remove control
         block.PointerEntered += (_, _) => hint.Opacity = 1;
         block.PointerExited += (_, _) => hint.Opacity = 0;
         Grid.SetColumn(hint, 3);

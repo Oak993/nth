@@ -142,4 +142,17 @@ public sealed class ModelsSettingsPageAuditTests(HeadlessSession headless)
         Assert.Equal(second.Bounds.Height + 1, heights[Pin("b")], 0.5);
     });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-185")] // ModelsSettingsPage.swift:173-217 HStack(spacing: 10) around the grip, label HStack(spacing: 12), Spacer(minLength: 8)
+    public void A_pinned_rows_grip_icon_and_text_use_the_sources_spacing() => With(m => m.Settings.AddToModelList(Pin("a")), "", (page, _, window) =>
+    {
+        var row = Of<PinnedModelRow>(page).Single();
+        var grip = Of<Border>(row).First(b => AutomationProperties.GetName(b) == "Drag to reorder");
+        var icon = Of<ProviderIcon>(row).First();
+        var title = Of<TextBlock>(row).First(t => t.Text == "a");
+        double Left(Control c) => c.TranslatePoint(default, window)!.Value.X;
+        double Right(Control c) => Left(c) + c.Bounds.Width;
+        Assert.Equal(10, Left(icon.Parent is Border host ? host : icon) - Right(grip), 0.5);
+        Assert.Equal(12, Left(title) - Right(icon.Parent is Border h2 ? h2 : icon), 0.5);
+    });
 }
