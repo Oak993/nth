@@ -771,6 +771,313 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.Null(StoredChanges151(h));
     });
 
+    // ---- PR-CHAT-108, -109, -110: the turn's file card, its files popover and its revert confirmation (:2735-2858) ----
+
+    private static FileChangeSummary Changes108(int count) =>
+        new(new ValueList<FileChangeSummary.File>(Enumerable.Range(1, count).Select(i => new FileChangeSummary.File("src/file" + i + ".swift", i, 1, false))), 40, 7);
+
+    private static string[] LogicalTexts(Control control) => LogicalQuery.SelfAndDescendants<TextBlock>(control).Select(block => block.Text ?? "").ToArray();
+
+    private static void Press(Button button) => button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")]
+    public void The_file_card_reads_Edited_1_file_or_Edited_N_files_beside_the_badge_and_the_totals_with_a_chevron() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var one = new TurnFileCard(Changes108(1), canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var three = new TurnFileCard(Changes108(3), canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var panel = new StackPanel();
+            panel.Children.Add(one);
+            panel.Children.Add(three);
+            var window = Show(panel);
+            try
+            {
+                Assert.Contains("Edited 1 file", Texts(one));
+                var title = TextNamed(three, "Edited 3 files");
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium).Resolve().FontSize, title.FontSize);
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium).Resolve().FontWeight, title.FontWeight);
+                Assert.Equal(Resolved(ChromeTokens.PrimaryText.Opacity(0.9), title), BrushColor(title.Foreground));
+                var badge = three.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.Width == 18 && image.Height == 18);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, badge), BrushColor(badge.Foreground));
+                var stat = Assert.Single(three.GetVisualDescendants().OfType<DiffStatLabel>());
+                Assert.Equal(40, stat.Additions);
+                Assert.Equal(7, stat.Deletions);
+                var titleButton = three.GetVisualDescendants().OfType<Button>().First();
+                Assert.True(titleButton.IsEnabled);
+                Assert.Equal("Show the files this turn changed", ToolTip.GetTip(titleButton));
+                var chevron = titleButton.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "chevron.right");
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, chevron), BrushColor(chevron.Foreground));
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold), chevron.GetValue(SwiftImage.FontProperty));
+                Assert.Equal("Edited 3 files", Avalonia.Automation.AutomationProperties.GetName(three));
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")]
+    public void A_card_with_no_files_has_a_disabled_title_and_no_chevron() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var card = new TurnFileCard(new FileChangeSummary(ValueList<FileChangeSummary.File>.Empty, 0, 0), canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var window = Show(card);
+            try
+            {
+                Assert.Contains("Edited 0 files", Texts(card));
+                Assert.False(card.GetVisualDescendants().OfType<Button>().First().IsEnabled);
+                Assert.DoesNotContain("chevron.right", Symbols(card));
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")]
+    public void The_round_controls_follow_a_20_point_gap_revert_only_when_undoable_on_a_hugging_quaternary_pill() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var undoable = new TurnFileCard(Changes108(2), canUndo: true, onRevert: () => { }, onReview: _ => { });
+            var fixedTurn = new TurnFileCard(Changes108(2), canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var panel = new StackPanel();
+            panel.Children.Add(undoable);
+            panel.Children.Add(fixedTurn);
+            var window = Show(panel);
+            try
+            {
+                Assert.Equal(["arrow.uturn.backward", "plusminus"], undoable.GetVisualDescendants().OfType<MutedRoundGlyph>().Select(glyph => Symbols(glyph).Single()));
+                Assert.Equal(["plusminus"], fixedTurn.GetVisualDescendants().OfType<MutedRoundGlyph>().Select(glyph => Symbols(glyph).Single()));
+                var buttons = undoable.GetVisualDescendants().OfType<Button>().ToList();
+                var revert = buttons.Single(button => button.GetVisualDescendants().OfType<MutedRoundGlyph>().Any(glyph => Symbols(glyph).Contains("arrow.uturn.backward")));
+                var review = buttons.Single(button => button.GetVisualDescendants().OfType<MutedRoundGlyph>().Any(glyph => Symbols(glyph).Contains("plusminus")));
+                Assert.Equal("Revert this turn's files and conversation", ToolTip.GetTip(revert));
+                Assert.Equal("Show this turn's changes", ToolTip.GetTip(review));
+                Assert.False(revert.Focusable);
+                Assert.False(review.Focusable);
+                // :2768 a fixed 20 by 1 gap, not a spacer, right after the title.
+                var row = Assert.IsType<StackPanel>(buttons[0].GetVisualParent() is StackPanel ? buttons[0].GetVisualParent() : buttons[0].GetVisualParent()!.GetVisualParent());
+                Assert.Equal(8, row.Spacing);
+                Assert.Equal(20, row.Children[1].Width);
+                Assert.Equal(1, row.Children[1].Height);
+                // :2818-2822 padded 12 leading, 6 trailing and 6 vertical on .quaternary at 0.32, hugging its content.
+                var pill = undoable.GetVisualDescendants().OfType<Border>().First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, 6, 6, 6));
+                Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+                Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), pill), BrushColor(pill.Background));
+                Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
+                // both popovers open below their buttons (arrowEdge: .bottom)
+                Assert.All(undoable.GetVisualDescendants().OfType<Popup>().Where(popup => popup.PlacementTarget is not null), popup => Assert.Equal(PlacementMode.Bottom, popup.Placement));
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")]
+    public void A_muted_round_glyph_is_a_28_point_overlay_disc_whose_glyph_and_fill_come_up_under_the_pointer() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        MutedRoundGlyph? glyph = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            glyph = new MutedRoundGlyph("plusminus");
+            var host = new StackPanel { Margin = new Thickness(20) };
+            host.Children.Add(glyph);
+            window = Show(host);
+            var disc = glyph.GetVisualDescendants().OfType<Border>().Single(border => border.Width == 28 && border.Height == 28);
+            Assert.Equal(new CornerRadius(14), disc.CornerRadius);
+            var image = glyph!.GetVisualDescendants().OfType<SwiftImage>().Single();
+            Assert.Equal("plusminus", image.SymbolName);
+            Assert.Equal(ChromeTokens.IconFont, image.GetValue(SwiftImage.FontProperty));
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, image), BrushColor(image.Foreground));
+            Assert.Equal(Resolved(ChromeTokens.Overlay(0.1), disc), BrushColor(disc.Background));
+            Hover(window, disc);
+        });
+        try
+        {
+            // Chrome.hover, an ease-out of 0.1 s on the frame clock.
+            frames.Advance(TimeSpan.Zero);
+            h.Main.AdvanceMilliseconds(1000);
+            frames.Advance(TimeSpan.FromMilliseconds(1000));
+            h.Main.OnMain(() =>
+            {
+                var disc = glyph!.GetVisualDescendants().OfType<Border>().Single(border => border.Width == 28 && border.Height == 28);
+                var image = glyph!.GetVisualDescendants().OfType<SwiftImage>().Single();
+                Assert.Equal(Resolved(ChromeTokens.PrimaryText, image), BrushColor(image.Foreground));
+                Assert.Equal(Resolved(ChromeTokens.Overlay(0.18), disc), BrushColor(disc.Background));
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-108")]
+    public void The_review_control_hands_its_own_anchor_to_the_review_once_the_pointer_has_been_there_and_does_nothing_before() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var reviewed = new List<Control>();
+        TurnFileCard? card = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            card = new TurnFileCard(Changes108(2), canUndo: false, onRevert: () => { }, onReview: reviewed.Add);
+            var host = new StackPanel { Margin = new Thickness(20) };
+            host.Children.Add(card);
+            window = Show(host);
+            var review = card.GetVisualDescendants().OfType<Button>().Last();
+            Click(window, review);
+            Assert.Empty(reviewed); // a click with no hover first does nothing
+            Assert.Empty(card.GetVisualDescendants().OfType<AttachmentAnchorCapture>());
+            Hover(window, review);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                var anchor = Assert.Single(card!.GetVisualDescendants().OfType<AttachmentAnchorCapture>());
+                Click(window!, card!.GetVisualDescendants().OfType<Button>().Last());
+                Assert.Same(anchor, Assert.Single(reviewed)); // the changes open on the button itself
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-109")]
+    public void The_files_popover_lists_twelve_files_then_and_1_more_file_or_and_N_more_files() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            string[] Lines(int count) =>
+                Texts(Assert.IsAssignableFrom<Control>(Invoke(new TurnFileCard(Changes108(count), canUndo: false, onRevert: () => { }, onReview: _ => { }), "FilesPopover")));
+            var twelve = Lines(12);
+            Assert.Equal(12, twelve.Count(text => text.StartsWith("src/file", StringComparison.Ordinal)));
+            Assert.DoesNotContain(twelve, text => text.StartsWith("and ", StringComparison.Ordinal));
+            var thirteen = Lines(13);
+            Assert.Equal(12, thirteen.Count(text => text.StartsWith("src/file", StringComparison.Ordinal)));
+            Assert.DoesNotContain("src/file13.swift", thirteen);
+            Assert.Contains("and 1 more file", thirteen);
+            Assert.Contains("and 8 more files", Lines(20)); // the total minus twelve
+
+            var binary = new TurnFileCard(
+                new FileChangeSummary(new ValueList<FileChangeSummary.File>([new("logo.png", 0, 0, true), new("a.swift", 3, 2, false)]), 3, 2),
+                canUndo: false, onRevert: () => { }, onReview: _ => { });
+            var popover = Assert.IsAssignableFrom<Control>(Invoke(binary, "FilesPopover"));
+            var word = TextNamed(popover, "Binary");
+            Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption).Resolve().FontSize, word.FontSize);
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, word), BrushColor(word.Foreground));
+            var path = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(block => block.Text == "logo.png");
+            Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout).Resolve().FontSize, path.FontSize);
+            Assert.Equal(1, path.MaxLines);
+            var stat = Assert.Single(LogicalQuery.SelfAndDescendants<DiffStatLabel>(popover));
+            Assert.Equal(3, stat.Additions);
+            Assert.Equal(2, stat.Deletions);
+            var rows = Assert.IsType<StackPanel>(popover);
+            Assert.Equal(0, rows.Spacing);
+            Assert.All(rows.Children, control => Assert.Equal(new Thickness(12, 7), control.Margin)); // :2847-2848 padded 12 horizontally and 7 vertically
+            var more = Assert.IsAssignableFrom<Control>(Invoke(new TurnFileCard(Changes108(14), canUndo: false, onRevert: () => { }, onReview: _ => { }), "FilesPopover"));
+            var overflow = TextNamed(more, "and 2 more files");
+            Assert.Equal(Resolved(ChromeTokens.SecondaryText, overflow), BrushColor(overflow.Foreground));
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-110")]
+    public void The_revert_disc_asks_in_a_300_point_popover_where_only_Revert_reverts() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var reverts = 0;
+        TurnFileCard? card = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            card = new TurnFileCard(Changes108(2), canUndo: true, onRevert: () => reverts++, onReview: _ => { });
+            window = Show(card);
+            Click(window, card.GetVisualDescendants().OfType<Button>().Single(button => ToolTip.GetTip(button) as string == "Revert this turn's files and conversation"));
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Single(presenter.Calls, call => call.Presented);
+                var confirm = Assert.IsAssignableFrom<Control>(Invoke(card!, "RevertConfirmation"));
+                var sheet = LogicalQuery.SelfAndDescendants<Control>(confirm).First(control => control.Width == 300);
+                var heading = TextNamed(confirm, "Revert up to this point?");
+                Assert.Equal(SwiftFont.System(14, SwiftFont.Weight.Semibold).Resolve().FontSize, heading.FontSize);
+                Assert.Equal(SwiftFont.System(14, SwiftFont.Weight.Semibold).Resolve().FontWeight, heading.FontWeight);
+                var message = TextNamed(confirm, "Files go back to how they were before this turn, and the turn leaves the conversation.");
+                Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout).Resolve().FontSize, message.FontSize);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, message), BrushColor(message.Foreground));
+                Assert.Equal(TextWrapping.Wrap, message.TextWrapping);
+                Assert.Contains(LogicalQuery.SelfAndDescendants<Decorator>(sheet), decorator => decorator.Padding == new Thickness(16));
+                var cancel = LogicalQuery.SelfAndDescendants<Button>(confirm).Single(button => LogicalTexts(button).Contains("Cancel"));
+                var go = LogicalQuery.SelfAndDescendants<Button>(confirm).Single(button => LogicalTexts(button).Contains("Revert"));
+                Assert.True(go.IsDefault);
+                Assert.False(cancel.IsDefault);
+                Press(cancel);
+                Assert.Equal(0, reverts); // cancelling closes the popover and does nothing
+                Press(go);
+                Assert.Equal(1, reverts);
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-110")]
+    public void Confirming_from_a_turns_card_reverts_with_files_restored() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            h.Runtime.RehearseTurn("prompt");
+            h.Runtime.Rehearse(new ProviderEvent.TurnCompleted(TurnStatus.Failed, null));
+        });
+        h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return h.Runtime.Phase == RuntimePhase.Idle; }, AppModelHarness.Bound);
+        AvaloniaWindow? window = null;
+        TurnFinishedBlock? block = null;
+        h.Main.OnMain(() =>
+        {
+            var summary = Assert.IsType<TimelineItem.Content.TurnEnd>(h.Runtime.Entries.Single(entry => entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd).Item.TimelineItemContent).Value;
+            block = Block104(h.Runtime, summary.TurnID, [Reply("an answer")], canUndo: true, summary: summary with { Changes = Changes108(2) });
+            window = Show(block);
+            Assert.Single(h.Runtime.Turns);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var card = Assert.Single(block!.GetVisualDescendants().OfType<TurnFileCard>());
+                var go = LogicalQuery.SelfAndDescendants<Button>(Assert.IsAssignableFrom<Control>(Invoke(card, "RevertConfirmation"))).Single(button => LogicalTexts(button).Contains("Revert"));
+                Press(go);
+            });
+            h.Main.Loop.RunUntilIdle();
+            // No checkpoint: restoring files must refuse, so the turn stays; a keep-the-files revert would have trimmed it.
+            h.Main.OnMain(() => Assert.Single(h.Runtime.Turns));
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
     // ---- PR-CHAT-098: a tool row's chevron points down for a popover/head and right (rotating ninety degrees when
     // expanded) for an in-place expansion, beside the subject, and is absent otherwise (:1799-1810). The rotation is a
     // snappy animation, so the test ticks the manual frame clock before it reads the angle. (An earlier version read the
