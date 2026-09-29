@@ -1,0 +1,82 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-win003-state-kill-2026-09-29T18-49-47-438Z-dc561a",
+  "archive": "_packet/revision/evidence-archives/resume-win003-state-kill-2026-09-29T18-49-47-438Z-dc561a.zip",
+  "archive_sha256": "47B2D381AF2DF9EB20F03137AE7A5E1C7D66A362B41BBFBEC57FA19CA4AD9A7C",
+  "files": [
+    {
+      "path": "OWN-WIN003-16-green.json",
+      "bytes": 2424,
+      "sha256": "7540E28F4025C3D98D2D199FA5C8ACC1F4D3367232F5972106D9E343F437755D"
+    },
+    {
+      "path": "OWN-WIN003-16-green.log",
+      "bytes": 739,
+      "sha256": "9598BACCC32E3CAE53ED06A5F5A23917D33AA5A546E00F3C5BD4ACBD69A0B78A"
+    },
+    {
+      "path": "OWN-WIN003-16-green.trx",
+      "bytes": 3107,
+      "sha256": "6099CC380B006704975D9D2468C428DCBCD64B6EDBDE93AAD54C6B4BF09A692A"
+    },
+    {
+      "path": "OWN-WIN003-16-mutant-build.json",
+      "bytes": 2434,
+      "sha256": "297872F1C0E860E4FD8BF473E455F935CD6C5E85051358FBB4857B48B7E8F1FB"
+    },
+    {
+      "path": "OWN-WIN003-16-mutant-build.log",
+      "bytes": 343,
+      "sha256": "DA2CA5BBE367637AEFE8077189AF5DC08A76B469B7DE7B0F460E68545C51D6CF"
+    },
+    {
+      "path": "OWN-WIN003-16-red-1.json",
+      "bytes": 4298,
+      "sha256": "DC3E2371FCEDE8EB5B4AD06DA3C762693FCD679526FA20ADE26D442A9DDFADFC"
+    },
+    {
+      "path": "OWN-WIN003-16-red-1.log",
+      "bytes": 911,
+      "sha256": "53C1450F2D04F6E9AC4DA302577BBF654E9D3329B9CB4A02F080F1570A132E1F"
+    },
+    {
+      "path": "OWN-WIN003-16-red-1.trx",
+      "bytes": 11355,
+      "sha256": "EADD4C9E976E3385B508345B19C9C71EC2248383C5E9624BC70751F5F2489D76"
+    },
+    {
+      "path": "OWN-WIN003-16-red-2.json",
+      "bytes": 4298,
+      "sha256": "5AC90290BEE59BDB7C66ECD585A142A4F630131F6C51D0DB301FD08231BAAF0A"
+    },
+    {
+      "path": "OWN-WIN003-16-red-2.log",
+      "bytes": 911,
+      "sha256": "A8A1AE0D87097D4928A0E7DC297FD5B6AA981D7189C1FA0A99E05302F0D0F381"
+    },
+    {
+      "path": "OWN-WIN003-16-red-2.trx",
+      "bytes": 11355,
+      "sha256": "3B4FD968BF7B031A5CE73A021A0FE66AB337E97157086B4DC00B8474A3023D69"
+    },
+    {
+      "path": "OWN-WIN003-16-restored-build.json",
+      "bytes": 2436,
+      "sha256": "70DF929298E3F2D9F84F7FE7CE446CCA232E0FCC60DD6CE9003E4E1DE20CD4D8"
+    },
+    {
+      "path": "OWN-WIN003-16-restored-build.log",
+      "bytes": 343,
+      "sha256": "35F5C34DAEACDD04266701556326E74A12BD5FDC9F74720DAD384802545E2D00"
+    },
+    {
+      "path": "OWN-WIN003-16.diff",
+      "bytes": 790,
+      "sha256": "95DF20F03250C3D3CEC26F0A78D16A9127BADC296811C94DFBAA56E16163979B"
+    },
+    {
+      "path": "results.json",
+      "bytes": 19107,
+      "sha256": "0A0165E4508569113B4B8E6B95BC93BB91A0E0E3A6D827CAE59C9C9E975216DA"
+    }
+  ]
+}

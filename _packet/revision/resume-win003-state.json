@@ -1,0 +1,12 @@
+{
+  "record": "PR-WIN-003",
+  "status": "ADDITIONAL_ACTUAL_STATE_CONTROL_COMPLETE_FINAL_GATE_PENDING",
+  "id": "OWN-WIN003-16",
+  "mutation_evidence": "_packet/revision/evidence/resume-win003-state-kill-2026-09-29T18-49-47-438Z-dc561a/results.json",
+  "ordinary_record_gate": "_packet/revision/evidence/resume-win003-record-gate-2026-09-29T18-50-04-653Z-7a3fb2/tests.json",
+  "own_additional_count": 16,
+  "verifier_rechecks": 1,
+  "scope": "The same retained real SettingsView is reopened without an explicit page. Both reds pass cached window/view identity and retained search assertions, then fail the real Archive empty-state body assertion at WindowManagerNextTests.cs:126. No existing expected value changes. Restored source passes the same exact Req-owned Fact.",
+  "source_sha256": "ABBDC5CFFCC8583B67BDCBA2E6D6EB524CB0D4E45C33AE916BDD182EC8C0592B",
+  "window_sha256": "8454D29637E5560CA84CD3C6A7BEED13C0A2050A1AC4EC6AF1403949B3AE42AE"
+}

@@ -1,0 +1,17 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-win003-state-build-2026-09-29T18-49-36-427Z-a3636d",
+  "archive": "_packet/revision/evidence-archives/resume-win003-state-build-2026-09-29T18-49-36-427Z-a3636d.zip",
+  "archive_sha256": "DF389618CDCF22E85722D9B92C9A04B1BBB74E72BCF06A7390536428A770F517",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 2413,
+      "sha256": "CCEEDB75F5D6291D4EA8F20D054585E4176C8D0B29EC9F075CF523F5EEEFBAC6"
+    },
+    {
+      "path": "build.log",
+      "bytes": 343,
+      "sha256": "C6BC293026CFEDB59294F8B4B0C2F34190BD6D980C2639A0E77A9602F23B31D7"
+    }
+  ]
+}

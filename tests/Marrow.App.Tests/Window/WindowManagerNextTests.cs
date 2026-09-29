@@ -94,6 +94,7 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-001")] // App/Window/WindowManager.swift:21, :32-38, :80-84, :98
+    [Trait("Req", "PR-WIN-003")] // WIN.json:79-81: retained Settings state, not only cached object identity.
     [Trait("Req", "PR-WIN-010")] // App/Window/WindowManager.swift:80-84
     [Trait("Req", "UI-SETTINGS-001")] // App/Views/Settings/SettingsView.swift:93-98, :118-127
     public void The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen() => WithManager((harness, manager) =>
@@ -253,18 +254,12 @@ public sealed class WindowManagerNextTests(HeadlessSession headless)
         Assert.False(live.IsReshaping);
     });
 
-    // STOP App.Window.WindowManager #7
-    // Kind: missing dependency / concurrent ownership. Swift: DroppyCode/App/Window/WindowManager.swift:63;
-    // DroppyCode/App/Views/RootView.swift:8. Records: PR-WIN-003, PR-WIN-009, UI-SETTINGS-001 (main opener).
-    // Missing: RootView's constructor still throws at the chosen impl/b2 base; its and SidebarView's repairs
-    // belong to the Window chat. Needed: merge those units, then run the real main-content path. The production
-    // factory remains RootView; these tests substitute only the main content. No change to either dependency.
-    // CLOSED STOP #3: WindowManager now owns the ED-063 App-layer caption bridge. WindowManagerHighRiskTests exercises
-    // it through real user32 message delivery, including the live-resize hook's native message sequence. Records:
-    // PR-WIN-007, PR-SETTINGS-001, PR-THEME-039, PR-WIN-017.
-    // Carried STOP #5: Acrylic/corner treatment belongs to WindowChrome and lacks a settled corner binding.
-    // Swift: WindowManager.swift:101; SettingsView.swift:118-120. Records: UI-SETTINGS-001. Needed: its owner
-    // ruling and probe P3 verification; no guessed transparency hint here.
+    // This fixture substitutes main content while keeping the actual SettingsView. The former RootView
+    // constructor blocker is superseded by WindowManagerTitleMutationTests' real default-factory proof.
+    // WindowManagerHighRiskTests covers the reflected/message-only boundary; WindowManagerNativeTests
+    // separately exercises actual factory HWND registration, physical input and retained resize hooks.
+    // STOP UI-SETTINGS-001: these headless views do not prove the native Settings caption/sidebar,
+    // Acrylic pixels or continuous-corner geometry. A radius/style marker is not rendered-curve evidence.
     // ED-225 now binds WindowManager.swift:43, :68, :82; WindowManagerCenteringTests covers the three sites.
     // Apple's exact vertical bias remains UNVERIFIED OD-0001, rather than blocking the Windows binding.
 }

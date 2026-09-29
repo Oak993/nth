@@ -1,0 +1,22 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-win003-state-baseline-2026-09-29T18-49-44-878Z-3151aa",
+  "archive": "_packet/revision/evidence-archives/resume-win003-state-baseline-2026-09-29T18-49-44-878Z-3151aa.zip",
+  "archive_sha256": "A87C13D72E7B2E8EA398150D99D4CBD3A31E36B8E45922ECADADBB8572B503C6",
+  "files": [
+    {
+      "path": "tests.json",
+      "bytes": 2400,
+      "sha256": "DE15C3AE3D84510D7C4E341E5F25216DF980C99F029DC5C68EDF1A70F2FC2674"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 729,
+      "sha256": "2F88AB446C4AF9C2BB73669E6F177F433245D036D4DA41FE3AF69F614B8A8AEF"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 3107,
+      "sha256": "5E5C67D83532C5B19E20E66AF2B61CD122976C0FE50800B311C1CFC71B5C0BF5"
+    }
+  ]
+}

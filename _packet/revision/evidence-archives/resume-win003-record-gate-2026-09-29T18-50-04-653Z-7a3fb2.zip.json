@@ -1,0 +1,72 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-win003-record-gate-2026-09-29T18-50-04-653Z-7a3fb2",
+  "archive": "_packet/revision/evidence-archives/resume-win003-record-gate-2026-09-29T18-50-04-653Z-7a3fb2.zip",
+  "archive_sha256": "DC9E03F07C86ECD349F2504774E043FEE93764D4D8AB408D052848FB7282674F",
+  "files": [
+    {
+      "path": "children/tests/marrow-window-process-9b1891feb03c4d7d9f51bac7ca729c00/child.log",
+      "bytes": 376,
+      "sha256": "249699FFF4718DC28D3D3F1A3F04D0AFB326810BB46033EA35E194A471984BF3"
+    },
+    {
+      "path": "children/tests/marrow-window-process-9b1891feb03c4d7d9f51bac7ca729c00/exit-path.json",
+      "bytes": 802,
+      "sha256": "4C4DBDD2CB2B205D3928E287F169D31B7C0BEE1CB557A5ACF0DC77A402B0611A"
+    },
+    {
+      "path": "children/tests/marrow-window-process-9b1891feb03c4d7d9f51bac7ca729c00/invocation.json",
+      "bytes": 631,
+      "sha256": "AA4DC7503071674502B6B2B1E595B138C379736CFD7421B3172A48C6BD9EBE91"
+    },
+    {
+      "path": "children/tests/marrow-window-process-9b1891feb03c4d7d9f51bac7ca729c00/parent-result.json",
+      "bytes": 413,
+      "sha256": "A25B27A1049178A31D1ACB347811D98B26DB9616A2E84314E8980BA708AE7FEF"
+    },
+    {
+      "path": "children/tests/marrow-window-process-9b1891feb03c4d7d9f51bac7ca729c00/permit.json",
+      "bytes": 68,
+      "sha256": "2E86E6DF83CF0FBFBDEF7D64ECECE851A549C31C7B7E53694E14BC645984F8BE"
+    },
+    {
+      "path": "children/tests/marrow-window-process-9b1891feb03c4d7d9f51bac7ca729c00/ready.json",
+      "bytes": 208,
+      "sha256": "FAB5C9531EC6B41CEC19C403AA16A6C54456DF3552DAA1FCB425F9BF3118801A"
+    },
+    {
+      "path": "children/tests/marrow-window-process-9b1891feb03c4d7d9f51bac7ca729c00/request.json",
+      "bytes": 323,
+      "sha256": "BE978336A1FA91A6E793D36AC1045A39E98AE0E52D42FD49FAB8F23F3A6A3152"
+    },
+    {
+      "path": "children/tests/marrow-window-process-9b1891feb03c4d7d9f51bac7ca729c00/results/child-runner.trx",
+      "bytes": 1663,
+      "sha256": "8FD10DB6C988AAF0EE29A109B00274815379130EF2B14DD15B0CC351479266C3"
+    },
+    {
+      "path": "children/tests/marrow-window-process-9b1891feb03c4d7d9f51bac7ca729c00/runner.stderr.log",
+      "bytes": 87,
+      "sha256": "9837BD5007E6181DB19294F76E37D2D6102C1FCA039ADFF6D377A8D9BCA0314A"
+    },
+    {
+      "path": "children/tests/marrow-window-process-9b1891feb03c4d7d9f51bac7ca729c00/runner.stdout.log",
+      "bytes": 564,
+      "sha256": "FA1BEA79ED9E8447B6B64A5D9E3B77331503538C244CA2B3EED96DA45B6EDDA0"
+    },
+    {
+      "path": "tests.json",
+      "bytes": 6890,
+      "sha256": "A1218C8C59139DB30185B34D12D822DFC4AFAA4E0D4A93155AA4C8283728BD07"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 723,
+      "sha256": "D220A6924D638DB3EFEEE6AF7737B3F5E2AD4C64B845171FA7245CB30B89D2EE"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 16472,
+      "sha256": "1B8B0D12C74BB04DF2A1A80A9708D73D8FD0851D303E552B8FEBF8F3E5FBC10A"
+    }
+  ]
+}

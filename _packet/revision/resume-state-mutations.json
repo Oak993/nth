@@ -1,0 +1,18 @@
+[
+  {
+    "id": "OWN-WIN003-16",
+    "records": [
+      "PR-WIN-003"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Closing Settings and reopening without a requested page retains actual view state, not just the same window and content objects",
+    "precision": "Own exact source replacement, forces General only for an ordinary page-null reopen while preserving explicit requests and cached instances",
+    "killer": "Marrow.App.Tests.Window.WindowManagerNextTests.The_default_Settings_view_keeps_search_and_page_then_consumes_a_requested_page_on_reopen",
+    "replacements": [
+      {
+        "before": "if (page is { } requested) SettingsNavigation.Shared.RequestedPage = requested; // :33",
+        "after": "SettingsNavigation.Shared.RequestedPage = page ?? SettingsPage.General; // mutant resets the same retained view on an ordinary reopen"
+      }
+    ]
+  }
+]

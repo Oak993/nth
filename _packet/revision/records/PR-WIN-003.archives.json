@@ -30,10 +30,17 @@
       "file_count": 57
     },
     {
-      "original_directory": "_packet/revision/evidence/candidate-gate-pr-win-003-2026-09-29T16-13-40-557Z-acde84",
-      "archive": "_packet/revision/evidence-archives/candidate-gate-pr-win-003-2026-09-29T16-13-40-557Z-acde84.zip",
-      "archive_sha256": "2559F8600F7F57C70568B5BC9B1E3984E763EA5490F0DC01CA82E521396CA217",
-      "manifest": "_packet/revision/evidence-archives/candidate-gate-pr-win-003-2026-09-29T16-13-40-557Z-acde84.zip.json",
+      "original_directory": "_packet/revision/evidence/resume-win003-state-kill-2026-09-29T18-49-47-438Z-dc561a",
+      "archive": "_packet/revision/evidence-archives/resume-win003-state-kill-2026-09-29T18-49-47-438Z-dc561a.zip",
+      "archive_sha256": "47B2D381AF2DF9EB20F03137AE7A5E1C7D66A362B41BBFBEC57FA19CA4AD9A7C",
+      "manifest": "_packet/revision/evidence-archives/resume-win003-state-kill-2026-09-29T18-49-47-438Z-dc561a.zip.json",
+      "file_count": 15
+    },
+    {
+      "original_directory": "_packet/revision/evidence/resume-win003-record-gate-2026-09-29T18-50-04-653Z-7a3fb2",
+      "archive": "_packet/revision/evidence-archives/resume-win003-record-gate-2026-09-29T18-50-04-653Z-7a3fb2.zip",
+      "archive_sha256": "DC9E03F07C86ECD349F2504774E043FEE93764D4D8AB408D052848FB7282674F",
+      "manifest": "_packet/revision/evidence-archives/resume-win003-record-gate-2026-09-29T18-50-04-653Z-7a3fb2.zip.json",
       "file_count": 13
     }
   ]
