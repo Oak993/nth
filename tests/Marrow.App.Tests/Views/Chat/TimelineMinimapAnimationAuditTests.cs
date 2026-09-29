@@ -1,3 +1,4 @@
+using Avalonia.VisualTree;
 using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
@@ -250,4 +251,38 @@ public sealed class TimelineMinimapAnimationAuditTests(HeadlessSession headless)
         }
         finally { window.Close(); }
     });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-073")] // App/Views/Chat/TimelineMinimap.swift:303-318 the mounted preview keeps its identity and its title and snippet crossfade (.contentTransition(.opacity)) under the hover animation
+    public void Moving_to_another_tick_crossfades_the_preview_text_in_the_same_card() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var rail = new TimelineMinimapRail(new[] { Entry("first"), Entry("second") }, 200, null, (_, _) => { });
+        rail.Measure(new Size(400, 200));
+        rail.Arrange(new Rect(0, 0, 400, 200));
+        Hover(rail, "first");
+        Step(runtime, frames, 1000);
+        var card = Card(rail);
+        Hover(rail, "second");
+        Assert.Same(card, Card(rail));
+        Step(runtime, frames, 50);
+        var progress = Animation.Smooth(duration: 0.22).Progress(0.05);
+        var first = LogicalQuery.SelfAndDescendants<TextBlock>(card).Single(text => text.Text == "first");
+        var second = LogicalQuery.SelfAndDescendants<TextBlock>(card).Single(text => text.Text == "second");
+        Assert.Equal(1 - progress, FadeOf(first), 10);
+        Assert.Equal(progress, FadeOf(second), 10);
+        Step(runtime, frames, 1000);
+        Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(card), text => text.Text == "first");
+        Assert.Equal(1, FadeOf(LogicalQuery.SelfAndDescendants<TextBlock>(card).Single(text => text.Text == "second")));
+    });
+
+    private static double FadeOf(Control control)
+    {
+        var opacity = 1.0;
+        for (Avalonia.Visual? visual = control; visual is not null && !ReferenceEquals(visual, null); visual = visual.GetVisualParent())
+            opacity *= visual.Opacity;
+        return opacity;
+    }
 }
