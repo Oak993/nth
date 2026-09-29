@@ -350,7 +350,7 @@ internal sealed class PinnedModelRow : Decorator
         Grid.SetColumn(iconHost, 1);
         row.Children.Add(iconHost);
 
-        var texts = new StackPanel { Spacing = 2, Margin = new Thickness(12, 0, 8, 0) }; // :197 label HStack(spacing: 12), :210 Spacer(minLength: 8)
+        var texts = new StackPanel { Spacing = 2, Margin = new Thickness(12, 0, 12 + 8 + 12, 0) }; // :195 label HStack(spacing: 12) before the text; :207 Spacer(minLength: 8) with the spacing on both its sides after it
         var title = new TextBlock { Text = option?.ShortName ?? pin.ModelID, Foreground = Chrome.PrimaryText.Brush(texts) }; // :200
         SwiftFont.System(13).Apply(title);
         texts.Children.Add(title);

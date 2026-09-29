@@ -130,7 +130,11 @@ public sealed class ModelsSettingsPageAuditTests(HeadlessSession headless)
         var offset = new[] { (Control)first, (Control)first.GetVisualParent()! }.Max(c => (c.RenderTransform as TranslateTransform)?.Y ?? 0);
         Assert.InRange(offset, 4, 6);
         Assert.Equal(1, new[] { (Control)first, (Control)first.GetVisualParent()! }.Max(c => c.ZIndex));
-        window.MouseUp(new Point(start.X, start.Y + 5), MouseButton.Left); Sync(window);
+        // The gesture outlives the rebuild the first move caused: a later move still reaches it and drags the rebuilt row.
+        window.MouseMove(new Point(start.X, start.Y + 12)); Sync(window);
+        var later = Of<PinnedModelRow>(page).First();
+        Assert.InRange(new[] { (Control)later, (Control)later.GetVisualParent()! }.Max(c => (c.RenderTransform as TranslateTransform)?.Y ?? 0), 11, 13);
+        window.MouseUp(new Point(start.X, start.Y + 12), MouseButton.Left); Sync(window);
     });
 
     [Fact]
@@ -154,5 +158,14 @@ public sealed class ModelsSettingsPageAuditTests(HeadlessSession headless)
         double Right(Control c) => Left(c) + c.Bounds.Width;
         Assert.Equal(10, Left(icon.Parent is Border host ? host : icon) - Right(grip), 0.5);
         Assert.Equal(12, Left(title) - Right(icon.Parent is Border h2 ? h2 : icon), 0.5);
+    });
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-185")] // ModelsSettingsPage.swift:195-212 the label HStack(spacing: 12) puts its spacing on both sides of Spacer(minLength: 8): 32 points at least between the text and the hint
+    public void A_pinned_rows_text_keeps_the_sources_minimum_gap_before_its_hint() => With(m => m.Settings.AddToModelList(new ModelPin(ProviderKind.Claude, new string('x', 300))), "", (page, _, window) =>
+    {
+        var row = Of<PinnedModelRow>(page).Single();
+        var title = Of<TextBlock>(row).First(t => t.Text!.StartsWith("xxxx", StringComparison.Ordinal));
+        var hint = Of<Grid>(row).First().Children.Single(c => Grid.GetColumn(c) == 3);
+        Assert.InRange(hint.TranslatePoint(default, window)!.Value.X - (title.TranslatePoint(default, window)!.Value.X + title.Bounds.Width), 31.5, 32.5);
     });
 }

@@ -76,7 +76,7 @@ public sealed class HydraSettingsPage : Decorator
         var switchRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
         glyphs.Margin = new Thickness(0, 0, 14, 0);
         Grid.SetColumn(textColumn, 1);
-        var hydraSwitch = new SettingsSwitch(new Binding<bool>(() => settings.HydraEnabled, value => settings.HydraEnabled = value)) { Margin = new Thickness(14 + 12, 0, 0, 0) };
+        var hydraSwitch = new SettingsSwitch(new Binding<bool>(() => settings.HydraEnabled, value => settings.HydraEnabled = value)) { Margin = new Thickness(14 + 12 + 14, 0, 0, 0) }; // HStack spacing is added on both sides of the Spacer: 14 + 12 + 14
         Grid.SetColumn(hydraSwitch, 2);
         switchRow.Children.Add(glyphs);
         switchRow.Children.Add(textColumn);
@@ -196,6 +196,7 @@ public sealed class HydraSettingsPage : Decorator
             // roster and wraps (:135 fixedSize(horizontal: false)).
             var introRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
             glyphRow.Margin = new Thickness(0, 0, 14, 0);
+            blurb.Margin = new Thickness(0, 0, 14, 0); // the 14 of spacing between the text and Spacer(minLength: 0)
             Grid.SetColumn(blurb, 1);
             introRow.Children.Add(glyphRow);
             introRow.Children.Add(blurb);

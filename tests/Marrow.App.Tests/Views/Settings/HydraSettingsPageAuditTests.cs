@@ -78,6 +78,8 @@ public sealed class HydraSettingsPageAuditTests(HeadlessSession headless)
         var blurb = Of<TextBlock>(view).First(t => t.Text?.StartsWith("A pair says which model leads", StringComparison.Ordinal) == true);
         Assert.True(Right(blurb, view) <= view.Bounds.Width + 0.5);
         Assert.True(blurb.Bounds.Height > 2 * blurb.FontSize);
+        var card = Of<ChromeCard>(view).First(c => Of<TextBlock>(c).Contains(blurb));
+        Assert.InRange(Right(card, view) - Right(blurb, view), 29.5, 30.5); // 16 of row padding and the 14 of HStack spacing before Spacer(minLength: 0)
     });
 
     [Fact]
@@ -86,6 +88,7 @@ public sealed class HydraSettingsPageAuditTests(HeadlessSession headless)
     {
         var title = Of<TextBlock>(view).First(t => t.Text?.StartsWith("verylongword", StringComparison.Ordinal) == true);
         Assert.True(Right(title, view) <= view.Bounds.Width + 0.5);
+        Assert.True(title.Bounds.Height > 2 * title.FontSize);
     });
 
     [Fact]
@@ -114,6 +117,15 @@ public sealed class HydraSettingsPageAuditTests(HeadlessSession headless)
         Assert.Equal(Chrome.PrimaryText.Resolve(field.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(field.Foreground).Color);
         var subtitle = Of<TextBlock>(view).First(t => t.Text == "Shown in the picker and the composer");
         Assert.Equal(new Thickness(2, 0), subtitle.Margin);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-146")] // HydraSettingsPage.swift:12-33 HStack(spacing: 14) puts its spacing on both sides of Spacer(minLength: 12): 40 points at least between the text and the switch
+    public void The_hydra_switch_keeps_the_sources_minimum_gap_from_its_text() => WithView(_ => new HydraSettingsPage(), 300, (view, _) =>
+    {
+        var toggle = Of<SettingsSwitch>(view).First();
+        var text = Of<TextBlock>(view).First(t => t.Text == "One chat leads a team of heads on big jobs.");
+        Assert.InRange(Right(toggle, view) - toggle.Bounds.Width - Right(text, view), 39.5, 40.5);
     });
 
     [Fact]
