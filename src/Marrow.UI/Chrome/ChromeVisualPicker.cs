@@ -71,7 +71,7 @@ public sealed class ChromeVisualPicker<TValue, TPreview> : Decorator
             var option = options[i];
             var tile = new ChromeVisualTile(
                 title: option.title,
-                isSelected: selection.Value.Equals(option.value),
+                isSelected: SwiftEquality.Equal(option.value, selection.Value), // :40 option.value == selection
                 width: tileWidth,
                 action: () => {
                     // :40-41 withAnimation(Chrome.hover) { selection = option.value }
@@ -87,7 +87,7 @@ public sealed class ChromeVisualPicker<TValue, TPreview> : Decorator
             var optionValue = option.value;
             tile.Track(() => selection.Value, selected =>
             {
-                tile.UpdateSelected(selected.Equals(optionValue));
+                tile.UpdateSelected(SwiftEquality.Equal(optionValue, selected));
             });
 
             stack.Children.Add(tile);
