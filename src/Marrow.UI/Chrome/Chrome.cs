@@ -1599,7 +1599,7 @@ namespace Marrow.UI.Chrome
         // accessory 4 points after it, an optional trailing control pushed to the far right, content 10 points below.
         public ChromeSection(string title, Func<Control> content, Control? accessory = null, Control? trailing = null)
         {
-            var heading = new TextBlock { Text = title, MaxLines = 1 }; // :1040
+            var heading = new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap }; // :1040 no lineLimit: a long title wraps
             SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1041
             heading.Foreground = Chrome.SecondaryText.Brush(heading); // :1042
             // :1039 HStack(spacing: 4). A DockPanel stands in for the Spacer: the trailing control is docked first at the far

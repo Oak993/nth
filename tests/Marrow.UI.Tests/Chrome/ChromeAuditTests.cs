@@ -44,4 +44,20 @@ public sealed class ChromeAuditTests(HeadlessSession headless)
         Assert.Equal(400, right, 0.5);
         window.Close();
     });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-203")] // Chrome.swift:1039-1042: the heading Text has no lineLimit, so a long title wraps and grows the header
+    public void ChromeSection_heading_wraps_when_the_pane_is_narrow() => headless.OnUiThread(() =>
+    {
+        var one = new ChromeSection("Servers", () => new Border { Height = 10 });
+        var oneWindow = Show(one, 120);
+        var lineHeight = TextOf(one, "Servers").Bounds.Height;
+        oneWindow.Close();
+
+        const string title = "Servers that this project connects to every session";
+        var section = new ChromeSection(title, () => new Border { Height = 10 });
+        var window = Show(section, 120);
+        Assert.True(TextOf(section, title).Bounds.Height > lineHeight * 1.5, "the heading stayed on one line");
+        window.Close();
+    });
 }
