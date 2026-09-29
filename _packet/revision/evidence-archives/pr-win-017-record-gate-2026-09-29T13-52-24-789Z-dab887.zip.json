@@ -1,0 +1,112 @@
+{
+  "original_directory": "_packet/revision/evidence/pr-win-017-record-gate-2026-09-29T13-52-24-789Z-dab887",
+  "archive": "_packet/revision/evidence-archives/pr-win-017-record-gate-2026-09-29T13-52-24-789Z-dab887.zip",
+  "archive_sha256": "F0856DDBF8DAE811DEFEBCA4B8578732423D6D733A8CB6D8A927DD407937B7D6",
+  "files": [
+    {
+      "path": "children/tests/2ba9e36530ef442cac75db68f9cf181b/child-result.json",
+      "bytes": 810,
+      "sha256": "F922605E609AF0DA446967CE8BE4FFDFBEFB3AF2019A2B46B5C45E846F3529BC"
+    },
+    {
+      "path": "children/tests/2ba9e36530ef442cac75db68f9cf181b/invocation.json",
+      "bytes": 623,
+      "sha256": "41D8E4AA642F0A22FDE0579B284D1ADFA1D6E60E986AA946E4963C2EAA602304"
+    },
+    {
+      "path": "children/tests/2ba9e36530ef442cac75db68f9cf181b/parent-result.json",
+      "bytes": 2369,
+      "sha256": "3C4D154A38F570399725D8DE46D715F8EF4F3C1E01E4C2070FEDEE7E0428CEB5"
+    },
+    {
+      "path": "children/tests/2ba9e36530ef442cac75db68f9cf181b/permit.json",
+      "bytes": 803,
+      "sha256": "2A223D89DAE0175AE9ED37C43765EFE74481AFE911E87CC6BE99FBDF8DBC0D5A"
+    },
+    {
+      "path": "children/tests/2ba9e36530ef442cac75db68f9cf181b/ready.json",
+      "bytes": 740,
+      "sha256": "B493FE43AB1F5F0485BBF2A79720CFA5B60E23EFC6C99C4230A1A0D3239B0FD5"
+    },
+    {
+      "path": "children/tests/2ba9e36530ef442cac75db68f9cf181b/request.json",
+      "bytes": 663,
+      "sha256": "372D705E70B4273CED82D838603A2696B4874DE399BA06FE6654F1FE5E0DCB75"
+    },
+    {
+      "path": "children/tests/2ba9e36530ef442cac75db68f9cf181b/results/native-child.trx",
+      "bytes": 3789,
+      "sha256": "3936E047A3A44C4FD0FF2842137F3D7737F379E3149911CB521D6B3C5FAAC64B"
+    },
+    {
+      "path": "children/tests/2ba9e36530ef442cac75db68f9cf181b/runner.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "children/tests/2ba9e36530ef442cac75db68f9cf181b/runner.stdout.log",
+      "bytes": 1559,
+      "sha256": "BA6FEF44A0E88571F534EB00103CEA133FF46F40F1A1F3FB6C1C8714568BDE8F"
+    },
+    {
+      "path": "children/tests/885ec9d53fe2426a83427a89e7e97543/child-result.json",
+      "bytes": 829,
+      "sha256": "AF2D23241E64D5FC70AF1BAB2B8A893A5F992A8B2CC119B90AF9FE89E73437F5"
+    },
+    {
+      "path": "children/tests/885ec9d53fe2426a83427a89e7e97543/invocation.json",
+      "bytes": 642,
+      "sha256": "A86AB084EA914F5F250CA9EDAE172B71E6585E8E99C2133CC9AFABE4CEEF1DDB"
+    },
+    {
+      "path": "children/tests/885ec9d53fe2426a83427a89e7e97543/parent-result.json",
+      "bytes": 2427,
+      "sha256": "29E84931FCD7FEDEA5EACFED23BAE1FF3C8851321EEE73B51FBD1C77958192DF"
+    },
+    {
+      "path": "children/tests/885ec9d53fe2426a83427a89e7e97543/permit.json",
+      "bytes": 823,
+      "sha256": "A6BD433C22715D8C3FB697B2B34A1860C9E41468FF462C2ACEE6BF9FF99F1CBE"
+    },
+    {
+      "path": "children/tests/885ec9d53fe2426a83427a89e7e97543/ready.json",
+      "bytes": 759,
+      "sha256": "9DF200B2BBDE5B64456B44F549DB2D6994FC0E7F6FBF76B15370E5BD94B7C446"
+    },
+    {
+      "path": "children/tests/885ec9d53fe2426a83427a89e7e97543/request.json",
+      "bytes": 682,
+      "sha256": "1E4222BA189ADB18F9875FE6AB3060121EDC7D42BC2E5661D9C9D97A8D54AA95"
+    },
+    {
+      "path": "children/tests/885ec9d53fe2426a83427a89e7e97543/results/native-child.trx",
+      "bytes": 3863,
+      "sha256": "E36AEA4F9261C2E72305BAABC19E8141197F303F11CA9F9E9F9DC70B20FBCE5B"
+    },
+    {
+      "path": "children/tests/885ec9d53fe2426a83427a89e7e97543/runner.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "children/tests/885ec9d53fe2426a83427a89e7e97543/runner.stdout.log",
+      "bytes": 1595,
+      "sha256": "6FFAD1FAF9EF0E6F81048F2B3196B9CF0317697D7FD198119367EB064915CD92"
+    },
+    {
+      "path": "tests.json",
+      "bytes": 8296,
+      "sha256": "49FE6B237D86E36A5CB845DFB9C6530A9FA6679E930BB99070F01FAC2D52953F"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 687,
+      "sha256": "247476C8A70E05F6C54377BF3237C8D02DA186020242C9C43DD7501E62A049B4"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 16948,
+      "sha256": "3F701599DF3C840500C2104A8C9579A267A6B4AE4A3243639609D76A0F1EA0F7"
+    }
+  ]
+}
