@@ -20,6 +20,7 @@ const project = options.project || 'tests\\Marrow.App.Tests';
 if (!['tests\\Marrow.App.Tests','tests\\Marrow.UI.Tests','tests\\Marrow.Core.Tests'].includes(project))
   throw Error('Only the three explicitly requested existing test projects are allowed');
 if (options.project && mode !== 'test') throw Error('Project selection is for ordinary tests, never mutation ownership');
+if(options.console && (mode!=='test'||options.console!=='detailed'))throw Error('Only detailed ordinary-test console logging is supported');
 const stamp = new Date().toISOString().replace(/[:.]/g,'-');
 const run = path.join(root,'_packet','revision','evidence',(options.name || mode)+'-'+stamp+'-'+crypto.randomBytes(3).toString('hex'));
 fs.mkdirSync(run,{recursive:true});
@@ -109,9 +110,14 @@ function invoke(label,args) {
   console.log('RUN '+label+': dotnet '+args.join(' '));
   const start=new Date().toISOString();
   const command=`$ErrorActionPreference='Stop';\nGet-ChildItem Env: | Where-Object { $_.Name -match '(?i)(^|_)API_?KEY($|_)' } | ForEach-Object { Remove-Item -LiteralPath ('Env:' + $_.Name) };\n${reset}\nWrite-Output ('GATE_ENV=' + (ConvertTo-Json -Compress -InputObject @{ data=$env:MARROW_PORT_DATA_DIR; temp=$env:TEMP; tmp=$env:TMP; outer_opt_in_variables=@(Get-ChildItem Env: | Where-Object { $_.Name -match '^MARROW_(NATIVE|SHELL_PROOF)' } | ForEach-Object Name); api_key_variables_remaining=@(Get-ChildItem Env: | Where-Object { $_.Name -match '(?i)(^|_)API_?KEY($|_)' } | ForEach-Object Name) }));\n& dotnet ${args.map(quote).join(' ')}; exit $LASTEXITCODE`;
-  const child=cp.spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',command],{cwd:root,encoding:'utf8',windowsHide:true,maxBuffer:32*1024*1024});
-  const output=(child.stdout||'')+(child.stderr||'');
-  fs.writeFileSync(path.join(run,label+'.log'),output);
+  // Write raw process bytes as they arrive, so a stalled run still has inspectable evidence.
+  // This changes only logging, not the selected tests, environment, timeouts or process setup.
+  const log=path.join(run,label+'.log');
+  const descriptor=fs.openSync(log,'wx');
+  let child;
+  try { child=cp.spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',command],{cwd:root,windowsHide:true,stdio:['ignore',descriptor,descriptor]}); }
+  finally { fs.closeSync(descriptor); }
+  const output=fs.readFileSync(log,'utf8');
   const metadata=output.match(/^GATE_ENV=(.+)$/m);
   const item={name:label,command:'dotnet '+args.map(quote).join(' '),exit:child.status,start,end:new Date().toISOString(),environment:metadata?JSON.parse(metadata[1]):null,
     source_hashes:['src/Marrow.App/Window/WindowManager.cs','src/Marrow.App/Port/AppShell.cs','src/Marrow.App/AppDelegate.cs','src/Marrow.App/Views/Settings/SettingsView.cs','src/Marrow.App/Window/ThreadWindow.cs','src/Marrow.App/Views/Palette/CommandPalette.cs','src/Marrow.Core/Support/Text.cs','src/Marrow.Services/Port/SettingsStore.cs'].map(name=>({name,sha256:sha(fs.readFileSync(path.join(root,name)))}))};
@@ -141,6 +147,7 @@ const build = label => invoke(label,['build','Marrow.sln','-c','Debug','--nologo
 function test(label,filter) {
   const args=['test',project,'--no-build','--nologo','-v','q'];
   if (filter) args.push('--filter',filter);
+  if(options.console==='detailed')args.push('--logger','console;verbosity=detailed');
   args.push('--logger','trx;LogFileName='+label+'.trx','--results-directory',run);
   return invoke(label,args);
 }

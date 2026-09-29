@@ -1,0 +1,195 @@
+{
+  "started": "2026-09-29T16:35:46.222Z",
+  "diagnostic": "_packet/revision/evidence/app-hang-diagnostic-2026-09-29T16-30-22-969Z-cc3d49/diagnostic-result.json",
+  "diagnostic_trx": "_packet/revision/evidence/app-hang-diagnostic-2026-09-29T16-30-22-969Z-cc3d49/diagnostic.trx",
+  "diagnostic_counters": {
+    "total": "3633",
+    "executed": "3633",
+    "passed": "3626",
+    "failed": "7",
+    "error": "0",
+    "timeout": "0",
+    "aborted": "0",
+    "inconclusive": "0",
+    "passedButRunAborted": "0",
+    "notRunnable": "0",
+    "notExecuted": "0",
+    "disconnected": "0",
+    "warning": "0",
+    "completed": "0",
+    "inProgress": "0",
+    "pending": "0"
+  },
+  "results": [
+    {
+      "test": "Marrow.App.Tests.Views.Settings.SettingsViewCoreProofTests.Pane_search_capsules_pin_shared_style_and_filter_real_content(route: Mcp, prompt: \"Search servers\")",
+      "filter": "FullyQualifiedName=Marrow.App.Tests.Views.Settings.SettingsViewCoreProofTests.Pane_search_capsules_pin_shared_style_and_filter_real_content&DisplayName~route: Mcp",
+      "runs": [
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-0-1-2026-09-29T16-35-46-297Z-cef88a/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        },
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-0-2-2026-09-29T16-35-49-083Z-f993aa/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        }
+      ],
+      "reproduced_twice_alone": false,
+      "classification": "NOT_REPRODUCED_IN_TWO_ORDINARY_ISOLATED_RUNS"
+    },
+    {
+      "test": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Release_over_a_different_caption_control_cancels_the_original_command",
+      "filter": "FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.Release_over_a_different_caption_control_cancels_the_original_command",
+      "runs": [
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-1-1-2026-09-29T16-35-51-874Z-bfe58b/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        },
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-1-2-2026-09-29T16-35-55-692Z-72342a/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        }
+      ],
+      "reproduced_twice_alone": false,
+      "classification": "NOT_REPRODUCED_IN_TWO_ORDINARY_ISOLATED_RUNS"
+    },
+    {
+      "test": "Marrow.App.Tests.Views.Settings.SettingsViewCoreProofTests.Pane_search_capsules_pin_shared_style_and_filter_real_content(route: Models, prompt: \"Search models\")",
+      "filter": "FullyQualifiedName=Marrow.App.Tests.Views.Settings.SettingsViewCoreProofTests.Pane_search_capsules_pin_shared_style_and_filter_real_content&DisplayName~route: Models",
+      "runs": [
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-2-1-2026-09-29T16-35-59-300Z-7079fd/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        },
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-2-2-2026-09-29T16-36-02-179Z-269f51/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        }
+      ],
+      "reproduced_twice_alone": false,
+      "classification": "NOT_REPRODUCED_IN_TWO_ORDINARY_ISOLATED_RUNS"
+    },
+    {
+      "test": "Marrow.App.Tests.Views.Settings.SettingsViewTests.Theme_capsule_has_source_metrics_and_menu_checks_the_selected_theme_and_updates_Nord_detail",
+      "filter": "FullyQualifiedName=Marrow.App.Tests.Views.Settings.SettingsViewTests.Theme_capsule_has_source_metrics_and_menu_checks_the_selected_theme_and_updates_Nord_detail",
+      "runs": [
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-3-1-2026-09-29T16-36-05-147Z-1af28b/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        },
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-3-2-2026-09-29T16-36-07-312Z-e3beae/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        }
+      ],
+      "reproduced_twice_alone": false,
+      "classification": "NOT_REPRODUCED_IN_TWO_ORDINARY_ISOLATED_RUNS"
+    },
+    {
+      "test": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.A_nonspace_key_menu_mnemonic_does_not_open_the_system_menu",
+      "filter": "FullyQualifiedName=Marrow.App.Tests.Window.Native.WindowManagerNativeTests.A_nonspace_key_menu_mnemonic_does_not_open_the_system_menu",
+      "runs": [
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-4-1-2026-09-29T16-36-09-430Z-1bd2e2/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        },
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-4-2-2026-09-29T16-36-13-556Z-e97684/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        }
+      ],
+      "reproduced_twice_alone": false,
+      "classification": "NOT_REPRODUCED_IN_TWO_ORDINARY_ISOLATED_RUNS"
+    },
+    {
+      "test": "Marrow.App.Tests.AppModelSubagentTests.Spawning_a_helper_copies_the_parent_choices_and_starts_it_in_the_parent_panel",
+      "filter": "FullyQualifiedName=Marrow.App.Tests.AppModelSubagentTests.Spawning_a_helper_copies_the_parent_choices_and_starts_it_in_the_parent_panel",
+      "runs": [
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-5-1-2026-09-29T16-36-17-697Z-187025/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        },
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-5-2-2026-09-29T16-36-19-469Z-ea1566/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        }
+      ],
+      "reproduced_twice_alone": false,
+      "classification": "NOT_REPRODUCED_IN_TWO_ORDINARY_ISOLATED_RUNS"
+    },
+    {
+      "test": "Marrow.App.Tests.AppModelSubagentTests.Closing_an_idle_panel_helper_keeps_it_under_its_parent_in_the_sidebar",
+      "filter": "FullyQualifiedName=Marrow.App.Tests.AppModelSubagentTests.Closing_an_idle_panel_helper_keeps_it_under_its_parent_in_the_sidebar",
+      "runs": [
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-6-1-2026-09-29T16-36-21-248Z-242641/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        },
+        {
+          "path": "_packet/revision/evidence/diagnostic-alone-6-2-2026-09-29T16-36-22-960Z-d6c6a5/tests.json",
+          "exit": 0,
+          "total": 1,
+          "passed": 1,
+          "failed": 0,
+          "error": ""
+        }
+      ],
+      "reproduced_twice_alone": false,
+      "classification": "NOT_REPRODUCED_IN_TWO_ORDINARY_ISOLATED_RUNS"
+    }
+  ],
+  "completed": true,
+  "ended": "2026-09-29T16:36:24.628Z"
+}

@@ -1,0 +1,12 @@
+{
+    "testhost_parent_pid":  45508,
+    "evidence":  "_packet/revision/evidence/final-app-ordinary-1-2026-09-29T16-16-34-616Z-c69464",
+    "wrapper_start":  "2026-09-29T16:16:26.2247750Z",
+    "at":  "2026-09-29T16:28:54.5550603Z",
+    "status":  "OWNED_HUNG_GATE_ABORT_REQUESTED",
+    "collector_pid":  22696,
+    "testhost_start":  "2026-09-29T16:16:35.4197800Z",
+    "wrapper_pid":  60788,
+    "testhost_pid":  106400,
+    "reason":  "Unfiltered App run made no observable test completion or CPU progress for more than ten minutes; exact Fact unknown. Stop the wrapper to prevent an unbounded repeat, then only its verified owned testhost. This is an aborted gate, not a behavioral failure or mutation kill."
+}
