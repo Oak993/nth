@@ -1,0 +1,239 @@
+{
+  "reviewed_at": "2026-09-29T17:14:35.688Z",
+  "diagnostics": [
+    {
+      "directory": "_packet/revision/evidence/app-hang-diagnostic-2026-09-29T16-52-10-244Z-e1b50c",
+      "result": "_packet/revision/evidence/app-hang-diagnostic-2026-09-29T16-52-10-244Z-e1b50c/diagnostic-result.json",
+      "sequence": "_packet/revision/evidence/app-hang-diagnostic-2026-09-29T16-52-10-244Z-e1b50c/ffcb8f63-adb7-475d-9cc1-c77417fb9141/Sequence_6c80c74496d04892bc2d25c6d1aca393.xml",
+      "pending": [
+        {
+          "Name": "Marrow.App.Tests.AppModelHydraMergeOwnershipTests.Reservations_use_exact_owner_titles_exclusions_last_writer_and_cold_chat_asymmetry",
+          "DisplayName": "Marrow.App.Tests.AppModelHydraMergeOwnershipTests.Reservations_use_exact_owner_titles_exclusions_last_writer_and_cold_chat_asymmetry",
+          "Source": "E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\bin\\Debug\\net10.0-windows10.0.19041.0\\Marrow.App.Tests.dll",
+          "Completed": "False"
+        },
+        {
+          "Name": "Marrow.App.Tests.AppModelHydraMergeGuardTests.Of_two_waiters_only_one_starts_at_a_poll_and_the_other_waits_for_its_release",
+          "DisplayName": "Marrow.App.Tests.AppModelHydraMergeGuardTests.Of_two_waiters_only_one_starts_at_a_poll_and_the_other_waits_for_its_release",
+          "Source": "E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\bin\\Debug\\net10.0-windows10.0.19041.0\\Marrow.App.Tests.dll",
+          "Completed": "False"
+        },
+        {
+          "Name": "Marrow.App.Tests.AppModelHydraTests.An_unresolved_project_note_uses_the_raw_reference_and_keeps_the_head_in_the_leads_project",
+          "DisplayName": "Marrow.App.Tests.AppModelHydraTests.An_unresolved_project_note_uses_the_raw_reference_and_keeps_the_head_in_the_leads_project",
+          "Source": "E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\bin\\Debug\\net10.0-windows10.0.19041.0\\Marrow.App.Tests.dll",
+          "Completed": "False"
+        },
+        {
+          "Name": "Marrow.App.Tests.AppModelHydraMergePreparationTests.Every_remote_rebuild_fallback_captures_only_team_paths_on_HEAD",
+          "DisplayName": "Marrow.App.Tests.AppModelHydraMergePreparationTests.Every_remote_rebuild_fallback_captures_only_team_paths_on_HEAD(fallback: \"not-ancestor\")",
+          "Source": "E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\bin\\Debug\\net10.0-windows10.0.19041.0\\Marrow.App.Tests.dll",
+          "Completed": "False"
+        }
+      ],
+      "counters": {
+        "total": "278",
+        "executed": "278",
+        "passed": "278",
+        "failed": "0",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "failed_tests": [],
+      "classification": "TIMED_OUT_DIAGNOSTIC_NOT_AN_ORDINARY_PASS"
+    },
+    {
+      "directory": "_packet/revision/evidence/app-hang-diagnostic-2026-09-29T17-04-44-568Z-2b7f1f",
+      "result": "_packet/revision/evidence/app-hang-diagnostic-2026-09-29T17-04-44-568Z-2b7f1f/diagnostic-result.json",
+      "sequence": "_packet/revision/evidence/app-hang-diagnostic-2026-09-29T17-04-44-568Z-2b7f1f/fa7cac46-299d-40fe-ac82-7a34a7b87f6d/Sequence_6f2bd210d3f24b4e809fbfd5771f63f2.xml",
+      "pending": [
+        {
+          "Name": "Marrow.App.Tests.AppModelHydraMergeTests.No_groups_and_no_strays_marks_an_empty_completed_turn_merged_without_a_merge_record",
+          "DisplayName": "Marrow.App.Tests.AppModelHydraMergeTests.No_groups_and_no_strays_marks_an_empty_completed_turn_merged_without_a_merge_record",
+          "Source": "E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\bin\\Debug\\net10.0-windows10.0.19041.0\\Marrow.App.Tests.dll",
+          "Completed": "False"
+        },
+        {
+          "Name": "Marrow.App.Tests.AppModelHydraMergeRequestTests.Missing_or_unparseable_request_links_speak_only_after_two_previous_retryable_failures",
+          "DisplayName": "Marrow.App.Tests.AppModelHydraMergeRequestTests.Missing_or_unparseable_request_links_speak_only_after_two_previous_retryable_failures(url: \"https://github.example/owner/repo/pull/0\")",
+          "Source": "E:\\Droppy\\wt\\oc\\chatgpt-1\\tests\\Marrow.App.Tests\\bin\\Debug\\net10.0-windows10.0.19041.0\\Marrow.App.Tests.dll",
+          "Completed": "False"
+        }
+      ],
+      "counters": {
+        "total": "891",
+        "executed": "891",
+        "passed": "890",
+        "failed": "1",
+        "error": "0",
+        "timeout": "0",
+        "aborted": "0",
+        "inconclusive": "0",
+        "passedButRunAborted": "0",
+        "notRunnable": "0",
+        "notExecuted": "0",
+        "disconnected": "0",
+        "warning": "0",
+        "completed": "0",
+        "inProgress": "0",
+        "pending": "0"
+      },
+      "failed_tests": [
+        "Marrow.App.Tests.Runtime.ThreadRuntimePart9Tests.Rehearsing_a_text_turn_records_its_diff_and_touched_paths_without_a_session"
+      ],
+      "classification": "TIMED_OUT_DIAGNOSTIC_NOT_AN_ORDINARY_PASS"
+    }
+  ],
+  "pending_rechecks": [
+    {
+      "label": "Ownership",
+      "runs": [
+        {
+          "evidence": "_packet/revision/evidence/pending-test-alone-0-1-2026-09-29T16-58-56-373Z-5aebef/tests.json",
+          "test": "Marrow.App.Tests.AppModelHydraMergeOwnershipTests.Reservations_use_exact_owner_titles_exclusions_last_writer_and_cold_chat_asymmetry",
+          "total": 1,
+          "passed": 1,
+          "exit": 0
+        },
+        {
+          "evidence": "_packet/revision/evidence/pending-test-alone-0-2-2026-09-29T16-58-59-221Z-ff3770/tests.json",
+          "test": "Marrow.App.Tests.AppModelHydraMergeOwnershipTests.Reservations_use_exact_owner_titles_exclusions_last_writer_and_cold_chat_asymmetry",
+          "total": 1,
+          "passed": 1,
+          "exit": 0
+        }
+      ],
+      "classification": "PENDING_IN_PARALLEL_DIAGNOSTIC_BUT_PASSED_TWICE_ALONE_NOT_AN_INDIVIDUAL_FAILURE"
+    },
+    {
+      "label": "Guard",
+      "runs": [
+        {
+          "evidence": "_packet/revision/evidence/pending-test-alone-1-1-2026-09-29T16-59-02-229Z-5aa2ba/tests.json",
+          "test": "Marrow.App.Tests.AppModelHydraMergeGuardTests.Of_two_waiters_only_one_starts_at_a_poll_and_the_other_waits_for_its_release",
+          "total": 1,
+          "passed": 1,
+          "exit": 0
+        },
+        {
+          "evidence": "_packet/revision/evidence/pending-test-alone-1-2-2026-09-29T16-59-04-587Z-142d00/tests.json",
+          "test": "Marrow.App.Tests.AppModelHydraMergeGuardTests.Of_two_waiters_only_one_starts_at_a_poll_and_the_other_waits_for_its_release",
+          "total": 1,
+          "passed": 1,
+          "exit": 0
+        }
+      ],
+      "classification": "PENDING_IN_PARALLEL_DIAGNOSTIC_BUT_PASSED_TWICE_ALONE_NOT_AN_INDIVIDUAL_FAILURE"
+    },
+    {
+      "label": "Raw project note",
+      "runs": [
+        {
+          "evidence": "_packet/revision/evidence/pending-test-alone-2-1-2026-09-29T16-59-06-964Z-6e62a9/tests.json",
+          "test": "Marrow.App.Tests.AppModelHydraTests.An_unresolved_project_note_uses_the_raw_reference_and_keeps_the_head_in_the_leads_project",
+          "total": 1,
+          "passed": 1,
+          "exit": 0
+        },
+        {
+          "evidence": "_packet/revision/evidence/pending-test-alone-2-2-2026-09-29T16-59-08-764Z-cc5e87/tests.json",
+          "test": "Marrow.App.Tests.AppModelHydraTests.An_unresolved_project_note_uses_the_raw_reference_and_keeps_the_head_in_the_leads_project",
+          "total": 1,
+          "passed": 1,
+          "exit": 0
+        }
+      ],
+      "classification": "PENDING_IN_PARALLEL_DIAGNOSTIC_BUT_PASSED_TWICE_ALONE_NOT_AN_INDIVIDUAL_FAILURE"
+    },
+    {
+      "label": "Not-ancestor data case",
+      "runs": [
+        {
+          "evidence": "_packet/revision/evidence/pending-test-alone-3-fixed-1-2026-09-29T16-59-24-764Z-462db7/tests.json",
+          "test": "Marrow.App.Tests.AppModelHydraMergePreparationTests.Every_remote_rebuild_fallback_captures_only_team_paths_on_HEAD(fallback: \"not-ancestor\")",
+          "total": 1,
+          "passed": 1,
+          "exit": 0
+        },
+        {
+          "evidence": "_packet/revision/evidence/pending-test-alone-3-fixed-2-2026-09-29T16-59-29-097Z-732632/tests.json",
+          "test": "Marrow.App.Tests.AppModelHydraMergePreparationTests.Every_remote_rebuild_fallback_captures_only_team_paths_on_HEAD(fallback: \"not-ancestor\")",
+          "total": 1,
+          "passed": 1,
+          "exit": 0
+        }
+      ],
+      "classification": "PENDING_IN_PARALLEL_DIAGNOSTIC_BUT_PASSED_TWICE_ALONE_NOT_AN_INDIVIDUAL_FAILURE"
+    }
+  ],
+  "excluded_zero_selection": "_packet/revision/evidence/pending-test-alone-3-1-2026-09-29T16-59-10-799Z-58832a/tests.json",
+  "rehearsal": {
+    "failed_twice": [
+      {
+        "evidence": "_packet/revision/evidence/third-diagnostic-failure-alone-1-2026-09-29T17-09-14-853Z-817db9/tests.json",
+        "test": "Marrow.App.Tests.Runtime.ThreadRuntimePart9Tests.Rehearsing_a_text_turn_records_its_diff_and_touched_paths_without_a_session",
+        "error": "Assert.Equal() Failure: Values differ\r\nExpected: Running\r\nActual:   Interrupted",
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      },
+      {
+        "evidence": "_packet/revision/evidence/third-diagnostic-failure-alone-2-2026-09-29T17-09-48-343Z-1d784a/tests.json",
+        "test": "Marrow.App.Tests.Runtime.ThreadRuntimePart9Tests.Rehearsing_a_text_turn_records_its_diff_and_touched_paths_without_a_session",
+        "error": "Assert.Equal() Failure: Values differ\r\nExpected: Running\r\nActual:   Interrupted",
+        "total": 1,
+        "passed": 0,
+        "failed": 1
+      }
+    ],
+    "passed_twice": [
+      {
+        "evidence": "_packet/revision/evidence/loaded-rehearsal-green-1-2026-09-29T17-11-34-329Z-7b6911/tests.json",
+        "test": "Marrow.App.Tests.Runtime.ThreadRuntimePart9Tests.Rehearsing_a_text_turn_records_its_diff_and_touched_paths_without_a_session",
+        "error": "",
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      },
+      {
+        "evidence": "_packet/revision/evidence/loaded-rehearsal-green-2-2026-09-29T17-11-36-191Z-c1ca94/tests.json",
+        "test": "Marrow.App.Tests.Runtime.ThreadRuntimePart9Tests.Rehearsing_a_text_turn_records_its_diff_and_touched_paths_without_a_session",
+        "error": "",
+        "total": 1,
+        "passed": 1,
+        "failed": 0
+      }
+    ]
+  },
+  "mixed_gate": {
+    "evidence": "_packet/revision/evidence/sequential-fixture-mixed-ordinary-2026-09-29T17-11-37-924Z-358366/tests.json",
+    "total": 266,
+    "passed": 266
+  },
+  "temporary_self_probe": {
+    "retained_draft": "_packet/staging/final-hang-review/TemporaryAppSuiteStackProbe.cs.txt",
+    "sha256": "761E960608B67076E98F4817E8D2EF8348BE4FFA2DAFE4BD93D9BD97F3C648B2",
+    "removed_from_compiled_sources": true,
+    "sample": "_packet/revision/evidence/app-hang-diagnostic-2026-09-29T17-04-44-568Z-2b7f1f/self-stack-132524.txt",
+    "scope": "Self-only managed/native-wait stacks from the existing sampler, no dump or external process. The sample preceded the later stall; it does not prove a particular deadlock."
+  },
+  "fixture_policy": {
+    "file": "tests/Marrow.App.Tests/AssemblyParallelism.cs",
+    "scope": "Sequential xUnit collections only. All explicit concurrent tasks, merge waiters, child-process proofs, native input, assertions and timeouts remain. Not a claim that a production deadlock was identified or repaired."
+  },
+  "history_setup_repair": {
+    "file": "tests/Marrow.App.Tests/Runtime/ThreadRuntimePart9Tests.cs",
+    "source": "ThreadRuntime constructor starts LoadDocument at 703-716; FinishLoad/Install at 854-869 and 721-757 can normalize a newly rehearsed Running turn if setup remains incomplete.",
+    "change": "Await the existing production EnsureLoaded through the manual-loop fixture before RehearseTurn. All original Running/diff/path/user-row assertions remain."
+  }
+}
