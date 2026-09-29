@@ -397,7 +397,7 @@ internal sealed class HydraPairRow : Decorator
         var title = new Avalonia.Controls.TextBlock { Text = HydraPairSummary.Title(pair, registry), TextWrapping = TextWrapping.Wrap };
         SwiftFont.Body.Apply(title);
         title.Foreground = Chrome.PrimaryText.Brush(title);
-        var summary = new Avalonia.Controls.TextBlock { Text = Summary(pair, registry, model) };
+        var summary = new Avalonia.Controls.TextBlock { Text = Summary(pair, registry, model), TextWrapping = TextWrapping.Wrap };
         SwiftFont.Subheadline.Apply(summary);
         summary.Foreground = Chrome.SecondaryText.Brush(summary);
         var textColumn = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2 };
@@ -527,10 +527,10 @@ internal sealed class HydraPairEditor : Decorator
     {
         AppModel model;
         try { model = AppEnvironment.GetAppModel(this); }
-        catch (InvalidOperationException) { return; }
+        catch (InvalidOperationException) { root.Children.Clear(); return; }
 
         // :346 if let pair = model.settings.hydraPair(pairID)
-        if (model.Settings.HydraPair(pairID) is not { } pair) return;
+        if (model.Settings.HydraPair(pairID) is not { } pair) { root.Children.Clear(); return; }
 
         var registry = model.Providers;
         var providers = SwiftEnum<ProviderKind>.AllCases.Where(provider => model.Settings.IsEnabled(provider) && (registry.Status(provider).IsInstalled || provider == pair.Provider)).ToArray();
@@ -543,7 +543,7 @@ internal sealed class HydraPairEditor : Decorator
         var workerEfforts = Efforts(workerOption, pair.SendsHeadsElsewhere ? Efforts(registry.DefaultModel(pair.HeadsProvider), AllEfforts(headsOptions)) : leadEfforts);
 
         // :360-379 name field, prompted by the pair's own summary title
-        var nameField = new TextBox
+        if (nameColumn is null || nameField is null)
         {
             Text = pair.Name ?? "",
             PlaceholderText = HydraPairSummary.ModelsTitle(pair, registry),

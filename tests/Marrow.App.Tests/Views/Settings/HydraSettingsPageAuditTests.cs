@@ -88,4 +88,32 @@ public sealed class HydraSettingsPageAuditTests(HeadlessSession headless)
         Assert.True(Right(title, view) <= view.Bounds.Width + 0.5);
     });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-166")] // HydraSettingsPage.swift:345-379 the binding setter keeps the field's identity and focus while typing
+    public void Typing_in_the_pair_name_field_keeps_the_same_focused_field() => WithPair("HydraPairEditor", p => p, 900, (view, m, pair) =>
+    {
+        var field = Of<TextBox>(view).Single();
+        field.Focus(); Sync();
+        Assert.True(field.IsFocused);
+        field.Text = "a"; Sync();
+        field.Text = "ab"; Sync();
+        Assert.Equal("ab", m.Settings.HydraPair(pair.Id)!.Name);
+        Assert.Same(field, Of<TextBox>(view).Single());
+        Assert.True(field.IsFocused);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-166")] // HydraSettingsPage.swift:360-379 plain field, 10x7 padding, overlay(0.06) in a 9-point rounded shape, 2-point subtitle inset
+    public void The_pair_name_field_has_the_sources_visual_treatment() => WithPair("HydraPairEditor", p => p, 900, (view, _, _) =>
+    {
+        var field = Of<TextBox>(view).Single();
+        var frame = Of<Border>(view).First(b => Of<TextBox>(b).Contains(field) && b.Background is not null);
+        Assert.Equal(new Thickness(10, 7), frame.Padding);
+        Assert.Equal(new CornerRadius(9), frame.CornerRadius);
+        Assert.Equal(Chrome.Overlay(0.06).Resolve(frame.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(frame.Background).Color);
+        Assert.Equal(Chrome.PrimaryText.Resolve(field.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(field.Foreground).Color);
+        var subtitle = Of<TextBlock>(view).First(t => t.Text == "Shown in the picker and the composer");
+        Assert.Equal(new Thickness(2, 0), subtitle.Margin);
+    });
+
 }
