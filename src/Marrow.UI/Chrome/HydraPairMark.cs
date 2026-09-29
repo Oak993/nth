@@ -56,13 +56,30 @@ public sealed class HydraPairMark : Decorator
         set => SetValue(LeadSizeProperty, value);
     }
 
-    public HydraPairMark()
-        : this(ProviderKind.Claude, ProviderKind.Claude, 16)
-    {
-    }
+    private bool _built;
 
     public HydraPairMark(ProviderKind lead, ProviderKind heads, double leadSize = 16)
     {
+        Lead = lead;
+        Heads = heads;
+        LeadSize = leadSize;
+        _built = true;
+        Rebuild();
+    }
+
+    // :10-18 body is re-evaluated from the current lead, heads and leadSize, so a changed value redraws the pair.
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (_built && (change.Property == LeadProperty || change.Property == HeadsProperty || change.Property == LeadSizeProperty))
+            Rebuild();
+    }
+
+    private void Rebuild()
+    {
+        var lead = Lead;
+        var heads = Heads;
+        var leadSize = LeadSize;
         // :10-39 HStack containing the pair marks
         var spacing = SwiftNumber.Rounded(leadSize * 0.25); // :11
 
@@ -101,14 +118,8 @@ public sealed class HydraPairMark : Decorator
 
         // :20-21 Accessibility element with ignored children and proper label
         AutomationProperties.SetAccessibilityView(hstack, AccessibilityView.Raw); // :20 children: .ignore
-        var leadDisplayName = lead.DisplayName;
-        var headsDisplayName = heads.DisplayName;
-        var accessibilityLabel = $"{leadDisplayName} lead, {headsDisplayName} heads"; // :21
+        var accessibilityLabel = $"{lead.DisplayName} lead, {heads.DisplayName} heads"; // :21
         AutomationProperties.SetName(this, accessibilityLabel);
-
-        Lead = lead;
-        Heads = heads;
-        LeadSize = leadSize;
 
         Child = hstack;
     }

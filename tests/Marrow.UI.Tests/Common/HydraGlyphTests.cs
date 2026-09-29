@@ -349,4 +349,18 @@ public sealed class HydraGlyphTests(HeadlessSession headless)
         Assert.Single(text.Runs);
         Assert.Equal("Hank 2", text.Runs[0].Text);
     });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-033")] // :60-62 Circle().strokeBorder keeps the whole outline inside the badge's circle
+    public void The_rings_outline_lies_entirely_inside_the_badge_diameter() => headless.OnUiThread(() =>
+    {
+        var glyph = new HydraGlyph(Persona, size: 20, status: HydraHeadInfo.Status.Completed);
+        Show(glyph);
+        var ring = VisualQuery.Descendants<Ellipse>(glyph).Single(e => e.StrokeThickness > 0);
+        var edge = ring.RenderedGeometry!.Bounds.Inflate(ring.StrokeThickness / 2);
+        Assert.Equal(0, edge.X, 3);
+        Assert.Equal(0, edge.Y, 3);
+        Assert.Equal(10, edge.Width, 3);
+        Assert.Equal(10, edge.Height, 3);
+    });
 }

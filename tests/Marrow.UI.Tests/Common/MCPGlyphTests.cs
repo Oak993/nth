@@ -368,4 +368,23 @@ public sealed class MCPGlyphTests(HeadlessSession headlessSession)
             Assert.NotNull(glyph);
         });
     }
+
+    [Fact]
+    [Trait("Req", "UI-MCP-092")] // DroppyCode/UI/Common/MCPGlyph.swift:52-55 Circle().strokeBorder keeps the whole border inside the badge circle
+    public void The_badge_border_lies_entirely_inside_the_badge_diameter() => headlessSession.OnUiThread(() =>
+    {
+        var entry = new MCPCatalogEntry("review", "Review", "Vendor", "", MCPCategory.Developer, "xcode", 0x125AC7,
+            new MCPTransport.Stdio("echo", ValueList<string>.Empty), "https://example.com");
+        var glyph = new MCPGlyph(entry, 20, isRunning: false, ToolCall.Status.Failed);
+        var window = new Window { Width = 200, Height = 200, Content = glyph };
+        window.Show();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        var outline = glyph.GetVisualDescendants().OfType<Ellipse>().Single(e => e.StrokeThickness > 0);
+        var edge = outline.RenderedGeometry!.Bounds.Inflate(outline.StrokeThickness / 2);
+        Assert.Equal(0, edge.X, 3);
+        Assert.Equal(0, edge.Y, 3);
+        Assert.Equal(10, edge.Width, 3);
+        Assert.Equal(10, edge.Height, 3);
+        window.Close();
+    });
 }

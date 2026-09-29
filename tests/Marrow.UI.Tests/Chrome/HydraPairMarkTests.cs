@@ -433,4 +433,44 @@ public sealed class HydraPairMarkTests(HeadlessSession headless)
 
         } finally { foreach (var window in windows) window.Close(); windows.Clear(); Dispatcher.UIThread.RunJobs(); } });
     }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-196")] // DroppyCode/UI/Chrome/HydraPairMark.swift:8-18
+    public void HydraPairMark_ChangingLeadSizeRebuildsThePair()
+    {
+        _headless.OnUiThread(() => { try {
+        var mark = new HydraPairMark(ProviderKind.Claude, ProviderKind.Copilot, 16);
+        Show(TopLeft(mark));
+        mark.LeadSize = 32;
+        Dispatcher.UIThread.RunJobs();
+        var hstack = Assert.IsType<StackPanel>(mark.Child);
+        Assert.Equal(8, hstack.Spacing);
+        Assert.Equal(32, ((Control)hstack.Children[0]).Width);
+        Assert.Equal(24, ((Control)hstack.Children[2]).Width);
+        } finally { foreach (var window in windows) window.Close(); windows.Clear(); Dispatcher.UIThread.RunJobs(); } });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-196")] // DroppyCode/UI/Chrome/HydraPairMark.swift:11-18
+    public void HydraPairMark_MarksAreCenteredInTheRow()
+    {
+        _headless.OnUiThread(() => { try {
+        var mark = new HydraPairMark(ProviderKind.Claude, ProviderKind.Copilot, 16);
+        Show(TopLeft(mark));
+        var hstack = Assert.IsType<StackPanel>(mark.Child);
+        var lead = (Control)hstack.Children[0];
+        var heads = (Control)hstack.Children[2];
+        Assert.Equal(16, lead.Height);
+        Assert.Equal(12, heads.Height);
+        Assert.Equal(0, lead.Bounds.Y, 3);
+        Assert.Equal(2, heads.Bounds.Y, 3);
+        } finally { foreach (var window in windows) window.Close(); windows.Clear(); Dispatcher.UIThread.RunJobs(); } });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-196")] // DroppyCode/UI/Chrome/HydraPairMark.swift:5-8
+    public void HydraPairMark_HasNoParameterlessInitializer()
+    {
+        Assert.Null(typeof(HydraPairMark).GetConstructor(Type.EmptyTypes));
+    }
 }

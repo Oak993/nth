@@ -60,4 +60,33 @@ public sealed class HydraHeadHoverPopoverReviewTests(HeadlessSession headless)
         Assert.True(text.Bounds.Height > text.FontSize * 2);
         Assert.Equal(3, text.MaxLines);
     });
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-197")] // UI/Markdown/HydraHeadHoverPopover.swift:19-20,37 shown relative to the mention's rectangle
+    public void Popup_is_anchored_to_the_mentions_rectangle() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var recorder = new PopoverRecorder();
+        using var seam = Presentation.Presenter.Override(recorder);
+        var popover = (HydraHeadHoverPopover)Activator.CreateInstance(typeof(HydraHeadHoverPopover), nonPublic: true)!;
+        var persona = new HydraPersona("Test", "test_asset", 0xFF0000FF);
+        var target = new HydraMentionTarget { ThreadID = Guid.NewGuid(), Task = "Task", Status = HydraHeadInfo.Status.Completed };
+        var anchor = new Control();
+        var rect = new Rect(10, 20, 30, 15);
+        runtime.OnMain(() => popover.Show(persona, target, rect, anchor));
+        runtime.AdvanceMilliseconds(250);
+        var popup = Assert.Single(recorder.Calls).Popup;
+        Assert.Same(anchor, popup.PlacementTarget);
+        Assert.Equal(rect, popup.PlacementRect);
+    });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-035")] // UI/Markdown/HydraHeadHoverPopover.swift:68-71 lineLimit(3) truncates the tail with an ellipsis
+    public void Long_task_is_tail_truncated_with_an_ellipsis() => headless.OnUiThread(() =>
+    {
+        var card = new HydraHeadHoverCard(new HydraPersona("Test", "test_asset", 0xFF0000FF),
+            new HydraMentionTarget { ThreadID = Guid.NewGuid(), Task = "A task", Status = HydraHeadInfo.Status.Completed });
+        var text = Assert.Single(card.GetLogicalDescendants().OfType<TextBlock>(), t => t.Text == "A task");
+        Assert.Equal(Avalonia.Media.TextTrimming.CharacterEllipsis, text.TextTrimming);
+    });
 }
