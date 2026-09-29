@@ -200,6 +200,27 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-STORE-094")] // AppModel.swift:701-702
+    public void A_thread_made_from_a_chat_that_leads_a_pair_carries_the_pair_along()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("carried-pair"));
+        var pair = new HydraPair(ProviderKind.Codex);
+        var current = AppModelSamples.Thread(project) with { HydraPairID = pair.Id, HydraEnabled = true };
+        h.WriteLibrary([project], [current]);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            HydraCookbookResolveFixture.SetInstalled(model.Providers, ProviderKind.Codex, true);
+            model.Settings.AddHydraPair(pair);
+            model.SelectedThreadID = current.Id;
+
+            Assert.Equal(pair.Id, model.NewThread(project)!.HydraPairID);
+        });
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
