@@ -71,4 +71,32 @@ public sealed class PopoversAuditTests(HeadlessSession headless)
         Assert.Equal(24, title.TranslatePoint(new Point(0, 0), RowOf(item))!.Value.X);
         window.Close();
     });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-106")] // UI/Chrome/Popovers.swift:312-318 Spacer(minLength: 16): the detail sits at the trailing edge of a wide row (padding 8)
+    public void PopoverItem_detail_is_pushed_to_the_trailing_edge_of_a_wide_row() => headless.OnUiThread(() =>
+    {
+        var item = new PopoverItem("Rename", () => { }, detail: "⌘R");
+        var window = Show(item, 300);
+        item.HorizontalAlignment = HorizontalAlignment.Stretch;
+        window.UpdateLayout();
+        Assert.Equal(300, item.Bounds.Width);
+        var detail = Assert.Single(VisualQuery.Descendants<TextBlock>(item), t => t.Text == "⌘R");
+        var right = detail.TranslatePoint(new Point(detail.Bounds.Width, 0), item)!.Value.X;
+        Assert.Equal(300 - 8, right);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-106")] // UI/Chrome/Popovers.swift:312 Spacer(minLength: 16): at natural width the gap between title and detail is 16 plus the 8pt HStack spacing on each side
+    public void PopoverItem_keeps_at_least_16_points_between_title_and_detail() => headless.OnUiThread(() =>
+    {
+        var item = new PopoverItem("Rename", () => { }, detail: "⌘R");
+        var window = Show(item, 300);
+        var title = Assert.Single(VisualQuery.Descendants<MiddleTruncatingText>(item));
+        var detail = Assert.Single(VisualQuery.Descendants<TextBlock>(item), t => t.Text == "⌘R");
+        var gap = detail.TranslatePoint(new Point(0, 0), item)!.Value.X - title.TranslatePoint(new Point(title.Bounds.Width, 0), item)!.Value.X;
+        Assert.Equal(16 + 8 + 8, gap);
+        window.Close();
+    });
 }

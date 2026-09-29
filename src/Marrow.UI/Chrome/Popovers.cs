@@ -291,7 +291,7 @@ public sealed class PopoverItem : Decorator
         bool isDestructive,
         string? confirmation)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :275 HStack(spacing: 8)
+        var row = new PopoverRowPanel { Orientation = Orientation.Horizontal, Spacing = 8 }; // :275 HStack(spacing: 8)
 
         if (isChecked is { } isCheckedValue) // :276-281
         {
@@ -366,7 +366,8 @@ public sealed class PopoverItem : Decorator
         titleBlock.Track(() => state.IsConfirmed, _ => UpdateTitle());
         row.Children.Add(titleBlock);
 
-        row.Children.Add(new Control { Width = 16, HorizontalAlignment = HorizontalAlignment.Stretch }); // :312 Spacer(minLength: 16)
+        row.Spacer = new Control { MinWidth = 16, HorizontalAlignment = HorizontalAlignment.Stretch }; // :312 Spacer(minLength: 16), takes the row's spare width (PopoverRowPanel)
+        row.Children.Add(row.Spacer);
 
         if (detail is not null) // :313-318
         {
@@ -431,6 +432,58 @@ public sealed class PopoverItem : Decorator
             action();
             return Task.CompletedTask;
         });
+    }
+}
+
+/// <summary>
+/// PORT-ONLY: the port's stand-in for the row's <c>HStack(spacing: 8)</c> with a <c>Spacer(minLength: 16)</c>
+/// (Popovers.swift :275, :312). Children take their natural width; the <see cref="Spacer"/> takes 16 plus whatever
+/// width the row is given beyond that, so the detail sits at the trailing edge; when the row is narrower than its
+/// content the <see cref="MiddleTruncatingText"/> title is given what is left, as SwiftUI compresses a truncating
+/// Text before anything else (:307-311). Still a horizontal StackPanel to every caller.
+/// </summary>
+internal sealed class PopoverRowPanel : StackPanel
+{
+    /// <summary>:312 the <c>Spacer(minLength: 16)</c> child.</summary>
+    public Control? Spacer { get; set; }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var visible = Children.Where(c => c.IsVisible).ToList();
+        var infinite = new Size(double.PositiveInfinity, availableSize.Height);
+        var title = visible.OfType<MiddleTruncatingText>().FirstOrDefault();
+        double total = 0, height = 0;
+        foreach (var child in visible.Where(c => c != title))
+        {
+            child.Measure(infinite);
+            total += child.DesiredSize.Width;
+            height = Math.Max(height, child.DesiredSize.Height);
+        }
+        if (title is not null)
+        {
+            var others = total + Spacing * (visible.Count - 1);
+            var room = double.IsInfinity(availableSize.Width) ? double.PositiveInfinity : Math.Max(0, availableSize.Width - others);
+            title.Measure(new Size(room, availableSize.Height));
+            total += title.DesiredSize.Width;
+            height = Math.Max(height, title.DesiredSize.Height);
+        }
+        return new Size(total + Spacing * Math.Max(0, visible.Count - 1), height);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var visible = Children.Where(c => c.IsVisible).ToList();
+        var spacer = Spacer;
+        var natural = visible.Sum(c => c.DesiredSize.Width) + Spacing * Math.Max(0, visible.Count - 1);
+        var extra = Math.Max(0, finalSize.Width - natural);
+        double x = 0;
+        foreach (var child in visible)
+        {
+            var width = child.DesiredSize.Width + (child == spacer ? extra : 0);
+            child.Arrange(new Rect(x, 0, width, finalSize.Height));
+            x += width + Spacing;
+        }
+        return finalSize;
     }
 }
 
