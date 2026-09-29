@@ -53,6 +53,8 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
             Assert.Equal(780, view.Width); Assert.Equal(580, view.Height);
             var frame = Assert.IsType<Border>(view.Child);
             Assert.Equal(new CornerRadius(26), frame.CornerRadius); // Literal oracle; I01 changes production 26 to 25.
+            // STOP CONTINUOUS-CORNERS: SwiftShapes currently uses circular arcs for this
+            // Continuous marker (ED-181); this assertion is not a continuous-geometry oracle.
             Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(frame));
             Assert.True(frame.ClipToBounds);
             var layers = Assert.IsType<Panel>(frame.Child);
@@ -107,6 +109,8 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
     [Trait("Req", "UI-SETTINGS-001")]
     public void Sidebar_background_is_a_hit_tested_caption_region()
     {
+        // STOP SETTINGS-NATIVE-SURFACE: Headless hit testing proves the managed caption
+        // region, not a real drag of the production Settings HWND or its caption-button overlay.
         // ui_contract.json:15437; SettingsView.cs:166 installs the background over the 212-point sidebar.
         WithManager((_, manager) =>
         {
