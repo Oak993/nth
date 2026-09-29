@@ -1,3 +1,5 @@
+using Avalonia.Controls.Templates;
+using Avalonia.LogicalTree;
 using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
@@ -1076,6 +1078,175 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             h.Main.OnMain(() => Assert.Single(h.Runtime.Turns));
         }
         finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    // ---- PR-CHAT-112, -113: the plan's popover (:2279-2313, :2287) ----
+
+    private static Control PlanDetail(PlanCard card, TimelineEntry entry) =>
+        Assert.IsAssignableFrom<Control>(Invoke(card, "Detail", ((TimelineItem.Content.Plan)entry.Item.TimelineItemContent).Value));
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-112")]
+    public void The_plan_popover_is_520_wide_with_the_markdown_in_a_420_point_scroller_and_the_two_buttons_only_while_proposed() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var proposed = PlanEntry(ProposedPlan.State.Proposed);
+            var detail = PlanDetail(new PlanCard(proposed, h.Runtime), proposed);
+            var window = Show(detail);
+            try
+            {
+                var sheet = LogicalQuery.SelfAndDescendants<Control>(detail).First(control => control.Width == 520);
+                Assert.Contains(LogicalQuery.SelfAndDescendants<Decorator>(sheet), decorator => decorator.Padding == new Thickness(16));
+                var heading = TextNamed(detail, "Plan");
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Headline, SwiftFont.Weight.Semibold).Resolve().FontSize, heading.FontSize);
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Headline, SwiftFont.Weight.Semibold).Resolve().FontWeight, heading.FontWeight);
+                Assert.Single(LogicalQuery.SelfAndDescendants<CopyButton>((Control)heading.Parent!)); // the header's one copy button
+                var column = Assert.IsType<StackPanel>(((Control)heading.Parent!).Parent); // the header row's stack: heading + scroller + buttons
+                Assert.Equal(12, column.Spacing);
+                var scroll = Assert.Single(LogicalQuery.SelfAndDescendants<PopoverScroll>(detail));
+                var markdown = Assert.Single(LogicalQuery.SelfAndDescendants<MarkdownView>(scroll));
+                Assert.Equal("```\nstep one\n```", markdown.Text);
+                Assert.Equal(new Thickness(16, 0), markdown.Margin);
+                Assert.True(Assert.IsType<ScrollViewer>(scroll.Child).Height <= 420);
+                Assert.Equal(["Implement plan", "Dismiss"], LogicalQuery.SelfAndDescendants<Button>(detail).Select(button => LogicalTexts(button).FirstOrDefault(text => text.Length != 0)).Where(text => text is "Implement plan" or "Dismiss"));
+            }
+            finally { Close(window); }
+
+            var accepted = PlanEntry(ProposedPlan.State.Accepted);
+            var done = PlanDetail(new PlanCard(accepted, h.Runtime), accepted);
+            Assert.DoesNotContain("Implement plan", LogicalTexts(done));
+            Assert.DoesNotContain("Dismiss", LogicalTexts(done));
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-112")]
+    public void The_scroller_holds_a_tall_plan_to_420_points() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        Control? detail = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var tall = PlanEntry(ProposedPlan.State.Proposed, markdown: string.Join("\n\n", Enumerable.Range(1, 80).Select(i => "paragraph " + i)));
+            detail = PlanDetail(new PlanCard(tall, h.Runtime), tall);
+            window = new AvaloniaWindow { Width = 900, Height = 900, Content = detail };
+            // the headless test app has no theme, so a ScrollViewer has no template; give it the minimal one a themed app has
+            window.Styles.Add(new Avalonia.Styling.Style(x => Avalonia.Styling.Selectors.OfType(x, typeof(ScrollViewer)))
+            {
+                Setters = { new Avalonia.Styling.Setter(TemplatedControl.TemplateProperty, new Avalonia.Controls.Templates.FuncControlTemplate<ScrollViewer>((viewer, scope) =>
+                    new Avalonia.Controls.Presenters.ScrollContentPresenter { Name = "PART_ContentPresenter", CanVerticallyScroll = true, [!Avalonia.Controls.Presenters.ScrollContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty] }.RegisterInNameScope(scope))) },
+            });
+            window.Show();
+            Settle(window);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                var scroll = Assert.Single(LogicalQuery.SelfAndDescendants<PopoverScroll>(detail!));
+                Assert.Equal(420, Assert.IsType<ScrollViewer>(scroll.Child).Height);
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-112")]
+    public void The_plan_buttons_stay_greyed_while_the_thread_is_busy_with_the_reason_and_carry_no_tip_when_free() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        Control? detail = null;
+        AvaloniaWindow? window = null;
+        Panel Row() => (Panel)LogicalQuery.SelfAndDescendants<Button>(detail!).First(button => LogicalTexts(button).Contains("Implement plan")).GetLogicalAncestors().OfType<Panel>()
+            .First(panel => LogicalQuery.SelfAndDescendants<Button>(panel).Count() == 2);
+        h.Main.OnMain(() =>
+        {
+            var entry = PlanEntry(ProposedPlan.State.Proposed);
+            detail = PlanDetail(new PlanCard(entry, h.Runtime), entry);
+            window = Show(detail);
+            Assert.True(Row().IsEnabled);
+            Assert.Null(ToolTip.GetTip(Row()));
+            h.Runtime.RehearseTurn("busy");
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                var row = Row();
+                Assert.False(row.IsEnabled); // greyed, not gone
+                Assert.Equal("Wait for the current turn to finish", ToolTip.GetTip(row));
+                Assert.True(ToolTip.GetShowOnDisabled(row));
+                Assert.Equal(2, LogicalQuery.SelfAndDescendants<Button>(row).Count());
+                // a popover opened while the thread is already busy starts greyed, before any change is observed
+                var later = PlanEntry(ProposedPlan.State.Proposed);
+                var fresh = PlanDetail(new PlanCard(later, h.Runtime), later);
+                Assert.False(Assert.IsAssignableFrom<Panel>(LogicalQuery.SelfAndDescendants<Button>(fresh).First(button => LogicalTexts(button).Contains("Dismiss")).GetLogicalParent()).IsEnabled);
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-112")]
+    public void A_pending_plan_approval_also_greys_the_plan_buttons_while_the_thread_is_idle() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        Control? open = null;
+        AvaloniaWindow? window = null;
+        var entry = PlanEntry(ProposedPlan.State.Proposed);
+        Panel RowOf(Control detail) => Assert.IsAssignableFrom<Panel>(LogicalQuery.SelfAndDescendants<Button>(detail).First(button => LogicalTexts(button).Contains("Dismiss")).GetLogicalParent());
+        h.Main.OnMain(() =>
+        {
+            open = PlanDetail(new PlanCard(entry, h.Runtime), entry);
+            window = Show(open);
+            Assert.True(RowOf(open).IsEnabled);
+            h.Runtime.Rehearse(new ProviderEvent.Approval(new ApprovalRequest("a1", ApprovalRequest.Kind.Plan, "Approve this plan?", ValueList<ApprovalRequest.Option>.Empty)));
+            Assert.NotNull(h.Runtime.PendingPlanApproval);
+            Assert.False(h.Runtime.IsRunning); // only the pending approval can be what greys them
+            var held = PlanDetail(new PlanCard(entry, h.Runtime), entry); // opened after the approval arrived: greyed at once
+            Assert.False(RowOf(held).IsEnabled);
+            Assert.Equal("Wait for the current turn to finish", ToolTip.GetTip(RowOf(held)));
+        });
+        try
+        {
+            // and the one already open when the approval arrived follows it
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.False(RowOf(open!).IsEnabled);
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-113")]
+    public void A_drafting_plan_renders_with_the_streaming_markdown_and_it_switches_the_moment_the_state_leaves_drafting() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            bool Streams(ProposedPlan.State state)
+            {
+                var entry = PlanEntry(state);
+                return LogicalQuery.SelfAndDescendants<MarkdownView>(PlanDetail(new PlanCard(entry, h.Runtime), entry)).Single().IsStreaming;
+            }
+            Assert.True(Streams(ProposedPlan.State.Drafting));
+            Assert.False(Streams(ProposedPlan.State.Proposed));
+            Assert.False(Streams(ProposedPlan.State.Accepted));
+            Assert.False(Streams(ProposedPlan.State.Dismissed));
+        });
     });
 
     // ---- PR-CHAT-098: a tool row's chevron points down for a popover/head and right (rotating ninety degrees when
