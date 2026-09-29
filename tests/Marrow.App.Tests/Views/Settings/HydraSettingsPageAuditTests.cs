@@ -1,0 +1,66 @@
+using System.Reflection;
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.LogicalTree;
+using Avalonia.Media;
+using Avalonia.Threading;
+using Marrow.App.Port;
+using Marrow.App.Tests.Fixtures;
+using Marrow.App.Views.Settings;
+using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Services.Providers;
+using Marrow.Testing;
+using Marrow.UI.Chrome;
+using Marrow.UI.Port;
+
+namespace Marrow.App.Tests.Views.Settings;
+
+// Audit-fix tests for DroppyCode/App/Views/Settings/HydraSettingsPage.swift (B3 52bc7926).
+[Collection("Headless")]
+public sealed class HydraSettingsPageAuditTests(HeadlessSession headless)
+{
+    private void WithPair(string type, Func<HydraPair, HydraPair> shape, double width, Action<Control, AppModel, HydraPair> check)
+    {
+        var pair = shape(new HydraPair(ProviderKind.Claude));
+        WithView(m =>
+        {
+            m.Settings.AddHydraPair(pair);
+            var unit = typeof(HydraSettingsPage).Assembly.GetType("Marrow.App.Views.Settings." + type)!;
+            return (Control)Activator.CreateInstance(unit, type == "HydraPairRow" ? new object[] { pair } : new object[] { pair.Id })!;
+        }, width, (view, m) => check(view, m, pair));
+    }
+
+    private void WithView(Func<AppModel, Control> create, double width, Action<Control, AppModel> check) => headless.OnUiThread(() =>
+    {
+        using var h = new AppModelHarness(); var model = h.MakeModel();
+        using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        using var time = SwiftClock.Provider.Override(new ManualTimeProvider());
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var attempted = (HashSet<ProviderKind>)typeof(ProviderRegistry).GetField("attemptedCatalogs", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(model.Providers)!;
+        foreach (var provider in SwiftEnum<ProviderKind>.AllCases) attempted.Add(provider);
+        var view = create(model); var host = new Border { Child = view }; AppEnvironment.SetAppModel(host, model);
+        var w = new Avalonia.Controls.Window { Width = width, Height = 1800, Content = host };
+        try { w.Show(); Sync(); check(view, model); }
+        finally { w.Close(); Sync(); }
+    });
+
+    private static IEnumerable<T> Of<T>(Control c) where T : class => LogicalQuery.SelfAndDescendants<T>(c);
+    private static void Sync() => Dispatcher.UIThread.RunJobs();
+    private static double Right(Control c, Visual to) => c.TranslatePoint(new Point(c.Bounds.Width, 0), to)!.Value.X;
+    private static void Advance(double seconds)
+    {
+        var span = TimeSpan.FromSeconds(seconds);
+        ((ManualTimeProvider)SwiftClock.Provider.Current).Advance(span); ((ManualFrameSource)FrameClock.Source.Current).Advance(span); Sync();
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-146")] // HydraSettingsPage.swift:12-35 the Spacer pushes the switch to the card's trailing edge
+    public void The_hydra_switch_sits_at_the_trailing_edge_of_its_card() => WithView(_ => new HydraSettingsPage(), 900, (view, _) =>
+    {
+        var toggle = Of<SettingsSwitch>(view).First();
+        var card = Of<ChromeCard>(view).First(c => Of<SettingsSwitch>(c).Contains(toggle));
+        Assert.InRange(Math.Abs(Right(card, view) - Chrome.RowControlTrailingPadding - Right(toggle, view)), 0, 1.5);
+    });
+
+}

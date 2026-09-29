@@ -69,11 +69,16 @@ public sealed class HydraSettingsPage : Decorator
         textColumn.Children.Add(titleRow);
         textColumn.Children.Add(subtitle);
 
-        var switchRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 14 };
+        // :12-35 HStack(spacing: 14) { glyphs; text; Spacer(minLength: 12); switch }: the text takes the remaining width
+        // (a Grid star column, since a StackPanel gives a stretched child only its desired width); the switch trails.
+        var switchRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") };
+        glyphs.Margin = new Thickness(0, 0, 14, 0);
+        Grid.SetColumn(textColumn, 1);
+        var hydraSwitch = new SettingsSwitch(new Binding<bool>(() => settings.HydraEnabled, value => settings.HydraEnabled = value)) { Margin = new Thickness(14 + 12, 0, 0, 0) };
+        Grid.SetColumn(hydraSwitch, 2);
         switchRow.Children.Add(glyphs);
         switchRow.Children.Add(textColumn);
-        switchRow.Children.Add(new Border { MinWidth = 12, HorizontalAlignment = HorizontalAlignment.Stretch });
-        switchRow.Children.Add(new SettingsSwitch(new Binding<bool>(() => settings.HydraEnabled, value => settings.HydraEnabled = value)));
+        switchRow.Children.Add(hydraSwitch);
         switchRow.Margin = new Thickness(16, 14, Chrome.RowControlTrailingPadding, 14);
 
         var switchCard = new ChromeCard(() => switchRow);
