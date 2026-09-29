@@ -53,4 +53,29 @@ public sealed class AppModelAuditFixTests
             GC.KeepAlive(tracker);
         });
     }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-060")] // AppModel.swift:357-371
+    public void The_activity_day_is_local_midnight_with_the_offset_in_force_at_that_midnight()
+    {
+        using var h = new AppModelHarness();
+        var zone = TimeZoneInfo.FindSystemTimeZoneById("Eastern Standard Time");
+        var project = AppModelSamples.Project("P", h.NewFolder("activity-day"));
+        // 16:00 EDT on 2026-03-08, the day the clocks went forward: local midnight was still on EST (UTC-5).
+        var updated = new DateTimeOffset(2026, 3, 8, 20, 0, 0, TimeSpan.Zero);
+        var first = AppModelSamples.Thread(project) with { UpdatedAt = updated };
+        var second = AppModelSamples.Thread(project) with { UpdatedAt = updated };
+        h.WriteLibrary([project], [first, second]);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            using var scope = SwiftFormatters.CurrentTimeZone.Override(zone);
+            Assert.True(model.MoveInActivity(second.Id, first.Id, placeAfter: false, [first.Id, second.Id]));
+
+            var expected = new DateTimeOffset(2026, 3, 8, 0, 0, 0, TimeSpan.FromHours(-5));
+            Assert.Equal(expected.UtcDateTime, model.Thread(first.Id)!.ActivityOrderDay!.Value.UtcDateTime);
+            Assert.Equal(expected.UtcDateTime, model.Thread(second.Id)!.ActivityOrderDay!.Value.UtcDateTime);
+        });
+    }
 }

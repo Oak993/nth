@@ -430,15 +430,21 @@ public sealed partial class AppModel : MainActorModel
         if (index < 0) return false; // AppModel.swift:362
         order.Insert(placeAfter ? index + 1 : index, id); // AppModel.swift:363
         if (order.SequenceEqual(peers)) return false; // AppModel.swift:364
-        var localZone = TimeZoneInfo.Local;
+        var zone = SwiftFormatters.CurrentTimeZone.Current; // AppModel.swift:374 Calendar.current's zone (ED-094)
         UpdateThreads(order, (position, thread) =>
-        {
-            var date = thread.UpdatedAt;
-            var local = TimeZoneInfo.ConvertTime(date, localZone);
-            var start = new DateTimeOffset(local.Year, local.Month, local.Day, 0, 0, 0, local.Offset);
-            return thread with { ActivityOrder = position, ActivityOrderDay = start };
-        }); // AppModel.swift:365-369
+            thread with { ActivityOrder = position, ActivityOrderDay = StartOfDay(thread.UpdatedAt, zone) }); // AppModel.swift:375-378
         return true;
+    }
+
+    // Calendar.startOfDay(for:) in the zone: the first instant of the wall-clock day the moment falls on. The offset is the one
+    // in force at that midnight, not the moment's own (they differ on a day the clocks change); a midnight that does not
+    // exist (a spring-forward gap) starts the day at the first valid time, and a repeated one at its earlier occurrence.
+    private static DateTimeOffset StartOfDay(DateTimeOffset date, TimeZoneInfo zone)
+    {
+        var midnight = TimeZoneInfo.ConvertTime(date, zone).DateTime.Date;
+        while (zone.IsInvalidTime(midnight)) midnight = midnight.AddMinutes(15);
+        var offset = zone.IsAmbiguousTime(midnight) ? zone.GetAmbiguousTimeOffsets(midnight).Max() : zone.GetUtcOffset(midnight);
+        return new DateTimeOffset(midnight, offset);
     }
 
     // AppModel.swift:373-375
