@@ -1,4 +1,5 @@
 using Marrow.App.Port;
+using Marrow.App.Tests.App.Fixtures;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -122,6 +123,25 @@ public sealed class AppModelAuditFixTests
             Assert.Equal(2, model.Projects.Count);
             Assert.Equal(model.Projects[1], added);
             Assert.Empty(model.Threads);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-030")] // AppModel.swift:660, :673
+    public void A_new_thread_replaces_a_default_provider_that_is_not_installed_with_the_first_installed_and_enabled_one()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("provider-choice"));
+        h.WriteLibrary([project], []);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            HydraCookbookResolveFixture.SetInstalled(model.Providers, ProviderKind.Claude, true);
+            HydraCookbookResolveFixture.SetInstalled(model.Providers, ProviderKind.Codex, false);
+            model.Settings.DefaultProvider = ProviderKind.Codex;
+
+            Assert.Equal(ProviderKind.Claude, model.NewThread(project)!.Provider);
         });
     }
 

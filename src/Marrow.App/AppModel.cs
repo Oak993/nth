@@ -716,22 +716,60 @@ public sealed partial class AppModel : MainActorModel
         return thread;
     }
 
+    // AppModel.swift:657-712. A chat as it would start in `project`: on `current`'s provider, model and pair when made from an
+    // open chat, otherwise on what was last used. Not yet in `threads`.
     private ChatThread MakeThread(Project project, ChatThread? current)
     {
-        var projectPair = global::Marrow.Core.Models.HydraPair.ProjectPair(project.HydraPairID, Settings.HydraEnabled, Settings.HydraPairs); // AppModel.swift:653
-        var lastPair = current is null && Settings.HydraEnabled ? Settings.HydraPair(Settings.LastHydraPairID) : null; // AppModel.swift:658-660
-        var provider = projectPair?.Provider ?? current?.Provider ?? lastPair?.Provider ?? Settings.DefaultProvider; // AppModel.swift:663-664
-        var carriesModel = projectPair?.OrchestratorModel is null && current?.Provider == provider; // AppModel.swift:667
-        var model = carriesModel ? current?.Model : Providers.DefaultModel(provider)?.Id; // AppModel.swift:668
-        var preference = Settings.Preference(provider, model); // AppModel.swift:669
-        var effort = carriesModel ? current?.Effort : preference.Effort ?? Settings.LastEffort(provider); // AppModel.swift:670
-        var fastMode = carriesModel ? current?.FastMode ?? false : preference.FastMode; // AppModel.swift:671
-        var thread = new ChatThread(project.Id, provider, model, effort, Settings.DefaultRuntimeMode, fastMode); // AppModel.swift:672
-        return thread with
+        var installed = SwiftEnum<ProviderKind>.AllCases
+            .Where(kind => Providers.Status(kind).IsInstalled && Settings.IsEnabled(kind)).ToList(); // AppModel.swift:660
+        var pickerPairs = HydraPickerPairs; // AppModel.swift:662
+        // The project's own pair, when it has one, sets the provider before anything else.
+        var projectPair = global::Marrow.Core.Models.HydraPair.ProjectPair(project.HydraPairID, Settings.HydraEnabled, pickerPairs); // AppModel.swift:662
+        // With no chat to carry from (a fresh launch), the pair last entered from the picker is where the new chat starts.
+        // Before any pair has been entered since this was remembered, the chat last worked in stands in: its pair if it led
+        // one, and none if it had left its pair for a model of its own.
+        var lastPairID = Settings.LastHydraPairID; // AppModel.swift:667
+        if (lastPairID is null)
         {
-            HydraPairID = projectPair?.Id ?? lastPair?.Id,
-            HydraEnabled = projectPair is not null || thread.HydraEnabled,
-        }; // AppModel.swift:672-702
+            ChatThread? recentThread = null; // AppModel.swift:668 max { $0.updatedAt < $1.updatedAt }: the first of the latest
+            foreach (var candidate in threads)
+            {
+                if (candidate.IsHelper) continue;
+                if (recentThread is null || candidate.UpdatedAt > recentThread.UpdatedAt) recentThread = candidate;
+            }
+            lastPairID = recentThread?.HydraPairID;
+        }
+        var lastPair = current is null && Settings.HydraEnabled
+            ? lastPairID is { } lastID ? pickerPairs.FirstOrDefault(pair => pair.Id == lastID) : null
+            : null; // AppModel.swift:669-671
+        var provider = projectPair?.Provider ?? current?.Provider ?? lastPair?.Provider ?? Settings.DefaultProvider; // AppModel.swift:672
+        if (installed.Count > 0 && !installed.Contains(provider)) provider = installed[0]; // AppModel.swift:673
+        // A chat that starts on the project's pair takes that pair's lead model. A pair with no lead model keeps the current
+        // chat's model, as the picker does.
+        var carriesModel = projectPair?.OrchestratorModel is null && current?.Provider == provider; // AppModel.swift:676
+        var model = carriesModel ? current?.Model : Providers.DefaultModel(provider)?.Id; // AppModel.swift:677
+        var preference = Settings.Preference(provider, model); // AppModel.swift:678
+        var effort = carriesModel ? current?.Effort : preference.Effort ?? Settings.LastEffort(provider); // AppModel.swift:679
+        var fastMode = carriesModel ? current?.FastMode ?? false : preference.FastMode; // AppModel.swift:680
+        var thread = new ChatThread(project.Id, provider, model, effort, Settings.DefaultRuntimeMode, fastMode); // AppModel.swift:681-688
+        // A chat made from one that leads a pair carries the pair along with the model. With no chat to carry from, the last
+        // pair is where the new chat starts, on its lead model and effort, provided its provider is still installed. The
+        // project's pair wins over all of that: the user set it as the rule for this project, so every new chat here starts on it.
+        if (projectPair is { } pair)
+        {
+            var lead = HydraLead(pair, thread); // AppModel.swift:695
+            thread = thread with { Model = lead.Model, Effort = lead.Effort, FastMode = lead.FastMode, HydraPairID = pair.Id, HydraEnabled = true }; // AppModel.swift:696-700
+        }
+        else if (carriesModel)
+        {
+            thread = thread with { HydraPairID = current?.HydraPairID }; // AppModel.swift:702
+        }
+        else if (lastPair is { } last && last.Provider == provider)
+        {
+            var lead = HydraLead(last, thread); // AppModel.swift:704
+            thread = thread with { Model = lead.Model, Effort = lead.Effort, FastMode = lead.FastMode, HydraPairID = last.Id, HydraEnabled = true }; // AppModel.swift:705-709
+        }
+        return thread;
     }
 
     // AppModel.swift:623-646. @discardableResult.
