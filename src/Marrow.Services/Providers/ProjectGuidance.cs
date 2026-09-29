@@ -230,7 +230,7 @@ public sealed class ProjectGuidance
         FileStream handle;
         try
         {
-            handle = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read); // :108
+            handle = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete); // :108 FileHandle takes no lock, so an editor's write handle does not block the read
         }
         catch
         {

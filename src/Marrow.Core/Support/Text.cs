@@ -99,7 +99,7 @@ public static class TextCleanup
         var lines = StripANSI(text).Split(['\n', '\r', '\v', '\f', '\u0085', '\u2028', '\u2029'])
             .Select(line => FoundationText.Trim(line)).Where(line => line.Length != 0).ToArray();
         if (lines.Length == 0) return null;
-        ArgumentOutOfRangeException.ThrowIfNegative(count);
+        if (count < 0) throw SwiftTraps.Fatal("Can't take a suffix of negative length from a collection"); // :24 suffix(count) precondition
         return string.Join("\n", lines.AsSpan(Math.Max(0, lines.Length - count)).ToArray());
     }
 
@@ -113,7 +113,7 @@ public static class TextCleanup
         // Character count and prefix are Swift grapheme semantics (R-STR-1): reuse SwiftString
         // rather than a second StringInfo-based counter.
         if (SwiftString.Count(line) <= limit) return line;
-        ArgumentOutOfRangeException.ThrowIfLessThan(limit, 1);
+        if (limit < 1) throw SwiftTraps.Fatal("Can't take a prefix of negative length from a collection"); // :29 prefix(limit - 1) precondition
         return SwiftString.Prefix(line, limit - 1) + "…";
     }
 

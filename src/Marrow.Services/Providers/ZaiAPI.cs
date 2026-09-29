@@ -249,8 +249,8 @@ public static class ZaiAPI
     // :158-181
     public static async Task<PlanLimits.ResetOutcome> ConsumeResetCredit(string apiKey, string creditID, Uri? resetUseUrl = null)
     {
-        var parts = creditID.Split(':', 2); // :159
-        if (parts.Length != 2 || SwiftNumber.ParseInt(parts[1]) is not { } record) // :160
+        var parts = SwiftString.Split(creditID, ":", maxSplits: 1); // :159 omits empty subsequences: ":1" is ["1"]
+        if (parts.Count != 2 || SwiftNumber.ParseInt(parts[1]) is not { } record) // :160
         {
             throw new ResetCreditError(new ResetCreditError.Case.UnknownOutcome());
         }

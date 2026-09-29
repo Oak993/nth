@@ -91,11 +91,11 @@ public abstract record JSONValue
     public byte[] Data(bool pretty = false) => SwiftTry.Optional(() =>
     {
         using var stream = new MemoryStream();
-        using (var writer = new Utf8JsonWriter(stream))
+        using (var writer = new Utf8JsonWriter(stream, new JsonWriterOptions { MaxDepth = SwiftJson.DocumentOptions.MaxDepth }))
         {
             WriteTo(writer, this);
         }
-        using var document = JsonDocument.Parse(stream.ToArray());
+        using var document = JsonDocument.Parse(stream.ToArray(), SwiftJson.DocumentOptions); // JSONSerialization has no 64-level writer limit
         return SwiftJson.Write(document.RootElement, pretty ? SwiftJsonStyle.SerializationPretty : SwiftJsonStyle.SerializationCompact);
     }) ?? Encoding.UTF8.GetBytes("null");
 

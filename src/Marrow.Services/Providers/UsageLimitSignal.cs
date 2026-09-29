@@ -83,10 +83,17 @@ public static partial class UsageLimitSignal
     {
         var localToday = TimeZoneInfo.ConvertTime(now, zone).Date;
         var wall = DateTime.SpecifyKind(localToday, DateTimeKind.Unspecified).AddHours(hour).AddMinutes(minute);
-        var candidate = new DateTimeOffset(wall, zone.GetUtcOffset(wall));
+        var candidate = new DateTimeOffset(wall, OffsetOf(zone, wall));
         if (candidate > now) return candidate;
         wall = wall.AddDays(1);
-        return new DateTimeOffset(wall, zone.GetUtcOffset(wall));
+        return new DateTimeOffset(wall, OffsetOf(zone, wall));
+    }
+
+    // nextDate's repeatedTimePolicy defaults to .first: a wall time that occurs twice at the end of daylight saving is its first
+    // occurrence, the one with the larger (daylight) offset; TimeZoneInfo.GetUtcOffset would pick the standard offset.
+    private static TimeSpan OffsetOf(TimeZoneInfo zone, DateTime wall)
+    {
+        return zone.IsAmbiguousTime(wall) ? zone.GetAmbiguousTimeOffsets(wall).Max() : zone.GetUtcOffset(wall);
     }
 
     // :42-52 "3:31 PM" today, "tomorrow at 9:00 AM" or "Thursday at 9:00 AM" further out.
