@@ -379,6 +379,8 @@ namespace Marrow.UI.Chrome
             }
             else if (labelControl is SwiftImage img)
             {
+                // :56-58 the font modifier reaches the Image as well as the Text: callout, semibold when chosen else medium.
+                img.Font(font);
                 // For images, apply foreground color as well
                 var foreground = (_isSelected ? Chrome.PrimaryText : Chrome.SecondaryText);
                 img.ForegroundStyle(foreground);

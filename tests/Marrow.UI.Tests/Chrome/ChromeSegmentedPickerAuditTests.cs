@@ -68,4 +68,22 @@ public sealed class ChromeSegmentedPickerAuditTests(HeadlessSession headless)
         window.Close();
         Dispatcher.UIThread.RunJobs();
     });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-184")] // ChromeSegmentedPicker.swift:56-58: the font (callout, semibold when chosen else medium) applies to the Image too
+    public void Symbol_label_takes_the_callout_font_and_the_selected_weight() => headless.OnUiThread(() =>
+    {
+        var cell = new CellSample<int>(1);
+        var picker = new ChromeSegmentedPicker<int>(
+            new[] { new ChromeSegmentedOption<int>(1, "Sun", "sun.max"), new ChromeSegmentedOption<int>(2, "Moon", "moon") },
+            new Binding<int>(() => cell.Value, v => cell.Value = v));
+        var window = Show(picker);
+        var sun = Assert.Single(VisualQuery.Descendants<SwiftImage>(Segment(picker, "Sun")));
+        Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold), SwiftImage.GetFont(sun));
+        cell.Value = 2;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium), SwiftImage.GetFont(sun));
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+    });
 }
