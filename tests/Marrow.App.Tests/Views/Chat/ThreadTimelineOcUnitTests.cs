@@ -617,6 +617,8 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119,2152-2176,822-829
     public void Oc_Working_click_opens_thinking_and_steps_and_follows_end_despite_jump() => WithTimeline((view, runtime, _, state, _) =>
     {
+        typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { User("probe") }));
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([Tool("a")]), new([]), true);
         var window = (Avalonia.Controls.Window)TopLevel.GetTopLevel(view)!;
         var host = new Border { Child = card };
@@ -630,13 +632,130 @@ public sealed class ThreadTimelineOcUnitTests(HeadlessSession headless)
             ThreadTimeline.SetRevealTimelineEnd(card, Field<TimelineRevealBox>(view, "revealBox"));
             tracking.IsPinnedToBottom = false; state.ShowsJumpButton = true; tracking.NoteGeometry(0, 900, 0);
             Put(view, "viewportHeight", 480.0);
-            var button = LogicalQuery.SelfAndDescendants<Button>(card).Single();
-            button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
-            Settle(panel);
+            Put(view, "anchorsBottomOnGrowth", false);
+            Animation? during = null;
+            using var probe = new OnChange<bool>(() => tracking.IsPinnedToBottom, (_, _) => during = Transaction.Current);
+            RealClick(panel, LogicalQuery.SelfAndDescendants<Button>(card).Single());
             Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card));
             Assert.Single(LogicalQuery.SelfAndDescendants<WorkSteps>(card));
             Assert.Equal("Hide these steps", Avalonia.Controls.ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(card).Single()));
             Assert.True(tracking.IsPinnedToBottom);
+            Assert.Equal(Animation.Snappy(0.24), during); // Follow runs inside the open animation, on the open curve
+            Assert.True(Field<bool>(view, "anchorsBottomOnGrowth")); // FollowEnd holds the bottom
+            Assert.NotNull(Field<object?>(view, "scrollFrame")); // FollowEnd scrolls to the end with animation
+            Assert.True(tracking.IsReaderScrolling); // FollowEnd notes the movement
+        }
+        finally { panel.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119 (the toggle closes again and removes the body)
+    public void Oc_Working_click_twice_closes_and_removes_the_body() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([Tool("a")]), new([]), true);
+        var host = new Border { Child = card };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var panel = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            panel.Show(); Settle(panel);
+            RealClick(panel, LogicalQuery.SelfAndDescendants<Button>(card).Single());
+            Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card));
+            RealClick(panel, LogicalQuery.SelfAndDescendants<Button>(card).Single());
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card));
+            Assert.Empty(LogicalQuery.SelfAndDescendants<WorkSteps>(card));
+            Assert.Single(((StackPanel)((Border)card.Child!).Child!).Children);
+            Assert.Equal("Show these steps", Avalonia.Controls.ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(card).Single()));
+        }
+        finally { panel.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119 (nothing to open: no tooltip, no body, no toggle)
+    public void Oc_Working_without_steps_or_work_does_not_open() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), new([]), new([]), true);
+        var host = new Border { Child = card };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var panel = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            panel.Show(); Settle(panel);
+            var button = LogicalQuery.SelfAndDescendants<Button>(card).Single();
+            Assert.Equal("", Avalonia.Controls.ToolTip.GetTip(button));
+            RealClick(panel, button);
+            Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card));
+            Assert.Empty(LogicalQuery.SelfAndDescendants<WorkSteps>(card));
+            Assert.Single(((StackPanel)((Border)card.Child!).Child!).Children);
+        }
+        finally { panel.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119 (the accessibility hint names the agent's work)
+    public void Oc_Working_button_help_names_the_agents_work() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([Tool("a")]), new([]), true);
+        var host = new Border { Child = card };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var panel = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            panel.Show(); Settle(panel);
+            Assert.Equal("Shows what the agent is doing", Avalonia.Automation.AutomationProperties.GetHelpText(LogicalQuery.SelfAndDescendants<Button>(card).Single()));
+        }
+        finally { panel.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2152-2176 (thinking visuals: size, dim, indent, padding, order)
+    public void Oc_Working_thinking_uses_source_geometry_font_and_order() => WithTimeline((view, runtime, _, _, _) =>
+    {
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([Tool("a")]), new([]), true);
+        var host = new Border { Child = card };
+        AppEnvironment.SetAppModel(host, AppEnvironment.GetAppModel(view));
+        var panel = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        try
+        {
+            panel.Show(); Settle(panel);
+            RealClick(panel, LogicalQuery.SelfAndDescendants<Button>(card).Single());
+            var column = (StackPanel)((Border)card.Child!).Child!;
+            var opened = Assert.IsType<Border>(column.Children[1]);
+            Assert.Equal(new Thickness(14, 0, 14, 11), opened.Padding);
+            var details = Assert.IsType<StackPanel>(opened.Child);
+            var thinking = Assert.IsType<StackPanel>(details.Children[0]);
+            Assert.IsType<WorkSteps>(details.Children[1]);
+            Assert.NotEmpty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(thinking));
+            Assert.Equal(new Thickness(TimelineMetrics.IconWidth + TimelineMetrics.IconSpacing, 0, 0, 0), thinking.Margin);
+            Assert.Equal(12, Marrow.UI.Markdown.MarkdownView.GetMarkdownPointSize(thinking));
+            Assert.True(Marrow.UI.Markdown.MarkdownView.GetMarkdownDimmed(thinking));
+        }
+        finally { panel.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119 (the chevron rests at 0 and points down open at 90)
+    public void Oc_Working_chevron_rotates_open() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var h = new AppModelHarness(); using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); var model = new Marrow.App.AppModel(); var id = Guid.NewGuid(); DiskWriter.Shared.WriteSynchronously(new ThreadDocument(id), Storage.ThreadURL(id)); DocumentPrefetch.Shared.Warm([id], urgent: true)!.Completion.GetAwaiter().GetResult(); var runtime = new ThreadRuntime(id, model);
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([Tool("a")]), new([]), false);
+        var host = new Border { Child = card };
+        AppEnvironment.SetAppModel(host, model);
+        var panel = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 };
+        static double Angle(Control card) => ((Avalonia.Media.RotateTransform)LogicalQuery.SelfAndDescendants<SwiftImage>(card).Single(i => i.SymbolName == "chevron.right").RenderTransform!).Angle;
+        try
+        {
+            panel.Show(); Settle(panel);
+            Assert.Equal(0, Angle(card));
+            h.Main.OnMain(() =>
+            {
+                RealClick(panel, LogicalQuery.SelfAndDescendants<Button>(card).Single());
+            });
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal(90, Angle(card));
+            });
         }
         finally { panel.Close(); }
     });
