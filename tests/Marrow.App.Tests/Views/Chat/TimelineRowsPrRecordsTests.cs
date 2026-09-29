@@ -2444,4 +2444,217 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Close(window);
         });
     });
+
+    // ---- PR-CHAT-143: HydraReportRow - a pill on the user's side naming who is done, the report one tap away
+    // (:241-373). The title, the mark or overlapped glyphs, the chevron, the pill chrome, the disabled no-tooltip
+    // pill, and the tap that opens the report. ----
+
+    private static UserMessage Report143(string text, params long[] heads) => new() { Text = text, HydraHeads = new ValueList<long>(heads) };
+    private static UserMessage Note143(string text) => new() { Text = text, HydraHeads = null };
+
+    private static string Title143(UserMessage message)
+    {
+        var row = new HydraReportRow(message);
+        var window = Show(row);
+        try { return LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(block => block.MaxLines == 1).Text!; }
+        finally { Close(window); }
+    }
+
+    // Two mutants of TimelineRows.cs ReportOutcomes are equivalent, not survivors: `colon < 3` -> `colon < 4` (the line
+    // begins with "## ", so a colon at index 3 means an empty head name, and no roster persona has one), and lowercasing
+    // the whole line instead of from the colon on (a marker before the colon lands in the head's name, which then matches
+    // no roster persona). Both leave every output identical.
+    [Fact]
+    [Trait("Req", "PR-CHAT-143")]
+    public void A_heads_report_names_who_is_done_and_a_failed_or_stopped_head_with_its_outcome() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            Assert.Equal("Hank is done", Title143(Report143("## Hank: tidy\nall good", 0)));
+            Assert.Equal("Hank and Walter are done", Title143(Report143("## Hank: tidy\n## Walter: build", 0, 1)));
+            Assert.Equal("Hank, Walter and Ada are done", Title143(Report143("## Hank: a\n## Walter: b\n## Ada: c", 0, 1, 2)));
+            Assert.Equal("Hank and Ada are done, Walter failed", Title143(Report143("## Hank: a\n## Walter: b (Failed: tests)\n## Ada: c", 0, 1, 2)));
+            Assert.Equal("Ada stopped", Title143(Report143("  ## Ada: c (stopped by you)", 2)));
+            Assert.Equal("Hank is done, Walter failed, Ada stopped", Title143(Report143("## Hank: a\n## Walter: b (failed)\n## Ada: c (STOPPED)", 0, 1, 2)));
+            // A failed head is listed before a stopped one in the caller's order, each after the done heads.
+            Assert.Equal("Ada is done, Hank stopped, Walter failed", Title143(Report143("## Hank: a (stopped)\n## Walter: b (failed)\n## Ada: c", 0, 1, 2)));
+            // The marker needs its opening parenthesis, and is only read from the colon on.
+            Assert.Equal("Hank is done", Title143(Report143("## Hank: failed once, fixed", 0)));
+            Assert.Equal("Hank is done", Title143(Report143("## Hank: a stopped) or failed) one", 0)));
+            Assert.Equal("Hank is done", Title143(Report143("## Hank (failed): a", 0)));
+            // A line names a head only when it begins with ## and holds a colon.
+            Assert.Equal("Hank is done", Title143(Report143("Hank: b (failed)\n### Hank: c (failed)\n#Hank: d (failed)", 0)));
+            Assert.Equal("Hank is done", Title143(Report143("## Hank b (failed)", 0)));
+            Assert.Equal("Walter failed", Title143(Report143("body\n   ## Walter :  x (failed)\nmore", 1)));
+            // :350-351 one line, capped at 140 characters.
+            var many = Enumerable.Range(0, 25).Select(i => (long)i).ToArray();
+            var names = many.Select(i => HydraRoster.Persona(i).Name).ToList();
+            var full = string.Join(", ", names.Take(24)) + " and " + names[24] + " are done";
+            Assert.True(full.Length > 140);
+            Assert.Equal(full[..139] + "\U00002026", Title143(Report143("report", many))); // U+2026 HORIZONTAL ELLIPSIS
+            Assert.Equal("Hank failed", Title143(Report143("## Hank: a (failed)\n\n\n", 0)));
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-143")]
+    public void A_heads_report_pill_overlaps_the_glyphs_and_sits_in_the_tinted_pill_with_96_points_clear_trailing() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var row = new HydraReportRow(Report143("## Hank: a\nbody\n## Walter: b\nbody", 0, 1));
+            var window = Show(row);
+            try
+            {
+                var glyphs = LogicalQuery.SelfAndDescendants<HydraGlyph>(row).ToList();
+                Assert.Equal(["Hank", "Walter"], glyphs.Select(glyph => glyph.Persona.Name));
+                Assert.All(glyphs, glyph => Assert.Equal(18, glyph.Size));
+                Assert.Equal(-4, Assert.IsType<StackPanel>(glyphs[0].Parent).Spacing);
+                Assert.Equal(8, Assert.IsType<StackPanel>(glyphs[0].Parent!.Parent).Spacing);
+                Assert.Empty(LogicalQuery.SelfAndDescendants<HydraMarkImage>(row));
+                var title = TextNamed(row, "Hank and Walter are done");
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium).Resolve().FontSize, title.FontSize);
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium).Resolve().FontWeight, title.FontWeight);
+                Assert.Equal(Resolved(ChromeTokens.PrimaryText.Opacity(0.9), title), BrushColor(title.Foreground));
+                Assert.Equal(1, title.MaxLines);
+                Assert.Equal(TextTrimming.CharacterEllipsis, title.TextTrimming);
+                var chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(row).Single(image => image.SymbolName == "chevron.right");
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, chevron), BrushColor(chevron.Foreground));
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold), chevron.GetValue(SwiftImage.FontProperty));
+                var button = LogicalQuery.SelfAndDescendants<Button>(row).Single();
+                Assert.True(button.IsEnabled);
+                Assert.Equal("Show the message", ToolTip.GetTip(button));
+                var pill = LogicalQuery.SelfAndDescendants<Border>(row).First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical));
+                Assert.Equal(Resolved(ChromeTokens.Accent.Opacity(0.1), pill), BrushColor(pill.Background));
+                Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+                Assert.Equal(HorizontalAlignment.Left, pill.HorizontalAlignment);
+                Assert.Equal(new Thickness(0, 0, 96, 0), row.Padding);
+                Assert.Equal("Hank and Walter are done", Avalonia.Automation.AutomationProperties.GetName(row));
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-143")]
+    public void A_note_from_Hydra_shows_its_first_line_less_one_stop_beside_the_mark_and_a_pill_with_nothing_behind_it_is_disabled_with_no_tip() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            Assert.Equal("Held the heads back", HydraReportRow.WithoutTrailingStop("Held the heads back."));
+            Assert.Equal("Wait..", HydraReportRow.WithoutTrailingStop("Wait..."));
+            Assert.Equal("No stop", HydraReportRow.WithoutTrailingStop("No stop"));
+            // The title is the first line only, cut at the first newline.
+            Assert.Equal("Held the heads back", Title143(Note143("Held the heads back.\n\n  The lead is busy.  ")));
+            Assert.Equal("First. line", Title143(Note143("First. line.\nsecond.")));
+            Assert.Equal("Hydra", Title143(Note143("")));
+            var note = new HydraReportRow(Note143("Held the heads back.\n\n  The lead is busy.  "));
+            var bare = new HydraReportRow(Report143("Just a title."));
+            var panel = new StackPanel();
+            panel.Children.Add(note);
+            panel.Children.Add(bare);
+            var window = Show(panel);
+            try
+            {
+                var mark = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMarkImage>(note));
+                Assert.Equal(8, Assert.IsType<StackPanel>(mark.Parent).Spacing);
+                Assert.Equal(18, mark.Width);
+                Assert.Equal(18, mark.Height);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, mark), BrushColor(LogicalQuery.SelfAndDescendants<SwiftImage>(mark).Single(image => image.SymbolName != "chevron.right").Foreground));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<HydraGlyph>(note));
+                var noteButton = LogicalQuery.SelfAndDescendants<Button>(note).Single();
+                Assert.True(noteButton.IsEnabled);
+                Assert.Equal("Show the message", ToolTip.GetTip(noteButton));
+                Assert.Contains("chevron.right", Symbols(note));
+                Assert.Equal(new Thickness(0, 0, 96, 0), note.Padding);
+                // Nothing behind the title: a disabled control, no chevron and no tooltip at all.
+                var bareButton = LogicalQuery.SelfAndDescendants<Button>(bare).Single();
+                Assert.False(bareButton.IsEnabled);
+                Assert.Null(ToolTip.GetTip(bareButton));
+                Assert.DoesNotContain("chevron.right", Symbols(bare));
+                // With a leading address the pill's button and the Open link sit 8 points apart in one row.
+                var linked = new HydraReportRow(Note143("Merged.\nhttps://x.example/a\nmore"));
+                var linkedWindow = Show(linked);
+                try
+                {
+                    var open = LogicalQuery.SelfAndDescendants<Button>(linked).Single(button => LogicalTexts(button).Contains("Open"));
+                    var line = Assert.IsType<StackPanel>(open.Parent);
+                    Assert.Equal(8, line.Spacing);
+                    Assert.Equal(2, line.Children.Count);
+                }
+                finally { Close(linkedWindow); }
+                // A bare note (no roster at all) is the same.
+                var bareNote = new HydraReportRow(Note143("Just a title.\n   \n"));
+                var bareWindow = Show(bareNote);
+                try
+                {
+                    var button = LogicalQuery.SelfAndDescendants<Button>(bareNote).Single();
+                    Assert.False(button.IsEnabled);
+                    Assert.Null(ToolTip.GetTip(button));
+                    Assert.DoesNotContain("chevron.right", Symbols(bareNote));
+                }
+                finally { Close(bareWindow); }
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-143")]
+    public void Tapping_a_pill_opens_the_report_a_heads_report_in_the_heads_popover_and_a_note_in_the_note_popover() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        HydraReportRow? note = null, heads = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            note = new HydraReportRow(Note143("Held back.\n\n  the lead is busy\n\nand then some  "));
+            heads = new HydraReportRow(Report143("## Hank: a\n```\nhank body\n```", 0));
+            _ = AppCurrentEvent.CurrentWindow; // warms the lazy event subscription before Show presses its key
+            var panel = new StackPanel();
+            panel.Children.Add(note);
+            panel.Children.Add(heads);
+            window = Show(panel);
+            Press(LogicalQuery.SelfAndDescendants<Button>(note).Single());
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                var shown = Assert.Single(presenter.Calls, call => call.Presented);
+                var popover = Assert.Single(LogicalQuery.SelfAndDescendants<HydraReportPopover>(shown.Popup.Child!));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<HydraReportsPopover>(shown.Popup.Child!));
+                // The popover shows the note's body (what follows the first line, trimmed), not its title.
+                Assert.Equal<MarkdownBlock>([new MarkdownBlock.Paragraph("the lead is busy"), new MarkdownBlock.Paragraph("and then some")], LogicalQuery.SelfAndDescendants<MarkdownBlockView>(popover).Select(view => view.Block).ToList());
+                // Tapping again closes it.
+                Press(LogicalQuery.SelfAndDescendants<Button>(note!).Single());
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Press(LogicalQuery.SelfAndDescendants<Button>(heads!).Single());
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                var shown = presenter.Calls.Last(call => call.Presented);
+                var popover = Assert.Single(LogicalQuery.SelfAndDescendants<HydraReportsPopover>(shown.Popup.Child!));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<HydraReportPopover>(shown.Popup.Child!));
+                Assert.Equal(460, popover.Width);
+                // It carries the whole message the row was given, each head's section in it.
+                Assert.Contains(LogicalQuery.SelfAndDescendants<MarkdownBlockView>(popover), view => view.Block is MarkdownBlock.Code { CodeText: "hank body" });
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
 }
