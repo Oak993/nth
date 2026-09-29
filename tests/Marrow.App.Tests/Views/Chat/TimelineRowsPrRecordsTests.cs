@@ -144,10 +144,12 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     }
 
     // ---- PR-CHAT-116: TurnEndRow.label - the three phrasings, over RelativeTime.duration fixtures (:2448-2455).
-    // WINDOWS-ONLY this session: TimelineRows.Duration reads SwiftFormatters.CurrentLocale.Current, which resolves
-    // the process's default locale through Marrow.Core.Port.IcuFormatting.ForLanguageTag -> icu.dll, absent on this
-    // Linux container (DllNotFoundException, confirmed by a direct run). The tests are otherwise complete and ready
-    // for the Windows re-run; kept as Rule=R-TEST-4 rather than a Req claim I could not watch pass myself. ----
+    // STOP cloud-TimelineRows-pr #15 (PR-CHAT-116): the record itself says "The exact rendered duration strings are those
+    // Foundation produces on the reference runtime and are UNRESOLVED until captured there (B3_PLAN.md 6.1 E1)". The
+    // expected strings below ("1m 4s", "1h 2m", ...) are the port's own expectations, so they cannot prove the clause; the
+    // rest of the record (the three phrasings, the rounding, the clamp at zero, the caption/secondary styling, the row
+    // suppressed when a reply exists) does run here (under the local /tmp/icushim; ordinary tests on Windows) and passes,
+    // but the record is not claimed: these tests carry Rule R-TEST-4 until the reference-runtime capture exists. ----
 
     [Theory]
     [Trait("Rule", "R-TEST-4")] // WINDOWS-ONLY here: TimelineRows.Duration needs icu.dll for the current locale.
@@ -191,13 +193,12 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.Null(row.Child);
     }
 
-    // ---- PR-CHAT-144: leadingURL / withoutFirstLine (:375-387). leadingURL calls SwiftCharacter.IsWhitespace,
-    // which needs icu.dll (Marrow.Core.Port.IcuNative.HasBinaryProperty), absent on this Linux container
-    // (DllNotFoundException, confirmed by a direct run): its own tests are WINDOWS-ONLY this session. withoutFirstLine
-    // does not touch ICU and is fully green here, but proves only half the record, so it stays Rule=R-TEST-4 too. ----
+    // ---- PR-CHAT-144: leadingURL / withoutFirstLine (:375-387) and the row that uses them (:252-257, :304-311).
+    // leadingURL calls SwiftCharacter.IsWhitespace, which needs icu.dll: this container has none, so these tests ran under
+    // the local, uncommitted /tmp/icushim (see the commit message); they are ordinary tests on Windows. ----
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // WINDOWS-ONLY here: leadingURL needs icu.dll (SwiftCharacter.IsWhitespace).
+    [Trait("Req", "PR-CHAT-144")]
     [InlineData("https://example.com/x\nrest", "https://example.com/x")]
     [InlineData("HTTP://EXAMPLE.COM\nrest", "HTTP://EXAMPLE.COM")] // case-insensitive scheme match
     [InlineData("  https://example.com  \nrest", "https://example.com")] // the first line is trimmed first
@@ -209,7 +210,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // WINDOWS-ONLY here: same icu.dll dependency.
+    [Trait("Req", "PR-CHAT-144")]
     [InlineData("ftp://example.com\nrest")] // wrong scheme
     [InlineData("not a url\nrest")] // no scheme at all
     [InlineData("https://example.com has a space\nrest")] // whitespace inside the first line
@@ -228,13 +229,103 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // green here, but proves only withoutFirstLine, half of PR-CHAT-144.
+    [Trait("Req", "PR-CHAT-144")]
     [InlineData("https://example.com/x\nsecond\nthird", "second\nthird")]
     [InlineData("https://example.com/x\n  second  ", "second")] // Trimmed() strips the remainder's outer whitespace
     [InlineData("https://example.com/x", "")] // no newline at all: the empty string
     [InlineData("https://example.com/x\n", "")]
     public void Without_first_line_is_everything_after_the_first_newline_trimmed(string body, string expected) =>
         Assert.Equal(expected, HydraReportRow.WithoutFirstLine(body));
+
+    // PR-CHAT-144, row level (:252-257, :304-311): the address becomes an Open link BESIDE the pill's button, and the chevron
+    // and popover cover only what the note says after that line.
+
+    private static HydraReportRow NoteRow(string text) => new(new UserMessage { Text = text });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-144")]
+    public void A_note_led_by_an_address_gets_an_Open_link_beside_the_button_and_keeps_its_chevron_for_the_rest() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var row = NoteRow("Merge request opened.\nhttps://example.com/pr/1\nThe details after the address.");
+            var window = Show(row);
+            try
+            {
+                var buttons = row.GetVisualDescendants().OfType<Button>().ToList();
+                var open = Assert.Single(buttons, button => Texts(button).Contains("Open"));
+                var report = Assert.Single(buttons, button => !ReferenceEquals(button, open));
+                Assert.DoesNotContain(open, report.GetVisualDescendants()); // a sibling control, never nested in the button
+                Assert.DoesNotContain(report, open.GetVisualDescendants());
+                var pill = Assert.IsType<StackPanel>(open.GetVisualParent());
+                Assert.Equal(8, pill.Spacing);
+                Assert.Equal(2, pill.Children.Count);
+                Assert.Contains(report, pill.Children[0].GetVisualDescendants().Append(pill.Children[0])); // the button first, the link after it
+                Assert.Same(open, pill.Children[1]);
+                Assert.Contains("chevron.right", Symbols(report));
+                Assert.True(report.IsEnabled);
+                Assert.Equal("Show the message", ToolTip.GetTip(report));
+                var label = Assert.Single(open.GetVisualDescendants().OfType<TextBlock>());
+                Assert.Equal("Open", label.Text);
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold).Resolve().FontSize, label.FontSize);
+                Assert.Equal(Avalonia.Media.FontWeight.SemiBold, label.FontWeight);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, label), BrushColor(label.Foreground));
+                Assert.Equal("Open in the browser", ToolTip.GetTip(open));
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-144")]
+    public void Clicking_Open_opens_the_address_in_the_default_browser() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        string? opened = null;
+        using var browser = Marrow.Services.Port.Workspace.Open.Override(url => { opened = url.AbsoluteString; return true; });
+        h.Main.OnMain(() =>
+        {
+            var row = NoteRow("Merge request opened.\nhttps://example.com/pr/1\nThe details after the address.");
+            var window = Show(row);
+            try
+            {
+                var open = Assert.Single(row.GetVisualDescendants().OfType<Button>(), button => Texts(button).Contains("Open"));
+                Click(window, open);
+                Assert.Equal("https://example.com/pr/1", opened);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-144")]
+    public void A_note_that_is_nothing_but_an_address_has_no_popover_and_an_address_with_trailing_text_is_no_link() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var bare = NoteRow("Merge request opened.\nhttps://example.com/pr/1");
+            var trailing = NoteRow("Merge request opened.\nhttps://example.com/pr/1 is ready for review");
+            var panel = new StackPanel();
+            panel.Children.Add(bare);
+            panel.Children.Add(trailing);
+            var window = Show(panel);
+            try
+            {
+                var bareButton = Assert.Single(bare.GetVisualDescendants().OfType<Button>(), button => Texts(button).Contains("Open") == false);
+                Assert.Single(bare.GetVisualDescendants().OfType<Button>(), button => Texts(button).Contains("Open")); // the link is still there
+                Assert.False(bareButton.IsEnabled); // nothing after the address: nothing to open
+                Assert.DoesNotContain("chevron.right", Symbols(bareButton));
+                // a first line that is an address WITH trailing text is not treated as a link
+                var trailingButton = Assert.Single(trailing.GetVisualDescendants().OfType<Button>());
+                Assert.DoesNotContain("Open", Texts(trailingButton));
+                Assert.True(trailingButton.IsEnabled);
+                Assert.Contains("chevron.right", Symbols(trailingButton));
+            }
+            finally { Close(window); }
+        });
+    });
 
     // ---- PR-CHAT-089: assistant messageActions - Copy last code block only when a fenced block exists; Add to
     // reply de-duplicates by exact text and captures the runtime weakly (:1392-1412) ----
@@ -340,13 +431,11 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.Equal("/compact", body);
     }
 
-    // Excerpt and the quote chip that renders it are WINDOWS-ONLY this session: Excerpt's word split calls
-    // SwiftCharacter.IsWhitespace, which needs icu.dll (Marrow.Core.Port.IcuNative.HasBinaryProperty), absent on
-    // this Linux container (DllNotFoundException, confirmed by a direct run). Peel above is fully proven; PR-CHAT-078
-    // as a whole needs both, so these stay Rule=R-TEST-4 rather than a Req claim I could not watch pass myself.
+    // Excerpt's word split calls SwiftCharacter.IsWhitespace, which needs icu.dll; these ran under the local, uncommitted
+    // /tmp/icushim (see the commit message) and are ordinary tests on Windows.
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // WINDOWS-ONLY here: Excerpt needs icu.dll (SwiftCharacter.IsWhitespace).
+    [Trait("Req", "PR-CHAT-078")]
     [InlineData("one line", "one line")]
     [InlineData("  leading and trailing  \nsecond", "leading and trailing")] // the first non-empty line, trimmed
     [InlineData("\n\nfirst real line", "first real line")] // blank lines before the first real one are skipped
@@ -355,7 +444,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.Equal(expected, new ReplyQuote { Text = text }.Excerpt);
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // WINDOWS-ONLY here: same icu.dll dependency.
+    [Trait("Req", "PR-CHAT-078")]
     public void The_excerpt_cuts_at_72_characters_with_a_trailing_ellipsis()
     {
         var exact72 = new string('a', 72);
@@ -365,7 +454,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // WINDOWS-ONLY here: QuoteChip calls quote.Excerpt, which needs icu.dll.
+    [Trait("Req", "PR-CHAT-078")]
     public void The_quote_chip_shows_the_excerpt_glyph_tooltip_and_automation_name() => headless.OnUiThread(() =>
     {
         var rowType = typeof(UserMessageRow);
@@ -408,6 +497,62 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.Equal("Quote: " + quote.Excerpt, Avalonia.Automation.AutomationProperties.GetName(capsule));
         }
         finally { Close(window); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-078")]
+    public void A_quote_chip_keeps_its_ideal_size_even_when_offered_less_room_than_its_text_needs() => headless.OnUiThread(() =>
+    {
+        var chip = (Control)typeof(UserMessageRow).GetMethod("QuoteChip", HiddenStatic)!.Invoke(null, [new ReplyQuote { Text = "quoted words that need well over forty points" }])!;
+        var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(chip).Child);
+        chip.Measure(new Size(40, 200)); // :109 .fixedSize(): the chip is measured at its ideal width, not squeezed into the offer
+        Assert.True(stack.Children[1].DesiredSize.Width > 100, "the excerpt kept its ideal width: " + stack.Children[1].DesiredSize.Width);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-078")]
+    public void A_message_led_by_quotes_shows_them_as_chips_above_a_bubble_that_keeps_only_the_typed_words() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var row = new UserMessageRow(UserEntry("> first quote\n\n> second quote\n\nthe typed words", Guid.NewGuid()), h.Runtime, canRevert: false);
+            var window = Show(row);
+            try
+            {
+                var bubble = Assert.Single(row.GetVisualDescendants().OfType<InlineText>());
+                Assert.Equal("the typed words", bubble.Source);
+                var chips = row.GetVisualDescendants().OfType<Border>().Where(border => (Avalonia.Automation.AutomationProperties.GetName(border) ?? "").StartsWith("Quote: ", StringComparison.Ordinal)).ToList();
+                Assert.Equal(["Quote: first quote", "Quote: second quote"], chips.Select(chip => Avalonia.Automation.AutomationProperties.GetName(chip)));
+                Assert.Equal(["first quote", "second quote"], chips.Select(chip => ToolTip.GetTip(chip)));
+                var strip = Assert.IsType<StackPanel>(chips[0].GetVisualParent());
+                Assert.Equal(4, strip.Spacing); // :96 the quote strip's spacing
+                Assert.Equal(HorizontalAlignment.Right, strip.HorizontalAlignment);
+                Assert.Equal(new Thickness(0, 0, UserBubble.Tail, 0), strip.Margin); // :116 .padding(.trailing, UserBubble.tail)
+                var column = Assert.IsType<StackPanel>(strip.GetVisualParent());
+                Assert.True(column.Children.IndexOf(strip) < column.Children.IndexOf(column.Children.First(child => child.GetVisualDescendants().Append(child).Contains(bubble)))); // above the bubble
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-078")]
+    public void Quote_lines_that_are_not_at_the_start_show_no_chips_and_stay_in_the_bubble() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            const string message = "look at this\n> not a leading quote";
+            var row = new UserMessageRow(UserEntry(message, Guid.NewGuid()), h.Runtime, canRevert: false);
+            var window = Show(row);
+            try
+            {
+                Assert.DoesNotContain("text.quote", Symbols(row));
+                Assert.Equal(message, Assert.Single(row.GetVisualDescendants().OfType<InlineText>()).Source);
+            }
+            finally { Close(window); }
+        });
     });
 
     // ---- PR-CHAT-020: TimelineMetrics - eight named constants, never a hard-coded literal at a call site (:8-28).
@@ -456,13 +601,10 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Close(window);
     });
 
-    // WINDOWS-ONLY here: TurnFinishedBlock's constructor always calls Header(), which reads TurnEndRow.Label ->
-    // TimelineRows.Duration -> SwiftFormatters.CurrentLocale.Current, needing icu.dll (absent on this Linux
-    // container, DllNotFoundException confirmed by a direct run; the same limitation already noted for PR-CHAT-116
-    // and the pre-existing TimelineRowsPrDerivationTests). The title-singular clause above is unaffected and fully
-    // proven; this "shown only with files" clause needs the full block and stays Rule=R-TEST-4.
+    // TurnFinishedBlock's constructor always builds Header(), which reads TurnEndRow.Label -> TimelineRows.Duration -> icu.dll:
+    // on this container these ran under the local, uncommitted /tmp/icushim; on Windows they are ordinary tests.
     [Fact]
-    [Trait("Rule", "R-TEST-4")]
+    [Trait("Req", "PR-GIT-151")]
     public void The_file_card_is_shown_only_when_the_turns_summary_has_files() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -475,20 +617,158 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         TurnFinishedBlock BlockFor(TurnSummary summary) => new(h.Runtime, turn, summary, ValueList<TimelineEntry>.Empty,
             new ValueList<TimelineEntry>([Reply("an answer so the turn shows a body")]), null, false, false);
 
-        var shown = BlockFor(withFile);
-        var shownWindow = Show(shown);
-        Assert.NotEmpty(shown.GetVisualDescendants().OfType<TurnFileCard>());
-        Close(shownWindow);
+        foreach (var (summary, cards) in new[] { (withFile, 1), (noFiles, 0), (noChanges, 0) })
+        {
+            var block = BlockFor(summary);
+            var window = Show(block);
+            try { Assert.Equal(cards, block.GetVisualDescendants().OfType<TurnFileCard>().Count()); }
+            finally { Close(window); }
+        }
+    });
 
-        var emptyFiles = BlockFor(noFiles);
-        var emptyWindow = Show(emptyFiles);
-        Assert.Empty(emptyFiles.GetVisualDescendants().OfType<TurnFileCard>());
-        Close(emptyWindow);
+    // :2707-2714 the one-off parse for a turn recorded before per-file summaries existed. The runtime's diff cache is seeded
+    // through its private CacheDiff, so ParsedDiff returns known files without a repository; a case that must NOT parse is
+    // told apart from one that does by whether the seeded files show up as a card.
 
-        var none = BlockFor(noChanges);
-        var noneWindow = Show(none);
-        Assert.Empty(none.GetVisualDescendants().OfType<TurnFileCard>());
-        Close(noneWindow);
+    private static ValueList<DiffFile> Files151(params string[] paths) =>
+        new(paths.Select(path => new DiffFile(path, DiffFile.Change.Modified, false, ValueList<DiffHunk>.Empty, reportedAdditions: 3, reportedDeletions: 1)));
+
+    private static (Guid Turn, TurnSummary Summary) FinishedTurn151(ThreadRuntimePart12Harness h)
+    {
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            h.Runtime.RehearseTurn("prompt");
+            h.Runtime.Rehearse(new ProviderEvent.TurnCompleted(TurnStatus.Failed, null));
+        });
+        h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return h.Runtime.Phase == RuntimePhase.Idle; }, AppModelHarness.Bound);
+        return h.Main.OnMain(() =>
+        {
+            var end = h.Runtime.Entries.Single(entry => entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd);
+            var summary = Assert.IsType<TimelineItem.Content.TurnEnd>(end.Item.TimelineItemContent).Value with { Changes = null };
+            // a turn recorded before per-file summaries existed: its stored record carries no changes
+            end.Item = end.Item with { TimelineItemContent = new TimelineItem.Content.TurnEnd(summary) };
+            return (summary.TurnID, summary);
+        });
+    }
+
+    private static FileChangeSummary? StoredChanges151(ThreadRuntimePart12Harness h) =>
+        h.Main.OnMain(() => Assert.IsType<TimelineItem.Content.TurnEnd>(h.Runtime.Entries.Single(entry => entry.TimelineEntryKind == TimelineEntry.Kind.TurnEnd).Item.TimelineItemContent).Value.Changes);
+
+    [Theory]
+    [Trait("Req", "PR-GIT-151")]
+    [InlineData(2, false, true)]   // the turn reports two changed files, no per-file summary: parse
+    [InlineData(0, true, true)]    // no file count but the turn has tool edits: parse
+    [InlineData(0, false, false)]  // nothing changed, no edits: never parse
+    public void An_old_turn_without_a_change_summary_is_parsed_once_and_the_result_is_stored_back_on_the_runtime(int filesChanged, bool hasEdits, bool parses) => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var (turn, summary) = FinishedTurn151(h);
+        var parsed = Files151("src/a.swift", "src/b.swift");
+        h.Main.OnMain(() => Invoke(h.Runtime, "CacheDiff", Task.FromResult(parsed), (Guid?)turn));
+        TurnFinishedBlock? block = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var content = new List<TimelineEntry> { Reply("an answer") };
+            if (hasEdits) content.Insert(0, Tool(edits: new ValueList<FileEdit>([new FileEdit("src/a.swift", "@@ -1 +1 @@\n-a\n+b\n", 1, 1)])));
+            block = Block104(h.Runtime, turn, content, summary: summary with { FilesChanged = filesChanged, Changes = null });
+            window = Show(block);
+        });
+        try
+        {
+            if (parses)
+            {
+                h.Main.Loop.RunUntil(() => { Avalonia.Threading.Dispatcher.UIThread.RunJobs(); return block!.GetVisualDescendants().OfType<TurnFileCard>().Any(); }, AppModelHarness.Bound);
+                h.Main.OnMain(() =>
+                {
+                    Assert.Contains("Edited 2 files", Texts(Assert.Single(block!.GetVisualDescendants().OfType<TurnFileCard>())));
+                });
+                Assert.Equal(FileChangeSummaryDiff.Create(parsed), StoredChanges151(h)); // written back so the work is not repeated
+            }
+            else
+            {
+                h.Main.Loop.RunUntilIdle();
+                h.Main.OnMain(() => Settle(window!));
+                h.Main.OnMain(() => Assert.Empty(block!.GetVisualDescendants().OfType<TurnFileCard>()));
+                Assert.Null(StoredChanges151(h));
+            }
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-GIT-151")]
+    public void A_turn_that_already_has_a_change_summary_is_not_parsed_and_a_parse_that_yields_nothing_leaves_the_card_absent() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var (turn, summary) = FinishedTurn151(h);
+        h.Main.OnMain(() => Invoke(h.Runtime, "CacheDiff", Task.FromResult(Files151("src/x.swift", "src/y.swift", "src/z.swift")), (Guid?)turn));
+        TurnFinishedBlock? own = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            var ownChanges = new FileChangeSummary(new ValueList<FileChangeSummary.File>([new FileChangeSummary.File("only.txt", 1, 0, false)]), 1, 0);
+            own = Block104(h.Runtime, turn, [Reply("an answer")], summary: summary with { FilesChanged = 5, Changes = ownChanges });
+            window = Show(own);
+        });
+        try
+        {
+            h.Main.Loop.RunUntilIdle();
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                Assert.Contains("Edited 1 file", Texts(Assert.Single(own!.GetVisualDescendants().OfType<TurnFileCard>()))); // its own record, not the seeded three
+            });
+            Assert.Null(StoredChanges151(h)); // nothing was parsed, so nothing was stored
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+
+        // a parse that finds no files leaves the card absent
+        var (turn2, summary2) = (turn, summary);
+        using var h2 = Harness();
+        using var frames2 = FrameClock.Source.Override(new ManualFrameSource());
+        var (emptyTurn, emptySummary) = FinishedTurn151(h2);
+        h2.Main.OnMain(() => Invoke(h2.Runtime, "CacheDiff", Task.FromResult(Files151()), (Guid?)emptyTurn));
+        TurnFinishedBlock? empty = null;
+        AvaloniaWindow? emptyWindow = null;
+        h2.Main.OnMain(() =>
+        {
+            empty = Block104(h2.Runtime, emptyTurn, [Reply("an answer")], summary: emptySummary with { FilesChanged = 2, Changes = null });
+            emptyWindow = Show(empty);
+        });
+        try
+        {
+            h2.Main.Loop.RunUntilIdle();
+            h2.Main.OnMain(() => { Settle(emptyWindow!); Assert.Empty(empty!.GetVisualDescendants().OfType<TurnFileCard>()); });
+        }
+        finally { h2.Main.OnMain(() => Close(emptyWindow!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-GIT-151")]
+    public void The_parse_is_keyed_on_the_turn_and_a_cancelled_parse_writes_nothing() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var (turn, summary) = FinishedTurn151(h);
+        var gate = new TaskCompletionSource<ValueList<DiffFile>>();
+        h.Main.OnMain(() => Invoke(h.Runtime, "CacheDiff", gate.Task, (Guid?)turn));
+        TurnFinishedBlock? block = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            block = Block104(h.Runtime, turn, [Reply("an answer")], summary: summary with { FilesChanged = 2, Changes = null });
+            window = Show(block);
+        });
+        h.Main.Loop.RunUntilIdle();
+        h.Main.OnMain(() => Close(window!)); // the row goes away while its parse is still running
+        gate.SetResult(Files151("src/a.swift", "src/b.swift"));
+        h.Main.Loop.RunUntilIdle();
+        h.Main.OnMain(() => Avalonia.Threading.Dispatcher.UIThread.RunJobs());
+        Assert.Null(StoredChanges151(h));
     });
 
     // ---- PR-CHAT-098: a tool row's chevron points down for a popover/head and right (rotating ninety degrees when
@@ -1077,31 +1357,93 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
 
     // ---- PR-CHAT-088: an assistant reply renders its markdown and shows the turn duration on its hover line (:1353-1390) ----
 
-    // WINDOWS-ONLY here: AssistantMessageRow.Body builds `new TextBlock { Text = TurnEndRow.Label(summary) }`
-    // eagerly at construction (TimelineRows.cs:1576), and TurnEndRow.Label calls TimelineRows.Duration, which needs
-    // icu.dll for the current locale (same root cause as PR-CHAT-116/PR-GIT-151's downgrades) -- so a row with a
-    // non-null summary throws on construction, before any assertion runs. Confirmed reproducible alone below.
+    // The label is built eagerly at construction (TimelineRows.cs, `new TextBlock { Text = TurnEndRow.Label(summary) }`), and
+    // TurnEndRow.Label calls TimelineRows.Duration -> icu.dll: on this container these tests ran under the local, uncommitted
+    // /tmp/icushim (see the commit message); on Windows they are ordinary tests.
+
+    private static Control ReplyHoverLine(Control row) =>
+        row.GetVisualDescendants().OfType<Control>().Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
+
     [Fact]
-    [Trait("Rule", "R-TEST-4")]
-    public void A_reply_with_a_summary_renders_its_markdown_and_a_hidden_hover_line_carrying_the_turn_label() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-CHAT-088")]
+    public void A_reply_renders_its_markdown_and_keeps_a_hidden_22_point_line_with_the_turn_label_in_caption_secondary_text() => headless.OnUiThread(() =>
     {
         using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
         h.Main.OnMain(() =>
         {
-            var turn = Guid.NewGuid();
-            var row = new AssistantMessageRow(Reply("some `code` here"), Summary(turn), h.Runtime);
+            var row = new AssistantMessageRow(Reply("some `code` here"), Summary(Guid.NewGuid()), h.Runtime);
             var window = Show(row);
-            var markdown = Assert.Single(row.GetVisualDescendants().OfType<MarkdownView>());
-            Assert.False(markdown.IsStreaming);
-            var line = row.GetVisualDescendants().OfType<Control>().Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
-            Assert.Equal(0, line.Opacity);
-            var label = line.GetVisualDescendants().OfType<TextBlock>().Single();
-            Assert.StartsWith("Worked for ", label.Text, StringComparison.Ordinal);
-            Assert.Equal(Resolved(ChromeTokens.SecondaryText, label), BrushColor(label.Foreground));
-            var outer = row.GetVisualDescendants().OfType<Control>().First(control => control.Margin.Bottom == -(TimelineMetrics.HoverLineHeight + 2));
-            Assert.NotNull(outer);
-            Close(window);
+            try
+            {
+                var markdown = Assert.Single(row.GetVisualDescendants().OfType<MarkdownView>());
+                Assert.Equal("some `code` here", markdown.Text);
+                Assert.False(markdown.IsStreaming);
+                var line = ReplyHoverLine(row);
+                Assert.Equal(0, line.Opacity);
+                var label = Assert.Single(line.GetVisualDescendants().OfType<TextBlock>());
+                Assert.Equal("Worked for 5s", label.Text);
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption).Resolve().FontSize, label.FontSize);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, label), BrushColor(label.Foreground));
+                var column = Assert.IsType<StackPanel>(line.GetVisualParent());
+                Assert.Equal(2, column.Spacing); // :1363 the leading stack's spacing
+                Assert.Equal(new Thickness(0, 0, 0, -(TimelineMetrics.HoverLineHeight + 2)), column.Margin); // :1384-1388 the room is inside the row but not its height
+            }
+            finally { Close(window); }
         });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-088")]
+    public void A_reply_without_a_summary_has_no_label_on_its_hover_line() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var row = new AssistantMessageRow(Reply("no summary"), null, h.Runtime);
+            var window = Show(row);
+            try { Assert.Empty(ReplyHoverLine(row).GetVisualDescendants().OfType<TextBlock>()); }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-088")]
+    public void Hovering_a_settled_reply_fades_the_line_in_over_120_milliseconds_and_a_streaming_reply_never_shows_it() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        AssistantMessageRow? settled = null;
+        AssistantMessageRow? streaming = null;
+        AvaloniaWindow? window = null;
+        h.Main.OnMain(() =>
+        {
+            settled = new AssistantMessageRow(Reply("settled reply"), Summary(Guid.NewGuid()), h.Runtime);
+            streaming = new AssistantMessageRow(new TimelineEntry(new TimelineItem(null, new TimelineItem.Content.Assistant(new AssistantMessage { Text = "still typing", IsStreaming = true }))), Summary(Guid.NewGuid()), h.Runtime);
+            var panel = new StackPanel { Spacing = 60 };
+            panel.Children.Add(settled);
+            panel.Children.Add(streaming);
+            window = Show(panel);
+            Hover(window, settled.GetVisualDescendants().OfType<MarkdownView>().Single());
+        });
+        try
+        {
+            // easeOut over 0.12 s on the frame clock: part way at 60 ms, fully in by 120 ms.
+            frames.Advance(TimeSpan.Zero);
+            h.Main.AdvanceMilliseconds(60);
+            frames.Advance(TimeSpan.FromMilliseconds(60));
+            Assert.InRange(ReplyHoverLine(settled!).Opacity, 0.01, 0.99);
+            h.Main.AdvanceMilliseconds(60);
+            frames.Advance(TimeSpan.FromMilliseconds(60));
+            Assert.Equal(1, ReplyHoverLine(settled!).Opacity);
+            h.Main.OnMain(() => Hover(window!, streaming!.GetVisualDescendants().OfType<MarkdownView>().Single()));
+            h.Main.AdvanceMilliseconds(200);
+            frames.Advance(TimeSpan.FromMilliseconds(200));
+            Assert.Equal(0, ReplyHoverLine(streaming!).Opacity);
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
     });
 
     // ---- PR-CHAT-100: a failed tool row shows its exit code and a declined one shows Declined (:1832-1841) ----
@@ -1208,33 +1550,243 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         });
     });
 
-    // ---- PR-CHAT-104: a finished turn collapses to a header, its final answer and its file summary (:2589-2715) ----
+    // ---- PR-CHAT-104: a finished turn collapses to a header, its final answer and its file summary (:2589-2715).
+    // TurnSummary is a required parameter of TurnFinishedBlock and Header() builds the label through TimelineRows.Duration ->
+    // icu.dll, so on this container these tests ran under the local, uncommitted /tmp/icushim (see the commit message); on
+    // Windows they are ordinary tests. ----
 
-    // WINDOWS-ONLY here: TurnSummary is a required, non-nullable constructor parameter of TurnFinishedBlock
-    // (TimelineRows.cs:3079), and Header() always builds `new TextBlock { Text = TurnEndRow.Label(summary) }`, which
-    // calls TimelineRows.Duration -> icu.dll. There is no way to construct a TurnFinishedBlock at all without
-    // hitting this crash, so every clause of this record is unconditionally blocked here (not just the label text) --
-    // same root cause as PR-CHAT-088/PR-CHAT-116/PR-GIT-151's downgrades. Confirmed reproducible alone below.
+    private const string CodeOnlyReply101 = "```\nplan\n```";
+
+    private static TurnFinishedBlock Block104(ThreadRuntime runtime, Guid turn, IEnumerable<TimelineEntry> content, bool chronological = false, bool canUndo = false,
+        IEnumerable<TimelineEntry>? users = null, TurnSummary? summary = null) =>
+        new(runtime, turn, summary ?? Summary(turn), new ValueList<TimelineEntry>(users ?? []), new ValueList<TimelineEntry>(content), null, canUndo, chronological);
+
+    private static Border Rule104(Control block) =>
+        block.GetVisualDescendants().OfType<Border>().Where(border => border.Height == 1 && border.Opacity == 0.6).SingleOrDefault()!;
+
     [Fact]
-    [Trait("Rule", "R-TEST-4")]
+    [Trait("Req", "PR-CHAT-104")]
     public void A_finished_turn_opens_folded_to_its_prompt_a_summary_line_a_rule_and_its_answer() => headless.OnUiThread(() =>
     {
         using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
         h.Main.OnMain(() =>
         {
             var turn = Guid.NewGuid();
-            var content = new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Command, "make"), turn), Reply(CodeOnlyReply101)]);
-            var block = new TurnFinishedBlock(h.Runtime, turn, Summary(turn),
-                new ValueList<TimelineEntry>([UserEntry("do it", turn)]), content, null, canUndo: false, chronological: false);
+            var content = new[] { Reply("narration before the tool"), ToolEntry(Call(ToolCall.Kind.Command, "make"), turn), Reply(CodeOnlyReply101) };
+            var block = Block104(h.Runtime, turn, content, users: [UserEntry("do it", turn)]);
             var window = Show(block);
-            var header = Assert.Single(block.GetVisualDescendants().OfType<Button>(), button => ToolTip.GetTip(button) as string == "Show this turn's steps");
-            var label = header.GetVisualDescendants().OfType<TextBlock>().Single();
-            Assert.StartsWith("Worked for ", label.Text, StringComparison.Ordinal);
-            Close(window);
+            try
+            {
+                var stack = Assert.IsType<StackPanel>(block.Child);
+                Assert.IsType<UserMessageRow>(stack.Children[0]);
+                Assert.Equal(TimelineMetrics.RowSpacing, stack.Children[0].Margin.Bottom); // :2599-2602 the user rows first, a row gap below each
+                var header = Assert.IsType<Button>(stack.Children[1]);
+                Assert.Equal("Show this turn's steps", ToolTip.GetTip(header));
+                Assert.Equal("Show this turn's steps", Avalonia.Automation.AutomationProperties.GetName(header));
+                var label = header.GetVisualDescendants().OfType<TextBlock>().Single();
+                Assert.Equal("Worked for 5s", label.Text);
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout).Resolve().FontSize, label.FontSize);
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, label), BrushColor(label.Foreground));
+                var chevron = header.GetVisualDescendants().OfType<SwiftImage>().Single();
+                Assert.Equal("chevron.right", chevron.SymbolName);
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold), chevron.GetValue(SwiftImage.FontProperty));
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, chevron), BrushColor(chevron.Foreground));
+                Assert.Equal(0, ((RotateTransform?)chevron.RenderTransform)?.Angle ?? 0);
+                // :2624-2629 a hairline at 0.6 opacity with half a row gap on each side, after the header.
+                var rule = Rule104(block);
+                Assert.NotNull(rule);
+                Assert.Equal(new Thickness(0, TimelineMetrics.RowSpacing / 2), rule.Margin);
+                Assert.True(stack.Children.IndexOf(stack.Children.First(child => child.GetVisualDescendants().Append(child).Contains(rule))) > 1);
+                // only the replies after the last tool call are the answer; the narration before it stays folded away
+                var answer = Assert.Single(block.GetVisualDescendants().OfType<FoldedAnswerView>());
+                Assert.Equal(CodeOnlyReply101, Assert.Single(answer.GetVisualDescendants().OfType<MarkdownView>()).Text);
+                Assert.Empty(block.GetVisualDescendants().OfType<ToolRow>());
+                var column = Assert.IsType<StackPanel>(answer.GetVisualParent());
+                Assert.Equal(TimelineMetrics.RowSpacing, column.Spacing); // :2665
+                Assert.Equal(TimelineMetrics.RowSpacing, column.Margin.Bottom); // :2679
+            }
+            finally { Close(window); }
         });
     });
 
-    private const string CodeOnlyReply101 = "```\nplan\n```";
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")]
+    public void A_finished_turn_with_nothing_to_show_has_no_rule_and_no_answer() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var block = Block104(h.Runtime, turn, [ToolEntry(Call(ToolCall.Kind.Command, "make"), turn)]);
+            var window = Show(block);
+            try
+            {
+                Assert.Single(block.GetVisualDescendants().OfType<Button>());
+                Assert.Null(Rule104(block));
+                Assert.Empty(block.GetVisualDescendants().OfType<FoldedAnswerView>());
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")]
+    public void The_chevron_opens_the_full_steps_in_a_filled_card_asks_the_timeline_to_reveal_the_end_and_a_second_tap_folds_again() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        TurnFinishedBlock? block = null;
+        AvaloniaWindow? window = null;
+        var reveals = new List<Animation?>();
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var content = new[] { ToolEntry(Call(ToolCall.Kind.Command, "make"), turn), Reply(CodeOnlyReply101) };
+            block = Block104(h.Runtime, turn, content);
+            var host = new Border { Child = block };
+            ThreadTimeline.SetRevealTimelineEnd(host, new TimelineRevealBox { Action = () => reveals.Add(Transaction.Current) });
+            window = Show(host);
+        });
+        Button Header() => block!.GetVisualDescendants().OfType<Button>().First();
+        void Tick() { for (var i = 0; i < 30; i++) { h.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        try
+        {
+            h.Main.OnMain(() => Click(window!, Header()));
+            Tick();
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal("Hide this turn's steps", ToolTip.GetTip(Header()));
+                Assert.Equal("Hide this turn's steps", Avalonia.Automation.AutomationProperties.GetName(Header()));
+                Assert.Equal(90, ((RotateTransform?)block!.GetVisualDescendants().OfType<SwiftImage>().First(image => image.SymbolName == "chevron.right").RenderTransform)?.Angle ?? 0);
+                Assert.Equal(Animation.Snappy(duration: 0.24), Assert.Single(reveals)); // opening asks the timeline to reveal the end, inside the animation
+                var card = Assert.Single(block!.GetVisualDescendants().OfType<Border>(), border => border.Padding == new Thickness(14));
+                Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), card.CornerRadius);
+                Assert.Equal(Resolved(SwiftColor.Quaternary.Opacity(0.32), card), BrushColor(card.Background));
+                Assert.Equal(TimelineMetrics.RowSpacing, card.Margin.Bottom); // :2663 a response follows
+                Assert.NotEmpty(card.GetVisualDescendants().OfType<ToolRow>()); // the full steps
+                Assert.Empty(block!.GetVisualDescendants().OfType<FoldedAnswerView>()); // the folded answer gives way to the steps
+            });
+            h.Main.OnMain(() => Click(window!, Header()));
+            Tick();
+            h.Main.OnMain(() =>
+            {
+                Assert.Equal("Show this turn's steps", ToolTip.GetTip(Header()));
+                Assert.Equal(0, ((RotateTransform?)block!.GetVisualDescendants().OfType<SwiftImage>().First(image => image.SymbolName == "chevron.right").RenderTransform)?.Angle ?? 0);
+                Assert.Single(reveals); // closing does not ask again
+                Assert.Empty(block!.GetVisualDescendants().OfType<ToolRow>());
+                Assert.Single(block!.GetVisualDescendants().OfType<FoldedAnswerView>());
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")]
+    public void Both_body_branches_stay_opaque_and_leave_immediately_under_the_fold_animation() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var clock = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var block = Block104(h.Runtime, turn, [Reply(CodeOnlyReply101)]);
+            var derived = Invoke(block, "DerivedFor", false);
+            var answer = Assert.IsAssignableFrom<Control>(Invoke(block, "Answer", derived));
+            var steps = Assert.IsAssignableFrom<Control>(Invoke(block, "Steps", derived, false));
+            foreach (var branch in new[] { answer, steps })
+            {
+                var host = new Panel();
+                var window = Show(host);
+                try
+                {
+                    // a fade over a block that can run to thousands of points is a whole-layer composite the renderer may draw as nothing
+                    Transaction.WithAnimation(Animation.Snappy(duration: 0.24), () => SwiftTransition.Insert(host, 0, branch));
+                    Assert.Equal(1, branch.Opacity);
+                    Transaction.WithAnimation(Animation.Snappy(duration: 0.24), () => SwiftTransition.Remove(host, branch));
+                    Assert.Empty(host.Children);
+                }
+                finally { Close(window); }
+            }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")]
+    public void The_fold_starts_from_the_chronological_flag() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var block = Block104(h.Runtime, turn, [ToolEntry(Call(ToolCall.Kind.Command, "make"), turn), Reply(CodeOnlyReply101)], chronological: true);
+            var window = Show(block);
+            try
+            {
+                Assert.Equal("Hide this turn's steps", ToolTip.GetTip(block.GetVisualDescendants().OfType<Button>().First()));
+                Assert.NotEmpty(block.GetVisualDescendants().OfType<ToolRow>());
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")]
+    public void The_folded_turn_shows_its_plans_and_its_warning_and_error_notices_but_not_info_notices_after_the_answer() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var content = new[]
+            {
+                ToolEntry(Call(ToolCall.Kind.Command, "make"), turn), Reply("the answer"), PlanEntry(ProposedPlan.State.Proposed),
+                NoticeEntry(Notice.Level.Warning, "careful"), NoticeEntry(Notice.Level.Error, "it broke"), NoticeEntry(Notice.Level.Info, "just so you know"),
+            };
+            var block = Block104(h.Runtime, turn, content);
+            var window = Show(block);
+            try
+            {
+                var answer = Assert.Single(block.GetVisualDescendants().OfType<FoldedAnswerView>());
+                var column = Assert.IsType<StackPanel>(answer.GetVisualParent());
+                Assert.Equal([typeof(FoldedAnswerView), typeof(PlanCard), typeof(NoticeRow), typeof(NoticeRow)], column.Children.Select(child => child.GetType())); // answer, then plans, then notices
+                Assert.Equal(["careful", "it broke"], column.Children.OfType<NoticeRow>().Select(row => Assert.Single(row.GetVisualDescendants().OfType<SelectableTextBlock>()).Text));
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-104")]
+    public void The_heads_the_turn_sent_out_and_its_file_card_sit_under_the_answer_even_when_folded() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var turn = Guid.NewGuid();
+            var summary = Summary(turn) with { Changes = new FileChangeSummary(new ValueList<FileChangeSummary.File>([new FileChangeSummary.File("src/a.swift", 3, 1, false), new FileChangeSummary.File("src/b.swift", 1, 0, false)]), 4, 1) };
+            var agent = ToolEntry(Call(ToolCall.Kind.Agent, "Pip: task"), turn);
+            var block = Block104(h.Runtime, turn, [agent, Reply("the answer")], summary: summary);
+            var window = Show(block);
+            try
+            {
+                var stack = Assert.IsType<StackPanel>(block.Child);
+                var heads = Assert.Single(block.GetVisualDescendants().OfType<HydraHeadsList>());
+                var card = Assert.Single(block.GetVisualDescendants().OfType<TurnFileCard>());
+                var answer = Assert.Single(block.GetVisualDescendants().OfType<FoldedAnswerView>());
+                int At(Control control) => stack.Children.IndexOf(stack.Children.First(child => child == control || child.GetVisualDescendants().Contains(control)));
+                Assert.True(At(answer) < At(heads) && At(heads) < At(card), "answer, then heads, then the file card");
+                Assert.Equal(TimelineMetrics.RowSpacing, heads.Margin.Bottom); // :2685 a row gap between the heads and the file card
+                Assert.Contains("Edited 2 files", Texts(card));
+            }
+            finally { Close(window); }
+        });
+    });
 
     // ---- PR-CHAT-115: a notice renders as plain text at info level and as a tinted pill at warning/error (:2388-2430) ----
 
