@@ -177,7 +177,8 @@ public sealed class MCPKeyPanelView : Decorator
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(10) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(8) });
+        // :67,77 HStack(alignment: .top, spacing: 10): the texts are followed by 10, Spacer(minLength: 8) and another 10 before the close button.
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(28) });
         row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
 
         var icon = new MCPIcon(entry, 26)
@@ -194,7 +195,7 @@ public sealed class MCPKeyPanelView : Decorator
             Spacing = 1,
             VerticalAlignment = VerticalAlignment.Top,
         };
-        var name = new TextBlock { Text = entry.Name };
+        var name = new TextBlock { Text = entry.Name, TextWrapping = TextWrapping.Wrap }; // no line limit: a long name wraps
         SwiftFont.System(14, SwiftFont.Weight.Semibold).Apply(name);
         name.Foreground = Chrome.PrimaryText.Brush(name);
         title.Children.Add(name);
@@ -383,6 +384,7 @@ public sealed class MCPKeyPanelView : Decorator
                 Background = Brushes.Transparent,
                 BorderBrush = Brushes.Transparent,
                 VerticalAlignment = VerticalAlignment.Center,
+                Margin = new Thickness(6, 0, 0, 0), // :126 HStack(spacing: 6)
             };
             pickButton.Click += async (_, _) => await PickPath(field);
             Grid.SetColumn(pickButton, 1);
