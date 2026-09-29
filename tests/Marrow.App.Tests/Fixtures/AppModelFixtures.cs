@@ -97,6 +97,16 @@ public sealed class AppModelHarness : IDisposable
             scopes.Add(UserDefaults.Standard.Override(Defaults));
         }
         scopes.Add(Storage.Locations.Override(StorageLocations.Create(Root, Home)));
+        // R-TEST-9: FileOps.WriteAtomic deliberately refuses to create a missing parent folder (ED-121), and this
+        // harness never created Root itself, only Scratch/Home; a WriteLibrary call before any AppModel load (every
+        // caller that seeds a thread/project before Bootstrap) silently failed to write library.json (Storage.Write
+        // swallows the IOException and only logs it, Storage.cs:415-443), so AppModel loaded with zero threads
+        // downstream. Storage.LibraryURL's own directory, not the raw Root field, is what Storage will actually write
+        // to: Marrow.Testing.TestDataDirectory.Normalize's '/' -> '\\' replacement and Marrow.Core.Port.SwiftPath's
+        // own separator handling can produce two different literal paths for the same logical location on a non-
+        // Windows test host, so creating the directory through the exact path Storage targets keeps this correct
+        // regardless of that (out-of-unit, unfixed here) mismatch.
+        Directory.CreateDirectory(Path.GetDirectoryName(Storage.LibraryURL)!);
         Credentials = new AppModelCredentialBackend();
         scopes.Add(SecretStore.Shared.Override(new SecretStore(Credentials)));
         scopes.Add(Workspace.Open.Override(_ => true));

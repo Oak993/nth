@@ -4258,7 +4258,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 Assert.Equal((6.0, (1.0, 1.0)), LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(row!).Single().AnimatableData);
                 var title = LogicalQuery.SelfAndDescendants<Button>(row!).Single();
                 Assert.False(title.IsEnabled);
-                Assert.Null(ToolTip.GetTip(title));
+                Assert.Equal("", ToolTip.GetTip(title)); // Swift :1103 .help(outcome.details.isEmpty ? "" : "Show the message")
                 Assert.DoesNotContain("chevron.right", Symbols(row!));
                 Close(window!);
             });
