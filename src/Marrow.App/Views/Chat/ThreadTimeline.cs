@@ -51,6 +51,7 @@ public sealed class ThreadTimeline : Decorator
     private TimelineScrollState? state;
     private ThreadRuntime? ownerRuntime;
     private Action? redraw;
+    private Action<string?, string?, bool, double, bool>? updateInputs;
     private Action<TimeSpan>? scrollFrame;
     private IFrameSource? scrollFrames;
     private TaskHandle? initialHistoryTask; // :594-607
@@ -65,7 +66,7 @@ public sealed class ThreadTimeline : Decorator
     private long? seenAutoStartedTurnToken; // :83-85
     private bool? seenRunning;
     private string? seenLastEntryID;
-    private readonly (ThreadRuntime Runtime, ChromeScrollModel Chrome, TimelineScrollState State, string? Project, string? Directory, bool Rewind, double Height, bool Minimap) inputs; // :26-35
+    private (ThreadRuntime Runtime, ChromeScrollModel Chrome, TimelineScrollState State, string? Project, string? Directory, bool Rewind, double Height, bool Minimap) inputs; // :26-35
     // :58 private static let resizeStep: CGFloat = 12
     private const double ResizeStep = 12;
 
@@ -190,6 +191,14 @@ public sealed class ThreadTimeline : Decorator
         this.Track(() => (runtime.IsLoadingHistory, runtime.Entries, runtime.IsRunning, runtime.IsHydraMerging, runtime.HydraMergeNoteID, AppEnvironment.GetAppModel(this).Settings.ShowReasoning), _ => Draw());
         this.Track(() => runtime.Questions, _ => Draw());
         redraw = Draw;
+        // ChatView.swift:97-123: the view keeps its identity (.id(runtime.threadID)) while the supplied layout values change,
+        // so a changed column height or minimap flag updates this timeline in place instead of replacing it.
+        updateInputs = (nextProject, nextDirectory, nextRewind, nextHeight, nextMinimap) =>
+        {
+            projectName = nextProject; workingDirectory = nextDirectory; supportsRewind = nextRewind; columnHeight = nextHeight; showsMinimap = nextMinimap;
+            inputs = (runtime, scrollChrome, scrollState, nextProject, nextDirectory, nextRewind, nextHeight, nextMinimap);
+            Draw();
+        };
         DetachedFromVisualTree += (_, _) => { initialHistoryTask?.Cancel(); initialHistoryTask = null; initialHistoryStarted = false; tracking.EndActivity(); if (scrollFrame is not null) scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; };
         this.Track(() => scrollState.JumpRequest, _ => { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; EndWithAnimation(scrollState.JumpRequest == 0 ? null : Animation.Smooth(0.35)); });
         this.Track(() => runtime.IsRunning, running => { if (seenRunning is { } previous && previous != running) NoteTurnChange(running, runtime.AutoStartedTurnToken); seenRunning = running; });
@@ -331,6 +340,9 @@ public sealed class ThreadTimeline : Decorator
         else if ((tracking.IsPinnedToBottom || old.DistanceFromBottom < 48) && atRest && Math.Abs(next.DistanceFromBottom) > 1 && !liveResizeActive) { tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; MainActor.Post(SnapEnd); }
     }
     // :26-35. ChatView's external mounting boundary must use these eight inputs; this view reads no live title/effort/mode.
+    internal void UpdateInputs(string? projectName, string? workingDirectory, bool supportsRewind, double columnHeight, bool showsMinimap) =>
+        updateInputs?.Invoke(projectName, workingDirectory, supportsRewind, columnHeight, showsMinimap);
+
     private bool SameInputs(ThreadTimeline other) => inputs == other.inputs;
     // :289-297
     private static string[] FinishedMarkdownTexts(IReadOnlyList<TimelineEntry> entries) => entries.Where(entry => entry.Item.TimelineItemContent is TimelineItem.Content.Assistant { Value.IsStreaming: false }).Select(entry => ((TimelineItem.Content.Assistant)entry.Item.TimelineItemContent).Value.Text).ToArray();

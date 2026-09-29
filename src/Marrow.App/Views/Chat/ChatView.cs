@@ -229,11 +229,16 @@ public sealed class ChatView : Decorator
         var minimap = !scene.DockedSides.Contains(PanelDockSide.Leading) &&
             (paneSize == default || paneSize.Width - scene.Reserve.Leading - scene.Reserve.Trailing >= 900); // :108-110
         var inputs = (project?.Name, workingDirectory, thread?.Provider.SupportsRewind ?? false, columnHeight, minimap);
-        if (timeline is null || timelineInputs != inputs)
+        if (timeline is null)
         {
             timelineInputs = inputs;
             timeline = new ThreadTimeline(runtime, scrollChrome, scrollState, inputs.Item1, inputs.Item2, inputs.Item3, inputs.Item4, inputs.Item5);
             timelineHost.Child = timeline; // :116-119 .id(threadID); children receive the unchanged snapshot inputs.
+        }
+        else if (timelineInputs != inputs)
+        {
+            timelineInputs = inputs; // :97-123 the timeline's identity is the thread's: a changed layout input updates it in place.
+            timeline.UpdateInputs(inputs.Item1, inputs.Item2, inputs.Item3, inputs.Item4, inputs.Item5);
         }
         timeline.IsHitTestVisible = !IsMovingAPanel(subagentDrag, hydraDrag, poppedDrag, usageDrag, autoDrags); // :112-115
         timelineSlide = timelineSlide with { Reserve = scene.Reserve, Slides = slides };
