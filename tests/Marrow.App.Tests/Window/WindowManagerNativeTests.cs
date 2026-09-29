@@ -9,9 +9,48 @@ namespace Marrow.App.Tests.Window.Native;
 // ED-063 bridge checks are Windows port-only, not invented Swift parity claims.
 // Factory/lifecycle source: _packet/swift/WindowManager.swift:26-37,86-110; resize:113-140.
 // Each Fact automatically selects itself in a fresh child; the ordinary parent may run Headless.
+// STOP SETTINGS-NATIVE-SURFACE: painted fixture caption zones are not SettingsView's
+// production WindowChrome overlay, sidebar dragging, corner geometry or backdrop pixels.
+// STOP FACTORY-STRETCH: WindowManager.MakeWindow has no ResizeStretch.Attach/Apply binding;
+// real caption/resize-hook messages here do not verify the separate ED-101 composition remedy.
 [Collection("WindowManagerNative")]
 public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
 {
+    [Fact]
+    [Trait("Req", "PR-WIN-007")] // WindowManager.swift:93-101; ED-063 actual caption toggle.
+    public void Actual_maximize_caption_click_then_a_second_click_restores_the_main_window()
+    {
+        native.Run(subject =>
+        {
+            subject.Focus(subject.Main, subject.MainProbe);
+            var original = N.Rect(subject.MainProbe.Handle);
+            using var pointer = new WindowManagerNativePointer(subject);
+            var point = subject.Center(subject.MainContent.MaximizeZone);
+            pointer.Down(subject.MainProbe, point, N.HTMAXBUTTON);
+            N.Until(() => subject.MainProbe.Messages.Any(item => item.Message == N.WM_NCLBUTTONDOWN && item.Returned && item.PendingCaption == N.HTMAXBUTTON),
+                "The actual maximize press did not reach the registered bridge.");
+            pointer.Up(subject.MainProbe, point);
+            N.Until(() => N.IsZoomed(subject.MainProbe.Handle), "The actual maximize caption click did not maximize its HWND.");
+            subject.MainProbe.Fence();
+            Assert.Equal(WindowState.Maximized, native.OnUi(() => subject.Main.WindowState));
+            subject.Focus(subject.Main, subject.MainProbe);
+            point = subject.Center(subject.MainContent.MaximizeZone);
+            var presses = subject.MainProbe.Count(N.WM_NCLBUTTONDOWN, returned: true);
+            pointer.Down(subject.MainProbe, point, N.HTMAXBUTTON);
+            N.Until(() => subject.MainProbe.Count(N.WM_NCLBUTTONDOWN, returned: true) > presses,
+                "The second actual maximize press did not return.");
+            pointer.Up(subject.MainProbe, point);
+            N.Until(() => !N.IsZoomed(subject.MainProbe.Handle), "The second actual maximize caption click did not restore its HWND.");
+            subject.MainProbe.Fence();
+            Assert.Equal(WindowState.Normal, native.OnUi(() => subject.Main.WindowState));
+            var restored = N.Rect(subject.MainProbe.Handle);
+            Assert.Equal(original.Left, restored.Left); Assert.Equal(original.Top, restored.Top);
+            Assert.Equal(original.Width, restored.Width); Assert.Equal(original.Height, restored.Height);
+            Assert.Equal(1, subject.MainProbe.CommandCount(N.SC_MAXIMIZE));
+            Assert.Equal(1, subject.MainProbe.CommandCount(N.SC_RESTORE));
+        });
+    }
+
     [Fact]
     [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:36-37, :57-60; an already visible window still becomes key.
     [Trait("Req", "PR-WIN-011")] // WindowManager.swift:46-54; native final placement is checked too.

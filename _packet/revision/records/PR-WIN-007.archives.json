@@ -2,6 +2,20 @@
   "record": "PR-WIN-007",
   "archives": [
     {
+      "original_directory": "_packet/revision/evidence/final-gap-pr-win-007-2026-09-29T16-00-11-252Z-7fd513",
+      "archive": "_packet/revision/evidence-archives/final-gap-pr-win-007-2026-09-29T16-00-11-252Z-7fd513.zip",
+      "archive_sha256": "67DEB0CE79A3C8F825E873FBDB976BDE39AC211C6079857DF71E7D8CA8B08137",
+      "manifest": "_packet/revision/evidence-archives/final-gap-pr-win-007-2026-09-29T16-00-11-252Z-7fd513.zip.json",
+      "file_count": 42
+    },
+    {
+      "original_directory": "_packet/revision/evidence/lifecycle-pr-win-007-2026-09-29T15-46-59-662Z-60b0a3",
+      "archive": "_packet/revision/evidence-archives/lifecycle-pr-win-007-2026-09-29T15-46-59-662Z-60b0a3.zip",
+      "archive_sha256": "FF2B20853E575AAC650C584BEB4F9F28A6A3A86F87781CEE70C75BE32F09922C",
+      "manifest": "_packet/revision/evidence-archives/lifecycle-pr-win-007-2026-09-29T15-46-59-662Z-60b0a3.zip.json",
+      "file_count": 83
+    },
+    {
       "original_directory": "_packet/revision/evidence/pr-win-007-original-2026-09-29T13-59-10-611Z-ed5eb4",
       "archive": "_packet/revision/evidence-archives/pr-win-007-original-2026-09-29T13-59-10-611Z-ed5eb4.zip",
       "archive_sha256": "E9288A89B44C32FBD289796F49CDD096DD63A8263AC8F7BE1BBBCDC9E68FB8C7",
@@ -16,11 +30,11 @@
       "file_count": 275
     },
     {
-      "original_directory": "_packet/revision/evidence/pr-win-007-record-gate-2026-09-29T14-02-16-119Z-478a64",
-      "archive": "_packet/revision/evidence-archives/pr-win-007-record-gate-2026-09-29T14-02-16-119Z-478a64.zip",
-      "archive_sha256": "E60D17F30FCD41CA1A54F4CFE923EE415612C6437817885537AC7511B260CB3A",
-      "manifest": "_packet/revision/evidence-archives/pr-win-007-record-gate-2026-09-29T14-02-16-119Z-478a64.zip.json",
-      "file_count": 93
+      "original_directory": "_packet/revision/evidence/supplement-gate-pr-win-007-2026-09-29T16-06-10-917Z-f99e14",
+      "archive": "_packet/revision/evidence-archives/supplement-gate-pr-win-007-2026-09-29T16-06-10-917Z-f99e14.zip",
+      "archive_sha256": "E7EACE9B73D859FCAD4606DA8F22328C61C66FB0227E29661049806F1DEAA40A",
+      "manifest": "_packet/revision/evidence-archives/supplement-gate-pr-win-007-2026-09-29T16-06-10-917Z-f99e14.zip.json",
+      "file_count": 102
     }
   ]
 }

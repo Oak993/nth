@@ -2,6 +2,7 @@ const fs=require('node:fs');
 const path=require('node:path');
 const crypto=require('node:crypto');
 const cp=require('node:child_process');
+const { fixtureFailure }=require('./MutationFailureClassifier.cjs');
 const root='E:\\Droppy\\wt\\oc\\chatgpt-1';
 if(process.cwd().toLowerCase()!==root.toLowerCase())throw Error('Wrong worktree');
 const record=process.argv[2];
@@ -16,6 +17,10 @@ for(const directory of fs.readdirSync(base,{withFileTypes:true}).filter(d=>d.isD
       if(!row.records.includes(record))continue;
       if(!row.runs.filter(r=>r.tests).every(r=>r.command.includes('&Req='+record)))continue;
       const evidence=path.relative(root,results).replace(/\\/g,'/');
+      const invalidRed=row.runs.filter(r=>/-red-[12]$/.test(r.name)).find(r=>fixtureFailure(r.tests));
+      if(invalidRed) {
+        excluded.push({id:row.id,status:'REVIEWED_FIXTURE_FAILURE_NOT_A_KILL',recorded_status:row.status,error:fixtureFailure(invalidRed.tests),evidence});continue;
+      }
       if(row.status!=='KILLED_TWICE_ALONE_AND_ORDINARY_GREEN'||!row.restored||!row.git_diff_unchanged) {
         excluded.push({id:row.id,status:row.status,error:row.error,evidence});continue;
       }
@@ -44,6 +49,6 @@ if(source.includes(Buffer.from('\r\n')))throw Error('Production newline churn');
 const proof={record,status:'MUTATION_BATCH_COMPLETE',candidate:false,candidate_note:'Final clause-by-clause and full-suite acceptance is reported separately; a mutation count alone is not certification.',head_before_commit:cp.execFileSync('git',['rev-parse','HEAD'],{encoding:'utf8'}).trim(),window_manager_sha256:crypto.createHash('sha256').update(source).digest('hex').toUpperCase(),additional_count:own.length,verifier_recheck_count:successful.size-own.length,ordinary_record_gate:gates.at(-1),mutations:[...successful.values()],excluded_attempts:excluded};
 fs.mkdirSync('_packet/revision/records',{recursive:true});
 fs.writeFileSync('_packet/revision/records/'+record+'.json',JSON.stringify(proof,null,2)+'\n');
-const dirs=[...new Set(proof.mutations.map(m=>path.dirname(m.evidence)).concat(path.dirname(proof.ordinary_record_gate.evidence)))];
+const dirs=[...new Set(proof.mutations.map(m=>path.dirname(m.evidence)).concat(proof.excluded_attempts.map(m=>path.dirname(m.evidence)),path.dirname(proof.ordinary_record_gate.evidence)))];
 fs.writeFileSync('_packet/revision/records/'+record+'.evidence-paths.txt',dirs.join('\n')+'\n');
 console.log(JSON.stringify({record,additional:own.length,original:proof.verifier_recheck_count,gate:proof.ordinary_record_gate.total,excluded:excluded.length,evidence:dirs},null,2));

@@ -9,7 +9,7 @@ if(process.cwd().toLowerCase()!==root.toLowerCase())throw Error('Wrong worktree'
 const record=process.argv[2];
 if(!/^(PR|UI)-[A-Z]+-\d{3}$/.test(record||''))throw Error('A record is required');
 const proof=JSON.parse(fs.readFileSync('_packet/revision/records/'+record+'.json','utf8'));
-const folders=[...new Set(proof.mutations.map(m=>path.dirname(m.evidence)).concat(path.dirname(proof.ordinary_record_gate.evidence)))];
+const folders=[...new Set(proof.mutations.map(m=>path.dirname(m.evidence)).concat((proof.excluded_attempts||[]).map(m=>path.dirname(m.evidence)),path.dirname(proof.ordinary_record_gate.evidence)))];
 const hash=bytes=>crypto.createHash('sha256').update(bytes).digest('hex').toUpperCase();
 const quote=s=>"'"+s.replace(/'/g,"''")+"'";
 function inventory(folder,relative='') {

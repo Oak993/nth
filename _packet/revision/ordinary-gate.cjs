@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
 const cp = require('node:child_process');
+const { fixtureFailure } = require('./MutationFailureClassifier.cjs');
 const root = 'E:\\Droppy\\wt\\oc\\chatgpt-1';
 if (process.cwd().toLowerCase() !== root.toLowerCase()) throw Error('Wrong worktree');
 const git = (...args) => cp.execFileSync('git',args,{cwd:root,encoding:'utf8',windowsHide:true});
@@ -15,6 +16,10 @@ for (let i=2;i<process.argv.length;i+=2) {
 }
 const mode = options.mode || 'build';
 if (!['build','test','mutate'].includes(mode)) throw Error('Unknown mode');
+const project = options.project || 'tests\\Marrow.App.Tests';
+if (!['tests\\Marrow.App.Tests','tests\\Marrow.UI.Tests','tests\\Marrow.Core.Tests'].includes(project))
+  throw Error('Only the three explicitly requested existing test projects are allowed');
+if (options.project && mode !== 'test') throw Error('Project selection is for ordinary tests, never mutation ownership');
 const stamp = new Date().toISOString().replace(/[:.]/g,'-');
 const run = path.join(root,'_packet','revision','evidence',(options.name || mode)+'-'+stamp+'-'+crypto.randomBytes(3).toString('hex'));
 fs.mkdirSync(run,{recursive:true});
@@ -103,17 +108,17 @@ function validateProcessMutationFailure(result) {
 function invoke(label,args) {
   console.log('RUN '+label+': dotnet '+args.join(' '));
   const start=new Date().toISOString();
-  const command=`$ErrorActionPreference='Stop';\n${reset}\nWrite-Output ('GATE_ENV=' + (ConvertTo-Json -Compress -InputObject @{ data=$env:MARROW_PORT_DATA_DIR; temp=$env:TEMP; tmp=$env:TMP; outer_opt_in_variables=@(Get-ChildItem Env: | Where-Object { $_.Name -match '^MARROW_(NATIVE|SHELL_PROOF)' } | ForEach-Object Name) }));\n& dotnet ${args.map(quote).join(' ')}; exit $LASTEXITCODE`;
+  const command=`$ErrorActionPreference='Stop';\nGet-ChildItem Env: | Where-Object { $_.Name -match '(?i)(^|_)API_?KEY($|_)' } | ForEach-Object { Remove-Item -LiteralPath ('Env:' + $_.Name) };\n${reset}\nWrite-Output ('GATE_ENV=' + (ConvertTo-Json -Compress -InputObject @{ data=$env:MARROW_PORT_DATA_DIR; temp=$env:TEMP; tmp=$env:TMP; outer_opt_in_variables=@(Get-ChildItem Env: | Where-Object { $_.Name -match '^MARROW_(NATIVE|SHELL_PROOF)' } | ForEach-Object Name); api_key_variables_remaining=@(Get-ChildItem Env: | Where-Object { $_.Name -match '(?i)(^|_)API_?KEY($|_)' } | ForEach-Object Name) }));\n& dotnet ${args.map(quote).join(' ')}; exit $LASTEXITCODE`;
   const child=cp.spawnSync('powershell.exe',['-NoProfile','-NonInteractive','-Command',command],{cwd:root,encoding:'utf8',windowsHide:true,maxBuffer:32*1024*1024});
   const output=(child.stdout||'')+(child.stderr||'');
   fs.writeFileSync(path.join(run,label+'.log'),output);
   const metadata=output.match(/^GATE_ENV=(.+)$/m);
   const item={name:label,command:'dotnet '+args.map(quote).join(' '),exit:child.status,start,end:new Date().toISOString(),environment:metadata?JSON.parse(metadata[1]):null,
-    source_hashes:['src/Marrow.App/Window/WindowManager.cs','src/Marrow.App/Port/AppShell.cs','src/Marrow.App/AppDelegate.cs','src/Marrow.App/Views/Settings/SettingsView.cs','src/Marrow.App/Window/ThreadWindow.cs','src/Marrow.App/Views/Palette/CommandPalette.cs'].map(name=>({name,sha256:sha(fs.readFileSync(path.join(root,name)))}))};
+    source_hashes:['src/Marrow.App/Window/WindowManager.cs','src/Marrow.App/Port/AppShell.cs','src/Marrow.App/AppDelegate.cs','src/Marrow.App/Views/Settings/SettingsView.cs','src/Marrow.App/Window/ThreadWindow.cs','src/Marrow.App/Views/Palette/CommandPalette.cs','src/Marrow.Core/Support/Text.cs','src/Marrow.Services/Port/SettingsStore.cs'].map(name=>({name,sha256:sha(fs.readFileSync(path.join(root,name)))}))};
   if (child.error) item.launch_error=String(child.error);
   if (args[0]==='build') {
     item.clean=child.status===0 && /0 Warning\(s\)/.test(output) && /0 Error\(s\)/.test(output);
-    item.binaries=['Marrow.App.dll','Marrow.App.Tests.dll'].map(name=>{
+    item.binaries=['Marrow.App.dll','Marrow.App.Tests.dll','Marrow.Core.dll','Marrow.Services.dll','Marrow.UI.dll'].map(name=>{
       const binary=path.join(root,'tests','Marrow.App.Tests','bin','Debug','net10.0-windows10.0.19041.0',name);
       return {name,sha256:fs.existsSync(binary)?sha(fs.readFileSync(binary)):null};
     });
@@ -134,7 +139,7 @@ function invoke(label,args) {
 }
 const build = label => invoke(label,['build','Marrow.sln','-c','Debug','--nologo','-v','q']);
 function test(label,filter) {
-  const args=['test','tests\\Marrow.App.Tests','--no-build','--nologo','-v','q'];
+  const args=['test',project,'--no-build','--nologo','-v','q'];
   if (filter) args.push('--filter',filter);
   args.push('--logger','trx;LogFileName='+label+'.trx','--results-directory',run);
   return invoke(label,args);
@@ -172,7 +177,7 @@ if (mode==='build') {
       for(let i=1;i<=2;i++) {
         const red=test(m.id+'-red-'+i,selection);r.runs.push(red);
         if(red.exit===0||red.total!==1||red.failed!==1) r.status='SURVIVED_OR_INVALID_RED';
-        if(red.tests.some(t=>/NATIVE_PRECONDITION|TopLevel must be a headless window|activation click did not complete|requires .*opt-in|Native child STA did not stop|Native child Fact or VSTest runner did not finish|Native child survived its completed VSTest runner|Native runner exited before the selected Fact|Native child data\/temp were not isolated/.test(t.error))) r.status='FIXTURE_FAILURE_NOT_A_KILL';
+        if(fixtureFailure(red.tests)) r.status='FIXTURE_FAILURE_NOT_A_KILL';
         if(m.killer.includes('.WindowManagerProcessTests.')) {
           red.process_failure=validateProcessMutationFailure(red);
           if(!red.process_failure.valid)r.status='INVALID_CHILD_FAILURE_NOT_A_KILL';

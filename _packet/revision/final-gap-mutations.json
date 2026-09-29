@@ -1,0 +1,98 @@
+[
+  {
+    "id": "OWN-WIN009-09",
+    "records": [
+      "PR-WIN-009"
+    ],
+    "path": "src/Marrow.Core/Support/Text.cs",
+    "clause": "Missing display metadata reaches the actual factory and managed peer with the unchanged Droppy Code fallback",
+    "precision": "Own additional exact source replacement; not an unpublished verifier mutation",
+    "killer": "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.Missing_display_name_metadata_reaches_the_main_window_and_managed_peer_as_Droppy_Code",
+    "replacements": [
+      {
+        "before": "return new(Value(\"CFBundleDisplayName\", \"Droppy Code\"),",
+        "after": "return new(Value(\"CFBundleDisplayName\", \"Marrow\"),"
+      }
+    ]
+  },
+  {
+    "id": "OWN-WIN009-10",
+    "records": [
+      "PR-WIN-009"
+    ],
+    "path": "src/Marrow.Core/Support/Text.cs",
+    "clause": "Wrong-type metadata is rejected rather than converted to a display name",
+    "precision": "Own additional exact source replacement; not an unpublished verifier mutation",
+    "killer": "Marrow.App.Tests.Window.WindowManagerTitleMutationTests.Wrong_type_display_name_metadata_reaches_the_main_window_and_managed_peer_as_Droppy_Code",
+    "replacements": [
+      {
+        "before": "metadata.TryGetValue(key, out var value) && value is string text ? text : fallback;",
+        "after": "metadata.TryGetValue(key, out var value) ? value?.ToString() ?? fallback : fallback;"
+      }
+    ]
+  },
+  {
+    "id": "OWN-WIN009-11",
+    "records": [
+      "PR-WIN-009"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "The actual factory propagates the injected Unicode metadata name into native HWND text",
+    "precision": "Own additional exact source replacement; not an unpublished verifier mutation",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.The_main_factory_publishes_the_injected_Unicode_display_name_to_its_own_HWND",
+    "replacements": [
+      {
+        "before": "MakeWindow(AppInfo.Current.Name, Size.Main, resizable: true, MainContent, windowClass: () => new ThreadWindow())",
+        "after": "MakeWindow(\"Droppy Code\", Size.Main, resizable: true, MainContent, windowClass: () => new ThreadWindow())"
+      }
+    ]
+  },
+  {
+    "id": "OWN-THEME039-09",
+    "records": [
+      "PR-THEME-039"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "A restarted saved-frame profile still applies the initial process appearance before any second-process theme change",
+    "precision": "Own additional exact source replacement; not an unpublished verifier mutation",
+    "killer": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+    "replacements": [
+      {
+        "before": "(_, theme) => SetAppearance(theme), initial: true",
+        "after": "(_, theme) => SetAppearance(theme), initial: UserDefaults.Standard.Current.Dictionary(\"DroppyCodeMainWindow\") is null"
+      }
+    ]
+  },
+  {
+    "id": "OWN-WIN008-13",
+    "records": [
+      "PR-WIN-008"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Construction realizes the HWND without presenting it before the first explicit Show",
+    "precision": "Own additional exact source replacement; not an unpublished verifier mutation",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.The_factory_realizes_its_owned_native_handle_before_the_first_Show",
+    "replacements": [
+      {
+        "before": "SetFrameAutosaveName(window, MainFrameName); // :70\n        return window;",
+        "after": "SetFrameAutosaveName(window, MainFrameName); // :70\n        window.Show();\n        return window;"
+      }
+    ]
+  },
+  {
+    "id": "OWN-WIN007-09",
+    "records": [
+      "PR-WIN-007"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "ED-063 key-menu dispatch does not open the system popup for the nonspace mnemonic f",
+    "precision": "Own additional exact source replacement; not an unpublished verifier mutation",
+    "killer": "Marrow.App.Tests.Window.Native.WindowManagerNativeTests.A_nonspace_key_menu_mnemonic_does_not_open_the_system_menu",
+    "replacements": [
+      {
+        "before": "if (lParam == (nint)' ' && TryShowSystemMenu(window, hWnd, lParam, keyboard: true))",
+        "after": "if (TryShowSystemMenu(window, hWnd, lParam, keyboard: true))"
+      }
+    ]
+  }
+]
