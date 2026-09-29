@@ -221,6 +221,27 @@ public sealed class AppModelAuditFixTests
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-060")] // AppModel.swift:705-712
+    public void An_update_that_changes_nothing_writes_no_library_and_leaves_the_threads_alone()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("no-op-update"));
+        var thread = AppModelSamples.Thread(project);
+        h.WriteLibrary([project], [thread]);
+        var model = h.MakeModel();
+        var before = h.Main.OnMain(() => model.Threads);
+
+        h.Main.OnMain(() => model.UpdateThread(thread.Id, current => current with { }));
+        h.Main.Advance(TimeSpan.FromSeconds(5));
+        DiskWriter.Shared.WaitForQueuedWrites();
+
+        // SaveLibrary stamps lastLibrarySave on every save, scheduled or direct (AppModel.swift:1318): none was scheduled.
+        var lastSave = typeof(AppModel).GetField("lastLibrarySave", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!;
+        Assert.Null(lastSave.GetValue(model));
+        Assert.Same(before, h.Main.OnMain(() => model.Threads));
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
