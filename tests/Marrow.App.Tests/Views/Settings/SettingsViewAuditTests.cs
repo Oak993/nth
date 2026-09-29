@@ -61,4 +61,14 @@ public sealed class SettingsViewAuditTests(HeadlessSession headless) : SettingsR
         Assert.Same(scroll, Nodes<ScrollViewer>(detail).First());
     }, before: h => Library(h, 2));
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-236")] // SettingsView.swift:912-934 each row's detail is model.project(thread.projectID)?.name read in the observed body
+    public void An_archived_rows_project_name_follows_project_changes() => With(() => new ArchiveSettingsPage(), (view, model, _, window) =>
+    {
+        var row = Row(view, "Archived 0");
+        Assert.Equal("Project", Text(row)[1]);
+        model.UpdateProject(model.ArchivedThreads[0].ProjectID, project => project with { Name = "Renamed" }); Drain(window);
+        Assert.Equal("Renamed", Text(Row(view, "Archived 0"))[1]);
+    }, before: h => Library(h, 1));
+
 }
