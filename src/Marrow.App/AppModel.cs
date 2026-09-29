@@ -1,4 +1,4 @@
-using Avalonia.Platform.Storage;
+using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Views.Terminal;
 using Marrow.Core.Models;
@@ -559,7 +559,16 @@ public sealed partial class AppModel : MainActorModel
     // MARK: - Projects
 
     // AppModel.swift:515-524. Swift: addProject(at:), @discardableResult.
-    public Project AddProject(SwiftURL url) => AddProjectPath(SwiftPath.StandardizedFileURLPath(url.Path, null), url); // AppModel.swift:516-524
+    public Project AddProject(SwiftURL url) => AddProjectPath(SwiftPath.StandardizedFileURLPath(FileSystemPath(url), null), url); // AppModel.swift:516-524
+
+    // url.path as the file system reads it: a Windows folder's file URL ("file:///C:/x") has the Path "/C:/x", whose leading
+    // slash is the URL's, not the drive's (ProjectFile.Scripts strips it the same way); without this the folder chosen in the
+    // panel resolves against the current directory (SidebarViewTests STOP App.Views.Sidebar.SidebarView #4).
+    private static string FileSystemPath(SwiftURL url)
+    {
+        var path = url.Path;
+        return OperatingSystem.IsWindows() && path.Length >= 3 && path[0] == '/' && char.IsAsciiLetter(path[1]) && path[2] == ':' ? path[1..] : path;
+    }
 
     private Project AddProjectPath(string path, SwiftURL? projectURL = null)
     {
@@ -575,24 +584,28 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:526-529
     public void ChooseProjectFolder()
     {
-        if (Avalonia.Application.Current?.ApplicationLifetime is not Avalonia.Controls.ApplicationLifetimes.IClassicDesktopStyleApplicationLifetime desktop
-            || desktop.MainWindow is not { } window) return; // AppModel.swift:526-529
-        MainActor.Spawn(async () =>
-        {
-            var folders = await window.StorageProvider.OpenFolderPickerAsync(new Avalonia.Platform.Storage.FolderPickerOpenOptions
-            {
-                AllowMultiple = false,
-            });
-            if (folders.FirstOrDefault()?.TryGetLocalPath() is { } path) AddProjectPath(path);
-        });
+        if (AddProjectsFromPanel() is not { } added) return; // AppModel.swift:527
+        NewThread(added); // AppModel.swift:528
     }
 
-    // AppModel.swift:535-547. @discardableResult.
+    // AppModel.swift:535-547. @discardableResult. The folder panel: every chosen folder joins the sidebar as a project and the
+    // last one added comes back, or null when the panel was cancelled. Nothing else is made here, so a caller that already has
+    // a thread on screen (the new-thread prompt) can move that thread into the folder instead of leaving a second empty one.
+    // NSOpenPanel is the OpenPanel seam (PR-SIDEBAR-012), the same one the sidebar's Add project row drives.
     public Project? AddProjectsFromPanel() // AppModel.swift:535-547
     {
-        // Avalonia's picker is asynchronous; the Windows entry point adds the chosen folder from its completion.
-        ChooseProjectFolder();
-        return null;
+        var panel = new OpenPanel
+        {
+            CanChooseDirectories = true, // AppModel.swift:537
+            CanChooseFiles = false, // AppModel.swift:538
+            AllowsMultipleSelection = true, // AppModel.swift:539
+            Prompt = "Add project", // AppModel.swift:540
+            Message = "Choose a folder for your agents to work in.", // AppModel.swift:541
+        };
+        if (panel.RunModal() != ModalResponse.OK) return null; // AppModel.swift:542
+        Project? added = null; // AppModel.swift:543
+        foreach (var url in panel.Urls) added = AddProject(url); // AppModel.swift:544
+        return added; // AppModel.swift:545
     }
 
     // AppModel.swift:549-556

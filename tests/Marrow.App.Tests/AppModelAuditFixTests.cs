@@ -1,3 +1,4 @@
+using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
@@ -78,4 +79,30 @@ public sealed class AppModelAuditFixTests
             Assert.Equal(expected.UtcDateTime, model.Thread(second.Id)!.ActivityOrderDay!.Value.UtcDateTime);
         });
     }
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-044")] // AppModel.swift:526-529, :535-547
+    public void Choosing_a_project_folder_adds_the_projects_and_starts_a_selected_thread_in_the_last_one()
+    {
+        using var h = new AppModelHarness();
+        var first = h.NewFolder("chosen-a");
+        var last = h.NewFolder("chosen-b");
+        var model = h.MakeModel();
+        var runner = new RecordingOpenPanelRunner([FolderURL(first), FolderURL(last)]);
+
+        h.Main.OnMain(() =>
+        {
+            using var scope = OpenPanel.Runner.Override(runner);
+            model.ChooseProjectFolder();
+
+            Assert.Equal(2, model.Projects.Count);
+            var thread = Assert.Single(model.Threads);
+            Assert.Equal(model.Projects[1].Id, thread.ProjectID);
+            Assert.True(SwiftPath.SamePath(last, model.Projects[1].Path));
+            Assert.Equal(thread.Id, model.SelectedThreadID);
+        });
+    }
+
+    // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
+    private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
