@@ -54,4 +54,27 @@ public sealed class TokenActivitySectionAuditTests(HeadlessSession headless)
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-131")] // TokenActivitySection.swift:84 with Components.swift:72-73 the label colour rides the header's 0.25s animation
+    public void The_active_chip_label_colour_follows_the_quarter_second_curve() => headless.OnUiThread(() =>
+    {
+        using var scope = TokenActivityTestScope.Create();
+        var time = new ManualTimeProvider();
+        using var clock = SwiftClock.Provider.Override(time);
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var section = new TokenActivitySection(); var window = Show(section);
+        try
+        {
+            var weekly = Chip(section, "Weekly");
+            var label = Assert.IsType<TextBlock>(Assert.IsType<Border>(weekly.Content).Child);
+            weekly.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();
+            time.Advance(TimeSpan.FromTicks(1_250_000)); frames.Advance(TimeSpan.FromTicks(1_250_000));
+            var expected = TokenActivityHeatmapCanvas.Mix(Chrome.SecondaryText.Resolve(ThemeVariant.Light),
+                Chrome.Accent.Resolve(ThemeVariant.Light), Marrow.UI.Port.Animation.Smooth(.25).Progress(.125));
+            Assert.Equal(expected, Assert.IsType<SolidColorBrush>(label.Foreground).Color);
+        }
+        finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+    });
+
 }

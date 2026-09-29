@@ -470,6 +470,8 @@ public sealed class TokenActivitySection : Decorator
     {
         var label = new TextBlock { Text = option.Title(), MaxLines = 1 }; // :76, :78 .lineLimit via callout+no-wrap
         SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(label); // :74 .font(.callout)
+        var labelColor = new AnimatedColor(label); // the label's foregroundStyle rides the header's animation (:87)
+        label.Foreground = labelColor.Brush;
 
         var border = new Border // :81-82 Capsule().fill(fill), .contentShape(.capsule)
         {
@@ -493,13 +495,13 @@ public sealed class TokenActivitySection : Decorator
             else if (pressed) color = Chrome.PrimaryText.Opacity(0.12); // :90 .primary.opacity(0.12)
             else color = Chrome.PrimaryText.Opacity(hovering ? 0.07 : 0); // :91 .primary.opacity(isHovering ? 0.07 : 0)
             fill.Set(color, Transaction.Current);
+            labelColor.Set(isActive ? Chrome.Accent : Chrome.SecondaryText, Transaction.Current); // :80 .tint / .secondary
         }
 
         var initialized = false;
         button.Track(() => state.Mode == option, active =>
         {
             SwiftFont.System(SwiftFont.TextStyle.Body, weight: active ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(label); // :77
-            label.Foreground = (active ? Chrome.Accent : Chrome.SecondaryText).Brush(label); // :80 .tint / .secondary
             button.SetSelected(active); // :84 .isSelected trait
             if (initialized) Transaction.WithAnimation(Animation.Smooth(0.25), UpdateFill); // :87 mode changes only.
             else UpdateFill();
@@ -547,7 +549,7 @@ public sealed class TokenActivitySection : Decorator
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(summary); // :150
         summary.Foreground = Chrome.SecondaryText.Brush(summary); // :151
 
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") }; // :148-154 flexible spacer
+        var row = new LegendRow { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") }; // :148-154 flexible spacer
         row.Children.Add(summary);
 
         var spacer = new Control { MinWidth = 28 }; // :154 minimum 12 + adjacent HStack spacings 8 + 8.
