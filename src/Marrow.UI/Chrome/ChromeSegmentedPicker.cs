@@ -240,7 +240,7 @@ namespace Marrow.UI.Chrome
         {
             _option = option;
             _selection = selection;
-            _isSelected = EqualityComparer<TValue>.Default.Equals(option.Value, selection.Value);
+            _isSelected = SwiftEquality.Equal(option.Value, selection.Value);
             _selectionState.IsSelected = _isSelected;
 
             // Build the visual tree once (ED-095, R-VIEW-1).
@@ -252,7 +252,7 @@ namespace Marrow.UI.Chrome
 
             // Track changes to the selection binding and update visuals accordingly (R-VIEW-5).
             this.Track(
-                () => EqualityComparer<TValue>.Default.Equals(_option.Value, _selection.Value),
+                () => SwiftEquality.Equal(_option.Value, _selection.Value),
                 isNowSelected => UpdateSelected(isNowSelected));
         }
 

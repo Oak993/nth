@@ -86,4 +86,20 @@ public sealed class ChromeSegmentedPickerAuditTests(HeadlessSession headless)
         window.Close();
         Dispatcher.UIThread.RunJobs();
     });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-054")] // ChromeSegmentedPicker.swift:33: isSelected is option.value == selection, Swift String == is canonical equivalence (R-STR-2)
+    public void Canonically_equivalent_string_values_are_both_selected() => headless.OnUiThread(() =>
+    {
+        var cell = new CellSample<string>("é");
+        var picker = new ChromeSegmentedPicker<string>(
+            new[] { ("é", "Precomposed"), ("é", "Decomposed"), ("x", "Other") },
+            new Binding<string>(() => cell.Value, v => cell.Value = v));
+        var window = Show(picker);
+        Assert.True(Assert.IsAssignableFrom<ISelectionItemProvider>(Peer(Segment(picker, "Precomposed"))).IsSelected);
+        Assert.True(Assert.IsAssignableFrom<ISelectionItemProvider>(Peer(Segment(picker, "Decomposed"))).IsSelected);
+        Assert.False(Assert.IsAssignableFrom<ISelectionItemProvider>(Peer(Segment(picker, "Other"))).IsSelected);
+        window.Close();
+        Dispatcher.UIThread.RunJobs();
+    });
 }
