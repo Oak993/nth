@@ -1,0 +1,62 @@
+{
+  "original_directory": "_packet/revision/evidence/owned-live-stack-2026-09-29T19-14-55-450Z-215a72",
+  "archive": "_packet/revision/evidence-archives/owned-live-stack-2026-09-29T19-14-55-450Z-215a72.zip",
+  "archive_sha256": "4397A67775DD0F60E7E82D840F90200D7999623D54B1224C4EE975E689D03651",
+  "files": [
+    {
+      "path": "capture-1-stacks.txt",
+      "bytes": 29915,
+      "sha256": "7A2D8525DFAA6B6CAF82C82F52D906D5F4B1A72BC3739EA164089C2E13495169"
+    },
+    {
+      "path": "capture-1.json",
+      "bytes": 609,
+      "sha256": "63B05BA4AA1DE15F07382924D687616DB106C027FC93085BD0F170ECD725D4E8"
+    },
+    {
+      "path": "capture-1.nettrace",
+      "bytes": 11653602,
+      "sha256": "C67C63C05305150EE8C3BCA5ECFFBC431D008B9249BF7DC2BF0C6F1D843D9F5D"
+    },
+    {
+      "path": "capture-2-stacks.txt",
+      "bytes": 28738,
+      "sha256": "5CCC59504E8877BA8F8D6EE30CEBF4FE77A3DCFC285E5D5FA91ADA7FF74DC307"
+    },
+    {
+      "path": "capture-2.json",
+      "bytes": 609,
+      "sha256": "6BAB1A1A370CB1A239015B326C6D9457C9ACCFD3B0C3D699B4D6529039349292"
+    },
+    {
+      "path": "capture-2.nettrace",
+      "bytes": 11653518,
+      "sha256": "8DB0841250C3FA51E45AD43A8D8108D60AD19931182F70B07179D2F446CA734C"
+    },
+    {
+      "path": "captures.json",
+      "bytes": 1597,
+      "sha256": "417102E2862BBFD0C23E0724A2437ED7F1FE47FE07E26023CF797C4F0DFEC528"
+    },
+    {
+      "path": "request.json",
+      "bytes": 891,
+      "sha256": "95F6C52697FCDC288A829358EDF7C5BC25464AE7C09AF2CEC27A8460BA794B57"
+    },
+    {
+      "path": "supervisor-result.json",
+      "bytes": 545,
+      "sha256": "096ACB5FC7733B83F0F5D55091BE7CEAA6325CBF1DDC820155E5BD90A97066AC"
+    },
+    {
+      "path": "supervisor.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "supervisor.stdout.log",
+      "bytes": 1006,
+      "sha256": "4F9E0F3F0673EE6C98100EA1D806DE9A70E7B5D44340A47C40DDC3FE95B97707"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-writer-lifetime-fixed-build-2026-09-29T19-21-35-410Z-f2e71e",
+  "archive": "_packet/revision/evidence-archives/resume-writer-lifetime-fixed-build-2026-09-29T19-21-35-410Z-f2e71e.zip",
+  "archive_sha256": "C8CA7F4C2B63E196D7CF27E342C6B2192D2F66C7B0218F99BF1EC67F55306A87",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 2413,
+      "sha256": "42788566EA6F3C83704912A73650CA69A4CE22B34ECBED024CEF1F4773C6325B"
+    },
+    {
+      "path": "build.log",
+      "bytes": 343,
+      "sha256": "6C90E7033E9EFD70660E2E210E52E3DEC22E32FE95AE873FBDA1DCFB41FE385A"
+    }
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "original_directory": "_packet/revision/evidence/final-solution-build-2026-09-29T18-53-59-185Z-a794d1",
+  "archive": "_packet/revision/evidence-archives/final-solution-build-2026-09-29T18-53-59-185Z-a794d1.zip",
+  "archive_sha256": "084326F22022E4854570B38CE9348E18D6D2C9D8B20AE070EC1316FCCA7A7B4D",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 2413,
+      "sha256": "CFF14C8B1E36CB734A01B5A0329DB4944757573395B8104A3AEFC0F13BA0956D"
+    },
+    {
+      "path": "build.log",
+      "bytes": 343,
+      "sha256": "8C468F492E41371F8955EE8E49AD256899355B9DF769CD5967C1C3A9D969359D"
+    }
+  ]
+}

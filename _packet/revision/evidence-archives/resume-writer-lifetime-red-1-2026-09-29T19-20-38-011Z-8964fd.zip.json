@@ -1,0 +1,22 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-writer-lifetime-red-1-2026-09-29T19-20-38-011Z-8964fd",
+  "archive": "_packet/revision/evidence-archives/resume-writer-lifetime-red-1-2026-09-29T19-20-38-011Z-8964fd.zip",
+  "archive_sha256": "25B0F09CBB7A6A5409C4298FAA92807C12D34C4FE796413D0B3486FD08B7E5C5",
+  "files": [
+    {
+      "path": "tests.json",
+      "bytes": 2472,
+      "sha256": "23C4C0DD8F58705E6013540FCD2447B3927578A381285677665DFCC696DE62D7"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 903,
+      "sha256": "A06303147E04F47304AF2E44C20A16E19A94369C32CC2C10BBD0B3967A0A3618"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 5037,
+      "sha256": "2C89A5BC0AB1606B4CE6AFBF7679B6C58E53C24C96E112449A144D8449C3DA0F"
+    }
+  ]
+}

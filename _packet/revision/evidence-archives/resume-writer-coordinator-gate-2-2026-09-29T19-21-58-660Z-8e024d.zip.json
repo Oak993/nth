@@ -1,0 +1,22 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-writer-coordinator-gate-2-2026-09-29T19-21-58-660Z-8e024d",
+  "archive": "_packet/revision/evidence-archives/resume-writer-coordinator-gate-2-2026-09-29T19-21-58-660Z-8e024d.zip",
+  "archive_sha256": "100D8DF9A7BF8F14D898F93BD7744EF6AF7BD0732338669CEB4B13DF4D586BCD",
+  "files": [
+    {
+      "path": "tests.json",
+      "bytes": 5359,
+      "sha256": "6969BEE48BD81E16E5E2B02801343C6E5D4103671C138397760E0F33A3D53041"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 731,
+      "sha256": "3A62205197F67B51E23B9AE91876409E4F1D8E145575D43CFE7E16F5E4A82930"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 23364,
+      "sha256": "1C6192B8B875740818C353D085F1C2DB700F0A450D326DFB2943E356F09B48D1"
+    }
+  ]
+}

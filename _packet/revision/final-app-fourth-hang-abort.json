@@ -1,0 +1,63 @@
+{
+    "at":  "2026-09-29T19:18:08.0947052Z",
+    "head":  "0f8b8b519e5d045d487b6971212b9e29ca429e1e",
+    "status":  "OWNED_ABORT_COMPLETE_NOT_A_SUITE_PASS",
+    "evidence":  "_packet/revision/evidence/final-app-ordinary-2-2026-09-29T19-02-21-633Z-b8776f",
+    "diagnostic_directory":  "_packet/revision/evidence/owned-live-stack-2026-09-29T19-14-55-450Z-215a72",
+    "reason":  "Ordinary repeat stalled after255 passes. Two complete stack captures show current H.WriteLibrary waiting behind the asynchronous shared DiskWriter in FileOps.Wait. Theory argument, prior producer identity and held clock object were not sampled. Diagnostic attachment is not an ordinary pass.",
+    "coordinator_stopped_in_diagnostic_supervisor":  true,
+    "coordinator_pid":  11784,
+    "intermediate_wrappers_exited_since_capture":  [
+                                                       81540,
+                                                       104376
+                                                   ],
+    "log_last_write_utc":  "2026-09-29T19:03:43.9682420Z",
+    "log_bytes":  45266,
+    "target_cpu_seconds":  9.75,
+    "processes":  [
+                      {
+                          "pid":  2752,
+                          "parent":  45788,
+                          "name":  "conhost.exe",
+                          "start_utc":  "2026-09-29T19:02:22.4510447Z"
+                      },
+                      {
+                          "pid":  12616,
+                          "parent":  104376,
+                          "name":  "dotnet.exe",
+                          "start_utc":  "2026-09-29T19:02:21.8918831Z"
+                      },
+                      {
+                          "pid":  44456,
+                          "parent":  12616,
+                          "name":  "dotnet.exe",
+                          "start_utc":  "2026-09-29T19:02:22.3006702Z"
+                      },
+                      {
+                          "pid":  45788,
+                          "parent":  44456,
+                          "name":  "testhost.exe",
+                          "start_utc":  "2026-09-29T19:02:22.4397057Z"
+                      }
+                  ],
+    "stopped":  [
+                    {
+                        "exited":  true,
+                        "pid":  12616
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  44456
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  45788
+                    },
+                    {
+                        "exited":  true,
+                        "pid":  2752
+                    }
+                ],
+    "cleanup_complete":  true,
+    "ended":  "2026-09-29T19:18:08.2672431Z"
+}

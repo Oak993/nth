@@ -1,0 +1,17 @@
+{
+  "original_directory": "_packet/revision/evidence/resume-writer-lifetime-regression-build-2026-09-29T19-19-35-845Z-597c52",
+  "archive": "_packet/revision/evidence-archives/resume-writer-lifetime-regression-build-2026-09-29T19-19-35-845Z-597c52.zip",
+  "archive_sha256": "C28C222DBBADAA7FF6D0EAA900F8FE7B87EAF7417D0393072AE960B7D4E00858",
+  "files": [
+    {
+      "path": "build.json",
+      "bytes": 2414,
+      "sha256": "4B3CB0A146A0705C3F51A22D5CFDB346DB2DB0DA7D3D9CE10CC730DCFE65D0D5"
+    },
+    {
+      "path": "build.log",
+      "bytes": 1786,
+      "sha256": "9EA5D15B3DC2A7B388D7E5BF3745ACFB90BB034481CEFD59D2BD2745A8FF78CB"
+    }
+  ]
+}
