@@ -147,7 +147,6 @@ public sealed class ThreadRuntimePart3Tests
 
         var entryCount = h.Main.OnMain(() =>
         {
-            model.Settings.HydraQueueHeads = false; // Plain follow-up queue: with Hydra's default queue-heads switch on, ThreadRuntime.swift:999 hands a prompt queued behind a running turn to a head instead (PR-RUNTIME-237).
             runtime.RehearseTurn("in-progress turn");
             Assert.True(runtime.IsRunning);
             return runtime.Entries.Count;

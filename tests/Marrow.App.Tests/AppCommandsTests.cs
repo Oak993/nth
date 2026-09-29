@@ -671,7 +671,6 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 
         h.Main.OnMain(() =>
         {
-            model.Settings.HydraQueueHeads = false; // Plain follow-up queue: with Hydra's default queue-heads switch on, ThreadRuntime.swift:999 hands a prompt queued behind a running turn to a head instead (PR-RUNTIME-237).
             model.SelectedThreadID = thread.Id;
             runtime.RehearseTurn("working");
             runtime.Draft = new ComposerDraft { Text = "next step" };

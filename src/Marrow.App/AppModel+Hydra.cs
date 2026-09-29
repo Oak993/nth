@@ -352,7 +352,7 @@ public sealed partial class AppModel
     }
 
     // :559-565
-    internal void UpdateHydraHead(Guid id, Func<HydraHeadInfo, HydraHeadInfo> change) => // ThreadRuntime.hydraAgentEvent (:2620) calls it
+    private void UpdateHydraHead(Guid id, Func<HydraHeadInfo, HydraHeadInfo> change) =>
         UpdateThread(id, thread => thread.Hydra is { } info ? thread with { Hydra = change(info) } : thread);
 
     private (long Index, long Counter) AllocateHydraRosterIndex(ChatThread parent, long? preferredIndex)

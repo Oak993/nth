@@ -198,7 +198,6 @@ public sealed class ThreadRuntimePart6Tests
         var context = CreateRuntime(h);
         h.Main.OnMain(() =>
         {
-            context.Model.Settings.HydraQueueHeads = false; // Plain follow-up queue: with Hydra's default queue-heads switch on, ThreadRuntime.swift:999 hands a prompt queued behind a running turn to a head instead (PR-RUNTIME-237).
             context.Runtime.RehearseTurn("The user asked for a change.");
             context.Runtime.EnqueueFollowUp("Keep queued", Array.Empty<Attachment>());
             context.Runtime.Rehearse(new ProviderEvent.TurnStarted("provider-turn"));
