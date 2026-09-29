@@ -1478,6 +1478,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var h = RuntimeHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the confirmation icon swap animates (Popovers.swift:263, :295-305)
             var presenter = new RecordingPresenter();
             using var seam = Presentation.Presenter.Override(presenter);
             AvaloniaWindow? window = null;
