@@ -1,0 +1,292 @@
+{
+  "original_directory": "_packet/revision/evidence/pr-win-008-wait-2026-09-29T13-47-41-714Z-832127",
+  "archive": "_packet/revision/evidence-archives/pr-win-008-wait-2026-09-29T13-47-41-714Z-832127.zip",
+  "archive_sha256": "2BDB15E7CF966A6AAADD24FD23888CFA57F44FDF240220F51B6648C63CE4EFB6",
+  "files": [
+    {
+      "path": "results.json",
+      "bytes": 49232,
+      "sha256": "7BDCA1C645D0622635A68A9D5E401C9E19B7D60D03F6A5D0AC323EBAD0F64FAD"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-green.json",
+      "bytes": 2102,
+      "sha256": "010A0312626460191A83A02A149438582FC90EA0AAD07F60C7F9DFA7B7DA501B"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-green.log",
+      "bytes": 701,
+      "sha256": "BF9E2974B3845D0B1D4E99E640FE5B8AD9C743012132D662B61C0E78DFCB6437"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-green.trx",
+      "bytes": 3134,
+      "sha256": "F5C89D860B40A0B9FBAD545467B31B39B4F731FA58EC6BC0A5B79D8C4B27CEEA"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-mutant-build.json",
+      "bytes": 1710,
+      "sha256": "D089B431FCA07150E1E5E3E5F3879C7CE4DA707B89F868E60AFFFAB5581DADBB"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-mutant-build.log",
+      "bytes": 310,
+      "sha256": "05D926E7267A908DE5D8AF3A797A0F21C5AD4D508F81CE6EF0E7D1B982EA8B77"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-red-1.json",
+      "bytes": 2169,
+      "sha256": "FADCDC82BD8B19662449E38AC21683D85FDF31A960B6547EA90567DA6C1AACBA"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-red-1.log",
+      "bytes": 882,
+      "sha256": "D39137A198226F3CF9A8E2BF314F6D9600DB5DCF6407BDD55BDC0FDA8B6260FC"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-red-1.trx",
+      "bytes": 7995,
+      "sha256": "C79EAFD4023A96CAC86805BAE97B4DE5624A0944D224121CBE338A6B980EF223"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-red-2.json",
+      "bytes": 2169,
+      "sha256": "4E80D7A6EFDF48304508E87F16590096AECCAC698A994E3651ABA56A080146B1"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-red-2.log",
+      "bytes": 882,
+      "sha256": "9ADE7A1C937093D95056249D173BC653EA5D61E2ADC2CA0C8ED9DD7BFCCCB2A6"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-red-2.trx",
+      "bytes": 7995,
+      "sha256": "182ADDD449C7B6BFA5B7B9D3F4F94D923D1F69CF605A098BC2D100EE70B698C4"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-restored-build.json",
+      "bytes": 1712,
+      "sha256": "3F59B5B74D42B1A72D16F10D884F66A76CC5B33D87839DB0FC2C95C3C07EFC8C"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1-restored-build.log",
+      "bytes": 310,
+      "sha256": "00AAE5489FD5B3B5FC688668293C0383FDD743417AA6D4A7E401C734A3D28C82"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-1.diff",
+      "bytes": 742,
+      "sha256": "DF054E23C48CFA4BCF05D13A214EB656C07B26D674B99247780E314907D00DA4"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-green.json",
+      "bytes": 2102,
+      "sha256": "A0F6CEDDBC279A983D7E5CF4A5922B5F93ED9DAD6C3093EDB657EE54D3FFB692"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-green.log",
+      "bytes": 701,
+      "sha256": "A5387EF755280D0863EBD21373E376A7F543D98A58DD2E4602338B8DDE9C1BE8"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-green.trx",
+      "bytes": 3134,
+      "sha256": "3DCDA5FF54F15DBDD1F9A992CEE580B37119461F76BD03544625316E7E945987"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-mutant-build.json",
+      "bytes": 1710,
+      "sha256": "FF6BBDA6362E2AA67BBC4FA0BCE4B9DA2B417A8B99E04A0BBD8FE32FDD206464"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-mutant-build.log",
+      "bytes": 310,
+      "sha256": "FB2CA05D540EE5F7A03369A80CFAFB28D8EE274506087610A2159297A15E7D61"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-red-1.json",
+      "bytes": 2169,
+      "sha256": "C4B90F047C59E2CD14FDBB83BA215CF55992AC1A682851A2463AB0F2853CB5BB"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-red-1.log",
+      "bytes": 882,
+      "sha256": "8CA2D77C1A60CD6DAF7A1C1DF6C30260A9DFFEAC6F21B4EECB5D960EE4E94443"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-red-1.trx",
+      "bytes": 7995,
+      "sha256": "2EF4659366154F41CA61E041C5EE2D6F8437F8EFD6E915F57D11A0BB609329E9"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-red-2.json",
+      "bytes": 2169,
+      "sha256": "ED4B11EB01F99078041D5AE2DF37E2B58B967E4FA08161A7F88E6DE891EEE278"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-red-2.log",
+      "bytes": 882,
+      "sha256": "12552BF926D339C9155078E0F7CD52B788425C2E6D7C7BF479E6FFB3697E3A69"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-red-2.trx",
+      "bytes": 7995,
+      "sha256": "AD6626A292A884949322B956A7FC90ED18712A0F711A68FA7BC9E6395941A6A9"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-restored-build.json",
+      "bytes": 1712,
+      "sha256": "A93DEEA82B87DAD35A1C7E804379468270EF9113E647C21FCCE27D0F2997D590"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2-restored-build.log",
+      "bytes": 310,
+      "sha256": "4D6204F2A7F70675D951AF103E2EDDEAB140EC886A1FF0F126F9F39CDD18816E"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-2.diff",
+      "bytes": 691,
+      "sha256": "5052A117464030E51E32DC802F03ED5A09F879C2D69C948A4D90D3CA54C942B9"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-green.json",
+      "bytes": 2102,
+      "sha256": "E2F9859516133974499A6FAE2AE017CBDE712D9CC5C0D486E5E9F818CC047055"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-green.log",
+      "bytes": 701,
+      "sha256": "D35071A4E804960AE7426A6CA72D72F9ED01C9565E5FEF12621922A4652D5BBA"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-green.trx",
+      "bytes": 3134,
+      "sha256": "41F41E1DF47333962381311CDEBB65A4CC4E9C1FC3A6D5CF408DD5A3F79ACB15"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-mutant-build.json",
+      "bytes": 1710,
+      "sha256": "2050FCFBE48B6F8AF9247BD0E4668E97171C00C539AEFD726DFE514235BDF2B0"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-mutant-build.log",
+      "bytes": 310,
+      "sha256": "0B0E7C6CC011C24E2E2E141B2081253FDF35722F5CFDE8D7D929815A3C581386"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-red-1.json",
+      "bytes": 2169,
+      "sha256": "B82AA58398BD3FC863F4577C9457A88D70D5CDA3FDA500EF7E789D42A3EFCBCF"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-red-1.log",
+      "bytes": 882,
+      "sha256": "D8CBF45BEEF45DD3D13111E1D3561E44BCC9165436D22B383921BBB8A3795F54"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-red-1.trx",
+      "bytes": 7995,
+      "sha256": "A43D3795E7A981E5B11D2494CE1D207D3EE24913646C02E67432009269936015"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-red-2.json",
+      "bytes": 2169,
+      "sha256": "5E03D7DD822751922625FFC9D9B880C10E7360EF2AE594C2EA37F984E2DD6E9B"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-red-2.log",
+      "bytes": 882,
+      "sha256": "FA359A014A340F2E5FCFD9BCEE1E1FC3BA0B3F0E6A9B3581621E260548EB41B6"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-red-2.trx",
+      "bytes": 7995,
+      "sha256": "681C65695C044B8AB17F29DF921CA85FF1A384E08B52A87489963B12DE6A0384"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-restored-build.json",
+      "bytes": 1712,
+      "sha256": "ECFC93E9977437EC15E63ADA864B47EF0FEFECA0093D1BBC010755B2AB86EC35"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3-restored-build.log",
+      "bytes": 310,
+      "sha256": "E4E1095ED2DB2FEF1C1F39C88BD54ED3A99AB5860FAF9FD685A0959D5924BCFE"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-3.diff",
+      "bytes": 691,
+      "sha256": "753108941C1407964732A6C54E9E9C82A87DFB522B5770A396D4084A53248F72"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-green.json",
+      "bytes": 2090,
+      "sha256": "42FEE8BD47750C79BB4895A4DF1377C5B31C3F1A5984E5FAD94A161FE82CC59A"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-green.log",
+      "bytes": 701,
+      "sha256": "7A1B6A67E5255C09523BB9A457A99141F2EBD549F8ACED032206CF436F625C62"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-green.trx",
+      "bytes": 3116,
+      "sha256": "DB0F1AA0C6581B654E4BE7314793F0030575A5DA2D026C0E3685FA791A1B09E6"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-mutant-build.json",
+      "bytes": 1710,
+      "sha256": "597A7E1987B711058D8BA250C4D679240BA1D3120D174E3B7FCF8A2A528A3F65"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-mutant-build.log",
+      "bytes": 310,
+      "sha256": "A8D97389E3E18B0EDE92B70AE773456204C5320D6205545DECEEC002D111DAA9"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-red-1.json",
+      "bytes": 2157,
+      "sha256": "05BCD1FEE158835C5E2AA945EC0BE7149699C83B80F51296D347ABA0B290BAFF"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-red-1.log",
+      "bytes": 876,
+      "sha256": "59F765CD6FB2FEA5B1902F65124FE2FDF92ACC022AF262F34B7AD946ABD15C04"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-red-1.trx",
+      "bytes": 7927,
+      "sha256": "34C81ED68BE20B8101DC86EA6824F521B667D63D12C7186F6F184C66CD22E5E5"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-red-2.json",
+      "bytes": 2157,
+      "sha256": "ED50437E32FA9412F05B2235C38F99BC0B4DA7C88E5E44DA3D40E776CFC79BB0"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-red-2.log",
+      "bytes": 876,
+      "sha256": "2803E041D269120FE5A782D70E6CD833E44D8C59150FE87A1CE5AD845A10DA85"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-red-2.trx",
+      "bytes": 7927,
+      "sha256": "07CE764F385928F79FD1A89EB098DF081C9AE7C3DB52F99762334705F15CB976"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-restored-build.json",
+      "bytes": 1712,
+      "sha256": "19C308B34B1BDE3A132A54BDC18470666FB71C5155505EA6357443DC346674E9"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4-restored-build.log",
+      "bytes": 310,
+      "sha256": "913E93067463C59482AC9BD2EB1D5186881BEEB429B085EE3494695CCDFB39DB"
+    },
+    {
+      "path": "WAIT-PR-WIN-008-4.diff",
+      "bytes": 768,
+      "sha256": "16CE253E84677F3D6C236F2A0B220A051D62B8E0199C0C0EEAD878C8F5AA3A66"
+    }
+  ]
+}
