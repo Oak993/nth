@@ -2657,4 +2657,264 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         }
         finally { h.Main.OnMain(() => Close(window!)); }
     });
+
+    // ---- PR-CHAT-147: HydraBriefRow - the lead's brief to a head as a pill that reads as cooking until the head
+    // answers (:537-595). ----
+
+    private static void SetPrivate(object target, string property, object? value) =>
+        target.GetType().GetProperty(property, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.GetSetMethod(true)!.Invoke(target, [value]);
+
+    private static (HydraBriefRow Row, TimelineEntry Brief, UserMessage Message) BriefRow147(ThreadRuntimePart12Harness h, string text = "Build the thing")
+    {
+        h.Runtime.RehearseTurn(text);
+        var entry = h.Runtime.Entries.Last(candidate => candidate.TimelineEntryKind == TimelineEntry.Kind.User);
+        var message = ((TimelineItem.Content.User)entry.Item.TimelineItemContent).Value;
+        return (new HydraBriefRow(message, entry, h.Runtime), entry, message);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-147")]
+    public void A_brief_reads_as_cooking_with_the_shimmer_until_its_turn_has_output_and_then_as_the_brief() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        HydraBriefRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            row = BriefRow147(h).Row;
+            window = Show(row);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var title = TextNamed(row!, "Hank is starting to cook\U00002026"); // U+2026 HORIZONTAL ELLIPSIS
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium).Resolve().FontSize, title.FontSize);
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium).Resolve().FontWeight, title.FontWeight);
+                Assert.Equal(Resolved(ChromeTokens.PrimaryText.Opacity(0.9), title), BrushColor(title.Foreground));
+                Assert.Equal(1, title.MaxLines);
+                Assert.Equal(TextTrimming.CharacterEllipsis, title.TextTrimming);
+                // Shimmering while cooking: the text sits in the shimmer's own panel, beside its masked band layer.
+                var shimmer = Assert.IsType<Panel>(title.Parent);
+                Assert.Contains(shimmer.Children, child => child is Panel { OpacityMask: not null });
+                var glyph = Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(row!));
+                Assert.Equal(18, glyph.Size);
+                Assert.True(glyph.IsRunning);
+                Assert.Equal(8, Assert.IsType<StackPanel>(glyph.Parent).Spacing);
+                var chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(row!).Single(image => image.SymbolName == "chevron.right");
+                Assert.Equal(Resolved(ChromeTokens.SecondaryText, chevron), BrushColor(chevron.Foreground));
+                Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold), chevron.GetValue(SwiftImage.FontProperty));
+                var button = LogicalQuery.SelfAndDescendants<Button>(row!).Single();
+                Assert.Equal("Show the brief", ToolTip.GetTip(button));
+                Assert.False(button.Focusable);
+                Assert.Equal("Hank is starting to cook\U00002026", Avalonia.Automation.AutomationProperties.GetName(button));
+                var pill = LogicalQuery.SelfAndDescendants<Border>(row!).First(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical));
+                Assert.Equal(Resolved(ChromeTokens.Accent.Opacity(0.1), pill), BrushColor(pill.Background));
+                Assert.Equal(new CornerRadius(TimelineMetrics.PillRadius), pill.CornerRadius);
+                Assert.Equal(HorizontalAlignment.Right, pill.HorizontalAlignment);
+                Assert.Equal(HorizontalAlignment.Right, LogicalQuery.SelfAndDescendants<StackPanel>(row!).First().HorizontalAlignment);
+                Assert.Equal(new Thickness(96, 0, 0, 0), row!.Padding);
+                h.Runtime.Rehearse(new ProviderEvent.ToolStarted("tool-1", Call(ToolCall.Kind.Read, "Read a", ToolCall.Status.Running)));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                // The head has answered: straight apostrophe, no shimmer, the glyph at rest.
+                var title = TextNamed(row!, "Hank's brief");
+                Assert.IsType<StackPanel>(title.Parent);
+                Assert.False(Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(row!)).IsRunning);
+                Assert.Equal("Hank's brief", Avalonia.Automation.AutomationProperties.GetName(LogicalQuery.SelfAndDescendants<Button>(row!).Single()));
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-147")]
+    public void A_brief_in_a_thread_that_is_not_running_never_reads_as_cooking() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        HydraBriefRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            row = BriefRow147(h).Row;
+            SetPrivate(h.Runtime, "Phase", RuntimePhase.Idle);
+            window = Show(row);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                TextNamed(row!, "Hank's brief");
+                Assert.False(Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(row!)).IsRunning);
+                // And when the thread starts running with nothing produced, it cooks.
+                SetPrivate(h.Runtime, "Phase", RuntimePhase.Running);
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                TextNamed(row!, "Hank is starting to cook\U00002026");
+                Assert.True(Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(row!)).IsRunning);
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-147")]
+    public void The_brief_belongs_to_the_threads_own_head_and_falls_back_to_the_first_place_in_the_roster() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        var second = HydraRoster.Persona(1).Name;
+        Assert.NotEqual(HydraRoster.Persona(0).Name, second);
+        HydraBriefRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            h.App.UpdateThread(h.Thread.Id, thread => thread with { Hydra = new HydraHeadInfo(1, "the task", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) });
+            row = BriefRow147(h).Row;
+            window = Show(row);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                TextNamed(row!, second + " is starting to cook\U00002026");
+                Assert.Equal(second, Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(row!)).Persona.Name);
+                // The thread stops being a head: the row follows it back to the first place.
+                h.App.UpdateThread(h.Thread.Id, thread => thread with { Hydra = null });
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                TextNamed(row!, HydraRoster.Persona(0).Name + " is starting to cook\U00002026");
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-147")]
+    public void The_output_scan_is_replayed_until_the_entry_count_moves() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        HydraBriefRow? row = null;
+        AvaloniaWindow? window = null;
+        TimelineEntry? brief = null;
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            brief = BriefRow147(h).Brief;
+            h.Runtime.Rehearse(new ProviderEvent.ToolStarted("tool-1", Call(ToolCall.Kind.Read, "Read a", ToolCall.Status.Running)));
+            Assert.Equal(2, h.Runtime.Entries.Count);
+            SetPrivate(h.Runtime, "Phase", RuntimePhase.Idle);
+            row = new HydraBriefRow(((TimelineItem.Content.User)brief.Item.TimelineItemContent).Value, brief, h.Runtime);
+            window = Show(row);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                TextNamed(row!, "Hank's brief"); // scanned at two entries: the tool shares the brief's turn
+                // The same two entries in count, but the second one no longer belongs to the brief's turn ...
+                SetPrivate(h.Runtime, "Entries", new ValueList<TimelineEntry>([brief!, Reply("elsewhere")]));
+                // ... and the thread starts running, which rebuilds the row without the count having moved.
+                SetPrivate(h.Runtime, "Phase", RuntimePhase.Running);
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                TextNamed(row!, "Hank's brief"); // replayed, not scanned again
+                // The count moves: scanned afresh, and nothing shares the brief's turn now.
+                SetPrivate(h.Runtime, "Entries", new ValueList<TimelineEntry>([brief!]));
+            });
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                TextNamed(row!, "Hank is starting to cook\U00002026");
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-147")]
+    public void A_brief_with_no_turn_of_its_own_has_no_output_even_when_other_entries_have_none_either() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        HydraBriefRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            var brief = new TimelineEntry(new TimelineItem(null, new TimelineItem.Content.User(new UserMessage { Text = "brief" })));
+            var other = new TimelineEntry(new TimelineItem(null, new TimelineItem.Content.User(new UserMessage { Text = "other" })));
+            h.Runtime.RehearseTurn(null); // running, so a brief with no output reads as cooking
+            SetPrivate(h.Runtime, "Entries", new ValueList<TimelineEntry>([brief, other]));
+            row = new HydraBriefRow(((TimelineItem.Content.User)brief.Item.TimelineItemContent).Value, brief, h.Runtime);
+            window = Show(row);
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                TextNamed(row!, "Hank is starting to cook\U00002026");
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-147")]
+    public void Tapping_the_brief_pill_opens_the_full_brief() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        HydraBriefRow? row = null;
+        AvaloniaWindow? window = null;
+        h.Main.Loop.Run(() => h.Runtime.EnsureLoaded(), AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            _ = AppCurrentEvent.CurrentWindow; // warms the lazy event subscription before Show presses its key
+            h.App.UpdateThread(h.Thread.Id, thread => thread with { Hydra = new HydraHeadInfo(1, "the task", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) });
+            row = BriefRow147(h, "Build the thing, in full").Row;
+            window = Show(row);
+            Press(LogicalQuery.SelfAndDescendants<Button>(row).Single());
+        });
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                Settle(window!);
+                var shown = Assert.Single(presenter.Calls, call => call.Presented);
+                var popover = Assert.Single(LogicalQuery.SelfAndDescendants<HydraBriefPopover>(shown.Popup.Child!));
+                Assert.Equal("Build the thing, in full", popover.Text);
+                Assert.Equal("the task", popover.Task);
+                Assert.Equal(HydraRoster.Persona(1).Name, popover.Persona.Name);
+            });
+        }
+        finally { h.Main.OnMain(() => Close(window!)); }
+    });
 }
