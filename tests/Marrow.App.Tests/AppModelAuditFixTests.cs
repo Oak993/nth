@@ -437,6 +437,29 @@ public sealed class AppModelAuditFixTests
         Assert.Null(h.Main.OnMain(() => model.AppModelArchiveRequest));
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-094")] // AppModel.swift:902-912
+    public void Asking_to_archive_an_empty_loaded_thread_deletes_it_without_a_question()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("empty-thread"));
+        var empty = AppModelSamples.Thread(project);
+        var other = AppModelSamples.Thread(project);
+        h.WriteLibrary([project], [empty, other]);
+        var model = h.MakeModel();
+        var runtime = h.Main.OnMain(() => model.Runtime(empty.Id));
+        h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+
+        h.Main.OnMain(() =>
+        {
+            model.SelectedThreadID = empty.Id;
+            model.AskToArchiveSelectedThread();
+
+            Assert.Null(model.AppModelArchiveRequest);
+            Assert.Null(model.Thread(empty.Id));
+        });
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
