@@ -257,7 +257,8 @@ public sealed class WallpaperCard : Decorator
             Height = PreviewHeight, // :33
             HorizontalAlignment = HorizontalAlignment.Stretch, // :32
         };
-        image.Track(() => store.Image, bitmap => image.Source = bitmap);
+        // :28-29 the outgoing picture keeps the image it had resolved while it scales and fades out (:59 transition).
+        image.Track(() => store.Image, bitmap => { if (bitmap is not null) image.Source = bitmap; });
         var clipped = new Border { Child = image, ClipToBounds = true, Height = PreviewHeight };
         clipped.RoundedRectangle(12, RoundedCornerStyle.Continuous); // :34
 
