@@ -676,11 +676,11 @@ public static partial class Storage
             if (referenced.Contains(name)) continue; // :142
             if (!OrphanFileNamePattern().IsMatch(name)) continue; // :143, wholeMatch
             var url = SwiftPath.AppendingPathComponent(attachmentsDirectory, name); // :144
-            if (!File.Exists(url)) continue; // :145 a modification date that cannot be read is skipped and kept.
+            if (!File.Exists(url) && !Directory.Exists(url)) continue; // :145 a modification date that cannot be read is skipped and kept; a folder has one too.
             DateTimeOffset modified;
             try
             {
-                modified = new DateTimeOffset(File.GetLastWriteTimeUtc(url), TimeSpan.Zero); // :145, contentModificationDateKey
+                modified = new DateTimeOffset(File.GetLastWriteTimeUtc(url), TimeSpan.Zero); // :145, contentModificationDateKey (File.GetLastWriteTimeUtc reads a folder's too)
             }
             catch (Exception e) when (SwiftTry.IsThrownError(e))
             {
