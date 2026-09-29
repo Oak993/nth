@@ -48,4 +48,17 @@ public sealed class SettingsViewAuditTests(HeadlessSession headless) : SettingsR
         Assert.True(read());
     });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-022")] // SettingsView.swift:216-267 the page's ScrollView identity depends only on the page: restoring a row keeps it
+    public void Restoring_an_archived_thread_keeps_the_pages_scroll_view() => With(() => new SettingsView(), (view, model, _, window) =>
+    {
+        SettingsNavigation.Shared.RequestedPage = SettingsPage.Archive; Drain(window);
+        var detail = Field<Border>(view, "detail");
+        var scroll = Nodes<ScrollViewer>(detail).First();
+        Assert.Equal(2, model.ArchivedThreads.Count);
+        model.Unarchive(model.ArchivedThreads[0].Id); Drain(window);
+        Assert.Single(model.ArchivedThreads);
+        Assert.Same(scroll, Nodes<ScrollViewer>(detail).First());
+    }, before: h => Library(h, 2));
+
 }
