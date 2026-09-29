@@ -49,7 +49,7 @@ public sealed partial class AppModel : MainActorModel
             for (var index = 0; index < threads.Count; index++)
             {
                 var thread = threads[index];
-                positions[thread.Id] = index;
+                positions.TryAdd(thread.Id, index); // AppModel.swift:57 `if positions[thread.id] == nil`: the first position stands
                 if (!projects.TryGetValue(thread.ProjectID, out var indices)) projects[thread.ProjectID] = indices = [];
                 indices.Add(index);
             }
