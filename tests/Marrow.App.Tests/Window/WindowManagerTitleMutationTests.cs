@@ -13,6 +13,38 @@ namespace Marrow.App.Tests.Window;
 [Collection("Headless")]
 public sealed class WindowManagerTitleMutationTests(HeadlessSession headless)
 {
+    // STOP NAME-FALLBACK: WIN.json PR-WIN-009 says absent metadata becomes Marrow,
+    // but Core/Support/Text.cs:31-32 and the unchanged Core oracle require Droppy Code.
+    // Factory/peer coverage protects that oracle; it does not resolve the specification conflict.
+    [Fact]
+    [Trait("Req", "PR-WIN-009")] // WindowManager.swift:63,97; preserve the existing Core fallback through the real factory.
+    public void Missing_display_name_metadata_reaches_the_main_window_and_managed_peer_as_Droppy_Code() => WindowManagerMutationScope.Run(headless, (_, manager) =>
+    {
+        using var info = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?>(), isDevelopment: true));
+        manager.ShowMain();
+        var window = Assert.IsType<ThreadWindow>(manager.MainWindow);
+        Assert.Equal("Droppy Code", window.Title);
+        var peer = ControlAutomationPeer.CreatePeerForElement(window);
+        Assert.NotNull(peer);
+        Assert.Equal("Droppy Code", peer.GetName());
+    });
+
+    [Fact]
+    [Trait("Req", "PR-WIN-009")] // WindowManager.swift:63,97; a non-string is not a usable display name.
+    public void Wrong_type_display_name_metadata_reaches_the_main_window_and_managed_peer_as_Droppy_Code() => WindowManagerMutationScope.Run(headless, (_, manager) =>
+    {
+        using var info = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?>
+        {
+            ["CFBundleDisplayName"] = false,
+        }, isDevelopment: true));
+        manager.ShowMain();
+        var window = Assert.IsType<ThreadWindow>(manager.MainWindow);
+        Assert.Equal("Droppy Code", window.Title);
+        var peer = ControlAutomationPeer.CreatePeerForElement(window);
+        Assert.NotNull(peer);
+        Assert.Equal("Droppy Code", peer.GetName());
+    });
+
     [Fact]
     [Trait("Req", "PR-WIN-009")]
     public void The_main_window_and_its_accessibility_peer_use_the_supplied_display_name_not_a_literal() => WindowManagerMutationScope.Run(headless, (_, manager) =>

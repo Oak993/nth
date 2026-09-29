@@ -2,6 +2,7 @@ using System.Runtime.InteropServices;
 using Avalonia.Controls;
 using Marrow.App.Port;
 using Marrow.App.Window;
+using Marrow.Core.Support;
 using Xunit;
 using N = Marrow.App.Tests.Window.Native.WindowManagerNativeMethods;
 
@@ -17,6 +18,34 @@ namespace Marrow.App.Tests.Window.Native;
 [Collection("WindowManagerNative")]
 public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
 {
+    [Fact]
+    [Trait("Req", "PR-WIN-009")] // WindowManager.swift:26-30,63,97; native title transport on an owned factory window.
+    public void The_main_factory_publishes_the_injected_Unicode_display_name_to_its_own_HWND()
+    {
+        native.Run(subject => native.OnUi(() =>
+        {
+            const string displayName = "Native window proof \U000003A9 007";
+            using var info = AppInfo.Running.Override(AppInfo.Read(new Dictionary<string, object?>
+            {
+                ["CFBundleDisplayName"] = displayName,
+            }, isDevelopment: true));
+            var manager = new WindowManager { MainContent = () => new Border() };
+            manager.ShowMain();
+            var made = manager.MainWindow ?? throw new InvalidOperationException("ShowMain did not retain its factory window.");
+            native.Register(made);
+            var window = Assert.IsType<ThreadWindow>(made);
+            window.ShowInTaskbar = false;
+            var handle = window.TryGetPlatformHandle();
+            Assert.NotNull(handle);
+            Assert.NotEqual((nint)0, handle.Handle);
+            N.RequireOwner(handle.Handle);
+            Assert.Equal(native.ThreadId, N.GetWindowThreadProcessId(handle.Handle, out _));
+            Assert.True(N.IsWindowVisible(handle.Handle));
+            Assert.Equal(displayName, window.Title);
+            Assert.Equal(displayName, WindowManagerNativeTitle.ReadOnOwnerThread(handle.Handle));
+        }));
+    }
+
     [Fact]
     [Trait("Req", "PR-WIN-007")] // WindowManager.swift:93-101; ED-063 actual caption toggle.
     public void Actual_maximize_caption_click_then_a_second_click_restores_the_main_window()

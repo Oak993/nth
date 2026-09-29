@@ -2,6 +2,13 @@
   "record": "PR-WIN-009",
   "archives": [
     {
+      "original_directory": "_packet/revision/evidence/final-gap-pr-win-009-2026-09-29T15-58-45-786Z-6dde28",
+      "archive": "_packet/revision/evidence-archives/final-gap-pr-win-009-2026-09-29T15-58-45-786Z-6dde28.zip",
+      "archive_sha256": "160CF6DD34AC993D937D2453216425F2C62863839FF089161C6D5A1CB21A03F2",
+      "manifest": "_packet/revision/evidence-archives/final-gap-pr-win-009-2026-09-29T15-58-45-786Z-6dde28.zip.json",
+      "file_count": 70
+    },
+    {
       "original_directory": "_packet/revision/evidence/pr-win-009-original-2026-09-29T14-24-18-538Z-43799a",
       "archive": "_packet/revision/evidence-archives/pr-win-009-original-2026-09-29T14-24-18-538Z-43799a.zip",
       "archive_sha256": "44423A71E1AB900F9A64ADF66E86550D6B2D3DBB0D6A006280AC6609A415DD73",
@@ -16,11 +23,11 @@
       "file_count": 113
     },
     {
-      "original_directory": "_packet/revision/evidence/pr-win-009-record-gate-2026-09-29T14-24-47-980Z-c56fc0",
-      "archive": "_packet/revision/evidence-archives/pr-win-009-record-gate-2026-09-29T14-24-47-980Z-c56fc0.zip",
-      "archive_sha256": "81E36427B05A33028FA57B765BC3EDF3602C3342D66FB5A5A2FD6648C3EB599B",
-      "manifest": "_packet/revision/evidence-archives/pr-win-009-record-gate-2026-09-29T14-24-47-980Z-c56fc0.zip.json",
-      "file_count": 3
+      "original_directory": "_packet/revision/evidence/supplement-gate-pr-win-009-2026-09-29T16-06-47-215Z-8bc23e",
+      "archive": "_packet/revision/evidence-archives/supplement-gate-pr-win-009-2026-09-29T16-06-47-215Z-8bc23e.zip",
+      "archive_sha256": "A9DCBBF1446613CF353DB9DAD40774F3777CD02DF261E9561187205A9EC0CCEE",
+      "manifest": "_packet/revision/evidence-archives/supplement-gate-pr-win-009-2026-09-29T16-06-47-215Z-8bc23e.zip.json",
+      "file_count": 12
     }
   ]
 }
