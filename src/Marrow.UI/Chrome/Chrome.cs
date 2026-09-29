@@ -1144,6 +1144,12 @@ namespace Marrow.UI.Chrome
         {
             protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this, isSelected);
 
+            // :730 the row is a Button: accessibility activation runs its action, as a click does.
+            internal void Activate()
+            {
+                if (IsEffectivelyEnabled) OnClick();
+            }
+
             private sealed class Peer(Control owner, bool isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
             {
                 protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
@@ -1152,7 +1158,7 @@ namespace Marrow.UI.Chrome
                 void ISelectionItemProvider.AddToSelection() { }
                 void ISelectionItemProvider.RemoveFromSelection() { }
                 void ISelectionItemProvider.Select() { }
-                void IInvokeProvider.Invoke() => ((Button)Owner).Focus();
+                void IInvokeProvider.Invoke() => ((SelectableButton)Owner).Activate();
             }
         }
 
@@ -1557,6 +1563,50 @@ namespace Marrow.UI.Chrome
         }
     }
 
+    /// <summary>PORT-ONLY: the ChromeSection header <c>HStack(spacing: 4)</c> (:1039-1048) with its <c>Spacer(minLength: 8)</c>
+    /// before the trailing control. Still a horizontal StackPanel to every caller: the heading and accessory keep their
+    /// natural widths from the leading edge, the trailing control is placed at the far edge, and the heading (a Text
+    /// with no lineLimit) is given what is left, so it wraps instead of running under the trailing control.</summary>
+    internal sealed class ChromeSectionHeaderPanel : StackPanel
+    {
+        /// <summary>:1046 the trailing control, when the section has one.</summary>
+        public Control? Trailing { get; set; }
+
+        protected override Size MeasureOverride(Size availableSize)
+        {
+            var visible = Children.Where(c => c.IsVisible).ToList();
+            var others = visible.Where(c => !ReferenceEquals(c, visible[0])).ToList();
+            double used = 0, height = 0;
+            foreach (var child in others)
+            {
+                child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+                used += child.DesiredSize.Width;
+                height = Math.Max(height, child.DesiredSize.Height);
+            }
+            if (visible.Count == 0) return default;
+            var lead = visible[0];
+            var gaps = Spacing * (visible.Count - 1);
+            var room = double.IsInfinity(availableSize.Width) ? double.PositiveInfinity : Math.Max(0, availableSize.Width - used - gaps);
+            lead.Measure(new Size(room, availableSize.Height));
+            height = Math.Max(height, lead.DesiredSize.Height);
+            return new Size(lead.DesiredSize.Width + used + gaps, height);
+        }
+
+        protected override Size ArrangeOverride(Size finalSize)
+        {
+            var visible = Children.Where(c => c.IsVisible).ToList();
+            double x = 0;
+            foreach (var child in visible)
+            {
+                var size = child.DesiredSize;
+                var left = ReferenceEquals(child, Trailing) ? Math.Max(x, finalSize.Width - size.Width) : x;
+                child.Arrange(new Rect(left, Math.Max(0, (finalSize.Height - size.Height) / 2), size.Width, size.Height));
+                x = left + size.Width + Spacing;
+            }
+            return finalSize;
+        }
+    }
+
     // MARK: - Cards
 
     // :1006-1027 struct ChromeCard<Content: View>: View. B3 (PR-WIN-202, UI-WIN-052) adds `lazy: Bool = false`
@@ -1599,17 +1649,19 @@ namespace Marrow.UI.Chrome
         // accessory 4 points after it, an optional trailing control pushed to the far right, content 10 points below.
         public ChromeSection(string title, Func<Control> content, Control? accessory = null, Control? trailing = null)
         {
-            var heading = new TextBlock { Text = title, MaxLines = 1 }; // :1040
+            var heading = new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap }; // :1040 no lineLimit: a long title wraps
             SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1041
             heading.Foreground = Chrome.SecondaryText.Brush(heading); // :1042
-            var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; // :1039 HStack(spacing: 4)
+            var header = new ChromeSectionHeaderPanel { Orientation = Orientation.Horizontal, Spacing = 4 }; // :1039 HStack(spacing: 4)
             header.Children.Add(heading);
             if (accessory is not null) header.Children.Add(accessory); // :1043
             if (trailing is not null)
             {
                 trailing.Margin = new Thickness(8, 0, 0, 0); // :1045 Spacer(minLength: 8)
                 header.Children.Add(trailing); // :1046
+                header.Trailing = trailing;
             }
+            foreach (var part in header.Children) part.VerticalAlignment = VerticalAlignment.Center;
             var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = Chrome.SectionHeaderSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1038, :1050
             stack.Children.Add(header);
             stack.Children.Add(content()); // :1049
@@ -1628,7 +1680,7 @@ namespace Marrow.UI.Chrome
         // at the trailing edge.
         public ChromeRow(string title, Func<Control> control, string? detail = null)
         {
-            var titleText = new TextBlock { Text = title }; // :1064-1065
+            var titleText = new TextBlock { Text = title, TextWrapping = TextWrapping.Wrap }; // :1064-1065 normal Text wrapping
             SwiftFont.System(SwiftFont.TextStyle.Body).Apply(titleText); // :1064
             titleText.Foreground = Chrome.PrimaryText.Brush(titleText); // :1065
             var textStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, HorizontalAlignment = HorizontalAlignment.Left }; // :1063, :1066

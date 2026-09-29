@@ -201,7 +201,7 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
     {
         var button = Assert.IsType<Button>(item.Child);
         var background = Assert.IsType<Border>(button.Content);
-        var row = Assert.IsType<StackPanel>(background.Child);
+        var row = Assert.IsAssignableFrom<StackPanel>(background.Child);
         var title = Assert.IsType<MiddleTruncatingText>(row.Children[1]); // [0] is the 16pt leading glyph column
         return title.FullText;
     }
