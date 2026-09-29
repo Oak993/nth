@@ -77,4 +77,23 @@ public sealed class TokenActivitySectionAuditTests(HeadlessSession headless)
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     });
 
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-025")] // TokenActivitySection.swift:163-169 accessibilityLabel "Token activity" and a separate accessibilityValue
+    public void The_legend_exposes_label_and_value_separately() => headless.OnUiThread(() =>
+    {
+        using var scope = TokenActivityTestScope.Create();
+        var section = new TokenActivitySection(); var window = Show(section);
+        try
+        {
+            var less = section.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "Less");
+            var row = less.GetVisualAncestors().OfType<Grid>().First(g => AutomationProperties.GetName(g) is { Length: > 0 });
+            Assert.Equal("Token activity", AutomationProperties.GetName(row));
+            var summary = section.GetVisualDescendants().OfType<TextBlock>().First(t => t.Parent == row && t != less && t.Text is { Length: > 0 } && t.Text != "More");
+            var value = ControlAutomationPeer.CreatePeerForElement(row).GetProvider<IValueProvider>();
+            Assert.NotNull(value);
+            Assert.Equal(summary.Text, value!.Value);
+            Assert.True(value.IsReadOnly);
+        }
+        finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+    });
 }

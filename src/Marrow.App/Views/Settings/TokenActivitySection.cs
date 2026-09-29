@@ -357,6 +357,22 @@ public sealed class TokenActivitySection : Decorator
         }
     }
 
+    /// <summary>:148-172 the legend as one accessibility element: label "Token activity" plus a separate value
+    /// (UIA Value pattern, the convention ContextMeter established for .accessibilityValue).</summary>
+    private sealed class LegendRow : Grid
+    {
+        internal string SpokenValue { get; set; } = "";
+
+        protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this);
+
+        private sealed class Peer(LegendRow owner) : ControlAutomationPeer(owner), IValueProvider
+        {
+            public string Value => owner.SpokenValue;
+            public bool IsReadOnly => true;
+            public void SetValue(string? value) => throw new InvalidOperationException("The legend value is read-only.");
+        }
+    }
+
     private static readonly Avalonia.Controls.Templates.FuncControlTemplate<Button> PlainButtonTemplate = new((btn, scope) =>
         new Avalonia.Controls.Presenters.ContentPresenter
         {
@@ -599,6 +615,7 @@ public sealed class TokenActivitySection : Decorator
         var (summary, detail, value) = TokenActivityFormat.Legend(total, uncertainTokens); // :142-146, :169-171
         legendSummary.Text = summary;
         ToolTip.SetTip(legendSummary, detail); // :153 .help(detail)
-        AutomationProperties.SetName(legendRow, $"Token activity. {value}"); // :168-171
+        AutomationProperties.SetName(legendRow, "Token activity"); // :168 accessibilityLabel
+        ((LegendRow)legendRow).SpokenValue = value; // :169-171 accessibilityValue
     }
 }
