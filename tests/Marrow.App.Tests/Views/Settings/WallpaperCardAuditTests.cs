@@ -61,4 +61,14 @@ public sealed class WallpaperCardAuditTests(HeadlessSession headless)
         Assert.NotEqual(DragDropEffects.Copy, over.DragEffects);
     });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-145")] // WallpaperCard.swift:133-139 the slider binding getter returns the current store value
+    public void A_very_small_external_softness_change_is_reflected_by_the_slider() => headless.OnUiThread(() => {
+        using var scope = new WallpaperCardScope();
+        scope.InstallAndSettle(PictureFiles.Png(PictureFiles.Folder(), "a.png"));
+        var slider = CardQuery.All<Slider>(scope.Card).Single();
+        scope.Store.Softness = 0.4; scope.Pump();
+        scope.Store.Softness = 0.40005; scope.Pump();
+        Assert.Equal(0.40005, slider.Value, 8);
+    });
 }
