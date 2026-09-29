@@ -5,6 +5,7 @@ using Avalonia.Layout;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Marrow.Testing;
+using Marrow.UI.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Tests.Fixtures;
 
@@ -97,6 +98,38 @@ public sealed class PopoversAuditTests(HeadlessSession headless)
         var detail = Assert.Single(VisualQuery.Descendants<TextBlock>(item), t => t.Text == "⌘R");
         var gap = detail.TranslatePoint(new Point(0, 0), item)!.Value.X - title.TranslatePoint(new Point(title.Bounds.Width, 0), item)!.Value.X;
         Assert.Equal(16 + 8 + 8, gap);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-106")] // UI/Chrome/Popovers.swift:242-255,307-311: a styled title still goes through lineLimit(1) and truncationMode(.middle)
+    public void PopoverItem_styled_title_is_middle_truncated_to_the_row_width() => headless.OnUiThread(() =>
+    {
+        var styled = new StyledText("Open ").FontWeight(SwiftFont.Weight.Bold) + new StyledText("a very long file name that cannot fit in the row.txt");
+        var item = new PopoverItem("Open", styled, () => { });
+        var window = Show(item, 160);
+        item.HorizontalAlignment = HorizontalAlignment.Stretch;
+        window.UpdateLayout();
+        var title = Assert.Single(VisualQuery.Descendants<MiddleTruncatingText>(item));
+        Assert.True(title.Bounds.Width <= 160 - 16, $"title is {title.Bounds.Width} wide");
+        var shown = string.Concat(title.Inlines!.OfType<Avalonia.Controls.Documents.Run>().Select(r => r.Text));
+        Assert.StartsWith("Open ", shown, StringComparison.Ordinal);
+        Assert.Contains("…", shown, StringComparison.Ordinal);
+        Assert.EndsWith(".txt", shown, StringComparison.Ordinal);
+        window.Close();
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-106")] // UI/Chrome/Popovers.swift:307-311: a plain title is middle truncated to the row width (the styled title's control)
+    public void PopoverItem_plain_title_is_middle_truncated_to_the_row_width() => headless.OnUiThread(() =>
+    {
+        var item = new PopoverItem("Open a very long file name that cannot fit in the row.txt", () => { });
+        var window = Show(item, 160);
+        item.HorizontalAlignment = HorizontalAlignment.Stretch;
+        window.UpdateLayout();
+        var title = Assert.Single(VisualQuery.Descendants<MiddleTruncatingText>(item));
+        Assert.True(title.Bounds.Width <= 160 - 16, $"title is {title.Bounds.Width} wide");
+        Assert.Contains("…", title.Text, StringComparison.Ordinal);
         window.Close();
     });
 }

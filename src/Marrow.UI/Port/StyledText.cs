@@ -49,6 +49,9 @@ public sealed class StyledText
 
     private StyledText(Run[] runs) => this.runs = Array.AsReadOnly(runs);
 
+    // A value made of the given runs, as Text + Text would be.
+    public static StyledText FromRuns(IEnumerable<Run> runs) => new(runs.ToArray());
+
     // ED-092(3): callers can inspect but cannot mutate the sequence or any of its run values.
     public IReadOnlyList<Run> Runs => runs;
 
