@@ -1,0 +1,82 @@
+{
+  "original_directory": "_packet/revision/evidence/lifecycle-pr-win-006-2026-09-29T15-47-54-717Z-185cbf",
+  "archive": "_packet/revision/evidence-archives/lifecycle-pr-win-006-2026-09-29T15-47-54-717Z-185cbf.zip",
+  "archive_sha256": "458AD680D202DB351F8308AEF003A9F6777A10C2EAD7A658817559BC72F64916",
+  "files": [
+    {
+      "path": "OWN-WIN006-13-green.json",
+      "bytes": 2065,
+      "sha256": "DA984BA0FC2CA24CB26A9F2F24F25F099440AAE1986787935A4912895C86A9E8"
+    },
+    {
+      "path": "OWN-WIN006-13-green.log",
+      "bytes": 702,
+      "sha256": "D3B04BD616AD14E9FBAD9AA79E12D0DF0B2F814855D76A2E218CCB05893D3C28"
+    },
+    {
+      "path": "OWN-WIN006-13-green.trx",
+      "bytes": 3083,
+      "sha256": "25895C8F21FF8075FABDB83709D577A77CFC7E600F6573F42AF3E9C73F09376B"
+    },
+    {
+      "path": "OWN-WIN006-13-mutant-build.json",
+      "bytes": 1706,
+      "sha256": "398B7CD4F8B308CC5D3EC8FBC1F734347478EB807EE552783EBBAE8FE2C01485"
+    },
+    {
+      "path": "OWN-WIN006-13-mutant-build.log",
+      "bytes": 310,
+      "sha256": "A43FB7DDB82EC8DFFE97BABE387ADAEB0D1D74C79417E19F02026F306C6D9592"
+    },
+    {
+      "path": "OWN-WIN006-13-red-1.json",
+      "bytes": 2178,
+      "sha256": "661680A9CAC6F6A82A71919D0472BA6649C003B36C59DF337AB04B721A338C4A"
+    },
+    {
+      "path": "OWN-WIN006-13-red-1.log",
+      "bytes": 866,
+      "sha256": "E0E5EB24E4D8DAC55682FB8F00DC317F60638A02334485D0C88D14F8C3E6B390"
+    },
+    {
+      "path": "OWN-WIN006-13-red-1.trx",
+      "bytes": 7911,
+      "sha256": "8F727240AF190240E7E44E737662EA9408E2E885BE36995C31F5B5673358AAF4"
+    },
+    {
+      "path": "OWN-WIN006-13-red-2.json",
+      "bytes": 2178,
+      "sha256": "C354F09C5BB7B48DDBF9339E1B4E279BB1821E0DE3214EC6A6D882A406A67AC3"
+    },
+    {
+      "path": "OWN-WIN006-13-red-2.log",
+      "bytes": 866,
+      "sha256": "D9E80CE18B0CEAFBDC04C945961AB1771DACA06FDB48BF1C7D8735BEA6AC8E9F"
+    },
+    {
+      "path": "OWN-WIN006-13-red-2.trx",
+      "bytes": 7911,
+      "sha256": "A1209BD74A27EE3B56D01E38A0D30CC3467BE062608A4AFBF674E9CDA6233A62"
+    },
+    {
+      "path": "OWN-WIN006-13-restored-build.json",
+      "bytes": 1708,
+      "sha256": "C4ECB725FBE4B5A626592D89B2287E489B88AC9AB9EC6F7486B26EF6AE2B2129"
+    },
+    {
+      "path": "OWN-WIN006-13-restored-build.log",
+      "bytes": 310,
+      "sha256": "84BF4B9F236B465BA655F2A4B9531944F3BA0D99B662951F8A7CD44C8B2DC2B2"
+    },
+    {
+      "path": "OWN-WIN006-13.diff",
+      "bytes": 767,
+      "sha256": "098397E7F448D03C4887C690245029F7719D67C031C8082510E4DA66C50122D9"
+    },
+    {
+      "path": "results.json",
+      "bytes": 12380,
+      "sha256": "CA1B82449C9174870F31940C11A4614D2565C8B2CB7A8D9674F162F3B5C4D5A7"
+    }
+  ]
+}

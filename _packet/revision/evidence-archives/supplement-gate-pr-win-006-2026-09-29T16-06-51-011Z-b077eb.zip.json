@@ -1,0 +1,162 @@
+{
+  "original_directory": "_packet/revision/evidence/supplement-gate-pr-win-006-2026-09-29T16-06-51-011Z-b077eb",
+  "archive": "_packet/revision/evidence-archives/supplement-gate-pr-win-006-2026-09-29T16-06-51-011Z-b077eb.zip",
+  "archive_sha256": "FA3A8112099EC02E06739780553AB6A98B7E7B921876446330AD4E2E6C7F052E",
+  "files": [
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/child.log",
+      "bytes": 199,
+      "sha256": "765828B369F1D7BD4A0B1E3104DFEB6110EDDD9F84A52746D466E4ED4C2EF064"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/invocation.json",
+      "bytes": 916,
+      "sha256": "2DCB72A7E9BA9FFA13F91D10929402FAC5A68FDFF917AA9C4CDF3E5815BE4FF5"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/output-store.bin",
+      "bytes": 150,
+      "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/parent-result.json",
+      "bytes": 2259,
+      "sha256": "EB813E1AC9E2F2FEE4B4354FC7C72BF6A2949D33661D99B83191CA7B2D280A7C"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/permit.json",
+      "bytes": 1189,
+      "sha256": "8BC2C1C7B9DDCC3C67F3577D803025665AC2313A19197205AB2A13ED43DB551D"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/phase-result.json",
+      "bytes": 1596,
+      "sha256": "550B2B1F958C0A7133C60347181ECB8D9B2884EC6B3D0174C567C3E26AEB8AA4"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/ready.json",
+      "bytes": 1176,
+      "sha256": "5AC6DD9AB25F4C4E947F456593B8110B8822137891D85AB27982839946B0CE42"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/request.json",
+      "bytes": 324,
+      "sha256": "46FD263C2BD17C6F2B2850CCBE9325A219FCEE0A29482A7D3A44E50ED4763D89"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/restart-request.json",
+      "bytes": 903,
+      "sha256": "87DE00C5AD3E83F5F733B4EB1EE8B2DECC3F61563E1E8C4ED315CC91F692BAA4"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/results/child.trx",
+      "bytes": 3094,
+      "sha256": "8B35A9AE0C615ACE013D0396487E5785591AEE2F65B0CC097D1BDD775CB4718A"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/runner.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "children/tests/marrow-window-process-0c37e25c47d6450898aa446bdeb6ae09/runner.stdout.log",
+      "bytes": 914,
+      "sha256": "D97271C904525DFE74B80A0F2D0C8039E67BAB2B8D12D2196194B9516A63533D"
+    },
+    {
+      "path": "children/tests/marrow-window-process-82d58566b7e142b78417e935f1728b2d/phase-1-complete.json",
+      "bytes": 1685,
+      "sha256": "703E2ECE7A95C709629F4566635D4C3DA20845951DF94A6BF93ABBAD982F96A7"
+    },
+    {
+      "path": "children/tests/marrow-window-process-82d58566b7e142b78417e935f1728b2d/restart-result.json",
+      "bytes": 4318,
+      "sha256": "9040569114737C0B5DBDFFCCCA924D3EA36106EDB046E0113928CF7EE14651BD"
+    },
+    {
+      "path": "children/tests/marrow-window-process-82d58566b7e142b78417e935f1728b2d/restart-root.json",
+      "bytes": 789,
+      "sha256": "AE2EB7A41370B8B1FDC11563ADDE30176DAC0C58AAEAB000AD25C47435AF5698"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/child.log",
+      "bytes": 176,
+      "sha256": "C9B7CAA23AF15E47D2C368B6C2BF5F6829DDB82E5B740AF8E77C4278E505A9F0"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/input-store.bin",
+      "bytes": 150,
+      "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/invocation.json",
+      "bytes": 916,
+      "sha256": "EAA1F924DC94D66A78ED29B06B506DB2C161F50521592AE890CA4B21684183EE"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/output-store.bin",
+      "bytes": 150,
+      "sha256": "EF573C278F5AD08703DFFC4158EF3758599996E2D6FD8D039ED29CB41A9EDD79"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/parent-result.json",
+      "bytes": 2392,
+      "sha256": "53EF42B8CE241C208E8EA84EACD5014101C7C61623E5D99193C7F4B2F18251D9"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/permit.json",
+      "bytes": 1255,
+      "sha256": "CC5CF018895CAD4ED08D7973B17DF73831F3C38723DE2C00CB00A670B3F274E8"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/phase-result.json",
+      "bytes": 1727,
+      "sha256": "BC29F0AD4ED82825DC8331C3A5A979642C57417BC4F6158E27C8609F48486805"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/ready.json",
+      "bytes": 1242,
+      "sha256": "C5A7E412DB9DCB148A51B28C372515E101556E763F9987F4E74302A1517FDD73"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/request.json",
+      "bytes": 324,
+      "sha256": "45CA694EEBB1CEFB7CC10B5187B63F00D03AD74BDC9E31B3DD376109454F1E81"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/restart-request.json",
+      "bytes": 969,
+      "sha256": "69D1C5F8A8E8DB39F1F9EE7AD68F99A84772C299F5E3BACE1CFFBB5342C6871D"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/results/child.trx",
+      "bytes": 3094,
+      "sha256": "7EEEC9C4D3B1D684D2A349DDB8553151901BEF755639552EE225BDAE10EF35F0"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/runner.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "children/tests/marrow-window-process-ab9dcb64be9744bbbe34c8addcf5ca66/runner.stdout.log",
+      "bytes": 914,
+      "sha256": "96D3EC52EAEA617D4F8B74E328E6760843356C532475CCB56AD43B0821890F3F"
+    },
+    {
+      "path": "tests.json",
+      "bytes": 13290,
+      "sha256": "67794A53B152449DB2705317C0C72B6978F34032C27A4ABB143688F37A7ECEB8"
+    },
+    {
+      "path": "tests.log",
+      "bytes": 724,
+      "sha256": "283016CF19E661CBBA13DE8524055639DBC24067304C43E3C717EC3A65C39F8B"
+    },
+    {
+      "path": "tests.trx",
+      "bytes": 25462,
+      "sha256": "B3673353FFB318C3004C61D72C05B9944C03304F883DE2623C829F244928DC4E"
+    }
+  ]
+}
