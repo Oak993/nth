@@ -6405,7 +6405,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.Contains("Pin", titles); // :2266-2267 !isHelper && !isSettled, not yet pinned
             Assert.DoesNotContain("Unpin", titles);
             Assert.Contains("Forward to new thread", titles);
-            Assert.Contains("Delete…", titles);
+            Assert.Contains("Delete" + (char)0x2026, titles); // one U+2026 HORIZONTAL ELLIPSIS, from its code point (R-STR-9)
         });
         // Same row, never rebuilt between the two right-clicks: a menu whose Items were fixed once would show the
         // same "Pin"/"Unpin" wording both times - the "invented, silently wrong behaviour" STOP #7/#8
