@@ -1,0 +1,120 @@
+[
+  {
+    "id": "OWN-WIN003-13",
+    "records": [
+      "PR-WIN-003"
+    ],
+    "clause": "WindowManager.swift:98; ordinary Settings close cancels destruction and retains the window",
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "native": false,
+    "killer": "Marrow.App.Tests.Window.WindowManagerProcessTests.Closing_main_after_FinishLaunching_exits_the_child_process_and_Settings_is_retained",
+    "replacements": [
+      {
+        "before": "            e.Cancel = true;",
+        "after": "            e.Cancel = ReferenceEquals(window, mainWindow);",
+        "count": 1
+      }
+    ],
+    "historical_draft_id": "P008-01",
+    "status": "PROPOSED_NOT_EXECUTED_BY_WORKER",
+    "expected_failure": "Cancellation remains for main only. Settings raises Closed on its first close; child Assert.Equal(0, settingsClosed) fails. This differs from deleting cancellation everywhere.",
+    "precision": "Exact shared lifecycle substitution, now independently selected under Req=PR-WIN-003; not a globally new defect",
+    "source_trial": "OWN-WIN008-01"
+  },
+  {
+    "id": "OWN-WIN003-14",
+    "records": [
+      "PR-WIN-003"
+    ],
+    "clause": "WindowManager.swift:98; retained Settings is hidden when closed",
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "native": false,
+    "killer": "Marrow.App.Tests.Window.WindowManagerProcessTests.Closing_main_after_FinishLaunching_exits_the_child_process_and_Settings_is_retained",
+    "replacements": [
+      {
+        "before": "            window.Hide();\n        };",
+        "after": "        };",
+        "count": 1
+      }
+    ],
+    "historical_draft_id": "P008-02",
+    "status": "PROPOSED_NOT_EXECUTED_BY_WORKER",
+    "expected_failure": "Settings close is canceled but the window stays visible. Child Assert.False(settings.IsVisible) fails immediately after settings-close-1-requested.",
+    "precision": "Exact shared lifecycle substitution, now independently selected under Req=PR-WIN-003; not a globally new defect",
+    "source_trial": "OWN-WIN008-02"
+  },
+  {
+    "id": "OWN-WIN003-15",
+    "records": [
+      "PR-WIN-003"
+    ],
+    "clause": "WindowManager.swift:16,34-35,98; hidden Settings remains cached",
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "native": false,
+    "killer": "Marrow.App.Tests.Window.WindowManagerProcessTests.Closing_main_after_FinishLaunching_exits_the_child_process_and_Settings_is_retained",
+    "replacements": [
+      {
+        "before": "            window.Hide();\n        };",
+        "after": "            if (ReferenceEquals(window, settingsWindow)) settingsWindow = null;\n            window.Hide();\n        };",
+        "count": 1
+      }
+    ],
+    "historical_draft_id": "P008-05",
+    "status": "PROPOSED_NOT_EXECUTED_BY_WORKER",
+    "expected_failure": "Closing Settings clears its cache. Reopening constructs a second root; Assert.Single(settingsRoots) or the one-build assertion fails before settings-reopened-1.",
+    "precision": "Exact shared lifecycle substitution, now independently selected under Req=PR-WIN-003; not a globally new defect",
+    "source_trial": "OWN-WIN008-05"
+  },
+  {
+    "id": "OWN-WIN006-14",
+    "records": [
+      "PR-WIN-006"
+    ],
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "clause": "Fresh profile centers even though there is no saved frame; restoring a valid frame is preserved by this negative control",
+    "precision": "Own exact source replacement, tested through the dedicated absent-frame Fact",
+    "killer": "Marrow.App.Tests.Window.WindowManagerFrameMutationTests.An_absent_saved_frame_centers_the_new_main_window_and_then_installs_autosave",
+    "replacements": [
+      {
+        "before": "if (!SetFrameUsingName(window, MainFrameName)) WindowCentering.Center(window, FrameSizeOf(window)); // :68, ED-225",
+        "after": "_ = SetFrameUsingName(window, MainFrameName); // mutant omits only absent-profile centering"
+      }
+    ]
+  },
+  {
+    "id": "OWN-WIN006-15",
+    "records": [
+      "PR-WIN-006"
+    ],
+    "clause": "A second process restores the actual persisted X value rather than Y",
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "native": false,
+    "killer": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+    "replacements": [
+      {
+        "before": "saved.TryGetValue(FrameKey.X, out var xValue)",
+        "after": "saved.TryGetValue(FrameKey.Y, out var xValue)"
+      }
+    ],
+    "precision": "Exact shared frame substitution, independently selected against the authenticated two-child SettingsStore restart Fact",
+    "source_trial": "OWN-WIN006-03"
+  },
+  {
+    "id": "OWN-WIN006-16",
+    "records": [
+      "PR-WIN-006"
+    ],
+    "clause": "Production store serialization receives the independent move event before any resize can rescue it",
+    "path": "src/Marrow.App/Window/WindowManager.cs",
+    "native": false,
+    "killer": "Marrow.App.Tests.Window.WindowManagerRestartTests.Restart_restores_the_main_frame_from_SettingsStore_and_recomputes_Settings_placement",
+    "replacements": [
+      {
+        "before": "        window.PositionChanged += (_, _) => Save();",
+        "after": ""
+      }
+    ],
+    "precision": "Exact shared frame substitution, independently selected against the authenticated two-child SettingsStore restart Fact",
+    "source_trial": "OWN-WIN006-07"
+  }
+]
