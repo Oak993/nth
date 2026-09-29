@@ -382,6 +382,26 @@ public sealed class AppModelAuditFixTests
         Assert.Null(h.Main.OnMain(() => model.AppModelFinishRequest));
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-083")] // AppModel.swift:878-889
+    public void The_settle_shortcut_returns_at_once_for_a_helper()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("settle-helper"));
+        var parent = AppModelSamples.Thread(project);
+        var helper = AppModelSamples.Thread(project) with { ParentThreadID = parent.Id };
+        h.WriteLibrary([project], [parent, helper]);
+        var model = h.MakeModel();
+
+        h.Main.OnMain(() =>
+        {
+            model.SelectedThreadID = helper.Id;
+            model.SettleSelectedThread();
+
+            Assert.Null(model.AppModelFinishRequest);
+        });
+    }
+
     // A folder as the Windows panel hands it over: a file URL such as file:///C:/x.
     private static SwiftURL FolderURL(string folder) => SwiftURL.Create(new Uri(folder).AbsoluteUri)!;
 }
