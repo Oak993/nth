@@ -1,0 +1,217 @@
+{
+  "original_directory": "_packet/revision/evidence/lifecycle-pr-win-017-2026-09-29T15-48-09-498Z-b58587",
+  "archive": "_packet/revision/evidence-archives/lifecycle-pr-win-017-2026-09-29T15-48-09-498Z-b58587.zip",
+  "archive_sha256": "C8D02BC93987070F74B194751082BF1B95F3E42CDC729657B0C98F4F28B24AB7",
+  "files": [
+    {
+      "path": "children/LIFETIME-WIN017-09-green/c8573bb92d5a4f6583d24e58de67f62c/child-result.json",
+      "bytes": 825,
+      "sha256": "85DB678FD9078046CD19F2C0D8D2614BC09379C4B3D9A2AA5485E86B308A24F4"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-green/c8573bb92d5a4f6583d24e58de67f62c/invocation.json",
+      "bytes": 638,
+      "sha256": "22BF3F0167C4687B241027C302822D3CA816C3A36CC2C263B4563D17B0F6A153"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-green/c8573bb92d5a4f6583d24e58de67f62c/parent-result.json",
+      "bytes": 2414,
+      "sha256": "762FA331BCDA3D95F1A285F6BEA4B22B2838853BA52D719927D9AE9A26A5B917"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-green/c8573bb92d5a4f6583d24e58de67f62c/permit.json",
+      "bytes": 819,
+      "sha256": "02633DAE6139C1B044FC2E3331DE7EAE209F6E8063028DE0B08D31A8E7B3B49F"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-green/c8573bb92d5a4f6583d24e58de67f62c/ready.json",
+      "bytes": 755,
+      "sha256": "3D1322BF21C5A56D33CCA1442EE0EE9F9156D3F91FFF20E77F217C3673A6030D"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-green/c8573bb92d5a4f6583d24e58de67f62c/request.json",
+      "bytes": 678,
+      "sha256": "49E2401CA3AC3FC52166D85BD48D4C38DDC461B926691E60C58962B08EB372CB"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-green/c8573bb92d5a4f6583d24e58de67f62c/results/native-child.trx",
+      "bytes": 4231,
+      "sha256": "AF1D82E3CFF6D43D9439DA8BE543E85C1610263ED2970B62061B92F3D715ECDA"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-green/c8573bb92d5a4f6583d24e58de67f62c/runner.stderr.log",
+      "bytes": 0,
+      "sha256": "E3B0C44298FC1C149AFBF4C8996FB92427AE41E4649B934CA495991B7852B855"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-green/c8573bb92d5a4f6583d24e58de67f62c/runner.stdout.log",
+      "bytes": 1967,
+      "sha256": "B3DC19D0E7C541E3D536D81D78C16662BBD47CD38F6764958DBAB99A79995427"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-1/88bace8427c343038825747760edcf7b/child-result.json",
+      "bytes": 2140,
+      "sha256": "9C474E8D9F19832CC625B6327D2D1BCC85772DD37CE52676760937B076FB995E"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-1/88bace8427c343038825747760edcf7b/invocation.json",
+      "bytes": 638,
+      "sha256": "F84FE3034CFB18E410BC4CD401A7357FE52FC0C90FFDDA2314FDA83B74D0726E"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-1/88bace8427c343038825747760edcf7b/parent-result.json",
+      "bytes": 6388,
+      "sha256": "BACA2DAD12E75D59D1C1C8050F579054FE5B5694388120F330F9ECC38C3B566E"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-1/88bace8427c343038825747760edcf7b/permit.json",
+      "bytes": 819,
+      "sha256": "1B02E5C8171A69E0E3BF574D462CC864ACC004CC3338FE0280AE3935DC582CF4"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-1/88bace8427c343038825747760edcf7b/ready.json",
+      "bytes": 755,
+      "sha256": "0A72556249E34EFBD405F97FB9AF9667E3AD5E40D6C9057CC9616E66847E93D3"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-1/88bace8427c343038825747760edcf7b/request.json",
+      "bytes": 678,
+      "sha256": "131136FE5B2D186E0430A24AD0C3491DB31FBE395CA3558A067BB2D44FF60794"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-1/88bace8427c343038825747760edcf7b/results/native-child.trx",
+      "bytes": 39284,
+      "sha256": "2B69FC40A484E9728B057FCFFDF79482A06BE0AB7A10282A19B7267A47A71C07"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-1/88bace8427c343038825747760edcf7b/runner.stderr.log",
+      "bytes": 196,
+      "sha256": "78EF008971111828A924170F3DD3D20D9BA66EDAD831646FC170E260E1E4A05A"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-1/88bace8427c343038825747760edcf7b/runner.stdout.log",
+      "bytes": 34930,
+      "sha256": "1DA0D5B6BC920004B3F0541C16555F7A47A62142BA6B8EB3541C5A4A74AA8166"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-2/87186dc5d8af4e2c99656c5e72c0a372/child-result.json",
+      "bytes": 2314,
+      "sha256": "3A768E2786F94C36C072B7637B5E1270677246EB5AE8534900ADC4822E9FF71C"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-2/87186dc5d8af4e2c99656c5e72c0a372/invocation.json",
+      "bytes": 638,
+      "sha256": "5091AE83858C6608CB60334880817338B17BA9EDF0C67EAF3971A16F9F3FB1F4"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-2/87186dc5d8af4e2c99656c5e72c0a372/parent-result.json",
+      "bytes": 6736,
+      "sha256": "999EED42379CB14BF8EA05B5360AB425882D62F37D5FA185A44D63A0CBF2FF00"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-2/87186dc5d8af4e2c99656c5e72c0a372/permit.json",
+      "bytes": 819,
+      "sha256": "0E0E31B9DF1FD5963006CBA21B4EC14EBCF46CE585C19B53C64B3E364E1B7620"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-2/87186dc5d8af4e2c99656c5e72c0a372/ready.json",
+      "bytes": 755,
+      "sha256": "F3AE072D8E24F706168530C3D6C13E03AA3E124C67B19A750F83375B6C72FE4E"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-2/87186dc5d8af4e2c99656c5e72c0a372/request.json",
+      "bytes": 678,
+      "sha256": "BF30D50968DA1DF07C54A8E7E1A26F5F99E64F42476BC8C78CE1F3A41E61A6C0"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-2/87186dc5d8af4e2c99656c5e72c0a372/results/native-child.trx",
+      "bytes": 9210,
+      "sha256": "D4511D570D37A8E2538516BA3ABBACB3A50C4925AA05A3DC6A4C2FB405F75EAB"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-2/87186dc5d8af4e2c99656c5e72c0a372/runner.stderr.log",
+      "bytes": 196,
+      "sha256": "65B3A594973AFAC46E3F535CA32669AFDC20252D668EAE3958F96EFA6A01AFD6"
+    },
+    {
+      "path": "children/LIFETIME-WIN017-09-red-2/87186dc5d8af4e2c99656c5e72c0a372/runner.stdout.log",
+      "bytes": 6324,
+      "sha256": "74E67DB4CC60778DD86B29E0CFF3E11B97123D3385C38AED37B40D08B23B7C35"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-green.json",
+      "bytes": 4617,
+      "sha256": "C867014E9C54288C425FA6654D3DF29CAAAF0B3913F7F0195A0FC20532F41C40"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-green.log",
+      "bytes": 704,
+      "sha256": "B1694E9067DE35CD0FCB05557EB33A85E2D872DEA789AF9A6306C39C6986F2F9"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-green.trx",
+      "bytes": 3598,
+      "sha256": "46F16AC4A1B69345C4DC3E76530BE142611483340C34BD2A153ED4C5B9BDA082"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-mutant-build.json",
+      "bytes": 1711,
+      "sha256": "AAA13A66B0168B291CFB8681D746046BC928B24F4E21C2D2C446122C4697DBAF"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-mutant-build.log",
+      "bytes": 310,
+      "sha256": "0858362014D89BBC5751CED7928A0720AAEA9B025A1C68B1E1092D1C2A646C82"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-red-1.json",
+      "bytes": 7558,
+      "sha256": "1DFB52C59C4D2C7D72A6377BCC3036A9C66ABF274EB3656825C9484E6A865607"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-red-1.log",
+      "bytes": 882,
+      "sha256": "2587D07E578AEAFCE0B061350F9962084E236EB5637DBC5161A345F62F2AF843"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-red-1.trx",
+      "bytes": 11851,
+      "sha256": "5E19E375E840B74E21C3B1C84F1F41D688CCDCF028D013F6DD7C4228ED5EAF57"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-red-2.json",
+      "bytes": 7737,
+      "sha256": "DB399EE8988AA6454038B83280B1F6B832D854F97192DAC86C3FFC399289FFAA"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-red-2.log",
+      "bytes": 882,
+      "sha256": "72F534CF901CEDE080E62C8ACADADFEF45297C47745F6A8FC2D550F446CCEC47"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-red-2.trx",
+      "bytes": 12227,
+      "sha256": "945291E6B13893F361A3E6761EF1703426EA219B4B54FAA4075A74CC63721E79"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-restored-build.json",
+      "bytes": 1713,
+      "sha256": "C60C354F593A3CF371BFCDCD290F2099762780FB4F0E954E7CCADF16B3F3C42E"
+    },
+    {
+      "path": "LIFETIME-WIN017-09-restored-build.log",
+      "bytes": 310,
+      "sha256": "93AF74F9857E99B3068C459528B996AD9E2950E805DF300863FB77A87D9D6937"
+    },
+    {
+      "path": "LIFETIME-WIN017-09.diff",
+      "bytes": 978,
+      "sha256": "76CAD3C68029DEC54C29846B8ECEA28FCB3484390BAEB1BCE643C64A50B64234"
+    },
+    {
+      "path": "results.json",
+      "bytes": 27109,
+      "sha256": "B0BECA7F4DF49F7421DB2F834BCB2995FBBA152C2F1086A4104D044D5DC37530"
+    }
+  ]
+}

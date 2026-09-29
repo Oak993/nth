@@ -52,6 +52,51 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
     }
 
     [Fact]
+    [Trait("Req", "PR-WIN-017")] // WindowManager.swift:129-139, observer lifetime belongs to the retained window.
+    public void A_second_real_resize_after_hide_and_reopen_reuses_the_same_registered_window_observer()
+    {
+        native.Run(subject =>
+        {
+            var handle = subject.MainProbe.Handle;
+            var live = native.OnUi(() => AppEnvironment.GetWindowLiveResize(subject.MainContent));
+            using var pointer = new WindowManagerNativePointer(subject);
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                subject.Focus(subject.Main, subject.MainProbe);
+                var before = N.Rect(handle);
+                var edge = WindowManagerNativePointer.RightEdge(subject.MainProbe, resizable: true);
+                var moved = new NativeWindowPoint(edge.X + 48, edge.Y);
+                pointer.Down(subject.MainProbe, edge, N.HTRIGHT);
+                N.Until(() => N.Gui(native.ThreadId).Capture == handle, "The retained-window resize did not capture.");
+                pointer.Move(subject.MainProbe, moved);
+                N.Until(() => N.Rect(handle).Width > before.Width,
+                    "The actual retained-window drag did not resize its native frame.");
+                // Observe the production flag while the real sizing loop still holds capture, but
+                // release our physical press before asserting it. A missing flag must not leave a
+                // held button until a behavior timeout, allowing cleanup to mask the actual failure.
+                var mainWasResizing = subject.MainProbe.IsResizing;
+                var settingsWasResizing = subject.SettingsProbe.IsResizing;
+                pointer.Up(subject.MainProbe, moved);
+                N.Until(() => !subject.MainProbe.IsResizing && N.Gui(native.ThreadId).Capture == 0,
+                    "The actual retained-window resize did not end.");
+                subject.MainProbe.Fence();
+                Assert.True(mainWasResizing, $"The actual retained-window resize did not publish its active state on attempt {attempt + 1}.");
+                Assert.False(settingsWasResizing);
+                Assert.True(N.Rect(handle).Width > before.Width);
+                if (attempt == 0)
+                {
+                    native.OnUi(() => { subject.Main.Hide(); subject.Manager.ShowMain(); });
+                    Assert.Same(subject.Main, native.OnUi(() => subject.Manager.MainWindow));
+                    Assert.Equal(handle, native.OnUi(() => subject.Main.TryGetPlatformHandle()!.Handle));
+                    Assert.Same(live, native.OnUi(() => AppEnvironment.GetWindowLiveResize(subject.MainContent)));
+                }
+            }
+            Assert.Equal(new[] { true, false, true, false }, subject.MainProbe.ResizeTransitions);
+            Assert.Empty(subject.SettingsProbe.ResizeTransitions);
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-SETTINGS-002")] // WindowManager.swift:36-37, :57-60; an already visible window still becomes key.
     [Trait("Req", "PR-WIN-011")] // WindowManager.swift:46-54; native final placement is checked too.
     public void Reopening_visible_Settings_activates_its_native_window_after_centering()

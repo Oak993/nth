@@ -1,3 +1,5 @@
+_packet/revision/evidence/lifecycle-win017-clean-release-2026-09-29T15-54-30-999Z-39f555
 _packet/revision/evidence/pr-win-017-original-2026-09-29T13-51-59-384Z-d18f50
 _packet/revision/evidence/pr-win-017-own-2026-09-29T13-49-27-431Z-b1c1e6
-_packet/revision/evidence/pr-win-017-record-gate-2026-09-29T13-52-24-789Z-dab887
+_packet/revision/evidence/lifecycle-pr-win-017-2026-09-29T15-48-09-498Z-b58587
+_packet/revision/evidence/supplement-gate-pr-win-017-2026-09-29T16-06-33-149Z-976088

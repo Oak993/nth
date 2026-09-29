@@ -1,0 +1,14 @@
+{
+  "reviewed_at": "2026-09-29T15:54:25.079Z",
+  "invalid": [
+    {
+      "directory": "lifecycle-pr-win-017-2026-09-29T15-48-09-498Z-b58587",
+      "id": "LIFETIME-WIN017-09",
+      "records": [
+        "PR-WIN-017"
+      ],
+      "run": "LIFETIME-WIN017-09-red-2",
+      "reason": "Injected pointer input would leave the test-owned windows without capture"
+    }
+  ]
+}
