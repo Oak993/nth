@@ -34,4 +34,15 @@ public sealed class WallpaperCardAuditTests(HeadlessSession headless)
         Assert.NotNull(image.Source);
     });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-145")] // WallpaperCard.swift:145-162 a reset present when the row first appears is not inserted with a transition
+    public void A_reset_already_true_when_the_softness_row_appears_is_not_animated_in() => headless.OnUiThread(() => {
+        using var scope = new WallpaperCardScope();
+        scope.Store.Softness = 0.5; scope.Pump();
+        scope.Store.Install(from: PictureFiles.Png(PictureFiles.Folder(), "a.png"));
+        scope.WaitFor(() => !scope.Store.IsInstalling);
+        var reset = Assert.Single(CardQuery.WithTip(scope.Card, "Back to sharp"));
+        Assert.Equal(1, reset.Opacity);
+    });
+
 }

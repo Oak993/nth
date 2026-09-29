@@ -413,7 +413,7 @@ public sealed class WallpaperCard : Decorator
             };
             slider.Track(() => store.Softness, v =>
             {
-                if (Math.Abs(slider.Value - v) < 0.0001) return;
+                if (slider.Value == v) return; // :133 the getter returns the store's value exactly
                 settingFromStore = true;
                 slider.Value = v;
                 settingFromStore = false;
@@ -441,15 +441,18 @@ public sealed class WallpaperCard : Decorator
                 {
                     if (reset is not null) return;
                     reset = BuildResetButton();
-                    SwiftTransition.Insert(group, group.Children.Count,
-                        reset.Transition(SwiftTransition.Opacity.Combined(SwiftTransition.Offset(6))
-                            .Animation(Animation.Snappy(0.2)))); // :159, :162
+                    reset.Transition(SwiftTransition.Opacity.Combined(SwiftTransition.Offset(6))
+                        .Animation(Animation.Snappy(0.2))); // :159, :162
+                    // .animation(value: isOffStock) does not animate a branch already true when the row first appears.
+                    if (resetInitialized) SwiftTransition.Insert(group, group.Children.Count, reset);
+                    else group.Children.Add(reset);
                 }
                 else if (reset is { } gone)
                 {
                     SwiftTransition.Remove(group, gone);
                     reset = null;
                 }
+                resetInitialized = true;
             }
             SyncReset();
             group.Track(() => IsOffStock, _ => SyncReset());
