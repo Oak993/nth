@@ -79,4 +79,13 @@ public sealed class ChromeVisualPickerAuditTests(HeadlessSession headless)
         window.Close();
         Dispatcher.UIThread.RunJobs();
     });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-183")] // ChromeVisualPicker.swift:56: var width: CGFloat = ChromeVisualTileMetrics.regularWidth, the memberwise initialiser may omit it
+    public void A_tile_built_without_a_width_takes_the_regular_width() => headless.OnUiThread(() =>
+    {
+        var tile = new ChromeVisualTile("Light", false, () => { }, () => new TextBlock());
+        Assert.Equal(ChromeVisualTileMetrics.RegularWidth, tile.Width);
+        Assert.Equal(76, tile.Width);
+    });
 }

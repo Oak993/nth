@@ -123,6 +123,15 @@ public sealed class ChromeVisualTile : Decorator
     private TextBlock? captionBlock;
 
     /// <summary>
+    /// :53-63 The memberwise form that omits the optional width (<c>var width: CGFloat = regularWidth</c>, :56): the
+    /// overload without the parameter, so a call that names every argument still binds to the full constructor.
+    /// </summary>
+    public ChromeVisualTile(string title, bool isSelected, Action action, Func<Control> content)
+        : this(title, isSelected, ChromeVisualTileMetrics.RegularWidth, action, content)
+    {
+    }
+
+    /// <summary>
     /// Constructor for ChromeVisualTile.
     /// </summary>
     public ChromeVisualTile(
