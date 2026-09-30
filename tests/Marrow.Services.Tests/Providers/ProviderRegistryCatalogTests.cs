@@ -625,14 +625,27 @@ public sealed class ProviderRegistryCatalogTests
         var dir = TempDir();
         var script = WriteExecutable(dir, "cursor.exe");
         settings.Paths[ProviderKind.Cursor] = script;
+        // Reproduce a preceding ACP test: the process-wide gate has reserved a system-clock slot.
+        // This invalid offline executable cannot start a provider; ProbeModels still cleans up on throw.
+        using (SwiftClock.Provider.Override(TimeProvider.System))
+            await Assert.ThrowsAnyAsync<Exception>(() =>
+                ACPSession.ProbeModels(ProviderKind.Cursor, FileUrl(script), ValueMap<string, string>.Empty));
+        // This real process probe shares ACP's process-wide launch gate with real-clock tests.
+        // Keep the same clock domain; the manual loop still controls main-actor continuations.
+        using var processClock = SwiftClock.Provider.Override(TimeProvider.System);
         var registry = MakeRegistry(runtime, settings);
 
         var first = runtime.Loop.Run(() => Task.FromResult(registry.LoadCatalog(ProviderKind.Cursor, force: true)));
+        Assert.False(first.IsCompleted);
         Assert.Contains(ProviderKind.Cursor, registry.LoadingCatalogs);
         // A second call, even forced, while the first is in flight, returns immediately (:460).
         var second = runtime.Loop.Run(() => Task.FromResult(registry.LoadCatalog(ProviderKind.Cursor, force: true)));
-        Assert.True(second.IsCompleted);
-        await Task.Run(() => runtime.Loop.Run(() => first));
+        Assert.True(second.IsCompletedSuccessfully);
+        try { await Task.Run(() => runtime.Loop.Run(() => first)); }
+        catch (TimeoutException error)
+        {
+            throw new TimeoutException($"Catalog probe stalled: provider clock {SwiftDate.Now:O}, manual timers {runtime.Time.ActiveTimers}, loading {registry.LoadingCatalogs.Contains(ProviderKind.Cursor)}.", error);
+        }
         Assert.Empty(registry.LoadingCatalogs); // the defer always clears it
     }
 
