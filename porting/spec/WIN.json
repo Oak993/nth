@@ -1466,7 +1466,7 @@
       "source_evidence": [
         "DroppyCode/App/Views/RootView.swift:106-108 `if !files.isEmpty, let threadID = model.selectedThreadID { Storage.attach(files.map(AttachmentSource.file), to: Bindable(model.runtime(for: threadID)).draft.attachments) }`",
         "DroppyCode/App/Views/RootView.swift:103-108 - the folders are processed, newThread(in: lastProject) runs, and only then selectedThreadID is read for file attachment.",
-        "DroppyCode/App/AppModel.swift:614-623 - newThread(in:workspace:) appends the new thread, remembers its project, and synchronously sets selectedThreadID = thread.id before returning."
+        "DroppyCode/App/AppModel.swift:610-619 - newThread(in:workspace:) appends the new thread, remembers its project, and synchronously sets selectedThreadID = thread.id before returning."
       ],
       "preconditions": "The main window is showing.",
       "action": "The user drops one or more non-directory files.",
