@@ -77,6 +77,10 @@ Source site: `AppDelegate.swift:24-26` gates the tour on `hasSeenTour` and sched
 
 Source site: `AppDelegate.swift:29-33` consumes the relaunch marker, arms celebration, then opens Settings on About; `:90` opens the same page for an update notification. `AppDelegateThirdTests` proves matching and mismatched marker paths, and `WindowManager.swift:32-54` defines settings centering. The full UI record also requires a user tapping an update banner and observing the Settings window without first showing main. ED-220(7) rules out real toast/registry/URI tests, and no safe native pointer fixture exists. STOP at the toast click ingress to `AppDelegate.UserNotificationCenter(didReceive:)`; whole-record mutation and geometry proof cannot be claimed from callbacks alone. No Swift defect is claimed.
 
++### UI-LAUNCH-005 — STOP
+
+Source site: `AppDelegate.swift:63-75` returns no presentation options only for an active app whose selected UUID equals the notification's `threadID`; every other case returns exactly banner plus sound. `:77-92` routes a tap through show/select/activate or update About. `AppDelegateTests` cover the presentation options and `WindowsToastTests` cover callback delivery/routing, including invalid IDs and update payloads. A full UI record includes the system-drawn banner and the user's pointer tap. ED-220(7) forbids real toast/registry/URI use in tests and the current platform fixture records posts rather than hit-testing the OS surface. STOP at `WindowsToastPlatform.Show` and the OS click return path; a safe native test or explicit proof-method ruling is required. No Swift defect is claimed.
+
 ## Commands and observed output
 
 For every `dotnet` build/test command below, PowerShell first removed the listed API-key environment variables and set `MARROW_PORT_DATA_DIR` to a newly created `%TEMP%\marrow-<GUID>` directory. No installed app was launched.
