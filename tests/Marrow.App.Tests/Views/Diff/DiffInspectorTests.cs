@@ -62,7 +62,7 @@ public sealed class DiffInspectorTests(HeadlessSession headless)
                     store.Main.OnMain(() =>
                     {
                         var current = Assert.Single(Descendants<DiffFileCard>(inspector),
-                            candidate => System.Equals(candidate.Tag, path));
+                            candidate => System.Object.Equals(candidate.Tag, path));
                         Assert.Single(Descendants<Button>(current)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
                     });
                 Assert.Empty(Descendants<DiffLinesView>(inspector));
