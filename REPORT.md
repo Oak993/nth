@@ -45,6 +45,10 @@ Source site: `AppDelegate.swift:77-92` reads `threadID` as a String, shows main 
 
 Source site: `AppDelegate.swift:83-91` branches on the mere presence of `update`, skips `showMain`, activates, then opens Settings on About. Existing `WindowsToastTests` and `WindowsToastStartupTests` call the production routing path with update payloads. They do not click the system-drawn toast; ED-220(7) forbids the native notification/registry/URI route in tests. STOP at the same `WindowsToastPlatform.Show` ingress as PR-LAUNCH-064. The remaining clause is a real tap preserving the skip-main and activate-before-About sequence, which needs a safe hit-tested fixture or owner proof-method ruling. No source defect is claimed.
 
++### PR-LAUNCH-071 — STOP
+
+Source site: `AppDelegate.swift:22-33` shows main, opens the launch thread, schedules the tour at 700 ms when `hasSeenTour` is false, starts bootstrap and update checks, and conditionally opens About. `AppDelegateThirdTests.First_launch_opens_the_chat_then_only_the_delayed_tour_with_no_onboarding_alert` verifies the present plain-window path and no extra onboarding alert. A full clean-data capture cannot match OD-0018/ED-103 while `AppDelegate.cs:60` shows main immediately and there is no P12 stage composition. There is also a timing conflict: ED-103 shows the main window after outline landing around 5 seconds on the normal motion path, while the unchanged Swift 700 ms task would present the first-run tour before that window, contrary to UI-LAUNCH-002's 'over the main window' wording. STOP at `AppDelegate.ApplicationDidFinishLaunching` (`ShowMain` and the tour task); the boot handoff and an explicit ruling on the tour's relation to it are required. No account/sign-in step was added and no Swift defect is claimed.
+
 ## Commands and observed output
 
 For every `dotnet` build/test command below, PowerShell first removed the listed API-key environment variables and set `MARROW_PORT_DATA_DIR` to a newly created `%TEMP%\marrow-<GUID>` directory. No installed app was launched.
