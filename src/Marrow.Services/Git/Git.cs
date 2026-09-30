@@ -734,7 +734,8 @@ public sealed partial record Git
                 await Run(["cat-file", "--batch-check=%(objecttype)", "-Z"], input: [.. input])) is not { Succeeded: true } result)
             return new HashSet<string>(SwiftStringComparer.Instance);
         // :453
-        var answers = SwiftString.Split(result.Output, "\0", omittingEmptySubsequences: false);
+        var output = GitBatchOutput.RetainPrefix(@in, among, result.Output);
+        var answers = SwiftString.Split(output, "\0", omittingEmptySubsequences: false);
         var tracked = new HashSet<string>(SwiftStringComparer.Instance);
         // :455-457. UPSTREAM DEFECT 80, reproduced: zip stops at the shorter side, so an unanswered tail reads as absent.
         foreach (var (path, answer) in among.Zip(answers))
