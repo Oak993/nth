@@ -41,6 +41,10 @@ Source site: `AppDelegate.swift:44-54` returns `.terminateNow` without a merge, 
 
 Source site: `AppDelegate.swift:77-92` reads `threadID` as a String, shows main before setting a parseable UUID on `model`, activates, and skips About when `update` is absent. The C# delegate and `WindowsToastStartupTests`/`WindowsToastTests` cover callback ordering and payload transport. The record's action is a user tapping a system toast. ED-220(7) forbids a real toast, registry or URI in tests; the test tree has only recording callbacks, no native toast pointer fixture. A callback invocation cannot prove the tap reaches `UserNotificationCenter(didReceive:)` under the interaction mutation standard. STOP at `WindowsToastPlatform.Show` to toast activation ingress; a safe hit-tested native fixture or an explicit proof-method ruling is required. No source defect is claimed.
 
++### PR-LAUNCH-065 — STOP
+
+Source site: `AppDelegate.swift:83-91` branches on the mere presence of `update`, skips `showMain`, activates, then opens Settings on About. Existing `WindowsToastTests` and `WindowsToastStartupTests` call the production routing path with update payloads. They do not click the system-drawn toast; ED-220(7) forbids the native notification/registry/URI route in tests. STOP at the same `WindowsToastPlatform.Show` ingress as PR-LAUNCH-064. The remaining clause is a real tap preserving the skip-main and activate-before-About sequence, which needs a safe hit-tested fixture or owner proof-method ruling. No source defect is claimed.
+
 ## Commands and observed output
 
 For every `dotnet` build/test command below, PowerShell first removed the listed API-key environment variables and set `MARROW_PORT_DATA_DIR` to a newly created `%TEMP%\marrow-<GUID>` directory. No installed app was launched.
