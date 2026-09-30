@@ -57,6 +57,10 @@ Source site: `AppDelegate.swift:77-92` sends an `update` response directly throu
 
 Source site: `AppDelegate.swift:36-39` calls `WindowManager.shared.showMain()` only when `hasVisibleWindows` is false, then returns true. `WindowManager.swift:57-60` activates the app and calls `makeKeyAndOrderFront`. Existing `AppDelegateThirdTests`, `AppShellSecondTests` and `ReopenSignalTests` prove a hidden/visible cached window and the second-process transport. `WindowManager.Present` in this base uses `Show()` then `Activate()` (`WindowManager.cs:164-172`) and does not change `WindowState.Minimized`; `AppShell.HasVisibleWindows` treats that state as not visible. Apple documents `makeKeyAndOrderFront` as showing/ordering/keying and separately documents `deminiaturize`; those descriptions do not establish what this call does to a minimized window. STOP at `WindowManager.Present` for a minimized cached main window. The WindowManager file is lane A owned, and an AppKit oracle or an explicit owner decision is needed before a restore binding and hit-tested second-launch proof. No Swift defect is claimed.
 
++### PR-WIN-073 — STOP
+
+Source site: `AppDelegate.swift:44-61` is the ordinary quit handshake and ordered teardown. OD-0008 C1/C2 maps the main window close and Alt+F4 to that path; `AppShellTests` already exercise immediate and deferred close, 250 ms polls, the 240 second cap and termination ordering. `AppShell.ShutdownRequested` cancels a Windows session-end request during a merge, and `WndProc` handles `WM_ENDSESSION`, but ED-004(2) still requires `ShutdownBlockReasonCreate`. Swift supplies no user-facing reason (`AppDelegate.swift:41-43` is an internal comment). STOP at `AppShell.ShutdownRequested` under `WM_QUERYENDSESSION`; inventing a reason string would violate the string rule. A ruled reason, native binding and mutation of the native branch are required. No Swift defect is claimed.
+
 ## Commands and observed output
 
 For every `dotnet` build/test command below, PowerShell first removed the listed API-key environment variables and set `MARROW_PORT_DATA_DIR` to a newly created `%TEMP%\marrow-<GUID>` directory. No installed app was launched.
