@@ -55,7 +55,13 @@ public sealed class AppShell : ITerminationSender
         windows.MainWindowClose = () => MainActor.Post(Terminate);
         Delegate.ApplicationDidFinishLaunching();
         // ED-004 (2): WM_ENDSESSION comes to every top-level window; the main window is the app's one lasting window.
-        if (windows.MainWindow is { } main) Win32Properties.AddWndProcHookCallback(main, WndProc);
+        if (windows.MainWindow is { } main)
+        {
+            Win32Properties.AddWndProcHookCallback(main, WndProc);
+            // AppDelegate.swift:28 installs UpdateChecker.swift:141-149's didBecomeActive observer.
+            // Hook after ShowMain so the unresolved initial-launch activation is not inferred here.
+            main.Activated += (_, _) => UpdateChecker.Shared.HandleActivation();
+        }
     }
 
     /// <summary>
