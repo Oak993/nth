@@ -79,10 +79,10 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
             var accessory = new AboutUpdateChromeAccessory(); var window = Show(accessory);
             var row = Assert.IsType<StackPanel>(accessory.Child); Assert.Equal(10, row.Spacing);
             var identity = Assert.IsType<AboutIdentityPill>(row.Children[0]); Assert.IsType<AboutVersionPill>(row.Children[1]);
-            var icon = Assert.Single(identity.GetVisualDescendants().OfType<SwiftImage>());
-            Assert.Equal(20, icon.Width); Assert.Equal(20, icon.Height); Assert.False(icon.IsEmpty);
+            var icon = Assert.Single(identity.GetVisualDescendants().OfType<Image>());
+            Assert.Equal(20, icon.Width); Assert.Equal(20, icon.Height); Assert.IsType<Bitmap>(icon.Source);
             Assert.Equal(BitmapInterpolationMode.HighQuality, RenderOptions.GetBitmapInterpolationMode(icon));
-            Assert.Equal(ContentMode.Fit, icon.AspectContentMode); Assert.True(icon.IsResizable);
+            Assert.Equal(Stretch.Uniform, icon.Stretch); // OD-0015 / OD-0033: the same 20 pt aspect-fit app image.
             Assert.Equal(AccessibilityView.Raw, AutomationProperties.GetAccessibilityView(icon));
             var label = Assert.Single(identity.GetVisualDescendants().OfType<TextBlock>());
             Assert.Equal("v1.4.2", label.Text); Assert.Equal(12, label.FontSize); Assert.Equal(FontWeight.SemiBold, label.FontWeight);
