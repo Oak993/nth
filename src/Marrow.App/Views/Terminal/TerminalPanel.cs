@@ -551,7 +551,7 @@ public sealed class TerminalHost : Decorator
 /// <summary>:257-318 Avalonia host for a session's existing terminal view.</summary>
 public sealed class TerminalHostContainer : Decorator
 {
-    private IDisposable? pendingSync;
+    private CancellationTokenSource? pendingSync;
     private WindowLiveResize? liveResize;
     private PropertyChangedEventHandler? resizeStarted;
     private PropertyChangedEventHandler? resizeEnded;
@@ -568,6 +568,9 @@ public sealed class TerminalHostContainer : Decorator
 
     /// <summary>Number of frame synchronizations that changed the hosted surface.</summary>
     internal int SyncFrameCount { get; private set; }
+
+    /// <summary>The timer boundary; tests observe the requested interval while still running the real delay.</summary>
+    internal Func<TimeSpan, CancellationToken, Task> BeatDelay { get; set; } = Task.Delay;
 
     public Control? HostedView
     {
@@ -673,11 +676,26 @@ public sealed class TerminalHostContainer : Decorator
     private void ScheduleSync()
     {
         if (pendingSync is not null) return;
-        pendingSync = DispatcherTimer.RunOnce(() =>
+        var pending = new CancellationTokenSource();
+        pendingSync = pending;
+        _ = RunSyncAfterBeat(pending);
+    }
+
+    private async Task RunSyncAfterBeat(CancellationTokenSource pending)
+    {
+        try
         {
-            pendingSync = null;
-            SyncFrame(force: false);
-        }, TimeSpan.FromMilliseconds(50), DispatcherPriority.Background);
+            await BeatDelay(TimeSpan.FromMilliseconds(50), pending.Token).ConfigureAwait(false);
+            if (pending.IsCancellationRequested) return;
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (pending.IsCancellationRequested || !ReferenceEquals(pendingSync, pending)) return;
+                pendingSync = null;
+                pending.Dispose();
+                SyncFrame(force: false);
+            }, DispatcherPriority.Background);
+        }
+        catch (OperationCanceledException) { }
     }
 
     // :305-312 finishResize: cancel the coalescer, restore width/height autoresizing, and sync exactly once.
@@ -691,6 +709,7 @@ public sealed class TerminalHostContainer : Decorator
 
     private void CancelPendingSync()
     {
+        pendingSync?.Cancel();
         pendingSync?.Dispose();
         pendingSync = null;
     }
