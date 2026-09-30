@@ -65,6 +65,10 @@ Source site: `AppDelegate.swift:44-61` is the ordinary quit handshake and ordere
 
 Source site: `AppDelegate.swift:77-92` distinguishes `update` by key presence, shows main for ordinary notifications, selects only a parseable `threadID`, activates, then shows About only for updates. `WindowsToastTests` cover both callback branches and wrong-type/malformed payloads; `WindowsToastStartupTests` cover second-process payload routing. The missing requirement clause is the user click on a system-drawn banner. The native toast platform currently has no safe pointer hit-test fixture, while ED-220(7) excludes registering or showing a real toast in a test. STOP at the OS toast click → `WindowsToastLaunchTransport` → delegate boundary; a recording callback is not equivalent under the mutation standard. No Swift defect is claimed.
 
++### UI-LAUNCH-001 — STOP
+
+Source site: `AppDelegate.swift:22` shows the main window and `WindowManager.swift:18-24,62-70` sets first-run 1320 × 860, minimum 860 × 560, frame autosave `DroppyCodeMainWindow`, and centering fallback; OD-0012 renames its title to `Marrow`. Existing launch and WindowManager tests cover the window's ordinary creation and frame behavior. The Windows record additionally specifies OD-0018/ED-103's particle stage and main-window formation. `AppDelegate.cs:56-60` directly shows the window; P12 composition evidence and stage hosting are absent. `GlassMaterial.cs` exists but reports its optical values UNVERIFIED, so its presence does not prove the boot handoff. STOP at the first `ShowMain` in `ApplicationDidFinishLaunching` until ED-103(7)'s composition/fallback is resolved and the actual first-run window is hit-tested/captured. No Swift defect is claimed.
+
 ## Commands and observed output
 
 For every `dotnet` build/test command below, PowerShell first removed the listed API-key environment variables and set `MARROW_PORT_DATA_DIR` to a newly created `%TEMP%\marrow-<GUID>` directory. No installed app was launched.
