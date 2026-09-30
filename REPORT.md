@@ -110,3 +110,19 @@ The interrupted run left 19 untracked `_evidence/mutation-125-*.txt` logs. I ins
 Current verification, after removing the listed API-key environment variables and setting a new `MARROW_PORT_DATA_DIR` for each command: `dotnet build Marrow.sln -c Debug --nologo -v q` -> succeeded, 0 warnings, 0 errors; `dotnet test tests/Marrow.App.Tests --no-build --nologo -v q --filter 'FullyQualifiedName~AppModelHydraMergeFailureTests'` -> 4 passed, 0 failed, 0 skipped; `dotnet test tests/Marrow.App.Tests --no-build --nologo -v q --filter 'FullyQualifiedName~TraceabilityTests'` -> 3 passed, 0 failed, 0 skipped. No source ambiguity or guess for this record. Files touched: `tests/Marrow.App.Tests/AppModelHydraMergeFailureTests.cs`, `REPORT.md`. PR-HYDRAMERGE-063 and -077 remain owner STOPs and are excluded.
 
 records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125
+
+## Continuation: PR-HYDRAMERGE-030 in-progress checkout deferral
+
+B3 `AppModel+HydraMerge.swift:244-249` requires a quiet deferred result and a one-minute retry for an existing merge or rebase. Existing Req-tagged `AppModelHydraMergePart1Tests.An_operation_defers_silently_and_attempts_exactly_one_retry_after_a_minute` drives both `MERGE_HEAD` and `rebase-merge` through disposable local repositories and checks the absence of a record, note, merged mark, commit and push, then the retry at exactly 60,000 ms. No new test or production change was needed.
+
+| Clause | Production mutation | Failing Req-tagged test |
+| --- | --- | --- |
+| Detect the Git operation | `HasOperationInProgress()` guarded by false runtime expression | `An_operation_defers_silently_and_attempts_exactly_one_retry_after_a_minute` |
+| Schedule the one-minute retry | `ScheduleHydraMergeRetry` guarded by `leadID == Guid.Empty` | same test |
+| Return deferred, without failure record/note/commit/push | return `Failed` | same test |
+
+Each of `mutation-030-guard.txt`, `mutation-030-schedule.txt`, and `mutation-030-return.txt` under untracked `_evidence` records a successful mutant build, two standalone red runs (both parameter cases), restored build, and green run (2 passed), with original/restored SHA-256 `DA8ADEE5CE2E40D9E2BCEA0BF18DB3A7EA346485414A29500AD70CDC19AC2142`. The runner removed the listed API-key variables and used a fresh `MARROW_PORT_DATA_DIR` on every test. An initial schedule mutation used a compile-time `false` guard and failed the mutant build with CS0162; it was restored and replaced with the compiling mutation above. Current production hash matches. No source ambiguity or guess.
+
+Exact mutation command form: `powershell -NoProfile -ExecutionPolicy Bypass -File '_evidence\mutate.ps1' -Name '030-guard|030-schedule|030-return' -Old <logged old text> -New <logged new text> -Filter 'FullyQualifiedName~An_operation_defers_silently_and_attempts_exactly_one_retry_after_a_minute'`; each actual invocation used one Name and the exact Old/New values in its log. The runner ran `dotnet build Marrow.sln -c Debug --nologo -v q` (0 warnings, 0 errors) and `dotnet test tests\Marrow.App.Tests --no-build --nologo -v q` with that filter (red twice; green 2 passed). Files touched for this record: `REPORT.md` only.
+
+records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125, PR-HYDRAMERGE-030
