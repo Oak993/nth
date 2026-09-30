@@ -1,6 +1,6 @@
 // PORT-ONLY: DroppyCode/App/Views/Terminal/TerminalPanel.swift's LocalProcessTerminalView is SwiftTerm on macOS.
 // Windows has no SwiftTerm twin in this tree, so this control supplies the same long-lived ConPTY-backed surface:
-// process input/output, a selectable scrollback text grid, appearance values, focus and pseudoconsole resizing.
+// process input/output, a selectable cell grid, appearance values, focus and pseudoconsole resizing.
 using System.Text;
 using System.Globalization;
 using Avalonia;
@@ -34,12 +34,11 @@ public interface ITerminalProcessDelegate
 public sealed class TerminalHostView : Border
 {
     // TerminalStore.swift:21 creates a 640x240 view before the host immediately gives it its container frame.
-    private const int MaximumScrollbackCharacters = 1_000_000;
-
     private readonly ProcessLauncher launcher = new();
-    private readonly SelectableTextBlock scrollbackText;
+    private readonly TerminalSurface scrollbackText;
     private readonly object scrollbackGate = new();
-    private readonly StringBuilder scrollback = new();
+    private readonly TerminalScreenBuffer screen = new(80, 25);
+    private readonly Decoder outputDecoder = Encoding.UTF8.GetDecoder();
     private ProcessPipe? input;
     private ProcessPipe? output;
     private SwiftFont? font;
@@ -57,14 +56,14 @@ public sealed class TerminalHostView : Border
         Focusable = true;
         ClipToBounds = true;
 
-        scrollbackText = new SelectableTextBlock
+        scrollbackText = new TerminalSurface(MeasureCell)
         {
-            TextWrapping = TextWrapping.NoWrap,
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
             Focusable = true,
         };
         Child = scrollbackText;
+        scrollbackText.UpdateFrame(screen.Snapshot());
 
         KeyDown += OnKeyDown;
         TextInput += OnTextInput;
@@ -82,7 +81,9 @@ public sealed class TerminalHostView : Border
         set
         {
             font = value;
-            if (value is not null) value.Apply(scrollbackText);
+            if (value is not null) value.Apply(scrollbackText.TextControl);
+            scrollbackText.InvalidateMeasure();
+            scrollbackText.InvalidateVisual();
         }
     }
 
@@ -97,6 +98,8 @@ public sealed class TerminalHostView : Border
         {
             nativeBackgroundColor = value;
             Background = value?.Brush(this);
+            scrollbackText.Background = value?.Brush(scrollbackText);
+            UpdatePalette();
         }
     }
 
@@ -108,6 +111,7 @@ public sealed class TerminalHostView : Border
         {
             nativeForegroundColor = value;
             scrollbackText.Foreground = value?.Brush(scrollbackText);
+            UpdatePalette();
         }
     }
 
@@ -115,7 +119,12 @@ public sealed class TerminalHostView : Border
     public SwiftColor? CaretColor
     {
         get => caretColor;
-        set => caretColor = value;
+        set
+        {
+            caretColor = value;
+            scrollbackText.CursorBrush = value?.Brush(scrollbackText);
+            scrollbackText.InvalidateVisual();
+        }
     }
 
     /// <summary>:56; also drives the selectable scrollback highlight.</summary>
@@ -138,12 +147,12 @@ public sealed class TerminalHostView : Border
     /// <summary>The real OS process id of the launched shell; 0 before <see cref="StartProcess"/>.</summary>
     public int ProcessId => launcher.ProcessIdentifier;
 
-    /// <summary>The visible, ANSI-stripped scrollback used by the Windows text surface and its tests.</summary>
+    /// <summary>The screen and retained history after interpreting the child's terminal output.</summary>
     public string ScrollbackText
     {
         get
         {
-            lock (scrollbackGate) return scrollback.ToString();
+            lock (scrollbackGate) return screen.AllText();
         }
     }
 
@@ -176,6 +185,8 @@ public sealed class TerminalHostView : Border
         // SwiftTerm 1.20.0 AppleTerminalView.swift:329-345 derives the initial
         // grid from the 640x240 frame and the selected font before spawning.
         lastPseudoConsoleSize = MeasureGrid(InitialFrame);
+        lock (scrollbackGate) screen.Resize(lastPseudoConsoleSize.Columns, lastPseudoConsoleSize.Rows);
+        ApplyOutput();
         launcher.PseudoConsole = lastPseudoConsoleSize;
         input = new ProcessPipe();
         output = new ProcessPipe();
@@ -205,6 +216,8 @@ public sealed class TerminalHostView : Border
         var next = MeasureGrid(size);
         if (next == lastPseudoConsoleSize) return;
         lastPseudoConsoleSize = next;
+        lock (scrollbackGate) screen.Resize(next.Columns, next.Rows);
+        ApplyOutput();
         ResizeCount++;
         try { launcher.ResizePseudoConsole(next); }
         catch (InvalidOperationException) { }
@@ -214,7 +227,15 @@ public sealed class TerminalHostView : Border
 
     private PseudoConsoleSize MeasureGrid(Size size)
     {
-        var resolved = Font!.Resolve();
+        var cell = MeasureCell();
+        return new PseudoConsoleSize(
+            Math.Clamp((int)Math.Floor(size.Width / cell.Width), 1, short.MaxValue),
+            Math.Clamp((int)Math.Floor(size.Height / cell.Height), 1, short.MaxValue));
+    }
+
+    private Size MeasureCell()
+    {
+        var resolved = (Font ?? SwiftFont.MonospacedSystemFont(12, SwiftFont.Weight.Regular)).Resolve();
         // SwiftTerm 1.20.0 AppleTerminalView.swift:410-444 measures the W advance and
         // the font's line metrics, then snaps both dimensions to the backing pixel grid.
         // FormattedText uses the resolved Avalonia face's real glyph and line metrics.
@@ -224,9 +245,15 @@ public sealed class TerminalHostView : Border
         var scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         var cellWidth = Math.Max(1, Math.Round(measured.Width * scale) / scale);
         var cellHeight = Math.Clamp(Math.Ceiling(measured.Height * scale) / scale, 1, 8192);
-        return new PseudoConsoleSize(
-            Math.Clamp((int)Math.Floor(size.Width / cellWidth), 1, short.MaxValue),
-            Math.Clamp((int)Math.Floor(size.Height / cellHeight), 1, short.MaxValue));
+        return new Size(cellWidth, cellHeight);
+    }
+
+    private void UpdatePalette()
+    {
+        lock (scrollbackGate)
+            screen.SetDefaultColors(nativeBackgroundColor?.Resolve(ActualThemeVariant),
+                nativeForegroundColor?.Resolve(ActualThemeVariant));
+        scrollbackText.InvalidateVisual();
     }
 
     /// <summary>Escape is handled by the parent host; every other special key reaches the ConPTY input.</summary>
@@ -269,13 +296,14 @@ public sealed class TerminalHostView : Border
     private void OnOutput(byte[] bytes)
     {
         if (bytes.Length == 0) return;
-        var text = StripTerminalControlBytes(Encoding.UTF8.GetString(bytes));
-        if (text.Length == 0) return;
         lock (scrollbackGate)
         {
-            scrollback.Append(text);
-            if (scrollback.Length > MaximumScrollbackCharacters)
-                scrollback.Remove(0, scrollback.Length - MaximumScrollbackCharacters);
+            // A pipe read can end inside a scalar or CSI. Decoder and screen parser retain
+            // their independent states until the next read (SwiftTerm UTF8Decoder/Terminal.feed).
+            var characters = new char[Encoding.UTF8.GetMaxCharCount(bytes.Length)];
+            var count = outputDecoder.GetChars(bytes, 0, bytes.Length, characters, 0, flush: false);
+            if (count == 0) return;
+            screen.Feed(new string(characters, 0, count));
             if (outputUpdateQueued) return;
             outputUpdateQueued = true;
         }
@@ -284,46 +312,15 @@ public sealed class TerminalHostView : Border
 
     private void ApplyOutput()
     {
-        string text;
+        TerminalFrame frame;
         lock (scrollbackGate)
         {
             outputUpdateQueued = false;
-            text = scrollback.ToString();
+            frame = screen.Snapshot();
         }
-        scrollbackText.Text = text;
+        scrollbackText.UpdateFrame(frame);
         InvalidateMeasure();
         InvalidateVisual();
-    }
-
-    private static string StripTerminalControlBytes(string value)
-    {
-        var result = new StringBuilder(value.Length);
-        var escape = false;
-        var csi = false;
-        foreach (var character in value)
-        {
-            if (csi)
-            {
-                if (character is >= '@' and <= '~') csi = false;
-                continue;
-            }
-            if (escape)
-            {
-                if (character == '[') { csi = true; escape = false; }
-                else if (character is >= '@' and <= '~') escape = false;
-                continue;
-            }
-            if (character == '\x1B') { escape = true; continue; }
-            if (character == '\a') continue;
-            if (character == '\b')
-            {
-                if (result.Length > 0) result.Length--;
-                continue;
-            }
-            if (character == '\r') continue;
-            result.Append(character);
-        }
-        return result.ToString();
     }
 
     private static bool IsTextKey(Key key) =>
