@@ -1,0 +1,82 @@
+using Avalonia;
+using Avalonia.Controls;
+using Avalonia.Styling;
+using Marrow.App.Tests.Fixtures;
+using Marrow.App.Window;
+using Marrow.UI.Theme;
+
+namespace Marrow.App.Tests.Window;
+
+// Source: WindowManager.swift:151-159. Both the hosted tree and the application appearance change initially and later.
+// STOP NATIVE-THEME: hosted/process/framework ThemeVariant checks, including actual-store
+// restart, do not prove DWM immersive-dark-mode acceptance or OS-opposite native menu pixels.
+[Collection("Headless")]
+public sealed class WindowManagerThemeMutationTests(HeadlessSession headless)
+{
+    [Fact]
+    [Trait("Req", "PR-THEME-039")]
+    public void An_initial_dark_theme_is_applied_to_the_first_host_and_the_process_before_any_theme_change() => WindowManagerMutationScope.Run(headless, (_, manager) =>
+    {
+        Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
+        manager.Model.Settings.Theme = AppTheme.Dark;
+        manager.ShowMain();
+        var window = Assert.IsType<ThreadWindow>(manager.MainWindow);
+        WindowManagerMutationScope.Settle(window);
+        var host = Assert.Single(LogicalQuery.SelfAndDescendants<HostedRoot>(Assert.IsAssignableFrom<Control>(window.Content)));
+        Assert.Equal(ThemeVariant.Dark, host.RequestedThemeVariant);
+        Assert.Equal(ThemeVariant.Dark, Application.Current.RequestedThemeVariant);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-039")]
+    public void Dark_light_and_system_changes_update_both_cached_windows_and_a_framework_window() => WindowManagerMutationScope.Run(headless, (_, manager) =>
+    {
+        manager.SettingsContent = () => new Border();
+        manager.ShowMain();
+        manager.ShowSettings();
+        var main = Assert.IsType<ThreadWindow>(manager.MainWindow);
+        var settings = WindowManagerMutationScope.Settings(manager);
+        var foreign = new Avalonia.Controls.Window();
+        try
+        {
+            foreign.Show();
+            foreach (var (theme, expected) in new[]
+            {
+                (AppTheme.Dark, ThemeVariant.Dark), (AppTheme.Light, ThemeVariant.Light),
+                (AppTheme.Dracula, ThemeVariant.Dark), (AppTheme.System, ThemeVariant.Default),
+            })
+            {
+                manager.Model.Settings.Theme = theme;
+                WindowManagerMutationScope.Settle(main);
+                WindowManagerMutationScope.Settle(settings);
+                Assert.Equal(expected, Application.Current!.RequestedThemeVariant);
+                foreach (var window in new Avalonia.Controls.Window[] { main, settings })
+                {
+                    var host = Assert.Single(LogicalQuery.SelfAndDescendants<HostedRoot>(Assert.IsAssignableFrom<Control>(window.Content)));
+                    Assert.Equal(expected, host.RequestedThemeVariant);
+                }
+                if (expected != ThemeVariant.Default) Assert.Equal(expected, foreign.ActualThemeVariant);
+                Assert.Equal(Application.Current.ActualThemeVariant, foreign.ActualThemeVariant);
+            }
+        }
+        finally { foreign.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-THEME-039")]
+    public void Reattaching_the_same_host_reinstalls_the_initial_process_appearance_observer() => WindowManagerMutationScope.Run(headless, (_, manager) =>
+    {
+        manager.Model.Settings.Theme = AppTheme.Dark;
+        manager.ShowMain();
+        var window = Assert.IsType<ThreadWindow>(manager.MainWindow);
+        var content = Assert.IsAssignableFrom<Control>(window.Content);
+        window.Content = null;
+        Application.Current!.RequestedThemeVariant = ThemeVariant.Light;
+        window.Content = content;
+        WindowManagerMutationScope.Settle(window);
+        Assert.Equal(ThemeVariant.Dark, Application.Current.RequestedThemeVariant);
+        manager.Model.Settings.Theme = AppTheme.Light;
+        WindowManagerMutationScope.Settle(window);
+        Assert.Equal(ThemeVariant.Light, Application.Current.RequestedThemeVariant);
+    });
+}

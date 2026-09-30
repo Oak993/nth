@@ -208,9 +208,13 @@ public sealed class AppModelHarness : IDisposable
     {
         try
         {
-            FinishFileIndexBuilds();
-            WaitForPrefetch();
-            DiskWriter.Shared.WaitForQueuedWrites();
+            FinishDiskWrites();
+            try
+            {
+                FinishFileIndexBuilds();
+                WaitForPrefetch();
+            }
+            finally { FinishDiskWrites(); }
         }
         finally
         {
@@ -220,6 +224,29 @@ public sealed class AppModelHarness : IDisposable
             catch (IOException) { }
             catch (UnauthorizedAccessException) { }
         }
+    }
+
+    // R-TEST-5: a queued write captures this fixture's manual clock. Keep that clock and
+    // its directory alive through the actual shared writer fence, including any retry.
+    // The fence runs off-thread; clock advancement and all actor cleanup remain here.
+    private void FinishDiskWrites()
+    {
+        var barrier = Task.Factory.StartNew(DiskWriter.Shared.WaitForQueuedWrites, CancellationToken.None,
+            TaskCreationOptions.LongRunning, TaskScheduler.Default);
+        var elapsed = System.Diagnostics.Stopwatch.StartNew();
+        var poll = TimeSpan.FromMilliseconds(5);
+        while (!barrier.IsCompleted)
+        {
+            var remaining = Bound - elapsed.Elapsed;
+            if (remaining <= TimeSpan.Zero)
+                throw new TimeoutException("The harness disk writer did not drain before its clock and directory were retired.");
+            if (barrier.Wait(remaining < poll ? remaining : poll)) break;
+            // Do not call TestRuntime.Advance: it also pumps actor callbacks, which can
+            // themselves block behind this fence. Only the owning clock is advanced.
+            if (Runtime is { } runtime && runtime.Time.ActiveTimers > 0)
+                runtime.Time.Advance(FileOps.RetryDelays[0]);
+        }
+        barrier.GetAwaiter().GetResult();
     }
 
     private static readonly FieldInfo FileIndexBuilding =

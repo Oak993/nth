@@ -967,7 +967,12 @@ internal sealed class ThemePickerButton : Decorator
             var menu = new PopoverMenu(() => items); Popovers.SetClosePopover(menu, () => state.IsPresented = false); return menu;
         });
         Child = new Panel { Children = { button.ChromeGlassCapsule(), popup } }; this.Track(() => selection.Value, _ => Update());
-        AttachedToVisualTree += (_, _) => ThemeManager.DidChange += Update; DetachedFromVisualTree += (_, _) => ThemeManager.DidChange -= Update; // :1171-1208
+        void ThemeChanged()
+        {
+            if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) { Update(); return; }
+            Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (TopLevel.GetTopLevel(this) is not null) Update(); });
+        }
+        AttachedToVisualTree += (_, _) => ThemeManager.DidChange += ThemeChanged; DetachedFromVisualTree += (_, _) => ThemeManager.DidChange -= ThemeChanged; // :1171-1208
     }
 
     // :1186 .fixedSize(): retain the content's dimensions even in a stretching parent.

@@ -1,9 +1,11 @@
 using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
 using Avalonia.Styling;
+using Avalonia.Threading;
 using Marrow.App.Port;
 using Marrow.App.Views;
 using Marrow.App.Views.Settings;
@@ -28,8 +30,8 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // ED-001), so it is not declared.
 // The OD-0008 C1 quit on the main window's close (PR-LAUNCH-074) is the application shell's (Port/AppShell.cs): it sets
 // MainWindowClose below, which the close handler of makeWindow (:98) runs for the main window in place of ordering it
-// out (closes STOP App.Window.WindowManager #2). Not written here (STOP #3 in the tests): the ED-063 caption WndProc
-// hook that sits beside WindowChrome.configure (:101). UI-SETTINGS-001 (the Settings window, :21, :80-84, :92-99) is this file's as far as building, placing,
+// out (closes STOP App.Window.WindowManager #2). The ED-063 caption WndProc hook that sits beside WindowChrome.configure
+// (:101) is installed by makeWindow below and is tested through a real user32 message window. UI-SETTINGS-001 (the Settings window, :21, :80-84, :92-99) is this file's as far as building, placing,
 // opening and keeping the window go. SettingsView's real body, preserved state and requested-page handling are now
 // exercised by WindowManagerNextTests (closes the Settings portion of STOP #1 and #4). The real main body still
 // depends on the concurrent RootView/SidebarView repairs (STOP #7). The Acrylic hint
@@ -57,6 +59,35 @@ public sealed class WindowManager
 
     private AvaloniaWindow? mainWindow; // :15
     private AvaloniaWindow? settingsWindow; // :16
+
+    // ED-063: WindowChrome declares the app-drawn caption controls with Win32 hit-test values; this App-layer hook owns
+    // their native actions because Avalonia 12.1.2 does not perform them for app-drawn controls by itself.
+    private readonly Dictionary<AvaloniaWindow, CaptionState> captionStates = new();
+
+    private sealed class CaptionState
+    {
+        public nint PendingHitTest;
+    }
+
+    private const uint WM_CONTEXTMENU = 0x007B;
+    private const uint WM_NCLBUTTONDOWN = 0x00A1;
+    private const uint WM_NCLBUTTONUP = 0x00A2;
+    private const uint WM_LBUTTONUP = 0x0202;
+    private const uint WM_NCHITTEST = 0x0084;
+    private const uint WM_SYSCOMMAND = 0x0112;
+    private const uint WM_CANCELMODE = 0x001F;
+    private const uint WM_CAPTURECHANGED = 0x0215;
+    private const uint SC_SIZE = 0xF000;
+    private const uint SC_MINIMIZE = 0xF020;
+    private const uint SC_MAXIMIZE = 0xF030;
+    private const uint SC_CLOSE = 0xF060;
+    private const uint SC_KEYMENU = 0xF100;
+    private const uint SC_RESTORE = 0xF120;
+    private const uint TPM_RIGHTBUTTON = 0x0002;
+    private const uint TPM_RETURNCMD = 0x0100;
+    private const uint MF_BYCOMMAND = 0x00000000;
+    private const uint MF_ENABLED = 0x00000000;
+    private const uint MF_GRAYED = 0x00000001;
 
     /// <summary>:18-22 <c>private enum Size</c>.</summary>
     private static class Size
@@ -125,7 +156,7 @@ public sealed class WindowManager
         // no screen at all (nothing a window could be shown on) there is no primary screen to measure from, and the
         // virtual screen's origin line stands in for its bottom edge.
         var up = main.Screens.Primary is { } primary ? primary.Bounds.ToRect(scale).Bottom : 0;
-        var parentSize = FrameSizeOf(main);
+        var parentSize = main.FrameSize ?? FrameSizeOf(main); // :46 main.frame, not the requested content size.
         var parent = new Rect(main.Position.X / scale, up - (main.Position.Y / scale + parentSize.Height), parentSize.Width, parentSize.Height); // :46
         var frame = FrameSizeOf(window); // :47
         Rect? visible = null;
@@ -237,6 +268,10 @@ public sealed class WindowManager
         // top-level window (and honours "Animate windows when minimizing and maximizing"); nothing to set.
         // :100 tabbingMode = .disallowed: Windows has no window tabs (PR-WIN-008 windows_path, not applicable).
         WindowChrome.Configure(window); // :101
+        // ED-063: SetNonClientHitTestResult declares the app-drawn caption controls, but Windows does not execute
+        // their commands for an Avalonia full-decoration window. Keep the hook with the window for its full lifetime.
+        Win32Properties.AddWndProcHookCallback(window, (nint hWnd, uint message, nint wParam, nint lParam, ref bool handled) =>
+            HandleNativeWindowMessage(window, hWnd, message, wParam, lParam, ref handled));
 
         var liveResize = new WindowLiveResize(window); // :103
         var hosting = new FrameHostingView(new HostedRoot(Model, liveResize, content())); // :104
@@ -254,6 +289,213 @@ public sealed class WindowManager
         _ = MenuKeyEquivalents.Attach(window, shortcut => new AppCommands(Model).PerformKeyEquivalent(shortcut));
         return window; // :109
     }
+
+    /// <summary>
+    /// ED-063's Windows caption bridge. WindowChrome declares the three app-drawn controls through native hit-test
+    /// values, but Avalonia does not execute those values for a full-decoration window. The native down is swallowed,
+    /// the matching command is posted on release, and the command is applied on the window's UI thread. The same hook
+    /// owns the system menu entry points so every window made by this factory has the same chrome behaviour.
+    /// </summary>
+    internal nint HandleNativeWindowMessage(
+        AvaloniaWindow window,
+        nint hWnd,
+        uint message,
+        nint wParam,
+        nint lParam,
+        ref bool handled)
+    {
+        if (!captionStates.TryGetValue(window, out var state))
+        {
+            state = new CaptionState();
+            captionStates.Add(window, state);
+        }
+
+        switch (message)
+        {
+            case WM_NCLBUTTONDOWN when IsCaptionButton(wParam, window):
+                state.PendingHitTest = wParam;
+                if (OperatingSystem.IsWindows() && hWnd != 0) _ = SetCapture(hWnd);
+                handled = true;
+                return 0;
+
+            case WM_NCLBUTTONUP when state.PendingHitTest != 0:
+            case WM_LBUTTONUP when state.PendingHitTest != 0:
+            {
+                // SetCapture routes the physical release through WM_LBUTTONUP in client coordinates.
+                // Re-hit-test that release against this HWND; a release over another control cancels.
+                if (message == WM_LBUTTONUP) wParam = CaptionHitAtClientPoint(hWnd, lParam);
+                var hitTest = state.PendingHitTest;
+                state.PendingHitTest = 0;
+                if (OperatingSystem.IsWindows() && hWnd != 0) _ = ReleaseCapture();
+                if (hitTest == wParam && IsCaptionButton(hitTest, window))
+                {
+                    var command = CommandForCaptionButton(hitTest, window);
+                    if (OperatingSystem.IsWindows() && hWnd != 0)
+                        _ = PostMessage(hWnd, WM_SYSCOMMAND, (nint)command, 0);
+                    else
+                        Dispatcher.UIThread.Post(() => ExecuteSystemCommand(window, command), DispatcherPriority.Input);
+                }
+                handled = true;
+                return 0;
+            }
+
+            case WM_CANCELMODE:
+            case WM_CAPTURECHANGED:
+                state.PendingHitTest = 0;
+                break;
+
+            case WM_CONTEXTMENU:
+                if (TryShowSystemMenu(window, hWnd, lParam))
+                {
+                    handled = true;
+                    return 0;
+                }
+                break;
+
+            case WM_SYSCOMMAND:
+            {
+                var rawCommand = unchecked((uint)wParam.ToInt64());
+                if ((rawCommand & 0xFFF0) == SC_KEYMENU)
+                {
+                    // ED-063/P7: only Space requests the window menu. Other mnemonics belong to
+                    // normal platform handling; lParam is a character here, not packed coordinates.
+                    if (lParam == (nint)' ' && TryShowSystemMenu(window, hWnd, lParam, keyboard: true))
+                    {
+                        handled = true;
+                        return 0;
+                    }
+                    break;
+                }
+
+                var command = rawCommand & 0xFFF0;
+                if (ExecuteSystemCommand(window, command))
+                {
+                    handled = true;
+                    return 0;
+                }
+                break;
+            }
+        }
+
+        return 0;
+    }
+
+    private static bool IsCaptionButton(nint hitTest, AvaloniaWindow window) =>
+        hitTest.ToInt64() switch
+        {
+            20 => true, // Win32HitTestValue.Close
+            8 => window.CanMinimize, // Win32HitTestValue.MinButton
+            9 => window.CanMaximize, // Win32HitTestValue.MaxButton
+            _ => false,
+        };
+
+    private static uint CommandForCaptionButton(nint hitTest, AvaloniaWindow window) =>
+        hitTest.ToInt64() switch
+        {
+            20 => SC_CLOSE,
+            8 => SC_MINIMIZE,
+            9 when window.WindowState == WindowState.Maximized => SC_RESTORE,
+            9 => SC_MAXIMIZE,
+            _ => 0,
+        };
+
+    private static bool ExecuteSystemCommand(AvaloniaWindow window, uint command) =>
+        command switch
+        {
+            SC_CLOSE => CloseWindow(window),
+            SC_MINIMIZE when window.CanMinimize => SetWindowState(window, WindowState.Minimized),
+            // Consume a denied maximize too: falling through lets DefWindowProc maximize a fixed Settings HWND.
+            SC_MAXIMIZE => !window.CanMaximize || SetWindowState(window, WindowState.Maximized),
+            SC_RESTORE when window.WindowState != WindowState.Normal => SetWindowState(window, WindowState.Normal),
+            _ => false,
+        };
+
+    private static bool CloseWindow(AvaloniaWindow window)
+    {
+        window.Close();
+        return true;
+    }
+
+    private static bool SetWindowState(AvaloniaWindow window, WindowState state)
+    {
+        window.WindowState = state;
+        return true;
+    }
+
+    private static nint CaptionHitAtClientPoint(nint hWnd, nint lParam)
+    {
+        if (!OperatingSystem.IsWindows() || hWnd == 0) return 0;
+        var packed = unchecked((int)lParam.ToInt64());
+        var point = new NativePoint { X = (short)(packed & 0xFFFF), Y = (short)(packed >> 16) };
+        if (!ClientToScreen(hWnd, ref point)) return 0;
+        var screen = unchecked((nint)(uint)((ushort)(short)point.X | ((uint)(ushort)(short)point.Y << 16)));
+        return SendMessage(hWnd, WM_NCHITTEST, 0, screen);
+    }
+
+    private static bool TryShowSystemMenu(AvaloniaWindow window, nint hWnd, nint lParam, bool keyboard = false)
+    {
+        if (!OperatingSystem.IsWindows() || hWnd == 0) return false;
+        var menu = GetSystemMenu(hWnd, false);
+        if (menu == 0) return false;
+
+        SetMenuItemState(menu, SC_SIZE, window.CanResize && window.WindowState == WindowState.Normal);
+        SetMenuItemState(menu, SC_MINIMIZE, window.CanMinimize && window.WindowState != WindowState.Minimized);
+        SetMenuItemState(menu, SC_MAXIMIZE, window.CanMaximize && window.WindowState != WindowState.Maximized);
+        SetMenuItemState(menu, SC_RESTORE, window.WindowState != WindowState.Normal);
+        SetMenuItemState(menu, SC_CLOSE, true);
+
+        var point = ContextMenuPoint(lParam);
+        if (keyboard)
+        {
+            // Preserve the proven P7 keyboard-menu anchor at the leading caption, not (' ', 0).
+            if (!GetWindowRect(hWnd, out var frame)) return false;
+            point = new ScreenPoint(frame.Left + 8, frame.Top + 44);
+        }
+        var command = TrackPopupMenuEx(menu, TPM_RIGHTBUTTON | TPM_RETURNCMD, point.X, point.Y, hWnd, 0);
+        if (command != 0) _ = PostMessage(hWnd, WM_SYSCOMMAND, (nint)command, 0);
+        return true;
+    }
+
+    private static void SetMenuItemState(nint menu, uint command, bool enabled) =>
+        _ = EnableMenuItem(menu, command, MF_BYCOMMAND | (enabled ? MF_ENABLED : MF_GRAYED));
+
+    private static ScreenPoint ContextMenuPoint(nint lParam)
+    {
+        if (lParam == -1 && GetCursorPos(out var cursor)) return new ScreenPoint(cursor.X, cursor.Y);
+        var packed = unchecked((int)lParam.ToInt64());
+        return new ScreenPoint((short)(packed & 0xFFFF), (short)(packed >> 16));
+    }
+
+    private readonly record struct ScreenPoint(int X, int Y);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativePoint
+    {
+        public int X;
+        public int Y;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct NativeRect
+    {
+        public int Left;
+        public int Top;
+        public int Right;
+        public int Bottom;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)] private static extern nint SetCapture(nint hWnd);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool ReleaseCapture();
+    [DllImport("user32.dll", SetLastError = true)] private static extern nint GetSystemMenu(nint hWnd, bool revert);
+    [DllImport("user32.dll", SetLastError = true)] private static extern uint EnableMenuItem(nint menu, uint item, uint enable);
+    [DllImport("user32.dll", SetLastError = true)] private static extern uint TrackPopupMenuEx(
+        nint menu, uint flags, int x, int y, nint hWnd, nint reserved);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool GetCursorPos(out NativePoint point);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool ClientToScreen(nint hWnd, ref NativePoint point);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool GetWindowRect(nint hWnd, out NativeRect frame);
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)] private static extern nint SendMessage(nint hWnd, uint message, nint wParam, nint lParam);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool PostMessage(
+        nint hWnd, uint message, nint wParam, nint lParam);
 
     // NSWindow.frame's size, in points: the content size plus the decorations around it, which the platform reports
     // once the window has been shown (Window.FrameSize). Avalonia measures a window the same way for its own centring.

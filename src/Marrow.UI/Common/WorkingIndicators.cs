@@ -186,7 +186,11 @@ internal sealed class SpinnerLayerView : Control
         InvalidateVisual(); // :264-269 CATransaction with actions disabled: an instant write, no crossfade (PR-THEME-170)
     }
 
-    private void OnThemeChanged() => ApplyTints(); // :252-254 @objc private func themeDidChange()
+    private void OnThemeChanged() // :252-254 @objc private func themeDidChange()
+    {
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess()) { ApplyTints(); return; }
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (TopLevel.GetTopLevel(this) is not null) ApplyTints(); });
+    }
 
     /// <summary>:295-317 <c>installAnimations()</c>: starts or stops the shared-clock repaint depending on reduce motion.</summary>
     private void UpdateAnimated()

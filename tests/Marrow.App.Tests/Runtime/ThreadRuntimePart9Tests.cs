@@ -22,6 +22,10 @@ public sealed class ThreadRuntimePart9Tests
     {
         using var h = new AppModelHarness();
         var (_, thread, model, runtime) = CreateRuntime(h);
+        // The constructor starts asynchronous history loading. Finish that fixture setup before
+        // rehearsing a new live turn; Install legitimately normalizes loaded Running turns to
+        // Interrupted and must not race this test's unchanged live-turn assertions.
+        h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
 
         h.Main.OnMain(() => runtime.RehearseTurn("Inspect these changes.", ["src/a.cs", "README.md"], "provider diff"));
 
