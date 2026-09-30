@@ -61,6 +61,112 @@ public sealed class HydraCookbookPanelTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-177")]
+    [Trait("Req", "PR-SETTINGS-178")]
+    public void An_open_cookbook_offers_and_adds_a_recipe_after_its_catalog_arrives() =>
+        headless.OnUiThread(() =>
+        {
+            using var h = new AppModelHarness();
+            using var noCLI =
+                Marrow.Services.Providers.ProviderRegistry
+                    .SetCLIUpdaterExecutableForTesting(_ => null);
+            var model = h.MakeModel();
+            var recipe = HydraCookbook.Recipes.Single(
+                candidate => candidate.Id == "astra-astra");
+            var host = new Border();
+            AppEnvironment.SetAppModel(host, model);
+            AvaloniaWindow? window = null;
+
+            try
+            {
+                h.Main.OnMain(() =>
+                {
+                    HydraCookbookResolveFixture.SetEnabled(
+                        model.Settings, ProviderKind.Codex, true);
+                    HydraCookbookResolveFixture.SetInstalled(
+                        model.Providers, ProviderKind.Codex, true);
+                    HydraCookbookResolveFixture.SetModels(
+                        model.Providers, ProviderKind.Codex,
+                        HydraCookbookResolveFixture.Model(
+                            "unrelated", "Unrelated"));
+
+                    host.Child = new HydraCookbookPanel();
+                    window = new AvaloniaWindow { Content = host };
+                    window.Show();
+                });
+
+                // Complete the initial attachment/layout before changing the catalog:
+                // a late first render must not masquerade as a catalog notification.
+                h.Main.OnMain(() =>
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    var empty = Assert.Single(
+                        LogicalQuery.SelfAndDescendants<TextBlock>(host),
+                        text => text.Text ==
+                            "Set up a provider in Settings › Providers, and its models bring their pairs here.");
+                    Assert.True(empty.IsVisible);
+                    Assert.True(empty.Bounds.Width > 0);
+                    Assert.True(empty.Bounds.Height > 0);
+                    Assert.DoesNotContain(
+                        LogicalQuery.SelfAndDescendants<HydraCookbookRow>(host),
+                        row => AllText(row).Contains(
+                            recipe.Tagline, StringComparison.Ordinal));
+                });
+
+                var originalPanel = host.Child;
+                var statuses = model.Providers.Statuses;
+
+                // Deliver through the real catalog update API without changing
+                // provider readiness, saved pairs, or the open panel.
+                h.Main.OnMain(() =>
+                    HydraCookbookResolveFixture.SetModels(
+                        model.Providers, ProviderKind.Codex,
+                        HydraCookbookResolveFixture.Model(
+                            "gpt-6-astra", "GPT-6 Astra",
+                            ["high", "medium"])));
+
+                h.Main.OnMain(() =>
+                {
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                    Assert.Same(originalPanel, host.Child);
+                    Assert.Equal(statuses, model.Providers.Statuses);
+                    Assert.Empty(model.Settings.HydraPairs);
+
+                    var row = Assert.Single(
+                        LogicalQuery.SelfAndDescendants<HydraCookbookRow>(host),
+                        candidate => AllText(candidate).Contains(
+                            recipe.Tagline, StringComparison.Ordinal));
+                    Assert.Equal(1, row.Opacity);
+                    var add = Assert.Single(
+                        LogicalQuery.SelfAndDescendants<Button>(row));
+                    Assert.True(add.IsEnabled);
+                    Assert.Contains("Add", AllText(add), StringComparison.Ordinal);
+                    add.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                });
+
+                h.Main.OnMain(() =>
+                {
+                    var pair = Assert.Single(model.Settings.HydraPairs);
+                    Assert.Equal(ProviderKind.Codex, pair.Provider);
+                    Assert.Equal("gpt-6-astra", pair.OrchestratorModel);
+                    Assert.Equal("high", pair.OrchestratorEffort);
+                    Assert.Equal("gpt-6-astra", pair.WorkerModel);
+                    Assert.Equal("medium", pair.WorkerEffort);
+                });
+            }
+            finally
+            {
+                h.Main.OnMain(() =>
+                {
+                    window?.Close();
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                });
+            }
+        });
+
     private static string AllText(Control control)
     {
         var parts = new System.Collections.Generic.List<string>();

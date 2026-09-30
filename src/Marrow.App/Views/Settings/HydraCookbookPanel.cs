@@ -132,7 +132,7 @@ public sealed class HydraCookbookPanel : Decorator
             settings = model.Settings;
             Rebuild();
         });
-        this.Track(() => registry?.Statuses, _ => Rebuild());
+        this.Track(() => (registry?.Statuses, registry?.Catalogs), _ => Rebuild());
         this.Track(() => settings?.HydraPairs, _ => Rebuild());
         this.Task(() => 0, async _ => // :61-65
         {
