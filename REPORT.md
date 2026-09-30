@@ -29,6 +29,10 @@ Test first: `AppShellActivationTests.Reactivating_the_main_window_after_launch_c
 
 The above existing tests are partial evidence, not newly mutated whole-record proofs. The source/rulings do not settle the noted STOPs. Guesses made: **zero**. No whole record is claimed proven.
 
++### PR-LAUNCH-028 — STOP
+
+Source site: `AppDelegate.swift:22` calls `windows.showMain()`; `WindowManager.swift:26-30,57-70` creates/restores the 1320 × 860 main window, activates it and brings it front. Existing `AppDelegateThirdTests` proves that plain launch order. Owner deviation OD-0018 / ED-103 replaces that presentation with a transparent particle stage and delayed window formation. `AppDelegate.cs:56-60` still calls `windows.ShowMain()` directly. `LoadingMark.cs` and `GlassMaterial.cs` exist, but there is no P12 transparent-stage/Acrylic composition probe or stage hosting in this worktree (`rg --files porting/probes` has no P12). ED-103(7) explicitly defers the fallback until that probe. A stage timing assertion against today's direct show would encode the wrong result. STOP at `AppDelegate.ApplicationDidFinishLaunching` before replacing `ShowMain`; P12 and the stage/window composition are required. No Swift failure is asserted: the stage is the owner-approved Windows deviation.
+
 ## Commands and observed output
 
 For every `dotnet` build/test command below, PowerShell first removed the listed API-key environment variables and set `MARROW_PORT_DATA_DIR` to a newly created `%TEMP%\marrow-<GUID>` directory. No installed app was launched.
