@@ -590,7 +590,10 @@ internal static class TokenHistoryScanner
             }
         }
         catch (Exception e) when (SwiftTry.IsThrownError(e)) { return 0; }
-        var text = SwiftText.DecodeUtf8Repairing(head); // :553-ish lossy decode, matching the tail's own approach
+        // :518-531 inheritedTotal consumes only newline-terminated lines, including at EOF or the head budget.
+        var lastNewline = Array.LastIndexOf(head, (byte)0x0A);
+        if (lastNewline < 0) return 0;
+        var text = SwiftText.DecodeUtf8Repairing(head.AsSpan(0, lastNewline + 1));
         foreach (var line in SwiftString.Split(text, "\n"))
         {
             if (!line.Contains("\"token_count\"", StringComparison.Ordinal)) continue; // :521

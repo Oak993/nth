@@ -424,6 +424,50 @@ public sealed class TokenLedgerTests
         Assert.Equal("a1b2c3d4-1111-2222-3333-888888888888", result.Fingerprints[path].Identity);
     }
 
+    [Theory]
+    [Trait("Req", "PR-USAGE-100")] // TokenLedger.swift:498-532: inheritedTotal only parses newline-terminated lines within headBytes
+    [InlineData(false, 260L)]
+    [InlineData(true, 60L)]
+    public void ScanCodexHistory_OnlySubtractsAnInheritedRecordWhoseNewlineFitsInsideTheHeadBudget(bool newlineInsideBudget, long expectedTokens)
+    {
+        using var scratch = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        using var zoneOverride = SwiftFormatters.CurrentTimeZone.Override(TimeZoneInfo.Utc);
+        var home = Path.Combine(scratch.Home, "head-budget");
+        Directory.CreateDirectory(home);
+        using var homeOverride = TokenHistoryScanner.HomeOverride.Override(home);
+
+        const int headBytes = 8 * 1_048_576; // TokenLedger.swift:498
+        var inherited = TokenCountLine(200, 0, "2026-01-05T09:00:00Z");
+        var paddingBytes = headBytes - System.Text.Encoding.UTF8.GetByteCount(inherited) - (newlineInsideBudget ? 1 : 0);
+        var content = new string(' ', paddingBytes) + inherited + "\n" + TokenCountLine(260, 200, "2026-01-05T11:00:00Z");
+        var path = WriteRollout(Path.Combine(home, ".codex", "sessions"), "head-budget.jsonl", SwiftDate.Now.AddDays(-1).LocalDateTime, content);
+
+        var result = TokenHistoryScanner.ScanCodexHistory(ValueMap<string, CodexFileFingerprint>.Empty, SwiftDate.Now, ValueMap<string, long>.Empty);
+
+        Assert.Equal(expectedTokens, result.Daily["2026-01-05"]);
+        Assert.Equal(expectedTokens, result.Fingerprints[path].Tokens);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-USAGE-100")] // TokenLedger.swift:518-532, 554-569: the tail accepts an unterminated line, the inherited head does not
+    public void ScanCodexHistory_DoesNotSubtractAnUnterminatedInheritedRecordAtEndOfFile()
+    {
+        using var scratch = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        using var zoneOverride = SwiftFormatters.CurrentTimeZone.Override(TimeZoneInfo.Utc);
+        var home = Path.Combine(scratch.Home, "unterminated-head");
+        Directory.CreateDirectory(home);
+        using var homeOverride = TokenHistoryScanner.HomeOverride.Override(home);
+        var path = WriteRollout(Path.Combine(home, ".codex", "sessions"), "unterminated.jsonl", SwiftDate.Now.AddDays(-1).LocalDateTime,
+            TokenCountLine(200, 0, "2026-01-05T09:00:00Z"));
+
+        var result = TokenHistoryScanner.ScanCodexHistory(ValueMap<string, CodexFileFingerprint>.Empty, SwiftDate.Now, ValueMap<string, long>.Empty);
+
+        Assert.Equal(200, result.Daily["2026-01-05"]);
+        Assert.Equal(200, result.Fingerprints[path].Tokens);
+    }
+
     [Fact]
     [Trait("Req", "PR-USAGE-104")] // TokenLedger.swift:432-439: a cached fingerprint with matching mtime+size is reused
     public void ScanCodexHistory_ReusesACachedFingerprintWhenMtimeAndSizeMatch()
