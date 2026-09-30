@@ -119,11 +119,17 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
     [Trait("Req", "PR-TERM-033")] // App/Views/Terminal/TerminalPanel.swift:268-303
     public void Live_resize_parks_autoresizing_and_coalesces_multiple_frames_to_one_50ms_sync()
     {
-        WithAttachedHost("resize coalescing", null, (session, host, window, resize, _) =>
+        const string command = "Write-Output 'BEATWAIT'; $null = [Console]::ReadLine(); "
+            + "Write-Output ('BEATGRID=' + [Console]::WindowWidth + 'x' + [Console]::WindowHeight); Start-Sleep -Seconds 5";
+        WithAttachedHost("resize coalescing", command, (session, host, window, resize, _) =>
         {
+            Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains("BEATWAIT", StringComparison.Ordinal),
+                TimeSpan.FromSeconds(15)), "the real ConPTY child did not wait for the coalesced frame");
             var container = LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single();
             var view = Assert.IsAssignableFrom<Control>(session.View);
             var before = IntMetric(container, "SyncFrameCount");
+            var beforeNative = session.View.ResizeCount;
+            var initialGrid = session.View.LastPseudoConsoleSize;
             var original = view.Bounds;
 
             BeginWin32Resize(resize);
@@ -136,6 +142,7 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
             var firstBeat = Field(container, "pendingSync").GetValue(container);
             Assert.NotNull(firstBeat);
             Assert.Equal(original, view.Bounds);
+            var elapsed = System.Diagnostics.Stopwatch.StartNew();
 
             window.Width = 860;
             window.Height = 400;
@@ -144,9 +151,85 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
             Assert.Equal(before, IntMetric(container, "SyncFrameCount"));
             Assert.Same(firstBeat, Field(container, "pendingSync").GetValue(container));
 
-            Assert.True(UiPump.Until(() => !BoolMetric(container, "IsResizePending"), TimeSpan.FromSeconds(2)));
+            while (IntMetric(container, "SyncFrameCount") == before && elapsed.Elapsed < TimeSpan.FromSeconds(2))
+            {
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                System.Threading.Thread.Sleep(1);
+            }
+            Assert.True(IntMetric(container, "SyncFrameCount") > before);
+            Assert.True(elapsed.Elapsed >= TimeSpan.FromMilliseconds(35),
+                $"the live-resize frame synced after only {elapsed.Elapsed.TotalMilliseconds} ms");
             Assert.Equal(before + 1, IntMetric(container, "SyncFrameCount"));
             Assert.Equal(new Size(860, 400), view.Bounds.Size);
+            var grid = session.View.LastPseudoConsoleSize;
+            Assert.True(grid.Columns > initialGrid.Columns && grid.Rows > initialGrid.Rows);
+            Assert.Equal(beforeNative + 1, session.View.ResizeCount);
+            session.View.SendBytes("go\r"u8.ToArray());
+            Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains(
+                $"BEATGRID={grid.Columns}x{grid.Rows}", StringComparison.Ordinal), TimeSpan.FromSeconds(15)),
+                "the real ConPTY child did not receive the coalesced column and row count");
+            EndWin32Resize(resize);
+        }, (session, _, _, _, _) => { });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-033")]
+    public void A_live_resize_without_a_hosted_terminal_schedules_no_beat()
+    {
+        headless.OnUiThread(() =>
+        {
+            var container = new TerminalHostContainer();
+            var window = new AvaloniaWindow { Width = 640, Height = 240, Content = container };
+            var resize = new WindowLiveResize(window);
+            AppEnvironment.SetWindowLiveResize(container, resize);
+            window.Show();
+            Settle(window);
+            try
+            {
+                BeginWin32Resize(resize);
+                window.Width = 800;
+                window.Height = 360;
+                Settle(window);
+                Assert.False(container.IsResizePending);
+                Assert.Equal(0, container.SyncFrameCount);
+                EndWin32Resize(resize);
+            }
+            finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-033")]
+    public void A_single_live_resize_frame_waits_for_the_source_50ms_beat()
+    {
+        WithAttachedHost("single resize beat", null, (session, host, window, resize, _) =>
+        {
+            var container = LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single();
+            var before = IntMetric(container, "SyncFrameCount");
+            TimeSpan? requestedBeat = null;
+            container.BeatDelay = (duration, cancellation) =>
+            {
+                requestedBeat = duration;
+                return Task.Delay(duration, cancellation);
+            };
+            BeginWin32Resize(resize);
+            window.Width = 800;
+            window.Height = 360;
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(BoolMetric(container, "IsResizePending"));
+            var elapsed = System.Diagnostics.Stopwatch.StartNew();
+            while (IntMetric(container, "SyncFrameCount") == before && elapsed.Elapsed < TimeSpan.FromSeconds(2))
+            {
+                Dispatcher.UIThread.RunJobs();
+                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                System.Threading.Thread.Sleep(1);
+            }
+            Assert.Equal(before + 1, IntMetric(container, "SyncFrameCount"));
+            Assert.Equal(TimeSpan.FromMilliseconds(50), requestedBeat);
+            Assert.True(elapsed.Elapsed >= TimeSpan.FromMilliseconds(35),
+                $"the frame synced after only {elapsed.Elapsed.TotalMilliseconds} ms");
             EndWin32Resize(resize);
         }, (session, _, _, _, _) => { });
     }
@@ -155,32 +238,62 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
     [Trait("Req", "PR-TERM-034")] // App/Views/Terminal/TerminalPanel.swift:305-312
     public void Ending_live_resize_cancels_pending_work_and_syncs_the_final_frame_once()
     {
-        WithAttachedHost("resize finish", null, (session, host, window, resize, _) =>
+        const string command = "Write-Output 'RESIZEWAIT'; $null = [Console]::ReadLine(); "
+            + "Write-Output ('FINALGRID=' + [Console]::WindowWidth + 'x' + [Console]::WindowHeight); "
+            + "$null = [Console]::ReadLine(); "
+            + "Write-Output ('FOLLOWGRID=' + [Console]::WindowWidth + 'x' + [Console]::WindowHeight); Start-Sleep -Seconds 5";
+        WithAttachedHost("resize finish", command, (session, host, window, resize, _) =>
         {
+            Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains("RESIZEWAIT", StringComparison.Ordinal),
+                TimeSpan.FromSeconds(15)), "the real ConPTY child did not wait for the final grid");
             var container = LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single();
             var view = Assert.IsAssignableFrom<Control>(session.View);
             var before = IntMetric(container, "SyncFrameCount");
+            var beforeNative = session.View.ResizeCount;
+            var initialGrid = session.View.LastPseudoConsoleSize;
+            var initialFrame = view.Bounds.Size;
             BeginWin32Resize(resize);
             window.Width = 900;
             window.Height = 420;
             window.UpdateLayout();
             Dispatcher.UIThread.RunJobs();
             Assert.True(BoolMetric(container, "IsResizePending"));
+            Assert.Equal(initialFrame, view.Bounds.Size);
+            Assert.Equal(initialGrid, session.View.LastPseudoConsoleSize);
 
             EndWin32Resize(resize);
             Assert.False(BoolMetric(container, "IsResizePending"));
             Assert.True(BoolMetric(container, "IsAutoResizing"));
             Assert.Equal(before + 1, IntMetric(container, "SyncFrameCount"));
+            Assert.Equal(beforeNative + 1, session.View.ResizeCount);
             Assert.Equal(new Size(900, 420), view.Bounds.Size);
+            var final = session.View.LastPseudoConsoleSize;
+            session.View.SendBytes("go\r"u8.ToArray());
+            Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains(
+                $"FINALGRID={final.Columns}x{final.Rows}", StringComparison.Ordinal), TimeSpan.FromSeconds(15)),
+                "the real ConPTY child did not receive the settled column and row count");
 
             UiPump.For(TimeSpan.FromMilliseconds(120));
             Assert.Equal(before + 1, IntMetric(container, "SyncFrameCount"));
+
+            window.Width = 1000;
+            window.Height = 500;
+            Settle(window);
+            Assert.Equal(new Size(1000, 500), view.Bounds.Size);
+            var following = session.View.LastPseudoConsoleSize;
+            Assert.True(following.Columns > final.Columns);
+            Assert.True(following.Rows > final.Rows);
+            session.View.SendBytes("go\r"u8.ToArray());
+            Assert.True(UiPump.Until(() => session.View.ScrollbackText.Contains(
+                $"FOLLOWGRID={following.Columns}x{following.Rows}", StringComparison.Ordinal), TimeSpan.FromSeconds(15)),
+                "the real ConPTY child did not follow the next ordinary layout change");
         }, (session, _, _, _, _) => { });
     }
 
     [Fact]
     [Trait("Req", "PR-TERM-034")]
     [Trait("Req", "UI-TERM-010")]
+    [Trait("Req", "PR-TERM-033")]
     public void A_layout_change_outside_live_resize_updates_the_real_ConPTY_grid()
     {
         const string command = "Write-Output ('BEFOREGRID=' + [Console]::WindowWidth + 'x' + [Console]::WindowHeight); "
@@ -209,6 +322,7 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
             window.Width = 1000;
             window.Height = 600;
             Settle(window);
+            Assert.False(BoolMetric(LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single(), "IsResizePending"));
             Assert.Equal(new Size(1000, 600), session.View.Bounds.Size);
             Assert.True(UiPump.Until(() => session.View.LastPseudoConsoleSize.Columns > initial.Columns,
                 TimeSpan.FromSeconds(5)), "the layout change did not resize the pseudoconsole");
