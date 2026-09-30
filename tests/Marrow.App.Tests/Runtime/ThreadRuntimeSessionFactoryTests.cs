@@ -34,6 +34,42 @@ public sealed class ThreadRuntimeSessionFactoryTests
         Assert.True(session.IsRunning);
     }
 
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-034")] // ThreadRuntime.swift:1554; CommandCodeSession.swift:99-102
+    public void The_CLI_factory_constructs_CommandCode_before_its_missing_resume_check()
+    {
+        Assert.Equal("Command Code no longer has this conversation; starting a new one.",
+            FactoryStartError(ProviderKind.Commandcode, "factory-missing-cmd-session"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-RUNTIME-034")] // ThreadRuntime.swift:1555; PiSession.swift:82-85
+    public void The_CLI_factory_constructs_Pi_before_its_missing_resume_check()
+    {
+        Assert.Equal("Pi no longer has this conversation; starting a new one.",
+            FactoryStartError(ProviderKind.Pi, "factory-missing-pi-session"));
+    }
+
+    // Adopted from N8's committed factory tests. A fake executable resolves the factory; the nonexistent
+    // resume fails before either session installs support files or launches a process. No retry or turn.
+    private static string FactoryStartError(ProviderKind provider, string missingSessionID)
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("P", h.NewFolder("cli factory " + provider));
+        var thread = AppModelSamples.Thread(project) with { Provider = provider, ProviderSessionID = missingSessionID };
+        h.WriteLibrary([project], [thread]);
+        var model = h.MakeModel();
+        h.PrepareBootstrap(model);
+        var runtime = h.Main.OnMain(() => model.Runtime(thread.Id));
+        h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+        using var seam = ProviderRegistry.SetCLIUpdaterExecutableForTesting(_ => Marrow.Core.Port.SwiftURL.Create("file:///factory-test/cli")!);
+
+        var ensure = typeof(ThreadRuntime).GetMethod("EnsureSession", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        var task = h.Main.OnMain(() => (Task)ensure.Invoke(runtime, [project.Path, false])!);
+        var thrown = Assert.Throws<ProviderError>(() => h.Main.Loop.Run(() => task, AppModelHarness.Bound));
+        return Assert.IsType<ProviderError.Case.Failed>(thrown.ErrorCase).Message;
+    }
+
     private static ProviderSession EnsureSession(AppModelHarness h, ThreadRuntime runtime, string directory)
     {
         var ensure = typeof(ThreadRuntime).GetMethod("EnsureSession", BindingFlags.Instance | BindingFlags.NonPublic)!;

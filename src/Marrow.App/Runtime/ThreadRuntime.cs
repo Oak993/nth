@@ -1973,8 +1973,8 @@ public sealed class ThreadRuntime : MainActorModel
                 ProviderKind.Claude => new ClaudeSession(configuration),
                 ProviderKind.Antigravity => new AntigravitySession(configuration),
                 ProviderKind.Copilot => new CopilotSession(configuration),
-                ProviderKind.Commandcode => throw new NotImplementedException("BLOCKED: CommandCodeSession is not present in the owned provider tree."),
-                ProviderKind.Pi => throw new NotImplementedException("BLOCKED: PiSession is not present in the owned provider tree."),
+                ProviderKind.Commandcode => new CommandCodeSession(configuration), // :1554
+                ProviderKind.Pi => new PiSession(configuration), // :1555
                 ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Devin => new ACPSession(configuration),
                 ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1557
                 ProviderKind.Meta => new MetaSession(configuration),
@@ -2034,20 +2034,19 @@ public sealed class ThreadRuntime : MainActorModel
         }
     }
 
-    // ThreadRuntime.swift:1474, 1537; reuse the file-URL construction already established by
-    // ACPSession.DirectoryFileUrl for Windows drive and UNC paths.
+    // ThreadRuntime.swift:1474,1537; Windows boundary as in ProviderRegistry.FileUrl.
+    // Percent-encode a native path under a non-file scheme: file URL .Path is POSIX.
     private static SwiftURL SessionDirectoryUrl(string path)
     {
-        var normalized = path.Replace('\\', '/');
+        var native = path.Replace('/', '\\');
         var builder = new System.Text.StringBuilder();
-        if (normalized.Length == 0 || normalized[0] != '/') builder.Append('/');
-        foreach (var b in System.Text.Encoding.UTF8.GetBytes(normalized))
+        foreach (var b in System.Text.Encoding.UTF8.GetBytes(native))
         {
             var c = (char)b;
-            if (b < 0x80 && (char.IsAsciiLetterOrDigit(c) || "-._~/:".IndexOf(c, StringComparison.Ordinal) >= 0)) builder.Append(c);
+            if (b < 0x80 && (char.IsAsciiLetterOrDigit(c) || "-._~".IndexOf(c, StringComparison.Ordinal) >= 0)) builder.Append(c);
             else builder.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
         }
-        return SwiftURL.Create("file://" + builder) ?? throw SwiftTraps.Fatal("Invalid session directory path.");
+        return SwiftURL.Create("marrow-native-path:" + builder) ?? throw SwiftTraps.Fatal("Invalid session directory path.");
     }
 
     // :1691-1719
