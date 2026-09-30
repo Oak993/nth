@@ -801,6 +801,13 @@ public sealed partial record Git
         Check(await Run(["rm", "--quiet", "--", .. paths]));
     }
 
+    // PORT-ONLY DEVIATION OD-0020: reset --soft stages remote deletions, so sync must force their removal.
+    public async Task RemovePathsAfterSoftReset(IReadOnlyList<string> paths)
+    {
+        if (paths.Count == 0) return;
+        Check(await Run(["rm", "--quiet", "-f", "--", .. paths]));
+    }
+
     /// <summary>:508-510</summary>
     public async Task PullFastForward() => Check(await Run(["pull", "--ff-only", "--quiet"], timeout: 300));
 
@@ -1000,7 +1007,8 @@ public sealed partial record Git
     /// directory) asks once and keeps the answer while that file stands unchanged. A directory inside a repository, with
     /// no <c>.git</c> of its own, still asks every time. Private in Swift; internal so the tests reach it (R-NAME-6).
     /// </summary>
-    internal async Task<string?> IndexPath()
+    // PORT-ONLY DEVIATION OD-0020: AppModel needs the exact index file for transactional sync rollback.
+    public async Task<string?> IndexPath()
     {
         // :623-626
         var dotGit = SwiftPath.FileURLAppendingPathComponentPath(Directory, ".git");

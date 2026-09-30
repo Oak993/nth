@@ -11,7 +11,7 @@ public sealed class AppModelHydraMergeSyncTests
 {
     [Fact]
     [Trait("Req", "PR-HYDRAMERGE-063")] // App/AppModel+HydraMerge.swift:790-814
-    public void A_remote_deletion_fails_after_soft_reset_and_keeps_the_teams_working_file()
+    public void A_remote_deletion_syncs_and_removes_the_file_from_the_index_and_working_tree()
     {
         using var f = new HydraMergeProofFixture();
         var project = f.AddProject("Project");
@@ -38,17 +38,90 @@ public sealed class AppModelHydraMergeSyncTests
             return await HydraMergeReviewFixture.Sync(new Git(project.Path), head, ["a.txt"]);
         }, AppModelHarness.Bound);
 
-        // Git.swift:503-506 uses git rm without -f. After reset --soft has moved HEAD,
-        // the deletion is staged against the new HEAD, so git rm refuses and Swift :815-817 returns false.
-        Assert.False(synced);
+        // DEVIATION OD-0020: the owner requires the confirmed upstream git-rm failure fixed.
+        Assert.True(synced);
         Assert.Equal(remote, repo.Git("rev-parse", "HEAD").Trim());
         Assert.Equal("team working\n", File.ReadAllText(Path.Combine(project.Path, "a.txt")));
         Assert.Equal("remote kept\n", File.ReadAllText(Path.Combine(project.Path, "kept.txt")));
-        Assert.True(File.Exists(Path.Combine(project.Path, "gone.txt")));
+        Assert.False(File.Exists(Path.Combine(project.Path, "gone.txt")));
+        Assert.False(repo.Raw("ls-files", "--error-unmatch", "gone.txt").Succeeded);
+        Assert.Equal("M a.txt", repo.Git("status", "--porcelain").Trim());
         var verbs = calls.Where(c => HydraMergeReviewFixture.IsGit(c, "reset") ||
             HydraMergeReviewFixture.IsGit(c, "checkout") || HydraMergeReviewFixture.IsGit(c, "rm"))
             .Select(c => HydraMergeReviewFixture.GitArgs(c)[0]).ToArray();
         Assert.Equal(["reset", "reset", "checkout", "rm"], verbs);
+        Assert.Contains(calls, c => HydraMergeReviewFixture.GitArgs(c).SequenceEqual(["rm", "--quiet", "-f", "--", "gone.txt"]));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-063")]
+    public void A_dirty_remote_deleted_file_declines_before_moving_the_branch_index_or_working_tree()
+    {
+        using var f = new HydraMergeProofFixture();
+        var project = f.AddProject("Project");
+        var repo = f.Repos[project.Id];
+        File.WriteAllText(Path.Combine(project.Path, "gone.txt"), "baseline\n");
+        repo.Git("add", "gone.txt"); repo.Git("commit", "-q", "-m", "baseline"); repo.Git("push", "origin", "main");
+        var head = repo.Git("rev-parse", "HEAD").Trim();
+        var clone = f.Clone(project);
+        File.Delete(Path.Combine(clone.Root, "gone.txt"));
+        clone.Git("add", "-A"); clone.Git("commit", "-q", "-m", "remote delete"); clone.Git("push", "origin", "main");
+        File.WriteAllText(Path.Combine(project.Path, "gone.txt"), "local edit\n");
+        var beforeIndex = File.ReadAllBytes(Path.Combine(project.Path, ".git", "index"));
+        var beforeStatus = repo.Git("status", "--porcelain");
+        var calls = new List<ShellInvocation>();
+
+        var synced = f.H.Main.Loop.Run(async () =>
+        {
+            using var scope = ShellObserver.Observe(calls.Add);
+            return await HydraMergeReviewFixture.Sync(new Git(project.Path), head, ["a.txt"]);
+        }, AppModelHarness.Bound);
+
+        Assert.False(synced);
+        Assert.Equal(head, repo.Git("rev-parse", "HEAD").Trim());
+        Assert.Equal(beforeIndex, File.ReadAllBytes(Path.Combine(project.Path, ".git", "index")));
+        Assert.Equal(beforeStatus, repo.Git("status", "--porcelain"));
+        Assert.Equal("local edit\n", File.ReadAllText(Path.Combine(project.Path, "gone.txt")));
+        Assert.DoesNotContain(calls, c => HydraMergeReviewFixture.IsGit(c, "reset") || HydraMergeReviewFixture.IsGit(c, "rm"));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-063")]
+    public void A_failure_after_remote_checkout_and_removal_restores_branch_index_and_working_tree()
+    {
+        using var f = new HydraMergeProofFixture();
+        var project = f.AddProject("Project");
+        var repo = f.Repos[project.Id];
+        File.WriteAllText(Path.Combine(project.Path, "kept.txt"), "old kept\n");
+        File.WriteAllText(Path.Combine(project.Path, "gone.txt"), "old gone\n");
+        repo.Git("add", "kept.txt", "gone.txt"); repo.Git("commit", "-q", "-m", "baseline"); repo.Git("push", "origin", "main");
+        var head = repo.Git("rev-parse", "HEAD").Trim();
+        var clone = f.Clone(project);
+        File.WriteAllText(Path.Combine(clone.Root, "kept.txt"), "remote kept\n");
+        File.Delete(Path.Combine(clone.Root, "gone.txt"));
+        clone.Git("add", "-A"); clone.Git("commit", "-q", "-m", "remote changes"); clone.Git("push", "origin", "main");
+        File.WriteAllText(Path.Combine(project.Path, "a.txt"), "team working\n");
+        var beforeIndex = File.ReadAllBytes(Path.Combine(project.Path, ".git", "index"));
+        var beforeStatus = repo.Git("status", "--porcelain");
+        var merged = new Dictionary<string, byte[]> { ["a.txt"] = Encoding.UTF8.GetBytes("merged\n") };
+        using var locked = new FileStream(Path.Combine(project.Path, "a.txt"), FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var clock = SwiftClock.Provider.Override(TimeProvider.System);
+        var calls = new List<ShellInvocation>();
+
+        var synced = f.H.Main.Loop.Run(async () =>
+        {
+            using var scope = ShellObserver.Observe(calls.Add);
+            return await HydraMergeReviewFixture.Sync(new Git(project.Path), head, ["a.txt"], merged);
+        }, AppModelHarness.Bound);
+
+        Assert.False(synced);
+        Assert.Contains(calls, c => HydraMergeReviewFixture.IsGit(c, "rm") && c.Arguments.Contains("-f"));
+        Assert.Equal(head, repo.Git("rev-parse", "HEAD").Trim());
+        Assert.Equal(beforeIndex, File.ReadAllBytes(Path.Combine(project.Path, ".git", "index")));
+        Assert.Equal(beforeStatus, repo.Git("status", "--porcelain"));
+        Assert.Equal("team working\n", File.ReadAllText(Path.Combine(project.Path, "a.txt")));
+        Assert.Equal("old kept\n", File.ReadAllText(Path.Combine(project.Path, "kept.txt")));
+        Assert.Equal("old gone\n", File.ReadAllText(Path.Combine(project.Path, "gone.txt")));
     }
 
     [Theory]
@@ -144,7 +217,7 @@ public sealed class AppModelHydraMergeSyncTests
     [InlineData("unreadable")]
     [InlineData("write-failure")]
     [Trait("Req", "PR-HYDRAMERGE-131")] // App/AppModel+HydraMerge.swift:787,812,815-817
-    public void Unreadable_merged_files_decline_before_reset_and_a_failed_atomic_write_keeps_the_already_moved_branch(string failure)
+    public void Unreadable_merged_files_decline_before_reset_and_a_failed_atomic_write_restores_the_branch(string failure)
     {
         using var f = new HydraMergeProofFixture();
         var p = f.AddProject("Project");
@@ -153,7 +226,6 @@ public sealed class AppModelHydraMergeSyncTests
         var index = File.ReadAllBytes(Path.Combine(p.Path, ".git", "index"));
         var clone = f.Clone(p);
         clone.Git("commit", "--allow-empty", "-q", "-m", "advance"); clone.Git("push", "origin", "main");
-        var advanced = clone.Git("rev-parse", "HEAD").Trim();
         var path = failure == "unreadable" ? "gone.txt" : "a.txt";
         var map = new Dictionary<string,byte[]> { [path] = Encoding.UTF8.GetBytes("merged\n") };
         using var locked = failure == "write-failure" ? new FileStream(Path.Combine(p.Path, "a.txt"), FileMode.Open, FileAccess.Read, FileShare.Read) : null;
@@ -167,12 +239,13 @@ public sealed class AppModelHydraMergeSyncTests
             return await HydraMergeReviewFixture.Sync(new Git(p.Path), head, ["a.txt"], map);
         }, AppModelHarness.Bound);
         Assert.False(result);
-        Assert.Equal(failure == "unreadable" ? head : advanced, repo.Git("rev-parse", "HEAD").Trim());
+        // DEVIATION OD-0020 Part B: even a late write error restores the original branch and index.
+        Assert.Equal(head, repo.Git("rev-parse", "HEAD").Trim());
+        Assert.Equal(index, File.ReadAllBytes(Path.Combine(p.Path, ".git", "index")));
         Assert.Equal("a\n", File.ReadAllText(Path.Combine(p.Path, "a.txt")));
         if (failure == "unreadable")
         {
             Assert.DoesNotContain(calls, c => HydraMergeReviewFixture.IsGit(c, "reset"));
-            Assert.Equal(index, File.ReadAllBytes(Path.Combine(p.Path, ".git", "index")));
         }
         else Assert.Contains(calls, c => HydraMergeReviewFixture.IsGit(c, "reset") && c.Arguments.Contains("--soft"));
     }

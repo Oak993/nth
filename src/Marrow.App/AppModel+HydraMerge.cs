@@ -778,12 +778,32 @@ public sealed partial class AppModel
         // `reset --soft` moves the branch with no expected old value, so a commit made in a terminal while
         // the merge ran would be left with nothing pointing at it. The checkout is left alone instead.
         if (await SwiftTry.OptionalAsync<string>(async () => await git.CommitHash()) != head) return false; // :803
+        // DEVIATION OD-0020 Part B: retain the exact index bytes and every working file this sync may touch.
+        // A later Git or atomic-write failure must restore the branch, index and working tree before reporting false.
+        var indexPath = await git.IndexPath();
+        if (indexPath is null) return false;
+        byte[]? indexBefore;
+        var workingBefore = new Dictionary<string, (byte[]? Bytes, FileAttributes Attributes, DateTime Created, DateTime Written)>(SwiftStringComparer.Instance);
+        try
+        {
+            indexBefore = File.Exists(indexPath) ? File.ReadAllBytes(indexPath) : null;
+            foreach (var path in others.Concat(merged.Keys).Distinct(SwiftStringComparer.Instance))
+            {
+                var full = SwiftPath.AppendingPathComponent(root, path);
+                if (Directory.Exists(full) || new FileInfo(full).LinkTarget is not null) return false;
+                workingBefore[full] = File.Exists(full)
+                    ? (File.ReadAllBytes(full), File.GetAttributes(full), File.GetCreationTimeUtc(full), File.GetLastWriteTimeUtc(full))
+                    : (null, default, default, default);
+            }
+        }
+        catch (Exception error) when (SwiftTry.IsThrownError(error)) { return false; }
+        if (await SwiftTry.OptionalAsync<string>(async () => await git.CommitHash()) != head) return false;
         try
         {
             await git.ResetSoft(remote); // :805
             await git.ResetIndex(ownPaths); // :806
             await git.CheckoutPaths(remote, kept); // :807
-            await git.RemovePaths(gone); // :808
+            await git.RemovePathsAfterSoftReset(gone); // :808; DEVIATION OD-0020 Part A: git rm --quiet -f --
             foreach (var (path, content) in merged) // :809
             {
                 var url = SwiftPath.AppendingPathComponent(root, path);
@@ -794,7 +814,46 @@ public sealed partial class AppModel
             }
             return true; // :814
         }
-        catch (Exception error) when (SwiftTry.IsThrownError(error)) { return false; } // :815-817
+        catch (Exception error) when (SwiftTry.IsThrownError(error)) // :815-817; DEVIATION OD-0020 Part B
+        {
+            var rollbackErrors = new List<Exception>();
+            try { await git.ResetSoft(head); }
+            catch (Exception restore) when (SwiftTry.IsThrownError(restore)) { rollbackErrors.Add(restore); }
+            foreach (var (full, before) in workingBefore)
+            {
+                try
+                {
+                    if (before.Bytes is null)
+                    {
+                        if (File.Exists(full)) File.Delete(full);
+                    }
+                    else
+                    {
+                        if (!File.Exists(full) || !File.ReadAllBytes(full).AsSpan().SequenceEqual(before.Bytes))
+                        {
+                            if (File.Exists(full)) File.SetAttributes(full, FileAttributes.Normal);
+                            FileOps.WriteAtomic(full, before.Bytes);
+                        }
+                        File.SetCreationTimeUtc(full, before.Created);
+                        File.SetLastWriteTimeUtc(full, before.Written);
+                        File.SetAttributes(full, before.Attributes);
+                    }
+                }
+                catch (Exception restore) when (SwiftTry.IsThrownError(restore)) { rollbackErrors.Add(restore); }
+            }
+            try
+            {
+                if (indexBefore is null)
+                {
+                    if (File.Exists(indexPath)) File.Delete(indexPath);
+                }
+                else FileOps.WriteAtomic(indexPath, indexBefore);
+            }
+            catch (Exception restore) when (SwiftTry.IsThrownError(restore)) { rollbackErrors.Add(restore); }
+            if (rollbackErrors.Count > 0)
+                throw new AggregateException("Hydra sync rollback failed.", [error, .. rollbackErrors]);
+            return false;
+        }
     }
 
     // :822-841
