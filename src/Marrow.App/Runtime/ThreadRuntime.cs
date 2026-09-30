@@ -2337,9 +2337,10 @@ public sealed class ThreadRuntime : MainActorModel
 
                 App?.TurnFinished(ThreadID, status, continues);
 
-                // PR-RUNTIME-128: the safety predicate is retained, but dispatch awaits the
-                // AppModel lane's source-backed auto-merge API on this candidate.
-                _ = AutoMergeAppIfReady(continues, status);
+                // ThreadRuntime.swift:2493-2503: once the entire job has settled, hand its
+                // work to the existing merge coordinator, which rechecks readiness after waiting.
+                if (AutoMergeAppIfReady(continues, status) is { } mergeApp)
+                    _ = MainActor.Spawn(() => mergeApp.AutoMergeHydraWork(ThreadID));
             }
             finally
             {
