@@ -9,6 +9,48 @@ namespace Marrow.App.Tests;
 // Source: DroppyCode/App/AppModel+HydraMerge.swift (B3 52bc792), :280-295,778-818.
 public sealed class AppModelHydraMergeSyncTests
 {
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-063")] // App/AppModel+HydraMerge.swift:790-814
+    public void A_remote_deletion_fails_after_soft_reset_and_keeps_the_teams_working_file()
+    {
+        using var f = new HydraMergeProofFixture();
+        var project = f.AddProject("Project");
+        var repo = f.Repos[project.Id];
+        File.WriteAllText(Path.Combine(project.Path, "kept.txt"), "old kept\n");
+        File.WriteAllText(Path.Combine(project.Path, "gone.txt"), "old gone\n");
+        repo.Git("add", "kept.txt", "gone.txt");
+        repo.Git("commit", "-q", "-m", "baseline");
+        repo.Git("push", "origin", "main");
+        var head = repo.Git("rev-parse", "HEAD").Trim();
+        var clone = f.Clone(project);
+        File.WriteAllText(Path.Combine(clone.Root, "kept.txt"), "remote kept\n");
+        File.Delete(Path.Combine(clone.Root, "gone.txt"));
+        clone.Git("add", "-A");
+        clone.Git("commit", "-q", "-m", "remote changes");
+        clone.Git("push", "origin", "main");
+        var remote = clone.Git("rev-parse", "HEAD").Trim();
+        File.WriteAllText(Path.Combine(project.Path, "a.txt"), "team working\n");
+
+        var calls = new List<ShellInvocation>();
+        var synced = f.H.Main.Loop.Run(async () =>
+        {
+            using var scope = ShellObserver.Observe(calls.Add);
+            return await HydraMergeReviewFixture.Sync(new Git(project.Path), head, ["a.txt"]);
+        }, AppModelHarness.Bound);
+
+        // Git.swift:503-506 uses git rm without -f. After reset --soft has moved HEAD,
+        // the deletion is staged against the new HEAD, so git rm refuses and Swift :815-817 returns false.
+        Assert.False(synced);
+        Assert.Equal(remote, repo.Git("rev-parse", "HEAD").Trim());
+        Assert.Equal("team working\n", File.ReadAllText(Path.Combine(project.Path, "a.txt")));
+        Assert.Equal("remote kept\n", File.ReadAllText(Path.Combine(project.Path, "kept.txt")));
+        Assert.True(File.Exists(Path.Combine(project.Path, "gone.txt")));
+        var verbs = calls.Where(c => HydraMergeReviewFixture.IsGit(c, "reset") ||
+            HydraMergeReviewFixture.IsGit(c, "checkout") || HydraMergeReviewFixture.IsGit(c, "rm"))
+            .Select(c => HydraMergeReviewFixture.GitArgs(c)[0]).ToArray();
+        Assert.Equal(["reset", "reset", "checkout", "rm"], verbs);
+    }
+
     [Theory]
     [InlineData("overlap", false)]
     [InlineData("team-deleted", false)]
