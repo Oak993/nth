@@ -97489,16 +97489,18 @@
       "blocked_by": null,
       "depends_on_unknown": null,
       "id": "PR-WIN-064",
-      "title": "Dropping folders anywhere in the window adds them as projects and opens a thread in the last one",
+      "title": "Dropping folders through the root window destination adds them as projects and opens a thread in the last one",
       "source_evidence": [
         "DroppyCode/App/Views/RootView.swift:77-79 `.dropDestination(for: URL.self) { urls, _ in handleDrop(urls) }`",
-        "DroppyCode/App/Views/RootView.swift:94-110 handleDrop: each URL is checked with `FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)` and skipped when it does not exist; directories go to folders, everything else to files; `for folder in folders { lastProject = model.addProject(at: folder) }`; `if let lastProject { model.newThread(in: lastProject) }`; returns `!folders.isEmpty || !files.isEmpty`"
+        "DroppyCode/App/Views/RootView.swift:94-110 handleDrop: each URL is checked with `FileManager.default.fileExists(atPath: url.path, isDirectory: &isDirectory)` and skipped when it does not exist; directories go to folders, everything else to files; `for folder in folders { lastProject = model.addProject(at: folder) }`; `if let lastProject { model.newThread(in: lastProject) }`; returns `!folders.isEmpty || !files.isEmpty`",
+        "DroppyCode/App/Views/Composer/ComposerTextView.swift:180-187 - dedicated text-view performDragOperation sends nonempty file URLs to onAttach and returns true; otherwise defers to super. This child attachment route is PR-COMPOSER-066, not RootView.handleDrop."
       ],
-      "preconditions": "The main window is showing.",
-      "action": "The user drops one or more folders anywhere in the window.",
-      "expected_result": "Every dropped folder that exists is added as a project, in the order given. A new thread is then started in the LAST folder added, not the first. The drop reports success when at least one folder or file was accepted.",
-      "windows_path": "Register the window as a drop target for CF_HDROP over its whole area. Test each path for existence and for the directory attribute, skipping what does not exist, preserving the order and the last-wins rule.",
-      "verification_method": "interaction test: drop three folders and assert a thread opens in the third"
+      "preconditions": "The main window is showing and the drop is delivered to the RootView URL destination; drops handled by the dedicated composer text-view target follow PR-COMPOSER-066.",
+      "action": "The user drops one or more folders on a window region whose drop reaches the RootView URL destination.",
+      "expected_result": "For URLs delivered to RootView.handleDrop, every dropped folder that exists is added as a project, in the order given. A new thread is then started in the LAST folder added, not the first. The drop reports success when at least one folder or file was accepted.",
+      "windows_path": "Register a local-file drop destination at the window root and preserve dedicated child drop handlers. For paths delivered to RootView, test existence and directory attributes, skip missing paths and preserve order and last-wins. A drop handled by the composer uses its attachment route (PR-COMPOSER-066); the root destination must not override that route. Preserve the Windows native local-file/CF_HDROP drop obligation for the applicable root and child destinations; this scope correction does not remove native routing requirements.",
+      "verification_method": "interaction test: drop three folders and assert a thread opens in the third",
+      "drop_route_scope": "These records specify RootView.swift:77-79,94-110 only. ComposerTextView.swift:180-187 independently specifies child-target URL attachment. Window-wide registration does not make RootView folder/mixed-drop semantics unconditional across dedicated child targets. Child-route expectations remain required under PR-COMPOSER-066."
     },
     {
       "area": "WIN",
@@ -97519,13 +97521,15 @@
       "source_evidence": [
         "DroppyCode/App/Views/RootView.swift:106-108 `if !files.isEmpty, let threadID = model.selectedThreadID { Storage.attach(files.map(AttachmentSource.file), to: Bindable(model.runtime(for: threadID)).draft.attachments) }`",
         "DroppyCode/App/Views/RootView.swift:103-108 - the folders are processed, newThread(in: lastProject) runs, and only then selectedThreadID is read for file attachment.",
-        "DroppyCode/App/AppModel.swift:610-619 - newThread(in:workspace:) appends the new thread, remembers its project, and synchronously sets selectedThreadID = thread.id before returning."
+        "DroppyCode/App/AppModel.swift:610-619 - newThread(in:workspace:) appends the new thread, remembers its project, and synchronously sets selectedThreadID = thread.id before returning.",
+        "DroppyCode/App/Views/Composer/ComposerTextView.swift:180-187 - dedicated text-view performDragOperation sends nonempty file URLs to onAttach and returns true; otherwise defers to super. This child attachment route is PR-COMPOSER-066, not RootView.handleDrop."
       ],
-      "preconditions": "The main window is showing.",
-      "action": "The user drops one or more non-directory files.",
-      "expected_result": "Folders are processed first. If they produce a last project, newThread(in:) creates and selects a thread before the file-attachment step reads selectedThreadID. Each file then becomes a file attachment on that selected thread's draft, including the newly selected thread in a mixed folder-and-file drop. If no thread is selected at the file-attachment step, the files are silently dropped: nothing is attached and no error is shown.",
-      "windows_path": "Same ordering: folders first, then file attachment against selectedThreadID read after the folder work and newThread(in:). A mixed drop attaches files to the newly selected thread; silently discard files only if no thread is selected at the attachment step.",
-      "verification_method": "interaction test with no thread selected, and a mixed folder-plus-file drop"
+      "preconditions": "The main window is showing and the drop is delivered to the RootView URL destination; drops handled by the dedicated composer text-view target follow PR-COMPOSER-066.",
+      "action": "The user drops one or more non-directory files through the RootView URL destination, optionally mixed with folders.",
+      "expected_result": "For URLs delivered to RootView.handleDrop, folders are processed first. If they produce a last project, newThread(in:) creates and selects a thread before the file-attachment step reads selectedThreadID. Each file then becomes a file attachment on that selected thread's draft, including the newly selected thread in a mixed folder-and-file drop. If no thread is selected at the file-attachment step, the files are silently dropped: nothing is attached and no error is shown.",
+      "windows_path": "For drops delivered to RootView: folders first, then file attachment against selectedThreadID read after folder work and newThread(in:). A mixed RootView drop attaches files to the newly selected thread; silently discard files only if no thread is selected at that attachment step. Preserve the separate composer attachment route (PR-COMPOSER-066), which does not invoke this folder/project/new-thread sequence. Preserve the Windows native local-file/CF_HDROP drop obligation for the applicable root and child destinations; this scope correction does not remove native routing requirements.",
+      "verification_method": "interaction test with no thread selected, and a mixed folder-plus-file drop",
+      "drop_route_scope": "These records specify RootView.swift:77-79,94-110 only. ComposerTextView.swift:180-187 independently specifies child-target URL attachment. Window-wide registration does not make RootView folder/mixed-drop semantics unconditional across dedicated child targets. Child-route expectations remain required under PR-COMPOSER-066."
     },
     {
       "area": "WIN",
