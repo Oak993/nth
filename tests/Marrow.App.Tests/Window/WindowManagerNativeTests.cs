@@ -1,8 +1,16 @@
 using System.Runtime.InteropServices;
+using System.Reflection;
+using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Presenters;
+using Avalonia.Controls.Templates;
+using Avalonia.Input;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
+using Marrow.App.Views.Settings;
 using Marrow.App.Window;
 using Marrow.Core.Support;
+using Marrow.UI.Chrome;
 using Xunit;
 using N = Marrow.App.Tests.Window.Native.WindowManagerNativeMethods;
 
@@ -18,6 +26,40 @@ namespace Marrow.App.Tests.Window.Native;
 [Collection("WindowManagerNative")]
 public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
 {
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-001")]
+    public void The_actual_Settings_sidebar_background_reaches_native_caption_hit_testing()
+    {
+        native.Run(_ =>
+        {
+            var (window, drag, client) = native.OnUi(() =>
+            {
+                var manager = new WindowManager();
+                manager.ShowSettings();
+                var window = (Avalonia.Controls.Window)(typeof(WindowManager)
+                    .GetField("settingsWindow", BindingFlags.Instance | BindingFlags.NonPublic)!
+                    .GetValue(manager) ?? throw new InvalidOperationException("Settings window was not retained."));
+                native.Register(window);
+                window.ShowInTaskbar = false;
+                window.Template = new FuncControlTemplate<Avalonia.Controls.Window>((owner, _) =>
+                    new ContentPresenter { Content = owner.Content });
+                window.ApplyTemplate();
+                window.UpdateLayout();
+                var view = Assert.Single(window.GetVisualDescendants().OfType<SettingsView>());
+                var drag = Assert.Single(view.GetVisualDescendants().OfType<WindowDragArea>());
+                var client = drag.TranslatePoint(new Point(180, 18), window);
+                Assert.NotNull(client);
+                return (window, drag, client.Value);
+            });
+            N.Until(() => native.OnUi(() => ReferenceEquals(window.InputHitTest(client), drag)),
+                "The actual Settings sidebar did not become the managed hit target after native layout.");
+            var point = native.OnUi(() => window.PointToScreen(client));
+            var handle = native.OnUi(() => window.TryGetPlatformHandle()?.Handle ?? 0);
+            N.RequireOwner(handle);
+            Assert.Equal(N.HTCAPTION, N.Hit(handle, new NativeWindowPoint(point.X, point.Y)));
+        });
+    }
+
     [Fact]
     [Trait("Req", "PR-WIN-009")] // WindowManager.swift:26-30,63,97; native title transport on an owned factory window.
     public void The_main_factory_publishes_the_injected_Unicode_display_name_to_its_own_HWND()
