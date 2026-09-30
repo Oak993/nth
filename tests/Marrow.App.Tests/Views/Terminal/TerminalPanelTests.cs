@@ -210,6 +210,32 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-TERM-025")]
+    public void Selected_and_unselected_capsules_keep_the_source_colours_in_both_themes() => WithTabSession(session =>
+    {
+        foreach (var theme in new[] { Avalonia.Styling.ThemeVariant.Light, Avalonia.Styling.ThemeVariant.Dark })
+        foreach (var selected in new[] { false, true })
+        {
+            var tab = new TerminalTab(session, selected, () => { }, () => { }, () => { });
+            var window = new AvaloniaWindow { Content = tab, Width = 300, Height = 80, RequestedThemeVariant = theme };
+            window.Show();
+            try
+            {
+                Settle(window);
+                var row = Assert.IsType<StackPanel>(tab.Child);
+                var icon = Assert.IsType<SwiftImage>(row.Children[0]);
+                var title = Assert.IsType<TextBlock>(row.Children[1]);
+                var expectedText = selected ? SwiftColor.Primary.Resolve(theme) : SwiftColor.Secondary.Resolve(theme);
+                Assert.Equal(expectedText, BrushColor(icon.Foreground));
+                Assert.Equal(expectedText, BrushColor(title.Foreground));
+                Assert.Equal(selected ? SwiftColor.Primary.Opacity(0.08).Resolve(theme) : Colors.Transparent,
+                    BrushColor(tab.Background));
+            }
+            finally { window.Close(); }
+        }
+    });
+
+    [Fact]
     [Trait("Req", "PR-TERM-026")] // App/Views/Terminal/TerminalPanel.swift:180
     public void Dead_tabs_dim_the_entire_chip_to_55_percent_even_while_selected() => WithTabSession(session =>
     {
@@ -407,18 +433,30 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
                 var tab = LogicalQuery.SelfAndDescendants<TerminalTab>(host).First();
                 var close = TabButton(tab, "Close terminal");
                 var clear = BrushColor(tab.Background);
+                var width = tab.Bounds.Width;
                 Assert.Equal(Colors.Transparent, clear);
                 Assert.Equal(0, close.Opacity);
 
                 window.MouseMove(Center(tab, window), RawInputModifiers.None);
+                Settle(window);
                 Assert.Equal(1, close.Opacity);
                 Assert.True(close.IsHitTestVisible);
                 Assert.Equal(clear, BrushColor(tab.Background));
+                Assert.Equal(width, tab.Bounds.Width);
 
                 window.MouseMove(new Point(window.Bounds.Width - 2, window.Bounds.Height - 2), RawInputModifiers.None);
+                Settle(window);
                 Assert.Equal(0, close.Opacity);
                 Assert.False(close.IsHitTestVisible);
                 Assert.Equal(clear, BrushColor(tab.Background));
+                Assert.Equal(width, tab.Bounds.Width);
+
+                var selectedTab = LogicalQuery.SelfAndDescendants<TerminalTab>(host).Last();
+                var selectedClose = TabButton(selectedTab, "Close terminal");
+                window.MouseMove(Center(selectedTab, window), RawInputModifiers.None);
+                window.MouseMove(new Point(window.Bounds.Width - 2, window.Bounds.Height - 2), RawInputModifiers.None);
+                Assert.Equal(1, selectedClose.Opacity);
+                Assert.True(selectedClose.IsHitTestVisible);
             });
         }
         finally
