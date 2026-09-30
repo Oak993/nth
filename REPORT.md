@@ -53,6 +53,10 @@ Source site: `AppDelegate.swift:22-33` shows main, opens the launch thread, sche
 
 Source site: `AppDelegate.swift:77-92` sends an `update` response directly through activation to `showSettings(page: .about)` without `showMain`; `WindowManager.swift:32-54` sets the page and centers Settings. Existing `WindowsToastTests` prove the callback branch, and WindowManager owns the centering geometry. The remaining record action is tapping a system banner. ED-220(7) forbids a real toast/registry/URI in tests, and no safe native hit-test ingress is present. STOP at `WindowsToastPlatform.Show` through activation into `AppDelegate.UserNotificationCenter(didReceive:)`; callback-only mutation evidence cannot prove the user tap. No source defect is claimed.
 
++### PR-WIN-072 — STOP
+
+Source site: `AppDelegate.swift:36-39` calls `WindowManager.shared.showMain()` only when `hasVisibleWindows` is false, then returns true. `WindowManager.swift:57-60` activates the app and calls `makeKeyAndOrderFront`. Existing `AppDelegateThirdTests`, `AppShellSecondTests` and `ReopenSignalTests` prove a hidden/visible cached window and the second-process transport. `WindowManager.Present` in this base uses `Show()` then `Activate()` (`WindowManager.cs:164-172`) and does not change `WindowState.Minimized`; `AppShell.HasVisibleWindows` treats that state as not visible. Apple documents `makeKeyAndOrderFront` as showing/ordering/keying and separately documents `deminiaturize`; those descriptions do not establish what this call does to a minimized window. STOP at `WindowManager.Present` for a minimized cached main window. The WindowManager file is lane A owned, and an AppKit oracle or an explicit owner decision is needed before a restore binding and hit-tested second-launch proof. No Swift defect is claimed.
+
 ## Commands and observed output
 
 For every `dotnet` build/test command below, PowerShell first removed the listed API-key environment variables and set `MARROW_PORT_DATA_DIR` to a newly created `%TEMP%\marrow-<GUID>` directory. No installed app was launched.
