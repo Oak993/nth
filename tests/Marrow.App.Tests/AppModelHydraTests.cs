@@ -864,6 +864,90 @@ public sealed class AppModelHydraTests
     }
 
     [Theory]
+    [InlineData(null, "current tool output")]
+    [InlineData("current finish", "current finish")]
+    [Trait("Req", "PR-HYDRA-119")] // AppModel+Hydra.swift:588-592,615-619; ThreadRuntime.swift:2702-2711.
+    public void A_native_finish_forwards_only_its_current_summary_while_retaining_the_stored_summary(
+        string? currentSummary, string expectedToolOutput)
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Project", h.NewFolder("project"));
+        var lead = AppModelSamples.Thread(project);
+        var head = HydraHeadThread(project, lead.Id, HydraHeadInfo.Status.Running, 0);
+        head = head with
+        {
+            Hydra = head.Hydra! with
+            {
+                HydraHeadInfoKind = HydraHeadInfo.Kind.Native,
+                NativeID = "native-head",
+                ToolUseID = "agent-tool",
+                IsBackground = false,
+                Summary = "retained old summary",
+            },
+        };
+        h.WriteLibrary([project], [lead, head]);
+        var model = h.MakeModel();
+        h.PrepareBootstrap(model);
+        var runtime = LoadRuntime(h, model, lead.Id);
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraAutoClearFinished = false;
+            RestoreRunningHead(model, head.Id);
+            SetRuntimeField(runtime, "phase", RuntimePhase.Running);
+            runtime.Rehearse(new ProviderEvent.ToolStarted("agent-tool", new ToolCall
+            {
+                ToolCallKind = ToolCall.Kind.Agent,
+                Title = "Current task",
+                Output = "current tool output",
+            }));
+
+            model.FinishHydraHead(head.Id, TurnStatus.Completed, currentSummary);
+
+            var call = Assert.IsType<TimelineItem.Content.Tool>(
+                runtime.Entries.Single(entry => entry.Id == "agent-tool").Item.TimelineItemContent).Value;
+            Assert.Equal(ToolCall.Status.Completed, call.ToolCallStatus);
+            Assert.Equal(expectedToolOutput, call.Output);
+            Assert.Equal(currentSummary ?? "retained old summary", model.Thread(head.Id)!.Hydra!.Summary);
+        });
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-HYDRA-119")] // AppModel+Hydra.swift:588-592,615-619; ThreadRuntime.swift:2713-2727.
+    public void A_Droppy_finish_reports_current_summary_and_landing_without_replaying_retained_values(bool hasCurrentPayload)
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Project", h.NewFolder("project"));
+        var lead = AppModelSamples.Thread(project);
+        var previousLanding = new HydraLanding { PatchPath = "previous.patch" };
+        var currentLanding = hasCurrentPayload ? new HydraLanding { PatchPath = "current.patch" } : null;
+        var currentSummary = hasCurrentPayload ? "current report" : null;
+        var head = HydraHeadThread(project, lead.Id, HydraHeadInfo.Status.Running, 0);
+        head = head with { Hydra = head.Hydra! with { Summary = "retained old report", Landing = previousLanding } };
+        h.WriteLibrary([project], [lead, head]);
+        var model = h.MakeModel();
+        h.PrepareBootstrap(model);
+        var runtime = LoadRuntime(h, model, lead.Id);
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraAutoClearFinished = false;
+            RestoreRunningHead(model, head.Id);
+            SetRuntimeField(runtime, "phase", RuntimePhase.Running); // Keep the report queued; no provider turn starts.
+
+            model.FinishHydraHead(head.Id, TurnStatus.Completed, currentSummary, currentLanding);
+
+            var field = typeof(ThreadRuntime).GetField("hydraPendingReports", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            var report = Assert.Single(Assert.IsType<List<HydraReport>>(field.GetValue(runtime)));
+            Assert.Equal(currentSummary ?? "", report.Text);
+            Assert.Equal(currentLanding, report.Landing);
+            var stored = model.Thread(head.Id)!.Hydra!;
+            Assert.Equal(currentSummary ?? "retained old report", stored.Summary);
+            Assert.Equal(currentLanding ?? previousLanding, stored.Landing);
+        });
+    }
+
+    [Theory]
     [InlineData(TurnStatus.Completed, HydraHeadInfo.Status.Completed)]
     [InlineData(TurnStatus.Failed, HydraHeadInfo.Status.Failed)]
     [InlineData(TurnStatus.Interrupted, HydraHeadInfo.Status.Stopped)]

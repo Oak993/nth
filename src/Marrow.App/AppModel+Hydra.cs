@@ -481,9 +481,10 @@ public sealed partial class AppModel
         };
         UpdateThread(id, thread => thread with { Hydra = updated });
 
+        // AppModel+Hydra.swift:615-619: retain prior values on the record, but report only this finish's payload.
         if (head.ParentThreadID is { } parentID && Thread(parentID) is not null)
-            Runtime(parentID).HydraHeadFinished(id, updated, result, updated.Summary, updated.Landing,
-                updated.HasOwnCopy ? head.WorktreePath : null);
+            Runtime(parentID).HydraHeadFinished(id, updated, result, summary, landing,
+                info.HasOwnCopy ? head.WorktreePath : null);
 
         if (Settings.HydraAutoClearFinished && result == HydraHeadInfo.Status.Completed)
             ReleaseHydraCopy(id);
