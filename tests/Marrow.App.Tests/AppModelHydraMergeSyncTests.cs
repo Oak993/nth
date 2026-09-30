@@ -168,6 +168,7 @@ public sealed class AppModelHydraMergeSyncTests
     [InlineData(true)]
     [Trait("Req", "PR-HYDRAMERGE-128")] // App/AppModel+HydraMerge.swift:280-295
     [Trait("Req", "PR-HYDRAMERGE-131")] // App/AppModel+HydraMerge.swift:781-789,809-813
+    [Trait("Req", "PR-HYDRAMERGE-063")] // :778-817 merged-map read/write safety.
     public void A_real_three_way_merge_uses_the_remote_parent_and_writes_back_only_unchanged_team_files(bool editedAgain)
     {
         using var f = new HydraMergeProofFixture();
@@ -217,6 +218,7 @@ public sealed class AppModelHydraMergeSyncTests
     [InlineData("unreadable")]
     [InlineData("write-failure")]
     [Trait("Req", "PR-HYDRAMERGE-131")] // App/AppModel+HydraMerge.swift:787,812,815-817
+    [Trait("Req", "PR-HYDRAMERGE-063")] // :778-817 merged-map read/write safety.
     public void Unreadable_merged_files_decline_before_reset_and_a_failed_atomic_write_restores_the_branch(string failure)
     {
         using var f = new HydraMergeProofFixture();
@@ -256,7 +258,8 @@ public sealed class AppModelHydraMergeSyncTests
     [InlineData("changed-list")]
     [InlineData("dirty-other")]
     [InlineData("head-moved")]
-    [Trait("Rule", "R-FS-1")] // App/AppModel+HydraMerge.swift:780,790-805; partial Req-063 proof pending stream seam.
+    [Trait("Rule", "R-FS-1")] // App/AppModel+HydraMerge.swift:780,790-805.
+    [Trait("Req", "PR-HYDRAMERGE-063")] // Guard branches; Q2 stream behavior is proved separately.
     public void Every_sync_decline_branch_preserves_working_content_and_the_terminal_commit(string decline)
     {
         using var f = new HydraMergeProofFixture();
