@@ -1,0 +1,52 @@
+# Lane D — AppDelegate lifecycle
+
+Worktree `E:\Droppy\wt\cx\appdelegate`, branch `codex/appdelegate`, based on `origin/impl/b2` `b3709698fe064ac9c615d88abc1d077db5c9fd8a`. Pinned source: `E:\Droppy\reference\droppy-code-v1.7.0\DroppyCode\App\AppDelegate.swift` at B3 `52bc7926097cd622d08d6294e0d8b08a48c7516e` (read in full). No reference, porting, protected, integration, or other lane file was edited.
+
+## Completed item: later activation reaches the update observer
+
+`PR-LAUNCH-046`, one clause only. Source `AppDelegate.swift:28` starts background checks; `UpdateChecker.swift:141-149` observes application activation. `AppShell.FinishLaunching` now wires the main window's later `Activated` event to the existing `UpdateChecker.Shared.HandleActivation()`. The hook is attached after `ApplicationDidFinishLaunching()`; whether the launch activation itself fires the Mac observer remains UNRESOLVED. The 8-second/6-hour schedule and staleness behavior are already in `UpdateChecker` and its tests.
+
+Test first: `AppShellActivationTests.Reactivating_the_main_window_after_launch_checks_when_the_update_observer_is_stale` (Req `PR-LAUNCH-046`) hides and shows a real headless window and calls its `Activate()` method. It reads the production checker's `LastCheckedAt` before the scheduled 8-second tick. Before implementation it failed twice alone, each on a fresh throwaway data directory (1 failed, 0 passed). After implementation it passed (1 passed, 0 failed). Mutation: deleted only the production `main.Activated` hook; the same test failed twice alone (1 failed each). Restored the hook and verified SHA-256 of `AppShell.cs` was `B6FE31BA4F9CFE3BA440493377DE89DFA722177C061A928D0B686DC333EC9A6B`, identical to before mutation. Build and focused tests then passed.
+
+## Fourteen open records: evidence and remaining clauses
+
+| Record | Current test evidence | STOP preventing a whole-record candidate |
+| --- | --- | --- |
+| `PR-LAUNCH-028` | `AppDelegateThirdTests.Launch_takes_the_window_managers_model_then_shows_the_main_window_before_opening_the_launch_thread`; existing WindowManager tests | `AppDelegate.swift:22`, OD-0018/ED-103 boot stage and ED-180 material/P12 composition evidence absent. |
+| `PR-LAUNCH-046` | New `AppShellActivationTests.Reactivating_the_main_window_after_launch_checks_when_the_update_observer_is_stale`; existing `UpdateCheckerSecondTests` exercise schedule/staleness | `AppDelegate.swift:28`, `UpdateChecker.swift:141-149`: whether launch itself counts as didBecomeActive is unresolved. |
+| `PR-LAUNCH-050` | `AppDelegateTests` deferred quit/250 ms/240 s tests; `AppShellTests` ordinary close and session-end tests | ED-004 calls for `ShutdownBlockReasonCreate`, but `AppDelegate.swift:41-61` supplies no reason text; AppShell binding awaits a ruling. |
+| `PR-LAUNCH-064` | `WindowsToastTests` and `WindowsToastStartupTests` callback/transport tests | `AppDelegate.swift:77-92`: no permitted native toast pointer hit-test fixture; ED-220(7) forbids real toast/registry/URI in tests. |
+| `PR-LAUNCH-065` | `WindowsToastTests` and `WindowsToastStartupTests` update callback/transport tests | Same native toast ingress gap at `AppDelegate.swift:83-91`. |
+| `PR-LAUNCH-071` | `AppDelegateThirdTests.First_launch_opens_the_chat_then_only_the_delayed_tour_with_no_onboarding_alert` | `AppDelegate.swift:22-33`: full clean-data boot capture waits on ED-103/P12 and ED-180 material composition. |
+| `PR-UPDATE-024` | `WindowsToastTests` update routing tests | Native toast hit-test gap at `AppDelegate.swift:77-92`, plus About presentation proof. |
+| `PR-WIN-072` | `AppDelegateThirdTests` reopen tests; `AppShellSecondTests` hidden/visible cached-window tests | `AppDelegate.swift:37`, `WindowManager.swift:57-60`: no ruling on `makeKeyAndOrderFront` restoring a minimized window; WindowManager is lane A owned. |
+| `PR-WIN-073` | `AppDelegateTests` and `AppShellTests` ordinary quit tests | Same ED-004 session-end reason/binding gap as `PR-LAUNCH-050`. |
+| `PR-WIN-076` | `WindowsToastTests` thread/update callback tests | Native toast hit-test gap at `AppDelegate.swift:77-92`. |
+| `UI-LAUNCH-001` | Existing launch and WindowManager size/frame tests | Boot stage and material evidence at `AppDelegate.swift:22`, ED-103/P12 and ED-180. |
+| `UI-LAUNCH-002` | `AppDelegateThirdTests` 700 ms and hasSeenTour gate tests | `AppDelegate.swift:24-26`, `TourPages.swift:27`, `TourWindowController.swift:103-107,145-148`: native window close versus tour close control has conflicting record wording; whole pointer proof for reopen paths absent. |
+| `UI-LAUNCH-003` | `AppDelegateThirdTests` relaunch marker and About page tests | Update notification tap requires native toast hit-testing; full Settings geometry belongs to WindowManager. |
+| `UI-LAUNCH-005` | `AppDelegateTests` notification presentation tests; `WindowsToastTests` delivery/routing tests | System-drawn toast pointer hit-test gap at `AppDelegate.swift:63-92`, ED-220(7). |
+
+The above existing tests are partial evidence, not newly mutated whole-record proofs. The source/rulings do not settle the noted STOPs. Guesses made: **zero**. No whole record is claimed proven.
+
+## Commands and observed output
+
+For every `dotnet` build/test command below, PowerShell first removed the listed API-key environment variables and set `MARROW_PORT_DATA_DIR` to a newly created `%TEMP%\marrow-<GUID>` directory. No installed app was launched.
+
+- Initial tests-first attempt used `AppModelHarness.Bound` (120 seconds) as the test wait. `dotnet test tests\Marrow.App.Tests --nologo -v q --filter 'FullyQualifiedName~AppShellActivationTests'` printed only the test-run header and was interrupted with Ctrl+C (exit 1) after it stalled; the wait was tightened to 3 seconds before the two red runs below. This changed only the timeout, not the expected result.
+- `dotnet test tests\Marrow.App.Tests --nologo -v q --filter 'FullyQualifiedName~AppShellActivationTests'` before code: `Failed: 1, Passed: 0, Skipped: 0, Total: 1` (twice, second with `--no-build`).
+- Same test after code: `Passed: 1, Failed: 0, Skipped: 0, Total: 1`.
+- Same test under the hook-removal mutation: `Failed: 1, Passed: 0, Skipped: 0, Total: 1` (twice, second with `--no-build`).
+- `dotnet build Marrow.sln -c Debug --nologo -v q`: `Build succeeded. 0 Warning(s), 0 Error(s)`.
+- `dotnet test tests\Marrow.App.Tests --no-build --nologo -v q --filter 'FullyQualifiedName~AppShellActivationTests|FullyQualifiedName~AppShellSecondTests|FullyQualifiedName~AppShellTests|FullyQualifiedName~TraceabilityTests'`: `Passed: 16, Failed: 0, Skipped: 0`.
+- `dotnet test tests\Marrow.App.Tests --no-build --nologo -v q --filter 'FullyQualifiedName~AppDelegateTests|FullyQualifiedName~AppDelegateSecondTests|FullyQualifiedName~AppDelegateThirdTests|FullyQualifiedName~AppDelegateProofTests'`: `Passed: 71, Failed: 0, Skipped: 0`.
+- `node porting/tools/check_protected.mjs`: `protected paths unchanged against HEAD; reference checkout clean`.
+- `node porting/tools/verify.mjs --gate A`: `PASS=12`, `RESULT: all implemented checks pass`.
+- `node porting/tools/verify.mjs --gate B`: `PASS=8`, `RESULT: all implemented checks pass`.
+- `node porting/tools/verify.mjs --gate D`, first run: `2904 test(s) failed, 9235 passed`; requirement verification missing and interaction gate TODO. This first invocation did not set `MARROW_PORT_DATA_DIR` and is not accepted as the isolated gate result.
+- `node porting/tools/verify.mjs --gate D` with API keys removed and a fresh `MARROW_PORT_DATA_DIR`, output saved to `_evidence/gateD.log`: exit 1, `4 test(s) failed, 12135 passed`; requirement verification missing and interaction gate TODO. The four failed tests are `DownloadsPopoverSecondTests.Show_in_File_Explorer_opens_the_downloads_folder`, `ProviderRegistryCatalogTests.loadcatalog_is_a_no_op_while_a_load_for_that_provider_is_already_running`, `TerminalStoreTests.A_plain_tab_launches_the_shell_with_no_extra_arguments`, and `TerminalPanelTests.Tab_tooltips_and_accessibility_names_keep_the_distinct_exit_punctuation_and_button_selection_traits`. None is in the edited lifecycle code. These failures have not been reproduced twice alone, so no claim is made that they are stable failures.
+- `git diff --check`: exit 0, no output. `git diff --stat`: `AppShell.cs | 8 +++++++-` before the new test/report were added to the index.
+
+records_candidates: none
+
+Files touched: `src/Marrow.App/Port/AppShell.cs`, `tests/Marrow.App.Tests/Port/AppShellActivationTests.cs`, `REPORT.md`. Evidence log `_evidence/gateD.log` remains untracked and must not be committed.
