@@ -1514,3 +1514,18 @@ Windows apps show unread counts. DECISION:
 - the COM call goes through a seam, so tests record the count and rendered pixels and never touch the real taskbar.
 ENGINEERING DECISION.
 
+
+## ED-220
+
+[TEST][WIN] Owner-approved collection isolation for process-global Windows native/process proofs.
+Authority: R-TEST-5 in IMPLEMENTING.md requires process-global state to stay inside one non-parallel collection. ED-118(6) already applies collection-level DisableParallelization to shared HTTP cookie/cache tests without changing their expectations. The owner explicitly approved this narrow extension on 2026-09-30: exactly the two Windows native/process test collections, preserving all assertions, expectations and test bodies; no new assembly-level, suite-wide or environment parallelism switch.
+
+DECISION: retain the existing CollectionDefinition DisableParallelization=true declarations only for this exception's two named collections:
+- WindowManagerNative (tests/Marrow.App.Tests/Fixtures/WindowManagerNativeCollection.cs): the Windows desktop's foreground window, input queues, pointer/keyboard capture and native system menus are process-global resources; each native Fact owns its separate child testhost and STA.
+- WindowManager process proof (tests/Marrow.App.Tests/Fixtures/WindowManagerProcessCollection.cs): the parent pins and observes the owned child test process while the selected child owns its HeadlessSession. Collection isolation protects process/native-host proof ownership.
+
+This approval does not serialize the whole assembly or suite, authorize an environment switch, or permit hiding a hang, blocked dialog, process leak or deadlock. The existing App MaxParallelThreads=4 remains unchanged; Headless has no DisableParallelization flag. Other eligible collections run in parallel outside these exclusive collections, and the ordinary six-group runner remains parallel. No production source, test body, assertion or expectation changes accompany this decision.
+
+VERIFICATION: independent E accepted source/test tree 03481b8cd0ba418f95840eeb2879d22b5d319ea2 conditioned only on this documentation and unchanged code. After owner-notified hands-off/other-PC-control pause, WindowManagerNative passed 19/19 twice with fresh data and all 19 API-key variables removed; foreground before both runs was ChatGPT PID88252. All 1952 source/test hashes match. The explicit owner-authorized combined gate counts the 19 native cases once alongside exact-tree prior five-group and 1396 non-native App-rest evidence: 12247 passed, 0 failed, 0 skipped. It is combined evidence, not a new monolithic green run. No full-suite rerun is required for this documentation-only decision and no whole-record status advances are claimed.
+
+The external lane brief E:/Droppy/work/codex/turbo/codex_common.md gains the matching narrow collection-exception line; its ban on serialization to hide hangs remains. ENGINEERING DECISION; owner-approved test isolation, not a behavior deviation or a new parity claim.
