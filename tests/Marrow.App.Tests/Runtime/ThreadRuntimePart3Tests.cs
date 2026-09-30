@@ -142,16 +142,25 @@ public sealed class ThreadRuntimePart3Tests
         h.WriteLibrary([project], [thread]);
         AppModelHarness.WriteDocument(thread.Id);
         var model = h.MakeModel();
+        // These tests need a stored follow-up, not a Hydra head dispatched from the queue (ThreadRuntime.swift:999-1013; Swift
+        // WebsiteCaptures.swift:107 turns hydraQueueHeads off for the same reason).
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraQueueHeads = false;
+            model.Settings.HydraAlwaysHeads = false;
+        });
         var runtime = h.Main.OnMain(() => model.Runtime(thread.Id));
         h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
 
+        // SendHydraBrief itself refuses a busy lead (ThreadRuntime.swift:758-765), so the brief is sent while idle and the
+        // turn starts before the spawned StartTurn runs: that start finds the lead busy and defers it (:1177-1180).
         var entryCount = h.Main.OnMain(() =>
         {
+            runtime.SendHydraBrief("deferred brief", Array.Empty<Attachment>());
             runtime.RehearseTurn("in-progress turn");
             Assert.True(runtime.IsRunning);
             return runtime.Entries.Count;
         });
-        h.Main.OnMain(() => runtime.SendHydraBrief("deferred brief", Array.Empty<Attachment>()));
         h.Main.Loop.RunUntil(() => runtime.FollowUps.Count != 0, AppModelHarness.Bound);
 
         h.Main.OnMain(() =>

@@ -666,6 +666,12 @@ public sealed class AppCommandsTests(HeadlessSession headless)
         var project = AppModelSamples.Project("P", h.NewFolder("p"));
         var thread = AppModelSamples.Thread(project);
         var model = Model(h, [project], [thread]);
+        // A stored follow-up, not a Hydra head dispatched from the queue (ThreadRuntime.swift:999-1013).
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraQueueHeads = false;
+            model.Settings.HydraAlwaysHeads = false;
+        });
         var runtime = h.Main.OnMain(() => model.Runtime(thread.Id));
         h.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
 

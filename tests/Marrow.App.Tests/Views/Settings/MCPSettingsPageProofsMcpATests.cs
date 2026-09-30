@@ -568,7 +568,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             var glyph = Assert.Single(Nodes<SwiftImage>(add)); Assert.Equal("plus.circle", glyph.SymbolName); Assert.Equal(13, SwiftImage.GetFont(glyph)!.Resolve().FontSize); Colour(glyph.Foreground, Chrome.Accent, glyph); Assert.Equal(26, Assert.IsType<Border>(glyph.Parent).Width); Assert.Equal(HorizontalAlignment.Center, glyph.HorizontalAlignment);
             var rows = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(Assert.Single(Nodes<ChromeCard>(section)).Child).Child).Children[0]); Assert.Same(add.Parent, rows.Children[^1]);
             runtime.OnMain(() => PointerClick(add)); var popup = Assert.Single(Nodes<Popup>(section)); Assert.Same(add, popup.PlacementTarget); Assert.Equal(PlacementMode.Bottom, popup.Placement); Assert.True(presenter.Calls.Last(c => c.Popup == popup).Presented); runtime.OnMain(() => { Assert.Single(Nodes<MCPCustomEditor>(OpenContent(popup))); Dispatcher.UIThread.RunJobs(); });
-            runtime.OnMain(() => Assert.Null(model.Mcp.SaveCustom(Custom()))); Assert.DoesNotContain(note.Text, Texts(section)); Assert.NotNull(Button(section, "Add server"));
+            runtime.OnMain(() => Assert.Null(model.Mcp.SaveCustom(Custom()))); Assert.DoesNotContain(note.Text, Texts(section)); Assert.Contains(add, Nodes<Button>(section)); /* the same add row stays (MCPSettingsPage.swift:417-440); the open editor also has an "Add server" button, so a title lookup is ambiguous */
             var search = new MCPCustomSection("not-a-match"); using var second = runtime.OnMain(() => Attach(search, model)); Assert.Null(search.Child);
         });
     }

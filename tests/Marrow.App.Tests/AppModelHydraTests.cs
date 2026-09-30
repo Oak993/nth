@@ -1228,7 +1228,7 @@ public sealed class AppModelHydraTests
                 model.Thread(head.Id)!.InteractionMode);
             Assert.True(runtime.Draft.IsEmpty);
             Assert.Equal(RuntimePhase.Idle, runtime.Phase);
-            Assert.Single(runtime.Entries.Where(entry => entry.Item.TimelineItemContent is TimelineItem.Content.User));
+            Assert.Single(runtime.Entries, entry => entry.Item.TimelineItemContent is TimelineItem.Content.User);
             Assert.Null(model.ExistingRuntime(lead.Id));
         });
     }

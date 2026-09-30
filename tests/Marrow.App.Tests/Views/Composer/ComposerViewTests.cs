@@ -54,6 +54,13 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         // own Load().Wait() on the headless UI thread returns at once instead of deadlocking.
         System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
         var h = new ThreadRuntimePart12Harness();
+        // These tests need a stored follow-up, not a Hydra head dispatched from the queue (ThreadRuntime.swift:999-1013; Swift
+        // WebsiteCaptures.swift:107 turns hydraQueueHeads off for the same reason).
+        h.Main.OnMain(() =>
+        {
+            h.App.Settings.HydraQueueHeads = false;
+            h.App.Settings.HydraAlwaysHeads = false;
+        });
         Loaded(h, h.Runtime);
         return h;
     }

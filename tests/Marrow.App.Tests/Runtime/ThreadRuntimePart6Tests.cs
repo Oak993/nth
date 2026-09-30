@@ -267,6 +267,13 @@ public sealed class ThreadRuntimePart6Tests
         var thread = AppModelSamples.Thread(project);
         harness.WriteLibrary([project], [thread]);
         var model = harness.MakeModel();
+        // These tests need a stored follow-up, not a Hydra head dispatched from the queue (ThreadRuntime.swift:999-1013; Swift
+        // WebsiteCaptures.swift:107 turns hydraQueueHeads off for the same reason).
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.HydraQueueHeads = false;
+            model.Settings.HydraAlwaysHeads = false;
+        });
         var runtime = harness.Main.OnMain(() => model.Runtime(thread.Id));
         harness.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
         return (model, thread, project.Path, runtime);

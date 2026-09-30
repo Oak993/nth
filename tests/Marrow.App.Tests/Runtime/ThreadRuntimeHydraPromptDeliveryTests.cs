@@ -73,7 +73,13 @@ public sealed class ThreadRuntimeHydraPromptDeliveryTests
         }
         else
         {
-            Assert.StartsWith("[Hydra setting: enabled]", prompt, StringComparison.Ordinal);
+            // ThreadRuntime.swift:1325-1331 puts the anti-slop note (also when it is off) in front of the
+            // turn for a provider that does not keep the Hydra policy in its system prompt (Cursor), after
+            // the delegation request at :1319-1321 was prepended.
+            Assert.StartsWith(provider == ProviderKind.Cursor
+                ? "[Marrow anti-slop guidance: off]"
+                : "[Hydra setting: enabled]", prompt, StringComparison.Ordinal);
+            Assert.Contains("[Hydra setting: enabled]", prompt, StringComparison.Ordinal);
             Assert.Contains(provider == ProviderKind.Codex
                 ? "Use the configured Hydra agent tools and head profiles."
                 : "Delegate through the final hydra block so Marrow runs the selected heads; do not use native agent tools.",
