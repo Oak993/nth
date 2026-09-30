@@ -5,6 +5,7 @@ using Avalonia.Headless;
 using Avalonia.Input;
 using Avalonia.Input.Platform;
 using Avalonia.Threading;
+using AvaloniaWindow = Avalonia.Controls.Window;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Terminal.Port;
 using Marrow.Core.Port;
@@ -109,7 +110,7 @@ public sealed class TerminalHostInputTests(HeadlessSession headless)
         Assert.Equal("\U0000001b[A\U0000001b[5~\U0000001b[6~"u8.ToArray(), bytes);
     }
 
-    private byte[] Capture(Action<TerminalHostView, Window> action)
+    private byte[] Capture(Action<TerminalHostView, AvaloniaWindow> action)
     {
         byte[] result = [];
         headless.OnUiThread(() =>
@@ -122,7 +123,7 @@ public sealed class TerminalHostInputTests(HeadlessSession headless)
             };
             var input = typeof(TerminalHostView).GetField("input", BindingFlags.Instance | BindingFlags.NonPublic)!;
             input.SetValue(view, pipe);
-            var window = new Window { Width = 640, Height = 240, Content = view };
+            var window = new AvaloniaWindow { Width = 640, Height = 240, Content = view };
             try
             {
                 window.Show();
@@ -144,10 +145,21 @@ public sealed class TerminalHostInputTests(HeadlessSession headless)
         return result;
     }
 
-    private static void Press(Window window, Key key, RawInputModifiers modifiers = RawInputModifiers.None)
+    private static void Press(AvaloniaWindow window, Key key, RawInputModifiers modifiers = RawInputModifiers.None)
     {
-        window.KeyPress(key, modifiers);
-        window.KeyRelease(key, modifiers);
+        var physical = key switch
+        {
+            Key.Up => PhysicalKey.ArrowUp,
+            Key.Down => PhysicalKey.ArrowDown,
+            Key.Left => PhysicalKey.ArrowLeft,
+            Key.Right => PhysicalKey.ArrowRight,
+            Key.Return => PhysicalKey.Enter,
+            Key.Back => PhysicalKey.Backspace,
+            Key.Escape => PhysicalKey.Escape,
+            _ => Enum.TryParse<PhysicalKey>(key.ToString(), out var parsed) ? parsed : PhysicalKey.None,
+        };
+        window.KeyPress(key, modifiers, physical, null);
+        window.KeyRelease(key, modifiers, physical, null);
         Dispatcher.UIThread.RunJobs();
     }
 
