@@ -6,6 +6,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
 using Marrow.Core.Port;
@@ -67,11 +68,13 @@ public sealed class TerminalHostView : Border
 
         KeyDown += OnKeyDown;
         TextInput += OnTextInput;
-        PointerPressed += (_, e) =>
+        // The cell painter handles the press to capture selection. The long-lived
+        // terminal view must still own keyboard focus (TerminalPanel.swift:234-238).
+        AddHandler(PointerPressedEvent, (_, e) =>
         {
             if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
                 Focus();
-        };
+        }, RoutingStrategies.Bubble, handledEventsToo: true);
     }
 
     /// <summary>:22 <c>view.font = TerminalFont.preferred()</c>.</summary>
@@ -259,6 +262,10 @@ public sealed class TerminalHostView : Border
     /// <summary>Escape is handled by the parent host; every other special key reaches the ConPTY input.</summary>
     private void OnKeyDown(object? sender, KeyEventArgs e)
     {
+        // Selection belongs to the composed text control even while this view owns
+        // focus. Route its copy/select-all chords before terminal input forwarding.
+        scrollbackText.HandleSelectionKey(e);
+        if (e.Handled) return;
         if (e.Key == Key.Escape) return;
 
         if (IsTextKey(e.Key))

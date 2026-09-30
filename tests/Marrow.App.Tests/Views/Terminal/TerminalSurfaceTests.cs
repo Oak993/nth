@@ -116,6 +116,7 @@ public sealed class TerminalSurfaceTests(HeadlessSession headless)
             window.MouseMove(to, RawInputModifiers.LeftMouseButton);
             window.MouseUp(to, MouseButton.Left, RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
+            Assert.True(view.IsFocused);
             Assert.Equal("bye", text.SelectedText);
             Assert.True(text.CanCopy);
 

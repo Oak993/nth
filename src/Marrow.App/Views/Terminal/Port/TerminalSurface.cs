@@ -146,6 +146,11 @@ internal sealed class TerminalSurface : Decorator
     protected override void OnKeyDown(KeyEventArgs e)
     {
         base.OnKeyDown(e);
+        HandleSelectionKey(e);
+    }
+
+    internal void HandleSelectionKey(KeyEventArgs e)
+    {
         if (e.Handled || !e.KeyModifiers.HasFlag(KeyModifiers.Control)) return;
         // Same Windows copy chord used by ParagraphTextPresenter; preserve the composed
         // SelectableTextBlock's own Clipboard implementation rather than maintaining another copy.
