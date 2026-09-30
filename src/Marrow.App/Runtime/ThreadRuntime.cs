@@ -2362,10 +2362,10 @@ public sealed class ThreadRuntime : MainActorModel
 
     private void SettleForegroundHeads(TurnStatus status)
     {
+        if (App is not { } app) return;
         foreach (var (agentID, headID) in hydraNativeHeads.ToArray())
         {
-            if (App?.Runtime(headID)?.Thread?.Hydra is not { IsBackground: false, IsFinished: false }) continue;
-            // HydraAgentFinished is blocked on this slice until its AppModel Hydra operations are ported.
+            if (app.Thread(headID)?.Hydra is not { IsBackground: false, IsFinished: false }) continue;
             HydraAgentFinished(agentID,
                 status == TurnStatus.Completed ? TurnStatus.Completed : TurnStatus.Interrupted,
                 summary: null);
@@ -3746,10 +3746,9 @@ public sealed class ThreadRuntime : MainActorModel
                 }
                 if (value.Update.Status is { } status
                     && status != ToolCall.Status.Running
-                    && HydraToolHeads.TryGetValue(value.Id, out _))
+                    && HydraToolHeads.TryGetValue(value.Id, out var completedHeadID))
                 {
-                    // Blocked: finishing a native head requires AppModel's Hydra completion surface,
-                    // which is not present in the owned AppModel API for this port slice.
+                    HydraToolFinished(completedHeadID, status, value.Update.Output);
                 }
                 break;
             case ProviderEvent.PlanDelta value:
@@ -3877,12 +3876,117 @@ public sealed class ThreadRuntime : MainActorModel
         }
     }
 
-    // Blocked until the owned AppModel port exposes the native-Hydra operations. Keep these
-    // event entry points explicit so other ProviderEvent cases remain exhaustively routed.
-    private void HydraAgentStarted(AgentSpawn spawn) { }
-    private void HydraAgentEvent(string agentID, ProviderEvent @event) { }
-    private void HydraAgentFinished(string agentID, TurnStatus status, string? summary) { }
-    private void HydraToolFinished(Guid headID, ToolCall.Status status, string? output) { }
+    // ThreadRuntime.swift:2578-2603. Provider-owned heads share the app's Hydra records and timelines.
+    private void HydraAgentStarted(AgentSpawn spawn)
+    {
+        if (App is not { } app || Thread is not { } thread || !app.HydraIsOn(thread)) return;
+        if (hydraNativeHeads.TryGetValue(spawn.Id, out var headID))
+        {
+            var named = spawn.Description.Length != 0 && spawn.Description != "Subagent";
+            app.UpdateThread(headID, head =>
+            {
+                if (head.Hydra is not { } info) return head;
+                if (named && info.Task != spawn.Description)
+                {
+                    info = info with { Task = spawn.Description };
+                    head = head with { Title = $"{info.Persona.Name} \u00B7 {TextCleanup.SingleLine(spawn.Description, 60)}" };
+                }
+                if (info.ToolUseID is null) info = info with { ToolUseID = spawn.ToolUseID };
+                return head with { Hydra = info };
+            });
+            if (spawn.ToolUseID is { } toolUseID)
+                HydraToolHeads = HydraToolHeads.Mutating(map => map[toolUseID] = headID);
+            if (spawn.Prompt is { } prompt && app.ExistingRuntime(headID) is { } headRuntime && !headRuntime.HasSentPrompts)
+                headRuntime.RehearseBrief(prompt);
+            return;
+        }
+        if (app.SpawnNativeHead(ThreadID, spawn) is not { } createdHead) return;
+        hydraNativeHeads[spawn.Id] = createdHead.Id;
+        // :2599-2601 has no observable work: pendingNativeSpend is filled only by the unreachable
+        // duplicate tokenSpend arm (PR-RUNTIME-252). Do not introduce buffering or reroute token events.
+        if (spawn.ToolUseID is { } createdToolUseID)
+            HydraToolHeads = HydraToolHeads.Mutating(map => map[createdToolUseID] = createdHead.Id);
+    }
+
+    // ThreadRuntime.swift:2606-2642.
+    private void HydraAgentEvent(string agentID, ProviderEvent @event)
+    {
+        if (App is not { } app) return;
+        if (!hydraNativeHeads.ContainsKey(agentID)
+            && entryIndex.TryGetValue(agentID, out var entry)
+            && entry.Item.TimelineItemContent is TimelineItem.Content.Tool { Value: { ToolCallKind: ToolCall.Kind.Agent } call })
+        {
+            HydraAgentStarted(new AgentSpawn
+            {
+                Id = agentID, TaskID = null, ToolUseID = agentID, Description = call.Title,
+                Prompt = null, Model = null, IsBackground = false,
+            });
+        }
+        if (!hydraNativeHeads.TryGetValue(agentID, out var headID)
+            || app.ExistingRuntime(headID) is not { } headRuntime) return;
+        switch (@event)
+        {
+            case ProviderEvent.TurnStarted:
+                if (!headRuntime.IsRunning)
+                {
+                    headRuntime.RehearseTurn(null);
+                    app.UpdateThread(headID, head => head.Hydra is { } info
+                        ? head with { Hydra = info with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running, FinishedAt = null } }
+                        : head);
+                }
+                break;
+            case ProviderEvent.TurnCompleted completed:
+                HydraAgentFinished(agentID, completed.Status, summary: null);
+                break;
+            case ProviderEvent.ToolStarted started:
+                headRuntime.HydraToolCalls++;
+                headRuntime.HydraActivity = ToolPresentation.Label(started.Call);
+                headRuntime.HydraLastEventAt = SwiftDate.Now;
+                NoteHydraEdits(started.Call.Edits);
+                if (started.Call.ToolCallKind == ToolCall.Kind.Command) WatchHydraCommand($"{agentID}-{started.Id}", started.Call);
+                headRuntime.Rehearse(@event);
+                break;
+            case ProviderEvent.ToolUpdated updated:
+                if (updated.Update.Edits is { } edits) NoteHydraEdits(edits);
+                if (updated.Update.Status is { } status && status != ToolCall.Status.Running)
+                    SettleHydraCommand($"{agentID}-{updated.Id}");
+                headRuntime.Rehearse(@event);
+                break;
+            case ProviderEvent.Usage:
+            case ProviderEvent.SessionReady:
+            case ProviderEvent.Models:
+            case ProviderEvent.Commands:
+            case ProviderEvent.Title:
+            case ProviderEvent.AssistantMessageID:
+                break;
+            default:
+                headRuntime.Rehearse(@event);
+                break;
+        }
+    }
+
+    // ThreadRuntime.swift:2646-2652. Retain the id mapping until session teardown.
+    private void HydraAgentFinished(string agentID, TurnStatus status, string? summary)
+    {
+        if (App is not { } app || !hydraNativeHeads.TryGetValue(agentID, out var headID)) return;
+        app.FinishHydraHead(headID, status, summary);
+        if (app.ExistingRuntime(headID) is { IsRunning: true } headRuntime)
+            headRuntime.Rehearse(new ProviderEvent.TurnCompleted(status, null));
+    }
+
+    // ThreadRuntime.swift:2657-2666. A background head outlives its spawning tool call.
+    private void HydraToolFinished(Guid headID, ToolCall.Status status, string? output)
+    {
+        if (App?.Thread(headID)?.Hydra is not { HydraHeadInfoKind: HydraHeadInfo.Kind.Native, IsBackground: false, IsFinished: false } info
+            || info.NativeID is not { } nativeID) return;
+        var outcome = status switch
+        {
+            ToolCall.Status.Completed => TurnStatus.Completed,
+            ToolCall.Status.Declined => TurnStatus.Interrupted,
+            _ => TurnStatus.Failed,
+        };
+        HydraAgentFinished(nativeID, outcome, output);
+    }
 
     // The provider event routes call this teardown on release and exit. :2680-2690. Review fix
     // (PR-RUNTIME-103): this was previously a no-op pending AppModel.FinishHydraHead/ExistingRuntime, which
