@@ -126,3 +126,19 @@ Each of `mutation-030-guard.txt`, `mutation-030-schedule.txt`, and `mutation-030
 Exact mutation command form: `powershell -NoProfile -ExecutionPolicy Bypass -File '_evidence\mutate.ps1' -Name '030-guard|030-schedule|030-return' -Old <logged old text> -New <logged new text> -Filter 'FullyQualifiedName~An_operation_defers_silently_and_attempts_exactly_one_retry_after_a_minute'`; each actual invocation used one Name and the exact Old/New values in its log. The runner ran `dotnet build Marrow.sln -c Debug --nologo -v q` (0 warnings, 0 errors) and `dotnet test tests\Marrow.App.Tests --no-build --nologo -v q` with that filter (red twice; green 2 passed). Files touched for this record: `REPORT.md` only.
 
 records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125, PR-HYDRAMERGE-030
+
+## Continuation: PR-HYDRAMERGE-124 deferred project passes
+
+B3 `AppModel+HydraMerge.swift:21-28,244-249,302-304` has two quiet deferral causes. New `AppModelHydraMergeDeferralTests` drives both real local Git operation markers (`MERGE_HEAD`, `rebase-merge`) and a lead resuming during `write-tree`, checking the direct `Deferred` result, no failure record or note, no commit/ref move/push, no merged turn, and retry only for the Git-operation cause. Existing coordinator tests also check the caller's stop-before-bookkeeping behavior. No production edit was needed.
+
+| Clause | Mutation log | Failing Req-tagged test |
+| --- | --- | --- |
+| Git operation guard | `124-operation-guard` | `A_checkout_operation_returns_deferred_without_record_note_or_commit` (2 cases) |
+| Git operation schedules retry | `124-operation-schedule` | same test |
+| Git operation returns deferred | `124-operation-return` | same test |
+| Ready state rechecked after capture | `124-ready-guard` | `A_lead_that_resumes_during_capture_returns_deferred_without_record_note_or_retry` |
+| Resumed lead returns deferred | `124-return` | same resumed-lead test |
+
+Each of the five untracked `_evidence/mutation-124-*.txt` logs records a mutant build with 0 warnings/errors, two standalone red test runs with fresh data dirs, restored build and green run. All original/restored hashes equal `DA8ADEE5CE2E40D9E2BCEA0BF18DB3A7EA346485414A29500AD70CDC19AC2142`, matching the current production file. The runner removed the listed API-key variables. Exact mutation command form was `powershell -NoProfile -ExecutionPolicy Bypass -File '_evidence\mutate.ps1' -Name <log name> -Old <log old> -New <log new> -Filter <log filter>`; each argument is preserved in the matching log. Current `dotnet build Marrow.sln -c Debug --nologo -v q`: 0 warnings, 0 errors. Current `dotnet test tests/Marrow.App.Tests --no-build --nologo -v q --filter 'FullyQualifiedName~AppModelHydraMergeDeferralTests'`: 3 passed, 0 failed, 0 skipped. `TraceabilityTests` filter: 3 passed, 0 failed, 0 skipped. An initial build of the new test lacked `using Marrow.Core.Port` (2 compile errors); it was fixed before mutation verification. No source ambiguity or guess. Files touched: `tests/Marrow.App.Tests/AppModelHydraMergeDeferralTests.cs`, `REPORT.md`.
+
+records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125, PR-HYDRAMERGE-030, PR-HYDRAMERGE-124
