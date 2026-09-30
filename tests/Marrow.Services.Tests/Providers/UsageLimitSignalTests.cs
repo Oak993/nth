@@ -148,6 +148,80 @@ public sealed class UsageLimitSignalTests
         Assert.Null(result);
     }
 
+    [Theory]
+    [Trait("Req", "PR-PROVREG-221")] // Services/Providers/UsageLimitSignal.swift:37; Calendar.MatchingPolicy.nextTime
+    [InlineData(60, 37, 0)]
+    [InlineData(30, 15, 0)]
+    [InlineData(30, 15, 30)]
+    public void ResetTime_moves_a_missing_clock_time_to_the_first_existing_instant(
+        int daylightMinutes, int requestedMinute, int transitionSecond)
+    {
+        using var runtime = new TestRuntime();
+        var timeZone = SpringForwardZone(daylightMinutes, transitionSecond);
+        using var zone = SwiftFormatters.CurrentTimeZone.Override(timeZone);
+        var now = new DateTimeOffset(2026, 3, 8, 6, 0, 0, TimeSpan.Zero);
+        var expected = new DateTimeOffset(2026, 3, 8, 7, 0, transitionSecond, TimeSpan.Zero);
+        var missingWall = new DateTime(2026, 3, 8, 2, requestedMinute, 0, DateTimeKind.Unspecified);
+
+        Assert.True(timeZone.IsInvalidTime(missingWall));
+        // GetUtcOffset alone assigns an offset to the nonexistent wall time; it does not apply .nextTime.
+        Assert.NotEqual(expected, new DateTimeOffset(missingWall, timeZone.GetUtcOffset(missingWall)));
+        Assert.Equal(expected, UsageLimitSignal.ResetTime($"resets 2:{requestedMinute:D2} am", now));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-221")] // Services/Providers/UsageLimitSignal.swift:37
+    public void ResetTime_resolves_tomorrows_clock_time_when_tomorrow_has_a_gap()
+    {
+        using var runtime = new TestRuntime();
+        using var zone = SwiftFormatters.CurrentTimeZone.Override(SpringForwardZone(60));
+        var now = new DateTimeOffset(2026, 3, 7, 8, 0, 0, TimeSpan.Zero);
+
+        Assert.Equal(new DateTimeOffset(2026, 3, 8, 7, 0, 0, TimeSpan.Zero),
+            UsageLimitSignal.ResetTime("resets 2:37 am", now));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-PROVREG-221")] // Services/Providers/UsageLimitSignal.swift:37
+    [InlineData(0)]
+    [InlineData(15)]
+    public void ResetTime_at_or_after_the_gap_end_keeps_the_requested_time_for_tomorrow(int minute)
+    {
+        using var runtime = new TestRuntime();
+        using var zone = SwiftFormatters.CurrentTimeZone.Override(SpringForwardZone(60));
+        var now = new DateTimeOffset(2026, 3, 8, 7, minute, 0, TimeSpan.Zero);
+
+        Assert.Equal(new DateTimeOffset(2026, 3, 9, 6, 37, 0, TimeSpan.Zero),
+            UsageLimitSignal.ResetTime("resets 2:37 am", now));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-221")] // Services/Providers/UsageLimitSignal.swift:37; default repeatedTimePolicy is .first
+    public void ResetTime_still_uses_the_first_occurrence_of_a_repeated_clock_time()
+    {
+        using var runtime = new TestRuntime();
+        using var zone = SwiftFormatters.CurrentTimeZone.Override(SpringForwardZone(60));
+        var now = new DateTimeOffset(2026, 11, 1, 4, 0, 0, TimeSpan.Zero);
+
+        Assert.Equal(new DateTimeOffset(2026, 11, 1, 5, 30, 0, TimeSpan.Zero),
+            UsageLimitSignal.ResetTime("resets 1:30 am", now));
+    }
+
+    // A fixed, in-memory rule keeps these clock-parser cases independent of the host's zone database.
+    private static TimeZoneInfo SpringForwardZone(int daylightMinutes, int transitionSecond = 0)
+    {
+        var start = TimeZoneInfo.TransitionTime.CreateFixedDateRule(
+            new DateTime(1, 1, 1, 2, 0, transitionSecond), 3, 8);
+        var end = TimeZoneInfo.TransitionTime.CreateFixedDateRule(
+            new DateTime(1, 1, 1, 2, 0, 0), 11, 1);
+        var rule = TimeZoneInfo.AdjustmentRule.CreateAdjustmentRule(
+            new DateTime(2026, 1, 1), new DateTime(2026, 12, 31),
+            TimeSpan.FromMinutes(daylightMinutes), start, end);
+        return TimeZoneInfo.CreateCustomTimeZone(
+            $"UsageLimitSignal-{daylightMinutes}-{transitionSecond}", TimeSpan.FromHours(-5),
+            "Usage limit test zone", "Standard", "Daylight", [rule]);
+    }
+
     // ---- PR-PROVREG-222: format ------------------------------------------------------------------------------
 
     [Fact]

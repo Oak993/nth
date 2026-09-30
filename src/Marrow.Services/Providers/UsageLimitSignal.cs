@@ -82,11 +82,36 @@ public static partial class UsageLimitSignal
     private static DateTimeOffset NextTime(DateTimeOffset now, int hour, int minute, TimeZoneInfo zone)
     {
         var localToday = TimeZoneInfo.ConvertTime(now, zone).Date;
-        var wall = DateTime.SpecifyKind(localToday, DateTimeKind.Unspecified).AddHours(hour).AddMinutes(minute);
-        var candidate = new DateTimeOffset(wall, OffsetOf(zone, wall));
-        if (candidate > now) return candidate;
-        wall = wall.AddDays(1);
-        return new DateTimeOffset(wall, OffsetOf(zone, wall));
+        var candidate = Candidate(localToday);
+        return candidate > now ? candidate : Candidate(localToday.AddDays(1));
+
+        DateTimeOffset Candidate(DateTime day)
+        {
+            var wall = DateTime.SpecifyKind(day, DateTimeKind.Unspecified).AddHours(hour).AddMinutes(minute);
+            if (zone.IsInvalidTime(wall))
+            {
+                // :37 .nextTime selects the first existing instant after a gap, without preserving
+                // the requested minute. Gaps need not last one hour or end on a minute boundary.
+                var lower = wall;
+                var upper = wall.AddHours(1);
+                while (zone.IsInvalidTime(upper))
+                {
+                    lower = upper;
+                    upper = upper.AddHours(1);
+                }
+
+                while (upper.Ticks - lower.Ticks > 1)
+                {
+                    var middle = new DateTime(lower.Ticks + (upper.Ticks - lower.Ticks) / 2, DateTimeKind.Unspecified);
+                    if (zone.IsInvalidTime(middle)) lower = middle;
+                    else upper = middle;
+                }
+
+                wall = upper;
+            }
+
+            return new DateTimeOffset(wall, OffsetOf(zone, wall));
+        }
     }
 
     // nextDate's repeatedTimePolicy defaults to .first: a wall time that occurs twice at the end of daylight saving is its first
