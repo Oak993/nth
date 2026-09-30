@@ -14,6 +14,7 @@ using Marrow.App.Views.Terminal;
 using Marrow.App.Views.Terminal.Port;
 using Marrow.App.Window;
 using Marrow.Core.Models;
+using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 using Xunit;
@@ -257,16 +258,21 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
     [Trait("Req", "PR-TERM-036")] // App/Views/Terminal/TerminalPanel.swift:259-266
     public void Resize_observers_follow_the_current_window_and_are_removed_when_detached()
     {
-        WithAttachedHost("resize observers", null, (session, host, window, _, _) =>
+        WithAttachedHost("resize observers", null, (session, host, window, resize, _) =>
         {
             var container = LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single();
             Assert.Equal(2, IntMetric(container, "ResizeObserverCount"));
+            Assert.Equal(2, RealResizeSubscribers(resize));
 
             var originalRoot = Assert.IsType<Border>(window.Content);
             originalRoot.Child = null;
             window.Content = null;
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(0, IntMetric(container, "ResizeObserverCount"));
+            Assert.Equal(0, RealResizeSubscribers(resize));
+            BeginWin32Resize(resize);
+            Assert.True(BoolMetric(container, "IsAutoResizing"));
+            EndWin32Resize(resize);
 
             var secondWindow = new AvaloniaWindow { Width = 640, Height = 240 };
             var secondRoot = new Border { Child = host };
@@ -278,12 +284,36 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
             try
             {
                 Assert.Equal(2, IntMetric(container, "ResizeObserverCount"));
+                Assert.Equal(2, RealResizeSubscribers(secondResize));
             }
             finally
             {
                 secondWindow.Close();
                 Dispatcher.UIThread.RunJobs();
             }
+        }, (session, _, _, _, _) => { });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-TERM-036")]
+    public void Detaching_during_a_live_resize_cancels_the_queued_frame_sync()
+    {
+        WithAttachedHost("cancel detached resize", null, (session, host, window, resize, _) =>
+        {
+            var container = LogicalQuery.SelfAndDescendants<TerminalHostContainer>(host).Single();
+            BeginWin32Resize(resize);
+            window.Width = 800;
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(BoolMetric(container, "IsResizePending"));
+            var before = IntMetric(container, "SyncFrameCount");
+            var root = Assert.IsType<Border>(window.Content);
+            root.Child = null;
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(BoolMetric(container, "IsResizePending"));
+            UiPump.For(TimeSpan.FromMilliseconds(120));
+            Assert.Equal(before, IntMetric(container, "SyncFrameCount"));
+            EndWin32Resize(resize);
         }, (session, _, _, _, _) => { });
     }
 
@@ -459,5 +489,12 @@ public sealed class TerminalPanelHighRiskTests(HeadlessSession headless)
         var field = instance.GetType().GetField(name, BindingFlags.Instance | BindingFlags.NonPublic);
         Assert.NotNull(field);
         return field;
+    }
+
+    private static int RealResizeSubscribers(WindowLiveResize resize)
+    {
+        var field = typeof(ObservableModel).GetField("PropertyChanged", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(field);
+        return (field.GetValue(resize) as MulticastDelegate)?.GetInvocationList().Length ?? 0;
     }
 }

@@ -551,15 +551,14 @@ public sealed class TerminalHost : Decorator
 /// <summary>:257-318 Avalonia host for a session's existing terminal view.</summary>
 public sealed class TerminalHostContainer : Decorator
 {
-    private IDisposable? resizeObservation;
     private IDisposable? pendingSync;
     private WindowLiveResize? liveResize;
-    private PropertyChangedEventHandler? resizeChanged;
+    private PropertyChangedEventHandler? resizeStarted;
+    private PropertyChangedEventHandler? resizeEnded;
     private bool wasLiveResizing;
-    private int resizeObserverCount;
 
-    /// <summary>Test readback for the two will-start/did-end observers in Swift.</summary>
-    internal int ResizeObserverCount => resizeObserverCount;
+    /// <summary>Actual registrations for the two will-start/did-end observers in Swift.</summary>
+    internal int ResizeObserverCount => (resizeStarted is null ? 0 : 1) + (resizeEnded is null ? 0 : 1);
 
     /// <summary>Whether autoresizing is currently following the window frame.</summary>
     internal bool IsAutoResizing { get; private set; } = true;
@@ -602,14 +601,15 @@ public sealed class TerminalHostContainer : Decorator
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         CancelPendingSync();
-        resizeObservation?.Dispose();
-        resizeObservation = null;
-        if (liveResize is { } oldResize && resizeChanged is { } handler)
-            oldResize.PropertyChanged -= handler;
-        resizeChanged = null;
+        if (liveResize is { } oldResize)
+        {
+            if (resizeStarted is { } start) oldResize.PropertyChanged -= start;
+            if (resizeEnded is { } end) oldResize.PropertyChanged -= end;
+        }
+        resizeStarted = null;
+        resizeEnded = null;
         liveResize = null;
         wasLiveResizing = false;
-        resizeObserverCount = 0;
         IsAutoResizing = true;
         base.OnDetachedFromVisualTree(e);
     }
@@ -620,34 +620,20 @@ public sealed class TerminalHostContainer : Decorator
         if (liveResize is null) return;
 
         // The Swift view registers exactly two window notifications: willStartLiveResize and didEndLiveResize.
-        resizeObserverCount = 2;
         var currentResize = liveResize;
-        resizeChanged = (_, change) =>
+        resizeStarted = (_, change) =>
         {
-            if (change.PropertyName != nameof(WindowLiveResize.IsActive)) return;
-            if (currentResize.IsActive)
-            {
-                wasLiveResizing = true;
-                IsAutoResizing = false;
-            }
-            else if (wasLiveResizing)
-            {
-                FinishResize();
-            }
+            if (change.PropertyName != nameof(WindowLiveResize.IsActive) || !currentResize.IsActive) return;
+            wasLiveResizing = true;
+            IsAutoResizing = false;
         };
-        currentResize.PropertyChanged += resizeChanged;
-        resizeObservation = new Tracked<bool>(() => currentResize.IsActive, active =>
+        resizeEnded = (_, change) =>
         {
-            if (active)
-            {
-                wasLiveResizing = true;
-                IsAutoResizing = false;
-            }
-            else if (wasLiveResizing)
-            {
-                FinishResize();
-            }
-        });
+            if (change.PropertyName == nameof(WindowLiveResize.IsActive) &&
+                !currentResize.IsActive && wasLiveResizing) FinishResize();
+        };
+        currentResize.PropertyChanged += resizeStarted;
+        currentResize.PropertyChanged += resizeEnded;
     }
 
     private WindowLiveResize? ResolveLiveResize()
