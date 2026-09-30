@@ -176,3 +176,22 @@ B3 `AppModel+HydraMerge.swift:352-362` distinguishes GitLab sign-in refusal from
 Each of the eight untracked `_evidence/mutation-055-*.txt` logs named above records a successful mutant build, two standalone red runs with fresh data dirs, restored build and green run. Each original/restored SHA-256 is `DA8ADEE5CE2E40D9E2BCEA0BF18DB3A7EA346485414A29500AD70CDC19AC2142`, matching the current production file. The runner removed the listed API-key variables. Exact command form: `powershell -NoProfile -ExecutionPolicy Bypass -File '_evidence\mutate.ps1' -Name <log name> -Old <log old> -New <log new> -Filter <log filter>`; two title and one catch mutation also used `-Occurrence` as logged in this section (first/second matching title and second catch). The initial catch mutant targeted an earlier catch and survived; its log was overwritten by the correct site-specific mutant. The test's first injection used `IOException`, whose localized Swift text is undefined; replacing it with source-shaped `ShellError` made the test deterministic without changing its expected output. A runner parameter experiment stopped before changing production and was removed. `dotnet build Marrow.sln -c Debug --nologo -v q`: 0 warnings, 0 errors. Focused new test: 1 passed; existing five-case failure-contract test: 5 passed; `TraceabilityTests`: 3 passed. No source ambiguity or guess. Files touched: `tests/Marrow.App.Tests/AppModelHydraMergeRequestFailureTests.cs`, `REPORT.md`.
 
 records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125, PR-HYDRAMERGE-030, PR-HYDRAMERGE-124, PR-HYDRAMERGE-129, PR-HYDRAMERGE-055
+
+## Continuation: PR-HYDRAMERGE-051 existing request and auth retry
+
+B3 `AppModel+HydraMerge.swift:458-474` accepts an already-open request from the first failed `glab mr create` before auth handling, then rechecks auth once and retries the same argument vector. Existing Req-tagged `AppModelHydraMergeRequestTests.Existing_request_precedes_authentication_and_a_refreshed_token_retries_the_identical_vector_once` covers first-failure priority and successful refreshed-auth retry with four command scenarios. New `AppModelHydraMergeRequestRetryTests.A_second_creation_failure_is_final_without_another_retry_or_existing_request_lookup` covers retry auth refusal, retry nonauth failure, and a retry that mentions an existing request, proving the final error comes from the second failure without a third attempt or another existing-request lookup. All calls use the offline forge stand-in; no external request was made. No production edit was needed.
+
+| Clause | Mutation log | Failing Req-tagged test |
+| --- | --- | --- |
+| Existing request on the first failure wins before auth | `051-existing-first` | existing-request/refreshed-auth test |
+| Detect first auth refusal | `051-auth-detection` | same test |
+| Recheck auth before retry | `051-auth-recheck` | same test |
+| Retry identical argument vector | `051-identical-vector` | same test |
+| Successful retry returns its parsed URL | `051-retry-url` | same test |
+| Retried auth refusal remains an auth error | `051-final-auth` | new second-failure test |
+| Use the second failure's detail | `051-last-failure` | new second-failure test |
+| Existing-request lookup runs only for first failure | `051-existing-only-first` | new second-failure test |
+
+Each of these eight untracked `_evidence/mutation-051-*.txt` logs records a successful mutant build, two standalone red runs with fresh data dirs, restored build and green run. Each original/restored SHA-256 equals `DA8ADEE5CE2E40D9E2BCEA0BF18DB3A7EA346485414A29500AD70CDC19AC2142`, matching current production. The runner removed the listed API-key variables. Exact command form: `powershell -NoProfile -ExecutionPolicy Bypass -File '_evidence\mutate.ps1' -Name <log name> -Old <log old> -New <log new> -Filter <log filter>`; `051-final-auth` used `-Occurrence 2` for the second auth check. An initial vector mutant's quoted argument failed to locate its source text, before mutation; the compiling quote-free mutant in its log is the proof. `dotnet build Marrow.sln -c Debug --nologo -v q`: 0 warnings, 0 errors. New retry class: 3 passed. Restored existing request test: 4 passed. No source ambiguity or guess. Files touched: `tests/Marrow.App.Tests/AppModelHydraMergeRequestRetryTests.cs`, `REPORT.md`.
+
+records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125, PR-HYDRAMERGE-030, PR-HYDRAMERGE-124, PR-HYDRAMERGE-129, PR-HYDRAMERGE-055, PR-HYDRAMERGE-051
