@@ -157,3 +157,22 @@ B3 `AppModel+HydraMerge.swift:274-276,314-321` keeps `(patch, message)` only wit
 Each untracked `_evidence/mutation-129-*.txt` log records a successful mutant build with 0 warnings/errors, two standalone red runs with fresh data dirs, restored build, and green run. All original/restored SHA-256 values are `DA8ADEE5CE2E40D9E2BCEA0BF18DB3A7EA346485414A29500AD70CDC19AC2142`, matching the current file. The multi-site scope mutation used an optional extra-replacement extension to untracked `_evidence/mutate.ps1`; the log records all three replacements. The runner removed the listed API-key variables. Exact command form: `powershell -NoProfile -ExecutionPolicy Bypass -File '_evidence\mutate.ps1' -Name <log name> -Old <log old> -New <log new> -Filter <log filter>` (scope also passed `-Old2/-New2/-Old3/-New3`); arguments and outputs are preserved in the matching logs. Restored tests: moved-HEAD 5 passed, canonical 1 passed. No source ambiguity or guess. Files touched for this record: `REPORT.md` only.
 
 records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125, PR-HYDRAMERGE-030, PR-HYDRAMERGE-124, PR-HYDRAMERGE-129
+
+## Continuation: PR-HYDRAMERGE-055 thrown request errors
+
+B3 `AppModel+HydraMerge.swift:352-362` distinguishes GitLab sign-in refusal from every other request-creation throw. Existing Req-tagged `AppModelHydraMergeRequestTests.Each_failure_contract_preserves_project_prefix_metadata_retry_and_note_threshold` checks the auth and creation-failure outputs, record metadata, note timing, and retry. Its `generic` case throws before request creation, so new `AppModelHydraMergeRequestFailureTests.A_thrown_request_creation_error_keeps_the_pushed_branch_and_schedules_a_quiet_retry` injects a source-shaped `ShellError` at the actual request command, then checks the literal body, pushed branch, quiet retry, metadata, and working file. No production edit was needed.
+
+| Clause | Mutation log | Failing Req-tagged test |
+| --- | --- | --- |
+| Generic request throw is caught at this site | `055-generic-catch` | new thrown-request test |
+| Generic detail uses localized error | `055-generic-detail` | same test |
+| Generic body keeps exact next-try sentence and backticked branch | `055-generic-body` | same test |
+| Generic failure is retryable, initially quiet | `055-generic-retryable` | same test |
+| Generic headline uses unbackticked branch | `055-generic-title` | same test |
+| GitLab auth is immediately announced and nonretryable | `055-auth-retryable` | existing failure-contract test, auth case |
+| GitLab auth body is the localized description alone | `055-auth-body` | same auth case |
+| GitLab auth headline uses unbackticked branch | `055-auth-title` | same auth case |
+
+Each of the eight untracked `_evidence/mutation-055-*.txt` logs named above records a successful mutant build, two standalone red runs with fresh data dirs, restored build and green run. Each original/restored SHA-256 is `DA8ADEE5CE2E40D9E2BCEA0BF18DB3A7EA346485414A29500AD70CDC19AC2142`, matching the current production file. The runner removed the listed API-key variables. Exact command form: `powershell -NoProfile -ExecutionPolicy Bypass -File '_evidence\mutate.ps1' -Name <log name> -Old <log old> -New <log new> -Filter <log filter>`; two title and one catch mutation also used `-Occurrence` as logged in this section (first/second matching title and second catch). The initial catch mutant targeted an earlier catch and survived; its log was overwritten by the correct site-specific mutant. The test's first injection used `IOException`, whose localized Swift text is undefined; replacing it with source-shaped `ShellError` made the test deterministic without changing its expected output. A runner parameter experiment stopped before changing production and was removed. `dotnet build Marrow.sln -c Debug --nologo -v q`: 0 warnings, 0 errors. Focused new test: 1 passed; existing five-case failure-contract test: 5 passed; `TraceabilityTests`: 3 passed. No source ambiguity or guess. Files touched: `tests/Marrow.App.Tests/AppModelHydraMergeRequestFailureTests.cs`, `REPORT.md`.
+
+records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125, PR-HYDRAMERGE-030, PR-HYDRAMERGE-124, PR-HYDRAMERGE-129, PR-HYDRAMERGE-055
