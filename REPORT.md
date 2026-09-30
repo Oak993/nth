@@ -12,8 +12,8 @@ Test first: `AppShellActivationTests.Reactivating_the_main_window_after_launch_c
 
 | Record | Current test evidence | STOP preventing a whole-record candidate |
 | --- | --- | --- |
-| `PR-LAUNCH-028` | `AppDelegateThirdTests.Launch_takes_the_window_managers_model_then_shows_the_main_window_before_opening_the_launch_thread`; existing WindowManager tests | `AppDelegate.swift:22`, OD-0018/ED-103 boot stage and ED-180 material/P12 composition evidence absent. |
-| `PR-LAUNCH-046` | New `AppShellActivationTests.Reactivating_the_main_window_after_launch_checks_when_the_update_observer_is_stale`; existing `UpdateCheckerSecondTests` exercise schedule/staleness | `AppDelegate.swift:28`, `UpdateChecker.swift:141-149`: whether launch itself counts as didBecomeActive is unresolved. |
+| `PR-LAUNCH-028` | `AppDelegateThirdTests.Launch_takes_the_window_managers_model_then_shows_the_main_window_before_opening_the_launch_thread`; existing WindowManager tests | `AppDelegate.swift:22`, OD-0018/ED-103 boot stage and P12 composition evidence absent; the glass material code exists but remains optically unverified. |
+| `PR-LAUNCH-046` | New `AppShellActivationTests.Reactivating_the_main_window_after_launch_checks_when_the_update_observer_is_stale`; existing `UpdateCheckerSecondTests` exercise schedule/staleness | `AppDelegate.swift:28`, `UpdateChecker.swift:141-149`: launch notification order and distinguishing app activation from an intra-app main-window focus change remain unresolved. |
 | `PR-LAUNCH-050` | `AppDelegateTests` deferred quit/250 ms/240 s tests; `AppShellTests` ordinary close and session-end tests | ED-004 calls for `ShutdownBlockReasonCreate`, but `AppDelegate.swift:41-61` supplies no reason text; AppShell binding awaits a ruling. |
 | `PR-LAUNCH-064` | `WindowsToastTests` and `WindowsToastStartupTests` callback/transport tests | `AppDelegate.swift:77-92`: no permitted native toast pointer hit-test fixture; ED-220(7) forbids real toast/registry/URI in tests. |
 | `PR-LAUNCH-065` | `WindowsToastTests` and `WindowsToastStartupTests` update callback/transport tests | Same native toast ingress gap at `AppDelegate.swift:83-91`. |
@@ -22,68 +22,74 @@ Test first: `AppShellActivationTests.Reactivating_the_main_window_after_launch_c
 | `PR-WIN-072` | `AppDelegateThirdTests` reopen tests; `AppShellSecondTests` hidden/visible cached-window tests | `AppDelegate.swift:37`, `WindowManager.swift:57-60`: no ruling on `makeKeyAndOrderFront` restoring a minimized window; WindowManager is lane A owned. |
 | `PR-WIN-073` | `AppDelegateTests` and `AppShellTests` ordinary quit tests | Same ED-004 session-end reason/binding gap as `PR-LAUNCH-050`. |
 | `PR-WIN-076` | `WindowsToastTests` thread/update callback tests | Native toast hit-test gap at `AppDelegate.swift:77-92`. |
-| `UI-LAUNCH-001` | Existing launch and WindowManager size/frame tests | Boot stage and material evidence at `AppDelegate.swift:22`, ED-103/P12 and ED-180. |
-| `UI-LAUNCH-002` | `AppDelegateThirdTests` 700 ms and hasSeenTour gate tests | `AppDelegate.swift:24-26`, `TourPages.swift:27`, `TourWindowController.swift:103-107,145-148`: native window close versus tour close control has conflicting record wording; whole pointer proof for reopen paths absent. |
+| `UI-LAUNCH-001` | Existing launch and WindowManager size/frame tests | Boot stage and composition evidence at `AppDelegate.swift:22`, ED-103/P12; glass optics remain unverified. |
+| `UI-LAUNCH-002` | `AppDelegateThirdTests` 700 ms and hasSeenTour gate tests | `AppDelegate.swift:24-26`: the tour's visible close action and reopen paths lack pointer proof; its 700 ms launch timing conflicts with ED-103's delayed window. |
 | `UI-LAUNCH-003` | `AppDelegateThirdTests` relaunch marker and About page tests | Update notification tap requires native toast hit-testing; full Settings geometry belongs to WindowManager. |
 | `UI-LAUNCH-005` | `AppDelegateTests` notification presentation tests; `WindowsToastTests` delivery/routing tests | System-drawn toast pointer hit-test gap at `AppDelegate.swift:63-92`, ED-220(7). |
 
 The above existing tests are partial evidence, not newly mutated whole-record proofs. The source/rulings do not settle the noted STOPs. Guesses made: **zero**. No whole record is claimed proven.
 
-+### PR-LAUNCH-028 — STOP
+### PR-LAUNCH-028 — STOP
 
 Source site: `AppDelegate.swift:22` calls `windows.showMain()`; `WindowManager.swift:26-30,57-70` creates/restores the 1320 × 860 main window, activates it and brings it front. Existing `AppDelegateThirdTests` proves that plain launch order. Owner deviation OD-0018 / ED-103 replaces that presentation with a transparent particle stage and delayed window formation. `AppDelegate.cs:56-60` still calls `windows.ShowMain()` directly. `LoadingMark.cs` and `GlassMaterial.cs` exist, but there is no P12 transparent-stage/Acrylic composition probe or stage hosting in this worktree (`rg --files porting/probes` has no P12). ED-103(7) explicitly defers the fallback until that probe. A stage timing assertion against today's direct show would encode the wrong result. STOP at `AppDelegate.ApplicationDidFinishLaunching` before replacing `ShowMain`; P12 and the stage/window composition are required. No Swift failure is asserted: the stage is the owner-approved Windows deviation.
 
-+### PR-LAUNCH-050 — STOP
+### PR-LAUNCH-050 — STOP
 
 Source site: `AppDelegate.swift:44-54` returns `.terminateNow` without a merge, otherwise `.terminateLater`, polls every 250 ms to a 4 × 60 second deadline, and unconditionally replies true; `:56-61` orders save, live-spend flush and MCP termination. `AppDelegateTests` and `AppShellTests` cover the ordinary path, including the cap. Windows ED-004(2) additionally requires `ShutdownBlockReasonCreate` while `WM_QUERYENDSESSION` is held; `AppShell.ShutdownRequested` cancels the request but has no reason call. The Swift file contains only a code comment about merging (`:41-43`), no user-facing reason string. Supplying one would invent text. STOP at `AppShell.ShutdownRequested`, the session-end branch; owner-approved reason text and then a test/mutation of that native binding are required. Ordinary quit remains implemented; no source defect is claimed.
 
-+### PR-LAUNCH-064 — STOP
+### PR-LAUNCH-064 — STOP
 
 Source site: `AppDelegate.swift:77-92` reads `threadID` as a String, shows main before setting a parseable UUID on `model`, activates, and skips About when `update` is absent. The C# delegate and `WindowsToastStartupTests`/`WindowsToastTests` cover callback ordering and payload transport. The record's action is a user tapping a system toast. ED-220(7) forbids a real toast, registry or URI in tests; the test tree has only recording callbacks, no native toast pointer fixture. A callback invocation cannot prove the tap reaches `UserNotificationCenter(didReceive:)` under the interaction mutation standard. STOP at `WindowsToastPlatform.Show` to toast activation ingress; a safe hit-tested native fixture or an explicit proof-method ruling is required. No source defect is claimed.
 
-+### PR-LAUNCH-065 — STOP
+### PR-LAUNCH-065 — STOP
 
 Source site: `AppDelegate.swift:83-91` branches on the mere presence of `update`, skips `showMain`, activates, then opens Settings on About. Existing `WindowsToastTests` and `WindowsToastStartupTests` call the production routing path with update payloads. They do not click the system-drawn toast; ED-220(7) forbids the native notification/registry/URI route in tests. STOP at the same `WindowsToastPlatform.Show` ingress as PR-LAUNCH-064. The remaining clause is a real tap preserving the skip-main and activate-before-About sequence, which needs a safe hit-tested fixture or owner proof-method ruling. No source defect is claimed.
 
-+### PR-LAUNCH-071 — STOP
+### PR-LAUNCH-071 — STOP
 
 Source site: `AppDelegate.swift:22-33` shows main, opens the launch thread, schedules the tour at 700 ms when `hasSeenTour` is false, starts bootstrap and update checks, and conditionally opens About. `AppDelegateThirdTests.First_launch_opens_the_chat_then_only_the_delayed_tour_with_no_onboarding_alert` verifies the present plain-window path and no extra onboarding alert. A full clean-data capture cannot match OD-0018/ED-103 while `AppDelegate.cs:60` shows main immediately and there is no P12 stage composition. There is also a timing conflict: ED-103 shows the main window after outline landing around 5 seconds on the normal motion path, while the unchanged Swift 700 ms task would present the first-run tour before that window, contrary to UI-LAUNCH-002's 'over the main window' wording. STOP at `AppDelegate.ApplicationDidFinishLaunching` (`ShowMain` and the tour task); the boot handoff and an explicit ruling on the tour's relation to it are required. No account/sign-in step was added and no Swift defect is claimed.
 
-+### PR-UPDATE-024 — STOP
+### PR-UPDATE-024 — STOP
 
 Source site: `AppDelegate.swift:77-92` sends an `update` response directly through activation to `showSettings(page: .about)` without `showMain`; `WindowManager.swift:32-54` sets the page and centers Settings. Existing `WindowsToastTests` prove the callback branch, and WindowManager owns the centering geometry. The remaining record action is tapping a system banner. ED-220(7) forbids a real toast/registry/URI in tests, and no safe native hit-test ingress is present. STOP at `WindowsToastPlatform.Show` through activation into `AppDelegate.UserNotificationCenter(didReceive:)`; callback-only mutation evidence cannot prove the user tap. No source defect is claimed.
 
-+### PR-WIN-072 — STOP
+### PR-WIN-072 — STOP
 
 Source site: `AppDelegate.swift:36-39` calls `WindowManager.shared.showMain()` only when `hasVisibleWindows` is false, then returns true. `WindowManager.swift:57-60` activates the app and calls `makeKeyAndOrderFront`. Existing `AppDelegateThirdTests`, `AppShellSecondTests` and `ReopenSignalTests` prove a hidden/visible cached window and the second-process transport. `WindowManager.Present` in this base uses `Show()` then `Activate()` (`WindowManager.cs:164-172`) and does not change `WindowState.Minimized`; `AppShell.HasVisibleWindows` treats that state as not visible. Apple documents `makeKeyAndOrderFront` as showing/ordering/keying and separately documents `deminiaturize`; those descriptions do not establish what this call does to a minimized window. STOP at `WindowManager.Present` for a minimized cached main window. The WindowManager file is lane A owned, and an AppKit oracle or an explicit owner decision is needed before a restore binding and hit-tested second-launch proof. No Swift defect is claimed.
 
-+### PR-WIN-073 — STOP
+### PR-WIN-073 — STOP
 
 Source site: `AppDelegate.swift:44-61` is the ordinary quit handshake and ordered teardown. OD-0008 C1/C2 maps the main window close and Alt+F4 to that path; `AppShellTests` already exercise immediate and deferred close, 250 ms polls, the 240 second cap and termination ordering. `AppShell.ShutdownRequested` cancels a Windows session-end request during a merge, and `WndProc` handles `WM_ENDSESSION`, but ED-004(2) still requires `ShutdownBlockReasonCreate`. Swift supplies no user-facing reason (`AppDelegate.swift:41-43` is an internal comment). STOP at `AppShell.ShutdownRequested` under `WM_QUERYENDSESSION`; inventing a reason string would violate the string rule. A ruled reason, native binding and mutation of the native branch are required. No Swift defect is claimed.
 
-+### PR-WIN-076 — STOP
+### PR-WIN-076 — STOP
 
 Source site: `AppDelegate.swift:77-92` distinguishes `update` by key presence, shows main for ordinary notifications, selects only a parseable `threadID`, activates, then shows About only for updates. `WindowsToastTests` cover both callback branches and wrong-type/malformed payloads; `WindowsToastStartupTests` cover second-process payload routing. The missing requirement clause is the user click on a system-drawn banner. The native toast platform currently has no safe pointer hit-test fixture, while ED-220(7) excludes registering or showing a real toast in a test. STOP at the OS toast click → `WindowsToastLaunchTransport` → delegate boundary; a recording callback is not equivalent under the mutation standard. No Swift defect is claimed.
 
-+### UI-LAUNCH-001 — STOP
+### UI-LAUNCH-001 — STOP
 
 Source site: `AppDelegate.swift:22` shows the main window and `WindowManager.swift:18-24,62-70` sets first-run 1320 × 860, minimum 860 × 560, frame autosave `DroppyCodeMainWindow`, and centering fallback; OD-0012 renames its title to `Marrow`. Existing launch and WindowManager tests cover the window's ordinary creation and frame behavior. The Windows record additionally specifies OD-0018/ED-103's particle stage and main-window formation. `AppDelegate.cs:56-60` directly shows the window; P12 composition evidence and stage hosting are absent. `GlassMaterial.cs` exists but reports its optical values UNVERIFIED, so its presence does not prove the boot handoff. STOP at the first `ShowMain` in `ApplicationDidFinishLaunching` until ED-103(7)'s composition/fallback is resolved and the actual first-run window is hit-tested/captured. No Swift defect is claimed.
 
-+### UI-LAUNCH-002 — STOP
+### UI-LAUNCH-002 — STOP
 
 Source site: `AppDelegate.swift:24-26` gates the tour on `hasSeenTour` and schedules 700 ms; `TourPages.swift:26-28` passes mark-seen callbacks for Finish and the tour's Close action. `TourWindowController.swift:76-80` creates a borderless window, so there is no native close button; its `windowWillClose` at `:103-106,145-148` only releases the controller reference. Thus the record's 'Closed without finishing' can be read as the tour's visible checkmark, not every programmatic `NSWindow.close()`. Existing tests cover the 700 ms gate and callbacks, but use `RaiseEvent` or direct close instead of a pointer hit on the produced checkmark, and the command-palette/Settings reopen paths are in other owned units. More seriously, the 700 ms task runs before ED-103's delayed main-window presentation on a normal boot, conflicting with this record's 'presented over the main window' state. STOP at `AppDelegate.ApplicationDidFinishLaunching`'s tour task and the visible tour control/reopen ingress. A boot/tour timing ruling and hit-tested end-to-end proof are required. This is a source-versus-Windows-deviation timing conflict, not a confirmed upstream failure.
 
-+### UI-LAUNCH-003 — STOP
+### UI-LAUNCH-003 — STOP
 
 Source site: `AppDelegate.swift:29-33` consumes the relaunch marker, arms celebration, then opens Settings on About; `:90` opens the same page for an update notification. `AppDelegateThirdTests` proves matching and mismatched marker paths, and `WindowManager.swift:32-54` defines settings centering. The full UI record also requires a user tapping an update banner and observing the Settings window without first showing main. ED-220(7) rules out real toast/registry/URI tests, and no safe native pointer fixture exists. STOP at the toast click ingress to `AppDelegate.UserNotificationCenter(didReceive:)`; whole-record mutation and geometry proof cannot be claimed from callbacks alone. No Swift defect is claimed.
 
-+### UI-LAUNCH-005 — STOP
+### UI-LAUNCH-005 — STOP
 
 Source site: `AppDelegate.swift:63-75` returns no presentation options only for an active app whose selected UUID equals the notification's `threadID`; every other case returns exactly banner plus sound. `:77-92` routes a tap through show/select/activate or update About. `AppDelegateTests` cover the presentation options and `WindowsToastTests` cover callback delivery/routing, including invalid IDs and update payloads. A full UI record includes the system-drawn banner and the user's pointer tap. ED-220(7) forbids real toast/registry/URI use in tests and the current platform fixture records posts rather than hit-testing the OS surface. STOP at `WindowsToastPlatform.Show` and the OS click return path; a safe native test or explicit proof-method ruling is required. No Swift defect is claimed.
 
-+### PR-LAUNCH-046 — partial proof, remaining STOP
+### PR-LAUNCH-046 — partial proof, remaining STOP
 
-Source site: `AppDelegate.swift:28` installs `UpdateChecker.swift:141-149`'s `NSApplication.didBecomeActiveNotification` observer after `WindowManager.showMain()` has already called `NSApp.activate()` (`WindowManager.swift:26-30,57-60`). Commit `d215440a` adds a real later `Activated` window event binding and a Req-tagged test whose hook-removal mutation fails twice and restores byte-for-byte. `UpdateCheckerSecondTests` cover the 8 second/6 hour/stale schedule. The Swift order does not establish whether AppKit's initial didBecomeActive notification is delivered synchronously inside `activate()` or after the observer is installed; Apple documentation and this Windows host cannot act as a matching macOS event oracle. The current hook deliberately attaches after `ApplicationDidFinishLaunching`, so it proves later activation only. STOP at `AppShell.FinishLaunching`/`AppDelegate.ApplicationDidFinishLaunching` for initial activation until a source-matching event-order observation or owner ruling exists. The record is not a whole-record candidate despite the one proven clause. No Swift failure is claimed.
+Source site: `AppDelegate.swift:28` installs `UpdateChecker.swift:141-149`'s `NSApplication.didBecomeActiveNotification` observer after `WindowManager.showMain()` has already called `NSApp.activate()` (`WindowManager.swift:26-30,57-60`). Commit `d215440a` adds a real later `Activated` window event binding and a Req-tagged test whose hook-removal mutation fails twice and restores byte-for-byte. `UpdateCheckerSecondTests` cover the 8 second/6 hour/stale schedule. The Swift order does not establish whether AppKit's initial didBecomeActive notification is delivered synchronously inside `activate()` or after the observer is installed; Apple documentation and this Windows host cannot act as a matching macOS event oracle. The main-window event can also fire when focus moves from another Marrow window, even though AppKit's app-level notification should not fire then; this clause is not guarded or tested. STOP at `AppShell.FinishLaunching`/`AppDelegate.ApplicationDidFinishLaunching` for initial and app-level activation semantics until a source-matching event-order observation or owner ruling and an all-window focus test exist. The record is not a whole-record candidate despite the one proven clause. No Swift failure is claimed.
+
+## Lane disposition and next unowned lane
+
+All 14 `App.AppDelegate` records now have individual dispositions above. `PR-LAUNCH-046` has one mutation-proved later-activation clause; its remaining clauses and the other 13 records have exact STOP sites. There are **zero** whole-record candidates. No upstream Swift failure was confirmed, so no feature was changed or removed under the new owner rule. No production or test file changed in this continuation; each record disposition was committed separately, and the final report correction is a separate commit.
+
+`LANES.md` has no other unowned implementation unit: A, B and C have named workers/worktrees; D is this lane. E is the only unstarted lane. I read `E_grading.md`, `autogate.md` and `mutate.md`: E accepts a lane branch only after its `REPORT.md` says DONE, and `DIRECTOR_STATE.md` lists no lane DONE. E therefore has no eligible input, so starting an autogate run now would violate its brief. The Director can assign the next implementation unit or resolve the STOP prerequisites; E can run when a lane becomes DONE.
 
 ## Commands and observed output
 
@@ -102,6 +108,8 @@ For every `dotnet` build/test command below, PowerShell first removed the listed
 - `node porting/tools/verify.mjs --gate D`, first run: `2904 test(s) failed, 9235 passed`; requirement verification missing and interaction gate TODO. This first invocation did not set `MARROW_PORT_DATA_DIR` and is not accepted as the isolated gate result.
 - `node porting/tools/verify.mjs --gate D` with API keys removed and a fresh `MARROW_PORT_DATA_DIR`, output saved to `_evidence/gateD.log`: exit 1, `4 test(s) failed, 12135 passed`; requirement verification missing and interaction gate TODO. The four failed tests are `DownloadsPopoverSecondTests.Show_in_File_Explorer_opens_the_downloads_folder`, `ProviderRegistryCatalogTests.loadcatalog_is_a_no_op_while_a_load_for_that_provider_is_already_running`, `TerminalStoreTests.A_plain_tab_launches_the_shell_with_no_extra_arguments`, and `TerminalPanelTests.Tab_tooltips_and_accessibility_names_keep_the_distinct_exit_punctuation_and_button_selection_traits`. None is in the edited lifecycle code. These failures have not been reproduced twice alone, so no claim is made that they are stable failures.
 - `git diff --check`: exit 0, no output. `git diff --stat`: `AppShell.cs | 8 +++++++-` before the new test/report were added to the index.
+
+Continuation (report-only dispositions; no production/test edit or new test run): `rg -c '^### (PR|UI)-' REPORT.md` printed `14`; `git diff --check` exited 0 with no output; `node porting/tools/check_protected.mjs` printed `protected paths unchanged against HEAD; reference checkout clean`. The previous build/test counts remain the last observed ones, not a fresh gate result. Each of the 14 record dispositions has its own commit; `PR-LAUNCH-046` also has the earlier implementation/mutation commit.
 
 records_candidates: none
 
