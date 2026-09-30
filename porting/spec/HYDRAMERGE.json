@@ -1974,12 +1974,65 @@
       "cancellation": "not cancellable",
       "windows_path": "Same order. File existence on Windows is case-insensitive while git's tracked list is case-sensitive; record which one decides.",
       "verification_method": "unit test over each filter plus an integration test with a deleted tracked file",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "80",
       "blocked_by": null,
       "depends_on_unknown": null,
       "b2_change": "B1 AppModel+HydraMerge.swift:529 `paths.subtract(siblingPaths)` (every sibling path) -> B2 :586-587 `let claimed = paths.intersection(blockingClaims.keys); paths.subtract(blockingClaims.keys)`: only blocking claims are removed, and they are remembered as claimed. The rest of the order is unchanged (B2 :588-596).",
-      "b3_note": "1.7.0 keeps a blocking claim's file when this job's own tools or heads wrote it (ownEdits) and no longer records the claimed set (B3 AppModel+HydraMerge.swift:646-654; B2 :586-587)."
+      "b3_note": "1.7.0 keeps a blocking claim's file when this job's own tools or heads wrote it (ownEdits) and no longer records the claimed set (B3 AppModel+HydraMerge.swift:646-654; B2 :586-587).",
+      "implementation_evidence": {
+        "accepted_commit": "3d1ea29ad358b13a96a82c9ce555c77664bff653",
+        "accepted_runtime_commit": "22c0542d773eb536a028fb6725018103e04be3d0",
+        "accepted_source_tree": "b33700114226e062f65fe4ea7ad5f35dea8683d7",
+        "accepted_test_tree": "633a01017a213258edfd79383cad55ff1a08428b",
+        "independent_review": "Independent lane E accepted code safe to land and exactly PR-WIN-067 / PR-HYDRAMERGE-077 as whole records; relayed by J.A.R.V.I.S. 2026-09-30 in owner-authorized thread 01a0f087-91cd-74b6-8f1c-77c3473850c3.",
+        "build": {
+          "warnings": 0,
+          "errors": 0,
+          "receipt": "E:/Droppy/wt/cx/merge-1/_evidence/f012-build.log",
+          "sanitation": "Functional build accepted; historical key-membership absence unproven."
+        },
+        "combined_gate": {
+          "passed": 12279,
+          "failed": 0,
+          "skipped": 0,
+          "mode": "Combined source-bound receipts, not a monolithic run. Original GitFifth aggregate failure preserved; one isolated replacement counted once, second corroboration. Race unfixed; extra directory owner unknown.",
+          "distinct_raw_ids": 12269,
+          "distinct_id_plus_exact_name_rows": 12279,
+          "ui_id_qualification": "Accepted unchanged UI baseline has ten raw-ID collisions across distinct parameter rows, distinguished by exact display names."
+        },
+        "runtime_source_test_hashes": 1961,
+        "evidence_refs": [
+          "E:/Droppy/work/codex/turbo/FINAL_CURRENT_BATCH_REVIEW.md",
+          "E:/Droppy/wt/cx/merge-1/_evidence/f019-final-combined-audit.json",
+          "E:/Droppy/wt/cx/merge-1/_evidence/f019-native-1.trx",
+          "E:/Droppy/wt/cx/merge-1/_evidence/f019-native-2.trx"
+        ],
+        "scope": "IMPLEMENTED only, not VERIFIED. WIN064/WIN065 remain insufficient; HYDRAMERGE063/034 not advanced.",
+        "source_lane_commits": [
+          "409d75ed103a0c5a1d0bf5191b29938bc97b4b42",
+          "87983086d8fdc6746b693152d4356019e03e82b7",
+          "57fdc448924ac7cceb1811cf05a3455953413876"
+        ],
+        "mutation_proof": {
+          "record_mutants": 16,
+          "red_runs": 32,
+          "restored_green_runs": 16,
+          "plan": "E:/Droppy/wt/cx/hydramerge/_evidence/c077-plan.json",
+          "additional_q2_receipts": [
+            "mutation-tail-zip.txt",
+            "mutation-tail-empty-answer.txt",
+            "mutation-077-tail-subtraction.txt"
+          ],
+          "sanitation": "C audit found no flawed null-clearing pattern; historical membership absence telemetry not logged, distinct from known D defect."
+        },
+        "focused_gate": {
+          "passed": 18,
+          "failed": 0,
+          "skipped": 0,
+          "receipt": "E:/Droppy/wt/cx/hydramerge/_evidence/c077-final-green.txt"
+        }
+      }
     },
     {
       "id": "PR-HYDRAMERGE-078",

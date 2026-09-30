@@ -1499,7 +1499,7 @@
       "persistence": "nothing persisted",
       "failure_cases": [],
       "cancellation": "not cancellable",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1513,7 +1513,53 @@
       "action": "model.isCommandPalettePresented becomes true.",
       "expected_result": "The palette is built and drawn above the genie layer and the row-glide layer, over the whole window including the sidebar, sharing the window-level named coordinate space. It is removed from the tree entirely when the flag is false, so it holds no state between openings.",
       "windows_path": "One overlay host at the window root with those three layers in that z-order and one shared coordinate origin.",
-      "verification_method": "interaction test: open the palette during a row-glide animation and assert the palette is on top"
+      "verification_method": "interaction test: open the palette during a row-glide animation and assert the palette is on top",
+      "implementation_evidence": {
+        "accepted_commit": "3d1ea29ad358b13a96a82c9ce555c77664bff653",
+        "accepted_runtime_commit": "22c0542d773eb536a028fb6725018103e04be3d0",
+        "accepted_source_tree": "b33700114226e062f65fe4ea7ad5f35dea8683d7",
+        "accepted_test_tree": "633a01017a213258edfd79383cad55ff1a08428b",
+        "independent_review": "Independent lane E accepted code safe to land and exactly PR-WIN-067 / PR-HYDRAMERGE-077 as whole records; relayed by J.A.R.V.I.S. 2026-09-30 in owner-authorized thread 01a0f087-91cd-74b6-8f1c-77c3473850c3.",
+        "build": {
+          "warnings": 0,
+          "errors": 0,
+          "receipt": "E:/Droppy/wt/cx/merge-1/_evidence/f012-build.log",
+          "sanitation": "Functional build accepted; historical key-membership absence unproven."
+        },
+        "combined_gate": {
+          "passed": 12279,
+          "failed": 0,
+          "skipped": 0,
+          "mode": "Combined source-bound receipts, not a monolithic run. Original GitFifth aggregate failure preserved; one isolated replacement counted once, second corroboration. Race unfixed; extra directory owner unknown.",
+          "distinct_raw_ids": 12269,
+          "distinct_id_plus_exact_name_rows": 12279,
+          "ui_id_qualification": "Accepted unchanged UI baseline has ten raw-ID collisions across distinct parameter rows, distinguished by exact display names."
+        },
+        "runtime_source_test_hashes": 1961,
+        "evidence_refs": [
+          "E:/Droppy/work/codex/turbo/FINAL_CURRENT_BATCH_REVIEW.md",
+          "E:/Droppy/wt/cx/merge-1/_evidence/f019-final-combined-audit.json",
+          "E:/Droppy/wt/cx/merge-1/_evidence/f019-native-1.trx",
+          "E:/Droppy/wt/cx/merge-1/_evidence/f019-native-2.trx"
+        ],
+        "scope": "IMPLEMENTED only, not VERIFIED. WIN064/WIN065 remain insufficient; HYDRAMERGE063/034 not advanced.",
+        "source_lane_commit": "7e31eb6bf1c53d59765f53b9a0c04345605b4555",
+        "mutation_proof": {
+          "corrected_proof_root": "E:/Droppy/wt/cx/rootview/_evidence/sanitation-repair/",
+          "record_mutants": 9,
+          "red_runs": 18,
+          "restored_green_runs": 9,
+          "manifest": "E:/Droppy/wt/cx/rootview/_evidence/sanitation-repair/D009-mutation-results.json",
+          "summary": "E:/Droppy/wt/cx/rootview/_evidence/sanitation-repair/D018-summary.json",
+          "sanitation": "All59 corrected D018 invocations verified19 key names absent by actual membership, fresh data. Old64 receipts SANITATION_UNPROVEN retained."
+        },
+        "focused_gate": {
+          "passed": 5,
+          "failed": 0,
+          "skipped": 0,
+          "receipt": "E:/Droppy/wt/cx/rootview/_evidence/sanitation-repair/receipts/D009-repair-final.trx"
+        }
+      }
     },
     {
       "side_effects": [
