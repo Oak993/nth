@@ -951,7 +951,9 @@ public sealed class ThreadRuntime : MainActorModel
         .Select(user => user.Value.Text));
 
     // :731-736
-    public bool HasSentPrompts => SentPrompts.Count != 0;
+    // Unlike recall history, Swift's presence check includes a head's brief (:731-736).
+    public bool HasSentPrompts => Entries.Any(entry =>
+        entry.Item.TimelineItemContent is TimelineItem.Content.User user && !user.Value.IsFromHydra);
 
     // :738-740
     public ApprovalRequest? PendingPlanApproval =>
@@ -977,8 +979,19 @@ public sealed class ThreadRuntime : MainActorModel
     }
 
     // :758-765. Swift: sendHydraBrief(_:attachments:).
-    public void SendHydraBrief(string text, IReadOnlyList<Attachment> attachments) =>
-        _ = MainActor.Spawn(() => StartTurn(text, attachments, hydraBrief: true));
+    public void SendHydraBrief(string text, IReadOnlyList<Attachment> attachments)
+    {
+        // ThreadRuntime.swift:758-765: reject empty/busy sends before touching the composer or head clock.
+        if ((FoundationText.Trim(text, includeNewlines: true).Length == 0 && attachments.Count == 0)
+            || phase != RuntimePhase.Idle) return;
+        Draft = new ComposerDraft();
+        HydraLastEventAt = SwiftDate.Now;
+        _ = MainActor.Spawn(async () =>
+        {
+            await EnsureLoaded();
+            await StartTurn(text, attachments, hydraBrief: true);
+        });
+    }
 
     // ThreadRuntime.swift:1158-1167
     private bool HandleLocalCommand(string text)
