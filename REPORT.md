@@ -142,3 +142,18 @@ B3 `AppModel+HydraMerge.swift:21-28,244-249,302-304` has two quiet deferral caus
 Each of the five untracked `_evidence/mutation-124-*.txt` logs records a mutant build with 0 warnings/errors, two standalone red test runs with fresh data dirs, restored build and green run. All original/restored hashes equal `DA8ADEE5CE2E40D9E2BCEA0BF18DB3A7EA346485414A29500AD70CDC19AC2142`, matching the current production file. The runner removed the listed API-key variables. Exact mutation command form was `powershell -NoProfile -ExecutionPolicy Bypass -File '_evidence\mutate.ps1' -Name <log name> -Old <log old> -New <log new> -Filter <log filter>`; each argument is preserved in the matching log. Current `dotnet build Marrow.sln -c Debug --nologo -v q`: 0 warnings, 0 errors. Current `dotnet test tests/Marrow.App.Tests --no-build --nologo -v q --filter 'FullyQualifiedName~AppModelHydraMergeDeferralTests'`: 3 passed, 0 failed, 0 skipped. `TraceabilityTests` filter: 3 passed, 0 failed, 0 skipped. An initial build of the new test lacked `using Marrow.Core.Port` (2 compile errors); it was fixed before mutation verification. No source ambiguity or guess. Files touched: `tests/Marrow.App.Tests/AppModelHydraMergeDeferralTests.cs`, `REPORT.md`.
 
 records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125, PR-HYDRAMERGE-030, PR-HYDRAMERGE-124
+
+## Continuation: PR-HYDRAMERGE-129 commit-message cache
+
+B3 `AppModel+HydraMerge.swift:274-276,314-321` keeps `(patch, message)` only within one project pass, reuses the message for a Swift-equal patch, and asks the text engine again for a different patch. Existing Req-tagged `AppModelHydraMergePreparationTests.Moved_HEAD_reprepares_at_most_three_times_and_counts_offline_text_engine_calls_by_the_patch` covers same-patch reuse, changed-patch regeneration, and a second pass asking anew; `Canonically_equivalent_patch_text_reuses_the_message_across_a_moved_HEAD` covers Swift's canonical string equality through real Git textconv. No production or committed test edit was needed.
+
+| Clause | Production mutation | Failing Req-tagged test |
+| --- | --- | --- |
+| Reuse a message for the same patch | Disable the cache branch (`129-reuse`) | moved-HEAD preparation test |
+| Regenerate for a different patch | Invert patch equality (`129-different`) | moved-HEAD preparation test |
+| Canonically equivalent patches compare equal | Replace Swift equality with ordinal equality (`129-canonical`) | canonically-equivalent-patch test |
+| Cache lasts only one project pass | Add a static cache initialized and updated from the local cache (`129-scope`) | moved-HEAD preparation test |
+
+Each untracked `_evidence/mutation-129-*.txt` log records a successful mutant build with 0 warnings/errors, two standalone red runs with fresh data dirs, restored build, and green run. All original/restored SHA-256 values are `DA8ADEE5CE2E40D9E2BCEA0BF18DB3A7EA346485414A29500AD70CDC19AC2142`, matching the current file. The multi-site scope mutation used an optional extra-replacement extension to untracked `_evidence/mutate.ps1`; the log records all three replacements. The runner removed the listed API-key variables. Exact command form: `powershell -NoProfile -ExecutionPolicy Bypass -File '_evidence\mutate.ps1' -Name <log name> -Old <log old> -New <log new> -Filter <log filter>` (scope also passed `-Old2/-New2/-Old3/-New3`); arguments and outputs are preserved in the matching logs. Restored tests: moved-HEAD 5 passed, canonical 1 passed. No source ambiguity or guess. Files touched for this record: `REPORT.md` only.
+
+records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125, PR-HYDRAMERGE-030, PR-HYDRAMERGE-124, PR-HYDRAMERGE-129
