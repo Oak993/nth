@@ -22,6 +22,7 @@ public sealed class AppShell : ITerminationSender
 {
     // winuser.h
     private const uint WM_ENDSESSION = 0x0016;
+    private const uint WM_ACTIVATEAPP = 0x001C;
 
     private readonly Action exit;
     private readonly Action afterWillTerminate;
@@ -59,8 +60,8 @@ public sealed class AppShell : ITerminationSender
         {
             Win32Properties.AddWndProcHookCallback(main, WndProc);
             // AppDelegate.swift:28 installs UpdateChecker.swift:141-149's didBecomeActive observer.
-            // Hook after ShowMain so the unresolved initial-launch activation is not inferred here.
-            main.Activated += (_, _) => UpdateChecker.Shared.HandleActivation();
+            // WM_ACTIVATEAPP, handled below, is the app-level boundary; Window.Activated also fires
+            // when focus moves between two windows of this same app.
         }
     }
 
@@ -151,10 +152,12 @@ public sealed class AppShell : ITerminationSender
     private static bool IsVisibleWindow(AvaloniaWindow window) =>
         window.IsVisible && window.WindowState != WindowState.Minimized;
 
-    /// <summary>The main window's procedure hook (ED-004 (2)): WM_ENDSESSION with wParam TRUE means the session is
-    /// ending now, so the termination steps run at once. An observer only: the window's own handling goes on.</summary>
+    /// <summary>The main window's procedure hook: WM_ACTIVATEAPP with wParam TRUE reaches the application activation
+    /// observer (UpdateChecker.swift:141-149). ED-004 (2): WM_ENDSESSION with wParam TRUE runs the termination steps
+    /// immediately. These are observers only: the window's own handling goes on.</summary>
     internal nint WndProc(nint hWnd, uint msg, nint wParam, nint lParam, ref bool handled)
     {
+        if (msg == WM_ACTIVATEAPP && wParam != 0) UpdateChecker.Shared.HandleActivation();
         if (msg == WM_ENDSESSION && wParam != 0) WillTerminate();
         return 0;
     }
