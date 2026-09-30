@@ -61,6 +61,10 @@ Source site: `AppDelegate.swift:36-39` calls `WindowManager.shared.showMain()` o
 
 Source site: `AppDelegate.swift:44-61` is the ordinary quit handshake and ordered teardown. OD-0008 C1/C2 maps the main window close and Alt+F4 to that path; `AppShellTests` already exercise immediate and deferred close, 250 ms polls, the 240 second cap and termination ordering. `AppShell.ShutdownRequested` cancels a Windows session-end request during a merge, and `WndProc` handles `WM_ENDSESSION`, but ED-004(2) still requires `ShutdownBlockReasonCreate`. Swift supplies no user-facing reason (`AppDelegate.swift:41-43` is an internal comment). STOP at `AppShell.ShutdownRequested` under `WM_QUERYENDSESSION`; inventing a reason string would violate the string rule. A ruled reason, native binding and mutation of the native branch are required. No Swift defect is claimed.
 
++### PR-WIN-076 — STOP
+
+Source site: `AppDelegate.swift:77-92` distinguishes `update` by key presence, shows main for ordinary notifications, selects only a parseable `threadID`, activates, then shows About only for updates. `WindowsToastTests` cover both callback branches and wrong-type/malformed payloads; `WindowsToastStartupTests` cover second-process payload routing. The missing requirement clause is the user click on a system-drawn banner. The native toast platform currently has no safe pointer hit-test fixture, while ED-220(7) excludes registering or showing a real toast in a test. STOP at the OS toast click → `WindowsToastLaunchTransport` → delegate boundary; a recording callback is not equivalent under the mutation standard. No Swift defect is claimed.
+
 ## Commands and observed output
 
 For every `dotnet` build/test command below, PowerShell first removed the listed API-key environment variables and set `MARROW_PORT_DATA_DIR` to a newly created `%TEMP%\marrow-<GUID>` directory. No installed app was launched.
