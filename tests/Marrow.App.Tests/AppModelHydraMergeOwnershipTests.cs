@@ -13,6 +13,7 @@ public sealed class AppModelHydraMergeOwnershipTests
     [InlineData(HydraHeadInfo.Status.Failed, true)]
     [InlineData(HydraHeadInfo.Status.Running, true)]
     [Trait("Req", "PR-HYDRAMERGE-117")] // App/AppModel+HydraMerge.swift:705-722
+    [Trait("Req", "PR-HYDRAMERGE-077")] // :646-654 blocking versus nonblocking reservations.
     public void Only_a_completed_heads_eligible_later_parent_loses_its_block_while_reserving_the_path(HydraHeadInfo.Status status, bool blocks)
     {
         using var f = new HydraMergeProofFixture();
@@ -85,6 +86,7 @@ public sealed class AppModelHydraMergeOwnershipTests
     [InlineData("head-tool-live")]
     [InlineData("lead-tool")]
     [Trait("Req", "PR-HYDRAMERGE-130")] // App/AppModel+HydraMerge.swift:575,590,599-609,653-654
+    [Trait("Req", "PR-HYDRAMERGE-077")] // :653-654 own landing/head-tool/lead-tool writes override a blocking claim.
     [Trait("Req", "PR-HYDRAMERGE-078")] // App/AppModel+HydraMerge.swift:664-669
     public void Own_landing_and_tool_edits_override_a_claim_but_observed_changes_do_not_and_every_turn_and_head_is_returned(string source)
     {
@@ -119,9 +121,10 @@ public sealed class AppModelHydraMergeOwnershipTests
 
     [Fact]
     [Trait("Rule", "R-FS-1")] // App/AppModel+HydraMerge.swift:660-663
+    [Trait("Req", "PR-HYDRAMERGE-077")] // :655-663 normal disk/ignored/build filtering; stream proof in TruncatedOutputTests.
     public void Final_filters_keep_deleted_tracked_files_and_directories_and_remove_ignored_build_and_never_tracked_missing_paths()
     {
-        // AppModel+HydraMerge.swift:653-663. No Req-077 trait: truncated cat-file stream still needs a permitted output seam.
+        // AppModel+HydraMerge.swift:653-663. Successful shortened streams are covered by the Q2 caller proof.
         using var f = new HydraMergeProofFixture();
         var p = f.AddProject("Project");
         var repo = f.Repos[p.Id];
