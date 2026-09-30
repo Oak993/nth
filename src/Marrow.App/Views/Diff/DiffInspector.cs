@@ -246,12 +246,16 @@ public sealed class DiffInspector : Decorator
     private Control BuildMoreMenu()
     {
         var menu = new StackPanel { Spacing = 2 };
-        menu.Children.Add(new PopoverItem("Expand all", action: () => collapsed.Clear(),
-            symbol: "arrow.down.right.and.arrow.up.left"));
+        menu.Children.Add(new PopoverItem("Expand all", action: () =>
+        {
+            collapsed.Clear();
+            BuildRoot();
+        }, symbol: "arrow.down.right.and.arrow.up.left"));
         menu.Children.Add(new PopoverItem("Collapse all", action: () =>
         {
             collapsed.Clear();
             foreach (var file in files) collapsed.Add(file.Id);
+            BuildRoot();
         }, symbol: "arrow.up.left.and.arrow.down.right"));
         return menu;
     }
