@@ -165,7 +165,7 @@ public sealed class ModelsSettingsPageAuditTests(HeadlessSession headless)
     {
         var row = Of<PinnedModelRow>(page).Single();
         var title = Of<TextBlock>(row).First(t => t.Text!.StartsWith("xxxx", StringComparison.Ordinal));
-        var hint = Of<Grid>(row).First().Children.Single(c => Grid.GetColumn(c) == 3);
+        var hint = Of<SwiftImage>(row).Single(image => image.SymbolName == "slider.horizontal.3");
         Assert.InRange(hint.TranslatePoint(default, window)!.Value.X - (title.TranslatePoint(default, window)!.Value.X + title.Bounds.Width), 31.5, 32.5);
     });
 }
