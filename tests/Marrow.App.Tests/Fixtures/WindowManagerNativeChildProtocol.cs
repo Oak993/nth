@@ -19,11 +19,13 @@ internal static class WindowManagerNativeChildProtocol
     internal static bool IsChild => Environment.GetEnvironmentVariable(NonceVariable) is not null ||
         Environment.GetEnvironmentVariable(DirectoryVariable) is not null;
 
-    internal static string FactName(string member)
+    internal static string FactName(string member, Type? factType = null)
     {
-        // CallerMemberName supplies a real, parameterless Fact in this existing top-level class.
+        // CallerMemberName supplies a real, parameterless Fact in an explicitly permitted top-level type.
         // Do not accept arbitrary filter syntax or a class-wide fallback that could recurse.
-        var type = typeof(WindowManagerNativeTests);
+        var type = factType ?? typeof(WindowManagerNativeTests);
+        if (type != typeof(WindowManagerNativeTests) && type != typeof(WindowManagerFactoryStretchTests))
+            throw new InvalidOperationException("Native child selection is not an allowed test type.");
         var method = type.GetMethod(member, BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
         if (method is null || method.ReturnType != typeof(void) || method.GetParameters().Length != 0 ||
             method.GetCustomAttribute<FactAttribute>() is null)

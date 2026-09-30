@@ -85,11 +85,11 @@ public sealed class WindowManagerNativeSession : IDisposable
         windows.Add(window);
     }
 
-    internal void Run(Action<WindowManagerNativeSubject> body, [CallerMemberName] string member = "")
+    internal void Run(Action<WindowManagerNativeSubject> body, [CallerMemberName] string member = "", Type? factType = null)
     {
         ObjectDisposedException.ThrowIf(disposed, this);
         ArgumentNullException.ThrowIfNull(body);
-        var fact = WindowManagerNativeChildProtocol.FactName(member);
+        var fact = WindowManagerNativeChildProtocol.FactName(member, factType);
         if (!WindowManagerNativeChildProtocol.IsChild)
         {
             WindowManagerNativeChildHost.RunParent(fact);

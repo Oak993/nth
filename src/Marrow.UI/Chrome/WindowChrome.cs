@@ -150,6 +150,9 @@ public static class WindowChrome
         // have no separate action here because Avalonia recomputes the DWM shadow itself).
         window.WindowDecorations = WindowDecorations.Full;
         window.Background = Brushes.Transparent;
+        // OD-0017 adopts ED-101 for every resizable top-level window after its first native frame.
+        // Settings remains on Avalonia's presentation because its factory sets CanResize = false.
+        if (window.CanResize) _ = ResizeStretch.Attach(window);
         // :119 isMovableByWindowBackground = false: never set here. The port only ever moves the window from an
         // explicit drag region (Chrome.cs's WindowDragArea, PR-WIN-193), never from window.background, so this
         // holds structurally without a property to set (PA note).
