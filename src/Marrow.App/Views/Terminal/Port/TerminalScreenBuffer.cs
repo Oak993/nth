@@ -264,7 +264,7 @@ internal sealed class TerminalScreenBuffer
             case '[': control.Clear(); parseState = ParseState.Csi; break;
             case ']': control.Clear(); parseState = ParseState.Osc; break;
             case '7': savedColumn = CursorColumn; savedRow = CursorRow; break;
-            case '8': CursorColumn = savedColumn; CursorRow = savedRow; break;
+            case '8': RestoreCursor(); break;
             case 'D': LineFeed(); break;
             case 'E': CursorColumn = 0; LineFeed(); break;
             case 'M': ReverseLineFeed(); break;
@@ -327,8 +327,16 @@ internal sealed class TerminalScreenBuffer
             case 'L': for (var i = 0; i < Param(0); i++) ScrollDown(CursorRow); break;
             case 'M': for (var i = 0; i < Param(0); i++) ScrollUp(CursorRow); break;
             case 's': savedColumn = CursorColumn; savedRow = CursorRow; break;
-            case 'u': CursorColumn = savedColumn; CursorRow = savedRow; break;
+            case 'u': RestoreCursor(); break;
         }
+    }
+
+    private void RestoreCursor()
+    {
+        // SwiftTerm Terminal.swift:3543-3546 bounds saved coordinates at restore;
+        // resize/reflow can leave them outside the current viewport.
+        CursorColumn = Math.Clamp(savedColumn, 0, Columns - 1);
+        CursorRow = Math.Clamp(savedRow, 0, Rows - 1);
     }
 
     private void ApplySgr(int[] parameters)

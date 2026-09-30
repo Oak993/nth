@@ -83,6 +83,45 @@ public sealed class TerminalScreenBufferTests
     }
 
     [Fact]
+    [Trait("Req", "UI-TERM-010")] // SwiftTerm Terminal.swift:3537-3546 cmdRestoreCursor.
+    public void Dec_saved_cursor_restore_clamps_after_row_and_column_shrink() =>
+        AssertSavedCursorRestore("\u001b7", "\u001b8");
+
+    [Fact]
+    [Trait("Req", "UI-TERM-010")] // SwiftTerm Terminal.swift:3537-3546 CSI u shares the cursor restore.
+    public void Csi_saved_cursor_restore_clamps_after_row_and_column_shrink() =>
+        AssertSavedCursorRestore("\u001b[s", "\u001b[u");
+
+    private static void AssertSavedCursorRestore(string save, string restore)
+    {
+        // E's exact reproduction: restoring saved row 3 after shrinking to two rows
+        // must permit the next printable byte without indexing past wrapped/lines.
+        var screen = new TerminalScreenBuffer(8, 4);
+        screen.Feed("\u001b[4;1H" + save);
+        screen.Resize(8, 2);
+        screen.Feed(restore + "x");
+        Assert.Equal(1, screen.CursorRow);
+        Assert.Equal(1, screen.CursorColumn);
+        Assert.Equal("x", screen.CellAt(0, 1).Text);
+
+        foreach (var (rows, savedRow) in new[] { (4, 1), (2, 4) })
+        {
+            var narrow = new TerminalScreenBuffer(8, 4);
+            narrow.Feed($"\u001b[{savedRow};8H" + save);
+            narrow.Resize(2, rows);
+            // Move away first so omitting restore cannot accidentally pass.
+            narrow.Feed("\u001b[1;1H" + restore);
+            var expectedRow = Math.Min(savedRow - 1, rows - 1);
+            Assert.Equal(1, narrow.CursorColumn);
+            Assert.Equal(expectedRow, narrow.CursorRow);
+            narrow.Feed("x");
+            Assert.Equal("x", narrow.CellAt(1, expectedRow).Text);
+            Assert.Equal(expectedRow, narrow.CursorRow);
+            Assert.Equal(1, narrow.CursorColumn);
+        }
+    }
+
+    [Fact]
     [Trait("Req", "UI-TERM-010")] // SwiftTerm v1.20.0 Terminal.swift:1386-1490; CharData.swift:259-285
     public void Unicode_scalars_and_combining_marks_occupy_the_source_cell_widths()
     {
