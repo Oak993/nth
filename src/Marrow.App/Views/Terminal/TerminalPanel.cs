@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Linq;
 using Avalonia;
 using Avalonia.Automation;
@@ -8,11 +9,15 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
+using Avalonia.Threading;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
+using Marrow.App.Views.Terminal.Port;
+using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
+using AvaloniaWindow = Avalonia.Controls.Window;
 
 // Source: DroppyCode/App/Views/Terminal/TerminalPanel.swift (B3 52bc792), :1-318.
 
@@ -25,7 +30,7 @@ public sealed class TerminalPanel : Decorator
     private readonly string directory;
     private readonly Border panelBorder;
     private readonly Grid surface;
-    private readonly StackPanel content;
+    private readonly Grid content;
     private readonly StackPanel tabStrip;
     private readonly Border terminalArea;
     private readonly DragHandleView resizeHandle;
@@ -87,13 +92,15 @@ public sealed class TerminalPanel : Decorator
             Margin = new Thickness(12, 0, 6, 6),
         };
 
-        content = new StackPanel
+        content = new Grid
         {
-            Spacing = 0,
+            RowDefinitions = new RowDefinitions("38,*"),
             HorizontalAlignment = HorizontalAlignment.Stretch,
             VerticalAlignment = VerticalAlignment.Stretch,
         };
+        Grid.SetRow(header, 0);
         content.Children.Add(header);
+        Grid.SetRow(terminalArea, 1);
         content.Children.Add(terminalArea);
 
         // :113-131 TerminalResizeHandle.body wraps the shared DragHandle; TerminalResizeHandleView installs the
@@ -466,53 +473,240 @@ internal sealed class TerminalTab : Border
     }
 }
 
-/// <summary>:191-251 Hosts the terminal's rendering surface. Marrow.App.Views.Terminal.Port.TerminalHost.cs
-/// documents TerminalHostView as carrying no rendering yet: it starts the real shell over a pseudoconsole
-/// and exposes the properties TerminalSession assigns, but the visible ANSI grid (SwiftTerm's Windows
-/// equivalent) is "a future UI unit" (that file's own header comment, :1-5). This host can therefore only
-/// place a placeholder where the real terminal surface will go; see the STOP note at the end of
-/// TerminalPanelTests.cs.</summary>
+/// <summary>:191-251 Hosts the long-lived terminal surface and its Windows key bridge.</summary>
 public sealed class TerminalHost : Decorator
 {
+    private readonly TerminalSession session;
+    private readonly ThreadRuntime runtime;
+    private readonly Action onEscapeAtPrompt;
+    private bool escapeListenerAttached;
+    private static int activeEscapeListenerCount;
+
+    /// <summary>Test readback for PR-TERM-032: one scoped listener per attached host.</summary>
+    internal static int ActiveEscapeListenerCount => activeEscapeListenerCount;
+
     public TerminalHost(TerminalSession session, ThreadRuntime runtime, Action onEscapeAtPrompt)
     {
+        this.session = session;
+        this.runtime = runtime;
+        this.onEscapeAtPrompt = onEscapeAtPrompt;
+
         // :351-353 Appearance is applied on host creation; TerminalSession ignores redundant values.
         session.ApplyAppearance(SwiftTheme.IsDark(this));
 
-        // TerminalHostView is not an Avalonia Control (Port/TerminalHost.cs:24-27): no visible ANSI grid
-        // exists yet to embed here. A placeholder stands in until that unit lands.
-        Child = new Border
-        {
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch,
-        };
+        // :225-234 attach(to:) re-parents the same long-lived SwiftTerm view into a container. The port's
+        // TerminalHostView is that view and is never rebuilt while this session survives.
+        Child = new TerminalHostContainer { HostedView = session.View };
 
-        // :354-364 Give a newly opened terminal focus after it is attached to the visual tree, once the
-        // real terminal surface exists to receive it. TerminalHostView has no Focus() equivalent yet.
+        // :354-364 Give a newly opened terminal focus after it is attached to the visual tree, once, so keyboard input
+        // goes to the terminal surface rather than the drawer chrome.
         AttachedToVisualTree += (_, _) =>
         {
+            session.ApplyAppearance(SwiftTheme.IsDark(this));
+            AttachEscapeListener();
             if (!runtime.TerminalWantsFocus) return;
             runtime.TerminalWantsFocus = false;
-            Focus();
+            Dispatcher.UIThread.Post(() => session.View.Focus(), DispatcherPriority.Input);
         };
+        DetachedFromVisualTree += (_, _) => DetachEscapeListener();
+    }
 
-        // :339-346 Escape-at-prompt: TerminalSession.ForegroundJobIsTheShell (TerminalStore.cs:127-133) IS
-        // implemented (ProcessDescendants.HasLiveDescendant), so that dependency is resolved. What blocks
-        // this is the same missing terminal render surface: the Swift source reads the key from the SwiftTerm
-        // NSView's own first-responder/key-monitor plumbing, which has no Windows equivalent to attach to
-        // until a real terminal control exists. Wiring a KeyDown handler here now, with no real terminal
-        // control beneath it to receive keys otherwise, would be inert and untestable. See the STOP note.
-        _ = onEscapeAtPrompt;
+    private void AttachEscapeListener()
+    {
+        if (escapeListenerAttached) return;
+        session.View.KeyDown += HandleTerminalKeyDown;
+        escapeListenerAttached = true;
+        activeEscapeListenerCount++;
+    }
+
+    private void DetachEscapeListener()
+    {
+        if (!escapeListenerAttached) return;
+        session.View.KeyDown -= HandleTerminalKeyDown;
+        escapeListenerAttached = false;
+        activeEscapeListenerCount--;
+    }
+
+    // :214-221 NSEvent localMonitor: only an unmodified Escape from the first-responder terminal view closes the
+    // drawer when the shell owns the foreground. A foreground child receives the Escape instead.
+    private void HandleTerminalKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (e.Key != Key.Escape) return;
+        var modifiers = KeyModifiers.Control | KeyModifiers.Alt | KeyModifiers.Shift | KeyModifiers.Meta;
+        var bare = (e.KeyModifiers & modifiers) == KeyModifiers.None;
+        if (bare && session.View.IsFocused && session.IsRunning && TerminalSession.ForegroundJobIsTheShell(session.View.ProcessId))
+        {
+            onEscapeAtPrompt();
+            e.Handled = true;
+            return;
+        }
+
+        // The source leaves a foreground program's Escape in the terminal event stream. The key-down route has
+        // already reached this host, so feed the byte explicitly before swallowing the routed event.
+        session.View.SendBytes([0x1B]);
+        e.Handled = true;
     }
 }
 
 /// <summary>:257-318 Avalonia host for a session's existing terminal view.</summary>
 public sealed class TerminalHostContainer : Decorator
 {
+    private IDisposable? pendingSync;
+    private WindowLiveResize? liveResize;
+    private PropertyChangedEventHandler? resizeStarted;
+    private PropertyChangedEventHandler? resizeEnded;
+    private bool wasLiveResizing;
+
+    /// <summary>Actual registrations for the two will-start/did-end observers in Swift.</summary>
+    internal int ResizeObserverCount => (resizeStarted is null ? 0 : 1) + (resizeEnded is null ? 0 : 1);
+
+    /// <summary>Whether autoresizing is currently following the window frame.</summary>
+    internal bool IsAutoResizing { get; private set; } = true;
+
+    /// <summary>Whether the 50 ms resize coalescer has a pending callback.</summary>
+    internal bool IsResizePending => pendingSync is not null;
+
+    /// <summary>Number of frame synchronizations that changed the hosted surface.</summary>
+    internal int SyncFrameCount { get; private set; }
+
     public Control? HostedView
     {
         get => Child;
-        set => Child = value;
+        set
+        {
+            if (ReferenceEquals(Child, value)) return;
+            Child = value;
+            if (value is not null)
+            {
+                value.HorizontalAlignment = HorizontalAlignment.Stretch;
+                value.VerticalAlignment = VerticalAlignment.Stretch;
+                if (value is TerminalHostView terminal)
+                {
+                    // The Swift view starts at 640x240, then attach(to:) immediately lets the container own its
+                    // frame. Avalonia Width/Height would otherwise keep the initial size as a hard arrange constraint.
+                    terminal.Width = double.NaN;
+                    terminal.Height = double.NaN;
+                }
+            }
+        }
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        AttachResizeObservers();
+        Dispatcher.UIThread.Post(() => SyncFrame(force: true), DispatcherPriority.Loaded);
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        CancelPendingSync();
+        if (liveResize is { } oldResize)
+        {
+            if (resizeStarted is { } start) oldResize.PropertyChanged -= start;
+            if (resizeEnded is { } end) oldResize.PropertyChanged -= end;
+        }
+        resizeStarted = null;
+        resizeEnded = null;
+        liveResize = null;
+        wasLiveResizing = false;
+        IsAutoResizing = true;
+        base.OnDetachedFromVisualTree(e);
+    }
+
+    private void AttachResizeObservers()
+    {
+        liveResize = ResolveLiveResize();
+        if (liveResize is null) return;
+
+        // The Swift view registers exactly two window notifications: willStartLiveResize and didEndLiveResize.
+        var currentResize = liveResize;
+        resizeStarted = (_, change) =>
+        {
+            if (change.PropertyName != nameof(WindowLiveResize.IsActive) || !currentResize.IsActive) return;
+            wasLiveResizing = true;
+            IsAutoResizing = false;
+        };
+        resizeEnded = (_, change) =>
+        {
+            if (change.PropertyName == nameof(WindowLiveResize.IsActive) &&
+                !currentResize.IsActive && wasLiveResizing) FinishResize();
+        };
+        currentResize.PropertyChanged += resizeStarted;
+        currentResize.PropertyChanged += resizeEnded;
+    }
+
+    private WindowLiveResize? ResolveLiveResize()
+    {
+        if (this.GetValue(AppEnvironment.WindowLiveResizeProperty) is { } attached) return attached;
+        return TopLevel.GetTopLevel(this) is AvaloniaWindow window ? new WindowLiveResize(window) : null;
+    }
+
+    // :268-303 resizeSubviews: park the child frame for the duration of a Win32 size loop and coalesce frame changes
+    // to one 50 ms sync while the loop continues.
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        if (Child is not { } child) return finalSize;
+        var active = liveResize?.IsActive == true;
+        if (active)
+        {
+            wasLiveResizing = true;
+            IsAutoResizing = false;
+        }
+        else if (wasLiveResizing)
+        {
+            // WindowLiveResize publishes through the main-actor observation queue. Reading the state here also keeps
+            // the Win32 path correct when a native resize message and Avalonia's arrange pass share one turn.
+            FinishResize();
+        }
+        var target = active && child.Bounds.Width > 0 && child.Bounds.Height > 0
+            ? child.Bounds.Size
+            : finalSize;
+        var frameChanged = child.Bounds.Size != target;
+        child.Arrange(new Rect(new Point(), target));
+        if (active) ScheduleSync();
+        else if (frameChanged && child is TerminalHostView terminal)
+            terminal.ResizeTo(target);
+        return finalSize;
+    }
+
+    private void ScheduleSync()
+    {
+        if (pendingSync is not null) return;
+        pendingSync = DispatcherTimer.RunOnce(() =>
+        {
+            pendingSync = null;
+            SyncFrame(force: false);
+        }, TimeSpan.FromMilliseconds(50), DispatcherPriority.Background);
+    }
+
+    // :305-312 finishResize: cancel the coalescer, restore width/height autoresizing, and sync exactly once.
+    private void FinishResize()
+    {
+        wasLiveResizing = false;
+        CancelPendingSync();
+        IsAutoResizing = true;
+        SyncFrame(force: false);
+    }
+
+    private void CancelPendingSync()
+    {
+        pendingSync?.Dispose();
+        pendingSync = null;
+    }
+
+    // :313-318 syncFrame: the hosted view is moved to the container's current bounds, retaining the object itself.
+    private void SyncFrame(bool force)
+    {
+        if (Child is not { } child || Bounds.Width <= 0 || Bounds.Height <= 0) return;
+        var size = Bounds.Size;
+        var changed = child.Bounds.Size != size;
+        if (changed) child.Arrange(new Rect(new Point(), size));
+        if (force || changed)
+        {
+            if (child is TerminalHostView terminal) terminal.ResizeTo(size);
+            SyncFrameCount++;
+        }
     }
 }
 
