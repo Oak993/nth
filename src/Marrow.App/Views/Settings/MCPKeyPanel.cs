@@ -62,6 +62,7 @@ public sealed class MCPKeyPanelView : Decorator
     private readonly Action onDone; // :27
     private readonly List<TextBox> fields = []; // :29
     private readonly Button saveButton; // :40
+    private OnChange<bool>? connectionChanges;
 
     // :25-27 let entry, let model, let onDone; :31-64 body
     public MCPKeyPanelView(MCPCatalogEntry entry, AppModel model, Action onDone)
@@ -138,19 +139,16 @@ public sealed class MCPKeyPanelView : Decorator
         // :60
         KeyDown += OnKeyDown;
 
-        // :61-63. Tracks the Read()-wrapped States property (not the State(id) method, which reads the same
-        // backing dictionary directly): the correct dependency in principle, but see the STOP note in
-        // MCPKeyPanelTests.cs - MCPStore's own Connect() (Services.MCP.MCPStore.cs) writes statesField in place
-        // (`statesField[entry.Id] = ...`) with no Set()/Notify() call anywhere in the file, so nothing in this
-        // class ever actually fires this Track today; a panel reopened while a probe is already running will not
-        // self-close when it completes until MCPStore's own mutations are fixed to go through Set().
-        this.Track(
-            () => model.Mcp.States,
-            states =>
-            {
-                if (states.TryGetValue(entry.Id, out var state) && state.IsConnected)
-                    onDone();
-            });
+        // :61-63. onChange observes this entry's connected flag, without an initial callback.
+        // A connected server's optional fields can still be edited when the panel opens.
+        AttachedToVisualTree += (_, _) => connectionChanges ??= new OnChange<bool>(
+            () => model.Mcp.State(entry.Id).IsConnected,
+            (_, connected) => { if (connected) onDone(); });
+        DetachedFromVisualTree += (_, _) =>
+        {
+            connectionChanges?.Dispose();
+            connectionChanges = null;
+        };
     }
 
     // :44, called directly wherever a draft changes (see the comment on saveButton's construction above).
