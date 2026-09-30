@@ -78,3 +78,35 @@ Each of the seven mutants built with 0 warnings and 0 errors, failed its named t
 `dotnet build Marrow.sln -c Debug --nologo -v q`: Build succeeded; 0 warnings, 0 errors. `dotnet test tests/Marrow.App.Tests --no-build --nologo -v q --filter 'FullyQualifiedName~AppModelHydraMergeUnknownHostTests'`: 1 passed, 0 failed, 0 skipped. The mutation runner ran those same build/test commands with the named filters, fresh data dirs and API-key variables removed. No source ambiguity or guess for PR-HYDRAMERGE-109.
 
 records_candidates: PR-HYDRAMERGE-109
+
+## Continuation: PR-HYDRAMERGE-125 failure helper
+
+Reviewed the interrupted-run `AppModelHydraMergeFailureTests.cs` against B3 `AppModel+HydraMerge.swift:226-237`, `ThreadRuntime.swift:2554-2559`, and the PR-HYDRAMERGE-125 expected text. Kept its four tests unchanged. They exercise the production coordinator with disposable local repositories: immediate one-time nonretryable note, last-record outcome discrimination, newest-20 persisted records, and the retryable two-record threshold. Existing `AppModelHydraMergeRequestTests` and `AppModelHydraMergeTests` cover the several-project prefix, supplied label/URL, repeated-detail retry ordering, and changing retryable details. No production edit was needed.
+
+The interrupted run left 19 untracked `_evidence/mutation-125-*.txt` logs. I inspected every log: all 19 show a successful mutant build, two standalone red runs with fresh data directories, restored build, green run, and matching original/restored SHA-256 `DA8ADEE5CE2E40D9E2BCEA0BF18DB3A7EA346485414A29500AD70CDC19AC2142`. The current production file has that hash. The logs themselves remain untracked. Clause -> production mutation -> failing Req-tagged test:
+
+| Clause | Mutation log | Failing test |
+| --- | --- | --- |
+| Detail uses project-prefixed title | `125-detail-prefix` | `Each_failure_contract_preserves_project_prefix_metadata_retry_and_note_threshold` |
+| Retry scheduled before identical-detail return | `125-schedule` | `The_last_two_records_must_both_be_retryable_failures_and_an_identical_detail_still_schedules_a_new_retry` |
+| Only the last record participates in deduplication | `125-last-only` | same last-two-records test |
+| Last outcome must be failed | `125-last-outcome` | `An_identical_detail_after_a_nonfailure_record_is_a_new_failure` |
+| Full detail uses Swift string equality | `125-dedup` | same last-two-records test |
+| Nonretryable failure speaks immediately | `125-immediate` | `A_nonretryable_failure_records_and_announces_once_with_no_retry` |
+| Two most recent records determine threshold | `125-last-two` | `AppModelHydraMergeFailureTests` |
+| Threshold is two prior retryable failures | `125-threshold` | `AppModelHydraMergeFailureTests` |
+| Append record through persistence/trimming path | `125-record-call` | `A_failure_trims_the_record_list_to_twenty_and_saves_the_newest_record` |
+| Record time | `125-time` | `AppModelHydraMergeFailureTests` |
+| Record failed outcome | `125-outcome` | `AppModelHydraMergeFailureTests` |
+| Record project | `125-project` | `AppModelHydraMergeFailureTests` |
+| Record label | `125-label` | `Each_failure_contract_preserves_project_prefix_metadata_retry_and_note_threshold` |
+| Record URL | `125-url` | same project-prefix test |
+| Record files = 0 | `125-files` | `AppModelHydraMergeFailureTests` |
+| Record retryable true or null | `125-retryable` | `AppModelHydraMergeFailureTests` |
+| Note only when speaking | `125-note` | `AppModelHydraMergeFailureTests` |
+| Note title project prefix | `125-note-prefix` | same project-prefix test |
+| Return failed | `125-return` | same project-prefix test |
+
+Current verification, after removing the listed API-key environment variables and setting a new `MARROW_PORT_DATA_DIR` for each command: `dotnet build Marrow.sln -c Debug --nologo -v q` -> succeeded, 0 warnings, 0 errors; `dotnet test tests/Marrow.App.Tests --no-build --nologo -v q --filter 'FullyQualifiedName~AppModelHydraMergeFailureTests'` -> 4 passed, 0 failed, 0 skipped; `dotnet test tests/Marrow.App.Tests --no-build --nologo -v q --filter 'FullyQualifiedName~TraceabilityTests'` -> 3 passed, 0 failed, 0 skipped. No source ambiguity or guess for this record. Files touched: `tests/Marrow.App.Tests/AppModelHydraMergeFailureTests.cs`, `REPORT.md`. PR-HYDRAMERGE-063 and -077 remain owner STOPs and are excluded.
+
+records_candidates: PR-HYDRAMERGE-109, PR-HYDRAMERGE-125
