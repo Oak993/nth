@@ -137,7 +137,7 @@ public sealed class MCPSettingsPage : Decorator
         children.Add(footer); Reconcile(root, children); // :60-62 footer remains last
     }
     // PORT-ONLY keyed body reconciliation: unchanged controls stay attached, preserving their onChange/focus.
-    private static void Reconcile(Panel panel, IReadOnlyList<Control> children)
+    internal static void Reconcile(Panel panel, IReadOnlyList<Control> children)
     {
         foreach (var gone in panel.Children.Where(control => !children.Contains(control)).ToArray()) panel.Children.Remove(gone);
         for (var i = 0; i < children.Count; i++) { var old = panel.Children.IndexOf(children[i]); if (old < 0) panel.Children.Insert(i, children[i]); else if (old != i) panel.Children.Move(old, i); }
@@ -415,38 +415,59 @@ internal sealed class MCPCustomSection : Decorator
         public bool Adding { get => Read(adding); set => Set(ref adding, value); }
     }
     private readonly ViewState state = new();
-    // :387-415
+    private readonly StackPanel rows = new();
+    private readonly Dictionary<string, MCPCustomRow> rowControls = new(SwiftStringComparer.Instance);
+    private readonly Dictionary<string, ChromeRowDivider> dividers = new(SwiftStringComparer.Instance);
+    private readonly ChromeRowDivider trailingDivider = new();
+    // :387-440. Keep the source's keyed rows and addRow identity while customs changes.
+    // In particular, saveCustom publishes the definition before a value-save error returns (:864-881).
     public MCPCustomSection(string query)
     {
+        // :417-436 the whole row is the rectangular hit area.
+        var addRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), ColumnSpacing = 12 };
+        var addGlyph = MCPSettingsPage.Symbol("plus.circle", 13, Chrome.Accent); addGlyph.HorizontalAlignment = HorizontalAlignment.Center;
+        addRow.Children.Add(new Border { Width = 26, Child = addGlyph });
+        var addText = MCPSettingsPage.Text("Add server", 13, Chrome.PrimaryText, SwiftFont.Weight.Medium); Grid.SetColumn(addText, 1); addRow.Children.Add(addText);
+        var spacer = new Border { MinWidth = 12 }; Grid.SetColumn(spacer, 2); addRow.Children.Add(spacer);
+        var add = PlainControls.Button(new Border { Background = Brushes.Transparent, Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = addRow }, () => state.Adding = true);
+        // The editor contains its own picker popup; retain the deferred outer popup across list updates.
+        var addHost = new Panel { Children = { add, MCPSettingsPage.Popover(add, new Binding<bool>(() => state.Adding, v => state.Adding = v), () => new MCPCustomEditor(null), this, buildBeforeOpen: false) } };
+        var note = MCPSettingsPage.Text("Servers of your own: a command that runs on this PC, or a remote address, with the variables they need.", 12, Chrome.SecondaryText); note.Margin = new Thickness(16, 11);
+        var section = new ChromeSection("Custom", () => new ChromeCard(() => rows, lazy: true));
+
         this.Track(() => AppEnvironment.GetAppModel(this).Mcp.Customs, customs =>
         {
             var visible = customs.Where(c => MCPSettingsPage.Matches(c.CatalogEntry(), query)).ToArray();
-            if (visible.Length == 0 && query.Trimmed().Length > 0) { Child = null; return; }
-            var stack = new StackPanel();
-            if (visible.Length == 0)
+            var children = new List<Control>();
+            if (visible.Length == 0) children.Add(note);
+            for (var i = 0; i < visible.Length; i++)
             {
-                var note = MCPSettingsPage.Text("Servers of your own: a command that runs on this PC, or a remote address, with the variables they need.", 12, Chrome.SecondaryText); note.Margin = new Thickness(16, 11); stack.Children.Add(note);
+                var server = visible[i];
+                if (i > 0)
+                {
+                    if (!dividers.TryGetValue(server.Id, out var divider)) dividers[server.Id] = divider = new ChromeRowDivider();
+                    children.Add(divider);
+                }
+                if (!rowControls.TryGetValue(server.Id, out var row)) rowControls[server.Id] = row = new MCPCustomRow(server);
+                else row.UpdateServer(server);
+                children.Add(row);
             }
-            else for (var i = 0; i < visible.Length; i++) { if (i > 0) stack.Children.Add(new ChromeRowDivider()); stack.Children.Add(new MCPCustomRow(visible[i])); }
-            stack.Children.Add(new ChromeRowDivider()); // :403,409
-            // :417-436 the whole row is the rectangular hit area.
-            var addRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*"), ColumnSpacing = 12 };
-            var addGlyph = MCPSettingsPage.Symbol("plus.circle", 13, Chrome.Accent); addGlyph.HorizontalAlignment = HorizontalAlignment.Center;
-            addRow.Children.Add(new Border { Width = 26, Child = addGlyph });
-            var addText = MCPSettingsPage.Text("Add server", 13, Chrome.PrimaryText, SwiftFont.Weight.Medium); Grid.SetColumn(addText, 1); addRow.Children.Add(addText);
-            var spacer = new Border { MinWidth = 12 }; Grid.SetColumn(spacer, 2); addRow.Children.Add(spacer);
-            var add = PlainControls.Button(new Border { Background = Brushes.Transparent, Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = addRow }, () => state.Adding = true);
-            // The editor contains its own GlassPickerButton popover (:632-638). Keep that nested popup out of the
-            // logical tree until this outer .popover has opened, while retaining a native child slot (:419-440).
-            stack.Children.Add(new Panel { Children = { add, MCPSettingsPage.Popover(add, new Binding<bool>(() => state.Adding, v => state.Adding = v), () => new MCPCustomEditor(null), this, buildBeforeOpen: false) } });
-            Child = new ChromeSection("Custom", () => new ChromeCard(() => stack, lazy: true));
+            children.Add(trailingDivider); // :403,409
+            children.Add(addHost); // :411 the same add button/popup remains last
+            MCPSettingsPage.Reconcile(rows, children);
+            foreach (var gone in rowControls.Keys.Where(id => !visible.Any(server => SwiftString.Equal(server.Id, id))).ToArray())
+            {
+                rowControls.Remove(gone);
+                dividers.Remove(gone);
+            }
+            Child = visible.Length == 0 && query.Trimmed().Length > 0 ? null : section;
         });
     }
 }
 
 internal sealed class MCPCustomRow : Decorator
 {
-    private readonly MCPCustomServer server; // :449
+    private MCPCustomServer server; // :449
     private sealed class ViewState : MainActorModel
     {
         private bool menu, editing, confirming;
@@ -456,8 +477,16 @@ internal sealed class MCPCustomRow : Decorator
     }
     private readonly ViewState view = new();
     private Control? DeleteConfirmation { get; set; }
+    private Panel? menuHost;
     // :463-480
     public MCPCustomRow(MCPCustomServer server) { this.server = server; this.Track(() => (AppEnvironment.GetAppModel(this).Mcp.States, AppEnvironment.GetAppModel(this).Mcp.Connections), _ => Build()); }
+    // :405-407 ForEach keeps the row's state while its server value changes.
+    internal void UpdateServer(MCPCustomServer value)
+    {
+        if (server == value) return;
+        server = value;
+        Build();
+    }
     // :463-529
     private void Build()
     {
@@ -469,10 +498,12 @@ internal sealed class MCPCustomRow : Decorator
             MCPConnectionState.Failed f => MCPSettingsPage.Text(f.Message, 11, Chrome.Danger, lines: 3),
             _ => MCPSettingsPage.Text(server.Summary, 11, Chrome.SecondaryText),
         };
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto"), ColumnSpacing = 12 };
-        row.Children.Add(new Border { Width = 26, Child = new MCPIcon(entry, 22) { HorizontalAlignment = HorizontalAlignment.Center } });
-        var copy = new StackPanel { Spacing = 2, Children = { MCPSettingsPage.Text(server.Name, 13, Chrome.PrimaryText, SwiftFont.Weight.Semibold), status } }; Grid.SetColumn(copy, 1); row.Children.Add(copy);
-        var spacer = new Border { MinWidth = 12 }; Grid.SetColumn(spacer, 2); row.Children.Add(spacer);
+        var row = Child is Border { Child: Grid existing } ? existing
+            : new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto"), ColumnSpacing = 12 };
+        var children = new List<Control>();
+        children.Add(new Border { Width = 26, Child = new MCPIcon(entry, 22) { HorizontalAlignment = HorizontalAlignment.Center } });
+        var copy = new StackPanel { Spacing = 2, Children = { MCPSettingsPage.Text(server.Name, 13, Chrome.PrimaryText, SwiftFont.Weight.Semibold), status } }; Grid.SetColumn(copy, 1); children.Add(copy);
+        var spacer = new Border { MinWidth = 12 }; Grid.SetColumn(spacer, 2); children.Add(spacer);
         Control action = state switch
         {
             MCPConnectionState.NotConnected => MCPSettingsPage.ActionButton("Connect", () => MCPSettingsPage.Begin(this, entry)),
@@ -483,14 +514,21 @@ internal sealed class MCPCustomRow : Decorator
             _ => throw new UnreachableException(),
         };
         action.VerticalAlignment = VerticalAlignment.Center; // :463 HStack's default centre alignment; keep its intrinsic hit area
-        Grid.SetColumn(action, 3); row.Children.Add(action); var menu = MCPSettingsPage.Options(() => view.Menu = !view.Menu);
-        var menus = new Panel { Children = { menu,
-            MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Menu, v => view.Menu = v), BuildMenu, this),
-            // :548-573, :632-638 — the editor is a nested-popover body, so defer only its materialization.
-            MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Editing, v => view.Editing = v), () => new MCPCustomEditor(server), this, buildBeforeOpen: false),
-            MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Confirming, v => view.Confirming = v), () => DeleteConfirmation!, this),
-        } }; Grid.SetColumn(menus, 4); row.Children.Add(menus);
-        Child = new Border { Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = row };
+        Grid.SetColumn(action, 3); children.Add(action);
+        if (menuHost is null)
+        {
+            var menu = MCPSettingsPage.Options(() => view.Menu = !view.Menu);
+            menuHost = new Panel { Children = { menu,
+                MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Menu, v => view.Menu = v), BuildMenu, this),
+                // :548-573 the active editor retains its draft and savedID when the definition changes.
+                MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Editing, v => view.Editing = v), () => new MCPCustomEditor(server), this, buildBeforeOpen: false),
+                MCPSettingsPage.Popover(menu, new Binding<bool>(() => view.Confirming, v => view.Confirming = v), () => DeleteConfirmation!, this),
+            } };
+            Grid.SetColumn(menuHost, 4);
+        }
+        children.Add(menuHost);
+        MCPSettingsPage.Reconcile(row, children);
+        Child ??= new Border { Padding = new Thickness(16, 11, Chrome.RowControlTrailingPadding, 11), Child = row };
     }
     // :508-515 .font(.system(.subheadline)) and .fixedSize().
     private TextBlock ConnectingLabel()
