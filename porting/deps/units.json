@@ -8848,21 +8848,15 @@
     "App.Views.Composer.EffortSlider"
    ],
    "records_total": 24,
-   "records_todo": [
-    "PR-SETTINGS-189"
-   ],
-   "parts": [
-    [
-     "PR-SETTINGS-189"
-    ]
-   ],
+   "records_todo": [],
+   "parts": [],
    "packets": [
     "T-M7-158",
     "T-M7-159",
     "T-M7-160"
    ],
    "risk": "STANDARD",
-   "status": "TODO"
+   "status": "DONE"
   },
   {
    "id": "App.Views.Settings.SettingsView",

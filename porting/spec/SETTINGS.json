@@ -4694,10 +4694,49 @@
       "cancellation": "Dismissing the popover keeps every change; there is no cancel.",
       "windows_path": "Same popover width and the same argument set; the effort card itself is the composer area's component reused here.",
       "verification_method": "interaction test: set an effort, reset, assert the stored entry is gone",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
-      "depends_on_unknown": null
+      "depends_on_unknown": null,
+      "implementation_evidence": {
+        "accepted_source_commit": "d940dac4689cd21cc27f43666c491c111347b8f5",
+        "source_lane_commit": "53280cf2c848cf5330f7bf99b42154507421dafb",
+        "accepted_source_tree": "0bc43dd9c7e85bd5bcb8483640af1b30b551006e",
+        "independent_review": "Lane E accepted this exact source/tree and this whole record; acceptance relayed by J.A.R.V.I.S. on 2026-09-30 in owner-authorized thread 01a0f087-91cd-74b6-8f1c-77c3473850c3.",
+        "build": {
+          "warnings": 0,
+          "errors": 0
+        },
+        "app_cases": {
+          "passed": 4022,
+          "failed": 0,
+          "skipped": 0,
+          "distinct_test_ids": 4022
+        },
+        "combined_gate": {
+          "passed": 12261,
+          "failed": 0,
+          "skipped": 0,
+          "mode": "Disjoint current-source App receipts plus 8239 source-bound unchanged accepted lower-layer cases; not a monolithic run."
+        },
+        "mutation_proof": {
+          "record_mutants": 37,
+          "additional_partial_count_mutants": 12,
+          "red_runs": 98,
+          "restored_green_runs": 49,
+          "path": "E:/Droppy/wt/cx/settingsgaps/_evidence/mutation-proof.json",
+          "sha256": "45155d6fd1e91a6ef6f5428d3e6703669b396b05a7e84f7b7482cb8b2453bc2c"
+        },
+        "runtime_source_test_hashes": 1955,
+        "evidence_refs": [
+          "E:/Droppy/work/codex/turbo/SETTINGS_READY_FOR_E.md",
+          "E:/Droppy/wt/cx/merge-1/_evidence/settings-app-final-coverage.json",
+          "E:/Droppy/wt/cx/merge-1/_evidence/settings-combined-gate.json",
+          "E:/Droppy/wt/cx/merge-1/_evidence/settings-non-app-source-binding.json",
+          "E:/Droppy/wt/cx/settingsgaps/_evidence/CLAUSE-MATRIX.md"
+        ],
+        "scope": "Only PR-SETTINGS-189 advances to IMPLEMENTED; no VERIFIED promotion. PR-SETTINGS-183/UI-SETTINGS-041 retain their independent structural constant-versus-equivalent-literal STOP."
+      }
     },
     {
       "id": "PR-SETTINGS-190",
