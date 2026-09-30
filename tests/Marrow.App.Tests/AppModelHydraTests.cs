@@ -1030,6 +1030,57 @@ public sealed class AppModelHydraTests
     }
 
     [Fact]
+    [Trait("Req", "PR-HYDRA-120")] // AppModel+Hydra.swift:602-614 reads the current head and parent after the hold.
+    public void Auto_clear_uses_the_heads_current_parent_after_the_finish_hold()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Project", h.NewFolder("project"));
+        var originalLead = AppModelSamples.Thread(project);
+        var currentLead = AppModelSamples.Thread(project);
+        var head = HydraHeadThread(project, originalLead.Id, HydraHeadInfo.Status.Running, 0);
+        // A provider head with no tool row completes locally, without scheduling a report turn.
+        head = head with { Hydra = head.Hydra! with { HydraHeadInfoKind = HydraHeadInfo.Kind.Native, ToolUseID = null } };
+        h.WriteLibrary([project], [originalLead, currentLead, head]);
+        var model = h.MakeModel();
+        h.PrepareBootstrap(model);
+        var originalRuntime = h.Main.OnMain(() => model.Runtime(originalLead.Id));
+        var currentRuntime = h.Main.OnMain(() => model.Runtime(currentLead.Id));
+        var timerCount = h.Main.Time.ActiveTimers;
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraAutoClearFinished = true;
+            RestoreRunningHead(model, head.Id);
+            originalRuntime.HydraSelectedHeadID = head.Id;
+            model.FinishHydraHead(head.Id, TurnStatus.Completed, "done");
+        });
+        h.Main.Loop.RunUntil(() => h.Main.Time.ActiveTimers > timerCount, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            model.UpdateThread(head.Id, thread => thread with { ParentThreadID = currentLead.Id });
+            currentRuntime.HydraSelectedHeadID = head.Id;
+            currentRuntime.HydraPoppedHeadID = head.Id;
+            currentRuntime.HydraAutoPopHeld = new ValueSet<Guid>([head.Id]);
+            currentRuntime.HydraAutoPanelDocks = new ValueMap<Guid, PanelDockCorner>(
+                [KeyValuePair.Create(head.Id, PanelDockCorner.TopTrailing)]);
+            currentRuntime.PanelStackOrder = new ValueList<FloatingPanelID>(
+                [new FloatingPanelID.Auto(head.Id), new FloatingPanelID.Hydra()]);
+        });
+
+        h.Main.Advance(TimeSpan.FromMilliseconds(2_200));
+        h.Main.Loop.RunUntil(() => !model.Thread(head.Id)!.IsInPanel, AppModelHarness.Bound);
+        h.Main.OnMain(() =>
+        {
+            Assert.Equal(currentLead.Id, model.Thread(head.Id)!.ParentThreadID);
+            Assert.Null(currentRuntime.HydraSelectedHeadID);
+            Assert.Null(currentRuntime.HydraPoppedHeadID);
+            Assert.Empty(currentRuntime.HydraAutoPopHeld);
+            Assert.Empty(currentRuntime.HydraAutoPanelDocks);
+            Assert.Equal([new FloatingPanelID.Hydra()], currentRuntime.PanelStackOrder);
+            Assert.Equal(head.Id, originalRuntime.HydraSelectedHeadID);
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-HYDRA-121")] // AppModel+Hydra.swift:634-716
     [Trait("Req", "PR-HYDRA-122")] // AppModel+Hydra.swift:721-726
     public void Failed_reports_use_only_the_closed_turn_error_and_label_trimmed_prose_as_partial()

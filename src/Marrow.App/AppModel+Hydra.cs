@@ -493,9 +493,11 @@ public sealed partial class AppModel
             MainActor.Spawn(async () =>
             {
                 await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(2_200));
-                if (Thread(id) is not { IsInPanel: true, Hydra.IsFinished: true }) return;
+                // AppModel+Hydra.swift:605-609: the head may have a different parent after the hold.
+                if (Thread(id) is not { IsInPanel: true, Hydra.IsFinished: true } currentHead) return;
                 UpdateThread(id, thread => thread with { IsInPanel = false });
-                if (head.ParentThreadID is not { } leadID || ExistingRuntime(leadID) is not { } leadRuntime) return;
+                if (currentHead.ParentThreadID is not { } leadID) return;
+                var leadRuntime = Runtime(leadID);
                 if (leadRuntime.HydraSelectedHeadID == id) leadRuntime.HydraSelectedHeadID = null;
                 if (leadRuntime.HydraPoppedHeadID == id) leadRuntime.HydraPoppedHeadID = null;
                 leadRuntime.HydraAutoPopHeld = leadRuntime.HydraAutoPopHeld.Mutating(ids => ids.Remove(id));
