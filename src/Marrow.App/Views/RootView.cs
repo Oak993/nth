@@ -484,7 +484,11 @@ public sealed class RootView : Decorator
             if (item.TryGetFile() is { } file && file.TryGetLocalPath() is { } path)
                 urls.Add(DroppedFileUrl(path));
         if (urls.Count == 0) return;
-        e.Handled = HandleDrop(urls);
+        var accepted = HandleDrop(urls);
+        // :79,109 return handleDrop's acceptance to the drag source. A local path can disappear after
+        // DragOver accepted Copy; leaving that effect in place would report a successful rejected drop.
+        e.DragEffects = accepted ? DragDropEffects.Copy : DragDropEffects.None;
+        e.Handled = accepted;
     }
 
     // Builds the same non-"file"-scheme SwiftURL RootViewTests.cs's own DroppedUrl helper builds for HandleDropCore's
