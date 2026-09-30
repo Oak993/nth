@@ -1895,7 +1895,7 @@ public sealed class ThreadRuntime : MainActorModel
 
                 ProviderSession created = thread.Provider switch
                 {
-                    ProviderKind.Deepseek => throw new NotImplementedException("BLOCKED: DeepSeekSession is not present in the owned provider tree."),
+                    ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1490
                     ProviderKind.Meta => new MetaSession(configuration),
                     ProviderKind.Zai => new ZaiSession(configuration),
                     _ => throw new InvalidOperationException($"{thread.Provider} is not an API-key provider."),
@@ -1976,7 +1976,7 @@ public sealed class ThreadRuntime : MainActorModel
                 ProviderKind.Commandcode => throw new NotImplementedException("BLOCKED: CommandCodeSession is not present in the owned provider tree."),
                 ProviderKind.Pi => throw new NotImplementedException("BLOCKED: PiSession is not present in the owned provider tree."),
                 ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Devin => new ACPSession(configuration),
-                ProviderKind.Deepseek => throw new NotImplementedException("BLOCKED: DeepSeekSession is not present in the owned provider tree."),
+                ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1557
                 ProviderKind.Meta => new MetaSession(configuration),
                 ProviderKind.Zai => new ZaiSession(configuration),
                 _ => throw new InvalidOperationException($"Unsupported provider session: {thread.Provider}."),
