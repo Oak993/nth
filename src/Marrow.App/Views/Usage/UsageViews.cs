@@ -4,6 +4,8 @@ using System.Diagnostics;
 using System.Globalization;
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Layout;
@@ -713,7 +715,22 @@ public sealed class UsageBar : Decorator
             fill.Width = fraction > 0 ? Math.Max(5, args.NewSize.Width * clamped) : 0;
         };
         AutomationProperties.SetName(this, label);
-        AutomationProperties.SetHelpText(this, SwiftNumber.TruncatingToInt(SwiftNumber.Rounded(Math.Min(Math.Max(fraction, 0), 1) * 100)) + "% used");
         Child = bar;
+    }
+
+    // :392-394 accessibilityElement / accessibilityLabel / accessibilityValue.
+    // UIA Value carries the spoken percentage; the track and fill are not separate elements.
+    protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this);
+
+    private sealed class Peer(UsageBar owner) : ControlAutomationPeer(owner), IValueProvider
+    {
+        protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.ProgressBar;
+        protected override IReadOnlyList<AutomationPeer>? GetChildrenCore() => [];
+
+        public string Value => SwiftNumber.TruncatingToInt(
+            SwiftNumber.Rounded(Math.Min(Math.Max(((UsageBar)Owner).fraction, 0), 1) * 100))
+            .ToString(CultureInfo.InvariantCulture) + "% used";
+        public bool IsReadOnly => true;
+        public void SetValue(string? value) => throw new InvalidOperationException("The usage value is read-only.");
     }
 }
