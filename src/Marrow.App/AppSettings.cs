@@ -1252,7 +1252,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     {
         if (model is not { } wanted) return new ModelPreference();
         var key = new ModelPin(provider, wanted).Id;
-        return modelPreferences.TryGetValue(key, out var preference) ? preference : new ModelPreference();
+        return ModelPreferences.TryGetValue(key, out var preference) ? preference : new ModelPreference();
     }
 
     // :859-862. Swift: setPreference(_:for:model:).
