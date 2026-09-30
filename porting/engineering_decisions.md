@@ -1636,3 +1636,32 @@ DECISION:
 7. Every Windows call (AUMID, registry, ToastNotifier, the URI scheme) goes through a seam. Tests record the requests and never post a
    real toast, write the real registry or launch a URI.
 ENGINEERING DECISION; toast visuals are Windows' own.
+
+## ED-228
+
+[UI][COMPOSER] Narrow WorkingDots reconciliation of ED-098(1) and ED-117(1).
+Authority: PORT_CONTRACT.md/source precedence and the pinned B3 52bc792
+App/Views/Composer/ComposerWorkingDots.swift:5-11,67-79,104-149,152-190. The source
+places this CALayer/CAReplicatorLayer field's steady animation on the render server,
+without timers, view updates or main-thread drawing. Independent E accepted the
+five-path partial implementation on 2026-09-30 under manifest SHA256
+80F7AE84A513D7FAFFA55385E123BB594472088791873C0FDC825E35D215DC01.
+
+For this field alone, CompositionCustomVisualHandler's compositor animation-frame
+callbacks provide steady-state wake-ups. Elapsed time still comes from the captured
+SwiftClock.Provider and its SwiftClock timestamp conversion; Avalonia's animation
+time does not determine phase or duration. The shared pulse origin and source
+constants remain intact. Lifecycle, motion, color, appearance and layout changes
+remain on the actual Avalonia main executor under OD-0034/amended ED-065; immutable
+state crosses to the compositor, which does not dispatch or mutate UI controls.
+Other FrameClock, DisplayLink, TimelineView and frame-paced task users retain
+ED-098/ED-117 unchanged. This is a source-specific platform adaptation, not a new
+product deviation or a suite-wide clock exception.
+
+Evidence scope: 29 headless cases, old-renderer regression red twice, six mutants
+red twice each with restored 29-case greens, fourteen bindings restored, and all
+22 invocations checking 19 process keys absent with unique fresh data. The finite
+sweep endpoint is compared in the existing TimeSpan clock domain; no source timing
+constant, test expectation or timeout changes. Headless rendering does not prove
+production off-UI render-thread ownership. PR-COMPOSER-103, T-M7-086 and capture
+parity/UI-COMPOSER-017 remain open; no record or packet status advances here.

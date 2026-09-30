@@ -2,6 +2,7 @@ using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
+using Avalonia.Headless;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Marrow.App.Tests.Fixtures;
@@ -15,6 +16,20 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class ComposerWorkingDotsReviewTests(HeadlessSession headless)
 {
+    private static double RenderedOpacity(DotFieldControl control, int row, int column)
+    {
+        // Inspect the immutable sample actually drawn by the compositor, not the hidden static ellipse tree.
+        var frame = control.GetType().GetProperty("LastRenderedFrame", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)?.GetValue(control);
+        Assert.NotNull(frame);
+        return Assert.IsType<double>(frame.GetType().GetMethod("OpacityAt")!.Invoke(frame, [row, column]));
+    }
+    private static void Render(Avalonia.Controls.Window window)
+    {
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        using var pixels = window.CaptureRenderedFrame();
+        Assert.NotNull(pixels);
+    }
     [Fact]
     [Trait("Req", "PR-COMPOSER-102")] // App/Views/Composer/ComposerWorkingDots.swift:124-148
     [Trait("Req", "PR-COMPOSER-104")] // App/Views/Composer/ComposerWorkingDots.swift:154-156
@@ -57,6 +72,7 @@ public sealed class ComposerWorkingDotsReviewTests(HeadlessSession headless)
     public void Pulse_reaches_the_source_keyframes_with_column_and_row_delays_and_stops_when_detached() => headless.OnUiThread(() =>
     {
         using var rt = new TestRuntime();
+        using var executor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
         var frames = new ManualFrameSource();
         using var scope = FrameClock.Source.Override(frames);
         var c = new DotFieldControl(new SwiftColor(1), true, false);
@@ -66,12 +82,14 @@ public sealed class ComposerWorkingDotsReviewTests(HeadlessSession headless)
         var dots = Assert.IsType<Canvas>(c.Layer).Children.Cast<Ellipse>().ToArray();
         rt.Advance(TimeSpan.FromSeconds(1.77)); // shared beginTime 1 + 0.35 * 2.2
         frames.Advance(TimeSpan.FromSeconds(1.77));
-        Assert.Equal(0.75, dots[0].Opacity, 8);
-        Assert.InRange(dots[1].Opacity, 0.08, 0.7499999);
-        Assert.InRange(dots[3].Opacity, 0.08 * 2 / 3, 0.5);
+        Render(w);
+        Assert.Equal(0.75, RenderedOpacity(c, 0, 0), 8);
+        Assert.InRange(RenderedOpacity(c, 0, 1), 0.08, 0.7499999);
+        Assert.InRange(RenderedOpacity(c, 1, 0), 0.08 * 2 / 3, 0.5);
         rt.Advance(TimeSpan.FromSeconds(1.43));
         frames.Advance(TimeSpan.FromSeconds(1.43));
-        Assert.Equal(0.08, dots[0].Opacity, 8); // 1+2.2, next cycle begins
+        Render(w);
+        Assert.Equal(0.08, RenderedOpacity(c, 0, 0), 8); // 1+2.2, next cycle begins
         c.UpdateAnimated(false);
         Assert.Equal(0.28, dots[0].Opacity, 8);
         Assert.Equal(0.28 * 2 / 3, dots[3].Opacity, 8);
@@ -84,6 +102,7 @@ public sealed class ComposerWorkingDotsReviewTests(HeadlessSession headless)
     public void Sweep_is_one_pass_with_022_column_delay_no_row_delay_and_zero_after_completion() => headless.OnUiThread(() =>
     {
         using var rt = new TestRuntime();
+        using var executor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
         var frames = new ManualFrameSource();
         using var scope = FrameClock.Source.Override(frames);
         var c = new DotFieldControl(new SwiftColor(1), true, true);
@@ -93,12 +112,15 @@ public sealed class ComposerWorkingDotsReviewTests(HeadlessSession headless)
         var dots = Assert.IsType<Canvas>(c.Layer).Children.Cast<Ellipse>().ToArray();
         rt.Advance(TimeSpan.FromSeconds(0.32)); // .4 * .8
         frames.Advance(TimeSpan.FromSeconds(0.32));
-        Assert.Equal(0.7, dots[0].Opacity, 8);
-        Assert.Equal(dots[0].Opacity, dots[3].Opacity);
-        Assert.True(dots[1].Opacity < dots[0].Opacity);
+        Render(w);
+        Assert.Equal(0.7, RenderedOpacity(c, 0, 0), 8);
+        Assert.Equal(RenderedOpacity(c, 0, 0), RenderedOpacity(c, 1, 0));
+        Assert.True(RenderedOpacity(c, 0, 1) < RenderedOpacity(c, 0, 0));
         rt.Advance(TimeSpan.FromSeconds(0.524)); // .8 + 2*.022, last column completes
         frames.Advance(TimeSpan.FromSeconds(0.524));
-        Assert.All(dots, dot => Assert.Equal(0, dot.Opacity, 8));
+        Render(w);
+        for (var row = 0; row < 3; row++)
+            for (var column = 0; column < 3; column++) Assert.Equal(0, RenderedOpacity(c, row, column), 8);
         c.UpdateAnimated(false);
         Assert.All(dots, dot => Assert.Equal(0, dot.Opacity));
         w.Close();

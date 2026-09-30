@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Generic;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
 using Avalonia.Media;
-using Avalonia.Styling;
-using Avalonia.Threading;
+using Avalonia.Rendering.Composition;
 using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
@@ -92,8 +90,8 @@ public sealed class DotFieldSweep : Border
 }
 
 /// <summary>
-/// The actual dot field visual. (:38-219)
-/// Uses a custom visual tree to render animated dots without blocking the UI thread.
+/// The actual dot field visual. (:38-192)
+/// Animated replicas are drawn by the compositor; static dots retain their layout and brushes.
 /// </summary>
 public sealed class DotFieldControl : Canvas
 {
@@ -101,11 +99,6 @@ public sealed class DotFieldControl : Canvas
     private const double DotSize = 2;           // :67
     private const double Pitch = 8;             // :68
     private const int MaxRows = 3;              // :71
-    private const double Period = 2.2;          // :73
-    private const double ColumnDelay = 0.045;   // :74
-    private const double RowDelay = 0.09;       // :75
-    private const double SweepPeriod = 0.8;     // :107
-    private const double SweepColumnDelay = 0.022; // :108
 
     // :60-62 Instance state
     private SwiftColor color;
@@ -117,6 +110,11 @@ public sealed class DotFieldControl : Canvas
     private Canvas? dotCanvas;
 
     public Visual? Layer => dotCanvas;
+    private CompositionCustomVisual? compositionVisual;
+    private DotFieldCompositionHandler? compositionHandler;
+    internal DotFieldCompositionHandler? CompositionHandler => compositionHandler;
+    internal DotFieldCompositionFrame? LastRenderedFrame => compositionHandler?.LastFrame;
+    private ContinuousInstant sweepStart;
 
     public DotFieldControl(SwiftColor color, bool animated, bool sweeps)
     {
@@ -131,11 +129,11 @@ public sealed class DotFieldControl : Canvas
         AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
 
         // Create the canvas for rendering
-        dotCanvas = new Canvas();
+        dotCanvas = new Canvas { IsVisible = !animated };
         Children.Add(dotCanvas);
         // :113-122 Window attachment installs motion; theme-aware brushes also follow system accent changes.
         AttachedToVisualTree += (_, _) => InstallAnimation();
-        DetachedFromVisualTree += (_, _) => { link?.Invalidate(); link = null; };
+        DetachedFromVisualTree += (_, _) => RemoveComposition();
         ActualThemeVariantChanged += (_, _) => OnAppearanceChanged();
     }
 
@@ -172,14 +170,14 @@ public sealed class DotFieldControl : Canvas
                 var x = Pitch / 2 + col * Pitch;
                 // :137-145 AppKit's origin is bottom-left. Avalonia's is top-left.
                 var y = size.Height - (Pitch / 2 + row * Pitch);
-                    var dot = CreateDot(row, rowCount);
-                    dotCanvas?.Children.Add(dot);
-                    Canvas.SetLeft(dot, x - DotSize / 2);
-                    Canvas.SetTop(dot, y - DotSize / 2);
+                var dot = CreateDot(row, rowCount);
+                dotCanvas?.Children.Add(dot);
+                Canvas.SetLeft(dot, x - DotSize / 2);
+                Canvas.SetTop(dot, y - DotSize / 2);
             }
         }
 
-        ApplyOpacities();
+        SynchronizeComposition();
     }
 
     private Ellipse CreateDot(int row, int rowCount)
@@ -206,75 +204,46 @@ public sealed class DotFieldControl : Canvas
 
     private void InstallAnimation()
     {
-        // :152-190 ED-098/ED-117 bind animations to the shared frame and SwiftClock seams.
-        link?.Invalidate();
-        link = null;
+        // :113-116,152-190 Reattachment and a motion change reinstall; color/layout never reset the sweep.
         sweepStart = SwiftClock.Now;
-        ApplyOpacities();
-        if (!animated || TopLevel.GetTopLevel(this) is null) return;
-        if (sweeps) ApplySweepAnimation();
-        else ApplyPulseAnimation();
-    }
-
-    private void ApplyPulseAnimation()
-    {
-        // :177-190 Repeating shared-clock keyframe, column and row phase delays.
-        link = FrameClock.DisplayLink(ApplyOpacities);
-        link.Add();
-    }
-
-    private void ApplySweepAnimation()
-    {
-        // :158-175 Keep drawing until the last delayed replica has finished.
-        link = FrameClock.DisplayLink(ApplyOpacities);
-        link.Add();
-    }
-
-    private DisplayLink? link;
-    private ContinuousInstant sweepStart;
-
-    // :129-148,152-190 Evaluate the source opacity keyframes for each replica.
-    private void ApplyOpacities()
-    {
-        if (dotCanvas is null || laidOutSize.Width <= 0 || laidOutSize.Height <= 0) return;
-        var columns = (int)Math.Ceiling(laidOutSize.Width / Pitch) + 1;
-        var rows = sweeps ? Math.Max(1, (int)Math.Ceiling(laidOutSize.Height / Pitch))
-            : Math.Min(MaxRows, Math.Max(1, (int)Math.Ceiling(laidOutSize.Height / Pitch)));
-        var elapsed = sweeps ? (SwiftClock.Now - sweepStart).TotalSeconds
-            : SwiftClock.Now.Ticks / (double)TimeSpan.TicksPerSecond - 1;
-        for (var i = 0; i < dotCanvas.Children.Count; i++)
+        if (dotCanvas is not null)
         {
-            var row = i / columns;
-            var col = i % columns;
-            var opacity = sweeps ? 0 : 0.28;
-            if (animated)
-            {
-                var seconds = elapsed - col * (sweeps ? SweepColumnDelay : ColumnDelay)
-                    - row * (sweeps ? 0 : RowDelay);
-                var period = sweeps ? SweepPeriod : Period;
-                if (!sweeps && seconds >= 0) seconds %= period;
-                opacity = KeyframeOpacity(seconds, period, sweeps ? 0.4 : 0.35,
-                    sweeps ? 0 : 0.08, sweeps ? 0.7 : 0.75);
-            }
-            dotCanvas.Children[i].Opacity = opacity * (sweeps ? 1 : 1.0 - (double)row / rows);
+            dotCanvas.IsVisible = !animated;
+            var columns = Math.Max(1, (int)Math.Ceiling(laidOutSize.Width / Pitch) + 1);
+            var rows = sweeps ? Math.Max(1, (int)Math.Ceiling(laidOutSize.Height / Pitch))
+                : Math.Min(MaxRows, Math.Max(1, (int)Math.Ceiling(laidOutSize.Height / Pitch)));
+            for (var i = 0; i < dotCanvas.Children.Count; i++)
+                dotCanvas.Children[i].Opacity = (sweeps ? 0 : 0.28) * (sweeps ? 1 : 1.0 - (double)(i / columns) / rows);
         }
-        if (sweeps && elapsed >= SweepPeriod + (columns - 1) * SweepColumnDelay)
-        {
-            link?.Invalidate();
-            link = null;
-        }
+        SynchronizeComposition();
     }
 
-    // :164-168,179-185 CA's easeOut/easeIn are the same cubic Beziers as the port's timing animations.
-    private static double KeyframeOpacity(double seconds, double duration, double peakTime, double start, double peak)
+    private void SynchronizeComposition()
     {
-        if (seconds <= 0 || seconds >= duration) return start;
-        var split = duration * peakTime;
-        return seconds <= split
-            ? start + (peak - start) * Animation.EaseOut(split).Progress(seconds)
-            : peak + (start - peak) * Animation.EaseIn(duration - split).Progress(seconds - split);
+        if (TopLevel.GetTopLevel(this) is null) return;
+        if (compositionVisual is null)
+        {
+            if (ElementComposition.GetElementVisual(this) is not { } host) return;
+            compositionHandler = new DotFieldCompositionHandler();
+            compositionVisual = host.Compositor.CreateCustomVisual(compositionHandler);
+            ElementComposition.SetElementChildVisual(this, compositionVisual);
+        }
+        compositionVisual.Size = new Vector(laidOutSize.Width, laidOutSize.Height);
+        compositionVisual.Visible = animated;
+        // :5-11,177-190 Core Animation plays on the render server. Capture the Swift clock provider once
+        // per state update; never use Avalonia's animation time and never request a UI-thread frame.
+        compositionVisual.SendHandlerMessage(new DotFieldCompositionFrame(laidOutSize,
+            GetBrush().ToImmutable(), animated, sweeps, SwiftClock.Provider.Current, sweepStart, SwiftClock.Now));
     }
 
+    private void RemoveComposition()
+    {
+        // Stop immediately, including a server frame already queued when detachment reaches the UI thread.
+        compositionHandler?.Stop();
+        ElementComposition.SetElementChildVisual(this, null);
+        compositionVisual = null;
+        compositionHandler = null;
+    }
     public void UpdateColor(SwiftColor newColor)
     {
         // :104-111 Configure: only update color if changed
@@ -303,7 +272,7 @@ public sealed class DotFieldControl : Canvas
 
     private void UpdateBrushes()
     {
-        // Re-apply the color to all dots
+        // Re-apply the color to static dots and send one immutable brush to the render server.
         var brush = GetBrush();
         if (dotCanvas != null)
         {
@@ -315,5 +284,6 @@ public sealed class DotFieldControl : Canvas
                 }
             }
         }
+        SynchronizeComposition();
     }
 }
