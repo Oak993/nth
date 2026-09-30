@@ -557,7 +557,9 @@ public sealed partial class AppModel
                 if (ExistingRuntime(head.Id) is not { IsRunning: false } retryRuntime ||
                     Thread(head.Id)?.Hydra?.HydraHeadInfoStatus != HydraHeadInfo.Status.Running)
                     return;
-                retryRuntime.SendHydraBrief(brief.Text, brief.Attachments);
+                // AppModel+Hydra.swift:696-697 retries through the composer's ordinary send path.
+                retryRuntime.Draft = new ComposerDraft { Text = brief.Text, Attachments = ValueList<Attachment>.Empty };
+                retryRuntime.Send();
             });
             return;
         }

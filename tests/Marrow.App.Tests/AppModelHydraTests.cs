@@ -1195,6 +1195,45 @@ public sealed class AppModelHydraTests
     }
 
     [Fact]
+    [Trait("Req", "PR-HYDRA-123")] // AppModel+Hydra.swift:696-697; ThreadRuntime.swift:744-754.
+    public void A_launch_retry_uses_the_composer_send_path_and_its_local_command_handling()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Project", h.NewFolder("project"));
+        var lead = AppModelSamples.Thread(project);
+        var head = HydraHeadThread(project, lead.Id, HydraHeadInfo.Status.Running, index: 0);
+        var turn = Guid.NewGuid();
+        h.WriteLibrary([project], [lead, head]);
+        // /plan makes ordinary Send observable without invoking any provider: it toggles the local mode.
+        WriteThreadDocument(head.Id,
+            [UserItem(null, "/plan", isFromHydra: true), NoticeItem(turn, Notice.Level.Error, "database is locked")],
+            [ClosedTurn(turn, 1, TurnStatus.Failed)]);
+        var model = h.MakeModel();
+        h.PrepareBootstrap(model);
+        var runtime = LoadRuntime(h, model, head.Id);
+        var originalMode = h.Main.OnMain(() => model.Thread(head.Id)!.InteractionMode);
+        h.Main.OnMain(() =>
+        {
+            model.Settings.HydraAutoClearFinished = false;
+            RestoreRunningHead(model, head.Id);
+            runtime.Draft = new ComposerDraft { Text = "unsent head edit" };
+            model.HydraHeadTurnFinished(head, TurnStatus.Failed);
+            Assert.Equal(1L, model.HydraHeadRetries[head.Id]);
+        });
+        h.Main.Loop.RunUntilIdle();
+        h.Main.Advance(TimeSpan.FromSeconds(2)); // First retry, roster index zero: exactly two seconds.
+        h.Main.OnMain(() =>
+        {
+            Assert.Equal(originalMode == InteractionMode.Plan ? InteractionMode.Build : InteractionMode.Plan,
+                model.Thread(head.Id)!.InteractionMode);
+            Assert.True(runtime.Draft.IsEmpty);
+            Assert.Equal(RuntimePhase.Idle, runtime.Phase);
+            Assert.Single(runtime.Entries.Where(entry => entry.Item.TimelineItemContent is TimelineItem.Content.User));
+            Assert.Null(model.ExistingRuntime(lead.Id));
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-HYDRA-123")] // AppModel+Hydra.swift:680-699, :730-734
     public void Launch_failure_text_in_the_head_prose_does_not_trigger_a_retry()
     {
