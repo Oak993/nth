@@ -22,6 +22,81 @@ namespace Marrow.App.Tests.Views.Diff;
 [Collection("Headless")]
 public sealed class DiffInspectorTests(HeadlessSession headless)
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "UI-GIT-009")]
+    [Trait("Req", "UI-GIT-010")]
+    public void Bulk_collapse_action_updates_every_card_without_a_runtime_change(bool expand)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var store = new AppModelHarness();
+            var project = AppModelSamples.Project("Bulk diff", store.NewFolder("bulk-diff"));
+            var thread = AppModelSamples.Thread(project);
+            store.WriteLibrary([project], [thread]);
+            AppModelHarness.WriteDocument(thread.Id);
+            var app = store.MakeModel();
+            var runtime = store.Main.OnMain(() => new ThreadRuntime(thread.Id, app));
+            store.Main.Loop.Run(() => runtime.EnsureLoaded(), AppModelHarness.Bound);
+            Assert.Empty(runtime.Turns);
+
+            var inspector = store.Main.OnMain(() => new DiffInspector(runtime));
+            store.Main.OnMain(() => runtime.ShowDiff(new Border(), turn: null, focusEdits:
+            [
+                new FileEdit("First.swift", "before\n", "after\n"),
+                new FileEdit("Second.swift", "old\n", "new\n"),
+            ]));
+            var load = Assert.IsAssignableFrom<TaskHandle>(typeof(DiffInspector)
+                .GetField("loadTask", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(inspector));
+            store.Main.Advance(System.TimeSpan.FromMilliseconds(180));
+            store.Main.Loop.RunUntil(() => load.Completion.IsCompleted, AppModelHarness.Bound);
+            var cards = Descendants<DiffFileCard>(inspector).ToArray();
+            Assert.Equal(2, cards.Length);
+            Assert.All(cards, card => Assert.Single(Descendants<DiffLinesView>(card)));
+
+            if (expand)
+            {
+                // Each toggle rebuilds all cards: click the current card, not a detached predecessor.
+                foreach (var path in new[] { "First.swift", "Second.swift" })
+                    store.Main.OnMain(() =>
+                    {
+                        var current = Assert.Single(Descendants<DiffFileCard>(inspector),
+                            candidate => System.Equals(candidate.Tag, path));
+                        Assert.Single(Descendants<Button>(current)).RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                    });
+                Assert.Empty(Descendants<DiffLinesView>(inspector));
+            }
+
+            var runtimeChanges = 0;
+            System.ComponentModel.PropertyChangedEventHandler observed = (_, _) => runtimeChanges++;
+            runtime.PropertyChanged += observed;
+            try
+            {
+                store.Main.OnMain(() =>
+                {
+                    var menu = Assert.IsAssignableFrom<Control>(typeof(DiffInspector)
+                        .GetMethod("BuildMoreMenu", BindingFlags.Instance | BindingFlags.NonPublic)!.Invoke(inspector, null));
+                    var title = expand ? "Expand all" : "Collapse all";
+                    var button = Assert.Single(Descendants<Button>(menu), candidate =>
+                        Avalonia.Automation.AutomationProperties.GetName(candidate) == title);
+                    button.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+                });
+                Assert.Equal(0, runtimeChanges);
+                cards = Descendants<DiffFileCard>(inspector).ToArray();
+                Assert.Equal(2, cards.Length);
+                Assert.All(cards, card =>
+                {
+                    Assert.Single(Descendants<Button>(card));
+                    if (expand) Assert.Single(Descendants<DiffLinesView>(card));
+                    else Assert.Empty(Descendants<DiffLinesView>(card));
+                });
+            }
+            finally { runtime.PropertyChanged -= observed; }
+            System.GC.KeepAlive(app);
+        });
+    }
+
     private static ValueList<T> List<T>(params T[] items) => new(items);
 
     private static DiffLine Line(
