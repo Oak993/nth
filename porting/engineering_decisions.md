@@ -1529,3 +1529,54 @@ This approval does not serialize the whole assembly or suite, authorize an envir
 VERIFICATION: independent E accepted source/test tree 03481b8cd0ba418f95840eeb2879d22b5d319ea2 conditioned only on this documentation and unchanged code. After owner-notified hands-off/other-PC-control pause, WindowManagerNative passed 19/19 twice with fresh data and all 19 API-key variables removed; foreground before both runs was ChatGPT PID88252. All 1952 source/test hashes match. The explicit owner-authorized combined gate counts the 19 native cases once alongside exact-tree prior five-group and 1396 non-native App-rest evidence: 12247 passed, 0 failed, 0 skipped. It is combined evidence, not a new monolithic green run. No full-suite rerun is required for this documentation-only decision and no whole-record status advances are claimed.
 
 The external lane brief E:/Droppy/work/codex/turbo/codex_common.md gains the matching narrow collection-exception line; its ban on serialization to hide hangs remains. ENGINEERING DECISION; owner-approved test isolation, not a behavior deviation or a new parity claim.
+
+
+## ED-227
+
+[DOC][WIN][LAUNCH] Restored Windows toast mechanism; historical citation mapping only.
+Provenance: the original seven-part toast decision was recorded as ED-220 in commit
+168b20c0582cf235af24bf8f4efc8630b8c52bd0 (2026-09-27), porting/engineering_decisions.md.
+Its owner authority is OD-0028 from f4db0ef539f50bfe6bcc8cbfc59e367f9fc562f1,
+restored verbatim in porting/owner_decisions.md. This recovers existing authority; it grants no new
+permission, changes no behavior and claims no runtime verification.
+
+LEGACY MAPPING: toast references to ED-220 (1)-(7), including WindowsToastPlatform.cs:3
+(1)-(3), (6)-(7), WindowsToastNotifications.cs, WindowsToastLaunchTransport.cs and ToastIcon.cs,
+mean ED-227 with the same numbered clauses below. The current ED-220 is the separately approved
+Windows native/process collection exception and is preserved verbatim; it is not toast authority.
+Only the historical toast identifier is disambiguated here. The original source facts and seven
+numbered decisions follow without substantive changes; runtime source comments remain untouched.
+
+[WIN][LAUNCH] Windows toasts for AppModel.notify, UpdateChecker.notifyOnce and the notification delegate (OD-0028; audit G1-03).
+SOURCE FACT:
+- AppModel.swift:1248-1266 notify: skipped when the app is active and the thread is on screen; asks permission once; content title,
+  body and sound (.default, or nil at :1215); userInfo ["threadID": uuidString]; the request identifier is the thread's uuidString,
+  so a newer notification for the same thread replaces the older one.
+- UpdateChecker.swift:245-261 notifyOnce: userInfo ["update": version].
+- AppDelegate.swift:63-75 willPresent: nothing while the app is active and the notified thread is selected; otherwise banner and sound.
+- AppDelegate.swift:77-90 didReceive: show main unless it is an update; select the thread; activate; for an update, Settings > About.
+The port posted nothing: AppModel.Notify was a no-op and UpdateToastCenter defaulted to NoUpdateToastCenter.
+DECISION:
+1. Only Marrow.App targets net10.0-windows10.0.19041.0, for Microsoft's WinRT projection (OD-0028). Toasts go through
+   Windows.UI.Notifications ToastNotificationManager.
+2. Identity. The app sets an explicit AppUserModelID at start, before any window:
+   - "MarrowCode.Marrow" for a release build, and "MarrowCode.Marrow.Dev" for a debug build or a build run with MARROW_DEV_DATA_ROOT
+     (ED-212 naming);
+   - it registers per user under HKCU\Software\Classes\AppUserModelId\<id>, with DisplayName "Marrow" and IconUri set to the app icon,
+     writing only when a value differs;
+   - these names never equal or read those of the owner's separate "Marrow" Electron app.
+3. Posting. A ToastGeneric toast with two texts, the title and the body; the default sound, or <audio silent="true"/> when the source
+   passes nil; Tag set to the request identifier, so a newer toast replaces an older one as the source's identifiers do; and the
+   userInfo carried in the activation arguments.
+4. requestNotificationPermission stays a once-only step with no prompt, because Windows has none. The user's Windows notification
+   setting for the app governs.
+5. Foreground rule. The willPresent logic (:63-75) runs just before posting. When it returns nothing, no toast is shown: Windows has no
+   per-toast foreground hook, so deciding first gives the same visible result.
+6. Activation. The toast uses protocol activation with a per-user URI scheme ("marrow-code-<build identity>:", registered in HKCU at
+   start, internal plumbing never shown to the user), so a click works whether or not the app is running.
+   - A click on a running app goes through ED-002's second-launch path to the running instance, carrying the payload. If that path
+     forwards no arguments today, it gains a payload message.
+   - The running instance then does exactly what didReceive (:77-90) does.
+7. Every Windows call (AUMID, registry, ToastNotifier, the URI scheme) goes through a seam. Tests record the requests and never post a
+   real toast, write the real registry or launch a URI.
+ENGINEERING DECISION; toast visuals are Windows' own.

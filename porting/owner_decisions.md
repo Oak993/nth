@@ -423,3 +423,32 @@ instruction may change one.
   - The captures are a post-first-launch task (E:\Droppy\work\followups.md) and need the app running with test data
     only, never the owner's real projects or accounts.
   - OD-0004's use of the Mac captures as an approximate visual oracle is unchanged.
+
+
+## OD-0028 Notifications on Windows are real Windows toasts, through Microsoft's Windows SDK projection
+
+- **Asked 2026-09-27** (main Claude; audit finding G1-03): the Mac posts user notifications for a finished chat
+  (`App/AppModel.swift:1248-1266`) and a found update (`App/UpdateChecker.swift:245-261`), and routes their clicks
+  (`App/AppDelegate.swift:63-90`). The port posted nothing (AppModel.Notify and UpdateToastCenter were no-ops). Options:
+  - A. use Windows' own toast notifications through Microsoft's official Windows SDK projection for .NET
+    (`Microsoft.Windows.SDK.NET.Ref`), a one-time build download from nuget.org (Recommended);
+  - B. hand-written interop to the same Windows feature, with no new package;
+  - C. no notifications, as a recorded difference.
+- **Owner answer, verbatim:** "Yes, ChatGPT already uses it, look how it shows up on the screen on the right lower side."
+  (Option A; the owner pointed at a ChatGPT toast on screen as the model.)
+- **Effect:**
+  - The port may add the Windows SDK projection, restored from nuget.org, to the project that owns the toast code, and
+    only that project changes its target framework.
+  - Toasts carry the title, the body and the default sound, or none when the source passes nil. A chat's toast carries its
+    threadID payload and an update toast its version, and a click routes exactly as AppDelegate.swift:77-90 does.
+  - The foreground rule of :63-75 decides banner and sound versus nothing.
+  - The app registers its own notification identity, distinct from the owner's separate "Marrow" Electron app.
+  - Tests never post a real toast.
+  - The mechanism is ED-220.
+
+Provenance (restored historical approval, not a new owner ruling): recovered only this OD-0028
+section from f4db0ef539f50bfe6bcc8cbfc59e367f9fc562f1 (2026-09-27),
+porting/owner_decisions.md. The owner answer and effects above are preserved verbatim.
+The historical final ED-220 citation above refers to the toast decision restored as ED-227
+(same clauses 1-7; original 168b20c0582cf235af24bf8f4efc8630b8c52bd0).
+It does not refer to the current ED-220 native/process collection exception.
