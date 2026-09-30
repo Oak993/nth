@@ -1644,11 +1644,41 @@ public sealed class ThreadRuntime : MainActorModel
             if (files.Length != 0)
                 prompt += "\n\nAttached files:\n" + string.Join("\n", files.Select(file => "- " + file.Path));
 
+            // ThreadRuntime.swift:1282-1306. Carry the selected Hydra route to the actual provider input.
+            if (app.HydraLaunch(thread) is { } launch)
+            {
+                var merge = launch.AutoMerges
+                    ? HydraPrompts.MergeStatus(HydraMerges, app.HydraUnmergedFileCount(ThreadID))
+                    : null;
+                if (!launch.RunsNatively)
+                {
+                    var team = HydraPrompts.TeamStatus(app.HydraTeam(ThreadID)
+                        .Where(head => head.Hydra is not null).Select(head => head.Hydra!).ToArray());
+                    var canDelegate = hydraBudget.CanDelegate;
+                    if (KeepsHydraPolicyInSystemPrompt(thread.Provider))
+                    {
+                        prompt = (hydraHeads is null
+                            ? HydraPrompts.FallbackTurnNote(team, merge)
+                            : HydraPrompts.FallbackReportNote(team, canDelegate, merge)) + prompt;
+                    }
+                    else
+                    {
+                        prompt = (hydraHeads is null
+                            ? HydraPrompts.FallbackPreamble(launch, team, merge)
+                            : HydraPrompts.FallbackReportPreamble(launch, team, canDelegate, merge)) + prompt;
+                    }
+                }
+                else if (merge is not null)
+                {
+                    prompt = HydraPrompts.FallbackTurnNote(null, merge) + prompt;
+                }
+                // User turns request delegation; automatic reports retain their review and round-limit policy.
+                if (hydraHeads is null) prompt = HydraPrompts.DelegationRequest(launch) + prompt;
+            }
+
             var injectedAntiSlopPolicy = false;
             var antiSlopEpoch = sessionEpoch;
-            // API-key providers keep this policy in their system prompt; the native-Hydra capability
-            // filter is left to the AppModel Hydra surface, which is not present on this unit's base.
-            if (!thread.Provider.IsAPIKeyBased && commandName is null && !antiSlopFallbackSent)
+            if (!KeepsHydraPolicyInSystemPrompt(thread.Provider) && commandName is null && !antiSlopFallbackSent)
             {
                 var instructions = AntiSlopPolicy.Instructions(sessionSignature?.AntiSlopEnabled ?? app.Settings.AntiSlopEnabled);
                 if (instructions.Length != 0)
