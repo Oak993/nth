@@ -972,6 +972,7 @@ public sealed class ThreadRuntime : MainActorModel
         }
 
         Draft = new ComposerDraft();
+        if (DispatchSentHead(text, attachments)) return; // ThreadRuntime.swift:753
         _ = MainActor.Spawn(() => StartTurn(text, attachments));
     }
 
@@ -1029,8 +1030,6 @@ public sealed class ThreadRuntime : MainActorModel
     {
         if (IsReverting || Draft.IsEmpty || Phase == RuntimePhase.Idle) return;
 
-        // Blocked: dispatchSentHead requires AppModel's Hydra launch/dispatch surface,
-        // which is not present in the owned AppModel API for this port slice.
         if (DispatchSentHead(Draft.OutgoingText, Draft.Attachments))
         {
             Draft = new ComposerDraft();
@@ -1289,15 +1288,19 @@ public sealed class ThreadRuntime : MainActorModel
     // ThreadRuntime.swift:1028-1040.
     private bool DispatchHead(FollowUpPrompt prompt, HydraHeadInfo.Origin origin)
     {
-        if (appReference is null || !appReference.TryGetTarget(out var app)) return false;
-        if (app.Thread(ThreadID) is not { } thread || thread.IsArchived) return false;
-
-        // BLOCKED: this AppModel slice does not expose hydraLaunch(for:),
-        // runningDroppyHeads(of:), hydraChatContext(for:), or spawnDroppyHead(...).
-        // Do not infer a launch or create a head without those authoritative APIs.
-        _ = prompt;
-        _ = origin;
-        return false;
+        if (appReference is null || !appReference.TryGetTarget(out var app)) return false; // :1029
+        if (app.Thread(ThreadID) is not { } thread || thread.IsArchived // :1029
+            || app.HydraLaunch(thread) is not { } launch // :1029
+            || !launch.HasRoom(app.RunningDroppyHeads(ThreadID))) return false; // :1030
+        var task = TextCleanup.SingleLine(prompt.Text, 60); // :1031 the head's title; the brief carries the full text
+        // :1032 read now, so the head sees the chat as it stands at dispatch, not as the closure later runs.
+        var (lastUserPrompt, lastReply, touchedPaths) = app.HydraChatContext(ThreadID);
+        var context = new HydraPrompts.ChatContext { LastUserPrompt = lastUserPrompt, LastReply = lastReply, TouchedPaths = touchedPaths };
+        var leadIsWorking = phase != RuntimePhase.Idle; // :1033 captured here, not re-read inside the closure
+        var text = prompt.Text; // :1034
+        // :1035-1037 no batch, no preferred index, no project, no profile: such a head is never part of a batch.
+        return app.SpawnDroppyHead(ThreadID, task, origin, prompt.Attachments, null, null, null, null,
+            (persona, workplace) => HydraPrompts.QueuedHeadPrompt(persona, text, context, workplace, leadIsWorking)) is not null;
     }
 
     // ThreadRuntime.swift:1042-1053.
