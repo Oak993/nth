@@ -55,6 +55,7 @@ internal sealed class TerminalScreenBuffer
     public int Rows { get; private set; }
     public int CursorColumn { get; private set; }
     public int CursorRow { get; private set; }
+    public bool ApplicationCursorMode { get; private set; }
     public bool BracketedPasteMode { get; private set; }
     public bool CursorVisible { get; private set; } = true; // SwiftTerm DECTCEM defaults on
     public bool IsAlternateScreen => savedNormalLines is not null;
@@ -292,6 +293,8 @@ internal sealed class TerminalScreenBuffer
         {
             foreach (var mode in parameters)
             {
+                // SwiftTerm Terminal.swift:5236-5237,5470-5471 (DECCKM).
+                if (mode == 1 && final is 'h' or 'l') ApplicationCursorMode = final == 'h';
                 if (mode == 2004 && final is 'h' or 'l') BracketedPasteMode = final == 'h';
                 if (mode == 25 && final is 'h' or 'l') CursorVisible = final == 'h';
                 if (mode is 47 or 1047 or 1049 && final is 'h' or 'l') SwitchAlternate(final == 'h');

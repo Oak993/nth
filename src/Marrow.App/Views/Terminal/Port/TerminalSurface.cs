@@ -46,6 +46,28 @@ internal sealed class TerminalSurface : Decorator
     private double FontSize => TextControl.FontSize;
     public IBrush? CursorBrush { get; set; }
 
+    internal void ClearSelection() => SelectionStart = SelectionEnd = 0;
+
+    internal void ScrollPage(bool up)
+    {
+        if (frame is null) return;
+        // SwiftTerm AppleTerminalView.swift:2710-2744: one page is terminal.rows.
+        historyOffset = Math.Clamp(historyOffset + (up ? frame.Rows : -frame.Rows), 0, frame.HistoryCount);
+        InvalidateVisual();
+    }
+
+    internal void EnsureCaretVisible()
+    {
+        if (frame is not { } current) return;
+        // MacTerminalView.swift:3437-3446 only returns to the live screen when
+        // the caret is outside the scrolled viewport, not on every input byte.
+        var first = current.HistoryCount - historyOffset;
+        var caret = current.HistoryCount + current.CursorRow;
+        if (caret >= first && caret < first + current.Rows) return;
+        historyOffset = 0;
+        InvalidateVisual();
+    }
+
     public void UpdateFrame(TerminalFrame next)
     {
         frame = next;

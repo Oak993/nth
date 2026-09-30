@@ -6,6 +6,7 @@ using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Input;
+using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -49,6 +50,8 @@ public sealed class TerminalHostView : Border
     private SwiftColor? selectedTextBackgroundColor;
     private PseudoConsoleSize lastPseudoConsoleSize;
     private bool outputUpdateQueued;
+    private int inputGeneration;
+    private Task pendingPaste = Task.CompletedTask;
 
     public TerminalHostView()
     {
@@ -181,6 +184,7 @@ public sealed class TerminalHostView : Border
         string currentDirectory)
     {
         _ = execName; // PR-TERM-042: dropped on Windows.
+        inputGeneration++;
         launcher.ExecutableURL = executable;
         launcher.Arguments = args;
         launcher.Environment = environment;
@@ -204,6 +208,7 @@ public sealed class TerminalHostView : Border
     /// <summary>:61 <c>view.terminate()</c>: the graceful step only, no escalation.</summary>
     public void Terminate()
     {
+        inputGeneration++; // A delayed clipboard read must not write after termination.
         // TerminalSession.Terminate already marks the session stopped. Disarm callbacks before the asynchronous
         // process exit, since its former UI dispatcher may have been disposed when the view is torn down.
         ProcessDelegate = null;
@@ -268,17 +273,35 @@ public sealed class TerminalHostView : Border
         if (e.Handled) return;
         if (e.Key == Key.Escape) return;
 
-        if (IsTextKey(e.Key))
+        // Windows edit-chord adaptation (ED-050): the source's paste action reads
+        // plain text from the clipboard. Ctrl+C with a selection was handled above;
+        // without a selection it continues below as the shell's interrupt byte.
+        if (e.Key == Key.V && e.KeyModifiers == KeyModifiers.Control)
         {
-            if (OptionAsMetaKey && e.KeyModifiers.HasFlag(KeyModifiers.Alt) && TryKeyByte(e.Key, e.KeyModifiers, out var meta))
-            {
-                SendBytes([0x1B, meta]);
-                e.Handled = true;
-            }
-            return; // TextInput carries the actual Unicode character, including IME text.
+            e.Handled = true;
+            pendingPaste = PasteFromClipboard(pendingPaste);
+            return;
         }
 
-        if (KeyBytes(e.Key, e.KeyModifiers) is { Length: > 0 } bytes)
+        // MacTerminalView.swift:1568 clears selection on terminal key input.
+        scrollbackText.ClearSelection();
+        bool applicationCursor;
+        bool alternate;
+        lock (scrollbackGate)
+        {
+            applicationCursor = screen.ApplicationCursorMode;
+            alternate = screen.IsAlternateScreen;
+        }
+        // MacTerminalView.swift:1583-1593 and AppleTerminalView.swift:2710-2727:
+        // unmodified Page keys scroll normal history, but reach full-screen programs.
+        if (e.Key is Key.PageUp or Key.PageDown && e.KeyModifiers == KeyModifiers.None
+            && !applicationCursor && !alternate)
+        {
+            scrollbackText.ScrollPage(e.Key == Key.PageUp);
+            e.Handled = true;
+            return;
+        }
+        if (TerminalInput.EncodeKey(e.Key, e.KeyModifiers, e.KeySymbol, applicationCursor, OptionAsMetaKey) is { Length: > 0 } bytes)
         {
             SendBytes(bytes);
             e.Handled = true;
@@ -287,14 +310,41 @@ public sealed class TerminalHostView : Border
 
     private void OnTextInput(object? sender, TextInputEventArgs e)
     {
+        if (e.Handled) return;
         if (string.IsNullOrEmpty(e.Text)) return;
+        scrollbackText.ClearSelection();
         SendBytes(Encoding.UTF8.GetBytes(e.Text));
         e.Handled = true;
+    }
+
+    internal void PasteText(string text)
+    {
+        bool bracketed;
+        lock (scrollbackGate) bracketed = screen.BracketedPasteMode;
+        scrollbackText.ClearSelection();
+        SendBytes(TerminalInput.EncodePaste(text, bracketed));
+    }
+
+    private async Task PasteFromClipboard(Task previous)
+    {
+        var topLevel = TopLevel.GetTopLevel(this);
+        var generation = inputGeneration;
+        if (topLevel?.Clipboard is not { } clipboard) return;
+        // AppKit reads synchronously. Serialize the Windows asynchronous reads so
+        // repeated paste gestures retain their order, and bind each to its session.
+        await previous;
+        if (generation != inputGeneration || !ReferenceEquals(topLevel, TopLevel.GetTopLevel(this))) return;
+        var text = await clipboard.TryGetTextAsync();
+        if (generation == inputGeneration && ReferenceEquals(topLevel, TopLevel.GetTopLevel(this)))
+            PasteText(text ?? "");
     }
 
     internal void SendBytes(byte[] bytes)
     {
         if (bytes.Length == 0) return;
+        // SwiftTerm AppleTerminalView.swift:2873-2882 ensures the caret is visible
+        // whenever input is sent, including pasted text after scrolling into history.
+        scrollbackText.EnsureCaretVisible();
         try { input?.Write(bytes); }
         catch (IOException) { }
         catch (ObjectDisposedException) { }
@@ -330,40 +380,6 @@ public sealed class TerminalHostView : Border
         InvalidateVisual();
     }
 
-    private static bool IsTextKey(Key key) =>
-        key is >= Key.A and <= Key.Z or >= Key.D0 and <= Key.D9 or >= Key.NumPad0 and <= Key.NumPad9
-            or Key.Space or Key.OemComma or Key.OemPeriod or Key.OemMinus or Key.OemPlus;
-
-    private static bool TryKeyByte(Key key, KeyModifiers modifiers, out byte value)
-    {
-        if (key is >= Key.A and <= Key.Z)
-        {
-            value = (byte)('a' + (key - Key.A));
-            if (modifiers.HasFlag(KeyModifiers.Shift)) value = (byte)char.ToUpperInvariant((char)value);
-            return true;
-        }
-        value = 0;
-        return false;
-    }
-
-    private static byte[]? KeyBytes(Key key, KeyModifiers modifiers) => key switch
-    {
-        Key.Enter => [0x0D],
-        Key.Tab => [0x09],
-        Key.Back => [0x7F],
-        Key.Space => [0x20],
-        Key.Left => Encoding.ASCII.GetBytes("\x1B[D"),
-        Key.Right => Encoding.ASCII.GetBytes("\x1B[C"),
-        Key.Up => Encoding.ASCII.GetBytes("\x1B[A"),
-        Key.Down => Encoding.ASCII.GetBytes("\x1B[B"),
-        Key.Home => Encoding.ASCII.GetBytes("\x1B[H"),
-        Key.End => Encoding.ASCII.GetBytes("\x1B[F"),
-        Key.Delete => Encoding.ASCII.GetBytes("\x1B[3~"),
-        Key.Insert => Encoding.ASCII.GetBytes("\x1B[2~"),
-        Key.PageUp => Encoding.ASCII.GetBytes("\x1B[5~"),
-        Key.PageDown => Encoding.ASCII.GetBytes("\x1B[6~"),
-        _ => null,
-    };
 }
 
 /// <summary>
