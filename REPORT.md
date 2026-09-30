@@ -37,6 +37,10 @@ Source site: `AppDelegate.swift:22` calls `windows.showMain()`; `WindowManager.s
 
 Source site: `AppDelegate.swift:44-54` returns `.terminateNow` without a merge, otherwise `.terminateLater`, polls every 250 ms to a 4 × 60 second deadline, and unconditionally replies true; `:56-61` orders save, live-spend flush and MCP termination. `AppDelegateTests` and `AppShellTests` cover the ordinary path, including the cap. Windows ED-004(2) additionally requires `ShutdownBlockReasonCreate` while `WM_QUERYENDSESSION` is held; `AppShell.ShutdownRequested` cancels the request but has no reason call. The Swift file contains only a code comment about merging (`:41-43`), no user-facing reason string. Supplying one would invent text. STOP at `AppShell.ShutdownRequested`, the session-end branch; owner-approved reason text and then a test/mutation of that native binding are required. Ordinary quit remains implemented; no source defect is claimed.
 
++### PR-LAUNCH-064 — STOP
+
+Source site: `AppDelegate.swift:77-92` reads `threadID` as a String, shows main before setting a parseable UUID on `model`, activates, and skips About when `update` is absent. The C# delegate and `WindowsToastStartupTests`/`WindowsToastTests` cover callback ordering and payload transport. The record's action is a user tapping a system toast. ED-220(7) forbids a real toast, registry or URI in tests; the test tree has only recording callbacks, no native toast pointer fixture. A callback invocation cannot prove the tap reaches `UserNotificationCenter(didReceive:)` under the interaction mutation standard. STOP at `WindowsToastPlatform.Show` to toast activation ingress; a safe hit-tested native fixture or an explicit proof-method ruling is required. No source defect is claimed.
+
 ## Commands and observed output
 
 For every `dotnet` build/test command below, PowerShell first removed the listed API-key environment variables and set `MARROW_PORT_DATA_DIR` to a newly created `%TEMP%\marrow-<GUID>` directory. No installed app was launched.
