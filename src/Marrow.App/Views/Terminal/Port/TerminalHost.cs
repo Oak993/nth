@@ -332,7 +332,12 @@ public sealed class TerminalHostView : Border
         if (topLevel?.Clipboard is not { } clipboard) return;
         // AppKit reads synchronously. Serialize the Windows asynchronous reads so
         // repeated paste gestures retain their order, and bind each to its session.
-        await previous;
+        try { await previous; }
+        catch (Exception) when (previous.IsFaulted)
+        {
+            // A failed read belongs to that paste gesture. It must not poison
+            // the ordering chain and prevent every later clipboard request.
+        }
         if (generation != inputGeneration || !ReferenceEquals(topLevel, TopLevel.GetTopLevel(this))) return;
         var text = await clipboard.TryGetTextAsync();
         if (generation == inputGeneration && ReferenceEquals(topLevel, TopLevel.GetTopLevel(this)))
