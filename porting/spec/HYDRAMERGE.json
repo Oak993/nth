@@ -842,11 +842,54 @@
       "cancellation": "not cancellable",
       "windows_path": "Parse on a worker thread; the diff argv is the Git layer's.",
       "verification_method": "unit test of the empty-patch fallback",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b3_note": "1.7.0 diffs from the try's parent, which is origin/<target> after a rebuild on the remote, instead of HEAD, inside the prepare loop (B3 AppModel+HydraMerge.swift:310)."
+      "b3_note": "1.7.0 diffs from the try's parent, which is origin/<target> after a rebuild on the remote, instead of HEAD, inside the prepare loop (B3 AppModel+HydraMerge.swift:310).",
+      "implementation_evidence": {
+        "accepted_commit": "9f600e3162a0835b5a6114ef1aa7f464d3332ae1",
+        "accepted_source_tree": "49a3f240f45a0a2657b0d71fa2a4221a3fa8c4f7",
+        "accepted_test_tree": "7601190fc603232d1e263ffd1ff924e26ba802a7",
+        "independent_review": "Independent lane E final acceptance relayed by J.A.R.V.I.S. 2026-09-30 in owner-authorized thread 01a0f087-91cd-74b6-8f1c-77c3473850c3. Exact three repaired delta paths, all1973hashes, build0/0, freshnative19/19 and headless21/21 independently confirmed. Only HYDRAMERGE034 and063 qualify whole-record implementation.",
+        "build": {
+          "warnings": 0,
+          "errors": 0,
+          "receipt": "E:/Droppy/wt/cx/merge-b516-repair/_evidence/successor-build.log"
+        },
+        "combined_gate": {
+          "passed": 12308,
+          "failed": 0,
+          "skipped": 0,
+          "mode": "Combined source-bound receipts, not a monolithic run. Fresh native19 replaces historical19 once; 21affected checks replace matching prior rows and add three cases. Original Services GitFifth failure preserved; exact isolated replacement counted once; directory owner unknown/race unfixed. Historical sanitation limitations retained.",
+          "distinct_raw_ids": 12298,
+          "distinct_id_plus_exact_name_rows": 12308,
+          "audit": "E:/Droppy/wt/cx/merge-b516-repair/_evidence/SUCCESSOR-ACCEPTANCE-AUDIT.json",
+          "inventory": "E:/Droppy/wt/cx/merge-b516-repair/_evidence/successor-case-inventory.json",
+          "ui_id_qualification": "Ten accepted UI raw-ID collisions distinguished by exact parameter-row display names."
+        },
+        "runtime_source_test_hashes": 1973,
+        "evidence_refs": [
+          "E:/Droppy/wt/cx/merge-b516-repair/_evidence/successor-21.trx",
+          "E:/Droppy/wt/cx/merge-b516-repair/_evidence/successor-21-source-before.json",
+          "E:/Droppy/wt/cx/merge-b516-repair/_evidence/f-next-native.trx",
+          "E:/Droppy/wt/cx/merge-b516-repair/_evidence/successor-native-summary.json",
+          "E:/Droppy/work/codex/turbo/SEALED_B516_ACCEPTANCE_PACKET.md"
+        ],
+        "scope": "IMPLEMENTED only, not VERIFIED. WIN064/065 native CF_HDROP remain open; framefactory and terminal partial only; terminal survivors/invalid mutant retained. About/DeepSeek excluded.",
+        "mutation_proof": {
+          "new_record_mutants": 8,
+          "red_runs": 16,
+          "restored_bindings": 10,
+          "proof_root": "E:/Droppy/wt/cx/hydramerge/_evidence/",
+          "plan": "c034-plan.json",
+          "final": "f-c034-final.trx",
+          "restoration": "f-c034-restoration.json",
+          "additional_reuse": "Source-bound parsed-files proof retained. Platform URL spelling correction and Worker structural IL evidence independently accepted; original fixture/harness failures preserved."
+        },
+        "integrated_source_commit": "65bdb8874cfedd152bd0e62b00c2a9ae95ff0800",
+        "prepared_source_base": "7c8ee713c792e224c00f4e23ec03ab19b7c7ac0f"
+      }
     },
     {
       "id": "PR-HYDRAMERGE-035",
@@ -1631,7 +1674,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the source guards, sync ordering, byte-based merged write-back check and positional-zip truncation. Named accepted deviations OD-0020 / OD-0035: remove remote-deleted paths with git rm --quiet -f -- after soft reset; capture and restore branch/index/working state on a later Git or atomic-write failure before returning false, surfacing rollback failure. This differs from the Swift failure path; it is not exact parity or independently verified by this record edit.",
       "verification_method": "integration test covering each decline branch, the happy path, a three-way-merged file written back, and a merged file edited again before the write-back (left alone)",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": "80",
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1642,6 +1685,57 @@
         "upstream": "The Swift failure catch returns false without undoing already-applied branch/index/working changes.",
         "port": "Force remote-deleted path removal after soft reset and restore captured branch/index/working state on subsequent failure; surface restoration failure.",
         "verification": "Decision clarified only; clause tests and mutation acceptance required before record advancement."
+      },
+      "implementation_evidence": {
+        "accepted_commit": "9f600e3162a0835b5a6114ef1aa7f464d3332ae1",
+        "accepted_source_tree": "49a3f240f45a0a2657b0d71fa2a4221a3fa8c4f7",
+        "accepted_test_tree": "7601190fc603232d1e263ffd1ff924e26ba802a7",
+        "independent_review": "Independent lane E final acceptance relayed by J.A.R.V.I.S. 2026-09-30 in owner-authorized thread 01a0f087-91cd-74b6-8f1c-77c3473850c3. Exact three repaired delta paths, all1973hashes, build0/0, freshnative19/19 and headless21/21 independently confirmed. Only HYDRAMERGE034 and063 qualify whole-record implementation.",
+        "build": {
+          "warnings": 0,
+          "errors": 0,
+          "receipt": "E:/Droppy/wt/cx/merge-b516-repair/_evidence/successor-build.log"
+        },
+        "combined_gate": {
+          "passed": 12308,
+          "failed": 0,
+          "skipped": 0,
+          "mode": "Combined source-bound receipts, not a monolithic run. Fresh native19 replaces historical19 once; 21affected checks replace matching prior rows and add three cases. Original Services GitFifth failure preserved; exact isolated replacement counted once; directory owner unknown/race unfixed. Historical sanitation limitations retained.",
+          "distinct_raw_ids": 12298,
+          "distinct_id_plus_exact_name_rows": 12308,
+          "audit": "E:/Droppy/wt/cx/merge-b516-repair/_evidence/SUCCESSOR-ACCEPTANCE-AUDIT.json",
+          "inventory": "E:/Droppy/wt/cx/merge-b516-repair/_evidence/successor-case-inventory.json",
+          "ui_id_qualification": "Ten accepted UI raw-ID collisions distinguished by exact parameter-row display names."
+        },
+        "runtime_source_test_hashes": 1973,
+        "evidence_refs": [
+          "E:/Droppy/wt/cx/merge-b516-repair/_evidence/successor-21.trx",
+          "E:/Droppy/wt/cx/merge-b516-repair/_evidence/successor-21-source-before.json",
+          "E:/Droppy/wt/cx/merge-b516-repair/_evidence/f-next-native.trx",
+          "E:/Droppy/wt/cx/merge-b516-repair/_evidence/successor-native-summary.json",
+          "E:/Droppy/work/codex/turbo/SEALED_B516_ACCEPTANCE_PACKET.md"
+        ],
+        "scope": "IMPLEMENTED only, not VERIFIED. WIN064/065 native CF_HDROP remain open; framefactory and terminal partial only; terminal survivors/invalid mutant retained. About/DeepSeek excluded.",
+        "source_lane_commit": "7c8ee713c792e224c00f4e23ec03ab19b7c7ac0f",
+        "mutation_proof": {
+          "prepared_record_mutants": 15,
+          "prepared_red_runs": 30,
+          "prepared_restored_green_runs": 15,
+          "proof_root": "E:/Droppy/wt/cx/hydramerge/_evidence/",
+          "plan": "c063-plan.json",
+          "prepared_final": "c063-final-green.txt",
+          "negative_rollback_plan": "C063-ROLLBACK-FAILURE-PLAN.md",
+          "negative_rollback_red_runs": 2,
+          "negative_rollback_restored_green": true,
+          "negative_rollback_receipts": [
+            "mutation-063-rollback-error-surface.txt",
+            "c063-rollback-failure-final-green.txt",
+            "c063-rollback-failure-environment.txt"
+          ],
+          "negative_test_sha256": "62C33840C16D5CAE411E8A988E0D490F260D49C8FDC3F6F0471E0E2C6FE56627",
+          "production_sha256": "B15017C16A42FBBBAC4F61129BE17B17FF7C01A8D44C1879D8907E4F705FF122",
+          "additional_reuse": "OD0020 rollback/force/truncation source-bound receipts retained; OD0035 approved deviation wording. No rollback proof reset."
+        }
       }
     },
     {
