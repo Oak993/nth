@@ -31,7 +31,14 @@ public sealed class FollowUpEditorTests(HeadlessSession headless)
     private static ThreadRuntimePart12Harness RuntimeHarness()
     {
         System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
-        return new ThreadRuntimePart12Harness();
+        var harness = new ThreadRuntimePart12Harness();
+        // These editor tests need a stored follow-up, not a Hydra head dispatched from the queue.
+        harness.Main.OnMain(() =>
+        {
+            harness.App.Settings.HydraQueueHeads = false;
+            harness.App.Settings.HydraAlwaysHeads = false;
+        });
+        return harness;
     }
 
     private static Control Build(ThreadRuntime runtime, PromptEdit edit)
