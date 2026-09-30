@@ -267,6 +267,62 @@ porting/owner_decisions_pending.md.
 
 [CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-065 The main actor. `MainActor` over `IMainExecutor` in Core, bound once by Marrow.App to Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).
 
+### ED-065 owner-approved amendment (OD-0034, 2026-09-30)
+
+The following approved draft is reproduced in full. Its Evidence and Tests sections are attributed historical claims from the draft, not new execution or acceptance by this documentation batch. The old ED-065 entry above is retained for provenance; the queue policy below supersedes its per-job Default interpretation.
+
+ED-065 The main actor (amended by the fix/mainexec ruling, rounds 1-2).
+
+**Decision.**
+- `MainActor` over `IMainExecutor` in Core, bound once by Marrow.App to `AvaloniaMainExecutor`. An unbound main actor traps. Statics that tests replace are `Ambient<T>` seams overridden per async flow.
+- AvaloniaMainExecutor keeps one FIFO queue per Avalonia Dispatcher and drains it in passes, like the GCD main queue:
+  - A pass takes the jobs queued when it began off the queue (its snapshot) and runs only those. Jobs enqueued during a pass wait for a later pass.
+  - The first pass of an idle queue is posted with `Dispatcher.Post` at `DispatcherPriority.Default`. Every later pass is posted at `DispatcherPriority.Input`, so pending input is handled in between.
+  - `Enqueue` never runs work inline, even on the UI thread.
+- It is re-entrant:
+  - While a pass runs, an enqueue also posts a pass at Input.
+  - Only a nested message loop inside a job can start that pass early (OpenPanel.RunModal's Win32 modal loop, a DispatcherFrame, a nested RunJobs). It then drains the jobs queued after the outer snapshot in FIFO order, and the outer pass finishes its own snapshot when the loop returns.
+  - Without a nested loop, that pass is superseded (by a pass id) when the outer pass ends, and the later pass is posted then.
+- A job that throws leaves the rest of its snapshot queued ahead of newer jobs. The exception surfaces through `Dispatcher.Post` as before.
+- Each job runs in its enqueuer's captured ExecutionContext. Passes are posted with flow suppressed.
+- While a job runs, `SynchronizationContext.Current` is a context whose Post enqueues on the same dispatcher's queue. So an await continuation of a main-actor task is a main-queue job. That context never reads the static `Dispatcher.UIThread`.
+
+**Why.**
+- ADR-0002 constraint 11 names the dispatcher as the carrier of `@MainActor`, and 27 Core/Services main-actor sites cannot reference Avalonia.
+- The old executor posted every job at Default. Avalonia 12.1.2 `Dispatcher.ExecuteJobsCore` runs jobs above Input back to back without returning to the Win32 message loop. A self-re-enqueuing main-actor cycle therefore froze input: in the archived-lead probe, the Unarchive click waited more than 20 s.
+- The nested-loop rule keeps main-actor work (stream events, AsyncAfter, the HangWatchdog ping) running while a modal loop is open inside a job, as it did before the drain change.
+- Per-dispatcher queues and the dispatcher-bound continuation context match AvaloniaSynchronizationContext. They also keep a pool thread from creating the UI dispatcher between headless tests.
+
+**Evidence.**
+- RUNTIME EVIDENCE (open-source libdispatch, cited by the ruling, not re-read here): `_dispatch_main_queue_drain` with `os_mpsc_capture_snapshot` (the snapshot is taken off the queue); the run loop handles events between drains.
+- RUNTIME EVIDENCE (open-source CoreFoundation/AppKit behaviour, not observed on this machine): the main queue is serviced in the run loop's common modes, which include the modal-panel mode.
+- SOURCE FACT: the Swift runs `panel.runModal()` from the button action (ComposerView.swift:526-533, PromptEditor.swift:117-124).
+- ENGINEERING FACT, from decompiled Avalonia 12.1.2:
+  - `DispatcherPriority`: Input = Default - 1.
+  - `ExecuteJobsCore`: `if (Priority > Input) { ExecuteJob; continue; }`. At or below Input it checks `HasPendingInput`.
+  - `Win32DispatcherImpl`: `CanQueryPendingInput` is true, and `HasPendingInput` uses `MsgWaitForMultipleObjectsEx(QS_INPUT|QS_POSTMESSAGE|QS_EVENT)`.
+  - `AvaloniaSynchronizationContext.Post` posts to its own dispatcher.
+  - `Dispatcher.UIThread` falls back to `CurrentDispatcher` when `s_uiThread` is null, which is the state `ResetGlobalState` leaves between headless tests.
+- Archived-lead probe on the real executor (round 1): the Input click ran within 0-12 ms, against more than 22,950 ms before.
+- `SettingsViewTests` alone: 5 of 5 green after round 2. The verifier had 2 of 5 fail at round 1.
+
+**Tests.** These run on the real AvaloniaMainExecutor in Avalonia headless.
+- `HeadlessTests.The_main_actor_bound_to_Avalonia_runs_posts_and_spawns_FIFO_on_the_UI_thread_never_inline`
+- `MainExecutorDrainTests` (11):
+  - `Work_runs_FIFO_and_never_inline_from_the_UI_thread_a_pool_thread_or_inside_a_pass`
+  - `A_chain_of_main_actor_jobs_that_re_enqueues_itself_does_not_starve_an_Input_priority_job`
+  - `A_main_actor_task_that_awaits_forever_does_not_starve_an_Input_priority_job`
+  - `A_job_enqueued_during_a_pass_runs_after_an_Input_job_posted_before_that_pass_ended`
+  - `The_first_pass_of_an_idle_queue_runs_at_Default_ahead_of_an_Input_job`
+  - `Each_job_runs_in_the_async_flow_of_its_own_enqueuer_even_when_one_pass_runs_both`
+  - `A_job_that_throws_leaves_the_jobs_behind_it_queued_and_they_still_run`
+  - `A_job_that_runs_a_nested_loop_does_not_freeze_the_main_actor_and_its_pass_finishes_its_snapshot_afterwards`
+  - `A_main_actor_task_awaiting_inside_a_nested_loop_resumes_inside_it`
+  - `A_main_actor_post_from_a_pool_thread_runs_inside_a_nested_RunJobs_opened_by_a_main_actor_job`
+  - `An_await_continuation_goes_back_to_the_dispatcher_of_its_job_without_reading_the_static_UIThread`
+- `MainActorTests` (13).
+- Mutations M1-M6 (round 1) and N1-N6 (round 2) are each caught.
+
 ## ED-066
 
 [CONVENTIONS] ADOPTED 2026-09-23 by the orchestrator. ED-066 The ambient Swift task model. The current Swift task (its cancellation) is ambient, as in Swift: set by Full text, rationale and tests: porting/IMPLEMENTING.md section 7 (binding under ED-064).

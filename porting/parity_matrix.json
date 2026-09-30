@@ -22211,7 +22211,7 @@
       ],
       "preconditions": "ownBranch merge succeeded.",
       "action": "The sync runs.",
-      "expected_result": "It returns false and changes nothing unless: git fetch succeeded; head is an ancestor of origin/<target>; the working copy of every three-way-merged file (the merged map of the kept try, empty unless the work was rebuilt on the remote, PR-HYDRAMERGE-128) could be read, each read kept as that file's content before the sync; the changed-path list from head to the remote could be read; no path the remote changed OTHER than the team's own is locally dirty; and HEAD is still exactly `head`. Then, in this order: reset --soft to origin/<target>; reset the index for the team's paths (the working tree already holds their content); checkout from the remote every other path that still exists there; remove every other path that is gone from it; then write each merged content over its file with an atomic write, but only where the file's bytes still equal what was read before (PR-HYDRAMERGE-131). Any throw in that block returns false. presentPaths asks one git process about every path at once, because a process per path took minutes on a remote that had moved by thousands of files.",
+      "expected_result": "It returns false and changes nothing unless: git fetch succeeded; head is an ancestor of origin/<target>; the working copy of every three-way-merged file (the merged map of the kept try, empty unless the work was rebuilt on the remote, PR-HYDRAMERGE-128) could be read, each read kept as that file's content before the sync; the changed-path list from head to the remote could be read; no path the remote changed OTHER than the team's own is locally dirty; and HEAD is still exactly `head`. Then, in this order: reset --soft to origin/<target>; reset the index for the team's paths (the working tree already holds their content); checkout from the remote every other path that still exists there; remove every other path that is gone from it; then write each merged content over its file with an atomic write, but only where the file's bytes still equal what was read before (PR-HYDRAMERGE-131). Named accepted deviation OD-0020 as explicitly reaffirmed by OD-0035: before mutation capture the index and working files that sync can touch; on a later Git or atomic-write failure restore the branch, index and captured working state, then return false. A rollback failure is surfaced as an error rather than reported as successful restoration. presentPaths asks one git process about every path at once, because a process per path took minutes on a remote that had moved by thousands of files.",
       "side_effects": [
         "git fetch (network), reset --soft, index reset, checkout of paths, git rm of paths",
         "A read of every merged file before the sync, and an atomic write of each merged file that did not change since"
@@ -22220,16 +22220,23 @@
       "failure_cases": [
         "reset --soft moves the branch with no expected old value, so the HEAD re-read immediately before it is the only protection against orphaning a commit the user made in a terminal.",
         "presentPaths zips answers to paths positionally and truncates to the shorter sequence, so a cat-file stream that dies mid-way silently reports the unanswered tail as ABSENT, which makes those files candidates for removal. REPRODUCE, DO NOT FIX.",
-        "A merged file that throws on its write returns false after the branch, index, checkouts and removals have already happened; they are not undone."
+        "Upstream source fact: a merged-file write failure returns false after branch/index/checkouts/removals and does not undo them. Accepted port deviation OD-0020 / OD-0035 restores the captured branch/index/working state before false; restoration failure is surfaced."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "Same guards and the same order, with the write-back last; compare the file's bytes, not its timestamp. The positional-zip truncation must be reproduced, not repaired.",
+      "windows_path": "Keep the source guards, sync ordering, byte-based merged write-back check and positional-zip truncation. Named accepted deviations OD-0020 / OD-0035: remove remote-deleted paths with git rm --quiet -f -- after soft reset; capture and restore branch/index/working state on a later Git or atomic-write failure before returning false, surfacing rollback failure. This differs from the Swift failure path; it is not exact parity or independently verified by this record edit.",
       "verification_method": "integration test covering each decline branch, the happy path, a three-way-merged file written back, and a merged file edited again before the write-back (left alone)",
       "status": "SPECIFIED",
       "upstream_defect": "80",
       "blocked_by": null,
       "depends_on_unknown": null,
-      "b3_note": "1.7.0 adds the merged parameter: the working copies of three-way-merged files are read first (an unreadable one returns false) and the merged content is written back atomically where unchanged (B3 AppModel+HydraMerge.swift:778-789, :809-813)."
+      "b3_note": "1.7.0 adds the merged parameter: the working copies of three-way-merged files are read first (an unreadable one returns false) and the merged content is written back atomically where unchanged (B3 AppModel+HydraMerge.swift:778-789, :809-813).",
+      "deviation": {
+        "decision": "OD-0020; OD-0035",
+        "name": "Hydra sync forced removal and failure rollback",
+        "upstream": "The Swift failure catch returns false without undoing already-applied branch/index/working changes.",
+        "port": "Force remote-deleted path removal after soft reset and restore captured branch/index/working state on subsequent failure; surface restoration failure.",
+        "verification": "Decision clarified only; clause tests and mutation acceptance required before record advancement."
+      }
     },
     {
       "area": "HYDRAMERGE",
@@ -82489,14 +82496,21 @@
       "failure_cases": [
         "foregroundJobIsTheShell cannot answer (non-positive pid or failed sysctl): it returns false, so Escape is passed through to the terminal and the drawer stays open."
       ],
-      "windows_path": "PLATFORM BOUNDARY. ConPTY exposes no foreground process group and no tpgid, so the fifth condition has no translation. Engineering decision ED-046 (porting/engineering_decisions.md:191, Q126) approximates it: \"On each Escape, enumerate live descendants of the ConPTY child PID (a snapshot of the process tree, or the shell's Job Object accounting if the shell is launched in one) and return true when the shell has no live descendant. Default to FALSE on any error, empty result, or enumeration timeout\". This is not settled by OD-0008 C5, which fixes only the interpreter (UNK-0005). Bare-Escape-at-prompt is an approximation, labelled a DEVIATION in COMPATIBILITY as ED-046 requires, never presented as parity.",
+      "windows_path": "Named accepted deviation OD-0031 / ED-046: on Escape enumerate live descendants of the ConPTY shell; close and consume only when the shell has no live child program. Otherwise pass Escape to the terminal; unknown/error/timeout also passes it through. Keep the source key/modifier/focus guards. This is the approved Windows approximation, not foreground-process-group parity.",
       "cancellation": "not cancellable",
       "verification_method": "interaction test with the shell at its prompt and again with a foreground program running",
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "open_question": "ED-046 (Q126) decides the Windows approximation and this record quotes it, but ED-046 itself says the result is a DEVIATION, not parity, and PORT_CONTRACT.md:294-296 admits only deviations the owner explicitly authorizes (:181 likewise for any visible compromise); no owner ruling (OD-0001 to OD-0014) accepts it. Missing: that owner acceptance of ED-046's descendant-process approximation as a named deviation."
+      "open_question": null,
+      "deviation": {
+        "decision": "OD-0031; ED-046",
+        "name": "Terminal Escape descendant-process approximation",
+        "upstream": "The source compares the shell process group with the terminal foreground process group.",
+        "port": "Use live shell descendants; no live child closes the drawer, any live child or unknown result sends Escape to the terminal.",
+        "verification": "Owner decision resolved; interaction tests and mutation acceptance still required."
+      }
     },
     {
       "area": "TERM",
@@ -83003,13 +83017,20 @@
         "Any failure answers false, which means Escape is passed through to the terminal rather than closing the drawer. Failing closed is the source's behaviour and must be preserved."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY. ConPTY has no process groups and no tpgid, so this predicate has no translation. Engineering decision ED-046 (porting/engineering_decisions.md:191, Q126) approximates it: \"On each Escape, enumerate live descendants of the ConPTY child PID (a snapshot of the process tree, or the shell's Job Object accounting if the shell is launched in one) and return true when the shell has no live descendant. Default to FALSE on any error, empty result, or enumeration timeout\". This is not settled by OD-0008 C5, which fixes only the interpreter (UNK-0005). The fail-closed direction (answer false when unknown, so Escape reaches the terminal) is the source-defined safe answer and is kept.",
+      "windows_path": "Named accepted deviation OD-0031 / ED-046: on Escape enumerate live descendants of the ConPTY shell; close and consume only when the shell has no live child program. Otherwise pass Escape to the terminal; unknown/error/timeout also passes it through. Keep the source key/modifier/focus guards. This is the approved Windows approximation, not foreground-process-group parity.",
       "verification_method": "contract fixture with a foreground child running and with the shell idle",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "open_question": "ED-046 (Q126) decides the Windows approximation and this record quotes it, but ED-046 itself says the result is a DEVIATION, not parity, and PORT_CONTRACT.md:294-296 admits only deviations the owner explicitly authorizes (:181 likewise for any visible compromise); no owner ruling (OD-0001 to OD-0014) accepts it. Missing: that owner acceptance of ED-046's descendant-process approximation as a named deviation."
+      "open_question": null,
+      "deviation": {
+        "decision": "OD-0031; ED-046",
+        "name": "Terminal Escape descendant-process approximation",
+        "upstream": "The source compares the shell process group with the terminal foreground process group.",
+        "port": "Use live shell descendants; no live child closes the drawer, any live child or unknown result sends Escape to the terminal.",
+        "verification": "Owner decision resolved; interaction tests and mutation acceptance still required."
+      }
     },
     {
       "area": "TERM",

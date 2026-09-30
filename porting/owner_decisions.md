@@ -452,3 +452,32 @@ porting/owner_decisions.md. The owner answer and effects above are preserved ver
 The historical final ED-220 citation above refers to the toast decision restored as ED-227
 (same clauses 1-7; original 168b20c0582cf235af24bf8f4efc8630b8c52bd0).
 It does not refer to the current ED-220 native/process collection exception.
+
+
+## OD-0031 Terminal Escape descendant-process approximation accepted
+
+- **Owner ruling, 2026-09-30:** "PR-TERM-031 / ED-046: ACCEPTED. Escape closes the terminal drawer only when the shell has no live child program. Otherwise Escape goes to the terminal, and if it can't tell, it also goes to the terminal."
+- **Effect:** ED-046's live-descendant approximation is a named accepted deviation, not foreground-process-group parity. Existing key/modifier/focus guards and session lifetime remain unchanged. PR-TERM-031 and PR-TERM-049 no longer await owner acceptance; implementation, interaction tests and mutations remain required. No requirement status or verification credit is granted here.
+
+## OD-0032 MCP argument-editor visible inset accepted deviation
+
+- **Owner ruling, 2026-09-30:** "UI-MCP-053: match the VISIBLE result. Adjust the Windows padding so the space around the text looks the same as the Mac's TextEditor inset, and record it as a named accepted deviation, not parity."
+- **Effect:** named accepted deviation "Windows argument-editor inset compensation". Adjust Windows padding for its built-in editor inset; preserve the source's visible text spacing, 66-point height, surface, hint, typography and argument semantics. No invented padding values or visual-verification claim. UI-MCP-053 still needs measured visual/input proof.
+
+## OD-0033 About identity pill uses the Marrow icon
+
+- **Owner ruling, 2026-09-30:** "About icon: the Marrow icon, as OD-0015 already rules. Update the UI-UPDATE-001 record and any wording about the old logo."
+- **Effect:** reaffirm OD-0015's existing identity deviation. UI-UPDATE-001 uses the finalized Marrow icon, retaining the source geometry, interpolation and accessibility behavior. Pinned source citations remain historical source facts; the port expectation no longer describes the live Droppy icon. No artwork change or implementation/verification credit.
+
+## OD-0034 ED-065 FIFO main-queue amendment approved as written
+
+- **Owner ruling, 2026-09-30:** "ED-065: APPROVED as written (draft E:\Droppy\work\codex\ed065-amendment-draft.md). Keep the Mac-style FIFO main queue that handles input between passes. Count the dependent records once their tests and mutations are accepted."
+- **Effect:** the full approved draft is reproduced under ED-065 in engineering_decisions.md. Snapshot FIFO passes, Default for an idle queue's first pass, Input for later passes, never inline, nested-loop reentrancy/pass supersession, exception ordering, captured ExecutionContext and dispatcher-bound continuation context are binding. IMPLEMENTING.md's old per-job Default wording is superseded narrowly. Draft evidence is attributed historical evidence, not newly verified by this entry. Dependent records receive no count/status advance without accepted tests and mutations.
+
+## OD-0035 Hydra sync spec records the OD-0020 deviation
+
+- **Owner ruling, 2026-09-30:** "PR-HYDRAMERGE-063 spec sentence: covered by OD-0020. Correct the spec text so it states the deviation from the Swift."
+- **Effect:** explicitly confirm today's coverage ruling for the existing runtime's OD-0020 Part A/B labels: forced removal of remote-deleted paths after soft reset, and restoration of the captured branch/index/working files on a later sync failure before returning false. The pinned Swift does not undo already-applied changes when its write-back throws; keep that source fact and mark the port rollback as a named accepted deviation. Rollback failure is surfaced rather than called successful restoration. Preserve positional truncated-output behavior and all unchanged source guards/write-back rules. No runtime/test edit or whole-record acceptance is authorized by bookkeeping alone.
+- **Historical distinction:** the current OD-0020 entry lists the original wave-A batch without spelling out these Hydra Part A/B labels. Preserve that historical entry; this explicit 2026-09-30 ruling supplies the coverage cross-reference instead of silently rewriting its old wording.
+
+Provenance for OD-0031 through OD-0035: owner chat relayed by J.A.R.V.I.S. and full E:/Droppy/work/codex/turbo/OWNER_RULINGS_20260930b.md, read in full. OD-0029/0030 are reserved by historical docs/b3 decisions and are not imported or renumbered here. Historical OD-0028 and all earlier entries remain unchanged.

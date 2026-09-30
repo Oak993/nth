@@ -752,14 +752,21 @@
       "failure_cases": [
         "foregroundJobIsTheShell cannot answer (non-positive pid or failed sysctl): it returns false, so Escape is passed through to the terminal and the drawer stays open."
       ],
-      "windows_path": "PLATFORM BOUNDARY. ConPTY exposes no foreground process group and no tpgid, so the fifth condition has no translation. Engineering decision ED-046 (porting/engineering_decisions.md:191, Q126) approximates it: \"On each Escape, enumerate live descendants of the ConPTY child PID (a snapshot of the process tree, or the shell's Job Object accounting if the shell is launched in one) and return true when the shell has no live descendant. Default to FALSE on any error, empty result, or enumeration timeout\". This is not settled by OD-0008 C5, which fixes only the interpreter (UNK-0005). Bare-Escape-at-prompt is an approximation, labelled a DEVIATION in COMPATIBILITY as ED-046 requires, never presented as parity.",
+      "windows_path": "Named accepted deviation OD-0031 / ED-046: on Escape enumerate live descendants of the ConPTY shell; close and consume only when the shell has no live child program. Otherwise pass Escape to the terminal; unknown/error/timeout also passes it through. Keep the source key/modifier/focus guards. This is the approved Windows approximation, not foreground-process-group parity.",
       "cancellation": "not cancellable",
       "verification_method": "interaction test with the shell at its prompt and again with a foreground program running",
       "status": "DISCOVERED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "open_question": "ED-046 (Q126) decides the Windows approximation and this record quotes it, but ED-046 itself says the result is a DEVIATION, not parity, and PORT_CONTRACT.md:294-296 admits only deviations the owner explicitly authorizes (:181 likewise for any visible compromise); no owner ruling (OD-0001 to OD-0014) accepts it. Missing: that owner acceptance of ED-046's descendant-process approximation as a named deviation."
+      "open_question": null,
+      "deviation": {
+        "decision": "OD-0031; ED-046",
+        "name": "Terminal Escape descendant-process approximation",
+        "upstream": "The source compares the shell process group with the terminal foreground process group.",
+        "port": "Use live shell descendants; no live child closes the drawer, any live child or unknown result sends Escape to the terminal.",
+        "verification": "Owner decision resolved; interaction tests and mutation acceptance still required."
+      }
     },
     {
       "id": "PR-TERM-032",
@@ -1247,13 +1254,20 @@
         "Any failure answers false, which means Escape is passed through to the terminal rather than closing the drawer. Failing closed is the source's behaviour and must be preserved."
       ],
       "cancellation": "not cancellable",
-      "windows_path": "PLATFORM BOUNDARY. ConPTY has no process groups and no tpgid, so this predicate has no translation. Engineering decision ED-046 (porting/engineering_decisions.md:191, Q126) approximates it: \"On each Escape, enumerate live descendants of the ConPTY child PID (a snapshot of the process tree, or the shell's Job Object accounting if the shell is launched in one) and return true when the shell has no live descendant. Default to FALSE on any error, empty result, or enumeration timeout\". This is not settled by OD-0008 C5, which fixes only the interpreter (UNK-0005). The fail-closed direction (answer false when unknown, so Escape reaches the terminal) is the source-defined safe answer and is kept.",
+      "windows_path": "Named accepted deviation OD-0031 / ED-046: on Escape enumerate live descendants of the ConPTY shell; close and consume only when the shell has no live child program. Otherwise pass Escape to the terminal; unknown/error/timeout also passes it through. Keep the source key/modifier/focus guards. This is the approved Windows approximation, not foreground-process-group parity.",
       "verification_method": "contract fixture with a foreground child running and with the shell idle",
       "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
-      "open_question": "ED-046 (Q126) decides the Windows approximation and this record quotes it, but ED-046 itself says the result is a DEVIATION, not parity, and PORT_CONTRACT.md:294-296 admits only deviations the owner explicitly authorizes (:181 likewise for any visible compromise); no owner ruling (OD-0001 to OD-0014) accepts it. Missing: that owner acceptance of ED-046's descendant-process approximation as a named deviation."
+      "open_question": null,
+      "deviation": {
+        "decision": "OD-0031; ED-046",
+        "name": "Terminal Escape descendant-process approximation",
+        "upstream": "The source compares the shell process group with the terminal foreground process group.",
+        "port": "Use live shell descendants; no live child closes the drawer, any live child or unknown result sends Escape to the terminal.",
+        "verification": "Owner decision resolved; interaction tests and mutation acceptance still required."
+      }
     },
     {
       "id": "PR-TERM-050",

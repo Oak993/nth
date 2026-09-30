@@ -1208,7 +1208,7 @@ UI (`src/Marrow.UI/Port`, Avalonia):
 
 | File | Final signature | Swift construct served | Tests |
 |---|---|---|---|
-| `AvaloniaMainExecutor.cs` | `sealed class AvaloniaMainExecutor : IMainExecutor` (`Instance`; `Enqueue` is `Dispatcher.UIThread.Post(work, DispatcherPriority.Default)`) | the main thread | `HeadlessTests` (6) |
+| `AvaloniaMainExecutor.cs` | `sealed class AvaloniaMainExecutor : IMainExecutor` (`Instance`; `Enqueue` queues never-inline per-dispatcher FIFO snapshot passes: first idle pass at Default, later passes at Input; OD-0034 / amended ED-065) | the main thread | `HeadlessTests` (6) |
 | `ViewSupport.cs` | `abstract record Animation`; `static class Transaction`: `Current`, `WithAnimation(Animation?, Action)`; `sealed class Tracked<T>(Func<T>, Action<T>) : IDisposable`; `sealed class OnChange<T>(Func<T>, Action<T, T>, bool initial = false) : IDisposable`; `sealed class ViewTask<TId>(TId, Func<TId, Task>)`: `Running`, `Appear()`, `Disappear()`, `UpdateId(TId)`; `sealed class Binding<T>(Func<T>, Action<T>)`: `Value`, `static Constant(T)` | body re-evaluation, `withAnimation`, `.onChange`, `.task(id:)`, `Binding` | `ViewSupportTests` (5) |
 | `ViewLifetime.cs` | `static class ViewLifetime`: `control.Track(value, apply)`, `control.Task(id, body)`; `sealed class EnvironmentValues`: `AccessibilityReduceMotionProperty` (inherited attached); `interface IPopoverPresenter`, `static class Presentation`: `Ambient<IPopoverPresenter> Presenter`; `sealed class ForEach<TItem, TId>(Panel, Func<TItem, TId>, Func<TItem, Control>, Action<Control, TItem>)`: `Apply(IReadOnlyList<TItem>)` | view lifetimes, `@Environment`, `.popover`, `ForEach` identity | `HeadlessTests` |
 
@@ -1436,7 +1436,8 @@ key on Swift files; one convention for three drafts. *From:* A section 2, B sect
 file (protected path).
 
 **ED-065 The main actor.** `MainActor` over `IMainExecutor` in Core, bound once by Marrow.App to
-`AvaloniaMainExecutor` (`Dispatcher.UIThread.Post` at `DispatcherPriority.Default`, FIFO, never inline); an unbound
+`AvaloniaMainExecutor` (per-dispatcher FIFO snapshot passes; first idle pass at Default, later passes at Input;
+never inline, nested-loop reentrancy and dispatcher-bound continuations as amended ED-065 / OD-0034); an unbound
 main actor traps; statics that tests replace are `Ambient<T>` seams overridden per async flow. *Why:* ADR-0002
 constraint 11 names the dispatcher as the carrier of `@MainActor`, and 27 Core and Services main-actor sites cannot
 reference Avalonia. *From:* B ED-059, C ED-060 and ED-061, A ED-058 (part). *Evidence:*
