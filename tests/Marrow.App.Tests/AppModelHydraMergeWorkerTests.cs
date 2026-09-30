@@ -18,10 +18,11 @@ public sealed class AppModelHydraMergeWorkerTests
         var move = machine.GetMethod("MoveNext", BindingFlags.Instance | BindingFlags.NonPublic)!;
         var calls = Members(move).ToArray();
         Assert.DoesNotContain(calls, m => m.DeclaringType == typeof(DiffParser) && m.Name == "Parse");
-        Assert.Contains(calls, m => m.DeclaringType == typeof(Task) && m.Name == "Run");
+        Assert.Single(calls, m => m.DeclaringType == typeof(Task) && m.Name == "Run");
         var parser = Assert.Single(calls.OfType<MethodInfo>(), m => m.Name.Contains("<MergeHydraProject>", StringComparison.Ordinal) &&
             Members(m).Any(c => c.DeclaringType == typeof(DiffParser) && c.Name == "Parse"));
         Assert.NotNull(parser.GetMethodBody());
+        Assert.Single(Members(parser), m => m.DeclaringType == typeof(DiffParser) && m.Name == "Parse");
     }
 
     private static IEnumerable<MemberInfo> Members(MethodInfo method)
