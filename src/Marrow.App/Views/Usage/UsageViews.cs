@@ -440,6 +440,8 @@ internal sealed class BankedResetsView : Decorator
     private PlanLimits.ResetCredits credits;
     private Phase phase = new Phase.Idle();
     private TaskHandle? settle;
+    // :232-235 the count keeps its identity across rebuilds, so its .contentTransition(.numericText()) can morph it.
+    private MorphingTextBlock? countLabel;
 
     /// <param name="provider">:206 <c>let provider: ProviderKind</c>.</param>
     /// <param name="credits">:207 <c>let credits: PlanLimits.ResetCredits</c>.</param>
@@ -481,8 +483,18 @@ internal sealed class BankedResetsView : Decorator
             1 => "1 available",
             _ => credits.AvailableCount.ToString(CultureInfo.InvariantCulture) + " available",
         };
-        var countLabel = new TextBlock { Text = "\U000000B7 " + count, Foreground = Chrome.SecondaryText.Brush(this) }; // U+00B7 MIDDLE DOT
-        SwiftFont.Callout.Apply(countLabel);
+        var countText = "\U000000B7 " + count; // U+00B7 MIDDLE DOT
+        if (countLabel is null)
+        {
+            countLabel = new MorphingTextBlock { Text = countText, Foreground = Chrome.SecondaryText.Brush(this) };
+            SwiftFont.Callout.Apply(countLabel);
+        }
+        else
+        {
+            (countLabel.Parent as Panel)?.Children.Remove(countLabel);
+            // :235 .contentTransition(.numericText()): inside the panel slide of :255-256 the digits morph.
+            countLabel.SetText(countText, Transaction.Current);
+        }
         header.Children.Add(title);
         header.Children.Add(countLabel);
         AutomationProperties.SetName(header, "Banked resets, " + count);
