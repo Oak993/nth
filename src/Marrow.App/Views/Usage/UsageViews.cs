@@ -544,7 +544,9 @@ internal sealed class BankedResetsView : Decorator
                 () => SetPhase(new Phase.Idle()),
                 () => Spend(row));
             rowView.Margin = new Thickness(0, 12, 0, 0);
-            content.Children.Add(rowView.Transition(SwiftTransition.BlurReplace));
+            // :251 .transition(.opacity.combined(with: .move(edge: .top))): a row fades while moving from or towards the top edge
+            // (the blur-replace belongs to the controls inside the row, :352, :360, :364, and to the status line).
+            content.Children.Add(rowView.Transition(SwiftTransition.Opacity.Combined(SwiftTransition.Move(Edge.Top))));
         }
 
         Child = content;
