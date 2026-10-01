@@ -29,7 +29,12 @@ public sealed class SettingsRestNativeDependencyTests(HeadlessSession headless) 
             var knob = Assert.Single(slider.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Thumb>());
             Assert.Equal(new Size(18, 14), knob.Bounds.Size);
             Assert.All(slider.GetVisualDescendants().OfType<Border>().Where(b => b.Height == 4), bar => Assert.True(bar.Bounds.Right <= 140.5));
-            var at = knob.TranslatePoint(new Point(9, 7), w)!.Value; w.MouseDown(at, MouseButton.Left); w.MouseMove(at + new Vector(40, 0)); w.MouseUp(at + new Vector(40, 0), MouseButton.Left); Drain(w);
+            var at = knob.TranslatePoint(new Point(9, 7), w)!.Value; w.MouseDown(at, MouseButton.Left); w.MouseMove(at + new Vector(40, 0)); Drain(w);
+            // While held the knob is the larger glass capsule, the fill showing through (1-settings-tour.mov 128-131 s).
+            Assert.Equal(new Size(23, 20), knob.Bounds.Size);
+            Assert.True(((Avalonia.Media.ISolidColorBrush)((Border)knob.GetVisualChildren().Single()).Background!).Color.A < 0x80, "the held knob is not translucent");
+            w.MouseUp(at + new Vector(40, 0), MouseButton.Left); Drain(w);
+            Assert.Equal(new Size(18, 14), knob.Bounds.Size);
             Assert.True(slider.Value > 0.7, "the drag did not move the knob: " + slider.Value);
             Assert.Equal(slider.Value, value, 6); // the setting follows the knob
         });

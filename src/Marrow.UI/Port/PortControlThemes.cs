@@ -91,8 +91,7 @@ public static class PortControlThemes
     // (proposal ED-229 (2)), measured from the reference runtime (E:\Droppy\work\reference-video, 2-chat-use.mov 96.5 s,
     // Settings > Appearance > Transparency, about 1 px = 1 pt): a 4 pt capsule track across the slider's width, the knob a
     // white 18 x 14 pt capsule kept inside the track's ends; the track's wash is primary text at 0.12 (measured about
-    // white 10 % on the dark card); the filled side is the accent (UNVERIFIED: every frame seen has the knob at the
-    // minimum). A click on the track moves the knob there, as NSSlider's does (Avalonia's Slider does that on its own).
+    // white 10 % on the dark card); the filled side is the accent (1-settings-tour.mov 128-131 s: the theme's pink). A click on the track moves the knob there, as NSSlider's does (Avalonia's Slider does that on its own).
     private static Control SliderBar(Func<Control, IBrush> fill)
     {
         var bar = new Border { Height = 4, CornerRadius = new CornerRadius(2), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
@@ -110,17 +109,28 @@ public static class PortControlThemes
 
     private static readonly FuncControlTemplate<Slider> SliderTemplate = new((slider, scope) =>
     {
+        // At rest a white 18 x 14 capsule; while dragged (1-settings-tour.mov 128-131 s) it grows to about 23 x 20 and
+        // turns into translucent glass with the fill showing through (the size change is instant here: the source's
+        // curve is UNVERIFIED).
+        var face = new Border { CornerRadius = new CornerRadius(7), Background = Brushes.White, BoxShadow = BoxShadows.Parse("0 0.5 2 0 #40000000") };
         var knob = new Thumb
         {
             Name = "PART_Thumb",
             Width = 18,
             Height = 14,
-            Template = new FuncControlTemplate<Thumb>((_, _) => new Border
-            {
-                CornerRadius = new CornerRadius(7),
-                Background = Brushes.White,
-                BoxShadow = BoxShadows.Parse("0 0.5 2 0 #40000000"),
-            }),
+            Template = new FuncControlTemplate<Thumb>((_, _) => face),
+        };
+        knob.DragStarted += (_, _) =>
+        {
+            knob.Width = 23; knob.Height = 20; face.CornerRadius = new CornerRadius(10);
+            face.Background = new SolidColorBrush(Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF));
+            face.BorderBrush = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF));
+            face.BorderThickness = new Thickness(1);
+        };
+        knob.DragCompleted += (_, _) =>
+        {
+            knob.Width = 18; knob.Height = 14; face.CornerRadius = new CornerRadius(7);
+            face.Background = Brushes.White; face.BorderBrush = null; face.BorderThickness = default;
         };
         var decrease = SliderSide("PART_DecreaseButton", bar => Marrow.UI.Chrome.Chrome.Accent.Brush(bar)).RegisterInNameScope(scope);
         var increase = SliderSide("PART_IncreaseButton", bar => Marrow.UI.Chrome.Chrome.Overlay(0.12).Brush(bar)).RegisterInNameScope(scope);
