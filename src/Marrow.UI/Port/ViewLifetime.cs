@@ -82,7 +82,12 @@ public static class Presentation
 
     private sealed class AvaloniaPopoverPresenter : IPopoverPresenter
     {
-        public void SetPresented(Popup popup, bool presented) => popup.IsOpen = presented;
+        public void SetPresented(Popup popup, bool presented)
+        {
+            popup.IsOpen = presented;
+            // NSPopover grows in from its arrow (PopoverAppear.cs); the child is final once the popup has opened.
+            if (presented && popup.IsOpen && popup.Child is { } content) PopoverAppear.Play(content, popup.Placement);
+        }
     }
 }
 
