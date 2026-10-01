@@ -1,7 +1,9 @@
 // PORT-ONLY: the Avalonia Application of the Windows app, standing for SwiftUI's App and AppKit's NSApplication, which
-// DroppyCode/App/DroppyCodeApp.swift (B3 52bc792) gets from the framework. It carries no styles: no theme package is
-// referenced and every control the port shows carries its own template (Marrow.UI/Port/PlainControls.cs), exactly as
-// the headless TestApp of both test assemblies (tests/*/Fixtures/HeadlessFixtures.cs). The process-wide appearance
+// DroppyCode/App/DroppyCodeApp.swift (B3 52bc792) gets from the framework. No theme package is referenced: every
+// control the port shows carries its own template (Marrow.UI/Port/PlainControls.cs), and a control built without one
+// gets only the port's default themes (Marrow.UI/Port/PortControlThemes.cs: ScrollViewer), exactly as the headless TestApp
+// of both test assemblies (tests/*/Fixtures/HeadlessFixtures.cs). Without one, a TextBox, Slider, ProgressBar,
+// Separator or ContextMenu draws nothing and a ToggleSwitch throws (PROGRESS.md, 2026-10-01). The process-wide appearance
 // (Application.RequestedThemeVariant) is set by WindowManager's HostedRoot (WindowManager.swift:152-159).
 using Avalonia;
 using Marrow.UI.Port;
@@ -18,5 +20,6 @@ public sealed class MarrowApplication : Application
     /// </summary>
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<MarrowApplication>()
         .UsePlatformDetect()
-        .WithSwiftFonts();
+        .WithSwiftFonts()
+        .WithPortControlThemes(); // default templates for controls built without one (Marrow.UI/Port/PortControlThemes.cs)
 }

@@ -12,6 +12,7 @@ public sealed class TestApp : Application
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<TestApp>()
         .UseSkia()
         .UseHeadless(new AvaloniaHeadlessPlatformOptions { UseHeadlessDrawing = false })
+        .WithPortControlThemes() // the app shell's default control themes (PortControlThemes.cs)
         .WithSwiftFonts(); // ED-107 (5): the one font registration point, shared with the app shell's AppBuilder.
 }
 

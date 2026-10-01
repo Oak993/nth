@@ -46,7 +46,7 @@ public sealed class WindowManagerNativeSession : IDisposable
         {
             if (Application.Current is not null)
                 throw new InvalidOperationException("The selected native child already initialized an Avalonia application.");
-            AppBuilder.Configure<Application>().UsePlatformDetect().WithSwiftFonts().SetupWithoutStarting();
+            AppBuilder.Configure<Application>().UsePlatformDetect().WithSwiftFonts().WithPortControlThemes().SetupWithoutStarting();
             MainActor.Bind(AvaloniaMainExecutor.Instance);
             using var harness = new AppModelHarness(withRuntime: false);
             ThreadId = WindowManagerNativeMethods.GetCurrentThreadId();
