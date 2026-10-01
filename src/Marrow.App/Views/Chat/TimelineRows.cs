@@ -2834,11 +2834,15 @@ public sealed class PlanCard : Decorator
     private Control Detail(ProposedPlan plan)
     {
         var column = new StackPanel { Spacing = 12 };
+        // :2281-2285 HStack { Text("Plan"); Spacer(); CopyButton }: an HStack's default .center alignment puts the heading and
+        // the copy button on one centre line (UI-CHAT-030); in a DockPanel the shorter heading was drawn at the top.
         var header = new DockPanel();
-        var copy = new CopyButton(plan.Markdown) { HorizontalAlignment = HorizontalAlignment.Right };
+        var copy = new CopyButton(plan.Markdown) { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Center };
         DockPanel.SetDock(copy, Dock.Right);
         header.Children.Add(copy);
-        header.Children.Add(TimelineRows.ChatText("Plan", SwiftFont.TextStyle.Headline, SwiftFont.Weight.Semibold)); // :2282; ChatFont.swift:7.
+        var heading = TimelineRows.ChatText("Plan", SwiftFont.TextStyle.Headline, SwiftFont.Weight.Semibold); // :2282; ChatFont.swift:7.
+        heading.VerticalAlignment = VerticalAlignment.Center;
+        header.Children.Add(heading);
         column.Children.Add(header);
         column.Children.Add(new PopoverScroll(() => new MarkdownView(plan.Markdown, plan.ProposedPlanState == ProposedPlan.State.Drafting)
             { Margin = new Thickness(16, 0) }, maxHeight: 420));
