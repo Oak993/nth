@@ -11,6 +11,7 @@
 // theme's setter. Registered at the one shared builder point, next to WithSwiftFonts (ED-107 (5)).
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Primitives;
 using Avalonia.Controls.Templates;
@@ -217,5 +218,28 @@ public static class PortControlThemes
         application.Resources[typeof(ProgressBar)] = ProgressBarTheme;
         application.Resources[typeof(ToolTip)] = ToolTipTheme;
         application.Resources[typeof(Slider)] = SliderTheme;
+        RegisterPrimaryTextDefault(application);
+    }
+
+    // SwiftUI draws a Text, and any glyph, with no foreground style of its own in `.primary`: labelColor, which follows
+    // the appearance (SwiftColor.LabelColor, ED-051: black 0.85 light, white 0.85 dark). Avalonia's inherited
+    // TextElement.Foreground defaults to opaque black whatever the theme, and with no theme package nothing replaced it,
+    // so every such text was black on the dark window (found 2026-10-01 rendering the user bubble beside
+    // 2-chat-use.mov at 32 s: the bubble's words black, the video's light). Every TopLevel now starts the inheritance at
+    // labelColor for its own theme; a site that sets a colour keeps it, and popups inherit it from their owner.
+    internal const string PrimaryTextKey = "MarrowPort.PrimaryText";
+
+    private static void RegisterPrimaryTextDefault(Application application)
+    {
+        foreach (var variant in new[] { ThemeVariant.Light, ThemeVariant.Dark })
+        {
+            if (!application.Resources.ThemeDictionaries.TryGetValue(variant, out var provider))
+                application.Resources.ThemeDictionaries[variant] = provider = new ResourceDictionary();
+            ((IResourceDictionary)provider)[PrimaryTextKey] = new SolidColorBrush(SwiftColor.LabelColor.Resolve(variant));
+        }
+        application.Styles.Add(new Style(selector => selector.Is<TopLevel>())
+        {
+            Setters = { new Setter(TextElement.ForegroundProperty, new Avalonia.Markup.Xaml.MarkupExtensions.DynamicResourceExtension(PrimaryTextKey)) },
+        });
     }
 }
