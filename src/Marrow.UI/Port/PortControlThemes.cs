@@ -44,7 +44,11 @@ public static class PortControlThemes
 
     /// <summary>Registers the default themes on the application, after setup (app and test builders alike).</summary>
     public static AppBuilder WithPortControlThemes(this AppBuilder builder) =>
-        builder.AfterSetup(setup => Register(setup.Instance!));
+        builder.AfterSetup(setup =>
+        {
+            Register(setup.Instance!);
+            NativeContextMenus.Install(); // context menus as the system menu (NativeContextMenus.cs)
+        });
 
     /// <summary>Puts the default themes into <paramref name="application"/>'s resources, keyed by control type.</summary>
     public static void Register(Application application) => application.Resources[typeof(ScrollViewer)] = ScrollViewerTheme;
