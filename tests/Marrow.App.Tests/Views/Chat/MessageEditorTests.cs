@@ -5,6 +5,7 @@ using Marrow.Testing;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
+using Avalonia.VisualTree;
 using Marrow.App.Views.Chat;
 using Marrow.Core.Port;
 using Marrow.Core.Models;
@@ -32,6 +33,11 @@ public sealed class MessageEditorTests(HeadlessSession headless)
     private static object Changes(string name, params object[] arguments) => Activator.CreateInstance(
         typeof(MessageEditor).GetNestedType("Changes", BindingFlags.NonPublic)!.GetNestedType(name)!, arguments)!;
     private static Control FileChanges(object state) => (Control)typeof(MessageEditor).GetMethod("BuildFileChanges", PrivateStatic)!.Invoke(null, [state])!;
+    // The restore toggle's switch (:102-113): the one control whose automation peer toggles.
+    private static Control SwitchControl(Control view) => Assert.Single(LogicalQuery.SelfAndDescendants<Control>(view),
+        control => Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(control) is Avalonia.Automation.Provider.IToggleProvider);
+    private static Avalonia.Automation.Provider.IToggleProvider RestoreSwitch(Control view) =>
+        (Avalonia.Automation.Provider.IToggleProvider)Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(SwitchControl(view));
     private static string[] Texts(Control view) => LogicalQuery.SelfAndDescendants<TextBlock>(view).Select(t => t.Text ?? "").ToArray();
     private static Button NamedButton(Control view, string title) => Assert.Single(LogicalQuery.SelfAndDescendants<Button>(view),
         b => Equals(b.Content, title) || Texts(b).Contains(title));
@@ -88,9 +94,9 @@ public sealed class MessageEditorTests(HeadlessSession headless)
             var changes = FileChanges(state);
             Assert.Contains("1 file", Texts(changes));
             Assert.Contains("Undo the file changes this thread made", Texts(changes));
-            var toggle = Assert.Single(LogicalQuery.SelfAndDescendants<ToggleSwitch>(changes));
-            Assert.True(toggle.IsChecked);
-            toggle.IsChecked = false;
+            var toggle = RestoreSwitch(changes);
+            Assert.Equal(Avalonia.Automation.Provider.ToggleState.On, toggle.ToggleState);
+            toggle.Toggle();
             Assert.False((bool)state.GetType().GetProperty("RestoresFiles")!.GetValue(state)!);
             SetState(state, "Changes", Changes("Found", new RevertPreview(ValueList<RevertPreview.File>.Empty)));
             Assert.Contains("This thread changed no files since this message", Texts(FileChanges(state)));
@@ -186,14 +192,40 @@ public sealed class MessageEditorTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-GIT-054")] // App/Views/Chat/MessageEditor.swift:102-113 Toggle(isOn: $restoresFiles) { ... }.toggleStyle(.switch).controlSize(.small)
+    public void The_restore_toggle_can_be_shown_and_switched_in_a_window() => headless.OnUiThread(() =>
+    {
+        // The app carries no theme package: Avalonia's ToggleSwitch looks for its Fluent template's PART_MovingKnobs
+        // and throws as soon as it is laid out, so the editor's file section could not appear at all.
+        var state = State();
+        SetState(state, "Changes", Changes("Found", new RevertPreview(new ValueList<RevertPreview.File>([new("one.txt", 3, 2, false)]))));
+        var changes = FileChanges(state);
+        var window = new Avalonia.Controls.Window { Content = changes, Width = 420, Height = 300 };
+        window.Show();
+        try
+        {
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            var toggle = changes.GetVisualDescendants().OfType<Control>().Single(control => Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(control) is Avalonia.Automation.Provider.IToggleProvider);
+            var provider = (Avalonia.Automation.Provider.IToggleProvider)Avalonia.Automation.Peers.ControlAutomationPeer.CreatePeerForElement(toggle);
+            Assert.True(toggle.Bounds.Width > 0 && toggle.Bounds.Height > 0, "the switch is not drawn: " + toggle.Bounds);
+            Assert.Equal(Avalonia.Automation.Provider.ToggleState.On, provider.ToggleState); // :27 restoresFiles starts true
+            provider.Toggle();
+            Assert.False((bool)state.GetType().GetProperty("RestoresFiles")!.GetValue(state)!);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
     [Trait("Req", "UI-GIT-054")] // App/Views/Chat/MessageEditor.swift:100-109 HStack(spacing: 8) { title; Spacer(minLength: 8); count; stat }: 24 points minimum before the count
     public void The_restore_toggle_keeps_twenty_four_points_between_its_title_and_the_count() => headless.OnUiThread(() =>
     {
         var state = State();
         var preview = new RevertPreview(new ValueList<RevertPreview.File>([new("one.txt", 3, 2, false)]));
         SetState(state, "Changes", Changes("Found", preview));
-        var toggle = Assert.Single(LogicalQuery.SelfAndDescendants<ToggleSwitch>(FileChanges(state)));
-        var label = Assert.IsType<Grid>(toggle.Content);
+        var changes = FileChanges(state);
+        RestoreSwitch(changes);
+        var label = Assert.IsType<Grid>(((Grid)SwitchControl(changes).Parent!).Children[0]);
         label.Measure(new Size(260, double.PositiveInfinity));
         label.Arrange(new Rect(0, 0, 260, label.DesiredSize.Height));
         var title = label.Children[0];

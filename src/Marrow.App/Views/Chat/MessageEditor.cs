@@ -230,14 +230,26 @@ public sealed class MessageEditor : Decorator
         label.Children.Add(count);
         label.Children.Add(stat);
 
-        var toggle = new ToggleSwitch
+        // :112-113 .toggleStyle(.switch).controlSize(.small): the label (:110 maxWidth .infinity) and then the switch at the
+        // trailing edge. The switch is Settings' SmallSwitch (its ENGINEERING DECISION: Avalonia's ToggleSwitch needs the
+        // Fluent template this app does not carry and threw KeyNotFoundException 'PART_MovingKnobs' when laid out).
+        // ENGINEERING DECISION (UNVERIFIED metric): 8 points between the label and the switch, the HStack spacing used
+        // across this row (:103); the source gives no number for a switch toggle's own label gap.
+        var row = new Grid
         {
-            Content = label,
-            IsChecked = state.RestoresFiles,
+            ColumnDefinitions = new ColumnDefinitions("*,Auto"),
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
-        toggle.IsCheckedChanged += (_, _) => state.RestoresFiles = toggle.IsChecked == true;
-        return toggle;
+        var toggle = new Marrow.App.Views.Settings.SmallSwitch(new Binding<bool>(() => state.RestoresFiles, value => state.RestoresFiles = value))
+        {
+            Margin = new Thickness(8, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+        };
+        Grid.SetColumn(label, 0);
+        Grid.SetColumn(toggle, 1);
+        row.Children.Add(label);
+        row.Children.Add(toggle);
+        return row;
     }
 
     // :125-154 The file list, with kept and binary labels and row dimming.
