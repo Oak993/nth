@@ -1138,6 +1138,41 @@ public void Reported_paths_drop_empty_and_build_output_and_keep_inside_paths_rel
     }
 
     [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-119")] // AppModel+HydraMerge.swift:745-749 hydraHasPendingLanding
+    public void Pending_landing_is_true_only_for_an_unmerged_head_with_files_not_yet_landed()
+    {
+        // :746-748 a head's landing is pending while it is unmerged, carries files and has not landed; a head that
+        // changed nothing, one whose files went in, and one already merged are not waited for.
+        bool Pending(bool merged, bool hasFiles, bool landed)
+        {
+            using var h = new AppModelHarness();
+            var project = AppModelSamples.Project("Project", h.NewFolder("pending-landing-cases"));
+            var lead = AppModelSamples.Thread(project) with { HydraEnabled = true };
+            var files = hasFiles ? new ValueList<HydraLanding.File>([new HydraLanding.File { Path = "work.txt", Additions = 1, Deletions = 0 }]) : ValueList<HydraLanding.File>.Empty;
+            var head = new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised)
+            {
+                Title = "Head",
+                ParentThreadID = lead.Id,
+                Hydra = new HydraHeadInfo(1, "task", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) with
+                {
+                    HydraHeadInfoStatus = HydraHeadInfo.Status.Failed,
+                    MergedAt = merged ? SwiftDate.Now : null,
+                    Landing = new HydraLanding { Files = files, PatchPath = landed ? null : "work.patch" }, // kept as a patch = not landed (Hydra.swift :475)
+                },
+            };
+            h.WriteLibrary([project], [lead, head]);
+            var model = h.MakeModel();
+            var method = typeof(AppModel).GetMethod("HydraHasPendingLanding", BindingFlags.Instance | BindingFlags.NonPublic)!;
+            return h.Main.OnMain(() => (bool)method.Invoke(model, [lead.Id])!);
+        }
+
+        Assert.True(Pending(merged: false, hasFiles: true, landed: false));
+        Assert.False(Pending(merged: false, hasFiles: true, landed: true));
+        Assert.False(Pending(merged: false, hasFiles: false, landed: false));
+        Assert.False(Pending(merged: true, hasFiles: true, landed: false));
+    }
+
+    [Fact]
     [Trait("Req", "PR-HYDRAMERGE-118")] // AppModel+HydraMerge.swift:674-684
     public void Finished_idle_eligibility_is_false_without_a_live_runtime()
     {
