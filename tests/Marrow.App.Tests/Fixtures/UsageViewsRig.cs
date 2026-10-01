@@ -31,6 +31,11 @@ public sealed class UsageViewsRig : IDisposable
 
     public UsageViewsRig()
     {
+        // R-TEST-10: an API key the process environment holds would be used by a spend (AppSettings falls back to it), and that
+        // spend would go to the provider. Refuse to run rather than risk a real call; one.sh runs the tests without the keys.
+        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+            if (kind.ApiKeyEnvVar is { } variable && !string.IsNullOrEmpty(System.Environment.GetEnvironmentVariable(variable)))
+                throw new InvalidOperationException("The environment holds " + variable + ": run these tests without it (R-TEST-10).");
         actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
         frames = FrameClock.Source.Override(new ManualFrameSource());
         workspace = Marrow.UI.Common.Workspace.Platform.Override(new Marrow.UI.Common.Workspace.Backend
@@ -57,6 +62,29 @@ public sealed class UsageViewsRig : IDisposable
     public Marrow.Testing.ManualTimeProvider Time => harness.Main.Time;
 
     public static void Drain() => Dispatcher.UIThread.RunJobs();
+
+    /// <summary>Moves the manual clock forward by <paramref name="seconds"/> in small steps, pausing in real time between them so
+    /// real loopback I/O can finish and register the sleeps that follow it.</summary>
+    public void AdvanceInSteps(double seconds, double step = 0.1)
+    {
+        for (var elapsed = 0.0; elapsed < seconds - 1e-9; elapsed += step)
+        {
+            Advance(TimeSpan.FromSeconds(Math.Min(step, seconds - elapsed)));
+            Thread.Sleep(15);
+        }
+    }
+
+    /// <summary>Advances the manual clock a step at a time until <paramref name="condition"/> holds.</summary>
+    public void AdvanceUntil(Func<bool> condition, string what, double maxSeconds = 10, double step = 0.1)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(15);
+        for (var elapsed = 0.0; !condition(); elapsed += step)
+        {
+            if (elapsed > maxSeconds || DateTime.UtcNow > deadline) throw new Xunit.Sdk.XunitException("timed out waiting for " + what);
+            Advance(TimeSpan.FromSeconds(step));
+            Thread.Sleep(15);
+        }
+    }
 
     /// <summary>Runs the settle sleep forward by <paramref name="by"/> and the main-actor work it releases.</summary>
     public void Advance(TimeSpan by)
@@ -196,6 +224,46 @@ public static class UsageViewsProbe
         Assert.True(button.IsEffectivelyEnabled, "the button is disabled");
         button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
         UsageViewsRig.Drain();
+    }
+
+    // ---- the banked resets block's private phase: nothing public shows it except what the block draws (ED-119) ----
+
+    internal static void SetPhase(Marrow.App.Views.Usage.BankedResetsView view, Marrow.App.Views.Usage.BankedResetsView.Phase phase) =>
+        typeof(Marrow.App.Views.Usage.BankedResetsView).GetMethod("SetPhase", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .Invoke(view, [phase]);
+
+    internal static Marrow.App.Views.Usage.BankedResetsView.Phase PhaseOf(Marrow.App.Views.Usage.BankedResetsView view) =>
+        (Marrow.App.Views.Usage.BankedResetsView.Phase)typeof(Marrow.App.Views.Usage.BankedResetsView).GetField("phase", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+            .GetValue(view)!;
+
+    /// <summary>Z.ai's endpoint boundary (ZaiAPI.Endpoint, R-TEST-10) pointed at a loopback server: every Z.ai call goes there.</summary>
+    internal static IDisposable ZaiLoopback(SettingsProviderProofServer server)
+    {
+        var property = typeof(Marrow.Services.Providers.ZaiAPI).GetProperty("Endpoint", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        return Assert.IsType<Ambient<Func<Uri, Uri>>>(property.GetValue(null)).Override(endpoint => new Uri(server.Url(endpoint.PathAndQuery)));
+    }
+
+    /// <summary>The transition a view was given with <c>.transition(_:)</c> (null when it has none). Only the table behind
+    /// SwiftTransition.Attach holds it, so it is read by reflection (ED-119).</summary>
+    public static SwiftTransition? TransitionOf(Control control)
+    {
+        var table = typeof(SwiftTransition).GetField("attachments", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.GetValue(null)!;
+        object?[] arguments = [control, null];
+        if (!(bool)table.GetType().GetMethod("TryGetValue")!.Invoke(table, arguments)!) return null;
+        var attachment = arguments[1]!;
+        return (SwiftTransition)attachment.GetType().GetProperty("Transition")!.GetValue(attachment)!;
+    }
+
+    /// <summary>Pumps the dispatcher (and lets real I/O finish) until <paramref name="condition"/> holds.</summary>
+    public static void WaitUntil(Func<bool> condition, string what, double seconds = 10)
+    {
+        var deadline = DateTime.UtcNow.AddSeconds(seconds);
+        while (!condition())
+        {
+            if (DateTime.UtcNow > deadline) throw new Xunit.Sdk.XunitException("timed out waiting for " + what);
+            UsageViewsRig.Drain();
+            Thread.Sleep(2);
+        }
     }
 
     public static ProgressBar[] Spinners(ILogical root) => All<ProgressBar>(root).Where(bar => bar.IsIndeterminate).ToArray();

@@ -626,7 +626,7 @@ internal sealed class BankedResetRow : Decorator
             var reset = new Button { Content = "Reset now" };
             reset.Click += (_, _) => onUse();
             buttons.Children.Add(cancel.ChromeGlassCapsule());
-            buttons.Children.Add(reset.ChromeGlassCapsule());
+            buttons.Children.Add(ProminentGlassCapsule(reset)); // :350 .glassProminent ... .tint(Chrome.accent), not the plain glass of Cancel
             control = buttons.Transition(SwiftTransition.BlurReplace);
         }
         else if (phase is BankedResetsView.Phase.Applying applying && applying.Value == row.Id)
@@ -679,6 +679,17 @@ internal sealed class BankedResetRow : Decorator
         Grid.SetColumn(controlHost, 1);
         rowGrid.Children.Add(controlHost);
         Child = rowGrid;
+    }
+
+    // :350 Button("Reset now").buttonStyle(.glassProminent).tint(Chrome.accent): the capsule tinted with the accent instead of the
+    // theme's glass wash, the recipe the port's other glassProminent capsules use (Tint(Chrome.accent, 0.3) over an accent
+    // wash). Same shape as ChromeGlassCapsule: a capsule fill behind the button.
+    private static Control ProminentGlassCapsule(Button button)
+    {
+        var fill = new Border { IsHitTestVisible = false }.Capsule(RoundedCornerStyle.Continuous);
+        fill.Background = Chrome.Accent.Opacity(0.3).Brush(fill);
+        SwiftGlass.SetEffect(fill, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Tint(Chrome.Accent, 0.3).Interactive());
+        return new Panel { Children = { fill, button } };
     }
 }
 
