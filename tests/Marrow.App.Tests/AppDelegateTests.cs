@@ -20,8 +20,8 @@ namespace Marrow.App.Tests;
 // :2-8 are B3's :3-9 and B2's :9-87 are B3's :15-93 (git diff 1fbf81e 52bc792 -- DroppyCode/App/AppDelegate.swift).
 //
 // The current opencode STOP ledger is in AppDelegateProofTests.cs. Callback routing and close wiring have landed.
-// UI-LAUNCH-005 still needs safe native-toast pointer proof; PR-LAUNCH-050/PR-WIN-073 still need ED-004's session-end
-// reason ruling/binding. Their partial assertions remain unchanged, without a whole-record Req claim.
+// OD-0036 (no session-end reason text) and OD-0037 (callback proof for toast clicks) closed the last gaps of
+// PR-LAUNCH-050/PR-WIN-073 and the toast records; their tests now carry the Req.
 //
 // MCPHub's list of live server processes is process-wide (MCPHub.swift:21-30, a private static let): these tests add
 // recording processes to it, and every ApplicationWillTerminate they run ends everything in it (:60). R-TEST-5, so
@@ -96,7 +96,7 @@ public sealed class AppDelegateTests
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
-    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:45-53
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53; owner_decisions.md OD-0036
     public void A_quit_during_a_merge_is_answered_terminate_later_and_replies_true_at_the_first_250_ms_poll_after_the_merge_ends()
     {
         using var h = new AppModelHarness();
@@ -123,7 +123,7 @@ public sealed class AppDelegateTests
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
-    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:47-51
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:47-51; owner_decisions.md OD-0036
     public void A_quit_during_a_merge_that_never_ends_replies_true_exactly_when_4_minutes_have_passed()
     {
         using var h = new AppModelHarness();
@@ -144,7 +144,7 @@ public sealed class AppDelegateTests
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
-    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:45-53; App/AppModel+HydraMerge.swift:36
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53; App/AppModel+HydraMerge.swift:36; owner_decisions.md OD-0036
     public void A_quit_waits_while_any_live_chat_is_merging_even_when_the_merging_chat_changes_during_the_wait()
     {
         using var h = new AppModelHarness();
@@ -179,7 +179,7 @@ public sealed class AppDelegateTests
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
-    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:45-53
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:45-53; owner_decisions.md OD-0036
     public void The_deferred_quit_replies_from_a_later_main_turn_and_checks_the_merge_before_its_first_sleep()
     {
         using var h = new AppModelHarness();
@@ -204,7 +204,7 @@ public sealed class AppDelegateTests
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
-    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:48-51
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:48-51; owner_decisions.md OD-0036
     public void A_merge_that_ends_before_the_first_poll_is_seen_at_250_ms_and_not_sooner()
     {
         using var h = new AppModelHarness();
@@ -226,7 +226,7 @@ public sealed class AppDelegateTests
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
-    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:47-51
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:47-51; owner_decisions.md OD-0036
     public void The_four_minute_cap_is_counted_from_the_quit_and_not_from_an_earlier_time()
     {
         using var h = new AppModelHarness();

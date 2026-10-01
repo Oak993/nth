@@ -233,9 +233,9 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
-    // Partial proof PR-LAUNCH-064; STOP opencode-App.AppDelegate #6. // App/AppDelegate.swift:77-92
-    // Partial proof PR-LAUNCH-065; STOP opencode-App.AppDelegate #6. // App/AppDelegate.swift:77-92
+    [Trait("Rule", "R-TEST-4")] // Source-derived; OD-0037 accepts the activation callback as the proof of a toast click.
+    [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; owner_decisions.md OD-0037
+    [Trait("Req", "PR-LAUNCH-065")] // App/AppDelegate.swift:77-92; owner_decisions.md OD-0037
     [InlineData(false, "valid")]
     [InlineData(false, "unknown")]
     [InlineData(false, "invalid")]
@@ -283,8 +283,8 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     });
 
     [Theory]
-    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
-    // Partial proof PR-LAUNCH-064; STOP opencode-App.AppDelegate #6. // App/AppDelegate.swift:77-92; ED-220 (6)
+    [Trait("Rule", "R-TEST-4")] // Source-derived; OD-0037 accepts the activation callback as the proof of a toast click.
+    [Trait("Req", "PR-LAUNCH-064")] // App/AppDelegate.swift:77-92; ED-220 (6); owner_decisions.md OD-0037
     [InlineData("https://example.com/?payload=x")]
     [InlineData("marrow-code-dev://notification?payload=%7B%7D")]
     [InlineData("marrow-code-release://notification?payload=bad")]

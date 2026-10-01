@@ -36,7 +36,7 @@ public sealed class AppShellTests
     [Fact]
     [Trait("Req", "PR-LAUNCH-074")] // App/AppDelegate.swift:44-45; owner_decisions.md OD-0008 C1
     [Trait("Req", "PR-LAUNCH-049")] // App/AppDelegate.swift:45
-    // Partial proof PR-WIN-073; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:45
+    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:45; owner_decisions.md OD-0036
     public void Closing_the_main_window_with_no_merge_running_quits_at_once()
     {
         using var h = new AppModelHarness();
@@ -51,8 +51,8 @@ public sealed class AppShellTests
 
     [Fact]
     [Trait("Req", "PR-LAUNCH-074")] // App/AppDelegate.swift:44-54; owner_decisions.md OD-0008 C1
-    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:46-53
-    // Partial proof PR-WIN-073; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:46-53
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:46-53; owner_decisions.md OD-0036
+    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:46-53; owner_decisions.md OD-0036
     public void Closing_the_main_window_during_a_merge_waits_for_it_polling_every_250_ms_then_quits()
     {
         using var h = new AppModelHarness();
@@ -77,8 +77,8 @@ public sealed class AppShellTests
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
-    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:47-51
-    // Partial proof PR-WIN-073; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:47-51
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:47-51; owner_decisions.md OD-0036
+    [Trait("Req", "PR-WIN-073")] // App/AppDelegate.swift:47-51; owner_decisions.md OD-0036
     public void A_merge_that_never_ends_holds_the_close_for_exactly_4_minutes()
     {
         using var h = new AppModelHarness();
@@ -118,7 +118,7 @@ public sealed class AppShellTests
 
     [Fact]
     [Trait("Decision", "ED-004")] // engineering_decisions.md ED-004 (2); App/AppDelegate.swift:44-54
-    // Partial proof PR-LAUNCH-050; STOP opencode-App.AppDelegate #3. // App/AppDelegate.swift:46-53 (windows_path: the shutdown path offers the same deferral)
+    [Trait("Req", "PR-LAUNCH-050")] // App/AppDelegate.swift:46-53 (windows_path: the shutdown path offers the same deferral); owner_decisions.md OD-0036
     public void A_session_end_during_a_merge_is_refused_and_the_app_quits_when_the_merge_ends()
     {
         using var h = new AppModelHarness();

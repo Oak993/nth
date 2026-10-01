@@ -228,7 +228,7 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 // Site: StartBackgroundChecks -> UpdateChecker.HandleActivation. The method exists; no production caller exists.
 // Need the shell activation event binding and a ruling on whether launch activation triggers the catch-up check.
 
-// STOP opencode-App.AppDelegate #3
+// STOP opencode-App.AppDelegate #3 - RESOLVED 2026-10-01 by OD-0036 (no reason text); the tests carry the Req.
 // Kind: missing session-end reason ruling/binding.
 // Swift: App/AppDelegate.swift:45-61; ED-004 (2).
 // Records: PR-LAUNCH-050, PR-WIN-073.
@@ -245,7 +245,8 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 // landed. Present only calls Show/Activate and does not restore WindowState.Minimized. Need the source/oracle ruling
 // on makeKeyAndOrderFront restoring a minimized window, then the WindowManager owner's restore binding.
 
-// STOP opencode-App.AppDelegate #5
+// STOP opencode-App.AppDelegate #5 - native-close half RESOLVED by OD-0039 (follow the Swift); reopen-path pointer
+// proofs still open.
 // Kind: record/source scope ambiguity and missing whole-record pointer proof.
 // Swift: App/AppDelegate.swift:24-26; TourPages.swift:27; TourWindowController.swift:103-107,145-148.
 // Records: UI-LAUNCH-002.
@@ -254,7 +255,8 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 // Need a ruling distinguishing native close from the tour close control, plus pointer proofs for the reopen paths.
 // The existing native-close false assertion and all 700 ms/setting-gate assertions are retained.
 
-// STOP opencode-App.AppDelegate #6
+// STOP opencode-App.AppDelegate #6 - RESOLVED 2026-10-01 by OD-0037 (callback proof; one manual click of each kind
+// stays on the Windows verification list). WindowsToastRoutingTests drives the production window adapter.
 // Kind: missing safe native-notification hit-testing fixture or proof-method ruling.
 // Swift: App/AppDelegate.swift:77-92; WindowManager.swift:41-45; ED-220 (7), ED-225.
 // Records: PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024, PR-WIN-076, UI-LAUNCH-003, UI-LAUNCH-005.
