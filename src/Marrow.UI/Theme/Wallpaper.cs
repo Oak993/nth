@@ -278,19 +278,36 @@ public sealed class WallpaperStore : MainActorModel
         var scale = (double)smallBase.Width / fullBase.Width;
         liveTask = TaskHandle.Detached(async () =>
         {
-            while (await MainActor.Run(TakeLiveRequest) is { } value)
+            // DEVIATION (platform adaptation, not a Swift behaviour change): Swift's loop runs on the main actor
+            // with no suspension between `takeLiveRequest()` returning nil and `self?.liveTask = nil` (:201-208),
+            // so a softness arriving at that moment starts a new loop. Here the take is its own main-actor hop, so
+            // the loop's exit decision and the clearing of liveTask are made in that one hop (TakeLiveRequestOrEnd);
+            // a separate hop to clear it afterwards left a gap in which renderLive() saw a live task still "running"
+            // and dropped the newest value.
+            while (await MainActor.Run(TakeLiveRequestOrEnd) is { } value)
             {
                 var rendered = await Task.Run(() => Blurred(smallBase, value, scale));
-                if (rendered is null) break;
+                if (rendered is null)
+                {
+                    await MainActor.Run(() => liveTask = null); // :205 `break`, then :208
+                    return;
+                }
+
                 await MainActor.Run(() =>
                 {
                     if (!IsAdjustingSoftness) return;
                     Image = ToImage(rendered);
                 });
             }
-
-            await MainActor.Run(() => liveTask = null);
         });
+    }
+
+    // Wallpaper.swift:201, :208: the loop's `takeLiveRequest()` and, when it returns nil, `self?.liveTask = nil`, in one hop.
+    private double? TakeLiveRequestOrEnd()
+    {
+        var value = TakeLiveRequest();
+        if (value is null) liveTask = null;
+        return value;
     }
 
     // Wallpaper.swift:213-217
