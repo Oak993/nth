@@ -518,6 +518,28 @@ public sealed class MarkdownBlockView : Decorator
         Child = Build(block);
     }
 
+    // Each list row's marker and each nested block of a list, kept so the markers follow the environment.
+    private readonly List<(StackPanel Row, bool Ordered, int Number, bool? Checked)> markerRows = [];
+    private readonly List<MarkdownBlockView> listChildren = [];
+
+    // :285-286, :482, :495-497 @Environment(\.markdownDimmed) and @Environment(\.markdownListDepth): SwiftUI runs `body`
+    // again whenever either changes, so a list inside a quote (dimmed) or inside another list (depth) draws its
+    // markers in the dimmed accent and as rings. An inherited Avalonia property reaches a block only after its parent
+    // has built it (the parent sets the depth and the quote the dimmed flag on the finished child), so the markers
+    // built in the constructor are rebuilt here, and the depth passes on to the blocks nested under this list.
+    // UI-THEME-029, UI-THEME-030, UI-THEME-032.
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        var isDepth = change.Property == MarkdownView.MarkdownListDepthProperty;
+        if (!isDepth && change.Property != MarkdownView.MarkdownDimmedProperty) return;
+        foreach (var (row, ordered, number, @checked) in markerRows)
+            row.Children[0] = Marker(ordered, number, @checked);
+        if (!isDepth) return;
+        foreach (var child in listChildren)
+            MarkdownView.SetMarkdownListDepth(child, MarkdownView.GetMarkdownListDepth(this) + 1); // :350
+    }
+
     // :295-298 nonisolated static func ==. A settled pair is the same block by position and the parser's own
     // word alone; anything else compares by content.
     public static bool Equatable(MarkdownBlockView lhs, MarkdownBlockView rhs) =>
@@ -577,6 +599,7 @@ public sealed class MarkdownBlockView : Decorator
                     // content's top, an ENGINEERING DECISION UNVERIFIED under OD-0001 until that unit lands.
                     var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, VerticalAlignment = VerticalAlignment.Top };
                     row.Children.Add(Marker(list.Ordered, list.Start + index, item.Checked)); // :338
+                    markerRows.Add((row, list.Ordered, list.Start + index, item.Checked));
                     var content = new StackPanel { Orientation = Orientation.Vertical, Spacing = 6 }; // :339
                     if (item.Text.Length > 0) // :340
                         content.Children.Add(new InlineText(item.Text, hasLinks: RichLink.ContainsLinks(item.Text, MarkdownView.GetMarkdownStreaming(this))));
@@ -584,6 +607,7 @@ public sealed class MarkdownBlockView : Decorator
                     {
                         var childView = new MarkdownBlockView(child);
                         MarkdownView.SetMarkdownListDepth(childView, MarkdownView.GetMarkdownListDepth(this) + 1); // :345-346
+                        listChildren.Add(childView);
                         content.Children.Add(childView);
                     }
                     row.Children.Add(content);
@@ -1327,6 +1351,15 @@ public static class FaviconCache
         inFlight[key] = task;
         var image = await task; // :930
         inFlight.Remove(key); // :931
+        Remember(key, image); // :932-937
+        return image; // :938
+    }
+
+    // :932-937 the store step of image(for:), a method of its own so the 300-entry flush can be driven without a
+    // fetch (PR-THEME-139, upstream defect 49): at 300 entries the next icon discards every cached icon and becomes
+    // the only entry; a host with no icon is recorded as failed, and nothing ever clears that set.
+    private static void Remember(string key, IImage? image)
+    {
         if (image is not null) // :932
         {
             if (memory.Count >= 300) memory.Clear(); // :933 removeAll(keepingCapacity:)
@@ -1336,7 +1369,6 @@ public static class FaviconCache
         {
             failed.Add(key); // :936
         }
-        return image; // :938
     }
 
     private static async Task<IImage?> FetchAndPrepare(string key)
@@ -1790,7 +1822,8 @@ public sealed class CodeBlock : Decorator
         var scroll = new ScrollViewer
         {
             Content = selected,
-            HorizontalScrollBarVisibility = ScrollBarVisibility.Auto,
+            // Swift :1225 showsIndicators: false (UI-THEME-034 "no visible indicator"): Hidden scrolls without drawing a bar.
+            HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
             VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
         }; // :1298 ScrollView(.horizontal, showsIndicators: false)
         stack.Children.Add(scroll);
@@ -1874,7 +1907,7 @@ public sealed class TableBlock : Decorator
         for (var row = 0; row <= cells.Count; row++) grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
         for (var column = 0; column < head.Count; column++) // :1364-1368 GridRow (header)
         {
-            var text = new TextBlock { Text = head[column].PlainText, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, 8) };
+            var text = new TextBlock { Text = head[column].PlainText, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, cells.Count > 0 ? 8 : 0) }; // :1292 verticalSpacing 8 sits only between rows
             Grid.SetRow(text, 0);
             Grid.SetColumn(text, column);
             grid.Children.Add(text);
@@ -1891,7 +1924,8 @@ public sealed class TableBlock : Decorator
                 grid.Children.Add(text);
             }
         }
-        var scroll = new ScrollViewer { Content = grid, Padding = new Thickness(12), HorizontalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled }; // :1361-1362, :1381
+        // Swift :1289 ScrollView(.horizontal, showsIndicators: false) (UI-THEME-038 "no visible indicator"): Hidden scrolls without drawing a bar.
+        var scroll = new ScrollViewer { Content = grid, Padding = new Thickness(12), HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden, VerticalScrollBarVisibility = ScrollBarVisibility.Disabled }; // :1361-1362, :1381
         host.Children.Add(scroll);
         if (!showsAll && rows.Count > CollapsedRowLimit) // :1383-1392
         {
