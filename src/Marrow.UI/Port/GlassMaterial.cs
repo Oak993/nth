@@ -268,8 +268,8 @@ internal static class GlassMaterial
             """);
         source.Append("\nfloat sceneDistance(float2 xy) { float d = distance0(xy);\n");
         for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"d = smoothUnion(d, distance{i}(xy));\n");
-        source.Append("return d; }\nhalf4 main(float2 xy) { float raw = distance0(xy); float4 tint = tint0; float4 frost = frost0; float4 ptr = pointer0; float2 at = local0(xy); float4 flags = flags0;\n");
-        for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; frost = frost{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; }}\n");
+        source.Append("return d; }\nhalf4 main(float2 xy) { float raw = distance0(xy); float4 tint = tint0; float4 frost = frost0; float4 ptr = pointer0; float2 at = local0(xy); float4 flags = flags0; float2 extent = size0;\n");
+        for (var i = 1; i < n; i++) source.Append(CultureInfo.InvariantCulture, $"if (distance{i}(xy) < raw) {{ raw = distance{i}(xy); tint = tint{i}; frost = frost{i}; ptr = pointer{i}; at = local{i}(xy); flags = flags{i}; extent = size{i}; }}\n");
         source.Append("""
             float d = -sceneDistance(xy);
             float coverage = clamp(d + 0.5, 0.0, 1.0);
@@ -278,8 +278,15 @@ internal static class GlassMaterial
             float2 normal = float2(-sceneDistance(xy + float2(1.0, 0.0)) + sceneDistance(xy - float2(1.0, 0.0)),
                                   -sceneDistance(xy + float2(0.0, 1.0)) + sceneDistance(xy - float2(0.0, 1.0)));
             float2 n = normalize(normal + float2(0.000001));
-            float lens = pow(clamp(1.0 - d / 46.0, 0.0, 1.0), 2.2);
-            float disp = lens * 26.0;
+            // The refracting band and its bend scale with the shape, capped at the panel values: on a small lens (the
+            // effort knob, 28 pt) a fixed 46 pt band made the whole disc an edge that bent in the dark surroundings,
+            // where the reference video shows a light disc with a thin refracting rim (2-chat-use.mov 35.5 s, 43.9 s).
+            // A band of 3.5 % of the smaller side plus blur is the same idea in rizzytoday/liquid-glass (MIT,
+            // technique only). ENGINEERING DECISION, UNVERIFIED fractions (35 % band, 20 % bend).
+            float smaller = min(extent.x, extent.y);
+            float band = min(46.0, max(smaller * 0.35, 1.0));
+            float lens = pow(clamp(1.0 - d / band, 0.0, 1.0), 2.2);
+            float disp = lens * min(26.0, smaller * 0.2);
             half4 r = backdrop.eval(xy - n * disp * 1.10);
             half4 g = backdrop.eval(xy - n * disp);
             half4 b = backdrop.eval(xy - n * disp * 0.90);
@@ -290,7 +297,9 @@ internal static class GlassMaterial
             float rim = exp(-pow(d - 1.5, 2.0) / 6.0);
             float light = pow(clamp(-n.x * 0.7 - n.y * 0.7, 0.0, 1.0), 1.5);
             col += half3(half(rim * light * 0.55));
-            float inner = exp(-pow(d - 5.0, 2.0) / 32.0);
+            // The inner shade sits 5 pt in on a panel; on a small lens it keeps to the same share of the band.
+            float shadeAt = min(5.0, band * 0.3);
+            float inner = exp(-pow(d - shadeAt, 2.0) / (2.0 * shadeAt * shadeAt + 0.5));
             float shade = pow(clamp(n.x * 0.7 + n.y * 0.7, 0.0, 1.0), 1.5);
             col *= half(1.0 - inner * shade * 0.12);
             float2 delta = at - ptr.xy;
@@ -325,7 +334,11 @@ internal static class GlassMaterial
         surface.Canvas.Clear(state.Regions[0].Dark ? new SKColor(30, 30, 32) : new SKColor(245, 245, 247));
         if (snapshot is not null)
         {
-            using var blur = SKImageFilter.CreateBlur(12 * scale, 12 * scale, SKShaderTileMode.Clamp);
+            // 12 pt on a panel; a small lens takes a blur in proportion (15 % of its smaller side), so the colour under
+            // it is not washed out by what lies around it (the effort knob over its fill and glow; see the shader note).
+            var smaller = state.Regions.Max(r => Math.Min(r.Size.Width, r.Size.Height));
+            var radius = (float)Math.Min(12, Math.Max(1, smaller * 0.15)) * scale;
+            using var blur = SKImageFilter.CreateBlur(radius, radius, SKShaderTileMode.Clamp);
             using var blurPaint = new SKPaint { ImageFilter = blur };
             surface.Canvas.DrawImage(snapshot, -crop.Left, -crop.Top, blurPaint);
         }
