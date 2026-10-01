@@ -519,12 +519,30 @@ internal sealed class ProviderModelsSection : Decorator
         ChromeRevealLayout? emptyReveal = null;
         SettingsScalarAnimation? emptyMotion = null;
 
+        var shownGlyphs = new System.Runtime.CompilerServices.ConditionalWeakTable<Button, SwiftImage>();
+
         void UpdateToggle(Button toggle, ModelOption option, ModelPin pin)
         {
             var added = settings.IsInModelList(pin);
             var glyph = SwiftImage.SystemName(added ? "checkmark.circle.fill" : "plus.circle").Font(SwiftFont.System(17));
             glyph.ForegroundStyle(added ? Chrome.Accent : Chrome.SecondaryText);
-            toggle.Content = glyph;
+            // :376-379 .contentTransition(.symbolEffect(.replace)): adding or removing replaces the glyph in two steps
+            // (SymbolReplace); a change of colour alone swaps it in place.
+            if (toggle.Content is not Panel host) toggle.Content = host = new Panel();
+            if (shownGlyphs.TryGetValue(toggle, out var current) && host.Children.Contains(current))
+            {
+                if (current.SymbolName != glyph.SymbolName)
+                {
+                    host.Children.Add(glyph);
+                    host.Children.Remove(current);
+                    host.Children.Add(current); // over the new one while it goes
+                    var outgoing = current;
+                    SymbolReplace.Play(outgoing, glyph, () => host.Children.Remove(outgoing));
+                }
+                else host.Children[host.Children.IndexOf(current)] = glyph;
+            }
+            else host.Children.Add(glyph);
+            shownGlyphs.AddOrUpdate(toggle, glyph);
             var full = settings.ModelList.Count >= AppSettings.ModelListLimit;
             toggle.IsEnabled = added || !full;
             toggle.Opacity = !added && full ? 0.35 : 1;

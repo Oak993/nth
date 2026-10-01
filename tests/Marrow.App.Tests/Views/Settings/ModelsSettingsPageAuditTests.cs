@@ -106,6 +106,20 @@ public sealed class ModelsSettingsPageAuditTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-SETTINGS-192")] // ModelsSettingsPage.swift:376-379 .contentTransition(.symbolEffect(.replace)) on the add glyph
+    public void Adding_a_catalogue_model_replaces_the_plus_with_the_check_in_two_steps() => With(m => SeedCatalog(m, Option("a", "Alpha"), Option("b", "Beta")), "", (page, _, window) =>
+    {
+        var section = ClaudeSection(page);
+        var toggle = Of<Button>(section).First(b => AutomationProperties.GetName(b) is "Add Alpha to the picker");
+        string[] Symbols() => Of<SwiftImage>(toggle).Select(image => image.SymbolName ?? "").ToArray();
+        Assert.Equal(["plus.circle"], Symbols());
+        toggle.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Sync(window);
+        Assert.Equal(["checkmark.circle.fill", "plus.circle"], Symbols()); // the plus goes over the check coming in
+        Advance(window, 1);
+        Assert.Equal(["checkmark.circle.fill"], Symbols());
+    });
+
+    [Fact]
     [Trait("Req", "PR-SETTINGS-271")] // ModelsSettingsPage.swift:346-395 a nonmatching row is accessibilityHidden(true)
     public void Nonmatching_catalogue_rows_are_hidden_from_accessibility() => With(m => SeedCatalog(m, Option("a", "Alpha"), Option("b", "Beta")), "alpha", (page, _, _) =>
     {
