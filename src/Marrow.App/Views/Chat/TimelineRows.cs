@@ -3474,6 +3474,9 @@ public sealed class TurnFileCard : Decorator
         });
         row.Children.Add(PlainControls.Background(review, anchor));
         row.Children.Add(PlainControls.Popover(files, new Binding<bool>(() => box.IsShowingFiles, value => box.IsShowingFiles = value), () => FilesPopover().PresentedChrome()));
+        // :2741, :2743 HStack's default alignment is .center: every item of both lines sits on one centre line (a
+        // stretched text would draw at the top of the taller row).
+        foreach (var item in titleRow.Children.Concat(row.Children)) item.VerticalAlignment = VerticalAlignment.Center;
         Child = TimelineRows.Pill(row, SwiftColor.Quaternary.Opacity(0.32), new Thickness(TimelineMetrics.PillLeading, 6, 6, 6));
         AutomationProperties.SetName(this, title);
     }
