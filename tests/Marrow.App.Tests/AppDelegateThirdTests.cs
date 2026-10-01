@@ -313,6 +313,52 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
             Assert.Empty(launch.Events); // no window was made
         });
     }
+
+    [Theory]
+    [Trait("Req", "PR-WIN-072")] // App/AppDelegate.swift:36-39; App/Window/WindowManager.swift:57-60; owner_decisions.md OD-0038
+    [Trait("Req", "PR-LAUNCH-048")] // App/AppDelegate.swift:36-39 a miniaturized window is not a visible one
+    [InlineData(WindowState.Normal)]
+    [InlineData(WindowState.Maximized)]
+    public void A_reopen_restores_a_minimised_main_window_to_the_state_it_had_and_brings_it_forward(WindowState before)
+    {
+        WithLaunch(null, launch =>
+        {
+            launch.Harness.Main.OnMain(launch.Delegate.ApplicationDidFinishLaunching);
+            var window = LaunchHarness.WindowOf(launch.MainContent);
+            Assert.NotNull(window);
+            launch.Harness.Main.OnMain(() => window.WindowState = before);
+            launch.Harness.Main.OnMain(() => window.WindowState = WindowState.Minimized);
+            Dispatcher.UIThread.RunJobs();
+
+            launch.Harness.Main.OnMain(() => launch.Delegate.ApplicationShouldHandleReopen(hasVisibleWindows: false));
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(before, window.WindowState); // OD-0038: restored, to normal or to maximised as it was
+            Assert.True(window.IsVisible);
+            Assert.True(window.IsActive);
+            Assert.Single(launch.Events, e => e == "main window built");
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-WIN-072")] // App/Window/WindowManager.swift:32-38, :57-60; owner_decisions.md OD-0038
+    public void Showing_a_minimised_Settings_window_restores_it()
+    {
+        WithLaunch(null, launch =>
+        {
+            launch.Harness.Main.OnMain(() => launch.Manager.ShowSettings());
+            var settings = LaunchHarness.WindowOf(launch.SettingsContent);
+            Assert.NotNull(settings);
+            launch.Harness.Main.OnMain(() => settings.WindowState = WindowState.Minimized);
+            Dispatcher.UIThread.RunJobs();
+
+            launch.Harness.Main.OnMain(() => launch.Manager.ShowSettings());
+            Dispatcher.UIThread.RunJobs();
+
+            Assert.Equal(WindowState.Normal, settings.WindowState);
+            Assert.True(settings.IsVisible);
+        });
+    }
 }
 
 // STOP Boot #1 (build agent, 2026-09-26)

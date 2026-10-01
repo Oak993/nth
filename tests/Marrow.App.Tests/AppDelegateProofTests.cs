@@ -236,7 +236,8 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 // shutdown steps are wired and tested. ShutdownBlockReasonCreate is absent; no source/ruling gives its user-facing
 // reason text. Need that text from the owner/ED and the shell binding. WM_ENDSESSION has limited OS grace.
 
-// STOP opencode-App.AppDelegate #4
+// STOP opencode-App.AppDelegate #4 - RESOLVED 2026-10-01 by OD-0038 (Present restores a minimised window to its prior
+// state; AppDelegateThirdTests A_reopen_restores_a_minimised_main_window..., Showing_a_minimised_Settings_window...).
 // Kind: unresolved minimized-window reading in another unit.
 // Swift: App/AppDelegate.swift:37; App/Window/WindowManager.swift:57-60.
 // Records: PR-WIN-072.

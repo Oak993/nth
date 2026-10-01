@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Layout;
@@ -205,8 +206,16 @@ public sealed class WindowManager
         // back) and then activated, which asks Windows for the foreground (SetForegroundWindow); when Windows refuses
         // it, the window's taskbar button flashes instead.
         window.Show();
+        // OD-0038: a minimised window is restored to the state it had before it was minimised (normal or maximised),
+        // for the second launch and the reopen alike. Whether makeKeyAndOrderFront alone deminiaturizes is UNVERIFIED
+        // (OD-0001); the owner ruled it does here.
+        if (window.WindowState == WindowState.Minimized)
+            window.WindowState = restoredStates.TryGetValue(window, out var restored) ? restored.Value : WindowState.Normal;
         window.Activate();
     }
+
+    // OD-0038: each window's last state other than minimised, which a restore returns it to.
+    private readonly ConditionalWeakTable<AvaloniaWindow, StrongBox<WindowState>> restoredStates = new();
 
     // :62-72 private func makeMainWindow() -> NSWindow
     private AvaloniaWindow MakeMainWindow()
@@ -253,6 +262,11 @@ public sealed class WindowManager
         // Avalonia takes its maximise control with it (CanMaximize follows CanResize), as AppKit disables zoom.
         window.CanMinimize = true;
         window.CanResize = resizable;
+        window.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == AvaloniaWindow.WindowStateProperty && e.GetNewValue<WindowState>() is var state and not WindowState.Minimized)
+                restoredStates.AddOrUpdate(window, new StrongBox<WindowState>(state)); // OD-0038
+        };
         window.Title = title; // :97
         // :98 isReleasedWhenClosed = false: closing orders the window out and keeps it, so the next show brings back the
         // same window with its content. An Avalonia window that closes is disposed and can never be shown again, so a
