@@ -215,6 +215,14 @@ public sealed class QuestionTabTests(HeadlessSession headless)
                 var presenter = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(field).OfType<Avalonia.Controls.Presenters.TextPresenter>().Single();
                 Assert.Equal("123456", presenter.Text);
                 Assert.Equal('•', presenter.PasswordChar); // :231 SecureField
+                // :236 .roundedBorder: the field sits in a bezel (the Windows text box, proposal ED-229 (4)), accent while focused.
+                var bezel = Assert.IsType<Border>(Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualChildren(field)));
+                Assert.Equal(new CornerRadius(4), bezel.CornerRadius);
+                Assert.Equal(new Thickness(1), bezel.BorderThickness);
+                var resting = ((Avalonia.Media.ISolidColorBrush)bezel.BorderBrush!).Color;
+                field.Focus();
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                Assert.NotEqual(resting, ((Avalonia.Media.ISolidColorBrush)bezel.BorderBrush!).Color);
             }
             finally { window.Close(); }
         });

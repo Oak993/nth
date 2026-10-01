@@ -57,7 +57,17 @@ internal static class ChatDialogControls
             void Update() => prompt.IsVisible = showsPrompt && string.IsNullOrEmpty(box.Text);
             box.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Update(); };
             Update();
-            return new Panel { Children = { prompt, text } };
+            var content = new Panel { Children = { prompt, text } };
+            if (style != "RoundedBorder") return content;
+            // `.textFieldStyle(.roundedBorder)`: the system text field's bezel. ENGINEERING DECISION (proposal ED-229 (4)):
+            // the Windows 11 text box (corner radius 4, padding 10,5,6,6, the control fill and hairline SystemButtons use,
+            // the accent border while it has focus); recorded deviation from the macOS bezel.
+            var bezel = new Border { CornerRadius = new CornerRadius(4), Padding = new Thickness(10, 5, 6, 6), BorderThickness = new Thickness(1), Child = content };
+            bezel.Background = SystemButtons.StandardFill.Brush(bezel);
+            void Stroke() => bezel.BorderBrush = (box.IsKeyboardFocusWithin ? Chrome.Accent : SystemButtons.StandardStroke).Brush(bezel);
+            box.PropertyChanged += (_, e) => { if (e.Property == Avalonia.Input.InputElement.IsKeyboardFocusWithinProperty) Stroke(); };
+            Stroke();
+            return bezel;
         });
     }
 

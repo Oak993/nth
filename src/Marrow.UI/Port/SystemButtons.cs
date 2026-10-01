@@ -19,8 +19,11 @@ namespace Marrow.UI.Port;
 /// <summary>PORT-ONLY. The bordered and bordered-prominent buttons (see the file note).</summary>
 public static class SystemButtons
 {
-    private static readonly SwiftColor StandardFill = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.7), new SwiftColor(white: 1, opacity: 0.06));
-    private static readonly SwiftColor StandardStroke = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.06), new SwiftColor(white: 1, opacity: 0.07));
+    /// <summary>The Windows 11 control fill (ControlFillColorDefault), shared by the standard button and the text field bezel.</summary>
+    public static SwiftColor StandardFill { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.7), new SwiftColor(white: 1, opacity: 0.06));
+
+    /// <summary>The Windows 11 control hairline (ControlStrokeColorDefault).</summary>
+    public static SwiftColor StandardStroke { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.06), new SwiftColor(white: 1, opacity: 0.07));
 
     /// <summary><c>Button(title, action:).buttonStyle(.bordered)</c>.</summary>
     public static Button Bordered(string title, Action action) => Make(Title(title), action, prominent: false);
