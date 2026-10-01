@@ -26,15 +26,8 @@ public sealed class HydraButtonClickTests(HeadlessSession headless)
             body(rig);
         });
 
-    private static void Press(HydraButtonRig rig, Point at, MouseButton button, RawInputModifiers modifiers = RawInputModifiers.None)
-    {
-        rig.Main.OnMain(() =>
-        {
-            rig.Window.MouseDown(at, button, modifiers);
-            rig.Window.MouseUp(at, button, modifiers);
-        });
-        rig.Drain();
-    }
+    private static void Press(HydraButtonRig rig, Point at, MouseButton button, RawInputModifiers modifiers = RawInputModifiers.None) =>
+        rig.Press(at, button, modifiers);
 
     [Fact]
     [Trait("Req", "PR-HYDRA-158")] // HydraButton.swift:37 the intro comes first, even with heads out

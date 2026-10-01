@@ -2,6 +2,8 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using Marrow.App.Runtime;
@@ -23,12 +25,17 @@ internal sealed class HydraButtonRig : IDisposable
 {
     private readonly AppModelHarness harness = new();
     private readonly IDisposable frameScope;
+    private readonly IDisposable motionScope;
     private readonly IDisposable presenterScope;
     private readonly ManualFrameSource frames = new();
     private readonly List<ChatThread> heads = [];
 
-    public HydraButtonRig(bool hydraOn = true, bool introRead = true, bool hydraEnabledInSettings = true, bool attach = true)
+    public HydraButtonRig(
+        bool hydraOn = true, bool introRead = true, bool hydraEnabledInSettings = true, bool attach = true,
+        HydraPair? pair = null, ProviderKind? provider = null, bool reduceMotion = false)
     {
+        Motion = new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reduceMotion };
+        motionScope = Chrome.ReduceMotionPlatform.Override(Motion);
         frameScope = FrameClock.Source.Override(frames);
         presenterScope = Presentation.Presenter.Override(Presenter);
         Model = harness.MakeModel();
@@ -38,7 +45,13 @@ internal sealed class HydraButtonRig : IDisposable
             Lead = Model.NewThread(Project)!;
             Model.Settings.HydraEnabled = hydraEnabledInSettings;
             Model.Settings.HasSeenHydraIntro = introRead;
-            Model.UpdateThread(Lead.Id, thread => thread with { HydraEnabled = hydraOn });
+            if (pair is not null) Model.Settings.AddHydraPair(pair);
+            Model.UpdateThread(Lead.Id, thread => thread with
+            {
+                HydraEnabled = hydraOn,
+                Provider = provider ?? thread.Provider,
+                HydraPairID = pair?.Id,
+            });
             Lead = Model.Thread(Lead.Id)!;
             Runtime = Model.Runtime(Lead.Id);
             Button = new HydraButton(Lead, Runtime);
@@ -54,6 +67,9 @@ internal sealed class HydraButtonRig : IDisposable
 
     public AppModel Model { get; }
     public ContentRecordingPresenter Presenter { get; } = new();
+
+    /// <summary>The Reduce Motion setting the button reads (NSWorkspace.accessibilityDisplayShouldReduceMotion), settable.</summary>
+    public FakeGeniePlatform Motion { get; }
     public Project Project { get; private set; } = null!;
     public ChatThread Lead { get; private set; } = null!;
     public ThreadRuntime Runtime { get; private set; } = null!;
@@ -61,7 +77,12 @@ internal sealed class HydraButtonRig : IDisposable
     public Avalonia.Controls.Window Window { get; private set; } = null!;
 
     /// <summary>The row the mark sits in, as in the chrome row: natural size, nothing stretched.</summary>
-    public StackPanel Content { get; } = new() { Orientation = Avalonia.Layout.Orientation.Horizontal };
+    public StackPanel Content { get; } = new()
+    {
+        Orientation = Avalonia.Layout.Orientation.Horizontal,
+        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left,
+        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+    };
 
     private readonly List<Avalonia.Controls.Window> hosts = [];
     public TestRuntime Main => harness.Main;
@@ -161,6 +182,17 @@ internal sealed class HydraButtonRig : IDisposable
 
     public HydraSendWorkingBadge? Badge => LogicalQuery.SelfAndDescendants<HydraSendWorkingBadge>(Button).SingleOrDefault();
 
+    /// <summary>A real press and release of a mouse button at a point of the window.</summary>
+    public void Press(Point at, MouseButton button, RawInputModifiers modifiers = RawInputModifiers.None)
+    {
+        harness.Main.OnMain(() =>
+        {
+            Window.MouseDown(at, button, modifiers);
+            Window.MouseUp(at, button, modifiers);
+        });
+        Drain();
+    }
+
     public void Click()
     {
         harness.Main.OnMain(() => Mark.RaiseEvent(new RoutedEventArgs(Avalonia.Controls.Button.ClickEvent)));
@@ -220,6 +252,7 @@ internal sealed class HydraButtonRig : IDisposable
             Drain();
             presenterScope.Dispose();
             frameScope.Dispose();
+            motionScope.Dispose();
             harness.Dispose();
         }
     }

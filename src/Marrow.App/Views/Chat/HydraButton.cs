@@ -83,6 +83,7 @@ public sealed class HydraButton : Decorator
     {
         this.thread = thread;
         this.runtime = runtime;
+        VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center; // the chrome row's HStack centres its children
         model = FindAppModel(runtime) ?? throw new InvalidOperationException("The Hydra button requires its application model.");
 
         mark = new HydraMarkView(false, false); // :44
@@ -796,8 +797,15 @@ public sealed class HydraChargeLayerView : Control
     private readonly Action<TimeSpan> frame;
     private IFrameSource? source;
     private bool waiting;
-    private readonly Action? applicationActive;
-    private readonly Action<TopLevel, bool>? occlusionChanged;
+
+    // :474-479 the three NotificationCenter observers, added in init and removed in deinit: kept weakly, so a view that is
+    // let go is let go (R-NOTE-1; the platform has no deinit to unsubscribe in).
+    private static readonly List<WeakReference<HydraChargeLayerView>> Live = [];
+
+    static HydraChargeLayerView()
+    {
+        ThemeManager.DidChange += () => Notify(view => view.OnThemeChanged()); // :479
+    }
 
     // :440-480
     public HydraChargeLayerView()
@@ -805,11 +813,19 @@ public sealed class HydraChargeLayerView : Control
         Focusable = false;
         IsHitTestVisible = false; // :491 override func hitTest(_:) -> NSView? { nil }
         frame = OnFrame;
-        applicationActive = OnApplicationActive;
-        occlusionChanged = OnOcclusionChanged;
         RingOpacity = RingRestOpacity;
         GlowOpacity = GlowRestOpacity;
         ActualThemeVariantChanged += (_, _) => ApplyColors(); // :512-516 viewDidChangeEffectiveAppearance
+        Live.Add(new WeakReference<HydraChargeLayerView>(this));
+    }
+
+    private static void Notify(Action<HydraChargeLayerView> post)
+    {
+        foreach (var weak in Live.ToArray())
+        {
+            if (weak.TryGetTarget(out var view)) post(view);
+            else Live.Remove(weak);
+        }
     }
 
     /// <summary>The ring's turn now, in degrees clockwise on screen (a model value of 0 while no turn is attached).</summary>
@@ -866,9 +882,6 @@ public sealed class HydraChargeLayerView : Control
     {
         base.OnAttachedToVisualTree(e);
         source = FrameClock.Source.Current;
-        ThemeManager.DidChange += OnThemeChanged; // :477-479
-        ApplicationDidBecomeActive += applicationActive!; // :475
-        WindowDidChangeOcclusionState += occlusionChanged!; // :476
         ApplyColors();
         InstallAnimations();
     }
@@ -876,30 +889,23 @@ public sealed class HydraChargeLayerView : Control
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         base.OnDetachedFromVisualTree(e);
-        ThemeManager.DidChange -= OnThemeChanged; // :487-489 deinit
-        ApplicationDidBecomeActive -= applicationActive!;
-        WindowDidChangeOcclusionState -= occlusionChanged!;
         if (waiting) source?.CancelFrame(frame);
         waiting = false;
         source = null;
     }
 
     /// <summary>
-    /// PORT-ONLY seam for <c>NSApplication.didBecomeActiveNotification</c> (:475; R-NOTE-1): the application shell raises
-    /// it when the application is activated, and every live charge view hears it.
+    /// PORT-ONLY seam for <c>NSApplication.didBecomeActiveNotification</c> (:475; R-NOTE-1): the application shell posts it
+    /// when the application is activated, and every live charge view hears it (the observer has no object filter).
     /// </summary>
-    public static event Action? ApplicationDidBecomeActive;
+    public static void PostApplicationDidBecomeActive() => Notify(view => view.OnApplicationActive());
 
     /// <summary>
     /// PORT-ONLY seam for <c>NSWindow.didChangeOcclusionStateNotification</c> (:476): the window that changed and whether it
-    /// is now visible. Every window ordered in raises it, popovers and tooltips included.
+    /// is now visible. Every window ordered in posts it, popovers and tooltips included.
     /// </summary>
-    public static event Action<TopLevel, bool>? WindowDidChangeOcclusionState;
-
-    public static void PostApplicationDidBecomeActive() => ApplicationDidBecomeActive?.Invoke();
-
     public static void PostWindowDidChangeOcclusionState(TopLevel window, bool isVisible) =>
-        WindowDidChangeOcclusionState?.Invoke(window, isVisible);
+        Notify(view => view.OnOcclusionChanged(window, isVisible));
 
     // :518-521
     private void OnApplicationActive()
