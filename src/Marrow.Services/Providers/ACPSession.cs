@@ -294,19 +294,23 @@ public sealed class ACPSession : ProviderSession
 
     /// <summary>ENGINEERING DECISION mirroring Core/Models/Library.cs Url and Core/Models/Timeline.cs
     /// Attachment.Url: F.URL (SwiftURL) only builds URL(string:); there is no ported fileURLWithPath
-    /// initializer, so a plain directory path is percent-encoded into a file:// URL by hand.</summary>
+    /// initializer, so a plain directory path is percent-encoded by hand. DEFECT FIX (PR-PROVREG-246, 248): this built
+    /// a "file://" URL, whose .Path reproduces macOS's POSIX url.path and turns "C:/Users/x" into "/C:/Users/x"; that
+    /// working directory is rejected by CreateProcessW ("The directory name is invalid"), so every catalog probe
+    /// (Cursor, Grok, Devin, OpenCode Zen and Go) failed before its process started. CodexSession.DirectoryFileUrl
+    /// already avoids this with a non-"file" scheme, which takes SwiftURL.Path's plain percent-decode branch.</summary>
     private static SwiftURL DirectoryFileUrl(string path)
     {
         var normalized = path.Replace('\\', '/');
         var builder = new System.Text.StringBuilder();
-        if (normalized.Length == 0 || normalized[0] != '/') builder.Append('/');
         foreach (var b in System.Text.Encoding.UTF8.GetBytes(normalized))
         {
             var c = (char)b;
             if (b < 0x80 && (char.IsAsciiLetterOrDigit(c) || "-._~/:".IndexOf(c, StringComparison.Ordinal) >= 0)) builder.Append(c);
             else builder.Append('%').Append(b.ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
         }
-        return SwiftURL.Create("file://" + builder) ?? throw SwiftTraps.Fatal("Invalid probe directory path.");
+        // A non-"file" scheme, as CodexSession.DirectoryFileUrl does (see the note above): the path round-trips unchanged.
+        return SwiftURL.Create("marrow-directory-path:" + builder) ?? throw SwiftTraps.Fatal("Invalid probe directory path.");
     }
 
     /// <summary>:231-238. The throwaway probe session's configuration: always supervised/build, so the probe
