@@ -671,6 +671,7 @@ public sealed class RootViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91
+    [Trait("Req", "UI-WIN-073")] // App/Views/RootView.swift:80-91 the one cancel-role OK button; dismissing clears model.alert
     public void A_model_alert_shows_through_the_presenter_with_one_OK_button_and_dismissing_clears_it()
     {
         headless.OnUiThread(() =>
@@ -982,6 +983,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     [InlineData("ok")]
     [InlineData("return")]
     [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91; ED-216 lone cancel-role OK still takes Return
+    [Trait("Req", "UI-WIN-073")] // App/Views/RootView.swift:80-91 the one cancel-role OK button; dismissing clears model.alert
     public void A_replaced_alert_updates_the_owned_dialog_and_production_dismissal_clears_the_model(string dismissal) => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -1044,6 +1046,7 @@ public sealed class RootViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-066")] // App/Views/RootView.swift:80-91; ED-216 extended request, owner and cancel-role OK
+    [Trait("Req", "UI-WIN-073")] // App/Views/RootView.swift:80-91 the one cancel-role OK button; dismissing clears model.alert
     public void The_model_alert_uses_the_extended_shared_request_with_its_rendering_owner_and_cancel_role_OK() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();

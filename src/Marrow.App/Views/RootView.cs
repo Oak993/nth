@@ -899,7 +899,8 @@ public sealed class WelcomeView : Decorator
         identity.Children.Add(tagline);
 
         // :317-327 "Add a project" (glassProminent, extraLarge) over the drop hint, spacing 10
-        var addProjectLabel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        // :321 `.padding(.horizontal, 6)` on the label, inside the button style's own padding (DEFECT, UI-WIN-059: it was missing).
+        var addProjectLabel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center, Margin = new Thickness(6, 0) };
         addProjectLabel.Children.Add(SwiftImage.SystemName("folder.badge.plus").Font(SwiftFont.System(SwiftFont.TextStyle.Body)));
         addProjectLabel.Children.Add(new TextBlock { Text = "Add a project", VerticalAlignment = VerticalAlignment.Center });
         var addProjectButton = GlassProminentButton(addProjectLabel, ExtraLargeControlHeight, model.ChooseProjectFolder); // :318 model.chooseProjectFolder()
@@ -920,7 +921,9 @@ public sealed class WelcomeView : Decorator
         providersSection.MaxWidth = 480;
 
         // :304-343 the outer VStack(spacing: 30), padded 48
-        var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 30, HorizontalAlignment = HorizontalAlignment.Center };
+        // :345 `.frame(maxWidth: .infinity)`: the column fills the page, so a section's `.frame(maxWidth: 480)` takes 480 (or what the
+        // page offers) rather than the width of its widest row (DEFECT, UI-WIN-061/063: Center sized the column, and the sections, to content).
+        var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 30, HorizontalAlignment = HorizontalAlignment.Stretch };
         column.Children.Add(identity);
         column.Children.Add(addProjectStack);
         column.Children.Add(activitySection);
@@ -1048,7 +1051,7 @@ internal sealed class ProviderStatusRow : Decorator
         {
             content = provider.IsAPIKeyBased
                 ? new OpenProvidersSettingsButton()
-                : GlassButton("Install", () => Process.Start(new ProcessStartInfo(provider.InstallURL.AbsoluteString) { UseShellExecute = true }));
+                : GlassButton("Install", () => Marrow.Services.Port.Workspace.Open.Current(provider.InstallURL)); // :392 Link(destination:) hands the address to the default browser, through the seam tests replace (it started the shell directly)
         }
         else if (status.ProviderStatusAuth is ProviderStatus.Auth.SignedOut) // :395-401
         {
