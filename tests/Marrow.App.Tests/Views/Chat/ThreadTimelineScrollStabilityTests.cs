@@ -117,6 +117,11 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
 
     private static bool SomeTextOnScreen(ThreadTimeline view, ScrollViewer scroller) => TextsOnScreen(view, scroller).Any();
 
+    // The oldest question laid out in the scroll view (rows outside the window are not built; the minimap rail is not counted).
+    private static int OldestQuestion(ThreadTimeline view) => Scroller(view).GetVisualDescendants().OfType<TextBlock>()
+        .Select(text => System.Text.RegularExpressions.Regex.Match(text.Text ?? text.Inlines?.Text ?? "", @"^Question number (\d+) "))
+        .Where(match => match.Success).Select(match => int.Parse(match.Groups[1].Value, System.Globalization.CultureInfo.InvariantCulture)).DefaultIfEmpty(-1).Min();
+
     private static bool IsReaderScrolling(ThreadTimeline view)
     {
         var tracking = typeof(ThreadTimeline).GetField("tracking", Hidden)!.GetValue(view)!;
@@ -211,6 +216,36 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
             Assert.True(SomeTextOnScreen(view, Scroller(view)), FormattableString.Invariant($"blank at width {width}: ") + Where(Scroller(view)));
             Assert.False(AtEnd(Scroller(view)), FormattableString.Invariant($"pulled to the end at width {width}: ") + Where(Scroller(view)));
         }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:594-607 the initial window lands a beat later, above the viewport, "while the reader is already looking at the end"; :380-382 a visible pill loads a page
+    public void A_long_thread_loads_its_initial_window_above_the_viewport_and_the_reader_stays_on_the_end() => WithLongThread(60, (view, _, _, _) =>
+    {
+        // 60 turns are 60 blocks. The first paint shows the newest TimelineWindow.FirstPaint; its earlier-messages pill
+        // is on screen, so a page loads at once (:380-382), and the 250 ms task's window (TimelineWindow.Initial) is
+        // then already covered. Either way at least the initial window is laid out, above the reader.
+        Assert.InRange(OldestQuestion(view), 0, 60 - TimelineWindow.Initial);
+        Assert.True(AtEnd(Scroller(view)), Where(Scroller(view)));
+        Assert.True(SomeTextOnScreen(view, Scroller(view)), "blank: " + Where(Scroller(view)));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:366-382 history loads itself as the reader nears the top; :556-571 it lands above the viewport, the reader's place kept
+    public void Earlier_messages_load_above_without_moving_the_reader_to_the_top_or_the_end() => WithLongThread(90, (view, _, window, frames) =>
+    {
+        var oldest = OldestQuestion(view);
+        for (var round = 0; round < 30 && OldestQuestion(view) == oldest; round++)
+        {
+            Wheel(view, window, 5);
+            Settle(window, frames);
+        }
+        Assert.True(OldestQuestion(view) < oldest, "no earlier page loaded while scrolling up (oldest " + oldest + ")");
+        var scroller = Scroller(view);
+        Assert.True(SomeTextOnScreen(view, scroller), "blank: " + Where(scroller));
+        Assert.False(AtEnd(scroller), "the reader was sent to the end: " + Where(scroller));
+        // The page went in above what the reader was looking at, so they are not left at the very top of it.
+        Assert.True(scroller.Offset.Y > scroller.Viewport.Height, "the page did not land above the viewport: " + Where(scroller));
     });
 
     [Fact]
