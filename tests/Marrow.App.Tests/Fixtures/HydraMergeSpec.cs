@@ -91,4 +91,40 @@ public static class HydraMergeSpec
     /// <summary>Private IsLoadingHistory switch, the way a lead that took up work again looks to the readiness test.</summary>
     public static void SetLoadingHistory(ThreadRuntime runtime, bool value) =>
         typeof(ThreadRuntime).GetProperty("IsLoadingHistory", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.SetValue(runtime, value);
+
+    /// <summary>
+    /// A lead working in its own copy of <paramref name="project"/>'s checkout (lead.worktreePath), on a branch of its own, with
+    /// the project's origin. The copy is a clone, not a linked worktree: the offline forge stand-in keeps its script under the
+    /// working directory's .git folder, and a linked worktree's .git is a file.
+    /// </summary>
+    public static (ChatThread Lead, string Copy) AddWorktreeLead(HydraMergeProofFixture f, Project project, string title, string[] touched,
+        string branch = "wt-branch")
+    {
+        var clone = f.Clone(project);
+        clone.Git("checkout", "-q", "-b", branch);
+        var lead = Change(f, f.AddLead(project, title, touched), t => t with { WorktreePath = clone.Root });
+        return (lead, clone.Root);
+    }
+
+    /// <summary>Answers the forge CLI's first call in <paramref name="checkout"/> with the request every success flow merges.</summary>
+    public static Marrow.Services.Tests.Fixtures.ForgeScript Forge(string checkout, string url = RequestURL)
+    {
+        var script = new Marrow.Services.Tests.Fixtures.ForgeScript(checkout);
+        script.Reply(0, stdout: url);
+        return script;
+    }
+
+    /// <summary>An assistant message of the lead's timeline, belonging to <paramref name="turnID"/>.</summary>
+    public static void AddAssistant(HydraMergeProofFixture f, ChatThread lead, Guid turnID, string text)
+    {
+        var document = f.Documents[lead.Id];
+        var item = new TimelineItem(turnID, new TimelineItem.Content.Assistant(new AssistantMessage { Text = text }));
+        f.Documents[lead.Id] = document with { Items = new ValueList<TimelineItem>(document.Items.Append(item)) };
+    }
+
+    /// <summary>The lines of a merge note's body (everything after the title line).</summary>
+    public static string[] BodyLines((string ID, string Text) note) => note.Text[(note.Text.IndexOf((char)10, StringComparison.Ordinal) + 1)..].Split((char)10);
+
+    /// <summary>The title of a merge note (its first line).</summary>
+    public static string Title((string ID, string Text) note) => note.Text[..note.Text.IndexOf((char)10, StringComparison.Ordinal)];
 }
