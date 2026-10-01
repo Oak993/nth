@@ -360,12 +360,22 @@ public sealed class UserMessageRow : Decorator
         // vertical.
         var inset = new Border { Padding = new Thickness(14, 9, 14 + UserBubble.Tail, 9), Child = text };
         // :128 .background(.tint.opacity(0.14), in: UserBubble()): .tint is the view tint, Chrome.accent (ChatBadge.cs).
-        var shape = new Avalonia.Controls.Shapes.Path { Stretch = Stretch.None };
+        var shape = new BackgroundPath { Stretch = Stretch.None };
         shape.Fill = Chrome.Accent.Opacity(0.14).Brush(shape);
         inset.SizeChanged += (_, e) => shape.Data = new UserBubble().Path(new Rect(e.NewSize));
         var bubble = PlainControls.Background(inset, shape);
         bubble.HorizontalAlignment = HorizontalAlignment.Right;
         return bubble;
+    }
+
+    // :128 the shape is a SwiftUI background: it takes the bubble's size and never changes it. The tail's curve
+    // (UserBubble :1190-1194) reaches a fraction of a point past the rect it is drawn in, so a Path measured at its
+    // geometry would make the Panel taller, stretch the inset, redraw the shape taller, and so on every layout pass
+    // (until the bubble was millions of pixels tall). Measuring the shape at zero keeps it out of layout; it is still
+    // arranged at the bubble's size and draws its geometry where it was.
+    private sealed class BackgroundPath : Avalonia.Controls.Shapes.Path
+    {
+        protected override Size MeasureOverride(Size availableSize) => default;
     }
 
     // :130-161 the hover line: the pencil when the message can be edited, in a line pinned to the hover line's room, so

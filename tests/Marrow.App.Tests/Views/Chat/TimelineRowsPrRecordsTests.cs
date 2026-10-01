@@ -1642,6 +1642,36 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "PR-CHAT-077")]
+    public void The_bubble_shape_is_only_a_background_and_never_grows_the_bubble_past_its_text() => headless.OnUiThread(() =>
+    {
+        // TimelineRows.swift:128 .background(.tint.opacity(0.14), in: UserBubble()): a SwiftUI background takes the
+        // bubble's size and never changes it. The tail's curve reaches a fraction of a point past the rect it is drawn
+        // in (UserBubble :1190-1194), so a shape that took part in layout would grow the bubble a little on every pass.
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var row = new UserMessageRow(UserEntry("hello there", Guid.NewGuid()), h.Runtime, canRevert: false);
+            var window = Show(row);
+            try
+            {
+                for (var pass = 0; pass < 20; pass++)
+                {
+                    Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+                    window.UpdateLayout();
+                    Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                }
+                var shape = Assert.Single(row.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Path>());
+                var inset = Assert.IsType<Border>(Assert.Single(row.GetVisualDescendants().OfType<InlineText>()).Parent);
+                Assert.Equal(inset.DesiredSize.Height, inset.Bounds.Height, 3);
+                Assert.True(inset.Bounds.Height < 60, "bubble height " + inset.Bounds.Height);
+                Assert.Equal(inset.Bounds.Size, shape.Bounds.Size);
+            }
+            finally { Close(window); }
+        });
+    });
+
     // ---- PR-CHAT-079: a sent message's attachments are a 56-point thumbnail strip above the bubble (:1209-1350) ----
 
     [Fact]
