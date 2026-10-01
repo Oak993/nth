@@ -3479,6 +3479,7 @@ internal sealed class SettleCheck : Decorator
         var state = new ViewState();
         var glyphHost = new Panel { Width = 20, Height = 20, Background = Brushes.Transparent }; // :2130 frame, :2131 contentShape(.rect)
         Control? currentGlyph = null;
+        string? currentSymbol = null;
         var button = PlainControls.Button(glyphHost, action); // :2125, :2134 .buttonStyle(.plain)
         button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :2135-2137
         button.Track(() => state.IsHovering, hovering =>
@@ -3488,18 +3489,33 @@ internal sealed class SettleCheck : Decorator
             var color = isDone || hovering
                 ? Chrome.Success.Opacity(isSettled && !hovering ? 0.8 : 1) // :2128
                 : Chrome.SecondaryText;
-            if (currentGlyph is { } previous) glyphHost.Children.Remove(previous);
-            // :2129 MARROW_DEFERRED ED-182 (SwiftImage.cs's own deferral list names this site): the symbol-replace
-            // content transition is a static swap here, not a crossfade.
-            var glyph = SwiftImage.SystemName(filled ? "checkmark.circle.fill" : "checkmark.circle") // :2126
+            var symbol = filled ? "checkmark.circle.fill" : "checkmark.circle"; // :2126
+            var previous = currentGlyph;
+            if (previous is not null) glyphHost.Children.Remove(previous);
+            var glyph = SwiftImage.SystemName(symbol)
                 .Font(Chrome.InlineIconFont); // :2127
             glyph.ForegroundStyle(color); // :2128
             glyph.HorizontalAlignment = HorizontalAlignment.Center;
             glyph.VerticalAlignment = VerticalAlignment.Center;
             glyph.RenderTransform = new ScaleTransform(isPopping ? 1.35 : 1, isPopping ? 1.35 : 1); // :2132
             glyph.IsHitTestVisible = false;
-            currentGlyph = glyph;
-            glyphHost.Children.Add(glyph);
+            if (previous is not null && currentSymbol is not null && currentSymbol != symbol)
+            {
+                // :2129 .contentTransition(.symbolEffect(.replace)): the outline and the filled check replace each other in
+                // two steps (SymbolReplace). The glyphs ride in wrappers so their own pop scale (:2132) is kept.
+                var outgoing = new Decorator { Child = previous, IsHitTestVisible = false };
+                var incoming = new Decorator { Child = glyph, IsHitTestVisible = false };
+                glyphHost.Children.Add(incoming);
+                glyphHost.Children.Add(outgoing);
+                SymbolReplace.Play(outgoing, incoming, () => glyphHost.Children.Remove(outgoing));
+                currentGlyph = incoming;
+            }
+            else
+            {
+                currentGlyph = glyph;
+                glyphHost.Children.Add(glyph);
+            }
+            currentSymbol = symbol;
         });
         var tip = isSettled ? "Reopen thread" : "Settle thread"; // :2138-2139
         ToolTip.SetTip(button, tip);
