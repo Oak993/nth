@@ -579,4 +579,56 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
             Assert.True(N.IsWindowVisible(subject.SettingsProbe.Handle));
         });
     }
+
+    [Fact]
+    [Trait("Decision", "ED-107")] // (5) NativeContextMenus installs at the shared builder point; proposal ED-229 (1)
+    public void A_right_click_menu_is_the_native_Win32_popup_and_choosing_its_first_row_clicks_that_item()
+    {
+        native.Run(_ =>
+        {
+            var clicked = 0;
+            var (window, target) = native.OnUi(() =>
+            {
+                var rename = new MenuItem { Header = "Rename" };
+                rename.Click += (_, _) => clicked++;
+                var target = new Border
+                {
+                    Width = 200,
+                    Height = 100,
+                    Background = Avalonia.Media.Brushes.White,
+                    ContextMenu = new ContextMenu { Items = { rename, new Separator(), new MenuItem { Header = "Archive" } } },
+                };
+                var window = new Avalonia.Controls.Window { Content = target, Width = 300, Height = 200, ShowInTaskbar = false };
+                native.Register(window);
+                window.Show();
+                window.UpdateLayout();
+                return (window, target);
+            });
+            var handle = native.OnUi(() => window.TryGetPlatformHandle()?.Handle ?? 0);
+            // The menu runs its own modal loop on the UI thread (TrackPopupMenuEx), so it is presented from a task and
+            // driven from here with posted keys, as a person would: Down selects the first row, Return chooses it.
+            var presenting = Task.Run(() => native.OnUi(() =>
+            {
+                Marrow.UI.Port.NativeContextMenus.Presenter.Current.Present(target, new Point(20, 20), Marrow.UI.Port.NativeContextMenus.Entries(target.ContextMenu!.Items));
+                return 0;
+            }));
+            try
+            {
+                nint popup = 0;
+                N.Until(() => (popup = N.MenuOn(native.ThreadId)) != 0, "No native popup menu appeared on the window's thread.", 3000);
+                N.Post(popup, 0x0100, 0x28); // WM_KEYDOWN VK_DOWN
+                N.Post(popup, 0x0100, 0x0D); // WM_KEYDOWN VK_RETURN
+                Assert.True(presenting.Wait(TimeSpan.FromSeconds(5)), "the native menu did not return after Return");
+                Assert.Equal(1, native.OnUi(() => clicked));
+            }
+            finally
+            {
+                if (!presenting.IsCompleted)
+                {
+                    N.Post(handle, N.WM_CANCELMODE);
+                    presenting.Wait(TimeSpan.FromSeconds(5));
+                }
+            }
+        });
+    }
 }
