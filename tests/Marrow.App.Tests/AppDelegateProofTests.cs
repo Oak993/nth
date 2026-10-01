@@ -216,8 +216,9 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 // Kind: missing external composition evidence/material dependency.
 // Swift: App/AppDelegate.swift:22; ED-103 (5), (7), ED-180, OD-0018.
 // Records: PR-LAUNCH-028, PR-LAUNCH-071, UI-LAUNCH-001.
-// Site: ApplicationDidFinishLaunching -> ShowMain. F.LoadingMark and actual RootView have landed, but the ED-103
-// stage/main-window handoff and F.GlassMaterial have not. Need stage/Acrylic composition probe evidence and material.
+// Site: ApplicationDidFinishLaunching -> StartBoot. The ED-103 stage and hand-over landed 2026-10-01
+// (Port/BootStageWindow.cs, BootStageWindowTests; probes P12, P13). Open: the main window's Acrylic hint (WindowManager
+// STOP #5) and the owner's call on P13's ~150-200 ms blur lag at the hand-over (STOP Boot #1).
 // OD-0030's withdrawn lensing probe is a different issue. Stand-in main content is not a full clean-data boot capture.
 
 // STOP opencode-App.AppDelegate #2
