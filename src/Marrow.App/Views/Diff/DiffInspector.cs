@@ -26,7 +26,7 @@ namespace Marrow.App.Views.Diff;
 public sealed class DiffInspector : Decorator
 {
     private readonly ThreadRuntime runtime;
-    private readonly StackPanel root;
+    private readonly Grid root;
     private readonly ScrollViewer scrollViewer;
     private readonly StackPanel filesPanel;
     private readonly Border stateContainer;
@@ -58,7 +58,9 @@ public sealed class DiffInspector : Decorator
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
         };
-        root = new StackPanel { Spacing = 0 };
+        // :24 VStack(spacing: 0): the chrome row at its own height, the rest of the 540 to the empty state or the scroll view
+        // (a vertical StackPanel measures the scroll view without a limit, so it would never scroll).
+        root = new Grid { RowDefinitions = new RowDefinitions("Auto,*") };
         Child = root;
         runtime.PropertyChanged += RuntimePropertyChanged;
         AttachedToVisualTree += (_, _) => LoadForCurrentKey();
@@ -89,41 +91,46 @@ public sealed class DiffInspector : Decorator
             () => runtime.IsDiffVisible = false);
         var more = new ChromeMenuButton("ellipsis", "More", BuildMoreMenu);
 
-        var chromeRow = new StackPanel
+        // :26 HStack(spacing: 10) holding the menu, a flexible Spacer(minLength: 8), the counts when there are files, and the
+        // capsule. A horizontal StackPanel gives a spacer no free width, so the row is a grid: the 8-point minimum sits in the
+        // star column between two 10-point gaps, and it takes everything the other items leave.
+        var hasFiles = files.Count != 0;
+        var chromeRow = new Grid
         {
-            Orientation = Avalonia.Layout.Orientation.Horizontal,
-            Spacing = 10,
             Margin = new Thickness(14, 12, 14, 10),
+            ColumnDefinitions = hasFiles
+                ? new ColumnDefinitions("Auto,10,*,10,Auto,10,Auto,10,Auto")
+                : new ColumnDefinitions("Auto,10,*,10,Auto"),
         };
+        chromeRow.ColumnDefinitions[2].MinWidth = 8; // :45 Spacer(minLength: 8)
         SwiftGlass.SetContainerSpacing(chromeRow, 2); // :25 GlassEffectContainer(spacing: 2)
-        chromeRow.Children.Add(menu);
-        chromeRow.Children.Add(new Border
+        void Place(Control item, int column)
         {
-            MinWidth = 8,
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
-        });
-        if (files.Count != 0)
+            item.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center; // HStack's default alignment
+            Grid.SetColumn(item, column);
+            chromeRow.Children.Add(item);
+        }
+
+        Place(menu, 0);
+        if (hasFiles) // :46-54
         {
-            var countLabel = new TextBlock
+            Place(new TextBlock
             {
                 Text = summary.Files.Count == 1
                     ? "1 file"
                     : summary.Files.Count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " files",
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
                 FontFamily = new FontFamily("fonts:Inter#Inter"),
                 FontSize = 11,
                 Foreground = Chrome.SecondaryText.Brush(this),
-            };
-            chromeRow.Children.Add(countLabel);
-            chromeRow.Children.Add(new DiffStatLabel
+            }, 4);
+            Place(new DiffStatLabel
             {
                 Additions = (int)summary.Additions,
                 Deletions = (int)summary.Deletions,
-            });
+            }, 6);
         }
 
-        chromeRow.Children.Add(new Border { HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch });
-        chromeRow.Children.Add(new ChromeCapsule(() =>
+        Place(new ChromeCapsule(() =>
         {
             var trailing = new StackPanel
             {
@@ -134,7 +141,8 @@ public sealed class DiffInspector : Decorator
             trailing.Children.Add(new ChromeDivider());
             trailing.Children.Add(close);
             return trailing;
-        }));
+        }), hasFiles ? 8 : 4);
+        Grid.SetRow(chromeRow, 0);
         root.Children.Add(chromeRow);
 
         if (files.Count == 0)
@@ -175,6 +183,7 @@ public sealed class DiffInspector : Decorator
             }
 
             stateContainer.Child = state;
+            Grid.SetRow(stateContainer, 1);
             root.Children.Add(stateContainer);
         }
         else
@@ -186,7 +195,9 @@ public sealed class DiffInspector : Decorator
                 filesPanel.Children.Add(new DiffFileCard(file, isCollapsed, () => ToggleCollapsed(file.Id)));
             }
 
-            scrollViewer.Margin = new Thickness(12);
+            // :98 .padding(12) is on the lazy stack inside the scroll view, so it scrolls with the cards.
+            filesPanel.Margin = new Thickness(12);
+            Grid.SetRow(scrollViewer, 1);
             root.Children.Add(scrollViewer);
             if (scrollTarget is not null)
             {
@@ -198,7 +209,7 @@ public sealed class DiffInspector : Decorator
                         .OfType<Control>()
                         .FirstOrDefault(control => control.Tag as string == scrollTarget);
                     if (target is not null)
-                        scrollViewer.Offset = new Vector(0, Math.Max(0, target.Bounds.Y));
+                        scrollViewer.Offset = new Vector(0, Math.Max(0, target.Bounds.Y + filesPanel.Margin.Top));
                 });
             }
         }
@@ -208,11 +219,12 @@ public sealed class DiffInspector : Decorator
     private Control BuildSelectionMenu()
     {
         var menu = new StackPanel { Spacing = 2 };
+        // :34 isChecked: the row keeps the checkmark column whether or not it is the selection (Popovers.swift:276-281).
         menu.Children.Add(new PopoverItem("All changes", () =>
         {
             runtime.ClearDiffFocus();
             runtime.DiffSelection = null;
-        }, symbol: runtime.DiffSelection is null ? "checkmark" : null));
+        }, isChecked: runtime.DiffSelection is null));
         foreach (var turn in changedTurns)
         {
             var selectedTurn = turn;
@@ -223,7 +235,7 @@ public sealed class DiffInspector : Decorator
                     runtime.ClearDiffFocus();
                     runtime.DiffSelection = selectedTurn.Id;
                 },
-                symbol: runtime.DiffSelection == turn.Id ? "checkmark" : null));
+                isChecked: runtime.DiffSelection == turn.Id)); // :39
         }
 
         return menu;
@@ -274,6 +286,8 @@ public sealed class DiffInspector : Decorator
         if (nextKey != loadKey)
         {
             LoadForCurrentKey();
+            // :29-32 the menu's title and :46 the rest of the body read the runtime as it changes, not once the load has run.
+            BuildRoot();
             return;
         }
 
@@ -779,7 +793,8 @@ public sealed class DiffLinesView : Decorator
                     MaxLines = 1,
                     Margin = new Thickness(10, 3),
                     Background = SwiftColor.AccentColor.Opacity(0.06).Brush(rows),
-                    FontFamily = new FontFamily("fonts:Cascadia Mono#Cascadia Mono"),
+                    // :406 .font(.system(size: 11.5, design: .monospaced)): the embedded face's key is fonts:CascadiaMono (SwiftFont.cs:79).
+                    FontFamily = new FontFamily("fonts:CascadiaMono#Cascadia Mono"),
                     FontSize = 11.5,
                     HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
                 });
@@ -849,7 +864,7 @@ internal sealed class DiffLineRow : Decorator
             Width = MarkerColumnWidth,
             TextAlignment = TextAlignment.Center,
             Foreground = MarkerColor(line.LineKind),
-            FontFamily = new FontFamily("fonts:Cascadia Mono#Cascadia Mono"),
+            FontFamily = new FontFamily("fonts:CascadiaMono#Cascadia Mono"),
             FontSize = 11.5,
         };
         Grid.SetColumn(marker, column++);
@@ -864,7 +879,7 @@ internal sealed class DiffLineRow : Decorator
             Foreground = line.LineKind == DiffLine.Kind.Note
                 ? SwiftColor.Secondary.Brush(this)
                 : SwiftColor.Primary.Brush(this),
-            FontFamily = new FontFamily("fonts:Cascadia Mono#Cascadia Mono"),
+            FontFamily = new FontFamily("fonts:CascadiaMono#Cascadia Mono"),
             FontSize = 11.5,
         };
         Grid.SetColumn(text, column);
@@ -886,7 +901,7 @@ internal sealed class DiffLineRow : Decorator
         Width = width,
         TextAlignment = TextAlignment.Right,
         Foreground = Chrome.SecondaryText.Brush(new Control()),
-        FontFamily = new FontFamily("fonts:Cascadia Mono#Cascadia Mono"),
+        FontFamily = new FontFamily("fonts:CascadiaMono#Cascadia Mono"),
         FontSize = 11.5,
     };
 
