@@ -96,9 +96,8 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     });
 
     [Fact]
-    // Partial evidence for PR-WIN-092; whole record remains STOP. // App/AppCommands.swift:21-25
-    // Partial evidence for UI-WIN-007; whole record remains STOP. // App/AppCommands.swift:21-25; OD-0012 F1,G6
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-092")] // App/AppCommands.swift:21-25
+    [Trait("Req", "UI-WIN-007")] // App/AppCommands.swift:21-25; OD-0012 F1,G6
     public void The_app_name_command_follows_Settings_has_no_default_chord_and_a_recorded_chord_shows_the_cached_main_window() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
@@ -164,8 +163,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     });
 
     [Fact]
-    // Partial evidence for PR-WIN-092; whole record remains STOP. // App/AppCommands.swift:21-25; App/Window/WindowManager.swift:26-31
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-092")] // App/AppCommands.swift:21-25; App/Window/WindowManager.swift:26-31
     public void A_recorded_show_main_chord_dispatched_from_the_focused_Settings_window_reuses_main() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
@@ -576,8 +574,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    // Partial evidence for PR-WIN-101; whole record remains STOP. // App/AppCommands.swift:48-51; UI/Chrome/Chrome.swift:100-104
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-101")] // App/AppCommands.swift:48-51; UI/Chrome/Chrome.swift:100-104
     public void Toggle_activity_view_chord_flips_the_persisted_setting_inside_the_panel_slide_animation(bool reduceMotion)
     {
         using var h = new AppModelHarness();
@@ -1387,8 +1384,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== PR-WIN-113: Archive thread (with U+2026) =====
 
     [Fact]
-    // Partial evidence for PR-WIN-113; whole record remains STOP. // App/AppCommands.swift:103-105; App/AppModel.swift:902-912
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-113")] // App/AppCommands.swift:103-105; App/AppModel.swift:902-912
     public void Archive_chord_asks_to_archive_the_selected_thread_and_is_disabled_with_no_selection()
     {
         using var h = new AppModelHarness();
@@ -1420,7 +1416,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-113; whole record remains STOP. // App/AppCommands.swift:17-19, :103-105; App/Window/ThreadWindow.swift:25-38
+    [Trait("Req", "PR-WIN-113")] // App/AppCommands.swift:17-19, :103-105; App/Window/ThreadWindow.swift:25-38
     [Trait("Decision", "ED-099")]
     public void In_the_main_window_ctrl_w_reaches_the_archive_command_and_leaves_the_window_open() => headless.OnUiThread(() =>
     {
@@ -1451,8 +1447,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== PR-WIN-114: Settle thread / Reopen thread =====
 
     [Fact]
-    // Partial evidence for PR-WIN-114; whole record remains STOP. // App/AppCommands.swift:106-108
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-114")] // App/AppCommands.swift:106-108
     public void The_settle_item_reads_Settle_thread_and_is_disabled_with_no_selection_or_a_helper_selected()
     {
         using var h = new AppModelHarness();
@@ -1484,8 +1479,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-114; whole record remains STOP. // App/AppCommands.swift:106-108; App/AppModel.swift:887-891
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-114")] // App/AppCommands.swift:106-108; App/AppModel.swift:887-891
     public void Settle_chord_asks_to_settle_or_reopen_and_never_archives_even_with_Archive_chosen()
     {
         using var h = new AppModelHarness();
@@ -1517,8 +1511,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== PR-WIN-222 to PR-WIN-226: the zoom items =====
 
     [Fact]
-    // Partial evidence for PR-WIN-222; whole record remains STOP. // App/AppCommands.swift:53-54; UI/Common/AppZoom.swift:12-15; App/AppSettings.swift:253-254
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-222")] // App/AppCommands.swift:53-54; UI/Common/AppZoom.swift:12-15; App/AppSettings.swift:253-254
     public void Zoom_In_steps_the_zoom_up_one_level_and_at_200_stays_there_still_writing_the_setting()
     {
         using var h = new AppModelHarness();
@@ -1548,8 +1541,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-223; whole record remains STOP. // App/AppCommands.swift:55-56; UI/Common/AppZoom.swift:12-15; App/AppSettings.swift:253-254
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-223")] // App/AppCommands.swift:55-56; UI/Common/AppZoom.swift:12-15; App/AppSettings.swift:253-254
     public void Zoom_Out_steps_the_zoom_down_one_level_and_at_75_stays_there_still_writing_the_setting()
     {
         using var h = new AppModelHarness();
@@ -1578,8 +1570,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-224; whole record remains STOP. // App/AppCommands.swift:57-58; Core/Models/Shortcuts.swift:233 (OD-0012 G6)
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-224")] // App/AppCommands.swift:57-58; Core/Models/Shortcuts.swift:233 (OD-0012 G6)
     public void Actual_Size_sets_the_zoom_to_100_from_any_level_and_alone_holds_ctrl_0()
     {
         using var h = new AppModelHarness();
@@ -1607,8 +1598,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-225; whole record remains STOP. // App/AppCommands.swift:53-62
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-225")] // App/AppCommands.swift:53-62
     public void A_second_Zoom_In_answers_ctrl_equals_after_Actual_Size_so_zoom_in_needs_no_shift()
     {
         using var h = new AppModelHarness();
@@ -1638,9 +1628,10 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-223; whole record remains STOP. // App/AppCommands.swift:55-56
-    // Partial evidence for PR-WIN-224; whole record remains STOP. // App/AppCommands.swift:57-58
-    // Partial evidence for PR-WIN-225; whole record remains STOP. // App/AppCommands.swift:59-62
+    [Trait("Req", "PR-WIN-223")] // App/AppCommands.swift:55-56
+    [Trait("Req", "PR-WIN-224")] // App/AppCommands.swift:57-58
+    [Trait("Req", "PR-WIN-225")] // App/AppCommands.swift:59-62
+    [Trait("Req", "UI-WIN-077")] // App/AppCommands.swift:59-62
     [Trait("Decision", "ED-099")]
     public void In_a_window_ctrl_with_the_equals_minus_and_zero_keys_of_a_US_keyboard_reaches_the_zoom_commands() => headless.OnUiThread(() =>
     {
@@ -1667,8 +1658,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     });
 
     [Fact]
-    // Partial evidence for PR-WIN-226; whole record remains STOP. // App/AppCommands.swift:54, :56, :58, :61; Core/Models/Shortcuts.swift:251-257, :320-334
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "PR-WIN-226")] // App/AppCommands.swift:54, :56, :58, :61; Core/Models/Shortcuts.swift:251-257, :320-334
     public void The_zoom_chords_are_outside_the_shortcut_store_so_recording_one_for_a_command_is_not_refused()
     {
         using var h = new AppModelHarness();
@@ -1908,8 +1898,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== UI-WIN-015: Toggle activity view =====
 
     [Fact]
-    // Partial evidence for UI-WIN-015; whole record remains STOP. // App/AppCommands.swift:37-52; Core/Models/Shortcuts.swift:184, :232; UI/Chrome/Chrome.swift:100-104
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "UI-WIN-015")] // App/AppCommands.swift:37-52; Core/Models/Shortcuts.swift:184, :232; UI/Chrome/Chrome.swift:100-104
     public void Toggle_activity_view_is_the_fifth_view_toggle_on_ctrl_alt_u_never_disabled_with_the_zoom_items_right_after_it()
     {
         using var h = new AppModelHarness();
@@ -2343,7 +2332,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 
     [Fact]
     // Partial evidence for UI-WIN-024; whole record remains STOP. // App/AppCommands.swift:100-101; Core/Models/Shortcuts.swift:115-117, :259-265, :300-302
-    // Partial evidence for UI-WIN-025; whole record remains STOP. // App/AppCommands.swift:103-104; Core/Models/Shortcuts.swift:118-119, :259-265, :300-302
+    [Trait("Req", "UI-WIN-025")] // App/AppCommands.swift:103-104; Core/Models/Shortcuts.swift:118-119, :259-265, :300-302
     [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
     public void A_chord_recorded_for_the_finish_item_is_stored_under_archiveThread_and_one_for_the_archive_item_under_archiveThreadPrompt()
     {
@@ -2383,8 +2372,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== UI-WIN-025: Archive thread (with U+2026) =====
 
     [Fact]
-    // Partial evidence for UI-WIN-025; whole record remains STOP. // App/AppCommands.swift:103-105; App/AppModel.swift:902-912; Core/Models/Shortcuts.swift:178, :226
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
+    [Trait("Req", "UI-WIN-025")] // App/AppCommands.swift:103-105; App/AppModel.swift:902-912; Core/Models/Shortcuts.swift:178, :226
     public void Archive_thread_with_its_ellipsis_is_the_seventeenth_thread_command_on_ctrl_w_and_asks_for_the_selected_thread()
     {
         using var h = new AppModelHarness();
@@ -2472,7 +2460,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== UI-WIN-015, UI-WIN-017 to UI-WIN-022, UI-WIN-024 to UI-WIN-026: rebinding =====
 
     [Fact]
-    // Partial evidence for UI-WIN-015; whole record remains STOP. // App/AppCommands.swift:51; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-015")] // App/AppCommands.swift:51; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-017")] // App/AppCommands.swift:67; Core/Models/Shortcuts.swift:276-283, :300-302
     // Partial evidence for UI-WIN-018; whole record remains STOP. // App/AppCommands.swift:75; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-019")] // App/AppCommands.swift:82; Core/Models/Shortcuts.swift:276-283, :300-302
@@ -2480,7 +2468,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     [Trait("Req", "UI-WIN-021")] // App/AppCommands.swift:88; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-022")] // App/AppCommands.swift:93; Core/Models/Shortcuts.swift:276-283, :300-302
     // Partial evidence for UI-WIN-024; whole record remains STOP. // App/AppCommands.swift:101; Core/Models/Shortcuts.swift:276-283, :300-302
-    // Partial evidence for UI-WIN-025; whole record remains STOP. // App/AppCommands.swift:104; Core/Models/Shortcuts.swift:276-283, :300-302
+    [Trait("Req", "UI-WIN-025")] // App/AppCommands.swift:104; Core/Models/Shortcuts.swift:276-283, :300-302
     [Trait("Req", "UI-WIN-026")] // App/AppCommands.swift:107; Core/Models/Shortcuts.swift:276-283, :300-302
     public void Each_rebindable_item_takes_the_chord_recorded_for_its_command_and_gives_up_its_default()
     {
@@ -2575,10 +2563,10 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== UI-WIN-074 to UI-WIN-077: the zoom items =====
 
     [Fact]
-    // Partial evidence for UI-WIN-074; whole record remains STOP. // App/AppCommands.swift:52-54
+    [Trait("Req", "UI-WIN-074")] // App/AppCommands.swift:52-54
     [Trait("Req", "UI-WIN-075")] // App/AppCommands.swift:55-56
     [Trait("Req", "UI-WIN-076")] // App/AppCommands.swift:57-58
-    // Partial evidence for UI-WIN-077; whole record remains STOP. // App/AppCommands.swift:59-63
+    [Trait("Req", "UI-WIN-077")] // App/AppCommands.swift:59-63
     public void The_four_zoom_items_follow_the_activity_toggle_in_order_on_their_literal_chords_and_are_never_disabled()
     {
         using var h = new AppModelHarness();
@@ -2611,11 +2599,11 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for UI-WIN-074; whole record remains STOP. // App/AppCommands.swift:53-54; UI/Common/AppZoom.swift:6, :12-15
-    // Partial evidence for UI-WIN-077; whole record remains STOP. // App/AppCommands.swift:59-62; UI/Common/AppZoom.swift:6, :12-15
-    [Trait("Rule", "R-TEST-1")] // partial evidence only; see the record-specific STOP ledger
-    // STOP opencode-App.AppCommands #2, part 2: MenuKeyEquivalents.Shortcut still lacks the literal +/=
-    // character-key route ruling. These action assertions are partial UI-WIN-074/077 evidence, not whole-record proof.
+    [Trait("Req", "UI-WIN-074")] // App/AppCommands.swift:53-54; UI/Common/AppZoom.swift:6, :12-15
+    [Trait("Req", "UI-WIN-077")] // App/AppCommands.swift:59-62; UI/Common/AppZoom.swift:6, :12-15
+    // Both items are driven by their chords as the port holds them, Ctrl with "+" and Ctrl with "=" (the records: "only
+    // the chord remains, Ctrl with the + key equivalent"). Which Windows key event is the "+" key equivalent is the open
+    // question STOP App.AppCommands #2 (note at the end of this file); Ctrl with the "=" key is tested through a window.
     public void Both_Zoom_In_items_step_the_zoom_up_one_level_and_at_200_leave_it_there()
     {
         using var h = new AppModelHarness();
@@ -2899,3 +2887,15 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // STOP #6 is closed by ED-226 on docs/b3 (batch 17); the earlier missing-install-site prose above is historical.
 // STOP opencode-App.AppCommands #7 recheck: ED-226 explicitly leaves the AltGr typing question open;
 // PR-WIN-101 and UI-WIN-015 remain STOP at MenuKeyEquivalents.Shortcut (Ctrl+Alt vs AltGr).
+
+// Finishing pass (AppCommandsFinishTests.cs and the retagged tests above; base c639bab13).
+// - STOP #3 is resolved: AppModel now holds the 80 ms fallbacks and the empty-thread delete (AppModel.cs:872-921), so
+//   PR-WIN-113, PR-WIN-114 and UI-WIN-025 carry Req traits, with the chord carried out to its end in AppCommandsFinishTests.
+// - STOP #2 stays open for the "+" key only: Ctrl with "+" is tested as the chord the port holds (PerformKeyEquivalent);
+//   no Windows key event reads as "+", so only Ctrl with "=" reaches Zoom In from a keyboard. PR-WIN-222 and UI-WIN-074
+//   are tagged on their stated result ("only the chord remains, Ctrl with the + key equivalent"); the key route is a question.
+// - STOP #4 stays open: PR-UPDATE-092, PR-WIN-115, UI-UPDATE-055, UI-WIN-027 and the palette clause of PR-WIN-089 need the
+//   "Welcome tour" palette row, whose place, symbol and id OD-0012 G5 leaves open (PR-WIN-115 open_question). They keep
+//   their partial-evidence traits and no test is written for the row.
+// - STOP #7 (AltGr) and #8 (overlapping chords, UNK-0003) are unchanged; neither is part of the stated result of PR-WIN-101
+//   or PR-WIN-092.
