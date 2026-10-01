@@ -257,6 +257,30 @@ public sealed class QuestionTabTests(HeadlessSession headless)
         });
     }
 
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-076")] // App/Views/Composer/QuestionTab.swift:155-162 one Send button while its branch stands
+    public void Typing_an_answer_keeps_the_same_Send_button_and_enables_it()
+    {
+        // SwiftUI keeps a view's identity while its branch holds: a keystroke must not replace the button under the
+        // pointer or with keyboard focus.
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var sheet = new QuestionSheet(Request(Question("q", prompt: "Name it")), null!);
+            Button Send() => LogicalQuery.SelfAndDescendants<Button>(sheet).Single(button => ButtonText(button) == "Send");
+            var before = Send();
+            Assert.False(before.IsEnabled);
+            var field = LogicalQuery.SelfAndDescendants<TextBox>(sheet).Single();
+            field.Text = "P";
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs(); // TextBox posts its TextChanged
+            field.Text = "Parser";
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Same(before, Send());
+            Assert.True(before.IsEnabled); // :159 .disabled(!isComplete)
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(sheet), block => block.Text == "1 question still to answer");
+        });
+    }
+
     private static QuestionRequest Request(params QuestionRequest.Question[] questions)
     {
         var values = ValueList<QuestionRequest.Question>.Empty;

@@ -165,7 +165,6 @@ public sealed class QuestionSheet : Decorator
         pageViewport.Child = pageStrip;
         root.Children.Add(pageViewport);
         root.Children.Add(new Border { Height = 1, Background = Chrome.Overlay(0.18).Brush(this) });
-        footer.Child = BuildFooter();
         root.Children.Add(footer);
         Child = root;
         Width = QuestionSheetWidth;
@@ -241,84 +240,103 @@ public sealed class QuestionSheet : Decorator
         RefreshFooter();
     }
 
-    // Footer refresh:132-167.
-    private void RefreshFooter() => footer.Child = BuildFooter();
-
-    // Footer controls and their exact strings:121-167.
-    private Control BuildFooter()
+    // Footer refresh:132-167. SwiftUI keeps each footer button's identity while its branch stands (a keystroke in a
+    // written answer must not replace the button under the pointer or with focus), so the controls are made once; each
+    // update sets them and puts in the row, in source order, only those whose branch holds (a view whose `if` fails is
+    // not in the hierarchy at all).
+    private void RefreshFooter()
     {
+        footerParts ??= BuildFooter();
+        var parts = footerParts;
         var answers = Answers();
         var unanswered = QuestionAnswers.UnansweredCount(request, answers);
         var isComplete = unanswered == 0;
+
+        if (parts.Previous is { } previous)
+            previous.IsEnabled = page != 0; // :128 .disabled(page == 0)
+
+        parts.Unanswered.Text = unanswered == 1
+            ? "1 question still to answer"
+            : unanswered.ToString(CultureInfo.InvariantCulture) + " questions still to answer";
+
+        var prominentNext = page < request.Questions.Count - 1 && !isComplete; // :144
+        parts.Send.IsEnabled = isComplete; // :159 .disabled(!isComplete)
+        ToolTip.SetTip(parts.Send, isComplete
+            ? "Sends your answers"
+            : request.Questions.Count == 1
+                ? "Answer the question to send"
+                : "Answer all " + request.Questions.Count.ToString(CultureInfo.InvariantCulture) + " questions to send");
+
+        var shown = new List<Control>();
+        if (parts.Previous is { } shownPrevious) shown.Add(shownPrevious); // :122 if count > 1
+        if (unanswered > 0) shown.Add(parts.Unanswered); // :132
+        shown.Add(parts.Skip);
+        if (prominentNext) shown.Add(parts.NextProminent); // :144-148
+        else
+        {
+            if (page < request.Questions.Count - 1) shown.Add(parts.NextBordered); // :150-154
+            shown.Add(parts.Send); // :155-162
+        }
+        if (!parts.Row.Children.SequenceEqual(shown))
+        {
+            parts.Row.Children.Clear();
+            parts.Row.Children.AddRange(shown);
+        }
+    }
+
+    private sealed record FooterParts(Grid Row, Button? Previous, TextBlock Unanswered, Button Skip, Button NextProminent, Button NextBordered, Button Send);
+
+    private FooterParts? footerParts;
+
+    // Footer controls and their exact strings:121-167.
+    private FooterParts BuildFooter()
+    {
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,Auto,*,Auto,Auto,Auto") };
 
+        Button? previous = null;
         if (request.Questions.Count > 1)
         {
             // :124-129 .buttonStyle(.bordered) (SystemButtons: the Windows standard button, ED-229 proposal (4))
-            var previous = SystemButtons.Bordered(SwiftImage.SystemName("chevron.left"), () => SetPage(Math.Max(0, page - 1)));
-            previous.IsEnabled = page != 0;
+            previous = SystemButtons.Bordered(SwiftImage.SystemName("chevron.left"), () => SetPage(Math.Max(0, page - 1)));
             previous.Margin = new Thickness(0, 0, 8, 0);
             ToolTip.SetTip(previous, "Previous question");
             Grid.SetColumn(previous, 0);
-            row.Children.Add(previous);
         }
 
-        if (unanswered > 0)
+        var label = new TextBlock
         {
-            var label = new TextBlock
-            {
-                Text = unanswered == 1
-                    ? "1 question still to answer"
-                    : unanswered.ToString(CultureInfo.InvariantCulture) + " questions still to answer",
-                MaxLines = 1,
-                TextWrapping = TextWrapping.NoWrap,
-                VerticalAlignment = VerticalAlignment.Center,
-                Margin = new Thickness(0, 0, 8, 0),
-            };
-            SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(label);
-            label.Foreground = Chrome.SecondaryText.Brush(label);
-            Grid.SetColumn(label, 1);
-            row.Children.Add(label);
-        }
+            MaxLines = 1,
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalAlignment = VerticalAlignment.Center,
+            Margin = new Thickness(0, 0, 8, 0),
+        };
+        SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(label);
+        label.Foreground = Chrome.SecondaryText.Brush(label);
+        Grid.SetColumn(label, 1);
 
         var skip = SystemButtons.Bordered("Skip", () => Send(ValueMap<string, ValueList<string>>.Empty)); // :139-140 .bordered
         skip.Margin = new Thickness(0, 0, 8, 0);
         ToolTip.SetTip(skip, "Sends no answers and lets the agent carry on");
         Grid.SetColumn(skip, 3);
-        row.Children.Add(skip);
 
-        if (page < request.Questions.Count - 1 && !isComplete)
-        {
-            var next = SystemButtons.BorderedProminent("Next", () => Advance()); // :145-146 .borderedProminent
-            next.IsDefault = true; // :147 .keyboardShortcut(.defaultAction); the last child of the HStack: spacing 8 only lies between neighbours
-            ToolTip.SetTip(next, "Goes to the next question");
-            Grid.SetColumn(next, 4);
-            row.Children.Add(next);
-        }
-        else
-        {
-            if (page < request.Questions.Count - 1)
-            {
-                var next = SystemButtons.Bordered("Next", () => Advance()); // :152-153 .bordered
-                next.Margin = new Thickness(0, 0, 8, 0);
-                ToolTip.SetTip(next, "Goes to the next question");
-                Grid.SetColumn(next, 4);
-                row.Children.Add(next);
-            }
+        // :145-147 .borderedProminent, .keyboardShortcut(.defaultAction); the last child of the HStack: spacing 8 only
+        // lies between neighbours.
+        var nextProminent = SystemButtons.BorderedProminent("Next", () => Advance());
+        nextProminent.IsDefault = true;
+        ToolTip.SetTip(nextProminent, "Goes to the next question");
+        Grid.SetColumn(nextProminent, 4);
 
-            var send = SystemButtons.BorderedProminent("Send", () => Send(answers)); // :156-157 .borderedProminent
-            send.IsEnabled = isComplete; // :159 .disabled(!isComplete)
-            send.IsDefault = true; // :158 .keyboardShortcut(.defaultAction)
-            ToolTip.SetTip(send, isComplete
-                ? "Sends your answers"
-                : request.Questions.Count == 1
-                    ? "Answer the question to send"
-                    : "Answer all " + request.Questions.Count.ToString(CultureInfo.InvariantCulture) + " questions to send");
-            Grid.SetColumn(send, 5);
-            row.Children.Add(send);
-        }
+        var nextBordered = SystemButtons.Bordered("Next", () => Advance()); // :152-153 .bordered
+        nextBordered.Margin = new Thickness(0, 0, 8, 0);
+        ToolTip.SetTip(nextBordered, "Goes to the next question");
+        Grid.SetColumn(nextBordered, 4);
 
-        return new Border { Padding = new Thickness(16, 10), Child = row };
+        var send = SystemButtons.BorderedProminent("Send", () => Send(Answers())); // :156-157 .borderedProminent
+        send.IsDefault = true; // :158 .keyboardShortcut(.defaultAction)
+        Grid.SetColumn(send, 5);
+
+        footer.Child = new Border { Padding = new Thickness(16, 10), Child = row };
+        return new FooterParts(row, previous, label, skip, nextProminent, nextBordered, send);
     }
 
     // Dot and Previous navigation:86-88, :123-131.
