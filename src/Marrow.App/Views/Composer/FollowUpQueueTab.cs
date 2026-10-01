@@ -566,7 +566,7 @@ public sealed class FollowUpRow : Decorator
                 {
                     Content = link,
                     Padding = new Thickness(0),
-                    Background = null,
+                    Background = new SolidColorBrush(Colors.Transparent), // :361 .contentShape(.rect): the whole 14 by 22 cell takes the click
                     BorderThickness = new Thickness(0),
                     Focusable = false,
                     Width = 14,
@@ -622,25 +622,27 @@ public sealed class FollowUpRow : Decorator
         gripImage.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium));
         gripImage.Width = 28;
         gripImage.Height = 22;
-        gripImage.Margin = new Thickness(8, 0, 0, 0);
+        // :382 .contentShape(.rect): the whole 28 by 22 takes the pointer, not only the strokes of the glyph, so the
+        // gesture's host is a clear cell around it.
+        var gripHost = new Border { Background = new SolidColorBrush(Colors.Transparent), Child = gripImage, Margin = new Thickness(8, 0, 0, 0) };
         // :384 .pointerStyle(isDragged ? .grabActive : .grabIdle)
         // :48 (Marrow.UI.Port.PointerStyleControl) resolves RenderScaling as 1 until the control has a TopLevel;
         // the cursor is baked when the grip is built, before the caller attaches the row. Re-apply once the
         // grip is actually attached, so a real monitor's RenderScaling gets picked up.
         gripImage.AttachedToVisualTree += (_, _) => gripImage.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle);
-        ToolTip.SetTip(gripImage, "Drag above or below to reorder \U000000B7 drop onto the middle of another to send them together"); // U+00B7 MIDDLE DOT
-        AutomationProperties.SetName(gripImage, "Drag to reorder");
+        ToolTip.SetTip(gripHost, "Drag above or below to reorder · drop onto the middle of another to send them together"); // U+00B7 MIDDLE DOT
+        AutomationProperties.SetName(gripHost, "Drag to reorder");
         // :383 .onHover { hovering in isHoveringGrip = hovering } - brightness only, no cursor call.
-        gripImage.PointerEntered += (_, _) => { isHoveringGrip = true; UpdateGripForeground(gripImage); };
-        gripImage.PointerExited += (_, _) => { isHoveringGrip = false; UpdateGripForeground(gripImage); };
+        gripHost.PointerEntered += (_, _) => { isHoveringGrip = true; UpdateGripForeground(gripImage); };
+        gripHost.PointerExited += (_, _) => { isHoveringGrip = false; UpdateGripForeground(gripImage); };
         // :386-389 the DragGesture (minimumDistance 1, .global) is chained onto the grip Image itself, so SwiftUI
         // only recognizes the reorder drag inside this 28x22 hit rect - not anywhere else in the row.
-        gripImage.PointerPressed += OnPointerPressed;
-        gripImage.PointerMoved += OnPointerMoved;
-        gripImage.PointerReleased += OnPointerReleased;
-        gripImage.PointerCaptureLost += (_, _) => EndPointerDrag();
-        Grid.SetColumn(gripImage, 1);
-        rowLine.Children.Add(gripImage);
+        gripHost.PointerPressed += OnPointerPressed;
+        gripHost.PointerMoved += OnPointerMoved;
+        gripHost.PointerReleased += OnPointerReleased;
+        gripHost.PointerCaptureLost += (_, _) => EndPointerDrag();
+        Grid.SetColumn(gripHost, 1);
+        rowLine.Children.Add(gripHost);
 
         if (prompt.Attachments.Count > 0)
         {
@@ -840,7 +842,7 @@ public sealed class QueueIconButton : Decorator
         button = new Button
         {
             Padding = new Thickness(0),
-            Background = null,
+            Background = new SolidColorBrush(Colors.Transparent), // :524 .contentShape(.rect): the whole 22 by 22 takes the click
             BorderThickness = new Thickness(0),
             Width = 22,
             Height = 22,

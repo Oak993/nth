@@ -6,6 +6,7 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.VisualTree;
 using Marrow.App.Views.Composer;
@@ -32,6 +33,7 @@ public static class FollowUpQueueTabRig
         var store = new AppModelHarness();
         var project = AppModelSamples.Project("Follow-ups", store.NewFolder("follow-ups"));
         var thread = AppModelSamples.Thread(project);
+        Guid? headId = null;
         if (nativeHead)
         {
             var head = new ChatThread(project.Id, ProviderKind.Codex, null, null, RuntimeMode.Supervised)
@@ -44,6 +46,7 @@ public static class FollowUpQueueTabRig
                     HydraHeadInfoStatus = HydraHeadInfo.Status.Running,
                 },
             };
+            headId = head.Id;
             store.WriteLibrary([project], [thread, head]);
         }
         else
@@ -53,6 +56,11 @@ public static class FollowUpQueueTabRig
         AppModelHarness.WriteDocument(thread.Id);
         var app = store.MakeModel();
         var runtime = store.Main.OnMain(() => new ThreadRuntime(thread.Id, app));
+        if (headId is { } running)
+            store.Main.OnMain(() => app.UpdateThread(running, current => current with
+            {
+                Hydra = current.Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running },
+            }));
         return (app, runtime, store);
     }
 
@@ -100,14 +108,22 @@ public static class FollowUpQueueTabRig
     public static Button TitleButton(Visual tab) => tab.GetVisualDescendants().OfType<Button>().First();
 
     /// <summary>The row's one horizontal line: number or link, grip, thumbnails, text, spacer, buttons.</summary>
-    public static StackPanel RowLine(FollowUpRow row) => row.GetVisualDescendants().OfType<StackPanel>().First();
+    public static Grid RowLine(FollowUpRow row) =>
+        row.GetVisualDescendants().OfType<Grid>().First(grid => grid.ColumnDefinitions.Count == 6);
+
+    /// <summary>The first cell of the line: the number, the unlink button or the plain link glyph.</summary>
+    public static Control Leading(FollowUpRow row) => RowLine(row).Children.First(child => Grid.GetColumn(child) == 0);
 
     public static SwiftImage Grip(FollowUpRow row) =>
         row.GetVisualDescendants().OfType<SwiftImage>().First(icon => icon.SymbolName == "line.3.horizontal");
 
     /// <summary>The prompt text, or the attachment summary, as the row shows it.</summary>
     public static TextBlock ProseOf(FollowUpRow row) =>
-        row.GetVisualDescendants().OfType<TextBlock>().Last();
+        (TextBlock)RowLine(row).Children.First(child => Grid.GetColumn(child) == 3);
+
+    /// <summary>The rule along the bottom of the row.</summary>
+    public static Border RuleOf(FollowUpRow row) =>
+        row.GetVisualDescendants().OfType<Border>().First(border => border.Height == 1);
 
     public static List<QueueIconButton> Buttons(FollowUpRow row) =>
         row.GetVisualDescendants().OfType<QueueIconButton>().ToList();
@@ -129,4 +145,72 @@ public static class FollowUpQueueTabRig
     }
 
     public static string[] Texts(ThreadRuntime runtime) => runtime.FollowUps.Select(prompt => prompt.Text).ToArray();
+
+    public static void RunTab(HeadlessSession headless, FollowUpPrompt[] prompts, Action<FollowUpTabRun> body,
+        double width = 600, bool nativeHead = false)
+    {
+        headless.OnUiThread(() =>
+        {
+            var (app, runtime, store) = Make(nativeHead);
+            using var storeDisposable = store;
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // thumbnails fade in on frames
+            // The window of the current event is what anchors a popover hung from a rect (WindowRectAnchor.Target); the
+            // watcher subscribes on first use, and a headless session has no active-window fallback, so subscribe first.
+            _ = AppCurrentEvent.CurrentWindow;
+            var run = new FollowUpTabRun(app, runtime, store);
+            run.Step(() =>
+            {
+                Seed(runtime, prompts);
+                run.Tab = new FollowUpQueueTab(runtime);
+                run.Window = Show(run.Tab, width);
+            });
+            body(run);
+            run.Step(() => run.Window.Close());
+        });
+    }
+
+    /// <summary>A row on its own in a window, with no tab around it.</summary>
+    public static FollowUpRow RowOf(FollowUpPrompt prompt, ThreadRuntime runtime, int position = 1, bool showsRule = false,
+        bool bundledWithPrevious = false, bool bundledWithNext = false) => new(
+        position, prompt, runtime, isDragged: false, showsRule: showsRule, isBundledWithPrevious: bundledWithPrevious,
+        isBundledWithNext: bundledWithNext, isPairTarget: false, isPairing: false, onDragChanged: _ => { }, onDragEnded: () => { });
+
+    /// <summary>A real, valid one-pixel PNG on disk, so an image attachment can be decoded and previewed.</summary>
+    public static Attachment RealImage(string name)
+    {
+        var folder = Path.Combine(Path.GetTempPath(), "followup-rig-images");
+        Directory.CreateDirectory(folder);
+        var path = Path.Combine(folder, name);
+        System.IO.File.WriteAllBytes(path, Convert.FromBase64String(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="));
+        return new Attachment { Name = name, Path = path, MimeType = "image/png" };
+    }
+}
+
+/// <summary>
+/// A tab shown in a window over a real offline runtime. The main loop runs posted observation work (Tracked,
+/// .onChange) only when a store.Main.OnMain body returns, so a test is a series of <see cref="Step"/>s: the writes of
+/// one step have been observed by the views when the next one starts.
+/// </summary>
+public sealed class FollowUpTabRun(AppModel app, ThreadRuntime runtime, AppModelHarness store)
+{
+    public AppModel App { get; } = app;
+    public ThreadRuntime Runtime { get; } = runtime;
+    public FollowUpQueueTab Tab { get; set; } = null!;
+    public AvaloniaWindow Window { get; set; } = null!;
+
+    public void Step(Action action) => store.Main.OnMain(action);
+
+    /// <summary>A real left click at a point in the window, then everything the click made the views do.</summary>
+    public void Click(Point point) => Step(() =>
+    {
+        Window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
+        Window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+    });
+
+    public void Click(Visual control) => Click(FollowUpQueueTabRig.Center(control, Window));
+
+    public void Settle() => Step(() => FollowUpQueueTabRig.Settle(Window));
+
+    public List<FollowUpRow> Rows => FollowUpQueueTabRig.Rows(Tab);
 }
