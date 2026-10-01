@@ -327,8 +327,9 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 // (src/Marrow.UI/Port/LoadingMark.cs); ED-154 (4) gives P12 and the stage window's hosting to the launch side.
 // Readings or options: (a) run P12, then build the stage in the shell around ShowMain -> exact; (b) build it now
 // unprobed -> a guess at ED-103 (7)'s fallback.
-// Needed to proceed: a look at the dev build on the owner's screen for the main window's Acrylic backdrop at the
-// hand-over (P12 used a plain main window).
+// Needed to proceed: the owner's call on probe P13 (E:\Droppy\work\probes\p13\RESULT.md): an Acrylic main window shows
+// no black or white frame at the hand-over, but its blur arrives ~150-200 ms after its tint; and STOP #5 of
+// WindowManager (the main window's Acrylic hint) before that can be seen in the app.
 // Done so far: (a). Probe P12 (2026-10-01, E:\Droppy\work\probes\p12) drew the click-through stage over the desktop;
 // the boot sequence now replaces the plain show (src/Marrow.App/Port/BootStageWindow.cs, BootStageWindowTests: the
 // stage, the main window at the outline's landing, its content following the particles, the bootstrap as "ready", the
