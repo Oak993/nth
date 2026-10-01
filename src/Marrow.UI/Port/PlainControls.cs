@@ -50,6 +50,11 @@ public static class PlainControls
             // A SecureField's masking is drawn by the presenter: without these the typed secret showed in the clear.
             [!TextPresenter.PasswordCharProperty] = box[!TextBox.PasswordCharProperty],
             [!TextPresenter.RevealPasswordProperty] = box[!TextBox.RevealPasswordProperty],
+            // The presenter draws the selection and the caret from its own values: without these a selection was never
+            // highlighted (the TextBox's changed, the presenter's stayed empty).
+            [!TextPresenter.SelectionStartProperty] = box[!TextBox.SelectionStartProperty],
+            [!TextPresenter.SelectionEndProperty] = box[!TextBox.SelectionEndProperty],
+            [!TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty],
         }.RegisterInNameScope(scope);
         void ShowPrompt() => prompt.IsVisible = string.IsNullOrEmpty(box.Text);
         box.PropertyChanged += (_, e) =>

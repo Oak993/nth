@@ -690,6 +690,9 @@ internal sealed class MCPCustomEditor : Decorator
             [!TextPresenter.PasswordCharProperty] = box[!TextBox.PasswordCharProperty],
             [!TextPresenter.RevealPasswordProperty] = box[!TextBox.RevealPasswordProperty],
             [!TextPresenter.TextWrappingProperty] = box[!TextBox.TextWrappingProperty],
+            [!TextPresenter.SelectionStartProperty] = box[!TextBox.SelectionStartProperty], // the selection is drawn
+            [!TextPresenter.SelectionEndProperty] = box[!TextBox.SelectionEndProperty],
+            [!TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty],
         }.RegisterInNameScope(scope);
         void ShowPrompt() => prompt.IsVisible = string.IsNullOrEmpty(box.Text);
         box.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) ShowPrompt(); };

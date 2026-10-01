@@ -48,7 +48,10 @@ internal static class ChatDialogControls
             var text = new TextPresenter { Name = "PART_TextPresenter", TextWrapping = box.TextWrapping,
                 [!TextPresenter.TextProperty] = box[!TextBox.TextProperty],
                 [!TextPresenter.PasswordCharProperty] = box[!TextBox.PasswordCharProperty], // a secure field stays masked
-                [!TextPresenter.RevealPasswordProperty] = box[!TextBox.RevealPasswordProperty] }.RegisterInNameScope(scope);
+                [!TextPresenter.RevealPasswordProperty] = box[!TextBox.RevealPasswordProperty],
+                [!TextPresenter.SelectionStartProperty] = box[!TextBox.SelectionStartProperty], // the selection is drawn
+                [!TextPresenter.SelectionEndProperty] = box[!TextBox.SelectionEndProperty],
+                [!TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty] }.RegisterInNameScope(scope);
             var prompt = new TextBlock { IsHitTestVisible = false, Foreground = Chrome.SecondaryText.Brush(box),
                 [!TextBlock.TextProperty] = box[!TextBox.PlaceholderTextProperty] };
             void Update() => prompt.IsVisible = showsPrompt && string.IsNullOrEmpty(box.Text);
