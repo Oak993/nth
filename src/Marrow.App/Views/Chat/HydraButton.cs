@@ -7,7 +7,10 @@ using System.Text;
 using Avalonia;
 using Avalonia.Automation;
 using Avalonia.Controls;
+using Avalonia.Controls.Documents;
 using Avalonia.Controls.Shapes;
+using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Styling;
 using Marrow.App.Runtime;
@@ -18,219 +21,289 @@ using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
 using Marrow.UI.Common;
 using Marrow.UI.Port;
+using Marrow.UI.Theme;
 
 namespace Marrow.App.Views.Chat;
 
-// Source: DroppyCode/App/Views/Chat/HydraButton.swift (B2 1fbf81e), :1-711.
+// Source: DroppyCode/App/Views/Chat/HydraButton.swift (B3 52bc792), :1-711.
 
 /// <summary>:4-198 <c>struct HydraButton: View</c>: the chat's Hydra mark, first in the chrome row.</summary>
 public sealed class HydraButton : Decorator
 {
+    // :144 private static var delegationChecks = RecentCache<String, Bool>(limit: 32)
     private static readonly RecentCache<string, bool> DelegationChecks = new(32);
-    private static readonly Dictionary<string, (int Scanned, bool Found)> StreamingScans = new(StringComparer.Ordinal);
+
+    // :159 private static var streamingScans: [String: (scanned: Int, found: Bool)] = [:]
+    private static readonly Dictionary<string, (int Scanned, bool Found)> StreamingScans = new(SwiftStringComparer.Instance);
+
+    // :15-24 the @State of the view
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isHovering;
+        private bool isExplaining;
+        private bool isSending;
+        private bool isHydraSwitchShown;
+        private bool isIntroShown;
+
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+
+        /// <summary>:17 With Hydra on and nothing out yet, the button says so rather than doing nothing.</summary>
+        public bool IsExplaining { get => Read(isExplaining); set => Set(ref isExplaining, value); }
+
+        /// <summary>:20 Briefly true after heads go out, so the badge first shows the sending pulse.</summary>
+        public bool IsSending { get => Read(isSending); set => Set(ref isSending, value); }
+
+        /// <summary>:22 Right-tapping the mark opens the per-chat Hydra switch in place.</summary>
+        public bool IsHydraSwitchShown { get => Read(isHydraSwitchShown); set => Set(ref isHydraSwitchShown, value); }
+
+        /// <summary>:24 The first chat's intro, opened by the mark itself until it has been read.</summary>
+        public bool IsIntroShown { get => Read(isIntroShown); set => Set(ref isIntroShown, value); }
+    }
+
+    // What body (:26-101) reads, so that it is re-applied once per main-actor turn after any of it changes.
+    private readonly record struct Look(
+        bool IsOn, long Running, bool HasHeads, bool IsDelegating, bool IsSending, bool IsHovering, string Help, string PanelHelp);
 
     private readonly ChatThread thread;
     private readonly ThreadRuntime runtime;
+    private readonly AppModel model;
+    private readonly ViewState state = new();
     private readonly Button button;
-    private bool isHovering;
-    private bool isExplaining;
-    private bool isSending;
-    private bool isHydraSwitchShown;
-    private bool isIntroShown;
-    private long lastRunning;
-    private TaskHandle? sendingPulse;
+    private readonly HydraMarkView mark;
+    private readonly Panel chargeSlot = new() { IsHitTestVisible = false };
+    private readonly Panel badgeSlot = new();
+    private HydraCharge? charge;
+    private HydraSendWorkingBadge? badge;
+    private Look? shown;
+    private Tracked<Look>? tracked;
+    private OnChange<long>? runningChange;
 
     // :12-13, :26-101
     public HydraButton(ChatThread thread, ThreadRuntime runtime)
     {
         this.thread = thread;
         this.runtime = runtime;
-        lastRunning = RunningCount();
+        model = FindAppModel(runtime) ?? throw new InvalidOperationException("The Hydra button requires its application model.");
 
-        button = new Button
+        mark = new HydraMarkView(false, false); // :44
+        // :39-58 ZStack { charge, mark }.frame(32, 32).contentShape(Circle()).overlay(alignment: .topTrailing) { badge }
+        var face = new Panel
         {
-            Width = Chrome.CapsuleHeight,
-            Height = Chrome.CapsuleHeight,
-            Padding = new Thickness(0),
-            HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-            VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center,
-            Background = Chrome.GlassTint.Brush(this),
-            Content = new HydraMarkImage(),
-        };
-        button.Click += OnClick;
-        button.PointerEntered += (_, _) =>
-        {
-            isHovering = true;
-            UpdateMark();
-        };
-        button.PointerExited += (_, _) =>
-        {
-            isHovering = false;
-            UpdateMark();
-        };
-        button.ContextRequested += (_, e) =>
-        {
-            e.Handled = true;
-            ShowSwitchPopover();
-        };
-
-        runtime.PropertyChanged += (_, _) => UpdateMark();
-
-        Child = button;
-        UpdateMark();
-    }
-
-    // :36-37
-    private void OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
-    {
-        if (!HasSeenIntro())
-        {
-            ShowIntroPopover();
-            return;
-        }
-
-        if (Heads().Count == 0)
-        {
-            ShowIdlePopover();
-            return;
-        }
-
-        TogglePanel();
-    }
-
-    // :27-35, :39-100
-    private void UpdateMark()
-    {
-        var running = RunningCount();
-        if (running > lastRunning && !isSending)
-        {
-            isSending = true;
-            sendingPulse?.Cancel();
-            sendingPulse = MainActor.Spawn(async () =>
-            {
-                await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(900));
-                if (SwiftTask.IsCancelled) return;
-                isSending = false;
-                UpdateMark();
-            });
-        }
-
-        lastRunning = running;
-
-        var isOn = IsOn();
-        var heads = Heads();
-        var delegating = isOn && running == 0 && runtime.IsRunning && IsLeadDelegating(runtime.Entries);
-
-        button.Content = new Grid
-        {
-            Width = Chrome.CapsuleHeight,
+            Width = Chrome.CapsuleHeight, // :46
             Height = Chrome.CapsuleHeight,
             Children =
             {
-                isOn ? new HydraCharge(running > 0) : new Grid(),
-                new HydraMarkView(isOn, isHovering),
-                MakeBadge(running, delegating),
+                new Ellipse { Fill = Brushes.Transparent }, // :47 .contentShape(Circle())
+                chargeSlot,
+                mark,
+                badgeSlot,
             },
         };
 
-        ToolTip.SetTip(button, Help(isOn, running, heads.Count > 0));
-        AutomationProperties.SetName(button, PanelHelp(running, heads.Count > 0));
-        AutomationProperties.SetHelpText(button, isOn ? "On" : "Off");
-    }
+        button = PlainControls.Button(face, OnClick); // :36-38, :75 .buttonStyle(.plain)
+        var surface = button.ChromeGlassCircle(); // :76
+        surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :80-82
 
-    // :52-57, :620-645
-    private Control MakeBadge(long running, bool delegating)
-    {
-        if (running == 0 && !isSending && !delegating) return new Grid();
+        var explaining = new Binding<bool>(() => state.IsExplaining, value => state.IsExplaining = value);
+        var switching = new Binding<bool>(() => state.IsHydraSwitchShown, value => state.IsHydraSwitchShown = value);
+        var introducing = new Binding<bool>(() => state.IsIntroShown, value => state.IsIntroShown = value);
 
-        return new HydraSendWorkingBadge(running, isSending || delegating)
+        // :83-85
+        var idle = PlainControls.Popover(button, explaining, () =>
         {
-            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right,
-            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
-            Margin = new Thickness(3, -3, 0, 0),
+            var pair = model.HydraPair(thread);
+            return new HydraIdlePopover(thread, pair, pair is null ? null : model.Providers);
+        });
+        // :86-88
+        var switchPopover = PlainControls.Popover(button, switching, () =>
+            new HydraSwitchPopover(thread, model.HydraIsOn(thread), switching, model));
+        // :89-92 .interactiveDismissDisabled(): a click elsewhere does not dismiss the intro.
+        var intro = PlainControls.Popover(button, introducing, () => new HydraIntroPopover(() =>
+        {
+            model.Settings.HasSeenHydraIntro = true;
+            state.IsIntroShown = false;
+        }));
+        intro.IsLightDismissEnabled = false;
+
+        // :77-79 .background { HydraRightTap { isHydraSwitchShown.toggle() } }
+        var tap = new HydraRightTap(() => state.IsHydraSwitchShown = !state.IsHydraSwitchShown);
+        Child = new Panel { Children = { PlainControls.Background(surface, tap), idle, switchPopover, intro } };
+
+        Apply(Evaluate());
+        tracked = null;
+
+        AttachedToVisualTree += (_, _) =>
+        {
+            tracked ??= new Tracked<Look>(Evaluate, Apply); // body re-applied after anything it read changes
+            runningChange ??= new OnChange<long>(RunningCount, OnRunningChanged); // :64-67
         };
+        DetachedFromVisualTree += (_, _) =>
+        {
+            tracked?.Dispose();
+            tracked = null;
+            runningChange?.Dispose();
+            runningChange = null;
+        };
+        // :68-73 .task(id: isSending) { guard isSending; sleep 0.9 s; guard !Task.isCancelled; isSending = false }
+        this.Task(() => state.IsSending, async sending =>
+        {
+            if (!sending) return;
+            await SwiftTask.TrySleep(TimeSpan.FromSeconds(0.9));
+            if (SwiftTask.IsCancelled) return;
+            state.IsSending = false;
+        });
     }
+
+    // :93 .onAppear { if !model.settings.hasSeenHydraIntro, isOn { isIntroShown = true } }
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        if (!model.Settings.HasSeenHydraIntro && model.HydraIsOn(thread)) state.IsIntroShown = true;
+    }
+
+    // :36-37
+    private void OnClick()
+    {
+        if (!model.Settings.HasSeenHydraIntro) state.IsIntroShown = true;
+        else if (model.PanelHeads(thread.Id).Count == 0) state.IsExplaining = true;
+        else TogglePanel();
+    }
+
+    // :27-35, :98-100
+    private Look Evaluate()
+    {
+        var isOn = model.HydraIsOn(thread); // :27
+        var heads = model.PanelHeads(thread.Id); // :30
+        var running = RunningOf(heads); // :31
+        var hasHeads = heads.Count > 0;
+        var isDelegating = isOn && running == 0 && runtime.IsRunning && IsLeadDelegating(runtime.Entries); // :35
+        return new Look(
+            isOn, running, hasHeads, isDelegating, state.IsSending, state.IsHovering,
+            Help(isOn, running, hasHeads), PanelHelp(running, hasHeads));
+    }
+
+    // :64 onChange(of: running)
+    private long RunningCount() => RunningOf(model.PanelHeads(thread.Id));
 
     // :31
-    private long RunningCount() =>
-        Heads().LongCount(head => head.Hydra?.HydraHeadInfoStatus == HydraHeadInfo.Status.Running);
+    private static long RunningOf(IReadOnlyList<ChatThread> heads) =>
+        heads.LongCount(head => head.Hydra?.HydraHeadInfoStatus == HydraHeadInfo.Status.Running);
 
-    // :30
-    private IReadOnlyList<ChatThread> Heads()
+    // :64-67
+    private void OnRunningChanged(long old, long current)
     {
-        var model = FindAppModel();
-        if (model is null) return [];
-
-        var method = model.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public)
-            .FirstOrDefault(candidate => candidate.Name == "PanelHeads" &&
-                candidate.GetParameters() is [{ ParameterType: var parameterType }] &&
-                parameterType == typeof(Guid));
-
-        return method?.Invoke(model, [thread.Id]) is System.Collections.IEnumerable values
-            ? values.Cast<object>().OfType<ChatThread>().ToArray()
-            : [];
+        if (current > old) state.IsSending = true;
     }
 
-    // :27
-    private bool IsOn()
+    // :59-63 .animation(spring, value: running), .animation(panelSlide, value: isSending / isDelegating / isOn): the
+    // outermost modifier whose value changed supplies the animation.
+    private static Animation? AnimationFor(Look? previous, Look next)
     {
-        var model = FindAppModel();
-        if (model is not null)
+        if (previous is not { } before) return null;
+        if (before.IsOn != next.IsOn || before.IsDelegating != next.IsDelegating || before.IsSending != next.IsSending)
+            return Chrome.PanelSlide;
+        if (before.Running != next.Running) return Animation.Spring(response: 0.3, dampingFraction: 0.7);
+        return null;
+    }
+
+    // :39-100
+    private void Apply(Look look)
+    {
+        var animation = AnimationFor(shown, look) ?? Transaction.Current;
+        shown = look;
+        Transaction.WithAnimation(animation, () =>
         {
-            var method = model.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public)
-                .FirstOrDefault(candidate => candidate.Name == "HydraIsOn" &&
-                    candidate.GetParameters() is [{ ParameterType: var parameterType }] &&
-                    parameterType == typeof(ChatThread));
-            if (method?.Invoke(model, [thread]) is bool isOn) return isOn;
+            mark.Update(look.IsOn, look.IsHovering);
+            UpdateCharge(look);
+            UpdateBadge(look);
+        });
+
+        ToolTip.SetTip(button, look.Help); // :98
+        AutomationProperties.SetName(button, look.PanelHelp); // :99
+        AutomationProperties.SetItemStatus(button, look.IsOn ? "On" : "Off"); // :100 .accessibilityValue, as the port maps it (ChatBadge.cs)
+    }
+
+    // :40-43
+    private void UpdateCharge(Look look)
+    {
+        if (look.IsOn)
+        {
+            if (charge is null)
+            {
+                charge = new HydraCharge(look.Running > 0).Transition(SwiftTransition.Scale(0.6).Combined(SwiftTransition.Opacity));
+                SwiftTransition.Insert(chargeSlot, 0, charge);
+            }
+            else
+            {
+                charge.Update(look.Running > 0);
+            }
         }
-
-        return thread.HydraEnabled;
+        else if (charge is { } leaving)
+        {
+            charge = null;
+            SwiftTransition.Remove(chargeSlot, leaving);
+        }
     }
 
-    // :23-24, :90
-    private bool HasSeenIntro()
+    // :52-58
+    private void UpdateBadge(Look look)
     {
-        var model = FindAppModel();
-        if (model is null) return false;
-        return ReadProperty(model, "Settings") is { } settings &&
-            ReadProperty(settings, "HasSeenHydraIntro") is true;
+        var present = look.Running > 0 || look.IsSending || look.IsDelegating;
+        var sending = look.IsSending || look.IsDelegating;
+        if (present)
+        {
+            if (badge is null)
+            {
+                badge = new HydraSendWorkingBadge(look.Running, sending)
+                {
+                    HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Right, // :52 .topTrailing
+                    VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+                    Margin = new Thickness(0, -3, -3, 0), // :55 .offset(x: 3, y: -3)
+                };
+                badge.Transition(SwiftTransition.Scale().Combined(SwiftTransition.Opacity)); // :56
+                SwiftTransition.Insert(badgeSlot, 0, badge);
+            }
+            else
+            {
+                badge.Update(look.Running, sending);
+            }
+        }
+        else if (badge is { } leaving)
+        {
+            badge = null;
+            SwiftTransition.Remove(badgeSlot, leaving);
+        }
     }
 
-    // :90
-    private void SetSetting(string name, object value)
-    {
-        var model = FindAppModel();
-        if (model is null) return;
+    // :106-108
+    private void TogglePanel() =>
+        Transaction.WithAnimation(Chrome.PanelSlide, () => runtime.IsHydraPanelHidden = !runtime.IsHydraPanelHidden);
 
-        var settings = ReadProperty(model, "Settings");
-        settings?.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public)?.SetValue(settings, value);
-    }
-
-    // :98-100, :176-197
+    // :182-197
     private string Help(bool isOn, long running, bool hasHeads)
     {
-        if (!isOn) return "Hydra is on in Settings";
+        if (!isOn) return "Hydra is on in Settings"; // :183
 
         var parts = new List<string> { "Hydra is on" };
-        if (TryGetPair() is { } pair)
-            parts.Add(HydraPairSummary.Workers(pair, GetRegistry()));
+        if (model.HydraPair(thread) is { } pair)
+            parts.Add(HydraPairSummary.Workers(pair, model.Providers)); // :185-186
         else
-            parts.Add("Heads run on this chat's model");
+            parts.Add("Heads run on this chat's model"); // :188
 
         if (running > 0)
-            parts.Add(running == 1 ? "1 head working" : $"{running.ToString(CultureInfo.InvariantCulture)} heads working");
+            parts.Add(running == 1 ? "1 head working" : $"{running.ToString(CultureInfo.InvariantCulture)} heads working"); // :190
 
         if (!hasHeads)
         {
-            parts.Add("No heads out yet");
+            parts.Add("No heads out yet"); // :192
             return string.Join(" \U000000B7 ", parts);
         }
 
-        parts.Add(runtime.IsHydraPanelHidden ? "Show the panel" : "Hide the panel");
+        parts.Add(runtime.IsHydraPanelHidden ? "Show the panel" : "Hide the panel"); // :195
         return string.Join(" \U000000B7 ", parts);
     }
 
-    // :99, :176-180
+    // :176-180
     private static string PanelHelp(long running, bool hasHeads)
     {
         if (!hasHeads) return "Hydra is on, no heads out yet";
@@ -241,84 +314,46 @@ public sealed class HydraButton : Decorator
             : $"Hydra is on, {running.ToString(CultureInfo.InvariantCulture)} heads working, show or hide the panel";
     }
 
-    // :185-186
-    private HydraPair? TryGetPair()
-    {
-        var model = FindAppModel();
-        if (model is null) return null;
+    // :10 @Environment(AppModel.self): the model the runtime belongs to. The runtime holds it weakly in a private property
+    // (ThreadRuntime.App) and no public member hands it out, so it is read by reflection (ED-119).
+    private static readonly PropertyInfo? RuntimeApp =
+        typeof(ThreadRuntime).GetProperty("App", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
-        var method = model.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public)
-            .FirstOrDefault(candidate =>
-                (candidate.Name == "HydraPairFor" || candidate.Name == "HydraPair") &&
-                candidate.GetParameters() is [{ ParameterType: var parameterType }] &&
-                parameterType == typeof(ChatThread));
-
-        return method?.Invoke(model, [thread]) as HydraPair;
-    }
-
-    // :185-186
-    private ProviderRegistry GetRegistry()
-    {
-        var model = FindAppModel();
-        return model?.GetType().GetProperty("Providers")?.GetValue(model) as ProviderRegistry
-            ?? throw new InvalidOperationException("The Hydra button requires its application provider registry.");
-    }
-
-    // :10
-    private AppModel? FindAppModel()
-    {
-        foreach (var field in typeof(ThreadRuntime).GetFields(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public))
-            if (typeof(AppModel).IsAssignableFrom(field.FieldType) && field.GetValue(runtime) is AppModel model)
-                return model;
-
-        return null;
-    }
-
-    // :106-108
-    private void TogglePanel() =>
-        Transaction.WithAnimation(Chrome.PanelSlide, () => runtime.IsHydraPanelHidden = !runtime.IsHydraPanelHidden);
+    private static AppModel? FindAppModel(ThreadRuntime runtime) => RuntimeApp?.GetValue(runtime) as AppModel;
 
     // :113-136
     private static bool IsLeadDelegating(IReadOnlyList<TimelineEntry> entries)
     {
-        if (entries.Count == 0) return false;
+        if (entries.Count == 0) return false; // :115
 
-        var lastTurnID = entries[^1].TurnID;
-        for (var index = entries.Count - 1; index >= 0; index--)
+        var lastTurnID = entries[^1].TurnID; // :118
+        for (var index = entries.Count - 1; index >= 0; index--) // :119
         {
             var entry = entries[index];
-            if (entry.TurnID != lastTurnID) break;
+            if (entry.TurnID != lastTurnID) break; // :120
 
-            var content = ReadProperty(entry.Item, "Content");
-            if (content is null) continue;
-
-            var caseName = content.GetType().Name;
-            if (caseName.Contains("Tool", StringComparison.Ordinal))
+            switch (entry.Item.TimelineItemContent) // :121
             {
-                var call = ReadProperty(content, "Call") ?? content;
-                var kind = ReadProperty(call, "Kind");
-                var status = ReadProperty(call, "Status");
-                if (kind is not null && status is not null &&
-                    kind.ToString()?.Contains("Agent", StringComparison.OrdinalIgnoreCase) == true &&
-                    status.ToString()?.Contains("Running", StringComparison.OrdinalIgnoreCase) == true)
+                // :122
+                case TimelineItem.Content.Tool
+                {
+                    Value: { ToolCallKind: ToolCall.Kind.Agent, ToolCallStatus: ToolCall.Status.Running },
+                }:
                     return true;
-            }
-            else if (caseName.Contains("Assistant", StringComparison.Ordinal))
-            {
-                var message = ReadProperty(content, "Message") ?? content;
-                var text = ReadProperty(message, "Text") as string ?? "";
-                var streaming = ReadProperty(message, "IsStreaming") is true;
-                var found = streaming
-                    ? HasDelegationBlockWhileStreaming(text, entry.Id)
-                    : HasDelegationBlock(text, entry.Id);
-                if (found) return true;
+                // :124-130
+                case TimelineItem.Content.Assistant { Value: var message }:
+                    var hasBlock = message.IsStreaming
+                        ? HasDelegationBlockWhileStreaming(message.Text, entry.Id)
+                        : HasDelegationBlock(message.Text, entry.Id);
+                    if (hasBlock) return true;
+                    break;
             }
         }
 
         return false;
     }
 
-    // :147-152
+    // :146-152
     private static bool HasDelegationBlock(string text, string rowID)
     {
         if (DelegationChecks.TryGetValue(rowID, out var known)) return known;
@@ -328,132 +363,41 @@ public sealed class HydraButton : Decorator
         return found;
     }
 
-    // :162-174
+    // :161-174
     private static bool HasDelegationBlockWhileStreaming(string text, string rowID)
     {
-        if (StreamingScans.TryGetValue(rowID, out var known) && known.Found) return true;
+        if (StreamingScans.TryGetValue(rowID, out var known) && known.Found) return true; // :163
 
         var bytes = Encoding.UTF8.GetBytes(text);
-        var scanned = StreamingScans.TryGetValue(rowID, out known) ? known.Scanned : 0;
-        if (bytes.Length == scanned) return false;
+        var scanned = StreamingScans.TryGetValue(rowID, out known) ? known.Scanned : 0; // :164
+        if (bytes.Length == scanned) return false; // :166
 
-        var from = bytes.Length < scanned ? 0 : Math.Max(0, scanned - 32);
+        var from = bytes.Length < scanned ? 0 : Math.Max(0, scanned - 32); // :168
         var tail = Encoding.UTF8.GetString(bytes, from, bytes.Length - from);
-        var found = HydraPrompts.HasDelegationOpener(tail);
+        var found = HydraPrompts.HasDelegationOpener(tail); // :170
 
-        if (StreamingScans.Count > 64) StreamingScans.Clear();
-        StreamingScans[rowID] = (bytes.Length, found);
+        if (StreamingScans.Count > 64) StreamingScans.Clear(); // :171
+        StreamingScans[rowID] = (bytes.Length, found); // :172
         return found;
-    }
-
-    // :121-129
-    private static object? ReadProperty(object? instance, string name) =>
-        instance?.GetType().GetProperty(name, BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)
-            ?.GetValue(instance);
-
-    // :83-85
-    private void ShowIdlePopover()
-    {
-        if (isExplaining)
-        {
-            isExplaining = false;
-            Child = button;
-            return;
-        }
-
-        isExplaining = true;
-        var pair = TryGetPair();
-        Child = new HydraIdlePopover(thread, pair, pair is null ? null : GetRegistry());
-    }
-
-    // :86-88
-    private void ShowSwitchPopover()
-    {
-        if (isHydraSwitchShown)
-        {
-            isHydraSwitchShown = false;
-            if (Child is HydraSwitchPopover active)
-                Popovers.GetClosePopover(active)?.Invoke();
-            Child = button;
-            return;
-        }
-
-        isHydraSwitchShown = true;
-
-        var model = FindAppModel();
-        var settings = model is null ? null : ReadProperty(model, "Settings");
-        var settingsEnabled = ReadProperty(settings, "HydraEnabled") is bool enabled && enabled;
-        var popover = new HydraSwitchPopover(thread, IsOn(), Binding<bool>.Constant(true));
-        popover.Configure(settingsEnabled, IsOn(), enabled =>
-        {
-            SetHydra(enabled, !settingsEnabled);
-            isHydraSwitchShown = false;
-            Child = button;
-        });
-        Child = popover;
-    }
-
-    // :89-93
-    private void ShowIntroPopover()
-    {
-        isIntroShown = true;
-        Child = new HydraIntroPopover(() =>
-        {
-            SetSetting("HasSeenHydraIntro", true);
-            isIntroShown = false;
-            Child = button;
-        });
-    }
-
-    // :93
-    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
-    {
-        base.OnAttachedToVisualTree(e);
-        if (IsOn() && !HasSeenIntro() && !isIntroShown)
-            ShowIntroPopover();
-    }
-
-    // :163
-    private void SetHydra(bool enabled, bool alsoEnableSettings)
-    {
-        var model = FindAppModel();
-        if (model is null) return;
-
-        if (alsoEnableSettings)
-        {
-            var settings = ReadProperty(model, "Settings");
-            settings?.GetType().GetProperty("HydraEnabled", BindingFlags.Instance | BindingFlags.Public)
-                ?.SetValue(settings, true);
-        }
-
-        var method = model.GetType().GetMethods(BindingFlags.Instance | BindingFlags.Public)
-            .FirstOrDefault(candidate => candidate.Name == "SetHydra" &&
-                candidate.GetParameters() is [{ ParameterType: var firstType }, { ParameterType: var secondType }] &&
-                firstType == typeof(bool) && secondType == typeof(Guid));
-        method?.Invoke(model, [enabled, thread.Id]);
     }
 }
 
 /// <summary>:200-230 <c>private struct HydraSwitchPopover: View</c>.</summary>
 internal sealed class HydraSwitchPopover : Decorator
 {
-    private bool settingsEnabled = true;
-    private bool isOn;
-    private Action<bool>? setHydra;
+    private readonly ChatThread thread;
+    private readonly bool isOn;
+    private readonly Binding<bool> isHydraSwitchShown;
+    private readonly AppModel? model;
 
-    // :204-206, :208-229
-    public HydraSwitchPopover(ChatThread thread, bool isOn, Binding<bool> isHydraSwitchShown)
+    // :203-206 `@Environment(AppModel.self) model`, `thread`, `isOn`, `@Binding isHydraSwitchShown`; the model has no
+    // environment to read here and comes last. Without one the popover reads Hydra as on in Settings and only closes.
+    public HydraSwitchPopover(ChatThread thread, bool isOn, Binding<bool> isHydraSwitchShown, AppModel? model = null)
     {
+        this.thread = thread;
         this.isOn = isOn;
-        Build();
-    }
-
-    // :208-229
-    internal void Configure(bool appEnabled, bool isOn, Action<bool> setHydraAction)
-    {
-        settingsEnabled = appEnabled;
-        this.isOn = isOn;
-        setHydra = setHydraAction;
+        this.isHydraSwitchShown = isHydraSwitchShown;
+        this.model = model;
         Build();
     }
 
@@ -461,44 +405,45 @@ internal sealed class HydraSwitchPopover : Decorator
     private void Build()
     {
         var content = new StackPanel { Spacing = 4 };
-
-        content.Children.Add(new PopoverSectionHeader(settingsEnabled
-            ? isOn ? "Hydra is on for this chat" : "Hydra is off for this chat"
-            : "Hydra is off in Settings"));
+        var settingsEnabled = model?.Settings.HydraEnabled ?? true;
 
         if (!settingsEnabled)
         {
-            content.Children.Add(new PopoverItem("Turn Hydra on", () =>
+            content.Children.Add(new PopoverSectionHeader("Hydra is off in Settings")); // :211
+            content.Children.Add(new PopoverItem("Turn Hydra on", () => // :212-216
             {
-                setHydra?.Invoke(true);
-                Close();
+                if (model is not null)
+                {
+                    model.Settings.HydraEnabled = true;
+                    model.SetHydra(true, thread.Id);
+                }
+                isHydraSwitchShown.Value = false;
             }));
         }
         else
         {
-            content.Children.Add(new PopoverItem("Turn Hydra on for this chat", () =>
+            content.Children.Add(new PopoverSectionHeader(isOn ? "Hydra is on for this chat" : "Hydra is off for this chat")); // :218
+            content.Children.Add(new PopoverItem("Turn Hydra on for this chat", () => // :219-222
             {
-                setHydra?.Invoke(true);
-                Close();
+                model?.SetHydra(true, thread.Id);
+                isHydraSwitchShown.Value = false;
             }, isChecked: isOn));
-            content.Children.Add(new PopoverItem("Turn Hydra off for this chat", () =>
+            content.Children.Add(new PopoverItem("Turn Hydra off for this chat", () => // :223-226
             {
-                setHydra?.Invoke(false);
-                Close();
+                model?.SetHydra(false, thread.Id);
+                isHydraSwitchShown.Value = false;
             }, isChecked: !isOn));
         }
 
         Child = new PopoverMenu(() => content);
-
-        void Close()
-        {
-            var close = Popovers.GetClosePopover(this);
-            close?.Invoke();
-        }
     }
 }
 
-/// <summary>:232-250 <c>private struct HydraRightTap: NSViewRepresentable</c>.</summary>
+/// <summary>
+/// :232-250 <c>private struct HydraRightTap: NSViewRepresentable</c>: catches a right-tap, a right-click or a
+/// control-click on the Hydra mark. A background with no drawing of its own, sized to the button, so the button's
+/// left-click, badge, hover and help text are exactly as they were.
+/// </summary>
 internal sealed class HydraRightTap : Decorator
 {
     // :241, :243-249
@@ -508,17 +453,80 @@ internal sealed class HydraRightTap : Decorator
     }
 }
 
-/// <summary>:252-294 <c>private final class HydraRightTapHost: NSView</c>.</summary>
+/// <summary>
+/// :252-294 <c>private final class HydraRightTapHost: NSView</c>. It watches the window's events rather than hanging a
+/// recognizer on itself: a secondary click that lands inside this view's frame fires the action and goes no further;
+/// every other event passes untouched. Control-click counts as a secondary click too.
+/// </summary>
 internal sealed class HydraRightTapHost : Control
 {
+    private static int installedMonitors;
+    private TopLevel? monitoredWindow;
+
     // :253
     public Action Action { get; set; }
+
+    /// <summary>PORT-ONLY: how many local mouse-down monitors are installed now, for the lifetime test (PR-HYDRA-244).</summary>
+    internal static int InstalledMonitors => installedMonitors;
 
     // :256-259
     public HydraRightTapHost(Action action)
     {
         Action = action;
-        IsHitTestVisible = false;
+        IsHitTestVisible = false; // no drawing and no hits of its own
+    }
+
+    // :266-269 viewDidMoveToWindow: a window installs the monitor, none removes it
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        InstallMonitor();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        RemoveMonitor();
+    }
+
+    // :271-278 NSEvent.addLocalMonitorForEvents(matching: [.rightMouseDown, .leftMouseDown])
+    private void InstallMonitor()
+    {
+        if (monitoredWindow is not null) return; // :272 guard monitor == nil
+        if (TopLevel.GetTopLevel(this) is not { } window) return;
+        monitoredWindow = window;
+        installedMonitors++;
+        window.AddHandler(InputElement.PointerPressedEvent, OnPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true);
+    }
+
+    // :280-284
+    private void RemoveMonitor()
+    {
+        if (monitoredWindow is not { } window) return; // :281 guard let monitor
+        window.RemoveHandler(InputElement.PointerPressedEvent, OnPointerPressed);
+        monitoredWindow = null;
+        installedMonitors--;
+    }
+
+    // :273-277
+    private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (!Catches(e)) return;
+        Action();
+        e.Handled = true; // :276 return nil: the event goes no further
+    }
+
+    // :288-293 Whether the event is a secondary click on this view: in its window, over its frame, and either the right
+    // button or the left one with Control held.
+    private bool Catches(PointerPressedEventArgs e)
+    {
+        if (monitoredWindow is not { } window || !ReferenceEquals(e.Source is Visual source ? TopLevel.GetTopLevel(source) : null, window)) return false;
+        if (!IsEffectivelyVisible || Bounds.Width <= 0 || Bounds.Height <= 0) return false; // :289
+        var kind = e.GetCurrentPoint(window).Properties.PointerUpdateKind;
+        if (kind is not (PointerUpdateKind.LeftButtonPressed or PointerUpdateKind.RightButtonPressed)) return false; // :273
+        var isSecondary = kind == PointerUpdateKind.RightButtonPressed || e.KeyModifiers.HasFlag(KeyModifiers.Control); // :290
+        if (!isSecondary) return false;
+        return new Rect(Bounds.Size).Contains(e.GetPosition(this)); // :292
     }
 }
 
@@ -556,24 +564,41 @@ internal sealed class HydraIdlePopover : Decorator
     }
 }
 
-/// <summary>:321-331 <c>private struct HydraMarkView: View</c>.</summary>
+/// <summary>:321-331 <c>private struct HydraMarkView: View</c>: quiet when Hydra is off, full when it is on or under the pointer.</summary>
 internal sealed class HydraMarkView : Decorator
 {
+    private readonly HydraMarkImage image;
+    private readonly AnimatedColor foreground;
+
     // :323-324, :326-330
     public HydraMarkView(bool isOn, bool isHovering)
     {
-        Child = new HydraMarkImage
+        image = new HydraMarkImage
         {
-            Width = 18,
+            Width = 18, // :329 .frame(width: 18, height: 18)
             Height = 18,
-            Opacity = isOn || isHovering ? 1 : 0.6,
         };
+        foreground = new AnimatedColor(image);
+        image.SetValue(TextElement.ForegroundProperty, foreground.Brush);
+        Child = image;
+        Update(isOn, isHovering);
     }
+
+    /// <summary>The parent passing new inputs (R-VIEW-1): :328 <c>.foregroundStyle(Chrome.primaryText.opacity(...))</c>.</summary>
+    public void Update(bool isOn, bool isHovering) =>
+        foreground.Set(Chrome.PrimaryText.Opacity(isOn || isHovering ? 1 : 0.6), Transaction.Current);
 }
 
-/// <summary>:333-387 <c>struct HydraCharge: View</c>.</summary>
+/// <summary>
+/// :333-387 <c>struct HydraCharge: View</c>: the charge around an active Hydra button: a ring of the roster's colours and
+/// a glow behind the mark. While a head works the ring keeps turning and the glow breathes; with no head out the ring
+/// stands still, and so does it under Reduce Motion.
+/// </summary>
 public sealed class HydraCharge : Decorator
 {
+    private bool isWorking;
+    private HydraChargeMotion? motion;
+
     // :344
     internal static ValueList<SwiftColor> Colors => new(HydraRoster.Personas.Take(6).Select(persona =>
         new SwiftColor(persona.Color.Red, persona.Color.Green, persona.Color.Blue, persona.Color.Alpha)));
@@ -584,212 +609,524 @@ public sealed class HydraCharge : Decorator
     // :342, :348-358
     public HydraCharge(bool isWorking = true)
     {
-        var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
-        Child = isWorking && !reduceMotion
-            ? new HydraChargeMotion()
-            : new Grid
+        this.isWorking = isWorking;
+        IsHitTestVisible = false; // :357 .allowsHitTesting(false)
+        Rebuild();
+    }
+
+    /// <summary>The moving form's layer view, while the charge is in motion; null when it stands still.</summary>
+    internal HydraChargeLayerView? LayerView => motion?.LayerView;
+
+    /// <summary>The parent passing new inputs (R-VIEW-1): the body runs again with the current <c>isWorking</c>.</summary>
+    internal void Update(bool isWorking)
+    {
+        if (this.isWorking != isWorking)
+        {
+            this.isWorking = isWorking;
+            Rebuild();
+            return;
+        }
+
+        motion?.Refresh(); // :403-405 updateNSView: configure(colors:accent:) on every re-render of the button
+    }
+
+    // :350 `isWorking, !NSWorkspace.shared.accessibilityDisplayShouldReduceMotion`
+    private void Rebuild()
+    {
+        if (isWorking && !Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion)
+        {
+            motion = new HydraChargeMotion();
+            Child = motion;
+        }
+        else
+        {
+            motion = null;
+            Child = new Grid
             {
                 IsHitTestVisible = false,
                 Children =
                 {
-                    Glow(false),
-                    Ring(false),
+                    Glow(false), // :353
+                    Ring(false), // :354
                 },
             };
-        IsHitTestVisible = false;
+        }
     }
 
-    // :360-372
-    public static Control Glow(bool breathing) =>
-        new Ellipse
+    // :360-372. Fill: accent at 0.46 fading to none from a start radius of 2 to an end radius of 15 points, whatever the
+    // circle's size, so the gradient is rebuilt for the size the circle is laid out at.
+    public static Control Glow(bool breathing)
+    {
+        var glow = new Ellipse
         {
-            Margin = new Thickness(2),
-            Opacity = breathing ? 1 : 0.6,
-            Fill = new RadialGradientBrush
-            {
-                GradientStops =
-                [
-                    new GradientStop(WithAlpha(Chrome.Accent.Resolve(ThemeVariant.Default), 0.46), 0),
-                    new GradientStop(WithAlpha(Chrome.Accent.Resolve(ThemeVariant.Default), 0), 1),
-                ],
-            },
+            Margin = new Thickness(2), // :370 .padding(2)
+            Opacity = breathing ? 1 : 0.6, // :371
         };
+        void Fill() => glow.Fill = GlowBrush(Chrome.Accent.Resolve(glow.ActualThemeVariant), glow.Bounds.Size);
+        glow.SizeChanged += (_, _) => Fill();
+        glow.ActualThemeVariantChanged += (_, _) => Fill();
+        Fill();
+        return glow;
+    }
+
+    // :364-368 RadialGradient(colors: [accent.opacity(0.46), accent.opacity(0)], center: .center, startRadius: 2, endRadius: 15)
+    internal static RadialGradientBrush GlowBrush(Color accent, Size size)
+    {
+        var width = Math.Max(1, size.Width);
+        var height = Math.Max(1, size.Height);
+        return new RadialGradientBrush
+        {
+            Center = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+            GradientOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+            RadiusX = new RelativeScalar(HydraChargeLayerView.GlowEndRadius / width, RelativeUnit.Relative),
+            RadiusY = new RelativeScalar(HydraChargeLayerView.GlowEndRadius / height, RelativeUnit.Relative),
+            GradientStops =
+            [
+                new GradientStop(WithAlpha(accent, 0.46), 0),
+                new GradientStop(WithAlpha(accent, 0.46), HydraChargeLayerView.GlowStartRadius / HydraChargeLayerView.GlowEndRadius), // flat inside the start radius
+                new GradientStop(WithAlpha(accent, 0), 1),
+            ],
+        };
+    }
 
     // :374-386
     public static Control Ring(bool turned, bool bright = false)
     {
         var ring = new Ellipse
         {
-            Margin = new Thickness(1),
-            StrokeThickness = 2,
-            Opacity = bright ? 1 : 0.85,
-            Stroke = RingBrush(),
+            Margin = new Thickness(1), // :383 .padding(1)
+            StrokeThickness = HydraChargeLayerView.LineWidth, // :381 lineWidth: 2
+            Opacity = bright ? 1 : 0.85, // :385
+            RenderTransformOrigin = RelativePoint.Center,
         };
-        if (turned) ring.RenderTransform = new RotateTransform(360);
+        void Stroke() => ring.Stroke = RingBrush(ring.ActualThemeVariant);
+        ring.ActualThemeVariantChanged += (_, _) => Stroke();
+        Stroke();
+        if (turned) ring.RenderTransform = new RotateTransform(360); // :384
         return ring;
     }
 
-    // :364-368, :376-381
-    private static Color WithAlpha(Color color, double opacity) =>
+    // :376-381 AngularGradient(gradient: Gradient(colors: colors + [colors[0]]), center: .center): the colours spread
+    // evenly from 3 o'clock round clockwise to the first again.
+    internal static ConicGradientBrush RingBrush(ThemeVariant theme) => HydraChargeLayerView.RingGradient(Colors, theme);
+
+    // :364-368, :576
+    internal static Color WithAlpha(Color color, double opacity) =>
         Color.FromArgb((byte)Math.Round(color.A * opacity), color.R, color.G, color.B);
-
-    // :377-381
-    private static LinearGradientBrush RingBrush()
-    {
-        var colors = Colors;
-        var stops = new GradientStops();
-        for (var index = 0; index < colors.Count; index++)
-            stops.Add(new GradientStop(colors[index].Resolve(ThemeVariant.Default), index / 6.0));
-        if (colors.Count > 0)
-            stops.Add(new GradientStop(colors[0].Resolve(ThemeVariant.Default), 1));
-
-        return new LinearGradientBrush { GradientStops = stops };
-    }
 }
 
-/// <summary>:389-411 <c>private struct HydraChargeMotion: NSViewRepresentable</c>.</summary>
+/// <summary>
+/// :389-411 <c>private struct HydraChargeMotion: NSViewRepresentable</c>: the charge in motion. A view of its own, so the
+/// repeating animations start when a head goes out and are torn down with it when the last one is back.
+/// </summary>
 internal sealed class HydraChargeMotion : Decorator
 {
-    // :397-410
+    // :397-401 makeNSView
     public HydraChargeMotion()
     {
-        var view = new HydraChargeLayerView();
-        view.Configure(HydraCharge.LayerColors, Chrome.Accent);
-        Child = view;
+        LayerView = new HydraChargeLayerView();
+        Child = LayerView;
+        Refresh();
     }
+
+    internal HydraChargeLayerView LayerView { get; }
+
+    // :399, :403-405 configure(colors: HydraCharge.layerColors, accent: Chrome.accentNSColor)
+    internal void Refresh() => LayerView.Configure(HydraCharge.LayerColors, Chrome.AccentNSColor);
 }
 
-/// <summary>:413-613 <c>final class HydraChargeLayerView: NSView</c>.</summary>
+/// <summary>
+/// :413-613 <c>final class HydraChargeLayerView: NSView</c>: the moving charge as layers: the glow, a radial gradient
+/// breathing between the still glow's opacity and full, and the ring, a conic gradient turning once every four seconds
+/// and brightening in step with the glow. The geometry is the still charge's exactly. Every animation runs from one
+/// fixed origin on the shared clock, so putting it back on wherever it may have been dropped changes nothing on screen.
+/// </summary>
+/// <remarks>
+/// Core Animation has no Avalonia twin. What <c>installAnimations</c> adds to the two layers is kept as data
+/// (<see cref="Animations"/>); the frame the render server would draw is a pure function of the shared clock
+/// (<see cref="Phase"/>), played from the frame source (ED-117), as HydraBreathRingView does. A conic gradient grows
+/// clockwise here, so the ring's colours go in as they are, where the layer's grew counter-clockwise and needed them
+/// reversed (:568-579).
+/// </remarks>
 public sealed class HydraChargeLayerView : Control
 {
-    private const string TurnKey = "turn"; // :428
-    private const string BreathKey = "breathe"; // :429
-    private const float RingRestOpacity = 0.85f; // :431
-    private const float GlowRestOpacity = 0.6f; // :432
-    private const double TurnDuration = 4; // :433
-    private const double BreathDuration = 1.4; // :434
-    private const double LineWidth = 2; // :435
-    private const double GlowStartRadius = 2; // :437
-    private const double GlowEndRadius = 15; // :438
+    internal const string TurnKey = "turn"; // :428
+    internal const string BreathKey = "breathe"; // :429
+    internal const float RingRestOpacity = 0.85f; // :431
+    internal const float GlowRestOpacity = 0.6f; // :432
+    internal const double TurnDuration = 4; // :433
+    internal const double BreathDuration = 1.4; // :434
+    internal const double LineWidth = 2; // :435
+    internal const double GlowStartRadius = 2; // :437
+    internal const double GlowEndRadius = 15; // :438
 
+    /// <summary>:586 <c>ring.convertTime(1, from: nil)</c>: one second on the shared clock, the one origin of every animation.</summary>
+    internal const double Origin = 1;
+
+    /// <summary>The two layers.</summary>
+    internal enum ChargeLayer
+    {
+        Ring,
+        Glow,
+    }
+
+    /// <summary>One <c>CABasicAnimation</c> a layer holds, as its properties.</summary>
+    internal sealed record LayerAnimation(
+        ChargeLayer Layer,
+        string Key,
+        string KeyPath,
+        double From,
+        double To,
+        double Duration,
+        bool AutoReverses,
+        bool RepeatsForever,
+        string Timing,
+        double BeginTime,
+        bool IsRemovedOnCompletion);
+
+    // :425-426
     private IReadOnlyList<SwiftColor> colors = Array.Empty<SwiftColor>();
     private SwiftColor accent = SwiftColor.ControlAccentColor;
+
+    // :422-424 the layers' resolved colours (applyColors) and what installAnimations has put on them
+    private Color glowAccent;
+    private Color[] ringColors = [];
+    private readonly List<LayerAnimation> animations = [];
+
+    private readonly Action<TimeSpan> frame;
+    private IFrameSource? source;
+    private bool waiting;
+    private readonly Action? applicationActive;
+    private readonly Action<TopLevel, bool>? occlusionChanged;
 
     // :440-480
     public HydraChargeLayerView()
     {
-        IsHitTestVisible = false;
+        Focusable = false;
+        IsHitTestVisible = false; // :491 override func hitTest(_:) -> NSView? { nil }
+        frame = OnFrame;
+        applicationActive = OnApplicationActive;
+        occlusionChanged = OnOcclusionChanged;
+        RingOpacity = RingRestOpacity;
+        GlowOpacity = GlowRestOpacity;
+        ActualThemeVariantChanged += (_, _) => ApplyColors(); // :512-516 viewDidChangeEffectiveAppearance
+    }
+
+    /// <summary>The ring's turn now, in degrees clockwise on screen (a model value of 0 while no turn is attached).</summary>
+    internal double TurnDegrees { get; private set; }
+
+    internal double RingOpacity { get; private set; }
+
+    internal double GlowOpacity { get; private set; }
+
+    /// <summary>The animations the layers hold now.</summary>
+    internal IReadOnlyList<LayerAnimation> Animations => animations;
+
+    /// <summary>How many times installAnimations has run on this view.</summary>
+    internal int InstallCount { get; private set; }
+
+    /// <summary>How many times applyColors has resolved the layers' colours on this view.</summary>
+    internal int RecolorCount { get; private set; }
+
+    /// <summary>The colours and the accent as last stored (:425-426).</summary>
+    internal IReadOnlyList<SwiftColor> StoredColors => colors;
+
+    internal SwiftColor StoredAccent => accent;
+
+    /// <summary>The glow's gradient stops and the ring's conic colours, as last resolved.</summary>
+    internal Color ResolvedGlowAccent => glowAccent;
+
+    internal IReadOnlyList<Color> ResolvedRingColors => ringColors;
+
+    internal bool HasAnimation(ChargeLayer layer, string key) => animations.Any(item => item.Layer == layer && item.Key == key);
+
+    /// <summary><c>layer.removeAnimation(forKey:)</c>: what puts a lost animation back is the lifecycle, not the render.</summary>
+    internal void RemoveAnimation(ChargeLayer layer, string key)
+    {
+        animations.RemoveAll(item => item.Layer == layer && item.Key == key);
+        Refresh();
+        InvalidateVisual();
     }
 
     // :493-501
     public void Configure(IReadOnlyList<SwiftColor> colors, SwiftColor accent)
     {
-        var changed = !ColorsEqual(this.colors, colors) || !ColorEqual(this.accent, accent);
+        var recolor = !SameColors(colors, this.colors) || !SameColor(accent, this.accent);
         this.colors = colors.ToArray();
         this.accent = accent;
-        if (changed) InvalidateVisual();
+        if (recolor) ApplyColors();
+        // The animations go on once; the lifecycle puts them back wherever they can be lost. A re-render of the button
+        // (every hover) is not one of those.
+        if (!HasAnimation(ChargeLayer.Ring, TurnKey)) InstallAnimations();
     }
 
-    // :535-562, :568-579
+    // :503-510 viewDidMoveToWindow. Joining a window late (a button built off screen), the layers need their colours
+    // resolved for its appearance and their animations running from the shared clock. Leaving one does nothing.
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        source = FrameClock.Source.Current;
+        ThemeManager.DidChange += OnThemeChanged; // :477-479
+        ApplicationDidBecomeActive += applicationActive!; // :475
+        WindowDidChangeOcclusionState += occlusionChanged!; // :476
+        ApplyColors();
+        InstallAnimations();
+    }
+
+    protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnDetachedFromVisualTree(e);
+        ThemeManager.DidChange -= OnThemeChanged; // :487-489 deinit
+        ApplicationDidBecomeActive -= applicationActive!;
+        WindowDidChangeOcclusionState -= occlusionChanged!;
+        if (waiting) source?.CancelFrame(frame);
+        waiting = false;
+        source = null;
+    }
+
+    /// <summary>
+    /// PORT-ONLY seam for <c>NSApplication.didBecomeActiveNotification</c> (:475; R-NOTE-1): the application shell raises
+    /// it when the application is activated, and every live charge view hears it.
+    /// </summary>
+    public static event Action? ApplicationDidBecomeActive;
+
+    /// <summary>
+    /// PORT-ONLY seam for <c>NSWindow.didChangeOcclusionStateNotification</c> (:476): the window that changed and whether it
+    /// is now visible. Every window ordered in raises it, popovers and tooltips included.
+    /// </summary>
+    public static event Action<TopLevel, bool>? WindowDidChangeOcclusionState;
+
+    public static void PostApplicationDidBecomeActive() => ApplicationDidBecomeActive?.Invoke();
+
+    public static void PostWindowDidChangeOcclusionState(TopLevel window, bool isVisible) =>
+        WindowDidChangeOcclusionState?.Invoke(window, isVisible);
+
+    // :518-521
+    private void OnApplicationActive()
+    {
+        if (TopLevel.GetTopLevel(this) is null) return; // guard window != nil
+        InstallAnimations();
+    }
+
+    // :523-528 Every window ordered in posts this, popovers and tooltips included: only this view's own window coming back
+    // into view concerns it.
+    private void OnOcclusionChanged(TopLevel window, bool isVisible)
+    {
+        if (TopLevel.GetTopLevel(this) is not { } own || !ReferenceEquals(own, window) || !isVisible) return;
+        InstallAnimations();
+    }
+
+    // :530-533 The accent is set on the glow once, not resolved on every draw, so a theme change has to reach it here.
+    private void OnThemeChanged()
+    {
+        accent = Chrome.AccentNSColor;
+        ApplyColors();
+    }
+
+    // :568-579 The accent, resolved in this view's appearance, into the glow's stops; the ring's colours into the
+    // gradient.
+    private void ApplyColors()
+    {
+        if (colors.Count == 0) return; // :569 guard let first = colors.first
+        var theme = ActualThemeVariant;
+        glowAccent = accent.Resolve(theme);
+        ringColors = colors.Append(colors[0]).Select(color => color.Resolve(theme)).ToArray();
+        RecolorCount++;
+        InvalidateVisual();
+    }
+
+    // :583-612 Puts the turn and the two breaths on afresh, each from the one origin on the shared clock, so however often
+    // they are put back the phase is the one the clock says.
+    private void InstallAnimations()
+    {
+        animations.Clear(); // :584-585 removeAllAnimations
+        // :588-598 the turn: a negative angle, because the layer is y-up: it turns clockwise on screen
+        animations.Add(new LayerAnimation(
+            ChargeLayer.Ring, TurnKey, "transform.rotation.z", 0, -2 * Math.PI, TurnDuration,
+            AutoReverses: false, RepeatsForever: true, Timing: "linear", BeginTime: Origin, IsRemovedOnCompletion: false));
+        // :600-611 the breaths, from the rest opacity to full
+        foreach (var (layer, rest) in new[] { (ChargeLayer.Ring, (double)RingRestOpacity), (ChargeLayer.Glow, (double)GlowRestOpacity) })
+        {
+            animations.Add(new LayerAnimation(
+                layer, BreathKey, "opacity", rest, 1, BreathDuration,
+                AutoReverses: true, RepeatsForever: true, Timing: "easeInEaseOut", BeginTime: Origin, IsRemovedOnCompletion: false));
+        }
+
+        InstallCount++;
+        Refresh();
+        InvalidateVisual();
+        Request();
+    }
+
+    /// <summary>
+    /// :588-611 the three animations as a pure function of the seconds since their shared origin: the ring's turn
+    /// (degrees clockwise, linear, once every 4 s) and, for the ring and the glow, the breath (the rest opacity up to full
+    /// over 1.4 s and back, ease-in ease-out), without end.
+    /// </summary>
+    internal static (double TurnFraction, double BreathProgress) Phase(double elapsedSeconds)
+    {
+        var elapsed = Math.Max(0, elapsedSeconds);
+        var turn = elapsed % TurnDuration / TurnDuration;
+        var leg = elapsed % (2 * BreathDuration); // autoreverses
+        var forward = leg <= BreathDuration ? leg : 2 * BreathDuration - leg;
+        return (turn, Animation.EaseInOut(BreathDuration).Progress(forward));
+    }
+
+    // What the layers show now: each attached animation's value at the shared clock, the model value where none is attached.
+    private void Refresh()
+    {
+        var elapsed = (SwiftClock.Now - default(ContinuousInstant)).TotalSeconds - Origin;
+        var (turn, breath) = Phase(elapsed);
+        var turning = animations.FirstOrDefault(item => item.Layer == ChargeLayer.Ring && item.Key == TurnKey);
+        TurnDegrees = turning is null ? 0 : -turning.To * 180 / Math.PI * turn;
+        var ringBreath = animations.FirstOrDefault(item => item.Layer == ChargeLayer.Ring && item.Key == BreathKey);
+        RingOpacity = ringBreath is null ? RingRestOpacity : ringBreath.From + (ringBreath.To - ringBreath.From) * breath;
+        var glowBreath = animations.FirstOrDefault(item => item.Layer == ChargeLayer.Glow && item.Key == BreathKey);
+        GlowOpacity = glowBreath is null ? GlowRestOpacity : glowBreath.From + (glowBreath.To - glowBreath.From) * breath;
+    }
+
+    private void Request()
+    {
+        if (waiting || source is null) return;
+        waiting = true;
+        source.RequestFrame(frame);
+    }
+
+    private void OnFrame(TimeSpan _)
+    {
+        waiting = false;
+        if (source is null) return;
+        Refresh();
+        InvalidateVisual();
+        Request();
+    }
+
+    // :535-562 layout: the still charge's geometry exactly
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        var bounds = Bounds;
-        if (bounds.Width <= 4 || bounds.Height <= 4) return;
+        var bounds = new Rect(Bounds.Size);
+        if (bounds.Width <= 4 || bounds.Height <= 4) return; // :538
 
-        var reduceMotion = EnvironmentValues.GetAccessibilityReduceMotion(this);
-        var glowOpacity = reduceMotion ? GlowRestOpacity : 1;
-        var ringOpacity = reduceMotion ? RingRestOpacity : 1;
+        // :543-550 a circle two points in, its gradient running from two to fifteen points out of the centre
+        var glowRect = bounds.Deflate(2);
+        var glow = HydraCharge.GlowBrush(glowAccent, glowRect.Size);
+        using (context.PushOpacity(GlowOpacity))
+            context.DrawEllipse(glow, null, glowRect.Center, glowRect.Width / 2, glowRect.Height / 2);
 
-        var glowRect = new Rect(2, 2, bounds.Width - 4, bounds.Height - 4);
-        var centre = glowRect.Center;
-        var accentColor = accent.Resolve(ThemeVariant.Default);
-        var stops = new GradientStops
-        {
-            new GradientStop(WithAlpha(accentColor, 0.46), 0),
-            new GradientStop(WithAlpha(accentColor, 0), 1),
-        };
-        var brush = new RadialGradientBrush
-        {
-            GradientOrigin = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
-            Center = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
-            RadiusX = new RelativeScalar(GlowEndRadius / glowRect.Width, RelativeUnit.Relative),
-            RadiusY = new RelativeScalar(GlowEndRadius / glowRect.Height, RelativeUnit.Relative),
-            GradientStops = stops,
-        };
-
-        using (context.PushOpacity(glowOpacity))
-            context.DrawEllipse(brush, null, centre, glowRect.Width / 2, glowRect.Height / 2);
-
-        var radius = Math.Min(bounds.Width, bounds.Height) / 2 - 1;
-        var count = Math.Min(6, colors.Count);
-        if (count == 0) return;
-
-        using (context.PushOpacity(ringOpacity))
-        {
-            const int segments = 72;
-            for (var i = 0; i < segments; i++)
-            {
-                var a = i * 2 * Math.PI / segments;
-                var b = (i + 1) * 2 * Math.PI / segments;
-                var x1 = bounds.Center.X + radius * Math.Cos(a);
-                var y1 = bounds.Center.Y + radius * Math.Sin(a);
-                var x2 = bounds.Center.X + radius * Math.Cos(b);
-                var y2 = bounds.Center.Y + radius * Math.Sin(b);
-                var colorIndex = i * count / segments;
-                var color = colors[colorIndex].Resolve(ThemeVariant.Default);
-                context.DrawLine(new Pen(new SolidColorBrush(color), LineWidth), new Point(x1, y1), new Point(x2, y2));
-            }
-        }
+        // :553-560 two points of stroke just inside a circle one point in
+        if (ringColors.Length == 0) return;
+        var ringRect = bounds.Deflate(1);
+        var radiusX = ringRect.Width / 2 - LineWidth / 2;
+        var radiusY = ringRect.Height / 2 - LineWidth / 2;
+        var centre = ringRect.Center;
+        var turn = Matrix.CreateTranslation(-centre.X, -centre.Y) * Matrix.CreateRotation(TurnDegrees * Math.PI / 180) * Matrix.CreateTranslation(centre.X, centre.Y);
+        using (context.PushOpacity(RingOpacity))
+        using (context.PushTransform(turn))
+            context.DrawEllipse(null, new Pen(RingGradient(ringColors), LineWidth), centre, radiusX, radiusY);
     }
 
-    // :493-497
-    private static bool ColorsEqual(IReadOnlyList<SwiftColor> first, IReadOnlyList<SwiftColor> second)
+    // The ring's conic gradient from resolved colours: evenly spread from 3 o'clock, clockwise.
+    internal static ConicGradientBrush RingGradient(IReadOnlyList<SwiftColor> colors, ThemeVariant theme) =>
+        RingGradient(colors.Append(colors[0]).Select(color => color.Resolve(theme)).ToArray());
+
+    private static ConicGradientBrush RingGradient(Color[] closed)
+    {
+        var stops = new GradientStops();
+        for (var index = 0; index < closed.Length; index++)
+            stops.Add(new GradientStop(closed[index], index / (double)(closed.Length - 1)));
+        return new ConicGradientBrush
+        {
+            Center = new RelativePoint(0.5, 0.5, RelativeUnit.Relative),
+            Angle = 90, // Avalonia's sweep starts at 12 o'clock; SwiftUI's and the layer's at 3
+            GradientStops = stops,
+        };
+    }
+
+    // :494 colors != self.colors, by value
+    private static bool SameColors(IReadOnlyList<SwiftColor> first, IReadOnlyList<SwiftColor> second)
     {
         if (first.Count != second.Count) return false;
         for (var index = 0; index < first.Count; index++)
-            if (first[index].Resolve(ThemeVariant.Default) != second[index].Resolve(ThemeVariant.Default))
-                return false;
+            if (!SameColor(first[index], second[index])) return false;
         return true;
     }
 
-    // :493-497
-    private static bool ColorEqual(SwiftColor first, SwiftColor second) =>
-        first.Resolve(ThemeVariant.Default) == second.Resolve(ThemeVariant.Default);
-
-    // :576-577
-    private static Color WithAlpha(Color color, double opacity) =>
-        Color.FromArgb((byte)Math.Round(color.A * opacity), color.R, color.G, color.B);
+    // :494 accent != self.accent, by value in both appearances
+    private static bool SameColor(SwiftColor first, SwiftColor second) =>
+        first.Resolve(ThemeVariant.Light) == second.Resolve(ThemeVariant.Light) &&
+        first.Resolve(ThemeVariant.Dark) == second.Resolve(ThemeVariant.Dark);
 }
 
-/// <summary>:615-646 <c>private struct HydraSendWorkingBadge: View</c>.</summary>
+/// <summary>
+/// :615-646 <c>private struct HydraSendWorkingBadge: View</c>: the count of heads at work, above the button's top-right.
+/// While the lead delegates it first shows the sending pulse, then morphs in place into the working count: the same
+/// capsule at the same size, so nothing jumps and no second row ever appears.
+/// </summary>
 internal sealed class HydraSendWorkingBadge : Decorator
 {
+    private readonly Border content = new() { MinWidth = 14, MinHeight = 14 }; // :635 .frame(minWidth: 14, minHeight: 14)
+    private readonly Border capsule = new();
+    private readonly AnimatedColor tint;
+    private readonly TextBlock count = new();
+    private readonly MiniSpinner spinner = new(cellSize: 2.4); // :627
+    private long running;
+    private bool isSending;
+
     // :621-622, :624-645
     public HydraSendWorkingBadge(long running, bool isSending)
     {
-        Control content = isSending
-            ? new MiniSpinner(cellSize: 2.4)
-            : new TextBlock
-            {
-                Text = running.ToString(CultureInfo.InvariantCulture),
-                FontSize = 10,
-                FontWeight = FontWeight.Bold,
-                FontFamily = new FontFamily("fonts:Inter#Inter"),
-                Foreground = Brushes.White,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center,
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-            };
+        this.running = running;
+        this.isSending = isSending;
 
-        Child = new Border
+        // :630-632 .font(.system(.caption2, weight: .bold).monospacedDigit()).foregroundStyle(.white)
+        SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Bold).MonospacedDigit().Apply(count);
+        count.Foreground = Brushes.White;
+        count.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
+        count.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+        spinner.HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center;
+        spinner.VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center;
+
+        capsule.Padding = new Thickness(4, 1); // :636-637 .padding(.horizontal, 4).padding(.vertical, 1)
+        capsule.CornerRadius = new CornerRadius(999); // :640 Capsule()
+        capsule.Child = content;
+        tint = new AnimatedColor(capsule);
+        capsule.Background = tint.Brush;
+        Child = capsule;
+        AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw); // :644 .accessibilityHidden(true)
+        Show(animated: false);
+    }
+
+    /// <summary>The parent passing new inputs (R-VIEW-1).</summary>
+    public void Update(long running, bool isSending)
+    {
+        var changed = this.isSending != isSending;
+        this.running = running;
+        this.isSending = isSending;
+        // :642 .animation(Chrome.panelSlide, value: isSending): the tint crossfades, never a jump
+        Transaction.WithAnimation(changed ? Chrome.PanelSlide : Transaction.Current, () => Show(animated: true));
+    }
+
+    private void Show(bool animated)
+    {
+        // :626-633 Group { if isSending { MiniSpinner } else { Text } }
+        if (isSending)
         {
-            MinWidth = 14,
-            MinHeight = 14,
-            Padding = new Thickness(4, 1),
-            CornerRadius = new CornerRadius(999),
-            Background = (isSending ? Chrome.GlassTint : Chrome.Accent).Brush(this),
-            Child = content,
-        };
+            count.Text = null;
+            content.Child = spinner;
+        }
+        else
+        {
+            count.Text = running.ToString(CultureInfo.InvariantCulture); // :629 Text(verbatim: "\(running)")
+            content.Child = count;
+        }
+
+        // :640 .background(isSending ? Chrome.glassTint : Chrome.accent, in: Capsule())
+        tint.Set(isSending ? Chrome.GlassTint : Chrome.Accent, animated ? Transaction.Current : null);
+        // :643
+        ToolTip.SetTip(this, running == 1
+            ? "1 head working \U000000B7 Show or hide the Hydra panel"
+            : $"{running.ToString(CultureInfo.InvariantCulture)} heads working \U000000B7 Show or hide the Hydra panel");
     }
 }
 
