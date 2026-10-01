@@ -515,7 +515,9 @@ internal sealed class PopoverRowPanel : StackPanel
 /// centre until the candidate no longer fits. Exact truncation points are UNVERIFIED (OD-0001: no macOS reference
 /// to compare against).
 /// </summary>
-public sealed class MiddleTruncatingText : TextBlock
+// Popovers.swift:307-311: the title is a Text with .contentTransition(.numericText()); a change made inside an animation
+// (the confirmation swap under the snappy transaction of :263) morphs (MorphingTextBlock).
+public sealed class MiddleTruncatingText : MorphingTextBlock
 {
     private const char Ellipsis = '…'; // U+2026 HORIZONTAL ELLIPSIS
     private string full = "";
@@ -526,6 +528,8 @@ public sealed class MiddleTruncatingText : TextBlock
         get => full;
         set
         {
+            if (Transaction.Current is { } animation && styled is null && value != full && !string.IsNullOrEmpty(Text))
+                BeginMorph(animation); // :311 from the title shown now to the one measuring presents next
             full = value;
             styled = null;
             InvalidateMeasure();
@@ -565,12 +569,12 @@ public sealed class MiddleTruncatingText : TextBlock
     {
         Present(full, styled);
         if (PlainFull.Length == 0 || double.IsInfinity(availableSize.Width))
-            return base.MeasureOverride(availableSize);
-        var natural = base.MeasureOverride(availableSize);
+            return Glide(MeasureText(availableSize));
+        var natural = MeasureText(availableSize);
         if (natural.Width <= availableSize.Width)
-            return natural;
+            return Glide(natural);
         Truncate(availableSize.Width);
-        return base.MeasureOverride(availableSize);
+        return Glide(MeasureText(availableSize));
     }
 
     /// <summary>Leaves the widest candidate that fits (an ellipsis alone if none does) presented.</summary>
@@ -585,7 +589,7 @@ public sealed class MiddleTruncatingText : TextBlock
         {
             var mid = (lo + hi) / 2;
             PresentCandidate(text, mid);
-            var width = base.MeasureOverride(unconstrained).Width;
+            var width = MeasureText(unconstrained).Width;
             if (width <= maxWidth)
             {
                 best = mid;

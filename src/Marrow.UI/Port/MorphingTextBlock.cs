@@ -50,15 +50,27 @@ public class MorphingTextBlock : TextBlock
     {
         var old = Text ?? "";
         if (old == text) return;
-        Stop();
         if (animation is null || old.Length == 0)
         {
+            Stop();
             Text = text;
             return;
         }
-        // A copy of the old line, built now with the old colour: the TextBlock disposes its own layout on a change.
-        morph = new Morph(old, text, CreateTextLayout(old), Bounds.Width, animation, SwiftClock.Now);
+        BeginMorph(animation);
         Text = text;
+    }
+
+    /// <summary>
+    /// Starts a morph away from the text shown now; whatever text the block shows next is where it goes (a subclass
+    /// that decides its text while measuring, such as a truncating one, calls this before it changes the text).
+    /// </summary>
+    protected void BeginMorph(Animation animation)
+    {
+        var old = Text ?? "";
+        Stop();
+        if (old.Length == 0) return;
+        // A copy of the old line, built now with the old colour: the TextBlock disposes its own layout on a change.
+        morph = new Morph(old, CreateTextLayout(old), Bounds.Width, animation, SwiftClock.Now);
         frames = FrameClock.Source.Current;
         tick = _ =>
         {
@@ -91,12 +103,18 @@ public class MorphingTextBlock : TextBlock
 
     private static double Elapsed(Morph state) => (SwiftClock.Now - state.Start).TotalSeconds;
 
-    protected override Size MeasureOverride(Size availableSize)
+    protected override Size MeasureOverride(Size availableSize) => Glide(base.MeasureOverride(availableSize));
+
+    /// <summary>The text's own size, without the glide (for a subclass that tries several texts while measuring).</summary>
+    protected Size MeasureText(Size availableSize) => base.MeasureOverride(availableSize);
+
+    /// <summary>
+    /// The size to report while a change runs: the label's frame animates with the change (SwiftUI animates the layout
+    /// in the same transaction), so a neighbour such as the title's chevron slides instead of jumping.
+    /// </summary>
+    protected Size Glide(Size size)
     {
-        var size = base.MeasureOverride(availableSize);
         if (morph is null) return size;
-        // The label's frame animates with the change (SwiftUI animates the layout in the same transaction), so a
-        // neighbour such as the title's chevron slides instead of jumping.
         var progress = morph.Animation.Progress(Elapsed(morph));
         return size.WithWidth(Math.Max(0, morph.OldWidth + (size.Width - morph.OldWidth) * progress));
     }
@@ -108,7 +126,7 @@ public class MorphingTextBlock : TextBlock
             base.RenderTextLayout(context, origin);
             return;
         }
-        foreach (var glyph in Glyphs(state.Old, state.New, Elapsed(state), state.Animation))
+        foreach (var glyph in Glyphs(state.Old, Text ?? "", Elapsed(state), state.Animation))
         {
             if (glyph.Opacity <= 0.001) continue;
             var source = glyph.FromOld ? state.OldLayout : layout;
@@ -214,5 +232,5 @@ public class MorphingTextBlock : TextBlock
         return (pairs, pairs.Count);
     }
 
-    private sealed record Morph(string Old, string New, TextLayout OldLayout, double OldWidth, Animation Animation, ContinuousInstant Start);
+    private sealed record Morph(string Old, TextLayout OldLayout, double OldWidth, Animation Animation, ContinuousInstant Start);
 }
