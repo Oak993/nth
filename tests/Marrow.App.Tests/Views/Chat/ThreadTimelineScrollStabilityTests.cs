@@ -302,6 +302,27 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:615-623 the reader coming back (window to the front) checks the timeline; :1295-1348 FrontMonitor
+    public void Changes_made_while_the_window_was_minimised_are_on_screen_at_the_end_when_it_returns() => WithLongThread(20, (view, runtime, window, frames) =>
+    {
+        window.WindowState = WindowState.Minimized;
+        Settle(window, frames);
+        // Unseen: three turns arrive and one more runs to its end.
+        AppendTurn(runtime);
+        Settle(window, frames);
+        var turn = Guid.NewGuid();
+        SetPhase(runtime, RuntimePhase.Running);
+        SetEntries(runtime, runtime.Entries.Concat(RunningTurn(turn)).ToList());
+        Settle(window, frames);
+        FinishTurn(runtime, turn);
+        Settle(window, frames);
+        window.WindowState = WindowState.Normal;
+        Settle(window, frames);
+        Assert.True(AtEnd(Scroller(view)), Where(Scroller(view)));
+        Assert.True(SomeTextOnScreen(view, Scroller(view)), "blank on return: " + Where(Scroller(view)));
+    });
+
+    [Fact]
     [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:2320-2325 ScrollFreeze turns off hit-testing on the rows only; the NSScrollView still takes every wheel event
     public void Every_wheel_notch_scrolls_even_while_the_rows_are_frozen() => WithLongThread(30, (view, _, window, _) =>
     {
