@@ -85,7 +85,7 @@ public sealed class TimelineRowsUiLabelsTests(HeadlessSession headless)
             Assert.Equal("Writing the next brief\u2026", line.Text); // :683 U+2026
             Font(line, 10); // :684 .chat(.caption); ED-059 B1 ChatZoom.swift:54
             Colour(line, Chrome.SecondaryText); // :685
-            var row = Assert.IsType<StackPanel>(line.Parent);
+            var row = Assert.IsType<HStack>(line.Parent);
             Assert.Equal(Orientation.Horizontal, row.Orientation);
             Assert.Equal(8, row.Spacing); // :681 TimelineMetrics.iconSpacing (:18)
             Assert.Equal(2, row.Children.Count);

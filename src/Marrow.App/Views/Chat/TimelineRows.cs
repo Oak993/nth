@@ -339,7 +339,7 @@ public sealed class UserMessageRow : Decorator
         SwiftFont.Subheadline.Apply(excerpt); // :103 .font(.system(.subheadline))
         excerpt.Foreground = Chrome.PrimaryText.Opacity(0.9).Brush(excerpt); // :104
         // :98 HStack(spacing: 5); :109 .fixedSize(): a horizontal StackPanel measures its children at their ideal size.
-        var chip = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, HorizontalAlignment = HorizontalAlignment.Right };
+        var chip = new HStack { Spacing = 5, HorizontalAlignment = HorizontalAlignment.Right }; // HStack :98: its children share one centre line
         chip.Children.Add(glyph);
         chip.Children.Add(excerpt);
         // :110 .modifier(ChipChrome()).
@@ -475,11 +475,11 @@ public sealed class HydraReportRow : Decorator
         var body = personas.Count == 0 ? (parts.Count > 1 ? parts[1] : "").Trimmed() : message.Text;
         var link = personas.Count == 0 ? LeadingURL(body) : null;
         var details = link is null ? body : WithoutFirstLine(body);
-        var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var label = new HStack { Spacing = 8 }; // HStack :263: its children share one centre line
         if (personas.Count == 0) label.Children.Add(Mark(18));
         else
         {
-            var glyphs = new StackPanel { Orientation = Orientation.Horizontal, Spacing = -4 };
+            var glyphs = new HStack { Spacing = -4 }; // HStack :271: its children share one centre line
             foreach (var persona in personas) glyphs.Children.Add(new HydraGlyph(persona, 18));
             label.Children.Add(glyphs);
         }
@@ -489,7 +489,7 @@ public sealed class HydraReportRow : Decorator
         var button = PlainControls.Button(label, () => { if (details.Length != 0) box.IsShowingReport = !box.IsShowingReport; });
         button.IsEnabled = details.Length != 0;
         ToolTip.SetTip(button, details.Length == 0 ? null : "Show the message");
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var row = new HStack { Spacing = 8 }; // HStack :258: its children share one centre line
         var report = button.BadgePopover(new Binding<bool>(() => box.IsShowingReport, value => box.IsShowingReport = value), () =>
         {
             if (link is not null && MergeRequestLink.Create(link) is { } request && HydraMergeNote.Parse(details, request) is { } note)
@@ -659,7 +659,7 @@ public sealed class FinishedHeadPill : Decorator
         var text = new TextBlock { MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis };
         (HydraNameStyle.Text(head.Persona, Chrome.PrimaryText.Opacity(0.75)) + new StyledText(suffix))
             .Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)).Render(text);
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var row = new HStack { Spacing = 8 }; // HStack :452: its children share one centre line
         row.Children.Add(new HydraGlyph(head.Persona, 18, status: head.HydraHeadInfoStatus));
         row.Children.Add(text); row.Children.Add(TimelineRows.Chevron());
         var box = new ReportState();
@@ -735,7 +735,7 @@ public sealed class HydraBriefRow : Decorator
             var title = cooking ? persona.Name + " is starting to cook\u2026" : persona.Name + "'s brief";
             var column = new StackPanel { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Right };
             if (message.Attachments.Count != 0) column.Children.Add(new AttachmentStrip(message.Attachments));
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            var row = new HStack { Spacing = 8 }; // HStack :556: its children share one centre line
             row.Children.Add(new HydraGlyph(persona, 18, isRunning: cooking));
             var text = TimelineRows.ChatText(title, weight: SwiftFont.Weight.Medium, color: Chrome.PrimaryText.Opacity(0.9), singleLine: true);
             row.Children.Add(cooking ? new HydraShimmer().Body(text) : text);
@@ -796,7 +796,7 @@ public sealed class HydraDelegationBlock : Decorator
         var delegations = reading.Delegations;
         var streaming = !reading.IsComplete && !sent;
         var column = new StackPanel { Spacing = 6 };
-        var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+        var header = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :659: its children share one centre line
         header.Children.Add(HydraReportRow.Mark(16));
         header.Children.Add(TimelineRows.ChatText(Title(delegations, streaming, sent), weight: SwiftFont.Weight.Medium));
         if (sent)
@@ -814,7 +814,7 @@ public sealed class HydraDelegationBlock : Decorator
             foreach (var delegation in delegations) rows.Children.Add(HeadRow(delegation));
             if (streaming)
             {
-                var next = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+                var next = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :681: its children share one centre line
                 next.Children.Add(new Control { Width = 16, Height = 16 });
                 next.Children.Add(TimelineRows.ChatText("Writing the next brief\u2026", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText));
                 rows.Children.Add(next);
@@ -835,7 +835,7 @@ public sealed class HydraDelegationBlock : Decorator
     // :711-741
     private static Control HeadRow(HydraDelegation delegation)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+        var row = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :712: its children share one centre line
         if (Persona(delegation.Name) is { } persona)
         {
             var glyph = new HydraGlyph(persona, 16); AutomationProperties.SetName(glyph, persona.Name); row.Children.Add(glyph);
@@ -844,7 +844,7 @@ public sealed class HydraDelegationBlock : Decorator
         row.Children.Add(TimelineRows.ChatText(delegation.Task, SwiftFont.TextStyle.Caption, color: Chrome.PrimaryText.Opacity(0.75), singleLine: true));
         if (ProjectName(delegation.Project) is { } project)
         {
-            var tag = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 3, Margin = new Thickness(2, 0, 0, 0) };
+            var tag = new HStack { Spacing = 3, Margin = new Thickness(2, 0, 0, 0) }; // HStack :728: its children share one centre line
             tag.Children.Add(SwiftImage.SystemName("arrow.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.SecondaryText));
             tag.Children.Add(TimelineRows.ChatText(project, SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Medium, Chrome.SecondaryText, true));
             AutomationProperties.SetName(tag, "in " + project); row.Children.Add(tag);
@@ -1142,7 +1142,7 @@ public sealed class HydraMergeRow : Decorator
                 e.Handled = true;
             };
             slot = new MorphSlot();
-            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            var row = new HStack { Spacing = 8 }; // HStack :959: its children share one centre line
             row.Children.Add(track); row.Children.Add(slot);
             pill = TimelineRows.Pill(row);
             pill.Transition(SwiftTransition.SettleGlide);
@@ -1190,7 +1190,7 @@ public sealed class HydraMergeRow : Decorator
     private Control OutcomeControls(HydraMergeOutcome note)
     {
         var box = state;
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var row = new HStack { Spacing = 8 }; // HStack :1100: its children share one centre line
         var title = PlainControls.Button(OutcomeTitle(note), () => { if (note.Details.Length != 0) box.IsShowingReport = !box.IsShowingReport; });
         title.IsEnabled = note.Details.Length != 0;
         ToolTip.SetTip(title, note.Details.Length == 0 ? "" : "Show the message");
@@ -1208,14 +1208,14 @@ public sealed class HydraMergeRow : Decorator
     // :1140-1161
     private static Control OutcomeLabel(HydraMergeOutcome note)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var row = new HStack { Spacing = 8 }; // HStack :1133: its children share one centre line
         row.Children.Add(OutcomeTitle(note));
         if (note.Link is not null) row.Children.Add(TimelineRows.ChatText("Open", SwiftFont.TextStyle.Caption, SwiftFont.Weight.Semibold, Chrome.SecondaryText));
         return row;
     }
     private static Control OutcomeTitle(HydraMergeOutcome note)
     {
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+        var row = new HStack { Spacing = 8 }; // HStack :1143: its children share one centre line
         row.Children.Add(TimelineRows.ChatText(note.Title, weight: SwiftFont.Weight.Medium, color: Chrome.PrimaryText.Opacity(0.9), singleLine: true));
         if (note.Details.Length != 0) row.Children.Add(TimelineRows.Chevron());
         return row;
@@ -2445,7 +2445,7 @@ public sealed class HydraHeadStepsPopover : Decorator
         status.Margin = new Thickness(12 + TimelineMetrics.IconSpacing, 0, 0, 0);
         status.VerticalAlignment = VerticalAlignment.Center;
         DockPanel.SetDock(status, Dock.Right); header.Children.Add(status);
-        var name = new StackPanel { Orientation = Orientation.Horizontal, Spacing = TimelineMetrics.IconSpacing };
+        var name = new HStack { Spacing = TimelineMetrics.IconSpacing }; // HStack :1935: its children share one centre line
         name.Children.Add(new HydraGlyph(head.Persona, 22, head.HydraHeadInfoStatus == HydraHeadInfo.Status.Running, head.HydraHeadInfoStatus));
         var text = TimelineRows.ChatText(head.Persona.Name, SwiftFont.TextStyle.Headline, SwiftFont.Weight.Semibold, Chrome.PrimaryText);
         text.VerticalAlignment = VerticalAlignment.Center; name.Children.Add(text); header.Children.Add(name);
@@ -2848,7 +2848,7 @@ public sealed class PlanCard : Decorator
             { Margin = new Thickness(16, 0) }, maxHeight: 420));
         if (plan.ProposedPlanState == ProposedPlan.State.Proposed)
         {
-            var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            var buttons = new HStack { Spacing = 8 }; // HStack :2295: its children share one centre line
             var box = state;
             var target = runtime;
             var id = entry.Id;
@@ -2889,7 +2889,7 @@ public sealed class TodoListRow : Decorator
     {
         Padding = new Thickness(0, 0, 96, 0); // :2371
         var column = new StackPanel { Spacing = 7 };
-        var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+        var header = new HStack { Spacing = 6 }; // HStack :2346: its children share one centre line
         header.Children.Add(SwiftImage.SystemName("checklist").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption)).ForegroundStyle(Chrome.SecondaryText));
         var count = TimelineRows.ChatText("", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText);
         header.Children.Add(count);
@@ -3210,7 +3210,7 @@ public sealed class TurnFinishedBlock : Decorator
         var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)); // :2613-2614
         chevron.Foreground = Chrome.SecondaryText.Brush(chevron); // :2615
         var turn = new AnimatedDouble(angle => chevron.RenderTransform = new RotateTransform(angle)); // :2616
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Background = Brushes.Transparent }; // :2609, :2618 .contentShape(.rect)
+        var row = new HStack { Spacing = 6, Background = Brushes.Transparent }; // HStack :2609 centres its children (UI-CHAT finish); :2609, :2618 .contentShape(.rect)
         row.Children.Add(label);
         row.Children.Add(chevron);
         var viewState = state;
@@ -3505,7 +3505,7 @@ public sealed class TurnFileCard : Decorator
         SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(message);
         message.Foreground = Chrome.SecondaryText.Brush(message);
         column.Children.Add(message);
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right };
+        var buttons = new HStack { Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right }; // HStack :2785: its children share one centre line
         var box = state;
         var action = onRevert;
         buttons.Children.Add(TimelineRows.GlassCommand("Cancel", () => box.IsConfirmingRevert = false, false, true));
@@ -3525,7 +3525,7 @@ public sealed class TurnFileCard : Decorator
             var row = new DockPanel { Margin = new Thickness(12, 7) };
             Control stats = file.IsBinary ? TimelineRows.ChatText("Binary", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText)
                 : new DiffStatLabel { Additions = checked((int)file.Additions), Deletions = checked((int)file.Deletions) };
-            stats.Margin = new Thickness(8, 0, 0, 0);
+            stats.Margin = new Thickness(24, 0, 0, 0); // :2833 spacing 8 + :2838 Spacer(minLength: 8) + spacing 8: the HStack puts its spacing on both sides of a Spacer
             // :2833 HStack(spacing: 8): the path and the stat (or Binary) share one centre line, whichever is taller (UI-CHAT-041).
             stats.VerticalAlignment = VerticalAlignment.Center;
             DockPanel.SetDock(stats, Dock.Right);

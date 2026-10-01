@@ -68,9 +68,9 @@ public sealed class TimelineRowsFinFilesPopoverTests(HeadlessSession headless)
                 Assert.Contains("…", long_.Text, StringComparison.Ordinal);
                 Assert.StartsWith("src/", long_.Text, StringComparison.Ordinal);
                 Assert.EndsWith("final-name.swift", long_.Text, StringComparison.Ordinal);
-                // :2838 a spacer of at least 8 before the trailing value: the path never runs into the stat.
+                // :2838 Spacer(minLength: 8) between two 8-point HStack gaps: a truncated path stops 8 + 8 + 8 = 24 before the stat.
                 var stat = Assert.Single(Mounted<DiffStatLabel>(rows[0]));
-                Assert.True(Left(stat, window) - (Left(long_, window) + long_.Bounds.Width) >= 8 - 0.5);
+                Near("nFilesPopover:1", 24, Left(stat, window) - (Left(long_, window) + long_.Bounds.Width));
                 Assert.Equal(Left(rows[0], window) + rows[0].Bounds.Width - 12, Left(stat, window) + stat.Bounds.Width + 0, 0.5 + 12);
                 // :2839-2845 a binary file shows the literal Binary (caption, Chrome.secondaryText) in place of the stat.
                 var binary = TextNamed(rows[1], "Binary");

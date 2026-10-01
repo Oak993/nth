@@ -136,7 +136,7 @@ public sealed class TimelineRowsPrMergeTests(HeadlessSession headless)
                     Assert.False(presenter.Calls.Last().Presented);
                     var link = LogicalQuery.SelfAndDescendants<Button>(row!).Single(button => Equals(ToolTip.GetTip(button), "Open in the browser"));
                     Assert.Same(title!.Parent, link.Parent);
-                    var parent = Assert.IsType<StackPanel>(title.Parent);
+                    var parent = Assert.IsType<HStack>(title.Parent);
                     Assert.Equal(title, parent.Children[0]);
                     Assert.Equal(link, parent.Children[1]);
                     Click(window!, link);

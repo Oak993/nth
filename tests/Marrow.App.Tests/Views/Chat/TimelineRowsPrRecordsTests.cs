@@ -264,7 +264,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 var report = Assert.Single(buttons, button => !ReferenceEquals(button, open));
                 Assert.DoesNotContain(open, report.GetVisualDescendants()); // a sibling control, never nested in the button
                 Assert.DoesNotContain(report, open.GetVisualDescendants());
-                var pill = Assert.IsType<StackPanel>(open.GetVisualParent());
+                var pill = Assert.IsType<HStack>(open.GetVisualParent());
                 Assert.Equal(8, pill.Spacing);
                 Assert.Equal(2, pill.Children.Count);
                 Assert.Contains(report, pill.Children[0].GetVisualDescendants().Append(pill.Children[0])); // the button first, the link after it
@@ -480,7 +480,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         Assert.True(capsule.Bounds.Height > 0);
         Assert.Equal(new Avalonia.CornerRadius(Math.Min(capsule.Bounds.Width, capsule.Bounds.Height) / 2), capsule.CornerRadius); // a capsule rounds by half its shorter side
 
-        var stack = Assert.IsType<StackPanel>(capsule.Child);
+        var stack = Assert.IsType<HStack>(capsule.Child);
         Assert.Equal(Orientation.Horizontal, stack.Orientation);
         Assert.Equal(5, stack.Spacing); // :98 HStack(spacing: 5)
         Assert.Equal(2, stack.Children.Count);
@@ -510,7 +510,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     public void A_quote_chip_keeps_its_ideal_size_even_when_offered_less_room_than_its_text_needs() => headless.OnUiThread(() =>
     {
         var chip = (Control)typeof(UserMessageRow).GetMethod("QuoteChip", HiddenStatic)!.Invoke(null, [new ReplyQuote { Text = "quoted words that need well over forty points" }])!;
-        var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(chip).Child);
+        var stack = Assert.IsType<HStack>(Assert.IsType<Border>(chip).Child);
         chip.Measure(new Size(40, 200)); // :109 .fixedSize(): the chip is measured at its ideal width, not squeezed into the offer
         Assert.True(stack.Children[1].DesiredSize.Width > 100, "the excerpt kept its ideal width: " + stack.Children[1].DesiredSize.Width);
     });
@@ -2556,8 +2556,8 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 var glyphs = LogicalQuery.SelfAndDescendants<HydraGlyph>(row).ToList();
                 Assert.Equal(["Hank", "Walter"], glyphs.Select(glyph => glyph.Persona.Name));
                 Assert.All(glyphs, glyph => Assert.Equal(18, glyph.Size));
-                Assert.Equal(-4, Assert.IsType<StackPanel>(glyphs[0].Parent).Spacing);
-                Assert.Equal(8, Assert.IsType<StackPanel>(glyphs[0].Parent!.Parent).Spacing);
+                Assert.Equal(-4, Assert.IsType<HStack>(glyphs[0].Parent).Spacing);
+                Assert.Equal(8, Assert.IsType<HStack>(glyphs[0].Parent!.Parent).Spacing);
                 Assert.Empty(LogicalQuery.SelfAndDescendants<HydraMarkImage>(row));
                 var title = TextNamed(row, "Hank and Walter are done");
                 Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium).Resolve().FontSize, title.FontSize);
@@ -2606,7 +2606,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             try
             {
                 var mark = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMarkImage>(note));
-                Assert.Equal(8, Assert.IsType<StackPanel>(mark.Parent).Spacing);
+                Assert.Equal(8, Assert.IsType<HStack>(mark.Parent).Spacing);
                 Assert.Equal(18, mark.Width);
                 Assert.Equal(18, mark.Height);
                 Assert.Equal(Resolved(ChromeTokens.SecondaryText, mark), BrushColor(LogicalQuery.SelfAndDescendants<SwiftImage>(mark).Single(image => image.SymbolName != "chevron.right").Foreground));
@@ -2627,7 +2627,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 try
                 {
                     var open = LogicalQuery.SelfAndDescendants<Button>(linked).Single(button => LogicalTexts(button).Contains("Open"));
-                    var line = Assert.IsType<StackPanel>(open.Parent);
+                    var line = Assert.IsType<HStack>(open.Parent);
                     Assert.Equal(8, line.Spacing);
                     Assert.Equal(2, line.Children.Count);
                 }
@@ -2747,7 +2747,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 var glyph = Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(row!));
                 Assert.Equal(18, glyph.Size);
                 Assert.True(glyph.IsRunning);
-                Assert.Equal(8, Assert.IsType<StackPanel>(glyph.Parent).Spacing);
+                Assert.Equal(8, Assert.IsType<HStack>(glyph.Parent).Spacing);
                 var chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(row!).Single(image => image.SymbolName == "chevron.right");
                 Assert.Equal(Resolved(ChromeTokens.SecondaryText, chevron), BrushColor(chevron.Foreground));
                 Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold), chevron.GetValue(SwiftImage.FontProperty));
@@ -2768,7 +2768,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 Settle(window!);
                 // The head has answered: straight apostrophe, no shimmer, the glyph at rest.
                 var title = TextNamed(row!, "Hank's brief");
-                Assert.IsType<StackPanel>(title.Parent);
+                Assert.IsType<HStack>(title.Parent);
                 Assert.False(Assert.Single(LogicalQuery.SelfAndDescendants<HydraGlyph>(row!)).IsRunning);
                 Assert.Equal("Hank's brief", Avalonia.Automation.AutomationProperties.GetName(LogicalQuery.SelfAndDescendants<Button>(row!).Single()));
             });
@@ -3378,7 +3378,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 Assert.Equal(Resolved(ChromeTokens.Accent.Opacity(0.1), pill), BrushColor(pill.Background));
                 var column = Assert.IsType<StackPanel>(pill.Child);
                 Assert.Equal(6, column.Spacing);
-                var header = Assert.IsType<StackPanel>(column.Children[0]);
+                var header = Assert.IsType<HStack>(column.Children[0]);
                 Assert.Equal(Orientation.Horizontal, header.Orientation);
                 Assert.Equal(8, header.Spacing);
                 var mark = Assert.IsType<HydraMarkImage>(header.Children[0]);
@@ -3391,7 +3391,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 var rows = Assert.IsType<StackPanel>(column.Children[1]);
                 Assert.Equal(5, rows.Spacing);
                 Assert.Equal(2, rows.Children.Count);
-                var next = Assert.IsType<StackPanel>(rows.Children[1]);
+                var next = Assert.IsType<HStack>(rows.Children[1]);
                 Assert.Equal(Orientation.Horizontal, next.Orientation);
                 Assert.Equal(8, next.Spacing);
                 var clear = Assert.IsAssignableFrom<Control>(next.Children[0]);
@@ -3402,7 +3402,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Caption).Resolve().FontSize, words.FontSize);
                 Assert.Equal(Resolved(ChromeTokens.SecondaryText, words), BrushColor(words.Foreground));
                 // A head row: the glyph, then the task, at 8 points.
-                var head = Assert.IsType<StackPanel>(rows.Children[0]);
+                var head = Assert.IsType<HStack>(rows.Children[0]);
                 Assert.Equal(8, head.Spacing);
                 Assert.Equal(Orientation.Horizontal, head.Orientation);
                 // A closed block streams no next-brief line.
@@ -4553,7 +4553,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
                 var shown = Assert.Single(presenter.Calls, call => call.Presented);
                 var implement = LogicalQuery.SelfAndDescendants<Button>(shown.Popup.Child!).Single(button => LogicalTexts(button).Contains("Implement plan"));
                 var dismiss = LogicalQuery.SelfAndDescendants<Button>(shown.Popup.Child!).Single(button => LogicalTexts(button).Contains("Dismiss"));
-                var row = Assert.IsType<StackPanel>(implement.Parent);
+                var row = Assert.IsType<HStack>(implement.Parent);
                 Assert.Equal(8, row.Spacing);
                 Assert.Same(row, dismiss.Parent);
                 Assert.True(row.Children.IndexOf(implement) < row.Children.IndexOf(dismiss));
@@ -4622,7 +4622,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
             Assert.Equal(Orientation.Vertical, stack.Orientation);
             Assert.Equal(0, stack.Spacing);
             var header = Assert.IsType<Button>(stack.Children.OfType<Button>().First());
-            var row = Assert.IsType<StackPanel>(header.Content);
+            var row = Assert.IsType<HStack>(header.Content);
             Assert.Equal(6, row.Spacing);
             Assert.Equal(0, BrushColor(row.Background).A);
             Assert.NotNull(row.Background);

@@ -189,7 +189,7 @@ public sealed class TimelineRowsFinPlanTests(HeadlessSession headless)
                 Assert.Equal(12, column.Spacing);
                 var header = Assert.IsType<DockPanel>(column.Children[0]);
                 var scroll = Assert.IsType<PopoverScroll>(column.Children[1]);
-                var actions = Assert.IsType<StackPanel>(column.Children[2]);
+                var actions = Assert.IsType<HStack>(column.Children[2]);
                 Assert.Equal(12, Top(scroll, window) - (Top(header, window) + header.Bounds.Height), 0.5);
                 Assert.Equal(12, Top(actions, window) - (Top(scroll, window) + scroll.Bounds.Height), 0.5);
                 // :2282 the heading: Font.chat(.headline), which is semibold (ChatFont.swift:7), 13 points.
@@ -245,7 +245,7 @@ public sealed class TimelineRowsFinPlanTests(HeadlessSession headless)
         using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
         Control detail = null!;
         AvaloniaWindow window = null!;
-        StackPanel Actions() => Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(detail).Child).Children[2]);
+        StackPanel Actions() => Assert.IsType<HStack>(Assert.IsType<StackPanel>(Assert.IsType<Border>(detail).Child).Children[2]);
         h.Main.OnMain(() =>
         {
             var entry = PlanEntry(ProposedPlan.State.Proposed);
@@ -334,7 +334,7 @@ public sealed class TimelineRowsFinPlanTests(HeadlessSession headless)
                 var isShowing = shown.GetType().GetProperty("IsShowingPlan")!;
                 isShowing.SetValue(shown, true);
                 var detail = Detail(card, PlanOf(entry));
-                var actions = Assert.IsType<StackPanel>(Assert.IsType<StackPanel>(Assert.IsType<Border>(detail).Child).Children[2]);
+                var actions = Assert.IsType<HStack>(Assert.IsType<StackPanel>(Assert.IsType<Border>(detail).Child).Children[2]);
                 var button = actions.Children.OfType<Button>().Single(candidate => LogicalQuery.SelfAndDescendants<TextBlock>(candidate).Any(text => text.Text == label));
                 button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
                 Assert.Equal(false, isShowing.GetValue(shown)); // the popover closes first

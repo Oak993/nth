@@ -3682,7 +3682,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 var glyphs = LogicalQuery.SelfAndDescendants<HydraGlyph>(row).ToList();
                 Assert.Equal(["Hank", "Walter"], glyphs.Select(glyph => glyph.Persona.Name));
                 Assert.All(glyphs, glyph => Assert.Equal(18, glyph.Size));
-                Assert.Equal(-4, Assert.IsType<StackPanel>(glyphs[0].Parent).Spacing);
+                Assert.Equal(-4, Assert.IsType<HStack>(glyphs[0].Parent).Spacing);
                 Assert.Empty(LogicalQuery.SelfAndDescendants<HydraMarkImage>(row));
                 var title = TextNamed(row, "Hank and Walter are done");
                 Assert.Equal(FontSize(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)), title.FontSize);
