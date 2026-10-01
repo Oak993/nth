@@ -33,7 +33,8 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
 
     private void Run(bool supportsFast, Action<ModelsSettingsPopoverRig> test, bool known = true, bool realPopup = false) => headless.OnUiThread(() =>
     {
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var manualFrames = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manualFrames);
         var presenter = new RecordingPresenter();
         using var presentation = Presentation.Presenter.Override(realPopup ? Presentation.Presenter.Current : presenter);
         using var harness = new AppModelHarness();
@@ -54,7 +55,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
         window.Show();
         Dispatcher.UIThread.RunJobs();
         harness.Main.OnMain(() => { }); // the page tracks the model and rebuilds its rows once on the first main turn (batch 25); settle that before a row's block is found
-        try { test(new ModelsSettingsPopoverRig(harness.Main, model, page, presenter)); }
+        try { test(new ModelsSettingsPopoverRig(harness.Main, model, page, presenter) { AdvanceFrames = manualFrames.Advance }); }
         finally { harness.Main.OnMain(window.Close); }
     });
 
@@ -271,6 +272,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
         var block = BlockButton(rig.Page);
         var window = Assert.IsType<AvaloniaWindow>(TopLevel.GetTopLevel(block));
         rig.Main.OnMain(() => Click(block));
+        rig.FinishAnimations(); // the real popover grows in from its arrow first (PopoverAppear)
         var popup = Assert.Single(LogicalQuery.SelfAndDescendants<Popup>(rig.Page));
         Assert.True(popup.IsOpen);
         Assert.Same(block, popup.PlacementTarget);
@@ -292,6 +294,7 @@ public sealed class ModelsSettingsPagePopoverTests(HeadlessSession headless)
         Assert.True(rig.Model.Settings.Preference(Pin.Provider, Pin.ModelID).FastMode);
         Assert.Equal(new ModelPreference { Effort = "low", FastMode = true }, rig.Main.OnMain(() => new AppSettings()).Preference(Pin.Provider, Pin.ModelID));
         rig.Main.OnMain(() => Click(block));
+        rig.FinishAnimations();
         Assert.True(popup.IsOpen);
         Assert.Same(block, popup.PlacementTarget);
         var reopened = Assert.IsType<EffortSliderCard>(popup.Child);
