@@ -254,14 +254,10 @@ public sealed class QuestionSheet : Decorator
 
         if (request.Questions.Count > 1)
         {
-            var previous = new Button
-            {
-                Content = SwiftImage.SystemName("chevron.left"),
-                Padding = new Thickness(8, 4),
-                IsEnabled = page != 0,
-                Margin = new Thickness(0, 0, 8, 0),
-            };
-            previous.Click += (_, _) => SetPage(Math.Max(0, page - 1));
+            // :124-129 .buttonStyle(.bordered) (SystemButtons: the Windows standard button, ED-229 proposal (4))
+            var previous = SystemButtons.Bordered(SwiftImage.SystemName("chevron.left"), () => SetPage(Math.Max(0, page - 1)));
+            previous.IsEnabled = page != 0;
+            previous.Margin = new Thickness(0, 0, 8, 0);
             ToolTip.SetTip(previous, "Previous question");
             Grid.SetColumn(previous, 0);
             row.Children.Add(previous);
@@ -285,21 +281,16 @@ public sealed class QuestionSheet : Decorator
             row.Children.Add(label);
         }
 
-        var skip = new Button { Content = new TextBlock { Text = "Skip" }, Padding = new Thickness(10, 4), Margin = new Thickness(0, 0, 8, 0) };
-        skip.Click += (_, _) => Send(ValueMap<string, ValueList<string>>.Empty);
+        var skip = SystemButtons.Bordered("Skip", () => Send(ValueMap<string, ValueList<string>>.Empty)); // :139-140 .bordered
+        skip.Margin = new Thickness(0, 0, 8, 0);
         ToolTip.SetTip(skip, "Sends no answers and lets the agent carry on");
         Grid.SetColumn(skip, 3);
         row.Children.Add(skip);
 
         if (page < request.Questions.Count - 1 && !isComplete)
         {
-            var next = new Button
-            {
-                Content = new TextBlock { Text = "Next" },
-                Padding = new Thickness(10, 4),
-                IsDefault = true, // the last child of the HStack: spacing 8 only lies between neighbours
-            };
-            next.Click += (_, _) => Advance();
+            var next = SystemButtons.BorderedProminent("Next", () => Advance()); // :145-146 .borderedProminent
+            next.IsDefault = true; // :147 .keyboardShortcut(.defaultAction); the last child of the HStack: spacing 8 only lies between neighbours
             ToolTip.SetTip(next, "Goes to the next question");
             Grid.SetColumn(next, 4);
             row.Children.Add(next);
@@ -308,21 +299,16 @@ public sealed class QuestionSheet : Decorator
         {
             if (page < request.Questions.Count - 1)
             {
-                var next = new Button { Content = new TextBlock { Text = "Next" }, Padding = new Thickness(10, 4), Margin = new Thickness(0, 0, 8, 0) };
-                next.Click += (_, _) => Advance();
+                var next = SystemButtons.Bordered("Next", () => Advance()); // :152-153 .bordered
+                next.Margin = new Thickness(0, 0, 8, 0);
                 ToolTip.SetTip(next, "Goes to the next question");
                 Grid.SetColumn(next, 4);
                 row.Children.Add(next);
             }
 
-            var send = new Button
-            {
-                Content = new TextBlock { Text = "Send" },
-                Padding = new Thickness(10, 4),
-                IsEnabled = isComplete,
-                IsDefault = true,
-            };
-            send.Click += (_, _) => Send(answers);
+            var send = SystemButtons.BorderedProminent("Send", () => Send(answers)); // :156-157 .borderedProminent
+            send.IsEnabled = isComplete; // :159 .disabled(!isComplete)
+            send.IsDefault = true; // :158 .keyboardShortcut(.defaultAction)
             ToolTip.SetTip(send, isComplete
                 ? "Sends your answers"
                 : request.Questions.Count == 1

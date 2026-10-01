@@ -23,15 +23,23 @@ public static class SystemButtons
     private static readonly SwiftColor StandardStroke = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.06), new SwiftColor(white: 1, opacity: 0.07));
 
     /// <summary><c>Button(title, action:).buttonStyle(.bordered)</c>.</summary>
-    public static Button Bordered(string title, Action action) => Make(title, action, prominent: false);
+    public static Button Bordered(string title, Action action) => Make(Title(title), action, prominent: false);
 
     /// <summary><c>Button(title, action:).buttonStyle(.borderedProminent)</c>.</summary>
-    public static Button BorderedProminent(string title, Action action) => Make(title, action, prominent: true);
+    public static Button BorderedProminent(string title, Action action) => Make(Title(title), action, prominent: true);
 
-    private static Button Make(string title, Action action, bool prominent)
+    /// <summary><c>Button(action:) { label }.buttonStyle(.bordered)</c> with a label view (a glyph).</summary>
+    public static Button Bordered(Control label, Action action) => Make(label, action, prominent: false);
+
+    private static TextBlock Title(string title)
     {
         var label = new TextBlock { Text = title, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
         SwiftFont.Body.Apply(label);
+        return label;
+    }
+
+    private static Button Make(Control label, Action action, bool prominent)
+    {
         var button = new Button
         {
             Content = label,
@@ -53,7 +61,7 @@ public static class SystemButtons
                 return card;
             }),
         };
-        label.Foreground = (prominent ? SwiftColor.White : Marrow.UI.Chrome.Chrome.PrimaryText).Brush(label);
+        if (label is TextBlock text) text.Foreground = (prominent ? SwiftColor.White : Marrow.UI.Chrome.Chrome.PrimaryText).Brush(text);
         button.PropertyChanged += (_, e) =>
         {
             if (e.Property == Avalonia.Input.InputElement.IsEnabledProperty) button.Opacity = button.IsEnabled ? 1 : 0.4;

@@ -220,6 +220,35 @@ public sealed class QuestionTabTests(HeadlessSession headless)
         });
     }
 
+    [Fact]
+    [Trait("Req", "UI-COMPOSER-075")] // App/Views/Composer/QuestionTab.swift:139-160 Skip .bordered, Send .borderedProminent
+    public void The_footer_buttons_are_drawn_skip_bordered_and_send_prominent()
+    {
+        // An Avalonia Button without a template showed only its label in this theme-less app; the footer uses
+        // SystemButtons (the Windows standard and accent buttons, proposal ED-229 (4)).
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var sheet = new QuestionSheet(Request(Question("q", prompt: "Pick", choices: [Choice("A")])), null!);
+            var window = new Avalonia.Controls.Window { Content = sheet, Width = 640, Height = 400 };
+            window.Show();
+            try
+            {
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                Button Named(string title) => LogicalQuery.SelfAndDescendants<Button>(sheet).Single(b => b.Content is TextBlock { Text: var t } && t == title);
+                Border Card(Button b) => Assert.IsType<Border>(Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualChildren(b)));
+                var skip = Named("Skip");
+                var send = Named("Send");
+                Assert.True(skip.Bounds.Height > 0 && send.Bounds.Height > 0);
+                Assert.Equal(new Thickness(1), Card(skip).BorderThickness); // bordered: a hairline bezel
+                Assert.Equal(new Thickness(0), Card(send).BorderThickness); // prominent: the accent fill
+                Assert.True(send.IsDefault);
+            }
+            finally { window.Close(); }
+        });
+    }
+
     private static QuestionRequest Request(params QuestionRequest.Question[] questions)
     {
         var values = ValueList<QuestionRequest.Question>.Empty;
