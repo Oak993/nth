@@ -30,11 +30,12 @@ namespace Marrow.UI.Port;
 //        (2,2)-(22,22) slash, the radius 4 badge at (18,6) knocked out 1.5 around, text in Inter Semibold 11 of 24 units;
 //   (Q6) .symbolRenderingMode draws monochrome in the foreground colour (named visual compromise).
 //
-// MARROW_DEFERRED ED-182 (tracked incomplete work, drawn statically until the verification wave):
-//   - .symbolEffect(.bounce, value:) (EffortSlider.swift:670, UsageViews.swift:267): SymbolEffect records it;
-//   - .contentTransition(.symbolEffect(.replace)) (ComposerView.swift:834, ModelsSettingsPage.swift:417,
-//     SidebarView.swift:2130, MarkdownView.swift:1490): ContentTransitionSymbolEffect records it.
-//   Call sites that use them carry `// MARROW_DEFERRED ED-182`.
+// ED-182 symbol effects (2026-10-01: played, measured from the reference runtime): SymbolEffect and
+// ContentTransitionSymbolEffect only record the effect on the image; the call sites play it, because SwiftUI plays it on
+// a change of the value or symbol, which only the site sees:
+//   - .symbolEffect(.bounce, value:): SymbolBounce (EffortSlider.swift:670); UsageViews.swift:266 never fires in Swift;
+//   - .contentTransition(.symbolEffect(.replace)): SymbolReplace (ComposerView.swift:834, ModelsSettingsPage.swift:379,
+//     SidebarView.swift:2129, MarkdownView.swift:1417).
 //
 // UNRESOLVED (not covered by ED-182; reported to the orchestrator): composed-note clauses other than text in a
 // circle or square, enclose, slash and badge (SymbolComposition.Undrawn: "add a down arrow", "write 4K on the screen",
