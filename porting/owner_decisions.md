@@ -539,3 +539,13 @@ Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Cl
 
 - **Owner ruling, 2026-10-01 (chat):** the port keeps the exact look of Droppy Code on macOS (its liquid glass, colours, type, motion) so that it reads as made by the same designer, but where a platform convention differs, the Windows convention is followed, its elements drawn in the app's own design language. Example given: the caption buttons sit at the top right as Windows places them, not at the top left as macOS does, and are designed in the app's glass look (OD-0044).
 - **Effect:** a standing rule for platform-boundary elements (window chrome, caption buttons, placement and order of system affordances): their place, order and behaviour follow Windows; their appearance follows the source's design language. Each such element is still recorded as a named deviation where it departs from the source; everything that is not a platform convention keeps exact parity.
+
+## OD-0047 Every provider gets its own colour
+
+- **Owner ruling, 2026-10-01 (chat), in the owner's words:** "Yes, optimally matched to the actual llm's theme, like Claude's theme is dominantly orange so it gets orange ... If two themes coincide or collide, give it another one then. ChatGPT stays locked at white and Claude stays locked at Orange, other LLMs if they have white or orange dominant themes, could maybe use a distinct different shade of that color that stands out."
+- **Effect:** a DEVIATION from EffortSlider.swift:853-940 (EffortBrand), where nine providers share `.silver`. Claude keeps the source's orange (fill (0.80, 0.42, 0.28), title (0.93, 0.58, 0.44)) and Codex/ChatGPT keeps the source's silver-white, both locked; DeepSeek, Meta and Antigravity keep their source colours unless they collide; every other provider gets a colour matched to its own brand's dominant colour, a distinct shade where that is white or orange, and another hue where two would collide. The palette is proposed on a canvas and applied only after the owner approves it.
+
+## OD-0048 The effort track blends every selected model, not only a pair
+
+- **Owner ruling, 2026-10-01 (chat):** "Yes, design it now." When 3 or 4 models are selected, the slider holds all their colours, flowing smoothly along the track with the fusion animation, the lead's colour first.
+- **Effect:** a new capability beyond the source (EffortPairBrand blends a lead into one heads provider). The pair look (TrackLook with a pair, ED-213's fusion) is generalised to N colours, lead first, then each further provider in order, strands weaving between all of them; with today's selection (a pair) it draws exactly as before. Designed and shown on a canvas first; built test-first after the owner approves the look.
