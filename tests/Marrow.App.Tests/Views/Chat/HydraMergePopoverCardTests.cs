@@ -163,10 +163,12 @@ public sealed class HydraMergePopoverCardTests(HeadlessSession headless)
             var mark = Assert.IsType<Border>(header.Children[0]);
             Assert.IsType<SwiftImage>(mark.Child); // not on screen yet: still the glyph
 
-            var window = Show(popover);
+            // Not Show(): that pumps the dispatcher. The cache is read when the card appears (:221-222), so the
+            // favicon is already there the moment the window shows it, before any queued job runs.
+            var window = new Avalonia.Controls.Window { Width = 420, Height = 400, Content = popover };
+            window.Show();
             try
             {
-                Dispatcher.UIThread.RunJobs();
                 var image = Assert.IsType<Image>(mark.Child);
                 Assert.Same(icon, image.Source);
                 Assert.Equal(Stretch.Uniform, image.Stretch); // .aspectRatio(contentMode: .fit)

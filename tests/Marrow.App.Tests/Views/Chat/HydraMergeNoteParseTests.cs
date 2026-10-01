@@ -171,6 +171,17 @@ public sealed class HydraMergeNoteParseTests
     }
 
     [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-092")] // :44 (.*?) is lazy: of several valid splits, the one with the shortest task wins
+    public void The_task_group_is_lazy_so_the_first_valid_em_dash_split_wins()
+    {
+        var note = Parse(FilesLine() + "\nHeads\n" +
+            "- Hank (1): A " + EmDash + " 1 file: x " + EmDash + " 2 files: y");
+
+        Assert.Equal("A", note.Heads[0].Task);
+        Assert.Equal(["x " + EmDash + " 2 files: y"], note.Heads[0].Files);
+    }
+
+    [Fact]
     [Trait("Req", "PR-HYDRAMERGE-092")] // :44 a head line with a hyphen or en dash for the separator does not match; it is dropped and the section continues
     public void A_head_line_that_does_not_match_is_dropped_and_the_section_goes_on()
     {
