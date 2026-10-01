@@ -42,6 +42,23 @@ public static class PortControlThemes
         Setters = { new Setter(TemplatedControl.TemplateProperty, ScrollTemplate) },
     };
 
+    // ProgressView(): the system busy indicator, or a track and fill when determinate (SystemSpinner.cs).
+    // ProgressBar's own code requires a PART_Indicator Border, which it sizes; it stays hidden, the drawing is ours.
+    private static readonly FuncControlTemplate<ProgressBar> ProgressTemplate = new((bar, scope) => new Panel
+    {
+        Children =
+        {
+            bar.IsIndeterminate ? new SystemSpinner() : new SystemProgressTrack(bar),
+            new Border { Name = "PART_Indicator", IsVisible = false }.RegisterInNameScope(scope),
+        },
+    });
+
+    /// <summary>The ProgressBar default theme: SystemSpinner or SystemProgressTrack.</summary>
+    public static ControlTheme ProgressBarTheme { get; } = new(typeof(ProgressBar))
+    {
+        Setters = { new Setter(TemplatedControl.TemplateProperty, ProgressTemplate) },
+    };
+
     /// <summary>Registers the default themes on the application, after setup (app and test builders alike).</summary>
     public static AppBuilder WithPortControlThemes(this AppBuilder builder) =>
         builder.AfterSetup(setup =>
@@ -51,5 +68,9 @@ public static class PortControlThemes
         });
 
     /// <summary>Puts the default themes into <paramref name="application"/>'s resources, keyed by control type.</summary>
-    public static void Register(Application application) => application.Resources[typeof(ScrollViewer)] = ScrollViewerTheme;
+    public static void Register(Application application)
+    {
+        application.Resources[typeof(ScrollViewer)] = ScrollViewerTheme;
+        application.Resources[typeof(ProgressBar)] = ProgressBarTheme;
+    }
 }
