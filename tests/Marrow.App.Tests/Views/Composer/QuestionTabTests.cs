@@ -245,7 +245,7 @@ public sealed class QuestionTabTests(HeadlessSession headless)
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs();
                 window.UpdateLayout();
                 Button Named(string title) => LogicalQuery.SelfAndDescendants<Button>(sheet).Single(b => b.Content is TextBlock { Text: var t } && t == title);
-                Border Card(Button b) => Assert.IsType<Border>(Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualChildren(b)));
+                Border Card(Button b) => Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(b).OfType<Border>().First(); // the bezel (the focus ring follows it)
                 var skip = Named("Skip");
                 var send = Named("Send");
                 Assert.True(skip.Bounds.Height > 0 && send.Bounds.Height > 0);

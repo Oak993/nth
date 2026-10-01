@@ -6,7 +6,7 @@
 // counterparts are the system's standard and accent buttons as the Windows 11 design draws them (WinUI Button /
 // AccentButton: corner radius 4, padding 11,5,11,6, a translucent fill with a hairline border, or the accent fill with
 // white text). These numbers are UNVERIFIED (recalled from the WinUI defaults, no artifact in this repository) and the
-// design is not yet a numbered ED; recorded deviation from the macOS bezel. No hover, pressed or focus visual yet. The label uses the port's body font. A disabled button keeps its shape at
+// design is not yet a numbered ED; recorded deviation from the macOS bezel. The label uses the port's body font. A disabled button keeps its shape at
 // 40 % opacity (the macOS and Windows disabled look both dim the whole control).
 using Avalonia;
 using Avalonia.Controls;
@@ -22,6 +22,9 @@ public static class SystemButtons
 {
     /// <summary>The Windows 11 control fill (ControlFillColorDefault), shared by the standard button and the text field bezel.</summary>
     public static SwiftColor StandardFill { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.7), new SwiftColor(white: 1, opacity: 0.06));
+
+    /// <summary>The Windows 11 control fill under the pointer (ControlFillColorSecondary; UNVERIFIED, recalled).</summary>
+    public static SwiftColor StandardFillHover { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.5), new SwiftColor(white: 1, opacity: 0.084));
 
     /// <summary>The Windows 11 control hairline (ControlStrokeColorDefault).</summary>
     public static SwiftColor StandardStroke { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.06), new SwiftColor(white: 1, opacity: 0.07));
@@ -60,9 +63,28 @@ public static class SystemButtons
                         [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty],
                     }.RegisterInNameScope(scope),
                 };
-                card.Background = (prominent ? Marrow.UI.Chrome.Chrome.Accent : StandardFill).Brush(card);
                 if (!prominent) card.BorderBrush = StandardStroke.Brush(card);
-                return card;
+                // States, as the Windows buttons show them (UNVERIFIED values, recalled): a lighter fill under the pointer,
+                // the label dimmed while pressed, and a 2 pt ring around the button while it has keyboard focus
+                // (:focus-visible, so a mouse click does not show it).
+                var ring = new Border { Margin = new Thickness(-3), CornerRadius = new CornerRadius(7), BorderThickness = new Thickness(2), IsVisible = false, IsHitTestVisible = false };
+                ring.BorderBrush = Marrow.UI.Chrome.Chrome.PrimaryText.Brush(ring);
+                var rest = (prominent ? Marrow.UI.Chrome.Chrome.Accent : StandardFill).Brush(card);
+                var hover = prominent ? Marrow.UI.Chrome.Chrome.Accent.Opacity(0.9).Brush(card) : StandardFillHover.Brush(card);
+                void Paint()
+                {
+                    card.Background = owner.IsPointerOver && owner.IsEffectivelyEnabled ? hover : rest;
+                    card.Child!.Opacity = owner.IsPressed ? 0.8 : 1;
+                    ring.IsVisible = owner.Classes.Contains(":focus-visible");
+                }
+                owner.PropertyChanged += (_, e) =>
+                {
+                    if (e.Property == Avalonia.Input.InputElement.IsPointerOverProperty || e.Property == Button.IsPressedProperty ||
+                        e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty || e.Property == Avalonia.Input.InputElement.IsFocusedProperty) Paint();
+                };
+                owner.Classes.CollectionChanged += (_, _) => Paint();
+                Paint();
+                return new Panel { Children = { card, ring } };
             }),
         };
         if (label is TextBlock text) text.Foreground = (prominent ? SwiftColor.White : Marrow.UI.Chrome.Chrome.PrimaryText).Brush(text);
