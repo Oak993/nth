@@ -226,15 +226,13 @@ public sealed class TerminalPanel : Decorator
         };
         SwiftFont.Body.Apply(label);
 
-        var create = new Button
-        {
-            Content = "New shell", // :71
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center,
-        };
-        ToolTip.SetTip(create, "New shell");
+        // :71-75 Button("New shell").buttonStyle(.glass).controlSize(.small), no .help: the glass capsule button
+        // (it was a plain Button with an invented tooltip).
+        var create = Marrow.App.Views.Chat.TimelineRows.GlassCommand("New shell",
+            () => current.Terminals.Open(runtime.ThreadID, directory), prominent: false, small: true);
+        create.HorizontalAlignment = HorizontalAlignment.Center;
+        create.VerticalAlignment = VerticalAlignment.Center;
         AutomationProperties.SetName(create, "New shell");
-        create.Click += (_, _) => current.Terminals.Open(runtime.ThreadID, directory);
 
         return new StackPanel
         {
