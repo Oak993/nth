@@ -468,7 +468,10 @@ public sealed class EffortSliderCard : Decorator
         Grid.SetColumn(reset, 2); sides.Children.Add(reset); // :564
         header.Children.Add(sides);
         var centre = new StackPanel { Spacing = 2, Margin = new Thickness(44, 0), HorizontalAlignment = HorizontalAlignment.Center };
-        var title = EffortView.Text("", SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium), Chrome.PrimaryText);
+        // :573-574 Text(verbatim: title).font(.system(.title2, weight: .medium)).contentTransition(.numericText())
+        var title = new MorphingTextBlock { Text = "", MaxLines = 1, VerticalAlignment = VerticalAlignment.Center };
+        SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium).Apply(title);
+        title.Foreground = Chrome.PrimaryText.Brush(title);
         var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { title } };
         if (onTitleTap is not null) titleRow.Children.Add(SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText)); // :575-578
         var titlePlate = new Border { Padding = new Thickness(8, 2), Child = titleRow }.RoundedRectangle(7, RoundedCornerStyle.Continuous);
@@ -520,9 +523,9 @@ public sealed class EffortSliderCard : Decorator
             var (index, fast, theme) = value;
             var maximum = efforts.Count > 1 && index == efforts.Count - 1; // :527-529
             var nextTitle = efforts.Count == 0 ? "Standard" : ModelOption.EffortTitle(efforts[index]);
-            title.Text = nextTitle;
-            if (previousTitle is not null && previousTitle != nextTitle)
-                EffortView.Animate(titleRow, Transaction.Current ?? Animation.Smooth(0.3), progress => title.Opacity = Math.Clamp(progress, 0, 1)); // :574 numericText -> whole-label cross-fade (packet windows_path)
+            // :574 .contentTransition(.numericText()): inside the change's animation (the slider's
+            // withAnimation(.snappy(duration: 0.2)), :631) the letters morph; outside one the text simply changes.
+            title.SetText(nextTitle, previousTitle is null ? null : Transaction.Current);
             // :543-555 AnyShapeStyle is represented by Avalonia's brush; every literal colour comes from Swift.
             var titleBrush = pair is not null
                 ? EffortView.Gradient(new[] { brand.TitleColor }.Concat(pair.Brand.TitleColors).Concat(fast ? new[] { EffortPalette.Fast } : Array.Empty<SwiftColor>()), theme)
