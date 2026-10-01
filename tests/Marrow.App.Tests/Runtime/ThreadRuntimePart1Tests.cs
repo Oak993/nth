@@ -174,6 +174,64 @@ public sealed class ThreadRuntimePart1Tests
     }
 
     [Fact]
+    [Trait("Req", "PR-COMPOSER-163")] // App/Runtime/ThreadRuntime.swift:830-846 bundleFollowUp(_:onto:)
+    public void Bundling_gives_both_prompts_one_bundle_and_moves_the_dragged_one_right_after_the_bundle()
+    {
+        using var h = new AppModelHarness();
+        var (_, _, runtime) = OpenRuntime(h);
+
+        h.Main.OnMain(() =>
+        {
+            runtime.EnqueueFollowUp("a", []);
+            runtime.EnqueueFollowUp("b", []);
+            runtime.EnqueueFollowUp("c", []);
+            runtime.EnqueueFollowUp("d", []);
+            var (a, b, c, d) = (runtime.FollowUps[0].Id, runtime.FollowUps[1].Id, runtime.FollowUps[2].Id, runtime.FollowUps[3].Id);
+
+            runtime.BundleFollowUp(c, a); // :837-843 c takes a's new bundle and sits right after it
+            Assert.Equal(new[] { a, c, b, d }, runtime.FollowUps.Select(p => p.Id));
+            var bundle = runtime.FollowUps[0].BundleID;
+            Assert.NotNull(bundle);
+            Assert.Equal(bundle, runtime.FollowUps[1].BundleID);
+            Assert.Null(runtime.FollowUps[2].BundleID);
+
+            runtime.BundleFollowUp(d, a); // :837 joins the existing bundle, after its last member (:842)
+            Assert.Equal(new[] { a, c, d, b }, runtime.FollowUps.Select(p => p.Id));
+            Assert.Equal(new Guid?[] { bundle, bundle, bundle, null }, runtime.FollowUps.Select(p => p.BundleID));
+
+            runtime.BundleFollowUp(a, a); // :834 guard id != target
+            runtime.BundleFollowUp(Guid.NewGuid(), a); // :835-836 both must exist
+            Assert.Equal(new[] { a, c, d, b }, runtime.FollowUps.Select(p => p.Id));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-163")] // App/Runtime/ThreadRuntime.swift:833-846: bundling does not tidy the bundle it left
+    public void Bundling_a_prompt_away_from_its_pair_leaves_the_old_partner_tagged_as_the_source_does()
+    {
+        using var h = new AppModelHarness();
+        var (_, _, runtime) = OpenRuntime(h);
+
+        h.Main.OnMain(() =>
+        {
+            runtime.EnqueueFollowUp("a", []);
+            runtime.EnqueueFollowUp("b", []);
+            runtime.EnqueueFollowUp("c", []);
+            var (a, b, c) = (runtime.FollowUps[0].Id, runtime.FollowUps[1].Id, runtime.FollowUps[2].Id);
+            runtime.BundleFollowUp(b, a);
+            var first = runtime.FollowUps[0].BundleID;
+
+            runtime.BundleFollowUp(b, c); // b leaves {a, b} for a new bundle with c
+            Assert.Equal(new[] { a, c, b }, runtime.FollowUps.Select(p => p.Id));
+            // bundleFollowUp never calls tidyBundles(): a keeps its bundle until another operation tidies it.
+            Assert.Equal(first, runtime.FollowUps[0].BundleID);
+            Assert.NotNull(runtime.FollowUps[1].BundleID);
+            Assert.Equal(runtime.FollowUps[1].BundleID, runtime.FollowUps[2].BundleID);
+            Assert.NotEqual(first, runtime.FollowUps[2].BundleID);
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-COMPOSER-171")] // App/Runtime/ThreadRuntime.swift:1074-1079
     public void Removing_a_bundled_prompt_dissolves_the_remaining_member_and_closes_its_edit()
     {

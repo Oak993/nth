@@ -1092,7 +1092,8 @@ public sealed class ThreadRuntime : MainActorModel
         var insertAt = (lastBundleIndex >= 0 ? lastBundleIndex : items.Count - 1) + 1;
         items.Insert(insertAt, dragged);
         FollowUps = new ValueList<FollowUpPrompt>(items);
-        TidyBundles();
+        // :844-845 saveRevision += 1; scheduleSave(). bundleFollowUp does not call tidyBundles(): a prompt whose partner
+        // was dragged into another bundle keeps its bundle until an operation that tidies runs (the port used to tidy here).
         saveRevision++;
         ScheduleSave();
     }
