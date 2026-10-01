@@ -44,8 +44,9 @@ public static class HydraMergeSpec
     /// <summary>Swaps a thread already added to the fixture for a changed copy (the fixture builds its library from the list).</summary>
     public static ChatThread Change(HydraMergeProofFixture f, ChatThread thread, Func<ChatThread, ChatThread> change)
     {
-        var changed = change(thread);
-        f.Threads[f.Threads.FindIndex(candidate => candidate.Id == thread.Id)] = changed;
+        var index = f.Threads.FindIndex(candidate => candidate.Id == thread.Id);
+        var changed = change(f.Threads[index]); // the current copy, so that several changes of one thread add up
+        f.Threads[index] = changed;
         return changed;
     }
 
@@ -58,13 +59,21 @@ public static class HydraMergeSpec
     }
 
     /// <summary>A real git checkout at <paramref name="folder"/> (created here, so it may sit inside another project's folder), added as a project.</summary>
-    public static Project AddRepositoryProject(HydraMergeProofFixture f, string name, string folder)
+    public static Project AddRepositoryProject(HydraMergeProofFixture f, string name, string folder, bool origin = false)
     {
         Directory.CreateDirectory(folder);
         var repo = AppModelGitRepo.WithCommit(folder);
         var project = AppModelSamples.Project(name, repo.Root);
         f.Projects.Add(project);
         f.Repos[project.Id] = repo;
+        if (origin)
+        {
+            var bare = f.H.NewFolder(name + "-origin.git");
+            repo.Git("init", "--bare", "-b", "main", bare);
+            repo.Git("remote", "add", "origin", bare);
+            repo.Git("push", "-u", "origin", "main");
+            f.Origins[project.Id] = bare;
+        }
         return project;
     }
 
@@ -127,4 +136,60 @@ public static class HydraMergeSpec
 
     /// <summary>The title of a merge note (its first line).</summary>
     public static string Title((string ID, string Text) note) => note.Text[..note.Text.IndexOf((char)10, StringComparison.Ordinal)];
+
+    /// <summary>HydraWork for the pass over <paramref name="pass"/>, every argument explicit (AppModel+HydraMerge.swift:533).</summary>
+    public static object WorkAt(HydraMergeProofFixture f, ChatThread lead, Project pass, Project leadProject, string leadCheckout, bool sweep = false)
+    {
+        object result = null!;
+        f.H.Main.Loop.Run(async () =>
+        {
+            var task = (Task)HydraMergeProofFixture.Call("HydraWorkFor", f.Model, lead.Id, f.Runtime(lead), pass.Path, new Git(pass.Path), pass.Id,
+                leadCheckout, leadProject.Id, sweep)!;
+            await task;
+            result = task.GetType().GetProperty("Result")!.GetValue(task)!;
+        }, AppModelHarness.Bound);
+        return result;
+    }
+
+    public static string[] PathsOf(object work) => HydraMergeProofFixture.Property<ValueList<string>>(work, "Paths").ToArray();
+
+    public static string[] OutsideOf(object work) => HydraMergeProofFixture.Property<ValueList<string>>(work, "Outside").ToArray();
+
+    public static Guid[] TurnIDsOf(object work) => HydraMergeProofFixture.Property<ValueList<Guid>>(work, "TurnIDs").ToArray();
+
+    public static Guid[] HeadIDsOf(object work) => HydraMergeProofFixture.Property<ValueList<Guid>>(work, "HeadIDs").ToArray();
+
+    /// <summary>The heads entries of a work (HydraMergeHead: name, roster index, one-line task, files among the pass's paths).</summary>
+    public static (string Name, long Index, string Task, string[] Files)[] HeadsOf(object work) =>
+        HydraMergeProofFixture.Property<System.Collections.IEnumerable>(work, "Heads").Cast<object>().Select(head => (
+            HydraMergeProofFixture.Property<string>(head, "Name"), HydraMergeProofFixture.Property<long>(head, "Index"),
+            HydraMergeProofFixture.Property<string>(head, "Task"), HydraMergeProofFixture.Property<ValueList<string>>(head, "Files").ToArray())).ToArray();
+
+    /// <summary>Writes files (relative to <paramref name="folder"/>) and commits them, so the checkout has them tracked.</summary>
+    public static void Commit(AppModelGitRepo repo, params (string Name, string Text)[] files)
+    {
+        foreach (var (name, text) in files)
+        {
+            var full = Path.Combine(repo.Root, name);
+            Directory.CreateDirectory(Path.GetDirectoryName(full)!);
+            File.WriteAllText(full, text);
+        }
+        repo.Git("add", "-A");
+        repo.Git("commit", "-q", "-m", "more files");
+    }
+
+    /// <summary>A tool call that edited <paramref name="paths"/>, in the lead's timeline under <paramref name="turnID"/> (null: under no turn).</summary>
+    public static void AddTool(HydraMergeProofFixture f, ChatThread thread, Guid? turnID, params string[] paths)
+    {
+        var document = f.Documents[thread.Id];
+        var item = new TimelineItem(turnID, new TimelineItem.Content.Tool(new ToolCall
+        {
+            ToolCallKind = ToolCall.Kind.Edit, Title = "Edit", ToolCallStatus = ToolCall.Status.Completed,
+            Edits = new ValueList<FileEdit>(paths.Select(path => new FileEdit(path))),
+        }));
+        f.Documents[thread.Id] = document with { Items = new ValueList<TimelineItem>(document.Items.Append(item)) };
+    }
+
+    /// <summary>A checkpoint of the working tree as the app takes one before a turn (Git.captureTree).</summary>
+    public static string Checkpoint(string checkout) => Task.Run(() => new Git(checkout).CaptureTree()).GetAwaiter().GetResult();
 }
