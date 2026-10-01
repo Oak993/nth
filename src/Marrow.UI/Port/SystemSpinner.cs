@@ -121,10 +121,14 @@ public sealed class SystemProgressTrack : Control
         this.owner = owner;
         wash = Marrow.UI.Chrome.Chrome.Overlay(0.12).Brush(this);
         fill = Marrow.UI.Chrome.Chrome.Accent.Brush(this);
-        owner.PropertyChanged += (_, e) =>
-        {
-            if (e.Property == RangeBase.ValueProperty || e.Property == RangeBase.MinimumProperty || e.Property == RangeBase.MaximumProperty) InvalidateVisual();
-        };
+        // Subscribed only while on screen, so a track the template swapped out does not stay hooked to its bar.
+        AttachedToVisualTree += (_, _) => owner.PropertyChanged += OnOwnerChanged;
+        DetachedFromVisualTree += (_, _) => owner.PropertyChanged -= OnOwnerChanged;
+    }
+
+    private void OnOwnerChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
+    {
+        if (e.Property == RangeBase.ValueProperty || e.Property == RangeBase.MinimumProperty || e.Property == RangeBase.MaximumProperty) InvalidateVisual();
     }
 
     public override void Render(DrawingContext context)

@@ -44,13 +44,23 @@ public static class PortControlThemes
 
     // ProgressView(): the system busy indicator, or a track and fill when determinate (SystemSpinner.cs).
     // ProgressBar's own code requires a PART_Indicator Border, which it sizes; it stays hidden, the drawing is ours.
-    private static readonly FuncControlTemplate<ProgressBar> ProgressTemplate = new((bar, scope) => new Panel
+    // The drawing follows IsIndeterminate as it changes (a site may switch a bar between the two).
+    private static readonly FuncControlTemplate<ProgressBar> ProgressTemplate = new((bar, scope) =>
     {
-        Children =
+        Control Drawing() => bar.IsIndeterminate ? new SystemSpinner() : new SystemProgressTrack(bar);
+        var panel = new Panel
         {
-            bar.IsIndeterminate ? new SystemSpinner() : new SystemProgressTrack(bar),
-            new Border { Name = "PART_Indicator", IsVisible = false }.RegisterInNameScope(scope),
-        },
+            Children =
+            {
+                Drawing(),
+                new Border { Name = "PART_Indicator", IsVisible = false }.RegisterInNameScope(scope),
+            },
+        };
+        bar.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == ProgressBar.IsIndeterminateProperty) panel.Children[0] = Drawing();
+        };
+        return panel;
     });
 
     /// <summary>The ProgressBar default theme: SystemSpinner or SystemProgressTrack.</summary>
@@ -93,19 +103,30 @@ public static class PortControlThemes
     // Settings > Appearance > Transparency, about 1 px = 1 pt): a 4 pt capsule track across the slider's width, the knob a
     // white 18 x 14 pt capsule kept inside the track's ends; the track's wash is primary text at 0.12 (measured about
     // white 10 % on the dark card); the filled side is the accent (1-settings-tour.mov 128-131 s: the theme's pink). A click on the track moves the knob there, as NSSlider's does (Avalonia's Slider does that on its own).
-    private static Control SliderBar(Func<Control, IBrush> fill)
+    // A vertical slider (no site builds one) turns the same track on its side.
+    private static Border SliderBar(Slider slider, Func<Control, IBrush> fill)
     {
-        var bar = new Border { Height = 4, CornerRadius = new CornerRadius(2), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
+        var bar = new Border { CornerRadius = new CornerRadius(2) };
         bar.Background = fill(bar);
+        void Orient()
+        {
+            var vertical = slider.Orientation == Avalonia.Layout.Orientation.Vertical;
+            bar.Height = vertical ? double.NaN : 4;
+            bar.Width = vertical ? 4 : double.NaN;
+            bar.VerticalAlignment = vertical ? Avalonia.Layout.VerticalAlignment.Stretch : Avalonia.Layout.VerticalAlignment.Center;
+            bar.HorizontalAlignment = vertical ? Avalonia.Layout.HorizontalAlignment.Center : Avalonia.Layout.HorizontalAlignment.Stretch;
+        }
+        slider.PropertyChanged += (_, e) => { if (e.Property == Slider.OrientationProperty) Orient(); };
+        Orient();
         return bar;
     }
 
-    private static RepeatButton SliderSide(string name, Func<Control, IBrush> fill) => new()
+    private static RepeatButton SliderSide(Slider slider, string name, Func<Control, IBrush> fill) => new()
     {
         Name = name,
         Focusable = false,
         Background = Brushes.Transparent,
-        Template = new FuncControlTemplate<RepeatButton>((side, _) => new Panel { Background = Brushes.Transparent, Children = { SliderBar(fill) } }),
+        Template = new FuncControlTemplate<RepeatButton>((side, _) => new Panel { Background = Brushes.Transparent, Children = { SliderBar(slider, fill) } }),
     };
 
     private static readonly FuncControlTemplate<Slider> SliderTemplate = new((slider, scope) =>
@@ -113,32 +134,45 @@ public static class PortControlThemes
         // At rest a white 18 x 14 capsule; while dragged (1-settings-tour.mov 128-131 s) it grows to about 23 x 20 and
         // turns into translucent glass with the fill showing through (the size change is instant here: the source's
         // curve is UNVERIFIED). The shadow and the glass alphas/border below are UNVERIFIED (estimated from the frames).
+        // Keyboard focus (:focus-visible, so a click does not show it) rings the knob as the Windows focus visual does
+        // (2 pt, primary text; UNVERIFIED, recalled, as SystemButtons' ring). Disabled, the whole slider dims to 40 % as the
+        // other port controls do (UNVERIFIED for NSSlider).
         var face = new Border { CornerRadius = new CornerRadius(7), Background = Brushes.White, BoxShadow = BoxShadows.Parse("0 0.5 2 0 #40000000") };
+        var ring = new Border { Margin = new Thickness(-3), CornerRadius = new CornerRadius(10), BorderThickness = new Thickness(2), IsVisible = false, IsHitTestVisible = false };
+        ring.BorderBrush = Marrow.UI.Chrome.Chrome.PrimaryText.Brush(ring);
+        var dragging = false;
         var knob = new Thumb
         {
             Name = "PART_Thumb",
-            Width = 18,
-            Height = 14,
-            Template = new FuncControlTemplate<Thumb>((_, _) => face),
+            Template = new FuncControlTemplate<Thumb>((_, _) => new Panel { Children = { face, ring } }),
         };
+        void Size()
+        {
+            var (along, across) = dragging ? (23.0, 20.0) : (18.0, 14.0);
+            var vertical = slider.Orientation == Avalonia.Layout.Orientation.Vertical;
+            knob.Width = vertical ? across : along;
+            knob.Height = vertical ? along : across;
+        }
+        Size();
         knob.DragStarted += (_, _) =>
         {
-            knob.Width = 23; knob.Height = 20; face.CornerRadius = new CornerRadius(10);
+            dragging = true; Size(); face.CornerRadius = new CornerRadius(10);
             face.Background = new SolidColorBrush(Color.FromArgb(0x30, 0xFF, 0xFF, 0xFF));
             face.BorderBrush = new SolidColorBrush(Color.FromArgb(0x55, 0xFF, 0xFF, 0xFF));
             face.BorderThickness = new Thickness(1);
         };
         knob.DragCompleted += (_, _) =>
         {
-            knob.Width = 18; knob.Height = 14; face.CornerRadius = new CornerRadius(7);
+            dragging = false; Size(); face.CornerRadius = new CornerRadius(7);
             face.Background = Brushes.White; face.BorderBrush = null; face.BorderThickness = default;
         };
-        var decrease = SliderSide("PART_DecreaseButton", bar => Marrow.UI.Chrome.Chrome.Accent.Brush(bar)).RegisterInNameScope(scope);
-        var increase = SliderSide("PART_IncreaseButton", bar => Marrow.UI.Chrome.Chrome.Overlay(0.12).Brush(bar)).RegisterInNameScope(scope);
+        var decrease = SliderSide(slider, "PART_DecreaseButton", bar => Marrow.UI.Chrome.Chrome.Accent.Brush(bar)).RegisterInNameScope(scope);
+        var increase = SliderSide(slider, "PART_IncreaseButton", bar => Marrow.UI.Chrome.Chrome.Overlay(0.12).Brush(bar)).RegisterInNameScope(scope);
         var track = new Track
         {
             Name = "PART_Track",
-            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            [!Track.OrientationProperty] = slider[!Slider.OrientationProperty],
+            [!Track.IsDirectionReversedProperty] = slider[!Slider.IsDirectionReversedProperty],
             Thumb = knob,
             DecreaseButton = decrease,
             IncreaseButton = increase,
@@ -146,7 +180,20 @@ public static class PortControlThemes
             [!Track.MaximumProperty] = slider[!RangeBase.MaximumProperty],
             [!!Track.ValueProperty] = slider[!!RangeBase.ValueProperty],
         }.RegisterInNameScope(scope);
-        return new Panel { Background = Brushes.Transparent, MinHeight = 14, Children = { track } };
+        var root = new Panel { Background = Brushes.Transparent, MinHeight = 14, Children = { track } };
+        void Paint()
+        {
+            ring.IsVisible = slider.Classes.Contains(":focus-visible");
+            root.Opacity = slider.IsEffectivelyEnabled ? 1 : 0.4;
+        }
+        slider.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty || e.Property == Avalonia.Input.InputElement.IsFocusedProperty) Paint();
+            if (e.Property == Slider.OrientationProperty) Size();
+        };
+        slider.Classes.CollectionChanged += (_, _) => Paint();
+        Paint();
+        return root;
     });
 
     /// <summary>The Slider default theme: the measured small slider, click-to-position.</summary>

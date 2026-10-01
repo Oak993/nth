@@ -73,6 +73,27 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-117")]
+    public void A_bar_switched_between_busy_and_determinate_redraws_as_the_other() => headless.OnUiThread(() =>
+    {
+        var bar = new ProgressBar { IsIndeterminate = true, Width = 120, Height = 16 };
+        var window = Host(bar);
+        try
+        {
+            Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
+            bar.IsIndeterminate = false;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Empty(bar.GetVisualDescendants().OfType<SystemSpinner>());
+            Assert.Single(bar.GetVisualDescendants().OfType<SystemProgressTrack>());
+            bar.IsIndeterminate = true;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
+            Assert.Empty(bar.GetVisualDescendants().OfType<SystemProgressTrack>());
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-117")]
     public void A_determinate_progress_view_is_a_track_and_fill() => headless.OnUiThread(() =>
     {
         var bar = new ProgressBar { Minimum = 0, Maximum = 10, Value = 4, Width = 120, Height = 8 };
