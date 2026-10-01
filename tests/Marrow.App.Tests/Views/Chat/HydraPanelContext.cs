@@ -34,7 +34,7 @@ namespace Marrow.App.Tests.Views.Chat;
         public ChatThread First { get; }
         public ChatThread Second { get; }
 
-        public HydraPanelContext(bool visible = false, Action<Guid>? popOut = null, bool withoutPopOut = false, Action? dismiss = null, bool poppedOut = false)
+        public HydraPanelContext(bool visible = false, Action<Guid>? popOut = null, bool withoutPopOut = false, Action? dismiss = null, bool poppedOut = false, Avalonia.Styling.ThemeVariant? theme = null)
         {
             actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             frameClock = FrameClock.Source.Override(frames);
@@ -48,6 +48,7 @@ namespace Marrow.App.Tests.Views.Chat;
             shared = WindowManager.OverrideShared(manager);
             runtime = harness.Main.OnMain(() => { Model.Settings.HydraShowsHeadDetails=false; var r=Model.Runtime(lead.Id); r.HydraSelectedHeadID=First.Id; return r; });
             Window = new Avalonia.Controls.Window { Width=420,Height=280 };
+            if (theme is not null) Window.RequestedThemeVariant=theme;
             resize = new WindowLiveResize(Window);
             Panel = harness.Main.OnMain(() => new HydraPanel(runtime,poppedOut ? [First] : [],new Size(420,280),null,null,_=>{},()=>{},dismiss ?? (()=>{}),isPoppedOut:poppedOut,popOut:withoutPopOut ? null : popOut ?? (_=>{})));
             typeof(HydraPanel).GetProperty("StageFactory",BindingFlags.NonPublic|BindingFlags.Instance)?.SetValue(Panel,(Func<ChatThread,Control>)(head => new Border { Tag=head.Id }));

@@ -82,15 +82,22 @@ public sealed class HydraPanel : Decorator
         this.onDrag = onDrag;
         this.onDragEnd = onDragEnd;
         if (!isPoppedOut) headsButton = new HydraHeadsButton(runtime, heads, dismiss);
-        var isDark = ActualThemeVariant == ThemeVariant.Dark;
         // :99-121 Keep the shadow-bearing scrim outside the clipped glass surface.
-        var shape = new Border { CornerRadius = new CornerRadius(CornerRadius), ClipToBounds = true,
-            Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this), Child = stageHost };
+        var shape = new Border { CornerRadius = new CornerRadius(CornerRadius), ClipToBounds = true, Child = stageHost };
         SwiftGlass.SetEffect(shape, GlassEffect.Regular(GlassShape.RoundedRectangle(CornerRadius, RoundedCornerStyle.Continuous))); // :105
-        var scrim = new Border { CornerRadius = new CornerRadius(CornerRadius),
-            Background = new SolidColorBrush(Color.FromArgb(isDark ? (byte)77 : (byte)87,
-                isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255)),
-            BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb(isDark ? (byte)255 : (byte)166,0,0,0), Blur=28, OffsetY=10 }) };
+        var scrim = new Border { CornerRadius = new CornerRadius(CornerRadius) };
+        // :102, :117 `let isDark = colorScheme == .dark` is read inside `body`, so the tint, the scrim and its shadow follow
+        // the theme as it changes (the control is built before it has a theme, so this cannot be fixed at construction).
+        void UpdateTheme()
+        {
+            var isDark = ActualThemeVariant == ThemeVariant.Dark;
+            shape.Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this); // :107
+            scrim.Background = new SolidColorBrush(Color.FromArgb(isDark ? (byte)77 : (byte)87, // :119 black 0.3 / white 0.34
+                isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255, isDark ? (byte)0 : (byte)255));
+            scrim.BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb(isDark ? (byte)255 : (byte)166, 0, 0, 0), Blur = 28, OffsetY = 10 }); // :120
+        }
+        UpdateTheme();
+        ActualThemeVariantChanged += (_, _) => UpdateTheme();
         var panelContents = new Grid();
         panelContents.Children.Add(shape);
         panelContents.Children.Add(waveHost);
