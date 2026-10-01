@@ -320,6 +320,18 @@ public sealed class HydraSettingsPagePairSpecTests(HeadlessSession headless)
     private static readonly ModelOption Pro = Model("pro", "Pro", "medium", "high");
 
     [Fact]
+    [Trait("Req", "PR-SETTINGS-170")] // HydraSettingsPage.swift:353,358 a chosen heads model on another provider offers its own scale, looked up on the heads provider
+    public void A_chosen_heads_model_elsewhere_offers_its_scale_from_the_heads_provider() => Editor(new HydraPair(ProviderKind.Claude) { WorkerProvider = ProviderKind.Codex, WorkerModel = "pro" }, scene =>
+    {
+        Assert.Equal(new[] { $"{ProviderKind.Codex.DisplayName}'s default", "Medium", "High" }, Effort(scene, "Heads").ToArray());
+    }, model =>
+    {
+        SetInstalled(model, ProviderKind.Claude, ProviderKind.Codex);
+        SetCatalog(model, ProviderKind.Claude, Alpha, Beta, Gamma);
+        SetCatalog(model, ProviderKind.Codex, Mini, Pro);
+    });
+
+    [Fact]
     [Trait("Req", "PR-SETTINGS-170")] // HydraSettingsPage.swift:358,482 heads elsewhere with no model: the heads provider's default model's scale, inheriting as "<Provider>'s default"
     public void Heads_elsewhere_with_no_model_offer_the_default_models_efforts_and_inherit_the_providers_default() => Editor(new HydraPair(ProviderKind.Claude) { OrchestratorModel = "beta", WorkerProvider = ProviderKind.Codex }, scene =>
     {
@@ -365,13 +377,28 @@ public sealed class HydraSettingsPagePairSpecTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SETTINGS-171")] // HydraSettingsPage.swift:458 asset: ($0 ?? pair.provider).iconName: with no override the lead provider's icon, otherwise the heads provider's
-    public void The_heads_provider_picker_shows_the_leads_icon_until_heads_go_elsewhere() => Editor(new HydraPair(ProviderKind.Claude), scene =>
+    public void The_heads_provider_picker_shows_the_leads_icon_until_heads_go_elsewhere() => Editor(new HydraPair(ProviderKind.Codex), scene =>
     {
         var picker = RequireEditorControl(scene.View, "Heads", "Provider");
-        Assert.Equal(ProviderKind.Claude.IconName, Of<SwiftImage>(picker).Single(image => image.AssetName is not null).AssetName);
-        PickerChoose(scene, picker, ProviderKind.Codex.DisplayName);
-        picker = RequireEditorControl(scene.View, "Heads", "Provider");
         Assert.Equal(ProviderKind.Codex.IconName, Of<SwiftImage>(picker).Single(image => image.AssetName is not null).AssetName);
+        PickerChoose(scene, picker, ProviderKind.Claude.DisplayName);
+        picker = RequireEditorControl(scene.View, "Heads", "Provider");
+        Assert.Equal(ProviderKind.Claude.IconName, Of<SwiftImage>(picker).Single(image => image.AssetName is not null).AssetName);
+    }, model => SetInstalled(model, ProviderKind.Claude, ProviderKind.Codex));
+
+    [Fact]
+    [Trait("Req", "PR-SETTINGS-171")] // HydraSettingsPage.swift:448 let chosen = provider == $0.provider ? nil : provider: the lead's provider reached by any route stores nil, not an equal value
+    public void Choosing_the_leads_own_provider_for_the_heads_stores_nil() => Editor(new HydraPair(ProviderKind.Claude), scene =>
+    {
+        // The menu was opened while Codex was not the lead, and the lead moves to Codex before the choice lands.
+        var items = OpenPicker(scene, RequireEditorControl(scene.View, "Heads", "Provider"));
+        var codex = items.Single(item => ItemTitle(item) == ProviderKind.Codex.DisplayName);
+        scene.Model.UpdateHydraPair(scene.Model.Settings.HydraPairs.Single().Id, p => p with { Provider = ProviderKind.Codex });
+        Sync();
+        Choose(codex);
+        var pair = scene.Model.Settings.HydraPairs.Single();
+        Assert.Equal(ProviderKind.Codex, pair.Provider);
+        Assert.Null(pair.WorkerProvider);
     }, model => SetInstalled(model, ProviderKind.Claude, ProviderKind.Codex));
 
     [Fact]

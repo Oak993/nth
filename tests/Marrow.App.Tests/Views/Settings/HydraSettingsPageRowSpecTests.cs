@@ -178,6 +178,7 @@ public sealed class HydraSettingsPageRowSpecTests(HeadlessSession headless)
         Assert.Equal(2, block.Children.Count);
         var caption = Assert.IsType<TextBlock>(block.Children[1]);
         Assert.Equal("Shown in the picker and the composer", caption.Text);
+        Assert.Equal(new Thickness(2, 0), caption.Margin); // :378 .padding(.horizontal, 2)
         Assert.Equal(11, caption.FontSize); // .subheadline
         Assert.Equal(Chrome.SecondaryText.Resolve(caption.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(caption.Foreground).Color);
         var field = Of<TextBox>(block).Single();
