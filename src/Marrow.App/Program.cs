@@ -24,8 +24,8 @@ namespace Marrow.App;
 /// applicationDidFinishLaunching(_:) shows the main window (AppDelegate.swift:9-34); then the main loop.</item>
 /// </list>
 /// The app quits only through AppShell (OD-0008 C1, C2: the main window's close, Alt+F4; ED-004: a session end), so the
-/// lifetime's shutdown is explicit. The boot sequence of OD-0018 (ED-102, ED-103) is MARROW_DEFERRED: see
-/// AppDelegate.ApplicationDidFinishLaunching.
+/// lifetime's shutdown is explicit. The boot sequence of OD-0018 (ED-102, ED-103) runs from
+/// AppDelegate.ApplicationDidFinishLaunching (Port/BootStageWindow.cs).
 /// </summary>
 public static class Program
 {

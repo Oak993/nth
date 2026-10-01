@@ -42,7 +42,9 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
     public void Launch_runs_the_source_sequence_and_shows_the_window_before_bootstrap_completes() => headless.OnUiThread(() =>
     {
         var members = CompiledLaunchOrder.Members(typeof(AppDelegate).GetMethod(nameof(AppDelegate.ApplicationDidFinishLaunching))!);
-        string[] names = ["InstallDelegate", "set_Model", "ShowMain", "OpenThreadOnLaunch", "get_HasSeenTour", "Spawn", "Spawn", "StartBackgroundChecks", "ConsumeRelaunchMarker", "ArmCelebration", "ShowSettings"];
+        // DEVIATION OD-0018 (ED-103): :22's showMain is the boot sequence's (StartBoot), and :32's showSettings waits in a
+        // task for the main window to appear; the order of the steps is otherwise :15-33's.
+        string[] names = ["InstallDelegate", "set_Model", "get_StartBoot", "OpenThreadOnLaunch", "get_HasSeenTour", "Spawn", "Spawn", "StartBackgroundChecks", "ConsumeRelaunchMarker", "ArmCelebration", "Spawn"];
         var at = -1;
         foreach (var name in names)
         {

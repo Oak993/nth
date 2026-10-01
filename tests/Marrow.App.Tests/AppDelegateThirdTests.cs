@@ -316,7 +316,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 }
 
 // STOP Boot #1 (build agent, 2026-09-26)
-// Kind: missing dependency (MARROW_DEFERRED ED-103)
+// Kind: missing dependency (ED-103; built 2026-10-01, one visual check open)
 // Swift: DroppyCode/App/AppDelegate.swift:22 `windows.showMain()` (B3 52bc792); owner_decisions.md OD-0018
 // Requirements: PR-LAUNCH-028 (its OD-0018 deviation), UI-LAUNCH-001
 // What is unclear or missing: ED-103 replaces the plain show with the boot sequence (a transparent click-through stage
@@ -327,8 +327,12 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 // (src/Marrow.UI/Port/LoadingMark.cs); ED-154 (4) gives P12 and the stage window's hosting to the launch side.
 // Readings or options: (a) run P12, then build the stage in the shell around ShowMain -> exact; (b) build it now
 // unprobed -> a guess at ED-103 (7)'s fallback.
-// Needed to proceed: probe P12's result; F.GlassMaterial.
-// Done so far: launch shows the main window plainly (:22), as upstream; PR-LAUNCH-028 stays SPECIFIED.
+// Needed to proceed: a look at the dev build on the owner's screen for the main window's Acrylic backdrop at the
+// hand-over (P12 used a plain main window).
+// Done so far: (a). Probe P12 (2026-10-01, E:\Droppy\work\probes\p12) drew the click-through stage over the desktop;
+// the boot sequence now replaces the plain show (src/Marrow.App/Port/BootStageWindow.cs, BootStageWindowTests: the
+// stage, the main window at the outline's landing, its content following the particles, the bootstrap as "ready", the
+// tour and About after the hand-over). The launch tests above keep the plain show through AppDelegate.StartBoot.
 
 // STOP Boot #2 (build agent, 2026-09-26)
 // Kind: ambiguity

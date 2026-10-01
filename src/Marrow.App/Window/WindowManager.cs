@@ -120,6 +120,12 @@ public sealed class WindowManager
     // The implicit init of the Swift singleton (module-internal in Swift): `model` (:13) is made here.
     internal WindowManager() => Model = new AppModel();
 
+    /// <summary>
+    /// PORT-ONLY (OD-0018, ED-103): makes the main window as showMain would (:27-28), frame restored, without showing
+    /// it, so the launch's boot sequence can be laid out on it before it appears.
+    /// </summary>
+    internal AvaloniaWindow PrepareMain() => mainWindow ??= MakeMainWindow();
+
     // :26-30 func showMain()
     public void ShowMain()
     {

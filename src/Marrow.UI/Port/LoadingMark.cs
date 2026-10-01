@@ -827,6 +827,8 @@ public sealed class BootStage : Control
     public BootFrame Frame { get; private set; }
     public event EventHandler? MainWindowShown;
     public event EventHandler? Closed;
+    /// <summary>Raised after each frame's <see cref="Frame"/> is computed (the launch's hand-over follows it, ED-103 (5)).</summary>
+    public event EventHandler? FrameChanged;
     // ED-103 (3): the moment the app is ready, read from the clock at the call (not the last frame's time, which would
     // pick a turn end already past); readiness before the stage starts counts as ready at 0.
     public void Ready() => readyAt ??= attached ? (SwiftClock.Now - started).TotalSeconds : 0;
@@ -845,6 +847,7 @@ public sealed class BootStage : Control
         Elapsed = (SwiftClock.Now - started).TotalSeconds;
         Frame = sequence.At(Elapsed, readyAt);
         InvalidateVisual();
+        FrameChanged?.Invoke(this, EventArgs.Empty);
         if (Frame.MainWindowShown && !shown)
         {
             shown = true;

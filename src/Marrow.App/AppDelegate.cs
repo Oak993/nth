@@ -52,29 +52,52 @@ public sealed class AppDelegate
         var windows = WindowManager.Shared; // :16
         Model = windows.Model; // :17
         // :18-21 the capture-run branch: not ported (ED-001; PR-LAUNCH-027 NOT_APPLICABLE_WITH_EVIDENCE).
-        // :22 MARROW_DEFERRED ED-103 (OD-0018, PR-LAUNCH-028 deviation): the boot sequence that replaces this plain show
-        // (the particle stage and the main window forming under it) is not written; it waits on probe P12 (ED-103 (7))
-        // and on F.GlassMaterial for the main window's material (ED-180). STOP Boot #1 in
-        // tests/Marrow.App.Tests/AppDelegateThirdTests.cs.
-        windows.ShowMain(); // :22
+        // :22 windows.showMain(). DEVIATION OD-0018 (PR-LAUNCH-028), ED-103: the boot sequence shows the main window once
+        // the stage's particles have built its outline (Port/BootStageWindow.cs; probe P12 2026-10-01).
+        var mainShown = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var boot = StartBoot(windows, () => { windows.ShowMain(); mainShown.TrySetResult(); });
         windows.Model.OpenThreadOnLaunch(); // :23
         if (!windows.Model.Settings.HasSeenTour) // :24
         {
             MainActor.Spawn(async () => // :25 Task { @MainActor in ... }
             {
+                // ED-103: the 700 ms are counted from the main window's appearance, so the tour never opens over the stage.
+                await mainShown.Task;
                 _ = await SwiftTask.TrySleep(TimeSpan.FromMilliseconds(700)); // try? await Task.sleep(for: .milliseconds(700))
                 PresentTour(windows.Model);
             });
         }
-        MainActor.Spawn(async () => await BootstrapModel(windows.Model)); // :27 Task { await windows.model.bootstrap() }
+        MainActor.Spawn(async () => // :27 Task { await windows.model.bootstrap() }
+        {
+            await BootstrapModel(windows.Model);
+            boot?.Ready(); // ED-103 (3): the app is ready once its model has bootstrapped
+        });
         UpdateChecker.Shared.StartBackgroundChecks(); // :28
         // :29 The relaunch after an install: the update story finishes on About, where it began.
         if (AppUpdater.Shared.ConsumeRelaunchMarker()) // :30
         {
             UpdateInstallProgress.Shared.ArmCelebration(); // :31
-            windows.ShowSettings(page: SettingsPage.About); // :32
+            // ED-103: About opens over the main window once it has appeared, not over the stage.
+            MainActor.Spawn(async () =>
+            {
+                await mainShown.Task;
+                windows.ShowSettings(page: SettingsPage.About); // :32
+            });
         }
     }
+
+    // PORT-ONLY (OD-0018, ED-103): the boot sequence, or a plain show when there is no stage to run. Settable only so the
+    // launch tests, which run headless and record the main window, can keep the plain show; nothing in the app sets it.
+    internal Func<WindowManager, Action, BootStageWindow?> StartBoot { get; set; } = (windows, show) =>
+        BootStageWindow.Start(windows.PrepareMain(), ReduceMotion(), show);
+
+    // ED-103 (6): Windows' "Animation effects" setting off is reduce motion (as AttachmentFlightPlatform reads it).
+    private static bool ReduceMotion() =>
+        SystemParametersInfo(0x1042, 0, out var enabled, 0) && !enabled; // SPI_GETCLIENTAREAANIMATION
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    [return: System.Runtime.InteropServices.MarshalAs(System.Runtime.InteropServices.UnmanagedType.Bool)]
+    private static extern bool SystemParametersInfo(uint action, uint parameter, out bool enabled, uint update);
 
     /// <summary>:36-39 <c>func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -&gt;
     /// Bool</c>. On Windows the shell runs it when a second launch reaches the running instance (ED-002).</summary>

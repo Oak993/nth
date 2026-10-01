@@ -67,6 +67,13 @@ public sealed class LaunchHarness : IDisposable
             BootstrapModels.Add(model);
             return Task.CompletedTask;
         };
+        // OD-0018 / ED-103: these tests follow the Swift launch sequence, so the boot sequence (a real stage window, tested
+        // in BootStageWindowTests) is stood in for by the plain show it ends in, at once.
+        Delegate.StartBoot = (_, show) =>
+        {
+            show();
+            return null;
+        };
     }
 
     public AppModelHarness Harness { get; }
