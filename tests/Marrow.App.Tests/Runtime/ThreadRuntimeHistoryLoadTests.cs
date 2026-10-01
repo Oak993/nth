@@ -97,6 +97,7 @@ public sealed class ThreadRuntimeHistoryLoadTests
             runtime.SaveNow();
             Assert.Null(runtime.UnsavedSnapshot());
         });
+        DiskWriter.Shared.WaitForQueuedWrites(); // a write the save made would be on disk now
 
         Assert.Equal(before, File.ReadAllBytes(ThreadFile(thread.Id)));
     }

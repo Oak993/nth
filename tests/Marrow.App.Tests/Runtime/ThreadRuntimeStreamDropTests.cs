@@ -38,6 +38,8 @@ public sealed class ThreadRuntimeStreamDropTests
     {
         using var rig = new ThreadRuntimeDelegationRig();
         var turn = rig.BeginTurn();
+        var earlier = "Earlier.\n```hydra\n[" + Entry("Elsewhere") + "]\n```";
+        rig.Reply("reply-0", earlier); // another reply row of this turn that also holds a block: the first branch returns before it
         rig.Delta("reply-1", "```hydra\n[" + Entry("Task 1") + ",");
         var head = Assert.Single(rig.Heads);
         var stream = rig.Stream!;
@@ -59,6 +61,7 @@ public sealed class ThreadRuntimeStreamDropTests
             "Hydra sent one head before the turn was stopped; the rest of the block never went out. Ask again to send them.",
             Assert.Single(rig.Notes()));
         Assert.Null(rig.Budget.DropNotice); // this branch queues no drop notice for the lead
+        Assert.Equal(earlier, rig.Text("reply-0")); // and the function returned: the second branch never ran
         Assert.Equal(head.Id, Assert.Single(rig.Heads).Id); // the heads already sent are left alone
         Assert.Equal(HydraHeadInfo.Status.Running, rig.OnMain(() => rig.App.Thread(head.Id)!.Hydra!.HydraHeadInfoStatus));
     }
