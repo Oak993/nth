@@ -2117,6 +2117,26 @@ public sealed class AppModelHydraTests
         Assert.NotEqual(first.Tree, afterInvalidation.Tree); // the bumped generation forced a fresh walk
     }
 
+    [Fact]
+    [Trait("Req", "PR-HYDRA-245")] // AppModel+Hydra.swift:56-61: the generation is checked again after the tree is read
+    public async Task A_landing_while_a_fresh_capture_is_being_checked_makes_a_new_starting_point()
+    {
+        var repository = AppModelGitRepo.WithCommit(HydraTreeCacheScratch());
+        var git = new Git(repository.Root);
+
+        var first = await CaptureHydraTree(repository.Root, git);
+        await Task.Delay(TimeSpan.FromSeconds(1.2)); // inside the 3 s lifetime; a new commit now gets a later timestamp
+
+        // The capture is still fresh, so the next head checks the tree against it; a landing happens while that read is
+        // under way. The capture from before the landing must not be handed out, however recent and however equal the tree.
+        var checking = StartHydraTreeCapture(repository.Root, git);
+        InvalidateHydraTreeCache(repository.Root);
+        var after = await checking;
+
+        Assert.Equal(first.Tree, after.Tree); // nothing in the checkout changed
+        Assert.NotEqual(first.Commit, after.Commit); // yet the starting point was made again
+    }
+
     private static string HydraTreeCacheScratch()
     {
         var folder = Path.Combine(TestDataDirectory.Read()!, "AppModelHydraTests", "tree-cache", Guid.NewGuid().ToString("N"));
@@ -2131,7 +2151,10 @@ public sealed class AppModelHydraTests
         return type!;
     }
 
-    private static async Task<(string Tree, string Commit)> CaptureHydraTree(string checkout, Git git)
+    private static Task<(string Tree, string Commit)> CaptureHydraTree(string checkout, Git git) => StartHydraTreeCapture(checkout, git);
+
+    // Starts a capture and returns once it first waits (on git), so a test can act while it is under way.
+    private static async Task<(string Tree, string Commit)> StartHydraTreeCapture(string checkout, Git git)
     {
         var method = HydraTreeCacheType().GetMethod("Capture", BindingFlags.Static | BindingFlags.NonPublic);
         Assert.NotNull(method);
