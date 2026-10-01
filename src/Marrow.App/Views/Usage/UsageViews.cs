@@ -328,7 +328,9 @@ internal sealed class LimitRow : Decorator
                 TextWrapping = TextWrapping.NoWrap,
                 MaxLines = 1,
                 TextTrimming = TextTrimming.CharacterEllipsis, // :156
-                Margin = new Thickness(0, 0, 12, 0),
+                // :146 HStack(spacing: 12): the reset text is 12 from the spacer on its left (title, 12, Spacer(minLength: 8), 12,
+                // reset) as well as 12 from the percentage, so the title keeps 32 points clear of it, not 20.
+                Margin = new Thickness(12, 0, 12, 0),
             };
             SwiftFont.Callout.Apply(reset);
             Grid.SetColumn(reset, 2);
