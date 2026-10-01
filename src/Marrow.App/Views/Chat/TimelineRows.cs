@@ -1577,9 +1577,10 @@ public sealed class AssistantMessageRow : Decorator
         var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 2, Background = Brushes.Transparent }; // :1363
         column.Children.Add(new MarkdownView(message.Text, message.IsStreaming)); // :1364
         // :1365-1374 one side for both kinds of message: the summary sits where the copy control used to be.
-        var line = new StackPanel
+        // :1367 HStack(spacing: 8) with its default .center alignment: the summary sits on the centre line of the 22-point
+        // line (UI-CHAT-019); a plain horizontal StackPanel stretched it to the top of the slot.
+        var line = new HStack
         {
-            Orientation = Orientation.Horizontal,
             Spacing = 8, // :1367
             Height = TimelineMetrics.HoverLineHeight, // :1375-1377 pinned to the hover line's room
         };
@@ -1755,6 +1756,9 @@ public sealed class WorkGroup : Decorator
                 Transaction.WithAnimation(Animation.Snappy(duration: 0.24), () => state.IsCollapsed = true); // :1475-1477
             }
         });
+        // :1467-1468 VStack(alignment: .leading): the button hugs its label (icon, words, chevron and the 12-point
+        // trailing padding) instead of taking the whole row, so a tap past the chevron does not toggle the group.
+        header.HorizontalAlignment = HorizontalAlignment.Left;
         stack.Children.Add(header);
 
         // :1481-1486 the group's symbol and its "Edited files, ran commands" line, from the calls' kinds.
@@ -1852,12 +1856,14 @@ public sealed class WorkSteps : Decorator
         line.Children.Add(ellipsis);
         line.Children.Add(count);
         Button more = null!;
+        // :1522-1525 the line sits in the caller's VStack(alignment: .leading): the button hugs its label, as the group header does.
         more = PlainControls.Button(line, () => // :1525-1530, :1543 .buttonStyle(.plain)
             Transaction.WithAnimation(Animation.Snappy(duration: 0.24), () =>
             {
                 showsAll.Value = true;
                 ThreadTimeline.GetRevealTimelineEnd(more)?.Action(); // inside the animation transaction
             }));
+        more.HorizontalAlignment = HorizontalAlignment.Left;
         // :1545-1557 the remaining entries: tool rows, and what the agent said between two steps as a step of the work.
         var rows = new StackPanel { Orientation = Orientation.Vertical, Spacing = TimelineMetrics.RowSpacing };
         stack.Children.Add(rows);
