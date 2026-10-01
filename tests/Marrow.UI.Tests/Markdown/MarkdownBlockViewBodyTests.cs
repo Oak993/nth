@@ -396,7 +396,7 @@ public sealed class MarkdownBlockViewBodyTests(HeadlessSession headless)
     {
         var button = new CopyButton("some code");
         var content = Assert.IsType<Button>(button.Child);
-        var icon = Assert.IsType<SwiftImage>(content.Content);
+        var icon = Assert.Single(Assert.IsAssignableFrom<Panel>(content.Content).Children.OfType<SwiftImage>()); // the 22-point host (:1489)
         Assert.Equal("doc.on.doc", icon.SymbolName);
         Assert.Equal(22, icon.Width);
         Assert.Equal(22, icon.Height);
@@ -406,12 +406,18 @@ public sealed class MarkdownBlockViewBodyTests(HeadlessSession headless)
     [Trait("Req", "PR-THEME-120")] // DroppyCode/UI/Markdown/MarkdownView.swift:1480, :1488: clicking swaps to the check mark
     public void Clicking_copies_and_swaps_the_glyph_to_a_check_mark() => headless.OnUiThread(() =>
     {
+        var frames = new ManualFrameSource(); using var source = FrameClock.Source.Override(frames);
+        var clock = new Marrow.Testing.ManualTimeProvider(); using var time = Marrow.Core.Port.SwiftClock.Provider.Override(clock);
         var button = new CopyButton("copy me please");
         var window = Show(button);
         var content = Assert.IsType<Button>(button.Child);
         content.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); // :1477 the button's action
         Dispatcher.UIThread.RunJobs();
-        var icon = Assert.IsType<SwiftImage>(content.Content);
+        var host = Assert.IsAssignableFrom<Panel>(content.Content);
+        // :1488-1489 .contentTransition(.symbolEffect(.replace)): the old glyph goes while the check mark comes in.
+        Assert.Equal(["checkmark", "doc.on.doc"], host.Children.OfType<SwiftImage>().Select(image => image.SymbolName));
+        clock.Advance(TimeSpan.FromSeconds(0.4)); frames.Advance(TimeSpan.FromSeconds(0.4));
+        var icon = Assert.Single(host.Children.OfType<SwiftImage>());
         Assert.Equal("checkmark", icon.SymbolName); // :1488
         window.Close();
     });

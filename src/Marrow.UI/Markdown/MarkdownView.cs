@@ -2036,7 +2036,7 @@ public sealed class CopyButton : Decorator
     {
         var state = new ViewState();
         Button button = null!;
-        button = PlainControls.Button(Icon(false), () => // :1477-1490
+        button = PlainControls.Button(new Panel(), () => // :1477-1490 (its content is the glyph host below)
         {
             var clipboard = TopLevel.GetTopLevel(button)?.Clipboard; // NSPasteboard has no Avalonia port type; TopLevel.Clipboard is the platform's own equivalent (precedent: ComposerTextView.cs).
             _ = clipboard?.SetTextAsync(ProseReflow.Reflowed(text)); // :1478-1479
@@ -2048,7 +2048,24 @@ public sealed class CopyButton : Decorator
             });
         }); // :1494 .buttonStyle(.borderless): no distinct borderless template exists yet (ENGINEERING DECISION,
             // same as ChromeIconButton's .plain), so this reuses PlainControls.Button's content-only template.
-        button.Track(() => state.DidCopy, didCopy => button.Content = Icon(didCopy)); // :1488 didCopy ? "checkmark" : "doc.on.doc"
+        // :1488-1489 didCopy ? "checkmark" : "doc.on.doc" with .contentTransition(.symbolEffect(.replace)): the two replace
+        // each other in two steps (SymbolReplace) inside one 22-point host.
+        Control shown = Icon(false); // :1488 doc.on.doc before any copy
+        var host = new Panel { Width = 22, Height = 22, Children = { shown } };
+        bool? shownCopied = false;
+        button.Content = host;
+        button.Track(() => state.DidCopy, didCopy =>
+        {
+            if (shownCopied == didCopy) return;
+            var next = Icon(didCopy);
+            var previous = shown;
+            host.Children.Add(next);
+            host.Children.Remove(previous);
+            host.Children.Add(previous); // over the new one while it goes
+            SymbolReplace.Play(previous, next, () => host.Children.Remove(previous));
+            shown = next;
+            shownCopied = didCopy;
+        });
         TextElement.SetForeground(button, Chrome.Chrome.SecondaryText.Brush(button)); // :1495 .foregroundStyle(Chrome.secondaryText)
         ToolTip.SetTip(button, label); // :1496 .help(label)
         Child = button;
