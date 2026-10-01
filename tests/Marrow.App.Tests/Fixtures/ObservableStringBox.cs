@@ -3,11 +3,7 @@ using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Fixtures;
 
-/// <summary>
-/// A string-valued twin of <see cref="ObservableBoolBox"/>: a closure-backed
-/// <c>Binding</c> over a raw local never notifies, so card tests that need an
-/// effort change to re-run both the card's and the slider's Track back it here.
-/// </summary>
+/// <summary>An optional-string twin of <see cref="ObservableIntBox"/>: the effort card's chosen effort, observable.</summary>
 public sealed class ObservableStringBox : MainActorModel
 {
     private string? held;
