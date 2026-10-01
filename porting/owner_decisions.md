@@ -481,3 +481,45 @@ It does not refer to the current ED-220 native/process collection exception.
 - **Historical distinction:** the current OD-0020 entry lists the original wave-A batch without spelling out these Hydra Part A/B labels. Preserve that historical entry; this explicit 2026-09-30 ruling supplies the coverage cross-reference instead of silently rewriting its old wording.
 
 Provenance for OD-0031 through OD-0035: owner chat relayed by J.A.R.V.I.S. and full E:/Droppy/work/codex/turbo/OWNER_RULINGS_20260930b.md, read in full. OD-0029/0030 are reserved by historical docs/b3 decisions and are not imported or renumbered here. Historical OD-0028 and all earlier entries remain unchanged.
+
+## OD-0036 Session end held by a merge: no reason text
+
+- **Owner ruling, 2026-10-01 (chat, answering OD-PENDING-29 (1)):** "No reason text."
+- **Effect:** while a Hydra merge holds a Windows session end (ED-004 (2)), the port calls no ShutdownBlockReasonCreate; Windows lists the app as blocking with no reason, as the Swift has no user-facing text (AppDelegate.swift:41-61). Closes the text question of STOP Boot #3 / opencode-App.AppDelegate #3; PR-LAUNCH-050 and PR-WIN-073 are judged on the deferral, poll and cap tests.
+
+## OD-0037 Notification clicks: callback proof now, one manual check later
+
+- **Owner ruling, 2026-10-01 (OD-PENDING-29 (2)):** "Code proof + one manual check."
+- **Effect:** PR-LAUNCH-064, PR-LAUNCH-065, PR-UPDATE-024, PR-WIN-076, UI-LAUNCH-003 and UI-LAUNCH-005 are proven by the toast activation callback tests (ED-220 (7) keeps real toasts out of tests). One manual check stays on the Windows verification list: the owner clicks one real thread toast and one real update toast on a dev build.
+
+## OD-0038 Reopen restores a minimised main window
+
+- **Owner ruling, 2026-10-01 (OD-PENDING-29 (3)):** "Restore and bring forward."
+- **Effect:** WindowManager's present path (WindowManager.swift:57-60, makeKeyAndOrderFront) restores a minimised main window to its previous state and activates it, for a second launch and for applicationShouldHandleReopen. Whether makeKeyAndOrderFront alone deminiaturizes stays UNVERIFIED (OD-0001); this ruling settles PR-WIN-072.
+
+## OD-0039 The tour is marked seen only by its own close control
+
+- **Owner ruling, 2026-10-01 (OD-PENDING-29 (4)):** "Follow the Mac code."
+- **Effect:** hasSeenTour is set by TourView's close action (onClose) only; closing the tour window natively (Alt+F4, caption close) only clears the controller (TourWindowController.swift:103-107). Where UI-LAUNCH-002 says every close marks it seen, the Swift wins.
+
+## OD-0040 The launch counts as an activation for the update catch-up check
+
+- **Owner ruling, 2026-10-01 (OD-PENDING-29 (5)):** "Yes, check at launch too."
+- **Effect:** the main window's first activation at launch runs UpdateChecker.handleActivation (UpdateChecker.swift:141-149) like every later activation, so a release build makes a catch-up check at launch (nothing checked yet) besides the 8 s one. Settles PR-LAUNCH-046 and STOP Boot #2.
+
+## OD-0041 The boot sequence covers the Acrylic backdrop's start-up
+
+- **Owner ruling, 2026-10-01 (OD-PENDING-29 (6)), in the owner's words:** "Use a transition or the boot animation can cover the load time."
+- **Effect:** the ~150-200 ms between an Acrylic window's tint and its blur (probe P13) must not be seen: the hand-over is arranged so the main window's backdrop is ready before its content appears (for example shown early and fully transparent under the stage, then revealed as ED-103 (5) gives). The mechanism is an ED, proved by a probe; it applies once the main window carries its Acrylic hint (WindowManager STOP #5).
+
+## OD-0042 System controls: the macOS look, except the native context menu
+
+- **Owner ruling, 2026-10-01 (OD-PENDING-28), choice "Mix":** "Mac look, native menu."
+- **Effect:** `.bordered` / `.borderedProminent` buttons, `.roundedBorder` fields, the indeterminate `ProgressView()`, `.help()` tooltips and the small Slider imitate the macOS controls as the reference videos show them (measured where the videos show them, UNVERIFIED otherwise); `.contextMenu` stays the native Win32 popup menu (no SF Symbol icons, no red destructive title, Windows menu theme). The Windows 11 counterparts built under the "ED-229" proposal are replaced except the menu.
+
+## OD-0043 Slider track click: settle from the videos
+
+- **Owner ruling, 2026-10-01:** "Check the videos thoroughly."
+- **Effect:** whether a press on the bare slider track turns the knob to glass is decided from a full search of both reference videos; until a clip shows it, the port keeps glass on a knob press only.
+
+Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Claude Opus 5.5), 2026-10-01, to the questions OD-PENDING-28 and OD-PENDING-29 (1)-(6) plus the slider track click.
