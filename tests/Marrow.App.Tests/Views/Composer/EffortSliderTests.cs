@@ -82,16 +82,70 @@ public sealed class EffortSliderTests(HeadlessSession headless)
     private static Avalonia.Media.Color Resolved(SwiftColor color) => color.Resolve(ThemeVariant.Light);
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-129")] // EffortSlider.swift:862-871
-    public void EffortBrand_Create_maps_each_provider_to_its_brand()
+    [Trait("Req", "PR-COMPOSER-129")] // EffortSlider.swift:862-871; DEVIATION OD-0047 (locked, OD-0051): one brand per provider
+    public void EffortBrand_Create_maps_each_provider_to_its_own_brand()
     {
         Assert.Equal(EffortBrand.Claude, EffortBrand.Create(ProviderKind.Claude));
         Assert.Equal(EffortBrand.Deepseek, EffortBrand.Create(ProviderKind.Deepseek));
         Assert.Equal(EffortBrand.Meta, EffortBrand.Create(ProviderKind.Meta));
         Assert.Equal(EffortBrand.Antigravity, EffortBrand.Create(ProviderKind.Antigravity));
-        Assert.Equal(EffortBrand.Silver, EffortBrand.Create(ProviderKind.Codex));
-        Assert.Equal(EffortBrand.Silver, EffortBrand.Create(ProviderKind.Copilot));
+        Assert.Equal(EffortBrand.Silver, EffortBrand.Create(ProviderKind.Codex)); // OD-0047: ChatGPT keeps the silver-white
+        Assert.Equal(EffortBrand.Cursor, EffortBrand.Create(ProviderKind.Cursor));
+        Assert.Equal(EffortBrand.Grok, EffortBrand.Create(ProviderKind.Grok));
+        Assert.Equal(EffortBrand.Opencode, EffortBrand.Create(ProviderKind.Opencode));
+        Assert.Equal(EffortBrand.OpencodeGo, EffortBrand.Create(ProviderKind.OpencodeGo));
+        Assert.Equal(EffortBrand.Zai, EffortBrand.Create(ProviderKind.Zai));
+        Assert.Equal(EffortBrand.Devin, EffortBrand.Create(ProviderKind.Devin));
+        Assert.Equal(EffortBrand.Copilot, EffortBrand.Create(ProviderKind.Copilot));
+        Assert.Equal(EffortBrand.Commandcode, EffortBrand.Create(ProviderKind.Commandcode));
+        Assert.Equal(EffortBrand.Pi, EffortBrand.Create(ProviderKind.Pi));
         Assert.Equal(EffortBrand.Purple, EffortBrand.Create(null));
+        // every provider is distinct: no two share a brand
+        var brands = SwiftEnum<ProviderKind>.AllCases.Select(provider => EffortBrand.Create(provider)).ToArray();
+        Assert.Equal(brands.Length, brands.Distinct().Count());
+    }
+
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-129")] // DEVIATION OD-0047 / OD-0051: the locked palette, transcribed from the approved canvas
+    [InlineData(ProviderKind.Codex, "#FFFFFF", "#EEF0F5", "#D9DBE3")]
+    [InlineData(ProviderKind.Claude, "#B85A38", "#CC6B47", "#E0875F")]
+    [InlineData(ProviderKind.Deepseek, "#2A45E0", "#3D5CFA", "#6A82FF")]
+    [InlineData(ProviderKind.Meta, "#0054C4", "#0070EC", "#2B95FF")]
+    [InlineData(ProviderKind.Antigravity, "#4285F5", "#9C73CC", "#D96670")]
+    [InlineData(ProviderKind.Cursor, "#D93F00", "#F54E00", "#FF8040")]
+    [InlineData(ProviderKind.Grok, "#030304", "#121218", "#26262E")]
+    [InlineData(ProviderKind.Opencode, "#168A3A", "#25B34F", "#45DC6C")]
+    [InlineData(ProviderKind.OpencodeGo, "#007EA3", "#00A4CD", "#3CCBEC")]
+    [InlineData(ProviderKind.Zai, "#0A1630", "#14306E", "#2F6BFF")]
+    [InlineData(ProviderKind.Devin, "#239377", "#3CBC9B", "#6FDCBF")]
+    [InlineData(ProviderKind.Copilot, "#8534F3", "#D25AB4", "#F4A876")]
+    [InlineData(ProviderKind.Commandcode, "#24157E", "#2E1B9C", "#6145DC")]
+    [InlineData(ProviderKind.Pi, "#A30C25", "#C8102E", "#EC5560")]
+    public void Each_provider_has_its_approved_liquid_colours(ProviderKind provider, string dark, string heart, string light)
+    {
+        var stops = EffortBrand.Create(provider).LiquidStops;
+        Assert.Equal(new[] { dark, heart, light }.Select(Avalonia.Media.Color.Parse), stops.Select(Resolved));
+    }
+
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-129")] // DEVIATION OD-0047: a new brand's title colour, and its fill heart for glows and blends
+    [InlineData(ProviderKind.Cursor, "#FF8A4C", "#F54E00")]
+    [InlineData(ProviderKind.Grok, "#D4D6DE", "#121218")]
+    [InlineData(ProviderKind.Opencode, "#5BE07F", "#25B34F")]
+    [InlineData(ProviderKind.OpencodeGo, "#4FD0EE", "#00A4CD")]
+    [InlineData(ProviderKind.Zai, "#6E98FF", "#14306E")]
+    [InlineData(ProviderKind.Devin, "#7FE3C9", "#3CBC9B")]
+    [InlineData(ProviderKind.Copilot, "#C898FD", "#D25AB4")]
+    [InlineData(ProviderKind.Commandcode, "#A98BFF", "#2E1B9C")]
+    [InlineData(ProviderKind.Pi, "#FF6B7A", "#C8102E")]
+    public void A_new_brand_has_its_title_and_fill_colour(ProviderKind provider, string title, string fill)
+    {
+        var brand = EffortBrand.Create(provider);
+        Assert.Equal(Avalonia.Media.Color.Parse(title), Resolved(brand.TitleColor));
+        Assert.Equal(Avalonia.Media.Color.Parse(fill), Resolved(brand.FillColor));
+        Assert.False(brand.IsLight);
+        Assert.Equal(SwiftColor.White, brand.Spark);
+        Assert.Equal(brand == EffortBrand.Grok, brand.HasOilSheen);
     }
 
     [Fact]

@@ -1039,7 +1039,8 @@ internal static class EffortView
                 EffortBrand.Antigravity => Gradient(EffortBrand.Gemini, theme),
                 EffortBrand.Meta => Gradient([new SwiftColor(0.0, 0.39, 0.88), new SwiftColor(0.0, 0.51, 0.98)], theme), // :894-897
                 EffortBrand.Silver => Gradient([SwiftColor.White, new SwiftColor(0.88, 0.88, 0.91)], theme), // :902-905
-                _ => new SolidColorBrush(look.Brand.FillColor.Resolve(theme)),
+                EffortBrand.Claude or EffortBrand.Deepseek or EffortBrand.Purple => new SolidColorBrush(look.Brand.FillColor.Resolve(theme)),
+                _ => Gradient(look.Brand.LiquidStops, theme), // OD-0047: the new brands' liquid colours
             },
             TrackLook.Kind.Fast => new SolidColorBrush(EffortPalette.FastFill.Resolve(theme)),
             _ => Gradient([look.Brand.FillColor, look.Brand.FillColor, EffortPalette.FastFill], theme), // :993-996
@@ -1061,15 +1062,28 @@ public static class EffortPalette
     public static SwiftColor FastFill { get; } = new(red: 0.93, green: 0.66, blue: 0.13);         // :846
 }
 
-/// <summary>:853-936 <c>enum EffortBrand: Hashable</c>, no raw values.</summary>
+/// <summary>
+/// :853-936 <c>enum EffortBrand: Hashable</c>, no raw values. DEVIATION OD-0047 (approved and locked, OD-0051): every
+/// provider has its own brand; the source's shared <c>.silver</c> stays Codex's (ChatGPT), and nine providers that
+/// shared it take their own colours (the canvas of OD-0051, copy at E:\Droppy\work\design\effort-liquid-approved-v15.dc.html).
+/// </summary>
 public enum EffortBrand
 {
     Claude,      // :854
     Deepseek,    // :855
     Meta,        // :856
     Antigravity, // :857
-    Silver,      // :858
+    Silver,      // :858, Codex (OD-0047: locked silver-white)
     Purple,      // :860
+    Cursor,      // OD-0047: brand #F54E00, ember
+    Grok,        // OD-0047: brand black, liquid obsidian with an oil sheen
+    Opencode,    // OD-0047: monochrome brand, terminal green
+    OpencodeGo,  // OD-0047: Go gopher cyan
+    Zai,         // OD-0047: brand navy into electric blue
+    Devin,       // OD-0047: brand teal #5ECFB1
+    Copilot,     // OD-0047: brand purple into peach
+    Commandcode, // OD-0047: brand deep indigo
+    Pi,          // OD-0047: brand black-red, crimson
 }
 
 /// <summary>The members of <c>EffortBrand</c> (:862-935) as a C# 14 extension block (R-NAME-4, ED-164).</summary>
@@ -1085,15 +1099,62 @@ public static class EffortBrandExtensions
             ProviderKind.Deepseek => EffortBrand.Deepseek, // :865
             ProviderKind.Meta => EffortBrand.Meta, // :866
             ProviderKind.Antigravity => EffortBrand.Antigravity, // :867
-            ProviderKind.Codex or ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Opencode
-                or ProviderKind.OpencodeGo or ProviderKind.Devin or ProviderKind.Copilot
-                or ProviderKind.Commandcode or ProviderKind.Pi or ProviderKind.Zai => EffortBrand.Silver, // :868
+            ProviderKind.Codex => EffortBrand.Silver, // :868 (OD-0047: Silver is Codex's alone)
+            ProviderKind.Cursor => EffortBrand.Cursor,
+            ProviderKind.Grok => EffortBrand.Grok,
+            ProviderKind.Opencode => EffortBrand.Opencode,
+            ProviderKind.OpencodeGo => EffortBrand.OpencodeGo,
+            ProviderKind.Zai => EffortBrand.Zai,
+            ProviderKind.Devin => EffortBrand.Devin,
+            ProviderKind.Copilot => EffortBrand.Copilot,
+            ProviderKind.Commandcode => EffortBrand.Commandcode,
+            ProviderKind.Pi => EffortBrand.Pi,
             null => EffortBrand.Purple, // :869
             _ => throw new UnreachableException(),
         };
 
         // :931-935 static let gemini
         public static ValueList<SwiftColor> Gemini => GeminiColors;
+    }
+
+    // OD-0047 / OD-0051: the approved palette, exactly as on the locked canvas. The source brands keep their source
+    // colours; their liquid stops bracket the source fill.
+    private static readonly System.Collections.Generic.Dictionary<EffortBrand, string[]> LiquidStopsHex = new()
+    {
+        [EffortBrand.Silver] = ["#FFFFFF", "#EEF0F5", "#D9DBE3"],
+        [EffortBrand.Claude] = ["#B85A38", "#CC6B47", "#E0875F"],
+        [EffortBrand.Deepseek] = ["#2A45E0", "#3D5CFA", "#6A82FF"],
+        [EffortBrand.Meta] = ["#0054C4", "#0070EC", "#2B95FF"],
+        [EffortBrand.Antigravity] = ["#4285F5", "#9C73CC", "#D96670"],
+        [EffortBrand.Purple] = ["#7A4BE0", "#8C57F7", "#B48CFF"],
+        [EffortBrand.Cursor] = ["#D93F00", "#F54E00", "#FF8040"],
+        [EffortBrand.Grok] = ["#030304", "#121218", "#26262E"],
+        [EffortBrand.Opencode] = ["#168A3A", "#25B34F", "#45DC6C"],
+        [EffortBrand.OpencodeGo] = ["#007EA3", "#00A4CD", "#3CCBEC"],
+        [EffortBrand.Zai] = ["#0A1630", "#14306E", "#2F6BFF"],
+        [EffortBrand.Devin] = ["#239377", "#3CBC9B", "#6FDCBF"],
+        [EffortBrand.Copilot] = ["#8534F3", "#D25AB4", "#F4A876"],
+        [EffortBrand.Commandcode] = ["#24157E", "#2E1B9C", "#6145DC"],
+        [EffortBrand.Pi] = ["#A30C25", "#C8102E", "#EC5560"],
+    };
+
+    private static readonly System.Collections.Generic.Dictionary<EffortBrand, string> LiquidTitles = new()
+    {
+        [EffortBrand.Cursor] = "#FF8A4C",
+        [EffortBrand.Grok] = "#D4D6DE",
+        [EffortBrand.Opencode] = "#5BE07F",
+        [EffortBrand.OpencodeGo] = "#4FD0EE",
+        [EffortBrand.Zai] = "#6E98FF",
+        [EffortBrand.Devin] = "#7FE3C9",
+        [EffortBrand.Copilot] = "#C898FD",
+        [EffortBrand.Commandcode] = "#A98BFF",
+        [EffortBrand.Pi] = "#FF6B7A",
+    };
+
+    private static SwiftColor Hex(string hex)
+    {
+        var c = Avalonia.Media.Color.Parse(hex);
+        return new SwiftColor(c.R / 255.0, c.G / 255.0, c.B / 255.0);
     }
 
     private static readonly ValueList<SwiftColor> GeminiColors = new(
@@ -1114,8 +1175,14 @@ public static class EffortBrandExtensions
             EffortBrand.Antigravity => new SwiftColor(0.61, 0.45, 0.80), // :879
             EffortBrand.Silver => Chrome.PrimaryText, // :880
             EffortBrand.Purple => new SwiftColor(0.74, 0.55, 1.0), // :881, EffortPalette.Supercharged
-            _ => throw new UnreachableException(),
+            _ => Hex(LiquidTitles[brand]), // OD-0047
         };
+
+        /// <summary>OD-0047 / OD-0051: the three colours of the brand's liquid, dark to light along the track.</summary>
+        public ValueList<SwiftColor> LiquidStops => new(LiquidStopsHex[brand].Select(Hex));
+
+        /// <summary>OD-0051: Grok's liquid obsidian carries a moving oil sheen.</summary>
+        public bool HasOilSheen => brand == EffortBrand.Grok;
 
         // :911-920 var fillColor: Color
         public SwiftColor FillColor => brand switch
@@ -1126,7 +1193,7 @@ public static class EffortBrandExtensions
             EffortBrand.Antigravity => new SwiftColor(0.56, 0.45, 0.80), // :901
             EffortBrand.Silver => new SwiftColor(0.92, 0.92, 0.94), // :902-905
             EffortBrand.Purple => new SwiftColor(0.55, 0.34, 0.97), // :906, EffortPalette.SuperchargedFill
-            _ => throw new UnreachableException(),
+            _ => Hex(LiquidStopsHex[brand][1]), // OD-0047: the liquid's heart
         };
 
         // :923 var spark: Color
