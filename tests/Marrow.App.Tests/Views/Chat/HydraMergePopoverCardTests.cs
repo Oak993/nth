@@ -786,6 +786,7 @@ public sealed class HydraMergePopoverCardTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var runtime = new TestRuntime();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the label morphs (numericText, :202-203)
             var popover = new HydraMergePopover(Plain());
             var window = Show(popover);
             try
@@ -813,6 +814,7 @@ public sealed class HydraMergePopoverCardTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var runtime = new TestRuntime();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the label morphs (numericText, :202-203)
             var popover = new HydraMergePopover(Plain());
             var window = Show(popover);
             try
@@ -845,6 +847,7 @@ public sealed class HydraMergePopoverCardTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var runtime = new TestRuntime();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the label morphs (numericText, :202-203)
             var popover = new HydraMergePopover(Plain());
             var copy = Descendants<Button>(popover).First(candidate => Text(candidate, "Copy link") is not null);
             var label = Assert.IsType<StackPanel>(copy.Content);
@@ -901,6 +904,7 @@ public sealed class HydraMergePopoverCardTests(HeadlessSession headless)
         var popover = Build(Plain(url));
         headless.OnUiThread(() =>
         {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the copy label morphs (numericText, :202-203)
             // On the UI thread's own flow, where the click runs (the seam is an async-local override).
             using var browser = Marrow.Services.Port.Workspace.Open.Override(link =>
             {

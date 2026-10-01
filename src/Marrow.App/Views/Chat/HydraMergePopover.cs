@@ -152,7 +152,7 @@ public sealed class HydraMergePopover : Decorator
     private HydraMergeNote.Head? hoveredHead;
     private Popup? hoveredPopup;
     private bool didCopyLink;
-    private readonly TextBlock copyLabel;
+    private readonly MorphingTextBlock copyLabel; // :202-203 .contentTransition(.numericText())
     private readonly StackPanel copyLabelPanel;
     private readonly SwiftImage copyCheckmark;
     private Border mark = null!;
@@ -171,7 +171,7 @@ public sealed class HydraMergePopover : Decorator
     {
         this.note = note;
 
-        copyLabel = new TextBlock
+        copyLabel = new MorphingTextBlock
         {
             Text = "Copy link",
             VerticalAlignment = VerticalAlignment.Center,
@@ -668,7 +668,8 @@ public sealed class HydraMergePopover : Decorator
         copyLabelPanel.Children.Clear();
         if (didCopyLink)
             copyLabelPanel.Children.Add(copyCheckmark);
-        copyLabel.Text = didCopyLink ? "Copied" : "Copy link";
+        // :202-203 the words change inside the snappy 0.22 transaction (:190, :193), so they morph (numericText).
+        copyLabel.SetText(didCopyLink ? "Copied" : "Copy link", Transaction.Current);
         copyLabelPanel.Children.Add(copyLabel);
     }
 

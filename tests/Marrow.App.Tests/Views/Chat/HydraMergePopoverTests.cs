@@ -229,6 +229,7 @@ public sealed class HydraMergePopoverTests(HeadlessSession headless)
     public void Copy_link_button_shows_copied_with_a_success_checkmark_for_one_point_four_seconds() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the label morphs (numericText, :202-203)
         var popover = new HydraMergePopover(Note());
 
         var button = Descendants<Button>(popover).First(candidate => Text(candidate, "Copy link") is not null);
@@ -262,6 +263,7 @@ public sealed class HydraMergePopoverTests(HeadlessSession headless)
     public void A_second_copy_click_while_copied_does_not_restart_the_reset() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the label morphs (numericText, :202-203)
         var popover = new HydraMergePopover(Note());
 
         var button = Descendants<Button>(popover).First(candidate => Text(candidate, "Copy link") is not null);
