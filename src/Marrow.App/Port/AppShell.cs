@@ -157,7 +157,12 @@ public sealed class AppShell : ITerminationSender
     /// immediately. These are observers only: the window's own handling goes on.</summary>
     internal nint WndProc(nint hWnd, uint msg, nint wParam, nint lParam, ref bool handled)
     {
-        if (msg == WM_ACTIVATEAPP && wParam != 0) UpdateChecker.Shared.HandleActivation();
+        if (msg == WM_ACTIVATEAPP && wParam != 0)
+        {
+            UpdateChecker.Shared.HandleActivation();
+            // HydraButton.swift:475 the charge views observe the same didBecomeActiveNotification (PR-HYDRA-241).
+            Marrow.App.Views.Chat.HydraChargeLayerView.PostApplicationDidBecomeActive();
+        }
         if (msg == WM_ENDSESSION && wParam != 0) WillTerminate();
         return 0;
     }

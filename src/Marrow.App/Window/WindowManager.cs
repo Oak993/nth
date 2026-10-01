@@ -262,10 +262,21 @@ public sealed class WindowManager
         // Avalonia takes its maximise control with it (CanMaximize follows CanResize), as AppKit disables zoom.
         window.CanMinimize = true;
         window.CanResize = resizable;
+        var inView = false;
         window.PropertyChanged += (_, e) =>
         {
             if (e.Property == AvaloniaWindow.WindowStateProperty && e.GetNewValue<WindowState>() is var state and not WindowState.Minimized)
                 restoredStates.AddOrUpdate(window, new StrongBox<WindowState>(state)); // OD-0038
+            // HydraButton.swift:476 NSWindow.didChangeOcclusionStateNotification (PR-HYDRA-242). ENGINEERING DECISION:
+            // Windows posts no occlusion change to an app, so a window counts as coming into or going out of view when it
+            // is shown or hidden and when it is restored or minimised; a change is posted only when that state flips.
+            if (e.Property == AvaloniaWindow.WindowStateProperty || e.Property == Visual.IsVisibleProperty)
+            {
+                var now = window.IsVisible && window.WindowState != WindowState.Minimized;
+                if (now == inView) return;
+                inView = now;
+                Marrow.App.Views.Chat.HydraChargeLayerView.PostWindowDidChangeOcclusionState(window, now);
+            }
         };
         window.Title = title; // :97
         // :98 isReleasedWhenClosed = false: closing orders the window out and keeps it, so the next show brings back the
