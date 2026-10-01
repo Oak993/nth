@@ -88,11 +88,14 @@ public sealed class ProviderProbeScript(string executablePath, string folder)
 
     public void Release() => File.WriteAllBytes(Path.Combine(Folder, "release-listings.txt"), []);
 
-    // ClaudeSession.swift:185-190: the handshake listing starts with -p and is the only -p call that passes
-    // --no-session-persistence. A session start (ClaudeSession.swift:85-90, e.g. the runtime's warm-up) also starts
-    // with -p and is not a command listing; profile warmup's --help is a separate call.
+    // ClaudeSession.swift:185-190: the handshake listing starts with -p and passes --no-session-persistence with
+    // --input-format stream-json. A session start (ClaudeSession.swift:85-90, e.g. the runtime's warm-up) also starts
+    // with -p and is not a command listing; nor is the text generator's one-shot (TextGeneration.swift, the thread
+    // title after a first message: -p --output-format text --model haiku ... --no-session-persistence), which a send
+    // can start at any moment; profile warmup's --help is a separate call.
     public IReadOnlyList<IReadOnlyList<string>> CommandListings() =>
-        RecordedCalls().Where(arguments => arguments.Count > 0 && arguments[0] == "-p" && arguments.Contains("--no-session-persistence")).ToArray();
+        RecordedCalls().Where(arguments => arguments.Count > 0 && arguments[0] == "-p" && arguments.Contains("--no-session-persistence")
+            && arguments.Contains("--input-format") && arguments.Contains("stream-json")).ToArray();
 
     /// <summary>What a later "--version" call reports once this stand-in has been called with exactly
     /// ["update"] (ProviderProbeStandIn.cs's post-update-stdout.txt): simulates the CLI's own updater having

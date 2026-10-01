@@ -102,7 +102,7 @@ public sealed class ThreadRuntimeTurnStartTests
     }
 
     [Fact]
-    [Trait("Req", "PR-RUNTIME-057")] // :1211 `info.isFinished` - a head that is still running keeps its record untouched
+    [Trait("Req", "PR-RUNTIME-057")] // :1211 `info.isFinished` - a head that is still running keeps its head info untouched
     public void A_running_head_keeps_its_record_when_a_turn_starts()
     {
         using var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude, thread => thread with

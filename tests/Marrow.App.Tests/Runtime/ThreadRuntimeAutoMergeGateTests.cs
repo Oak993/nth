@@ -12,18 +12,6 @@ namespace Marrow.App.Tests.Runtime;
 // record it leaves, which in a repository with no origin is a "no remote" failure and never touches a network.
 public sealed class ThreadRuntimeAutoMergeGateTests
 {
-    public enum Blocker
-    {
-        None,
-        TurnFailed,
-        TurnInterrupted,
-        AutoMergeSettingOff,
-        HydraOffForTheChat,
-        BatchOutstanding,
-        HeadWaiting,
-        NativeHeadStillRunning,
-        TurnContinues,
-    }
 
     private static void Prepare(HydraMergeProofFixture f, ChatThread lead)
     {
