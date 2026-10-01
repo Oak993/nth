@@ -6,8 +6,10 @@
 // 0.22 at 25 ms, 0.34 at 40 ms, 0.51 at 62 ms, 0.82 at 115 ms, 0.96 at 165 ms and 1.0 by 218 ms, growing out of the
 // arrow's edge, and the card is all but opaque by about 60 ms. SOURCE FACT: the animation (video). ENGINEERING
 // DECISION, UNVERIFIED fit: a critically damped spring of response 0.21 s (about 30 rad/s) from a tenth of the size,
-// opacity linear over the first 60 ms. The close animation is not ported yet (open item): a light dismiss is closed
-// by the Popup itself.
+// opacity linear over the first 60 ms. Closing (2-chat-use.mov 42.77-42.94 s, the model list after a choice): the card
+// shrinks back into its arrow while fading, its relative size about 0.62 at 43 ms, 0.33 at 93 ms, 0.15 at 135 ms, gone
+// by about 170 ms; fitted as a decay of time constant 0.08 s to a tenth and a linear fade over 0.17 s (UNVERIFIED fit).
+// A light dismiss is closed by the Popup itself, at once (open item).
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
@@ -50,6 +52,54 @@ public static class PopoverAppear
             frames.RequestFrame(tick!);
         };
         frames.RequestFrame(tick);
+    }
+
+    internal const double CloseSeconds = 0.17;
+    internal const double CloseDecay = 0.08;
+
+    /// <summary>
+    /// Animates <paramref name="content"/> back into its arrow's edge, then calls <paramref name="closed"/>. The returned
+    /// action stops it (the popover was presented again) and restores the content at once.
+    /// </summary>
+    public static Action Dismiss(Control content, PlacementMode placement, Action closed)
+    {
+        if (content.RenderTransform is not null && content.RenderTransform is not ScaleTransform) { closed(); return () => { }; }
+        content.RenderTransformOrigin = Origin(placement);
+        var from = content.RenderTransform is ScaleTransform current ? current.ScaleX : 1;
+        var scale = new ScaleTransform(from, from);
+        content.RenderTransform = scale;
+        var fromOpacity = content.Opacity;
+        var start = SwiftClock.Now;
+        var frames = FrameClock.Source.Current;
+        var stopped = false;
+        Action<TimeSpan>? tick = null;
+        tick = _ =>
+        {
+            if (stopped) return;
+            var seconds = (SwiftClock.Now - start).TotalSeconds;
+            if (seconds >= CloseSeconds)
+            {
+                stopped = true;
+                content.RenderTransform = null;
+                content.Opacity = 1;
+                closed();
+                return;
+            }
+            var size = StartScale + (from - StartScale) * Math.Exp(-seconds / CloseDecay);
+            scale.ScaleX = size;
+            scale.ScaleY = size;
+            content.Opacity = fromOpacity * (1 - seconds / CloseSeconds);
+            frames.RequestFrame(tick!);
+        };
+        frames.RequestFrame(tick);
+        return () =>
+        {
+            if (stopped) return;
+            stopped = true;
+            frames.CancelFrame(tick);
+            content.RenderTransform = null;
+            content.Opacity = 1;
+        };
     }
 
     internal static RelativePoint Origin(PlacementMode placement) => placement switch

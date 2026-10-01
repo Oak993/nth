@@ -82,11 +82,25 @@ public static class Presentation
 
     private sealed class AvaloniaPopoverPresenter : IPopoverPresenter
     {
+        private readonly System.Runtime.CompilerServices.ConditionalWeakTable<Popup, Action> closing = new();
+
         public void SetPresented(Popup popup, bool presented)
         {
+            if (closing.TryGetValue(popup, out var stop)) { closing.Remove(popup); stop(); }
+            if (!presented && popup.IsOpen && popup.Child is { } shown)
+            {
+                // NSPopover shrinks back into its arrow before it goes (PopoverAppear.cs).
+                closing.AddOrUpdate(popup, PopoverAppear.Dismiss(shown, popup.Placement, () =>
+                {
+                    closing.Remove(popup);
+                    popup.IsOpen = false;
+                }));
+                return;
+            }
+            var wasOpen = popup.IsOpen;
             popup.IsOpen = presented;
             // NSPopover grows in from its arrow (PopoverAppear.cs); the child is final once the popup has opened.
-            if (presented && popup.IsOpen && popup.Child is { } content) PopoverAppear.Play(content, popup.Placement);
+            if (presented && !wasOpen && popup.IsOpen && popup.Child is { } content) PopoverAppear.Play(content, popup.Placement);
         }
     }
 }
