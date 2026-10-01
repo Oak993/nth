@@ -1452,9 +1452,17 @@ internal sealed class SendButton : Decorator
 internal sealed class SendRunState : Decorator
 {
     // :801-804 the view's inputs; :806-812 body
-    public SendRunState(ThreadRuntime runtime, bool goesToHead, bool queueGoesToHead, Action send) =>
+    public SendRunState(ThreadRuntime runtime, bool goesToHead, bool queueGoesToHead, Action send)
+    {
+        bool? shown = null;
         this.Track(() => (Running: runtime.IsRunning, Heads: runtime.IsRunning && runtime.HasWorkingHeads), input =>
-            Child = new SendDraftState(runtime, input.Running, input.Heads, goesToHead, queueGoesToHead, send)); // :807-811
+        {
+            // :834 the symbol's replace transition plays when the symbol itself changes (running flipped).
+            var previous = shown is { } was && was != input.Running ? SendDraftState.Symbol(was) : null;
+            shown = input.Running;
+            Child = new SendDraftState(runtime, input.Running, input.Heads, goesToHead, queueGoesToHead, send, previous); // :807-811
+        });
+    }
 }
 
 /// <summary>:815-866 <c>private struct SendDraftState: View</c>.</summary>
@@ -1467,11 +1475,21 @@ internal sealed class SendDraftState : Decorator
         bool headsWorking,
         bool goesToHead,
         bool queueGoesToHead,
-        Action send)
+        Action send,
+        string? previousSymbol = null)
     {
-        var image = SwiftImage.SystemName(isRunning ? "stop.fill" : "arrow.up").Font(Chrome.IconFont).ForegroundStyle(SwiftColor.White); // :831-833
-        image.ContentTransitionSymbolEffect(SymbolEffectKind.Replace); // :834 MARROW_DEFERRED ED-182: symbol cross-fade
-        var label = new Border { Width = 28, Height = 28, Child = image }.Capsule(RoundedCornerStyle.Circular); // :835-836 circle
+        var image = SwiftImage.SystemName(Symbol(isRunning)).Font(Chrome.IconFont).ForegroundStyle(SwiftColor.White); // :831-833
+        image.ContentTransitionSymbolEffect(SymbolEffectKind.Replace); // :834
+        Control face = image;
+        if (previousSymbol is not null && previousSymbol != Symbol(isRunning))
+        {
+            // :834 .contentTransition(.symbolEffect(.replace)): the old symbol goes, then the new one grows in (SymbolReplace).
+            var old = SwiftImage.SystemName(previousSymbol).Font(Chrome.IconFont).ForegroundStyle(SwiftColor.White);
+            var both = new Panel { Children = { image, old } };
+            SymbolReplace.Play(old, image, () => both.Children.Remove(old));
+            face = both;
+        }
+        var label = new Border { Width = 28, Height = 28, Child = face }.Capsule(RoundedCornerStyle.Circular); // :835-836 circle
         var button = PlainControls.Button(label, () => { if (isRunning) runtime.Interrupt(); else send(); }); // :828-829,838
         button.Focusable = false; // :839
         button.Margin = new Thickness(4,0,0,0); // :841
@@ -1487,6 +1505,9 @@ internal sealed class SendDraftState : Decorator
         this.Track(() => (Empty: runtime.Draft.IsEmpty, Reverting: runtime.IsReverting), input => Apply(input.Empty, input.Reverting));
         Child = button;
     }
+
+    /// <summary>:831 the button's symbol: stop.fill while running, else arrow.up.</summary>
+    internal static string Symbol(bool isRunning) => isRunning ? "stop.fill" : "arrow.up";
 
     // :848-865 The shortcuts are read from the launch-wide cache, not looked up per keystroke.
     private static string HelpText(bool isRunning, bool headsWorking, bool goesToHead, bool queueGoesToHead)
