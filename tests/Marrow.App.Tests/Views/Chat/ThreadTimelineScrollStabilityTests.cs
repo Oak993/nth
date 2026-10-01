@@ -248,6 +248,59 @@ public sealed class ThreadTimelineScrollStabilityTests(HeadlessSession headless)
         Assert.True(scroller.Offset.Y > scroller.Viewport.Height, "the page did not land above the viewport: " + Where(scroller));
     });
 
+    // A turn in flight: the question, a run of tool steps and the answer so far (no turnEnd yet).
+    private static IEnumerable<TimelineEntry> RunningTurn(Guid turn)
+    {
+        yield return Entry("live-user", new TimelineItem.Content.User(new UserMessage { Text = "Run the checks and summarise." }), turn);
+        for (var step = 0; step < 8; step++)
+            yield return Entry("live-tool-" + step, new TimelineItem.Content.Tool(new ToolCall { Title = "Step " + step, ToolCallKind = ToolCall.Kind.Command }), turn);
+        yield return Entry("live-reply", new TimelineItem.Content.Assistant(new AssistantMessage { Text = LongReply }), turn);
+    }
+
+    private static void SetPhase(ThreadRuntime runtime, RuntimePhase phase) =>
+        typeof(ThreadRuntime).GetProperty("Phase")!.SetValue(runtime, phase);
+
+    private static void FinishTurn(ThreadRuntime runtime, Guid turn)
+    {
+        SetPhase(runtime, RuntimePhase.Idle);
+        SetEntries(runtime, runtime.Entries.Append(Entry("live-end", new TimelineItem.Content.TurnEnd(new TurnSummary { TurnID = turn, Status = TurnStatus.Completed, Duration = 9, FilesChanged = 0, Additions = 0, Deletions = 0 }), turn)).ToList());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:624-638 "The turn's end folds its steps into its answer ... A reader at the end is put back on the end once that has laid out"
+    public void A_finishing_turn_reshapes_its_block_and_a_pinned_reader_stays_on_the_end() => WithLongThread(20, (view, runtime, window, frames) =>
+    {
+        var turn = Guid.NewGuid();
+        SetPhase(runtime, RuntimePhase.Running);
+        SetEntries(runtime, runtime.Entries.Concat(RunningTurn(turn)).ToList());
+        Settle(window, frames);
+        Assert.True(AtEnd(Scroller(view)), "running: " + Where(Scroller(view)));
+        FinishTurn(runtime, turn);
+        Settle(window, frames);
+        Assert.True(AtEnd(Scroller(view)), "finished: " + Where(Scroller(view)));
+        Assert.True(SomeTextOnScreen(view, Scroller(view)), "blank after the fold: " + Where(Scroller(view)));
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:624-638 and :686-709: a reader who scrolled up is not moved by the turn ending; :542-556 never left past the end
+    public void A_finishing_turn_leaves_a_reader_scrolled_up_mid_thread_where_they_were() => WithLongThread(30, (view, runtime, window, frames) =>
+    {
+        var turn = Guid.NewGuid();
+        SetPhase(runtime, RuntimePhase.Running);
+        SetEntries(runtime, runtime.Entries.Concat(RunningTurn(turn)).ToList());
+        Settle(window, frames);
+        Assert.True(Wheel(view, window, 40) > 1500, "the wheel did not move the reader up: " + Where(Scroller(view)));
+        Settle(window, frames);
+        var anchor = TextsOnScreen(view, Scroller(view)).First();
+        var offset = Scroller(view).Offset.Y;
+        FinishTurn(runtime, turn);
+        Settle(window, frames);
+        Assert.False(AtEnd(Scroller(view)), "the reader was pulled to the end: " + Where(Scroller(view)));
+        Assert.True(SomeTextOnScreen(view, Scroller(view)), "blank after the fold: " + Where(Scroller(view)));
+        Assert.Equal(offset, Scroller(view).Offset.Y, 0);
+        Assert.Same(anchor, TextsOnScreen(view, Scroller(view)).First());
+    });
+
     [Fact]
     [Trait("Req", "PR-CHAT-170")] // ThreadTimeline.swift:2320-2325 ScrollFreeze turns off hit-testing on the rows only; the NSScrollView still takes every wheel event
     public void Every_wheel_notch_scrolls_even_while_the_rows_are_frozen() => WithLongThread(30, (view, _, window, _) =>
