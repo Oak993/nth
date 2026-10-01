@@ -46,8 +46,12 @@ public sealed class HydraCookbookPanelTests(HeadlessSession headless)
             Assert.Equal(1, row.Opacity);
             var mark = Assert.Single(LogicalQuery.SelfAndDescendants<HydraPairMark>(row)); Assert.Equal(52, mark.Width);
             var text = LogicalQuery.SelfAndDescendants<TextBlock>(row).First(); Assert.Equal(FontWeight.SemiBold, text.FontWeight);
-            var dividers = LogicalQuery.SelfAndDescendants<Separator>(host).Where(s => s.Opacity == 0.35).ToList();
+            // :41, :53 Divider().opacity(0.35).padding(.leading, 16): one-point hairlines that are actually drawn (an
+            // Avalonia Separator has no template in this theme-less app and drew nothing).
+            window.UpdateLayout();
+            var dividers = LogicalQuery.SelfAndDescendants<Border>(host).Where(s => s.Height == 1 && s.Opacity == 0.35).ToList();
             Assert.NotEmpty(dividers); Assert.All(dividers, d => Assert.Equal(16, d.Margin.Left));
+            Assert.All(dividers, d => Assert.True(d.Bounds.Height == 1 && d.Bounds.Width > 0 && d.Background is not null, "divider not drawn: " + d.Bounds));
             Assert.Contains(LogicalQuery.SelfAndDescendants<HydraCookbookRow>(host), r => r.Opacity == 0.55);
             var add = Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row));
             add.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));

@@ -36,6 +36,14 @@ namespace Marrow.App.Views.Settings;
 /// here, added with one click.</summary>
 public sealed class HydraCookbookPanel : Decorator
 {
+    // :30, :41, :53 Divider().opacity(x)[.padding(.leading, 16)]: the shared hairline (a bare Separator drew nothing).
+    private static Control Divided(Control divider, double opacity, double leading = 0)
+    {
+        divider.Opacity = opacity;
+        divider.Margin = new Avalonia.Thickness(leading, 0, 0, 0);
+        return divider;
+    }
+
     // :8-67 body
     public HydraCookbookPanel()
     {
@@ -57,7 +65,7 @@ public sealed class HydraCookbookPanel : Decorator
 
         var root = new StackPanel { Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
         root.Children.Add(new Border { Child = header, Padding = new Avalonia.Thickness(16, 16, 16, 12) });
-        root.Children.Add(new Separator { Opacity = 0.5 }); // :30
+        root.Children.Add(Divided(PlainControls.Divider(), 0.5)); // :30 Divider().opacity(0.5)
         root.Children.Add(scroll);
 
         Child = root;
@@ -99,7 +107,7 @@ public sealed class HydraCookbookPanel : Decorator
             foreach (var (recipe, pair) in ready) // :39-42
             {
                 listContent.Children.Add(new HydraCookbookRow(recipe, pair, null));
-                listContent.Children.Add(new Separator { Opacity = 0.35, Margin = new Avalonia.Thickness(16, 0, 0, 0) });
+                listContent.Children.Add(Divided(PlainControls.Divider(), 0.35, 16)); // :41 Divider().opacity(0.35).padding(.leading, 16)
             }
 
             if (waiting.Count > 0) // :43-55
@@ -117,7 +125,7 @@ public sealed class HydraCookbookPanel : Decorator
                 {
                     var row = new HydraCookbookRow(recipe, null, provider) { Opacity = 0.55 };
                     listContent.Children.Add(row);
-                    listContent.Children.Add(new Separator { Opacity = 0.35, Margin = new Avalonia.Thickness(16, 0, 0, 0) });
+                    listContent.Children.Add(Divided(PlainControls.Divider(), 0.35, 16)); // :53 Divider().opacity(0.35).padding(.leading, 16)
                 }
             }
 

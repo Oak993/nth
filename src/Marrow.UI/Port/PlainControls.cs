@@ -71,6 +71,19 @@ public static class PlainControls
         return box;
     }
 
+    /// <summary>
+    /// <c>Divider()</c> in a vertical stack: SwiftUI's horizontal hairline, one point high and full width, in the 0.22
+    /// primary-text wash the port already uses for it (ShortcutsSettingsPage.Divider, ChromeDivider, Chrome.swift:327).
+    /// Not Avalonia's Separator: the app carries no theme package, so a Separator has no template and draws nothing.
+    /// </summary>
+    public static Control Divider()
+    {
+        var bar = new Border { Height = 1, HorizontalAlignment = HorizontalAlignment.Stretch };
+        bar.Background = Marrow.UI.Chrome.Chrome.PrimaryText.Opacity(0.22).Brush(bar);
+        Avalonia.Automation.AutomationProperties.SetAccessibilityView(bar, Avalonia.Automation.AccessibilityView.Raw);
+        return bar;
+    }
+
     /// <summary><c>Button(action:) { label }.buttonStyle(.plain)</c>.</summary>
     public static Button Button(Control label, Action action)
     {

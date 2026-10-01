@@ -100,10 +100,9 @@ public sealed class PlanLimitsView : Decorator
                 {
                     if (available.Windows.Count > 0)
                     {
-                        Add(new Separator
-                        {
-                            Margin = new Thickness(0, 14, 0, 0),
-                        });
+                        var rule = PlainControls.Divider(); // :34-35 Divider().padding(.top, 14); a bare Separator drew nothing
+                        rule.Margin = new Thickness(0, 14, 0, 0);
+                        Add(rule);
                     }
 
                     if (resets is null) resets = new BankedResetsView(provider, credits);
