@@ -1,0 +1,81 @@
+using Marrow.Core.Models;
+using Marrow.Core.Port;
+using Marrow.Services.Providers;
+using Marrow.Services.Tests.Fixtures;
+using Marrow.Testing;
+using Xunit;
+
+namespace Marrow.Services.Tests.Providers;
+
+// Source: DroppyCode/Services/Providers/ProviderRegistry.swift (B2 1fbf81e), loadCommands :762-784 and
+// updateCommands :740-751.
+//
+// Test-first proof for PR-PROVREG-218: a failed command load stores the provider error's own description under the
+// same key, leaves the previously cached list alone, and a later successful load clears the error. The failure is
+// the one Claude's handshake raises for a reply with no commands array (ClaudeSession.swift:203-205), produced by
+// the compiled Claude stand-in (R-TEST-8) reached through a custom binary path (R-TEST-10).
+public sealed class ProviderRegistryCommandErrorTests
+{
+    private const string Good =
+        "{\"type\":\"control_response\",\"response\":{\"request_id\":\"__REQUEST_ID__\",\"response\":{\"models\":[],\"commands\":[\"deploy\"]}}}";
+
+    private const string NoCommands =
+        "{\"type\":\"control_response\",\"response\":{\"request_id\":\"__REQUEST_ID__\",\"response\":{\"models\":[]}}}";
+
+    private static string Folder()
+    {
+        var root = Environment.GetEnvironmentVariable("MARROW_PORT_DATA_DIR");
+        Assert.False(string.IsNullOrEmpty(root), "MARROW_PORT_DATA_DIR must be set before tests run.");
+        var dir = Path.Combine(root!, "provider-registry-command-error", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        return dir;
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-218")] // ProviderRegistry.swift:776-779 (catch stores error.localizedDescription under the key; commands untouched), :750 (a success clears the error)
+    public async Task a_failed_load_stores_the_error_text_under_the_same_key_keeps_the_stale_list_and_a_later_success_clears_it()
+    {
+        using var runtime = new TestRuntime();
+        var script = new ClaudeScript("command-error");
+        var settings = new FakeProviderSettings();
+        settings.Paths[ProviderKind.Claude] = script.ExecutablePath.Replace('\\', '/');
+        var registry = new ProviderRegistry(settings);
+        var directory = Folder();
+        var key = ProviderRegistry.CommandKey(ProviderKind.Claude, directory);
+
+        script.SetResponse(Good);
+        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCommands(ProviderKind.Claude, directory, force: true)));
+        Assert.Equal(["deploy"], registry.Commands[key].Select(command => command.Name));
+        Assert.DoesNotContain(key, registry.CommandErrors.Keys);
+
+        script.SetResponse(NoCommands);
+        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCommands(ProviderKind.Claude, directory, force: true)));
+        Assert.Equal("Claude could not load its commands.", registry.CommandErrors[key]); // exactly the error's description
+        Assert.Equal([key], registry.CommandErrors.Keys); // under the same key as the list
+        Assert.Equal(["deploy"], registry.Commands[key].Select(command => command.Name)); // the stale list survives
+
+        script.SetResponse(Good);
+        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCommands(ProviderKind.Claude, directory, force: true)));
+        Assert.DoesNotContain(key, registry.CommandErrors.Keys); // a successful load clears the error
+        Assert.Equal(["deploy"], registry.Commands[key].Select(command => command.Name));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVREG-218")] // ProviderRegistry.swift:776-779 (a first load that fails stores only the error: no list is invented)
+    public async Task a_first_load_that_fails_stores_the_error_and_no_list()
+    {
+        using var runtime = new TestRuntime();
+        var script = new ClaudeScript("command-error-first");
+        script.SetResponse(NoCommands);
+        var settings = new FakeProviderSettings();
+        settings.Paths[ProviderKind.Claude] = script.ExecutablePath.Replace('\\', '/');
+        var registry = new ProviderRegistry(settings);
+        var directory = Folder();
+        var key = ProviderRegistry.CommandKey(ProviderKind.Claude, directory);
+
+        await Task.Run(() => runtime.Loop.Run(() => registry.LoadCommands(ProviderKind.Claude, directory, force: true)));
+
+        Assert.Equal("Claude could not load its commands.", registry.CommandErrors[key]);
+        Assert.DoesNotContain(key, registry.Commands.Keys);
+    }
+}

@@ -475,9 +475,40 @@ public sealed partial class ProviderRegistry : MainActorModel
         return new ValueMap<string, string>(environment, StringComparer.OrdinalIgnoreCase); // :278
     }
 
-    // :289-310
-    public Task<string?> SignIn(ProviderKind provider) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/Services/Providers/ProviderRegistry.swift:289");
+    // :286-310. PR-PROVREG-234, PR-PROVREG-235. Signs a CLI provider in from the app: the provider's own login
+    // command, then a fresh status check and usage read. Returns the CLI's message when it failed, null on
+    // success. The pinned checkout has no caller of this method and no reader of SigningIn (neither is in
+    // dead_code.md), so nothing in the app reaches it; it is kept so the behaviour is there if a caller is found.
+    public async Task<string?> SignIn(ProviderKind provider)
+    {
+        if (signingIn is not null) return null; // :290
+        if (provider.IsAPIKeyBased) return null; // :291
+        SigningIn = provider; // :292
+        try
+        {
+            await LoginEnvironment.Load(); // :294
+            if (Executable(provider) is not { } executable) return $"{provider.DisplayName} was not found."; // :295
+            // :297. The login command starts with the executable's own name; the rest are its arguments.
+            var arguments = provider.LoginCommand.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Skip(1).ToList();
+            var result = await SwiftTry.OptionalAsync<ShellResult>(async () =>
+                await Shell.Run(executable.Path, arguments, environment: Environment(provider), timeout: 300)); // :298
+            if (result is { Succeeded: true }) // :299
+            {
+                await Refresh(provider); // :300
+                RefreshPlanLimits(provider, force: true); // :301
+                await LoadCatalog(provider, force: true); // :302
+                return null; // :303
+            }
+            var output = result is null ? "" : TextCleanup.StripANSI(result.Output + result.ErrorOutput); // :306
+            var lines = SwiftString.Split(output, "\n"); // :307 split(separator: newline, omittingEmptySubsequences: true)
+            if (lines.Count == 0 || lines[^1].Length == 0) return $"{provider.DisplayName} did not finish signing in."; // :307-309
+            return lines[^1]; // :310
+        }
+        finally
+        {
+            SigningIn = null; // :293 defer
+        }
+    }
 
     // :315-333. PR-PROVREG-131, PR-PROVREG-132. Single-flight (:316-318), then three phases in order:
     // refreshAll, then a forced limits read for every provider not known to be signed out (:321-326,
