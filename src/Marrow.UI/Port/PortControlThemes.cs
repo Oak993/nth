@@ -86,6 +86,64 @@ public static class PortControlThemes
         Setters = { new Setter(TemplatedControl.TemplateProperty, TipTemplate) },
     };
 
+    // Slider(...).controlSize(.small) (SettingsView.swift:532-534 transparency, WallpaperCard.swift:133-139 softness): drew
+    // nothing without a template (probe; SettingsRestNativeDependencyTests recorded the blocker). ENGINEERING DECISION
+    // (proposal ED-229 (2)), measured from the reference runtime (E:\Droppy\work\reference-video, 2-chat-use.mov 96.5 s,
+    // Settings > Appearance > Transparency, about 1 px = 1 pt): a 4 pt capsule track across the slider's width, the knob a
+    // white 18 x 14 pt capsule kept inside the track's ends; the track's wash is primary text at 0.12 (measured about
+    // white 10 % on the dark card); the filled side is the accent (UNVERIFIED: every frame seen has the knob at the
+    // minimum). A click on the track moves the knob there, as NSSlider's does (Avalonia's Slider does that on its own).
+    private static Control SliderBar(Func<Control, IBrush> fill)
+    {
+        var bar = new Border { Height = 4, CornerRadius = new CornerRadius(2), VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center };
+        bar.Background = fill(bar);
+        return bar;
+    }
+
+    private static RepeatButton SliderSide(string name, Func<Control, IBrush> fill) => new()
+    {
+        Name = name,
+        Focusable = false,
+        Background = Brushes.Transparent,
+        Template = new FuncControlTemplate<RepeatButton>((side, _) => new Panel { Background = Brushes.Transparent, Children = { SliderBar(fill) } }),
+    };
+
+    private static readonly FuncControlTemplate<Slider> SliderTemplate = new((slider, scope) =>
+    {
+        var knob = new Thumb
+        {
+            Name = "PART_Thumb",
+            Width = 18,
+            Height = 14,
+            Template = new FuncControlTemplate<Thumb>((_, _) => new Border
+            {
+                CornerRadius = new CornerRadius(7),
+                Background = Brushes.White,
+                BoxShadow = BoxShadows.Parse("0 0.5 2 0 #40000000"),
+            }),
+        };
+        var decrease = SliderSide("PART_DecreaseButton", bar => Marrow.UI.Chrome.Chrome.Accent.Brush(bar)).RegisterInNameScope(scope);
+        var increase = SliderSide("PART_IncreaseButton", bar => Marrow.UI.Chrome.Chrome.Overlay(0.12).Brush(bar)).RegisterInNameScope(scope);
+        var track = new Track
+        {
+            Name = "PART_Track",
+            Orientation = Avalonia.Layout.Orientation.Horizontal,
+            Thumb = knob,
+            DecreaseButton = decrease,
+            IncreaseButton = increase,
+            [!Track.MinimumProperty] = slider[!RangeBase.MinimumProperty],
+            [!Track.MaximumProperty] = slider[!RangeBase.MaximumProperty],
+            [!!Track.ValueProperty] = slider[!!RangeBase.ValueProperty],
+        }.RegisterInNameScope(scope);
+        return new Panel { Background = Brushes.Transparent, MinHeight = 14, Children = { track } };
+    });
+
+    /// <summary>The Slider default theme: the measured small slider, click-to-position.</summary>
+    public static ControlTheme SliderTheme { get; } = new(typeof(Slider))
+    {
+        Setters = { new Setter(TemplatedControl.TemplateProperty, SliderTemplate) }, // Avalonia's Slider moves to a clicked point itself
+    };
+
     /// <summary>Registers the default themes on the application, after setup (app and test builders alike).</summary>
     public static AppBuilder WithPortControlThemes(this AppBuilder builder) =>
         builder.AfterSetup(setup =>
@@ -100,5 +158,6 @@ public static class PortControlThemes
         application.Resources[typeof(ScrollViewer)] = ScrollViewerTheme;
         application.Resources[typeof(ProgressBar)] = ProgressBarTheme;
         application.Resources[typeof(ToolTip)] = ToolTipTheme;
+        application.Resources[typeof(Slider)] = SliderTheme;
     }
 }

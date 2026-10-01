@@ -16,16 +16,22 @@ public sealed class SettingsRestNativeDependencyTests(HeadlessSession headless) 
 {
     [Fact]
     [Trait("Decision", "ED-071")]
-    public void Missing_framework_slider_form_is_a_precise_blocker_not_a_property_only_drag_proof()
+    [Trait("Req", "UI-THEME-009")] // App/Views/Settings/SettingsView.swift:532-534 Slider(value:in: 0...1).controlSize(.small).frame(width: 140)
+    public void The_transparency_slider_is_drawn_and_a_drag_changes_the_setting()
     {
-        // STOP opencode-SettingsView-rest #4: UI-THEME-009/012, SettingsView.cs BackdropOpacitySlider :535.
-        // No native Slider theme/template is registered; its framework track/thumb and real drag semantics are absent.
-        // This records the missing external view form, without inventing its size, colours or thumb geometry.
-        With(() => new BackdropOpacitySlider(Binding<double>.Constant(0.5)), (view, _, _, w) =>
+        // Formerly STOP opencode-SettingsView-rest #4 (no Slider template: nothing drawn, drags ignored). Resolved by
+        // PortControlThemes' Slider theme, measured from the reference runtime (proposal ED-229 (2)): a 4 pt track across
+        // the 140 pt, a white 18 x 14 pt knob kept inside its ends.
+        var value = 0.5;
+        With(() => new BackdropOpacitySlider(new Binding<double>(() => value, v => value = v)), (view, _, _, w) =>
         {
             var slider = Assert.Single(Nodes<Slider>(view)); Assert.Equal(140, slider.Width); Assert.Equal(0, slider.Minimum); Assert.Equal(1, slider.Maximum);
-            Assert.Null(slider.Template); Assert.Empty(slider.GetVisualDescendants());
-            var at = At(slider, w); w.MouseDown(at, MouseButton.Left); w.MouseMove(at + new Vector(40, 0)); w.MouseUp(at + new Vector(40, 0), MouseButton.Left); Drain(w); Assert.Equal(0.5, slider.Value);
+            var knob = Assert.Single(slider.GetVisualDescendants().OfType<Avalonia.Controls.Primitives.Thumb>());
+            Assert.Equal(new Size(18, 14), knob.Bounds.Size);
+            Assert.All(slider.GetVisualDescendants().OfType<Border>().Where(b => b.Height == 4), bar => Assert.True(bar.Bounds.Right <= 140.5));
+            var at = knob.TranslatePoint(new Point(9, 7), w)!.Value; w.MouseDown(at, MouseButton.Left); w.MouseMove(at + new Vector(40, 0)); w.MouseUp(at + new Vector(40, 0), MouseButton.Left); Drain(w);
+            Assert.True(slider.Value > 0.7, "the drag did not move the knob: " + slider.Value);
+            Assert.Equal(slider.Value, value, 6); // the setting follows the knob
         });
     }
 
