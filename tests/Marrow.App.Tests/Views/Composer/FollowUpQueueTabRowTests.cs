@@ -26,6 +26,9 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class FollowUpQueueTabRowTests(HeadlessSession headless)
 {
+    private static bool IsInside(object? hit, Visual container) =>
+        hit is Visual visual && (ReferenceEquals(visual, container) || container.IsVisualAncestorOf(visual));
+
     private static FollowUpPrompt[] Plain(params string[] texts) => texts.Select(text => Prompt(text)).ToArray();
 
     [Fact]
@@ -105,6 +108,7 @@ public sealed class FollowUpQueueTabRowTests(HeadlessSession headless)
             Assert.Equal("Unlink", AutomationProperties.GetName(unlink));
             Assert.False(unlink.Focusable);
             Assert.Equal(14, unlink.Bounds.Width);
+            Assert.True(IsInside(run.Window.InputHitTest(RectIn(unlink, run.Window).TopLeft + new Vector(1, 1)), unlink), "the whole cell takes the click");
             var glyph = Assert.IsType<SwiftImage>(unlink.Content);
             Assert.Equal("link", glyph.SymbolName);
             Assert.Equal(Effective(Chrome.Accent.Brush(run.Tab)), Effective(glyph.Foreground));
@@ -157,9 +161,17 @@ public sealed class FollowUpQueueTabRowTests(HeadlessSession headless)
                 Assert.Equal(22, host.Bounds.Height);
                 Assert.Equal("Drag above or below to reorder · drop onto the middle of another to send them together", ToolTip.GetTip(host));
                 Assert.Equal("Drag to reorder", AutomationProperties.GetName(host));
+                // .contentShape(.rect): the corners of the cell take the pointer too, not only the drawn strokes.
+                Assert.True(IsInside(run.Window.InputHitTest(RectIn(host, window).TopLeft + new Vector(1, 1)), host), "grip corner");
+                Assert.True(IsInside(run.Window.InputHitTest(RectIn(host, window).BottomRight - new Vector(1, 1)), host), "grip corner");
 
                 var buttons = Buttons(row).Select(button => RectIn(button, window)).ToList();
                 Assert.Equal(3, buttons.Count);
+                foreach (var cell in Buttons(row)) // :524 .contentShape(.rect)
+                {
+                    var corner = RectIn(cell, window).TopLeft + new Vector(1, 1);
+                    Assert.True(IsInside(run.Window.InputHitTest(corner), cell), "a button's corner takes the click");
+                }
                 Assert.Equal(rowRect.Right, buttons.Last().Right, 0.5); // the buttons sit at the trailing edge
                 var text = RectIn(ProseOf(row), window);
                 Assert.True(text.Right <= buttons.First().Left, "the text ends before the buttons");
@@ -433,6 +445,7 @@ public sealed class FollowUpQueueTabRowTests(HeadlessSession headless)
             // The popover hangs from the pencil's rect on the window, not from a view mounted in the tab.
             var (popup, shown) = recorder.Calls.Last();
             Assert.True(shown);
+            Assert.Equal(1, recorder.Calls.Count(call => call.Presented)); // the other row's editor stays shut
             Assert.Same(run.Window, popup.PlacementTarget);
             var rect = RectIn(pencil, run.Window);
             Assert.Equal(rect.X, popup.PlacementRect!.Value.X, 1);

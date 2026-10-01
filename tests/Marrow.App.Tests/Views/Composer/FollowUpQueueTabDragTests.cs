@@ -65,6 +65,11 @@ public sealed class FollowUpQueueTabDragTests(HeadlessSession headless)
             Assert.True(ShowsPlainLink(run.Rows[0]), "so does the held row");
             Assert.False(ShowsPlainLink(run.Rows[2]));
 
+            // Still inside the quarter either side of r2's centre line (32 +- 8): no swap yet, past its middle but not its far quarter.
+            Drag(run, start, 38);
+            Assert.Equal(["r1", "r2", "r3"], Texts(run.Runtime));
+            Assert.True(ShowsPlainLink(run.Rows[1]));
+
             // Past r2's far quarter: the two swap, and r3 is not a target.
             Drag(run, start, 45);
             Assert.Equal(["r2", "r1", "r3"], Texts(run.Runtime));
