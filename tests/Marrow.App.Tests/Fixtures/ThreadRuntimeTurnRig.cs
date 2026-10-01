@@ -16,12 +16,15 @@ public sealed class ThreadRuntimeTurnRig : IDisposable
         string? projectFolder = null,
         bool install = true,
         Action<AppModel>? settings = null,
-        bool hydraOn = false)
+        bool hydraOn = false,
+        Func<AppModelHarness, string>? projectFactory = null,
+        Func<AppModelHarness, ChatThread, ChatThread>? configureWithHarness = null)
     {
         H = new AppModelHarness();
-        Project = AppModelSamples.Project("Project", projectFolder ?? H.NewFolder("project"));
+        Project = AppModelSamples.Project("Project", projectFolder ?? projectFactory?.Invoke(H) ?? H.NewFolder("project"));
         var thread = AppModelSamples.Thread(Project) with { Provider = provider, Model = "offline-model", HydraEnabled = hydraOn };
         if (configure is not null) thread = configure(thread);
+        if (configureWithHarness is not null) thread = configureWithHarness(H, thread);
         InitialThread = thread;
         H.WriteLibrary([Project], [thread]);
         App = H.MakeModel();
