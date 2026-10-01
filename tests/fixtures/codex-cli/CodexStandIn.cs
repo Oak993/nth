@@ -33,6 +33,13 @@ internal static class CodexStandIn
     private static int Main(string[] args)
     {
         string dir = Environment.GetEnvironmentVariable("CODEX_STANDIN_DIR");
+        if (string.IsNullOrEmpty(dir))
+        {
+            // PORT-ONLY (R-TEST-8): a registry-built environment cannot carry CODEX_STANDIN_DIR, so a copy of this
+            // stand-in also finds its control folder from control-dir.txt next to its own executable.
+            string hint = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "control-dir.txt");
+            if (File.Exists(hint)) dir = File.ReadAllText(hint, Encoding.UTF8).Trim();
+        }
         if (string.IsNullOrEmpty(dir)) return 0;
         Directory.CreateDirectory(dir);
 

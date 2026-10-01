@@ -20,6 +20,13 @@ public static class ProviderRegistryState
         ((HashSet<ProviderKind>)field.GetValue(registry)!).Add(provider);
     }
 
+    /// <summary>Whether the provider's catalog attempt is closed for this launch (the set has no public reader).</summary>
+    public static bool IsCatalogAttempted(ProviderRegistry registry, ProviderKind provider)
+    {
+        var field = typeof(ProviderRegistry).GetField("attemptedCatalogs", BindingFlags.Instance | BindingFlags.NonPublic)!;
+        return ((HashSet<ProviderKind>)field.GetValue(registry)!).Contains(provider);
+    }
+
     /// <summary>Stamps the provider's last successful limits read as "now" on the current clock.</summary>
     public static void StampLimitsRead(ProviderRegistry registry, ProviderKind provider)
     {
