@@ -33,6 +33,7 @@ public sealed class ThreadRuntimeScriptedSession : ProviderSession
     public Exception? SendFailure { get; set; }
     public Func<TurnInput, Task>? SendScript { get; set; }
     public Func<Task>? InterruptScript { get; set; }
+    public Func<Task>? CompactScript { get; set; }
 
     public Task<string> Start()
     {
@@ -55,7 +56,7 @@ public sealed class ThreadRuntimeScriptedSession : ProviderSession
 
     public void ResolveApproval(string requestID, string optionID) { }
     public void AnswerQuestion(string requestID, ValueMap<string, ValueList<string>> answers) { }
-    public Task Compact() => Task.CompletedTask;
+    public Task Compact() => CompactScript?.Invoke() ?? Task.CompletedTask;
 
     public void Stop()
     {
