@@ -2129,8 +2129,20 @@ public sealed class AppModelHydraTests
 
         // The capture is still fresh, so the next head checks the tree against it; a landing happens while that read is
         // under way. The capture from before the landing must not be handed out, however recent and however equal the tree.
-        var checking = StartHydraTreeCapture(repository.Root, git);
-        InvalidateHydraTreeCache(repository.Root);
+        // The cache's own lock is held from the start of the check to the landing, so the check cannot finish in between
+        // whatever the machine's load (the git read always waits: on the watch's cookie or on a git process).
+        var gate = HydraTreeCacheType().GetField("Gate", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
+        Task<(string Tree, string Commit)> checking;
+        Monitor.Enter(gate);
+        try
+        {
+            checking = StartHydraTreeCapture(repository.Root, git);
+            InvalidateHydraTreeCache(repository.Root);
+        }
+        finally
+        {
+            Monitor.Exit(gate);
+        }
         var after = await checking;
 
         Assert.Equal(first.Tree, after.Tree); // nothing in the checkout changed
