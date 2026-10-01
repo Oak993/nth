@@ -1599,7 +1599,11 @@ internal sealed class ArchiveThreadPopover : Decorator
             Spacing = 9,
             Children = { question, buttons },
         };
-        var padded = new Border { Padding = new Thickness(8, 6, 8, 4), Child = column }; // :938-940
+        // :938-940 padding; :943 .frame(width: 272). The Swift PopoverMenu's content takes the 272 pt proposed to it (its
+        // frame(minWidth: 210, maxWidth: 360), Popovers.swift:108) inside its own 6 pt padding (:107), so the button row's
+        // Spacer pushes Delete and Archive to the trailing edge. PopoverMenu (Marrow.UI) sizes its content to fit, so the
+        // content is given that width here: 272 less 6 on each side (UI-SIDEBAR-031, UI-SIDEBAR-032 "right-aligned").
+        var padded = new Border { Padding = new Thickness(8, 6, 8, 4), Child = column, Width = 272 - 2 * 6 };
         var menu = new PopoverMenu(() => padded);
         menu.Width = 272; // :943 .frame(width: 272)
         Child = menu;
@@ -1634,6 +1638,10 @@ internal sealed class ArchiveThreadPopover : Decorator
     private void Appear()
     {
         archiveButton?.Focus(); // :945 isFocused = true
+        // The content is attached before its window has laid it out, and a focus request made then is dropped; the same
+        // request one turn later (once it is laid out and focusable) takes, so Archive holds the focus from the popover's
+        // appearance, as :945 has it (UI-SIDEBAR-031, UI-SIDEBAR-032).
+        Avalonia.Threading.Dispatcher.UIThread.Post(() => { if (archiveButton is { IsEffectivelyVisible: true } button && !button.IsFocused) button.Focus(); }, Avalonia.Threading.DispatcherPriority.Loaded);
         if (TopLevel.GetTopLevel(anchor) is not Avalonia.Controls.Window window) return;
         monitorWindow = window;
         window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true); // :946-955

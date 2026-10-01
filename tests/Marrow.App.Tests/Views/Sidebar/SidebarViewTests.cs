@@ -2270,10 +2270,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-044")] // App/Views/Sidebar/SidebarView.swift:705-714
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:703-712 (part 7: the gap, project-row and
-    // thread-row sequence, and hasHelpers, as a screen-contract record; the project row's own inertness-but-live-
-    // accessories and the thread rows' project form are proven separately below, since ThreadRow (:870) stays
-    // MARROW_STUB -- STOP #8, SidebarThreadRow's own constructor)
+    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:703-712: the gap, project-row and thread-row sequence, keyed like the main list, with hasHelpers
     public void Search_groups_are_separated_by_a_plain_10_point_spacer_that_is_no_list_item()
     {
         headless.OnUiThread(() =>
@@ -2452,6 +2449,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
     [Trait("Req", "PR-SIDEBAR-046")] // App/Views/Sidebar/SidebarView.swift:129, :136
+    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:136 isEnabled: query.isEmpty: reordering is disabled while the search field holds a query
     public void While_the_search_field_holds_a_query_no_drag_is_recognised_and_the_row_still_clicks()
     {
         headless.OnUiThread(() =>
@@ -3457,6 +3455,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-077")] // App/Views/Sidebar/SidebarView.swift:1727-1729, :1763-1771
+    [Trait("Req", "UI-SIDEBAR-020")] // App/Views/Sidebar/SidebarView.swift:1763-1771: a settled row's check overlaid at .leading with 6 pt, an open row's at .trailing with 26 pt
     public void The_check_shows_at_the_trailing_end_hovered_or_settling_only_with_the_settle_action_and_leads_a_settled_row()
     {
         var type = Private("SidebarThreadRow");
@@ -3886,8 +3885,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:905-943
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:904-964 (part 7: the same popover, as a
-    // screen-contract record; OD-0005 governs the glass material, reproduced as an Acrylic-class Windows material)
+    [Trait("Req", "UI-SIDEBAR-031")] // App/Views/Sidebar/SidebarView.swift:917, :927-931: the question "Archive “title”?", click Delete, click Archive (OD-0005 governs the glass material)
+    [Trait("Req", "UI-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:927-936: the buttons, their tooltips, Archive the default action
     public void The_archive_popover_is_272_wide_asks_Archive_title_and_offers_Delete_and_Archive() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -3917,8 +3916,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-095")] // App/Views/Sidebar/SidebarView.swift:927 Text("Delete").foregroundStyle(.red)
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:927-940 (part 7: the same buttons, as a
-    // screen-contract record)
+    [Trait("Req", "UI-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:927: Delete's label is red (Chrome.danger, whose default is .red, AppTheme.swift:197)
     public void The_delete_button_in_the_archive_popover_is_drawn_in_danger() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -3932,6 +3930,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-096")] // App/Views/Sidebar/SidebarView.swift:946-955
+    [Trait("Req", "UI-SIDEBAR-031")] // App/Views/Sidebar/SidebarView.swift:946-955: Return or keypad Enter archives, Escape dismisses
     public void Return_or_keypad_enter_archives_and_escape_dismisses_swallowing_the_key() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -3950,6 +3949,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
         window.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.NumPadEnter, null); // :951 keyCode 76
         Assert.Equal(2, archived);
+        // The monitor answers by the key's code, as the source's keyCode does, not by the button's own default action.
+        window.KeyPress(Key.A, RawInputModifiers.None, PhysicalKey.NumPadEnter, null);
+        Assert.Equal(3, archived);
+        window.KeyPress(Key.A, RawInputModifiers.None, PhysicalKey.Enter, null);
+        Assert.Equal(4, archived);
+        window.KeyPress(Key.A, RawInputModifiers.None, PhysicalKey.A, null);
+        Assert.Equal(4, archived); // any other key goes on untouched
 
         window.KeyPress(Key.Escape, RawInputModifiers.None, PhysicalKey.Escape, null); // :952 keyCode 53
         Assert.Equal(1, dismissed);
@@ -4020,6 +4026,13 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             (Action)(() => archived++), (Action)(() => { }), (Action)(() => dismissed++))!;
         var popoverWindow = new AvaloniaWindow { Content = popover, Width = 272, Height = 100 };
         popoverWindow.Show(); // a distinct top-level, standing in for the real PopupRoot
+        // Archive takes the focus as the popover appears (:945), and the one headless keyboard device then routes a key to
+        // the focused element wherever it is. The case under test is the key landing on the anchor's window, the focus late
+        // or lost: so the focus is on the anchor's window here, as the source's own comment on the monitor describes
+        // (:896-899).
+        Dispatcher.UIThread.RunJobs();
+        anchor.Focusable = true;
+        Assert.True(anchor.Focus());
 
         anchorWindow.KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null); // :951 keyCode 36
         Assert.Equal(1, archived); // the handler was resolved from the anchor's window, not the popover's own
@@ -6437,7 +6450,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- UI-SIDEBAR-058: a search group's project row stays inert but keeps its live hover accessories ----
 
     [Fact]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:709 ProjectRow(..., togglesExpansion: false)
+    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:709 ProjectRow(..., togglesExpansion: false): inert, but its hover ellipsis and plus stay live
     public void A_search_groups_project_row_never_toggles_but_still_shows_its_hover_ellipsis_and_plus() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the hover fill's own AnimatedColor needs a bound clock
@@ -6731,7 +6744,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Theory]
     [InlineData(null, 28)]
     [InlineData("Alpha", 48)]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1912-1916,1933-1978
+    [Trait("Req", "UI-SIDEBAR-020")] // App/Views/Sidebar/SidebarView.swift:1912-1916: the check of a settled row reopens its thread
     public void A_real_settled_row_reopens_with_two_faces_and_the_destination_height(string? projectName, double height) => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -6834,7 +6847,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:703-712
+    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:703-712, :136 isEnabled: query.isEmpty: thread rows in the project form, selectable, and reordering disabled
     public void Actual_search_rows_are_compact_selectable_and_cannot_start_a_reorder() => headless.OnUiThread(() =>
     {
         var manual = new ManualFrameSource();
@@ -8410,6 +8423,479 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.NotNull(model.Thread(head.Id));
             WindowOf(card).Close();
         });
+    });
+
+    // ---- UI-SIDEBAR-014: the project's action items, in the ellipsis popover and in the context menu ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-014")] // App/Views/Sidebar/SidebarView.swift:1205-1229 actions(isActive:), :367-382 RowActionItems; UI/Chrome/Chrome.swift
+    public void The_ellipsis_popover_lists_the_project_actions_with_their_dividers_symbols_and_colours_and_runs_an_action_one_turn_after_closing() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presented = Presentation.Presenter.Override(new RecordingPresenter());
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        harness.Main.OnMain(() => model.Settings.SetProjectActive(true, project.Id)); // its own override: "Deactivate project" and "Follow global setting"
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 0);
+            window = WindowOf(row);
+        });
+        harness.Main.OnMain(() => window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value));
+        harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")));
+        harness.Main.OnMain(() =>
+        {
+            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single();
+            var stack = Assert.IsType<StackPanel>(LogicalQuery.SelfAndDescendants<RowActionItems>(popup.Child!).Single().Child);
+            // dividers before Reveal in File Explorer, before Remove project and before the activation item
+            Assert.Equal(
+                [typeof(PopoverItem), typeof(PopoverItem), typeof(PopoverDivider), typeof(PopoverItem), typeof(PopoverDivider), typeof(PopoverItem), typeof(PopoverDivider), typeof(PopoverItem), typeof(PopoverItem)],
+                stack.Children.Select(c => c.GetType()));
+            var items = stack.Children.OfType<PopoverItem>().ToList();
+            Assert.Equal(
+                ["New thread", "New thread in worktree", "Reveal in File Explorer", "Remove project", "Deactivate project", "Follow global setting"],
+                items.Select(i => AutomationProperties.GetName(LogicalQuery.SelfAndDescendants<Button>(i).Single())));
+            Assert.Equal(
+                ["square.and.pencil", "square.stack.3d.up", "folder", "trash", "power", "arrow.uturn.backward"],
+                items.Select(i => LogicalQuery.SelfAndDescendants<SwiftImage>(i).First(g => g.SymbolName is not null).SymbolName));
+            foreach (var item in items) // Remove project draws in Chrome.danger, the rest in Chrome.primaryText
+            {
+                var button = LogicalQuery.SelfAndDescendants<Button>(item).Single();
+                var title = LogicalQuery.SelfAndDescendants<TextBlock>(button).First();
+                var expected = AutomationProperties.GetName(button) == "Remove project" ? Chrome.Danger : Chrome.PrimaryText;
+                Assert.Equal(expected.Resolve(title.ActualThemeVariant), ((ISolidColorBrush)title.Foreground!).Color);
+            }
+            // the action runs one turn after the popover closes, not inside the click
+            Assert.Empty(model.ThreadsIn(project));
+            Click(LogicalQuery.SelfAndDescendants<Button>(items[0]).Single()); // the popup content has no window of its own to point into
+            Assert.Empty(model.ThreadsIn(project));
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Single(model.ThreadsIn(project));
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-014")] // App/Views/Sidebar/SidebarView.swift:1168-1203 contextMenuActions: the titles, dividers and the activation pair, run synchronously inside the click
+    public void The_context_menu_lists_the_project_actions_with_the_activation_item_by_current_activation_and_runs_an_action_inside_the_click() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        Control row = null!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 0));
+        string[] OpenMenu(out List<Control> items)
+        {
+            PointerRightClick(row);
+            items = ContextMenuOf(row).Items.Cast<Control>().ToList();
+            return items.Select(i => i is Separator ? "" : MenuItemTitle(i)).ToArray();
+        }
+        void Choose(Control item) => item.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+        harness.Main.OnMain(() =>
+        {
+            // active by the global switch, no override: Deactivate project, and no Follow global setting
+            Assert.Equal(["New thread", "New thread in worktree", "", "Reveal in File Explorer", "", "Remove project", "", "Deactivate project"], OpenMenu(out var items));
+            Choose(items[0]); // :1171-1174 runs inside the click
+            Assert.Single(model.ThreadsIn(project));
+            Choose(items[^1]); // Deactivate project: writes the project's own override
+            Assert.False(model.Settings.IsProjectActive(project.Id));
+            Assert.True(model.Settings.HasProjectActivationOverride(project.Id));
+        });
+        harness.Main.OnMain(() =>
+        {
+            // now inactive with its own override: Activate project, and Follow global setting at the end
+            Assert.Equal(["New thread", "New thread in worktree", "", "Reveal in File Explorer", "", "Remove project", "", "Activate project", "Follow global setting"], OpenMenu(out var items));
+            Choose(items[^1]); // Follow global setting: clears the override
+            Assert.False(model.Settings.HasProjectActivationOverride(project.Id));
+            Assert.True(model.Settings.IsProjectActive(project.Id));
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(["New thread", "New thread in worktree", "", "Reveal in File Explorer", "", "Remove project", "", "Deactivate project"], OpenMenu(out var items));
+            Choose(items[^1]);
+        });
+        harness.Main.OnMain(() =>
+        {
+            OpenMenu(out var items);
+            Choose(items[^2]); // Activate project
+            Assert.True(model.Settings.IsProjectActive(project.Id));
+            WindowOf(row).Close();
+        });
+    });
+
+    // ---- UI-SIDEBAR-020: the real check on a thread row ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-020")] // App/Views/Sidebar/SidebarView.swift:1763-1771, :1904-1910: the open row's check settles the thread, and exists only while threadFinishAction is settle
+    public void Clicking_the_check_of_a_real_open_row_settles_its_thread_and_the_check_exists_only_under_the_settle_finish_action() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Settle me", 0);
+        var model = Model(harness, [project], [thread]);
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        Control archiveRow = null!;
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Archive;
+            archiveRow = LiveThreadRow(thread);
+            var window = WindowOf(Hosted(model, archiveRow));
+            window.UpdateLayout();
+            window.MouseMove(archiveRow.TranslatePoint(new Point(10, 10), window)!.Value);
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(archiveRow), b => AutomationProperties.GetName(b) == "Settle thread"); // the archive button takes its place
+            WindowOf(archiveRow).Close();
+        });
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+            row = LiveThreadRow(thread);
+            var window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+            Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<Button>(row), b => AutomationProperties.GetName(b) == "Settle thread"); // not hovered, not settling
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.False(model.Thread(thread.Id)!.IsSettled);
+            Click(ButtonNamed(row, "Settle thread")); // :1765-1770 the open row's check, at the trailing end
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.True(model.Thread(thread.Id)!.IsSettled); // :1910 model.settle
+            WindowOf(row).Close();
+        });
+    });
+
+    // ---- UI-SIDEBAR-025: a thread row's action items ----
+
+    private static string[] Described(IEnumerable<RowAction> actions) =>
+        actions.Select(a => $"{a.Title}/{a.Symbol}{(a.StartsGroup ? "+" : "")}{(a.IsDestructive ? "!" : "")}").ToArray();
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-025")] // App/Views/Sidebar/SidebarView.swift:2193-2315 ThreadActions.make and makeContextMenu
+    public void A_thread_menu_offers_its_items_in_the_recorded_order_with_the_recorded_symbols_and_one_divider_in_both_forms() => headless.OnUiThread(() =>
+    {
+        // "+" marks the item that starts a group (a divider before it), "!" the destructive one.
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var plain = NewThread(project, "Plain", 0);
+        var pinnedWorktree = NewThread(project, "Pinned", 1) with { IsPinned = true, WorktreePath = "C:/Alpha/wt" };
+        var settled = NewThread(project, "Settled", 2) with { IsSettled = true };
+        var helper = NewThread(project, "Helper", 3) with { ParentThreadID = plain.Id, WorktreePath = "C:/Alpha/wt2" };
+        var model = Model(harness, [project], [plain, pinnedWorktree, settled, helper]);
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var ellipsis = "Delete\u2026/trash!";
+            void Check(string[] expected, ChatThread thread, bool settleFirst)
+            {
+                model.Settings.ThreadFinishAction = settleFirst ? ThreadFinishAction.Settle : ThreadFinishAction.Archive;
+                Assert.Equal(expected, Described(ThreadActionsMake(model, thread))); // the ellipsis popover's list
+                Assert.Equal(expected, Described(ThreadActionsMakeContextMenu(model, thread, !thread.IsHelper && settleFirst, requests))); // the context menu's list
+            }
+            // Settings chose Settle first: the divider stands before Settle, Archive follows it plainly.
+            Check(["Rename/pencil", "Pin/pin", "Forward to new thread/arrowshape.turn.up.right", "Settle/checkmark.circle+", "Archive/archivebox", ellipsis], plain, settleFirst: true);
+            // Settings chose Archive first: the divider stands before Archive, Settle follows it plainly.
+            Check(["Rename/pencil", "Pin/pin", "Forward to new thread/arrowshape.turn.up.right", "Archive/archivebox+", "Settle/checkmark.circle", ellipsis], plain, settleFirst: false);
+            // A pinned thread with a worktree: Unpin, and the worktree item after Forward (named for Windows' file manager, OD-0008 B1).
+            Check(["Rename/pencil", "Unpin/pin.slash", "Forward to new thread/arrowshape.turn.up.right", "Reveal worktree in File Explorer/folder", "Settle/checkmark.circle+", "Archive/archivebox", ellipsis], pinnedWorktree, settleFirst: true);
+            // A settled thread is not pinned from the menu and offers Reopen where Settle stood.
+            Check(["Rename/pencil", "Forward to new thread/arrowshape.turn.up.right", "Reopen/arrow.uturn.backward+", "Archive/archivebox", ellipsis], settled, settleFirst: true);
+            Check(["Rename/pencil", "Forward to new thread/arrowshape.turn.up.right", "Archive/archivebox+", "Reopen/arrow.uturn.backward", ellipsis], settled, settleFirst: false);
+            // A helper has no Pin and no Settle or Reopen: Archive alone, after a divider whatever Settings chose.
+            Check(["Rename/pencil", "Forward to new thread/arrowshape.turn.up.right", "Reveal worktree in File Explorer/folder", "Archive/archivebox+", ellipsis], helper, settleFirst: true);
+            Check(["Rename/pencil", "Forward to new thread/arrowshape.turn.up.right", "Reveal worktree in File Explorer/folder", "Archive/archivebox+", ellipsis], helper, settleFirst: false);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-025")] // App/Views/Sidebar/SidebarView.swift:2194-2198, :2236-2242 vs :2253-2312: the popover form acts, the context-menu form posts a request
+    public void The_popover_form_of_a_thread_menu_acts_and_the_context_menu_form_posts_requests_instead() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var open = NewThread(project, "Open", 0);
+        var settled = NewThread(project, "Settled", 1) with { IsSettled = true };
+        var model = Model(harness, [project], [open, settled]);
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var renamed = 0;
+            var deleted = 0;
+            var made = ((IEnumerable)CallStatic(Private("ThreadActions"), "Make", model, open, (Action)(() => renamed++), (Action)(() => deleted++), null, null)!).Cast<RowAction>().ToList();
+            made.Single(a => a.Title == "Rename").Action(); // the popover form hands its own callbacks the work
+            made.Single(a => a.Title == "Delete\u2026").Action();
+            Assert.Equal((1, 1), (renamed, deleted));
+
+            var menu = ThreadActionsMakeContextMenu(model, open, true, requests);
+            menu.Single(a => a.Title == "Rename").Action(); // the context-menu form posts the thread
+            Assert.Equal(open.Id, ((ChatThread)Get(requests, "Rename")!).Id);
+            menu.Single(a => a.Title == "Delete\u2026").Action();
+            Assert.Equal(open.Id, ((ChatThread)Get(requests, "Delete")!).Id);
+            Assert.NotNull(model.Thread(open.Id));
+            Assert.Null(model.AppModelFinishRequest);
+            menu.Single(a => a.Title == "Settle").Action(); // a finish request, taken up by the row with its pop and glide, not a settle here
+            Assert.Equal((open.Id, false), (model.AppModelFinishRequest!.ThreadID, model.AppModelFinishRequest.Reopens));
+            Assert.False(model.Thread(open.Id)!.IsSettled);
+            model.AppModelFinishRequest = null;
+            ThreadActionsMakeContextMenu(model, settled, true, requests).Single(a => a.Title == "Reopen").Action();
+            Assert.Equal((settled.Id, true), (model.AppModelFinishRequest!.ThreadID, model.AppModelFinishRequest.Reopens));
+            Assert.True(model.Thread(settled.Id)!.IsSettled);
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-025")] // App/Views/Sidebar/SidebarView.swift:1772-1801, :2193-2246, UI/Chrome/Chrome.swift RowActionsButton: the real ellipsis popover of a thread row, its items and its deferred action
+    public void The_real_ellipsis_popover_of_a_thread_row_lists_the_menu_items_in_order_and_runs_an_item_one_turn_after_closing() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presented = Presentation.Presenter.Override(new RecordingPresenter());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = AppModelSamples.Thread(project) with { Title = "Pin me" };
+        var model = Model(harness, [project], [thread]);
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.ThreadFinishAction = ThreadFinishAction.Settle;
+            row = LiveThreadRow(thread);
+            window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value);
+        });
+        harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")));
+        harness.Main.OnMain(() =>
+        {
+            var popup = LogicalQuery.SelfAndDescendants<Popup>(row).Single();
+            var stack = Assert.IsType<StackPanel>(LogicalQuery.SelfAndDescendants<RowActionItems>(popup.Child!).Single().Child);
+            Assert.Equal(
+                [typeof(PopoverItem), typeof(PopoverItem), typeof(PopoverItem), typeof(PopoverDivider), typeof(PopoverItem), typeof(PopoverItem), typeof(PopoverItem)],
+                stack.Children.Select(c => c.GetType())); // one divider, ahead of Settle (Settings chose Settle first)
+            var items = stack.Children.OfType<PopoverItem>().ToList();
+            Assert.Equal(
+                ["Rename", "Pin", "Forward to new thread", "Settle", "Archive", "Delete\u2026"],
+                items.Select(i => AutomationProperties.GetName(LogicalQuery.SelfAndDescendants<Button>(i).Single())));
+            Assert.Equal(
+                ["pencil", "pin", "arrowshape.turn.up.right", "checkmark.circle", "archivebox", "trash"],
+                items.Select(i => LogicalQuery.SelfAndDescendants<SwiftImage>(i).First(g => g.SymbolName is not null).SymbolName));
+            var danger = LogicalQuery.SelfAndDescendants<TextBlock>(items[^1]).First();
+            Assert.Equal(Chrome.Danger.Resolve(danger.ActualThemeVariant), ((ISolidColorBrush)danger.Foreground!).Color); // Delete… is destructive
+            Assert.False(model.Thread(thread.Id)!.IsPinned);
+            Click(LogicalQuery.SelfAndDescendants<Button>(items[1]).Single()); // Pin
+            Assert.False(model.Thread(thread.Id)!.IsPinned); // not inside the click
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.True(model.Thread(thread.Id)!.IsPinned); // one turn after the popover closes
+            window.Close();
+        });
+    });
+
+    // ---- UI-SIDEBAR-031, UI-SIDEBAR-032: the archive question popover ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-031")] // App/Views/Sidebar/SidebarView.swift:905-965
+    [Trait("Req", "UI-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:922-941
+    public void The_archive_popover_lays_out_its_question_and_right_aligned_buttons_with_the_recorded_spacing_padding_type_and_glass() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Fix the bug", 0);
+        var anchor = new Border();
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, anchor, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }))!;
+        var window = new AvaloniaWindow { Content = new Panel { Children = { anchor, popover } }, Width = 400, Height = 300 };
+        window.Show();
+        window.UpdateLayout();
+        try
+        {
+            var menu = Assert.IsType<PopoverMenu>(Get(popover, "Child"));
+            Assert.Equal(272d, menu.Width); // .frame(width: 272)
+            var padded = LogicalQuery.SelfAndDescendants<Border>(popover).Single(b => b.Padding == new Thickness(8, 6, 8, 4)); // horizontal 8, top 6, bottom 4
+            var column = Assert.IsType<StackPanel>(padded.Child);
+            Assert.Equal(Orientation.Vertical, column.Orientation);
+            Assert.Equal(9d, column.Spacing); // VStack(alignment: .leading, spacing: 9)
+            var question = Assert.IsType<TextBlock>(column.Children[0]);
+            var buttons = Assert.IsType<StackPanel>(column.Children[1]);
+            Assert.Equal(6d, buttons.Spacing); // HStack(spacing: 6)
+            Assert.Equal(HorizontalAlignment.Right, buttons.HorizontalAlignment); // the leading Spacer(minLength: 0)
+            var delete = Assert.IsType<Button>(buttons.Children[0]);
+            var archive = Assert.IsType<Button>(buttons.Children[1]);
+            Assert.True(Math.Abs(6d - (Frame(archive, padded).X - Frame(delete, padded).Right)) < 0.001, $"gap {Frame(archive, padded).X - Frame(delete, padded).Right}");
+            Assert.True(Math.Abs(menu.Width - 6 - 8 - Frame(archive, menu).Right) < 0.001, $"right {Frame(archive, menu).Right} width {menu.Width} bounds {menu.Bounds.Width}"); // right-aligned against the 8 pt padding inside PopoverMenu's own 6 (Popovers.swift:107)
+            Assert.Equal("Delete", TextOf(delete));
+            Assert.Equal("Archive", TextOf(archive));
+
+            // question: .system(.callout), the title in curly quotes at semibold, at most two lines, cut at the tail
+            Assert.Equal(12d, question.FontSize);
+            Assert.Equal(2, question.MaxLines);
+            Assert.Equal(TextTrimming.CharacterEllipsis, question.TextTrimming);
+            Assert.Equal(TextWrapping.Wrap, question.TextWrapping);
+            var runs = question.Inlines!.OfType<Avalonia.Controls.Documents.Run>().ToList();
+            Assert.Equal(["Archive ", "“Fix the bug”", "?"], runs.Select(r => r.Text ?? ""));
+            Assert.Equal([FontWeight.Normal, FontWeight.SemiBold, FontWeight.Normal], runs.Select(r => r.FontWeight == default ? FontWeight.Normal : r.FontWeight));
+
+            // Archive holds the focus from the start and is the default action
+            Dispatcher.UIThread.RunJobs(); // the focus request made as the popover appears
+            Assert.True(archive.IsFocused, "focused");
+            Assert.True(archive.IsDefault, "default");
+
+            // Delete is the plain glass capsule, Archive the prominent (tinted) one: both interactive
+            var deleteGlass = LogicalQuery.SelfAndDescendants<Control>(delete).Select(SwiftGlass.GetEffect).First(e => e is not null)!;
+            var archiveGlass = LogicalQuery.SelfAndDescendants<Control>(archive).Select(SwiftGlass.GetEffect).First(e => e is not null)!;
+            Assert.Null(deleteGlass.TintColor);
+            Assert.NotNull(archiveGlass.TintColor);
+            Assert.True(deleteGlass.IsInteractive, "delete interactive");
+            Assert.True(archiveGlass.IsInteractive, "archive interactive");
+            Assert.Equal(deleteGlass.Shape, archiveGlass.Shape);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-031")] // App/Views/Sidebar/SidebarView.swift:918-921: lineLimit(2), truncationMode(.tail), vertical fixedSize
+    public void A_long_archive_title_wraps_to_two_lines_and_is_cut_at_its_tail() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, string.Join(" ", Enumerable.Repeat("remarkably", 30)), 0);
+        var anchor = new Border();
+        var popover = (Control)Activator.CreateInstance(Private("ArchiveThreadPopover"), thread, anchor, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }))!;
+        var window = new AvaloniaWindow { Content = new Panel { Children = { anchor, popover } }, Width = 400, Height = 300 };
+        window.Show();
+        window.UpdateLayout();
+        try
+        {
+            var question = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => InlineText(t).StartsWith("Archive ", StringComparison.Ordinal));
+            Assert.Equal(2, question.TextLayout.TextLines.Count); // two lines at most, never three
+            var shown = question.TextLayout.TextLines.Sum(l => l.Length);
+            Assert.True(shown < InlineText(question).Length, $"shown {shown} of {InlineText(question).Length}"); // the second line is cut at its tail: the text does not all fit
+            Assert.True(question.Bounds.Height >= 2 * 12); // and the question is given its full two lines (fixedSize vertically)
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-032")] // App/Views/Sidebar/SidebarView.swift:275-281: Archive archives under Chrome.panelSlide; Delete takes the deferred-delete path with removeWorktree false
+    public void The_archive_popovers_buttons_archive_under_panelSlide_and_delete_without_the_worktree() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var archived = NewThread(project, "Archive me", 0);
+        var deleted = NewThread(project, "Delete me", 1) with { WorktreePath = harness.NewFolder("worktree") };
+        var model = Model(harness, [project], [archived, deleted]);
+        Animation? during = null;
+        using var probe = new OnChange<bool>(() => model.Thread(archived.Id)!.IsArchived, (_, now) => { if (now) during = Transaction.Current; });
+        object state = null!;
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            state = Field(view, "state")!;
+            SetProp(state, "PendingArchiveID", archived.Id);
+            var anchor = new Border();
+            var content = (Control)Call(view, "BuildArchivePopoverContent", archived, anchor)!;
+            ShownWithAnchor(anchor, content);
+            Click(LogicalQuery.SelfAndDescendants<Button>(content).Single(b => TextOf(b) == "Archive"));
+            SetProp(state, "IsDeletePopoverShown", true);
+            var other = (Control)Call(view, "BuildArchivePopoverContent", deleted, new Border())!;
+            ShownWithAnchor(new Border(), other);
+            Click(LogicalQuery.SelfAndDescendants<Button>(other).Single(b => TextOf(b) == "Delete"));
+            var confirmed = Get(state, "ConfirmedDeletion")!;
+            Assert.Equal(deleted.Id, (Guid)Get(confirmed, "ThreadID")!);
+            Assert.False((bool)Get(confirmed, "RemoveWorktree")!); // the archive question never offers the worktree
+        });
+        harness.Main.OnMain(() => Assert.Equal(Chrome.PanelSlide, during)); // :279 withAnimation(Chrome.panelSlide) { model.archive }
+    });
+
+    // ---- UI-SIDEBAR-058: a search result group ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-058")] // App/Views/Sidebar/SidebarView.swift:702-711 searchList; :737-753 searchResults
+    public void The_real_search_list_is_groups_of_an_inert_project_row_with_its_full_count_and_compact_thread_rows_and_a_settled_thread_changes_rows_in_place() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var alpha = NewProject(harness, "Alpha") with { IsExpanded = false };
+        var beta = NewProject(harness, "Beta");
+        var fixOne = NewThread(alpha, "Fix one", 0);
+        var otherTwo = NewThread(alpha, "Other two", 1);
+        var otherThree = NewThread(alpha, "Other three", 2);
+        var fixBeta = NewThread(beta, "Fix beta", 3);
+        var model = Model(harness, [alpha, beta], [fixOne, otherTwo, otherThree, fixBeta]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        void Settle(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Control ThreadRowOf(Control row) => LogicalQuery.SelfAndDescendants<Control>(row).First(c => c.GetType().Name == "SidebarThreadRow"); // the row inside its popover host
+        string Shape(Control row) => row.GetType().Name == "Panel" ? "ThreadRow" : row.GetType().Name;
+        try
+        {
+            harness.Main.OnMain(() => { view = Attached(model); window = WindowOf(view); });
+            Settle(1600);
+            harness.Main.OnMain(() => SearchBox(view).Text = "fix");
+            Settle(1600);
+            Control[] rows = null!;
+            harness.Main.OnMain(() =>
+            {
+                rows = ListPanel(view).Children.ToArray();
+                // a project row then one thread row per match; a 10 pt transparent spacer before every group but the first
+                Assert.Equal(["ProjectRow", "ThreadRow", "Border", "ProjectRow", "ThreadRow"], rows.Select(Shape));
+                var spacer = Assert.IsType<Border>(rows[2]);
+                Assert.Equal(10d, spacer.Bounds.Height);
+                Assert.Null(spacer.Background);
+                Assert.Null(spacer.Child);
+                // the project row is the project's own (never expanded or collapsed from here) and counts every candidate, not the matches
+                Assert.Equal("3", Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(rows[0]), t => t.Text == "3").Text); // Alpha is collapsed: its count shows; 1 match of 3
+                Assert.DoesNotContain(LogicalQuery.SelfAndDescendants<TextBlock>(rows[3]), t => t.Text == "1"); // Beta is expanded: no count
+                Click(ButtonNamed(rows[0], "Alpha"));
+                Assert.False(model.Project(alpha.Id)!.IsExpanded); // inert: the click does nothing
+                // thread rows are the compact project form: no project name, no project icon
+                Assert.Equal(28d, ThreadRowOf(rows[1]).Bounds.Height);
+                Assert.DoesNotContain("Alpha", Texts(ThreadRowOf(rows[1])));
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ProjectIconMark>(ThreadRowOf(rows[1])));
+                // clicking a thread row selects it
+                Click((Button)Field(ThreadRowOf(rows[4]), "selectButton")!);
+                Assert.Equal(fixBeta.Id, model.SelectedThreadID);
+                window.MouseMove(rows[0].TranslatePoint(new Point(10, 10), window)!.Value);
+            });
+            harness.Main.OnMain(() =>
+            {
+                // the project row still shows its hover accessories, and the plus still starts a thread in that project
+                Assert.NotNull(LogicalQuery.SelfAndDescendants<RowActionsButton>(rows[0]).SingleOrDefault());
+                var plus = LogicalQuery.SelfAndDescendants<Button>(rows[0]).Single(b => ToolTip.GetTip(b) as string == "New thread in Alpha");
+                PointerClick(plus);
+                Assert.Equal(4, model.ThreadsIn(model.Project(alpha.Id)!).Count);
+            });
+            // a thread settled from within the results is keyed anew there, so it changes rows in place
+            harness.Main.OnMain(() => model.Settle(fixOne.Id, sounds: false));
+            Settle(1600);
+            harness.Main.OnMain(() =>
+            {
+                var after = ListPanel(view).Children.ToArray();
+                Assert.Equal(5, after.Length);
+                Assert.NotSame(rows[1], after[1]); // a fresh row stands where the open one was
+                Assert.Equal(24d, ThreadRowOf(after[1]).Bounds.Height); // a settled thread's one grey line
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
     });
 }
 
