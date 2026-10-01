@@ -80,8 +80,11 @@ using Marrow.UI.Sound;
 // SidebarThreadRow's own live context menus (this file's ProjectRow and SidebarThreadRow constructors, each own
 // ContextMenu.Opening wiring) are also no longer part of this STOP as of Job SB: the per-open-refresh foundation
 // ENGINEERING DECISION is recorded at ProjectRow's own constructor (full citation there).
+// CLOSED for SidebarHelperRow and HeadCardsRow (UI-SIDEBAR-033, UI-SIDEBAR-037): both now attach their own
+// `.contextMenu` the same way (ContextMenu.Opening over a live Model read; see each constructor). The paragraph below
+// is kept as the record of what the STOP asked.
 // Kind: forbidden need
-// Requirements (remaining): the right-click interaction named in UI-SIDEBAR-033 ("right-click opens the helper's
+// Requirements (remaining, at that time): the right-click interaction named in UI-SIDEBAR-033 ("right-click opens the helper's
 // context menu") and UI-SIDEBAR-037 ("right-click opens the head's context menu") - SidebarHelperRow's and
 // HeadCardsRow's own `.contextMenu` sites only.
 // What is unclear or missing: SidebarHelperRow's and HeadCardsRow's own constructors are each built in full (parts
@@ -675,6 +678,11 @@ public sealed class SidebarView : Decorator
     // A surviving row takes its item's new value in place where its view can; the others are rebuilt where they stand.
     private static bool UpdateItemView(Control control, SidebarItem item)
     {
+        if (item.SidebarItemKind is SidebarItem.Kind.SettledHeader header && control is SettledHeader settled)
+        {
+            settled.Update(header.Count, header.IsFirst); // :337-338, :2364-2366: one view whose count and isFirst change under it
+            return true;
+        }
         if (item.SidebarItemKind is not SidebarItem.Kind.Gap gap || control is not Border border) return false;
         border.Height = gap.Value; // :332
         return true;
@@ -2125,10 +2133,9 @@ internal sealed class SidebarHelperRow : Decorator
     /// <param name="onDelete">:1333 <c>let onDelete: () -> Void</c>.</param>
     // :1338-1409 body. Part 7: RowGlideAnimator.Shared.IsHiding(_:) (used directly by HelperStubRow, part 5) and the
     // per-row hover/menu @State pattern (ProjectRow, part 6) are both now in the tree, so this constructor is
-    // assembled from the pieces below. The right-click .contextMenu (:1387-1397) is not attached: it is the same
-    // per-open-refresh gap STOP #7 (SidebarViewTests.cs) already names for ProjectRow's own context menu (no ED/PA
-    // entry for re-evaluating a live AppKit-style menu on each open), so this row's ellipsis popover (built fresh on
-    // every hover/open, like ProjectRow's) is the only menu surface this part gives it.
+    // assembled from the pieces below. The right-click .contextMenu (:1387-1397) is attached on the button with its
+    // overlay (overlayHost), rebuilt at every open from a live Model read, as ProjectRow's and SidebarThreadRow's are;
+    // the ellipsis popover (built fresh on every hover/open) is the other menu surface.
     private sealed class ViewState : MainActorModel
     {
         private bool isHovering; // :1339 @State private var isHovering = false
@@ -2412,11 +2419,9 @@ internal sealed class HeadCardsRow : Decorator
     }
 
     // :1440-1542 body. Part 7: OrderedHeads, model.SelectedThreadID/IsSelected/WarmDocuments and
-    // ThreadActions.MakeContextMenu (this file's own dependencies) are all in the tree, so every piece except the
-    // right-click .contextMenu (:1490-1500) is assembled below. The context menu is left out for the same
-    // per-open-refresh gap STOP #7 (SidebarViewTests.cs) already names for ProjectRow's own context menu: no ED/PA
-    // entry says how a live AppKit-style menu re-reads its content on each open under this port's Track model, so
-    // attaching one fixed at construction time would go stale (an invented behaviour), the same objection.
+    // ThreadActions.MakeContextMenu (this file's own dependencies) are all in the tree, so every piece, the per-glyph
+    // right-click .contextMenu (:1490-1500) included, is assembled below: each glyph's menu is rebuilt at every open
+    // (ContextMenu.Opening, as the other rows' menus are) for the head the glyph was last built for.
     public HeadCardsRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> headSnapshots, SidebarMenuRequests menuRequests, Action onFold)
     {
         var state = new ViewState();
@@ -3936,8 +3941,19 @@ internal sealed class SettledHeader : Decorator
     // :2368-2405 body. Part 5. PR-SIDEBAR-123.
     private AppModel Model => AppEnvironment.GetAppModel(this); // :2364 @Environment(AppModel.self) private var model
 
+    // The value the header was last given, and the pieces a later value changes in place: the SettledHeader of the
+    // Swift is one view whose `count` and `isFirst` change under it, so the chevron's turn, the digits and the top
+    // padding carry on from where they stood instead of starting again (:2364-2366, :2388, :2398).
+    private long count;
+    private bool isFirst;
+    private TextBlock countText = null!;
+    private Button button = null!;
+    private HeadCardsRow.AnimatedDouble topPadding = null!;
+
     public SettledHeader(long count, bool isFirst)
     {
+        this.count = count;
+        this.isFirst = isFirst;
         var chevron = SwiftImage.SystemName("chevron.right").Font(SwiftFont.System(SwiftFont.TextStyle.Caption2, weight: SwiftFont.Weight.Semibold)); // :2376-2377, OD-0010 Lucide chevron-right
         chevron.RenderTransformOrigin = RelativePoint.Center;
         chevron.ForegroundStyle(Chrome.SecondaryText); // :2392 cascades to every child of the HStack
@@ -3948,7 +3964,7 @@ internal sealed class SettledHeader : Decorator
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(title); // :2381
         title.Foreground = Chrome.SecondaryText.Brush(title); // :2392
 
-        var countText = new TextBlock { Text = count.ToString(CultureInfo.InvariantCulture) }; // :2384, a bare decimal, no grouping
+        countText = new TextBlock { Text = count.ToString(CultureInfo.InvariantCulture) }; // :2384, a bare decimal, no grouping
         SwiftFont.Callout.MonospacedDigit().Apply(countText); // :2385-2386
         countText.Opacity = 0.8; // :2387
         countText.Foreground = Chrome.SecondaryText.Brush(countText); // :2392
@@ -3961,23 +3977,44 @@ internal sealed class SettledHeader : Decorator
 
         var content = new Border // :2393-2397
         {
-            Padding = new Thickness(Chrome.RowHorizontalPadding, isFirst ? 2 : 14, Chrome.RowHorizontalPadding, 4), // :2393-2395
             HorizontalAlignment = HorizontalAlignment.Stretch, // :2396 .frame(maxWidth: .infinity, alignment: .leading)
             Background = Brushes.Transparent, // :2397 .contentShape(.rect)
             Child = header,
         };
 
-        var button = PlainControls.Button(content, () => // :2370-2373
+        // :2398 .animation(Chrome.panelSlide, value: isFirst): the top padding that follows isFirst is animated on its own.
+        topPadding = new HeadCardsRow.AnimatedDouble(top => content.Padding = new Thickness(Chrome.RowHorizontalPadding, top, Chrome.RowHorizontalPadding, 4)); // :2393-2395
+        topPadding.Set(isFirst ? 2 : 14, null); // :2394
+        DetachedFromVisualTree += (_, _) => topPadding.Stop();
+
+        button = PlainControls.Button(content, () => // :2370-2373
             Transaction.WithAnimation(Chrome.PanelSlide, () => Model.Settings.SettledCollapsed = !Model.Settings.SettledCollapsed));
         button.HorizontalAlignment = HorizontalAlignment.Stretch;
         button.Track(() => Model.Settings.SettledCollapsed, collapsed => // :2369
         {
             rotation.Set(collapsed ? 0 : 90, Chrome.PanelSlide); // :2378-2379 .animation(Chrome.panelSlide, value:)
             ToolTip.SetTip(button, collapsed ? "Show settled threads" : "Hide settled threads"); // :2401
-            AutomationProperties.SetName(button, $"Settled, {count} threads"); // :2402, always the plural "threads"
+            AutomationProperties.SetName(button, $"Settled, {this.count} threads"); // :2402, always the plural "threads"
             AutomationProperties.SetItemStatus(button, collapsed ? "Collapsed" : "Expanded"); // :2403, as ActivityViewToggle maps .accessibilityValue
         });
         Child = button;
+    }
+
+    // The header's `count` and `isFirst` as a later pass of the list gives them: the digits change at once, the top
+    // padding along Chrome.panelSlide (:2388, :2398), and nothing else about the header is rebuilt.
+    internal void Update(long count, bool isFirst)
+    {
+        if (count != this.count)
+        {
+            this.count = count;
+            countText.Text = count.ToString(CultureInfo.InvariantCulture); // :2384
+            AutomationProperties.SetName(button, $"Settled, {count} threads"); // :2402
+        }
+        if (isFirst != this.isFirst)
+        {
+            this.isFirst = isFirst;
+            topPadding.Set(isFirst ? 2 : 14, Chrome.PanelSlide); // :2398
+        }
     }
 }
 

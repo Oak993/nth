@@ -65,6 +65,10 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // Resolved STOP #2: WindowManager.Shared/ShowSettings and SettingsView are real. The source Settings click,
 // manager/model ownership and reused Settings window are exercised by Clicking_Settings_opens_the_real_shared_managers_SettingsView_and_reuses_its_window.
 //
+// CLOSED STOP App.Views.Sidebar.SidebarView #3 (PR-SIDEBAR-019): the list slides surviving rows on Chrome.panelSlide for a
+// change of the thread count, a project's expansion or the settled fold, and on easeOut 0.18 s under Reduce Motion; proven
+// by The_list_slides_on_panelSlide_when_the_thread_count_a_project_expansion_or_the_settled_fold_changes and its control.
+// (The pinned capture comparison of the motion is not a headless proof and is not claimed.) The note below is the history.
 // STOP App.Views.Sidebar.SidebarView #3 (review: shared foundation landed; caller wiring remains)
 // Kind: missing caller implementation, not a missing decision or shared foundation.
 // Swift: App/Views/Sidebar/SidebarView.swift:117-119 (B3 52bc792), .animation(Chrome.panelSlide, value: ...).
@@ -2739,6 +2743,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-056")] // App/Views/Sidebar/SidebarView.swift:1622-1632
+    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1626-1631: the same offset (visualOffset, settled part taken off) and zIndex 1
     public void A_helper_under_a_dragged_parent_takes_the_parents_offset_and_zIndex_1()
     {
         var type = Private("RidesWithDraggedParent");
@@ -4655,7 +4660,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-SIDEBAR-108")] // App/Views/Sidebar/SidebarView.swift:1354-1357, upstream defect 65
+    [Trait("Req", "PR-SIDEBAR-108")] // App/Views/Sidebar/SidebarView.swift:1354-1357
+    [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1354-1357 vs :1477: isRunning is passed on the card but NOT on the helper row, upstream defect 65
     public void A_helper_rows_head_glyph_never_shows_the_running_breath_ring() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -4984,8 +4990,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-SIDEBAR-123")] // App/Views/Sidebar/SidebarView.swift:2363-2406
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:2363-2406 (part 7: the same header, as a
-    // screen-contract record; the B3 chevron is 10 pt, .caption2, ED-059 (a fixed 9 pt at B1))
+    [Trait("Req", "UI-SIDEBAR-040")] // App/Views/Sidebar/SidebarView.swift:2398-2403: the tooltip, the accessibility label (always plural) and its value, the verbatim count
     public void The_settled_header_shows_its_count_toggles_the_fold_and_rotates_the_chevron() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -6096,7 +6101,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // extend STOP #6 (part 4): the rename popover's TextField/Button chrome is still undecided.
 
     [Fact]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1317-1425
+    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1348-1409: a head's glyph before the title, click selects, hover swaps the activity status for the ellipsis
     public void A_helper_row_shows_its_head_glyph_selects_on_click_and_swaps_its_overlay_on_hover() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the hover fill's own AnimatedColor needs a bound clock
@@ -6145,7 +6150,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1348-1409
+    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1361-1362: a selected title is medium at 0.96
     public void A_selected_helper_rows_title_is_medium_weight_at_0_96_with_the_selection_fill() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -6219,6 +6224,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "PR-SIDEBAR-121")] // App/Views/Sidebar/SidebarView.swift:1472-1507 (B2 id, same site; the right-click
     // .contextMenu at :1490-1500 is not attached -- STOP #7 below)
     [Trait("Req", "PR-SIDEBAR-122")] // App/Views/Sidebar/SidebarView.swift:1440-1551
+    [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1473-1482: click selects the head's thread; the selected head sits on a 0.14 disc 3 pt beyond the glyph
     public void A_head_card_selects_a_head_on_click_and_rings_the_selected_glyph() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -6264,7 +6270,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:1484-1499
+    [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1484-1499: scale 1.18 on hover, the tooltip with a middle dot, the accessibility label with a comma
     public void A_head_glyph_scales_1_18_on_hover_and_carries_the_dotted_tooltip_and_comma_label() => headless.OnUiThread(() =>
     {
         var manual = new ManualFrameSource();
@@ -6468,6 +6474,9 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     });
 
+    // CLOSED (UI-SIDEBAR-033, UI-SIDEBAR-037): SidebarHelperRow and HeadCardsRow attach their own context menus now; proven by
+    // A_real_right_click_on_a_helper_row_opens_its_context_menu_... and A_real_right_click_on_a_head_glyph_opens_.... The
+    // note below is the history.
     // STOP App.Views.Sidebar.SidebarView #7 (narrowed part 7: SidebarHelperRow's and HeadCardsRow's own constructors
     // are now built, along with every other record this part names; ProjectRow's own PR-SIDEBAR-133 stays the
     // longest-standing item, unresolved since part 6)
@@ -7128,6 +7137,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
     [Trait("Req", "PR-SIDEBAR-056")] // App/Views/Sidebar/SidebarView.swift:347-375,1622-1633
+    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1622-1633: a helper rides with its dragged parent at the same offset and zIndex 1
     [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:128-137,1838-1849
     public void A_real_parent_pointer_drag_carries_two_helpers_and_a_head_card_then_a_folded_stub_and_releases_its_lift() => headless.OnUiThread(() =>
     {
@@ -7459,7 +7469,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-6")] // App/Views/Sidebar/SidebarView.swift:2378-2379; UI-SIDEBAR-040 baseline STOP only
+    [Trait("Req", "UI-SIDEBAR-040")] // App/Views/Sidebar/SidebarView.swift:2378-2379: the chevron turns along Chrome.panelSlide
     public void Settled_chevron_rotates_on_panelSlide_instead_of_snapping_after_a_real_pointer_click() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();
@@ -7998,6 +8008,407 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             Assert.DoesNotContain("The chat's last pair", texts);
             Assert.DoesNotContain("Review pair", texts);
             window.Close();
+        });
+    });
+
+    // ---- UI-SIDEBAR-033: the helper row ----
+
+    private static Control ShownHelperRow(AppModel model, ChatThread helper, object requests, bool isLast = false)
+    {
+        var row = (Control)Activator.CreateInstance(Private("SidebarHelperRow"), helper, isLast, requests, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }))!;
+        row.VerticalAlignment = VerticalAlignment.Top; // the row's own 24 pt height, not the host's full stretch
+        Hosted(model, row);
+        WindowOf(row).UpdateLayout();
+        return row;
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1338-1409, :1272-1312 ThreadRowMetrics
+    public void A_helper_row_has_the_recorded_geometry_fills_and_hover_pre_decode_and_hides_while_its_parents_glide_is_in_the_air() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var head = HeadHelper(project, parent.Id, 0, 1);
+        AppModelHarness.WriteDocument(head.Id);
+        var model = Model(harness, [project], [parent, head]);
+        var animator = new RowGlideAnimator(new FakeGeniePlatform());
+        using var shared = RowGlideAnimator.Shared.Override(animator);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        Border shape = null!;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, head, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+            Assert.Equal(24d, row.Bounds.Height); // ThreadRowMetrics.helperHeight
+            var grid = Assert.IsType<Grid>(Get(row, "Child"));
+            Assert.Equal(28d, grid.Children[0].Bounds.Width); // the connector column
+            Assert.Equal(24d, grid.Children[0].Bounds.Height);
+            shape = LogicalQuery.SelfAndDescendants<Border>(row).First(b => b.Height == 24);
+            Assert.Equal(new CornerRadius(7), shape.CornerRadius); // 7 pt continuous radius on the button's background
+            Assert.Equal(new Thickness(6, 0, 8 + 18, 0), shape.Padding); // leading 6, trailing 8 + 18 while the actions are hidden
+            var glyph = LogicalQuery.SelfAndDescendants<HydraGlyph>(row).Single();
+            Assert.Equal(28 + 6, Frame(glyph, row).X, 3); // after the connector column and the leading padding
+            Assert.Equal(14d, Frame(glyph, row).Width); // headGlyphSize
+            var title = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(t => t.Text == head.Title);
+            Assert.Equal(28 + 6 + 14 + 6, Frame(title, row).X, 3); // inner HStack spacing 6
+            Assert.Equal(12d, title.FontSize); // .system(.callout)
+            Assert.Equal(0, ((ISolidColorBrush)shape.Background!).Color.A); // clear while idle
+            Assert.Null(DocumentPrefetchTake(head.Id)); // nothing decoded before the hover
+        });
+        harness.Main.OnMain(() => window.MouseMove(row.TranslatePoint(new Point(100, 12), window)!.Value)); // hover
+        harness.Main.AdvanceMilliseconds(300);
+        harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(300)));
+        AppModelHarness.WaitForPrefetch();
+        harness.Main.OnMain(() =>
+        {
+            window.UpdateLayout();
+            Assert.Equal(new Thickness(6, 0, 8 + 26, 0), shape.Padding); // trailing 8 + 26 while the actions show
+            Assert.Equal(Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant), ((ISolidColorBrush)shape.Background!).Color); // hovered
+            var ellipsis = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+            Assert.Equal(row.Bounds.Width - 6, Frame(ellipsis, row).Right, 3); // the trailing overlay is padded 6
+            Assert.NotNull(DocumentPrefetchTake(head.Id)); // hover pre-decodes its history
+            model.SelectedThreadID = head.Id;
+        });
+        harness.Main.AdvanceMilliseconds(300);
+        harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(300)));
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(Chrome.Overlay(0.12).Resolve(shape.ActualThemeVariant), ((ISolidColorBrush)shape.Background!).Color); // selected wins over hovered
+            Assert.Equal(1d, row.Opacity);
+            // The parent's ghost takes off: the helper goes out of sight at once, and shows again when it has arrived.
+            animator.Launch(parent.Id, RowGlideAnimator.Glide.Direction.Settle, new Rect(0, 300, 200, 24),
+                new Rect(0, -28, 200, 28), new Rect(0, 0, 200, 400), new FaceSample(200, 24), new FaceSample(200, 28), 0, 0);
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(0d, row.Opacity);
+            animator.Arrive(animator.Glides[0].Id);
+        });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(1d, row.Opacity);
+            window.Close();
+        });
+    });
+
+    private static object? DocumentPrefetchTake(Guid id) => DocumentPrefetch.Shared.Take(id);
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1387-1397 .contextMenu on the helper row; :2253-2312 ThreadActions.makeContextMenu
+    public void A_real_right_click_on_a_helper_row_opens_its_context_menu_rebuilt_at_every_open_and_posting_rename_and_delete() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+        Control row = null!;
+        harness.Main.OnMain(() => model.Settings.ThreadFinishAction = ThreadFinishAction.Settle); // settleFirst for a thread; never for a helper (:1391)
+        harness.Main.OnMain(() => row = ShownHelperRow(model, helper, requests));
+        ContextMenu OpenMenu()
+        {
+            var host = (Panel)((Grid)((Decorator)row).Child!).Children[1]; // the button with its trailing overlay
+            PointerRightClick(host.Children[0]); // the button, not the fold connector beside it
+            return host.ContextMenu!;
+        }
+        harness.Main.OnMain(() =>
+        {
+            var items = OpenMenu().Items.Cast<Control>().ToList();
+            // A helper has no place of its own to settle into and is never pinned: Rename, Forward, then Archive after a divider (settleFirst is false), Delete…
+            Assert.True(new[] { "Rename", "Forward to new thread", "", "Archive", "Delete…" }.SequenceEqual(items.Select(i => i is Separator ? "" : MenuItemTitle(i))), string.Join("|", items.Select(i => i is Separator ? "" : MenuItemTitle(i))));
+            Assert.IsType<Separator>(items[2]);
+            model.UpdateThread(helper.Id, t => t with { WorktreePath = "C:/wt" });
+        });
+        harness.Main.OnMain(() =>
+        {
+            var items = OpenMenu().Items.Cast<Control>().ToList();
+            Assert.Equal(["Rename", "Forward to new thread", "Reveal worktree in File Explorer", "", "Archive", "Delete\u2026"], items.Select(i => i is Separator ? "" : MenuItemTitle(i))); // read afresh at this open
+            ((MenuItem)items[0]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.Equal(helper.Id, ((ChatThread)Get(requests, "Rename")!).Id); // Rename posts its request rather than acting
+            ((MenuItem)items[^1]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.Equal(helper.Id, ((ChatThread)Get(requests, "Delete")!).Id);
+            Assert.NotNull(model.Thread(helper.Id)); // and the thread is still there
+            WindowOf(row).Close();
+        });
+    });
+
+    // ---- UI-SIDEBAR-040: the Settled section header ----
+
+    // Where layout put the control, before its own render transform (the chevron is turned 90 degrees).
+    private static Rect LayoutFrame(Control control, Control relativeTo) =>
+        new(Frame((Control)control.Parent!, relativeTo).Position + control.Bounds.Position, control.Bounds.Size);
+
+    private static double FirstBaselineOf(Control control, Control relativeTo) =>
+        LayoutFrame(control, relativeTo).Y + (control is TextBlock text ? text.TextLayout.TextLines[0].Baseline : TextBlock.GetBaselineOffset(control));
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-040")] // App/Views/Sidebar/SidebarView.swift:2364-2407
+    public void The_settled_header_sits_chevron_title_and_count_on_one_first_baseline_5_points_apart_in_secondary_text_and_toggles_from_its_whole_width() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var model = harness.MakeModel();
+        harness.Main.OnMain(() => model.Settings.SettledCollapsed = false);
+        Control header = null!;
+        Animation? toggled = null;
+        using var probe = new OnChange<bool>(() => model.Settings.SettledCollapsed, (_, collapsed) => { if (collapsed) toggled = Transaction.Current; });
+        harness.Main.OnMain(() =>
+        {
+            header = Hosted(model, (Control)Activator.CreateInstance(Private("SettledHeader"), 3L, true)!);
+            var window = WindowOf(header);
+            window.UpdateLayout();
+            var button = LogicalQuery.SelfAndDescendants<Button>(header).Single();
+            var chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(header).Single();
+            var title = LogicalQuery.SelfAndDescendants<TextBlock>(header).Single(t => t.Text == "Settled");
+            var count = LogicalQuery.SelfAndDescendants<TextBlock>(header).Single(t => t.Text == "3");
+
+            // HStack(alignment: .firstTextBaseline, spacing: 5)
+            Assert.True(Math.Abs(FirstBaselineOf(title, header) - FirstBaselineOf(chevron, header)) < 0.01, $"title {FirstBaselineOf(title, header)} chevron {FirstBaselineOf(chevron, header)}");
+            Assert.True(Math.Abs(FirstBaselineOf(title, header) - FirstBaselineOf(count, header)) < 0.01, $"title {FirstBaselineOf(title, header)} count {FirstBaselineOf(count, header)}");
+            Assert.True(Math.Abs(5d - (LayoutFrame(title, header).X - LayoutFrame(chevron, header).Right)) < 0.001, $"gap1 {LayoutFrame(title, header).X - LayoutFrame(chevron, header).Right}");
+            Assert.True(Math.Abs(5d - (LayoutFrame(count, header).X - LayoutFrame(title, header).Right)) < 0.001, $"gap2 {LayoutFrame(count, header).X - LayoutFrame(title, header).Right}");
+
+            // padding horizontal 8, top 2 as the first section, bottom 4; full width, leading aligned
+            var content = LogicalQuery.SelfAndDescendants<Border>(header).First(b => b.Padding.Left == 8);
+            Assert.Equal(new Thickness(8, 2, 8, 4), content.Padding);
+            Assert.Equal(header.Bounds.Width, Frame(button, header).Width, 3);
+            Assert.Equal(8d, LayoutFrame(chevron, header).X, 3);
+
+            // chevron .caption2 semibold (10 pt) turned 90 degrees while expanded; title .callout semibold; count .callout, tabular digits
+            Assert.Equal(10d, SwiftImage.GetFont(chevron)!.PointSize);
+            Assert.Equal(90d, Assert.IsType<RotateTransform>(chevron.RenderTransform).Angle);
+            Assert.Equal(12d, title.FontSize);
+            Assert.Equal(FontWeight.SemiBold, title.FontWeight);
+            Assert.Equal(12d, count.FontSize);
+            Assert.Equal(FontWeight.Normal, count.FontWeight);
+            Assert.Equal(SwiftFont.Callout.MonospacedDigit().Resolve().FontFeatures, count.FontFeatures);
+            Assert.Equal(0.8d, count.Opacity);
+
+            // the whole header is Chrome.secondaryText
+            var secondary = Chrome.SecondaryText.Resolve(title.ActualThemeVariant);
+            Assert.Equal(secondary, ((ISolidColorBrush)title.Foreground!).Color);
+            Assert.Equal(secondary, ((ISolidColorBrush)count.Foreground!).Color);
+            Assert.Equal(secondary, ((ISolidColorBrush)chevron.GetValue(SwiftImage.ForegroundProperty)!).Color);
+
+            // a rectangular content shape: a click on the empty part right of the count folds the section
+            var inside = header.TranslatePoint(new Point(header.Bounds.Width - 12, header.Bounds.Height - 6), window)!.Value;
+            window.MouseMove(inside);
+            window.MouseDown(inside, MouseButton.Left);
+            window.MouseUp(inside, MouseButton.Left);
+            Assert.True(model.Settings.SettledCollapsed);
+
+            // not the first section: 14 pt on top
+            var later = Hosted(model, (Control)Activator.CreateInstance(Private("SettledHeader"), 1L, false)!);
+            WindowOf(later).UpdateLayout();
+            Assert.Equal(new Thickness(8, 14, 8, 4), LogicalQuery.SelfAndDescendants<Border>(later).First(b => b.Padding.Left == 8).Padding);
+            Assert.Equal(0d, Assert.IsType<RotateTransform>(LogicalQuery.SelfAndDescendants<SwiftImage>(later).Single().RenderTransform).Angle); // collapsed: no turn
+            window.Close();
+            WindowOf(later).Close();
+        });
+        harness.Main.OnMain(() => Assert.Equal(Chrome.PanelSlide, toggled)); // :2371 withAnimation(Chrome.panelSlide) around the toggle
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-040")] // App/Views/Sidebar/SidebarView.swift:2364-2366, :2384-2388, :2398: count and isFirst change under the same view; the padding change rides Chrome.panelSlide
+    public void The_settled_header_keeps_its_chevron_when_its_count_changes_and_animates_its_top_padding_when_it_becomes_the_first_section() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var project = NewProject(harness, "Alpha");
+        var open = NewThread(project, "Open", 0);
+        var doneA = NewThread(project, "Done A", 1) with { IsSettled = true, SettledAt = Base.AddHours(1) };
+        var model = Model(harness, [project], [open, doneA]);
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.SettledCollapsed = false;
+            model.Settings.SidebarActivityView = true; // the activity layout orders the sections; the Settled header closes it
+        });
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        var window = WindowOf(view);
+        try
+        {
+            void Tick(int ms)
+            {
+                harness.Main.AdvanceMilliseconds(ms);
+                harness.Main.OnMain(() => { frames.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+            }
+            Control Header() => ListPanel(view).Children.Single(c => LogicalQuery.SelfAndDescendants<Button>(c).Any(b => (AutomationProperties.GetName(b) ?? "").StartsWith("Settled, ", StringComparison.Ordinal)));
+            Thickness PaddingOf(Control header) => LogicalQuery.SelfAndDescendants<Border>(header).First(b => b.Padding.Left == 8).Padding;
+            Tick(1600);
+            var before = Header();
+            Assert.Equal(14d, PaddingOf(before).Top); // another section stands above it
+            Assert.Equal("Settled, 1 threads", AutomationProperties.GetName(LogicalQuery.SelfAndDescendants<Button>(before).Single())); // always the plural
+
+            // The open thread settles: the digits become 2 and the header turns first, in the one header that is already there.
+            var chevron = LogicalQuery.SelfAndDescendants<SwiftImage>(before).Single();
+            harness.Main.OnMain(() => model.Settle(open.Id, sounds: false));
+            Tick(0);
+            var after = Header();
+            Assert.Same(before, after); // updated in place, not rebuilt
+            Assert.Equal("Settled, 2 threads", AutomationProperties.GetName(LogicalQuery.SelfAndDescendants<Button>(after).Single()));
+            Assert.Single(LogicalQuery.SelfAndDescendants<TextBlock>(after), t => t.Text == "2");
+            Assert.Equal(90d, Assert.IsType<RotateTransform>(chevron.RenderTransform).Angle); // the chevron carries on, still turned
+            Assert.Equal(14d, PaddingOf(after).Top); // the padding starts from where it stood
+            Tick(90);
+            var curve = Animation.Spring(response: 0.32, dampingFraction: 0.9); // Chrome.panelSlide
+            Assert.Equal(14 + (2 - 14) * curve.Progress(0.09), PaddingOf(after).Top, 3);
+            Tick(1600);
+            Assert.Equal(2d, PaddingOf(after).Top);
+
+            // And back: the thread reopens, a section stands above the header again, and the padding grows along the same curve.
+            harness.Main.OnMain(() => model.Reopen(open.Id));
+            Tick(0);
+            Assert.Same(after, Header());
+            Assert.Equal("Settled, 1 threads", AutomationProperties.GetName(LogicalQuery.SelfAndDescendants<Button>(after).Single()));
+            Assert.Equal(2d, PaddingOf(after).Top);
+            Tick(90);
+            Assert.Equal(2 + (14 - 2) * curve.Progress(0.09), PaddingOf(after).Top, 3);
+            Tick(1600);
+            Assert.Equal(14d, PaddingOf(after).Top);
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // ---- UI-SIDEBAR-037: a head's glyph on its card ----
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1466-1509: a head with no hydra info is skipped; only a running head's glyph is told it is running
+    public void A_head_card_skips_a_thread_without_hydra_info_and_passes_isRunning_to_a_running_heads_glyph_only() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var running = HeadHelper(project, parent.Id, 0, 3) with { Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Running) with { Index = 0 } };
+        var done = HeadHelper(project, parent.Id, 1, 2);
+        var failed = HeadHelper(project, parent.Id, 2, 1) with { Hydra = AppModelSamples.Head(HydraHeadInfo.Status.Failed) with { Index = 2 } };
+        var plain = NewThread(project, "Plain helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, running, done, failed, plain]);
+        // A library loaded without a live runtime shows a head that was running as stopped; it is running again here.
+        harness.Main.OnMain(() => model.UpdateThread(running.Id, t => t with { Hydra = t.Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running } }));
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            var card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, new[] { running, done, failed, plain }, requests, (Action)(() => { }))!;
+            var window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+            var glyphs = LogicalQuery.SelfAndDescendants<HydraGlyph>(card).ToList();
+            Assert.Equal(3, glyphs.Count); // :1471 `if let info = head.hydra`: the plain helper has no button
+            Assert.Equal(3, LogicalQuery.SelfAndDescendants<Button>(card).Count(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()));
+            var runningGlyph = Assert.Single(glyphs, g => g.Status == HydraHeadInfo.Status.Running);
+            Assert.True(runningGlyph.IsRunning); // :1477 isRunning: info.status == .running
+            Assert.False(Assert.Single(glyphs, g => g.Status == HydraHeadInfo.Status.Completed).IsRunning);
+            Assert.False(Assert.Single(glyphs, g => g.Status == HydraHeadInfo.Status.Failed).IsRunning);
+            Assert.All(glyphs, g => Assert.Equal(14d, g.Size)); // headGlyphSize
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1484-1488: scaleEffect 1.18 on hover animated with Chrome.hover (easeOut 0.1 s); hover pre-decodes the head's history
+    public void A_head_glyph_grows_to_1_18_along_the_hover_curve_and_hovering_it_pre_decodes_its_history() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var head = HeadHelper(project, parent.Id, 0, 1);
+        AppModelHarness.WriteDocument(head.Id);
+        var model = Model(harness, [project], [parent, head]);
+        Control card = null!;
+        AvaloniaWindow window = null!;
+        Button HeadButton() => (Button)LogicalQuery.SelfAndDescendants<HydraGlyph>(card).Single().Parent!.Parent!;
+        ScaleTransform Scale() => (ScaleTransform)((Panel)LogicalQuery.SelfAndDescendants<HydraGlyph>(card).Single().Parent!).RenderTransform!;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, new[] { head }, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+            Assert.Equal(1d, Scale().ScaleX);
+            Assert.Null(DocumentPrefetchTake(head.Id)); // nothing decoded before the hover
+        });
+        harness.Main.OnMain(() => window.MouseMove(HeadButton().TranslatePoint(new Point(7, 7), window)!.Value));
+        harness.Main.AdvanceMilliseconds(40);
+        harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(40)));
+        AppModelHarness.WaitForPrefetch();
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(1 + 0.18 * Animation.EaseOut(0.1).Progress(0.04), Scale().ScaleX, 3); // Chrome.hover: easeOut 0.1 s, part way
+            Assert.NotNull(DocumentPrefetchTake(head.Id)); // :1488 model.warmDocuments([head.id])
+        });
+        harness.Main.AdvanceMilliseconds(200);
+        harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(200)));
+        harness.Main.OnMain(() => Assert.Equal(1.18, Scale().ScaleX, 3));
+        harness.Main.OnMain(() => window.MouseMove(new Point(window.Width - 1, window.Height - 1))); // away again
+        harness.Main.AdvanceMilliseconds(200);
+        harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(200)));
+        harness.Main.OnMain(() =>
+        {
+            Assert.Equal(1d, Scale().ScaleX, 3);
+            window.Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-037")] // App/Views/Sidebar/SidebarView.swift:1490-1500 .contextMenu on the head's glyph with settleFirst false; :2253-2312 ThreadActions.makeContextMenu
+    public void A_real_right_click_on_a_head_glyph_opens_the_heads_context_menu_with_settleFirst_false_rebuilt_at_every_open() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var head = HeadHelper(project, parent.Id, 0, 1);
+        var model = Model(harness, [project], [parent, head]);
+        var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+        Control card = null!;
+        harness.Main.OnMain(() => model.Settings.ThreadFinishAction = ThreadFinishAction.Settle); // the setting must not reach a head's menu
+        harness.Main.OnMain(() =>
+        {
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, new[] { head }, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            WindowOf(Hosted(model, card)).UpdateLayout();
+        });
+        Button HeadButton() => (Button)LogicalQuery.SelfAndDescendants<HydraGlyph>(card).Single().Parent!.Parent!;
+        List<Control> OpenMenu()
+        {
+            var button = HeadButton();
+            PointerRightClick(button);
+            return button.ContextMenu!.Items.Cast<Control>().ToList();
+        }
+        string[] Titles(IEnumerable<Control> items) => items.Select(i => i is Separator ? "" : MenuItemTitle(i)).ToArray();
+        harness.Main.OnMain(() =>
+        {
+            var items = OpenMenu();
+            // A head is a helper: no Pin, no Settle; Archive after a divider because settleFirst is false; Delete… last.
+            Assert.True(new[] { "Rename", "Forward to new thread", "", "Archive", "Delete\u2026" }.SequenceEqual(Titles(items)), string.Join("|", Titles(items)));
+            Assert.IsType<Separator>(items[2]);
+            Assert.True(new[] { "Rename", "Forward to new thread", "", "Archive", "Delete…" }.SequenceEqual(Titles(OpenMenu()))); // opened again: the items are built anew, not added to
+            model.UpdateThread(head.Id, t => t with { WorktreePath = "C:/wt" });
+        });
+        harness.Main.OnMain(() =>
+        {
+            var items = OpenMenu(); // the card has rebuilt its glyph for the changed head, and the menu is read afresh
+            Assert.True(new[] { "Rename", "Forward to new thread", "Reveal worktree in File Explorer", "", "Archive", "Delete\u2026" }.SequenceEqual(Titles(items)), string.Join("|", Titles(items)));
+            ((MenuItem)items[0]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.Equal(head.Id, ((ChatThread)Get(requests, "Rename")!).Id); // posts the request rather than acting
+            ((MenuItem)items[^1]).RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            Assert.Equal(head.Id, ((ChatThread)Get(requests, "Delete")!).Id);
+            Assert.NotNull(model.Thread(head.Id));
+            WindowOf(card).Close();
         });
     });
 }
