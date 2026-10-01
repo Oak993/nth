@@ -26,12 +26,19 @@ public sealed class UsageViewsRig : IDisposable
     private readonly AppModelHarness harness = new();
     private readonly IDisposable actor;
     private readonly IDisposable frames;
+    private readonly IDisposable workspace;
     private readonly List<Avalonia.Controls.Window> windows = [];
 
     public UsageViewsRig()
     {
         actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
         frames = FrameClock.Source.Override(new ManualFrameSource());
+        workspace = Marrow.UI.Common.Workspace.Platform.Override(new Marrow.UI.Common.Workspace.Backend
+        {
+            Home = @"C:\fixture home",
+            Which = name => name == "pwsh.exe" ? @"C:\fixture\pwsh.exe" : name == "wt.exe" ? @"C:\fixture\wt.exe" : null,
+            Launch = (executable, arguments, _, _) => Launches.Add((executable, arguments.ToArray())),
+        });
         Model = new AppModel();
         // The one real spend path a test can take without a provider: Codex with no executable fails closed with
         // ResetCreditError.CodexUnavailable before any process or network is touched.
@@ -39,6 +46,10 @@ public sealed class UsageViewsRig : IDisposable
     }
 
     public AppModel Model { get; }
+
+    /// <summary>Every terminal launch (executable, arguments) a click made while the rig lives; nothing real is started
+    /// (Workspace.Platform fails closed in tests unless a test overrides it).</summary>
+    public List<(string Executable, string[] Arguments)> Launches { get; } = [];
 
     public ProviderRegistry Registry => Model.Providers;
 
@@ -123,6 +134,7 @@ public sealed class UsageViewsRig : IDisposable
         foreach (var window in windows) window.Close();
         Drain();
         frames.Dispose();
+        workspace.Dispose();
         actor.Dispose();
         harness.Dispose();
     }
@@ -175,6 +187,16 @@ public static class UsageViewsProbe
         ?? throw new Xunit.Sdk.XunitException("no Button titled \"" + title + "\"; found: " + string.Join(" | ", Buttons(root).Select(b => b.Content)));
 
     public static bool HasButton(ILogical root, string title) => Buttons(root).Any(button => button.Content as string == title);
+
+    public static GlassEffect? GlassBehind(Button button) =>
+        Assert.IsAssignableFrom<Panel>(button.Parent).Children.Select(SwiftGlass.GetEffect).FirstOrDefault(effect => effect is not null);
+
+    public static void Click(Button button)
+    {
+        Assert.True(button.IsEffectivelyEnabled, "the button is disabled");
+        button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
+        UsageViewsRig.Drain();
+    }
 
     public static ProgressBar[] Spinners(ILogical root) => All<ProgressBar>(root).Where(bar => bar.IsIndeterminate).ToArray();
 

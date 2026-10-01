@@ -152,8 +152,12 @@ public sealed class PlanLimitsView : Decorator
                             Margin = new Thickness(0, 14, 0, 0),
                         };
                         problemRow.Children.Add(label);
-                        Grid.SetColumn(login, 1);
-                        problemRow.Children.Add(login.ChromeGlassCapsule());
+                        // :58-68 the button is the last item of the HStack, at its trailing end. The column belongs on the
+                        // glass wrapper the grid holds, not on the button inside it: on the button the wrapper stayed in
+                        // column 0 and stretched across the label.
+                        var loginGlass = login.ChromeGlassCapsule();
+                        Grid.SetColumn(loginGlass, 1);
+                        problemRow.Children.Add(loginGlass);
                         Add(problemRow);
                     }
                 }
