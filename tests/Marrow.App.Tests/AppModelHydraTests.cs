@@ -1616,6 +1616,56 @@ public sealed class AppModelHydraTests
     }
 
     [Fact]
+    [Trait("Req", "PR-HYDRA-131")] // AppModel+Hydra.swift:925-931: runtime(for: parentID) creates the lead runtime when none is live
+    public void A_native_stop_whose_lead_has_no_live_runtime_still_asks_the_lead_and_drops_the_stop_affordance()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Project", h.NewFolder("project"));
+        var lead = AppModelSamples.Thread(project);
+        var native = HydraHeadThread(project, lead.Id, HydraHeadInfo.Status.Running, 0) with
+        {
+            Hydra = new HydraHeadInfo(0, "native task", HydraHeadInfo.Kind.Native, HydraHeadInfo.Origin.Delegated)
+            {
+                NativeID = "provider-head-id",
+                CanStop = true,
+            },
+        };
+        h.WriteLibrary([project], [lead, native]);
+        var model = h.MakeModel();
+        h.Main.OnMain(() => RestoreRunningHead(model, native.Id));
+        Assert.Null(h.Main.OnMain(() => model.ExistingRuntime(lead.Id)));
+
+        h.Main.OnMain(() => model.StopHydraHead(native.Id));
+        h.Main.Loop.RunUntil(() => model.Thread(native.Id)?.Hydra?.CanStop == false, AppModelHarness.Bound);
+
+        // A lead with no session cannot stop its provider's subagent (ThreadRuntime stopNativeHead returns false).
+        Assert.NotNull(h.Main.OnMain(() => model.ExistingRuntime(lead.Id)));
+        Assert.Equal(HydraHeadInfo.Status.Running, model.Thread(native.Id)!.Hydra!.HydraHeadInfoStatus);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-133")] // AppModel+Hydra.swift:944-953: runtime(for: parentID), not an existing-runtime lookup
+    public void Dismissing_the_panel_of_a_lead_with_no_live_runtime_still_records_the_hidden_panel()
+    {
+        using var h = new AppModelHarness();
+        var project = AppModelSamples.Project("Project", h.NewFolder("project"));
+        var lead = AppModelSamples.Thread(project);
+        var finished = HydraHeadThread(project, lead.Id, HydraHeadInfo.Status.Completed, 0);
+        h.WriteLibrary([project], [lead, finished]);
+        var model = h.MakeModel();
+        Assert.Null(h.Main.OnMain(() => model.ExistingRuntime(lead.Id)));
+
+        h.Main.OnMain(() => model.DismissHydraHeads(lead.Id));
+
+        var runtime = h.Main.OnMain(() => model.ExistingRuntime(lead.Id));
+        Assert.NotNull(runtime);
+        Assert.True(runtime!.IsHydraPanelHidden);
+        Assert.Null(runtime.HydraSelectedHeadID);
+        Assert.Null(runtime.HydraPoppedHeadID);
+        Assert.False(model.Thread(finished.Id)!.IsInPanel);
+    }
+
+    [Fact]
     [Trait("Req", "PR-HYDRA-132")] // AppModel+Hydra.swift:936-940
     public void Stop_all_only_stops_running_heads_in_the_requested_team()
     {

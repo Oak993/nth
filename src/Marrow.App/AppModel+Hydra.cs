@@ -776,9 +776,9 @@ public sealed partial class AppModel
             return;
         }
 
-        if (head.ParentThreadID is not { } parentID || info.NativeID is not { } nativeID ||
-            ExistingRuntime(parentID) is not { } leadRuntime)
-            return;
+        // AppModel+Hydra.swift:926-927: runtime(for: parentID) makes the lead's runtime when it is not live.
+        if (head.ParentThreadID is not { } parentID || info.NativeID is not { } nativeID) return;
+        var leadRuntime = Runtime(parentID);
         MainActor.Spawn(async () =>
         {
             if (!await leadRuntime.StopNativeHead(nativeID))
@@ -795,7 +795,7 @@ public sealed partial class AppModel
     public void DismissHydraHeads(Guid parentID)
     {
         ClearFinishedHydraHeads(parentID);
-        if (ExistingRuntime(parentID) is not { } runtime) return;
+        var runtime = Runtime(parentID); // AppModel+Hydra.swift:946 runtime(for: parentID)
         runtime.IsHydraPanelHidden = true;
         runtime.HydraSelectedHeadID = null;
         runtime.HydraPoppedHeadID = null;
