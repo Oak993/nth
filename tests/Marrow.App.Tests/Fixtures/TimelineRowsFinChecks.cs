@@ -46,5 +46,9 @@ internal static class TimelineRowsFinChecks
             Assert.True(Math.Abs(text.DesiredSize.Height - text.Bounds.Height) <= 1, $"text '{text.Text}' is stretched to {text.Bounds.Height} but is {text.DesiredSize.Height} tall");
     }
 
+    // A measured distance: the Swift's value, what the layout gave, and which gap it is.
+    internal static void Near(string what, double expected, double actual, double tolerance = 0.5) =>
+        Assert.True(Math.Abs(expected - actual) <= tolerance, $"{what}: the Swift gives {expected} but the layout has {actual}");
+
     internal static IEnumerable<T> Mounted<T>(Visual root) where T : class => root.GetVisualDescendants().OfType<T>();
 }

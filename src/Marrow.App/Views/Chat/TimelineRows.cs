@@ -3455,16 +3455,17 @@ public sealed class TurnFileCard : Decorator
         var files = PlainControls.Button(titleRow, () => box.IsShowingFiles = !box.IsShowingFiles);
         files.IsEnabled = changes.Files.Count != 0;
         ToolTip.SetTip(files, "Show the files this turn changed");
-        row.Children.Add(files);
+        // :2742-2766 .popover on the button is no item of the HStack: the popup shares its button's slot here, because a Popup
+        // that is a child of the stack of its own would add a spacing gap (8 points) after its button (UI-CHAT-037).
+        row.Children.Add(Hosted(files, PlainControls.Popover(files, new Binding<bool>(() => box.IsShowingFiles, value => box.IsShowingFiles = value), () => FilesPopover().PresentedChrome())));
         row.Children.Add(new Control { Width = 20, Height = 1 }); // :2768
         if (canUndo)
         {
             var revert = PlainControls.Button(new MutedRoundGlyph("arrow.uturn.backward"), () => box.IsConfirmingRevert = true);
             revert.Focusable = false;
             ToolTip.SetTip(revert, "Revert this turn's files and conversation");
-            row.Children.Add(revert);
-            row.Children.Add(PlainControls.Popover(revert,
-                new Binding<bool>(() => box.IsConfirmingRevert, value => box.IsConfirmingRevert = value), RevertConfirmation));
+            row.Children.Add(Hosted(revert, PlainControls.Popover(revert,
+                new Binding<bool>(() => box.IsConfirmingRevert, value => box.IsConfirmingRevert = value), RevertConfirmation))); // :2777
         }
         var anchorBox = new WeakReference<WeakView>(reviewAnchor);
         var review = PlainControls.Button(new MutedRoundGlyph("plusminus"), () =>
@@ -3483,13 +3484,15 @@ public sealed class TurnFileCard : Decorator
             });
         });
         row.Children.Add(PlainControls.Background(review, anchor));
-        row.Children.Add(PlainControls.Popover(files, new Binding<bool>(() => box.IsShowingFiles, value => box.IsShowingFiles = value), () => FilesPopover().PresentedChrome()));
         // :2741, :2743 HStack's default alignment is .center: every item of both lines sits on one centre line (a
         // stretched text would draw at the top of the taller row).
         foreach (var item in titleRow.Children.Concat(row.Children)) item.VerticalAlignment = VerticalAlignment.Center;
         Child = TimelineRows.Pill(row, SwiftColor.Quaternary.Opacity(0.32), new Thickness(TimelineMetrics.PillLeading, 6, 6, 6));
         AutomationProperties.SetName(this, title);
     }
+
+    // A button and the popover it hangs from, as one slot of the card's row.
+    private static Panel Hosted(Button button, Avalonia.Controls.Primitives.Popup popup) => new() { Children = { button, popup } };
 
     // :2777-2798
     private Control RevertConfirmation()
@@ -3523,9 +3526,11 @@ public sealed class TurnFileCard : Decorator
             Control stats = file.IsBinary ? TimelineRows.ChatText("Binary", SwiftFont.TextStyle.Caption, color: Chrome.SecondaryText)
                 : new DiffStatLabel { Additions = checked((int)file.Additions), Deletions = checked((int)file.Deletions) };
             stats.Margin = new Thickness(8, 0, 0, 0);
+            // :2833 HStack(spacing: 8): the path and the stat (or Binary) share one centre line, whichever is taller (UI-CHAT-041).
+            stats.VerticalAlignment = VerticalAlignment.Center;
             DockPanel.SetDock(stats, Dock.Right);
             row.Children.Add(stats);
-            var path = new MiddleTruncatingTextBlock { FullText = file.Path, Text = file.Path, MaxLines = 1 };
+            var path = new MiddleTruncatingTextBlock { FullText = file.Path, Text = file.Path, MaxLines = 1, VerticalAlignment = VerticalAlignment.Center };
             ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(path);
             row.Children.Add(path);
             column.Children.Add(row);
