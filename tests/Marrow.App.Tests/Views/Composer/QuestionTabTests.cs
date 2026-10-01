@@ -189,6 +189,37 @@ public sealed class QuestionTabTests(HeadlessSession headless)
     private static string ButtonText(Button button) =>
         LogicalQuery.SelfAndDescendants<TextBlock>(button).Select(block => block.Text).FirstOrDefault() ?? "";
 
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-193")] // App/Views/Composer/QuestionTab.swift:225-240 TextField/SecureField("Your answer") .textFieldStyle(.roundedBorder)
+    [Trait("Req", "UI-COMPOSER-071")] // App/Views/Composer/QuestionTab.swift:225-240
+    public void The_answer_field_is_drawn_and_a_secret_answer_is_masked()
+    {
+        // The app carries no theme package: a TextBox without a template draws nothing (0 points high), so the field must
+        // carry the port's rounded-border text-field template (ChatView's .roundedBorder fields use the same one).
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var sheet = new QuestionSheet(Request(Question("q", prompt: "Paste the code", isSecret: true)), null!);
+            var window = new Avalonia.Controls.Window { Content = sheet, Width = 640, Height = 400 };
+            window.Show();
+            try
+            {
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                var field = LogicalQuery.SelfAndDescendants<TextBox>(sheet).Single();
+                Assert.True(field.Bounds.Height > 0, "the answer field has no height: " + field.Bounds);
+                Assert.Contains(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(field).OfType<TextBlock>(), text => text.Text == "Your answer" && text.IsEffectivelyVisible);
+                field.Text = "123456";
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                var presenter = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(field).OfType<Avalonia.Controls.Presenters.TextPresenter>().Single();
+                Assert.Equal("123456", presenter.Text);
+                Assert.Equal('•', presenter.PasswordChar); // :231 SecureField
+            }
+            finally { window.Close(); }
+        });
+    }
+
     private static QuestionRequest Request(params QuestionRequest.Question[] questions)
     {
         var values = ValueList<QuestionRequest.Question>.Empty;

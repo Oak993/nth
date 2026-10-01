@@ -355,6 +355,7 @@ public sealed class MCPKeyPanelView : Decorator
             BorderThickness = new Thickness(0),
             AcceptsReturn = false,
         };
+        PlainControls.PlainTextField(textBox); // :141 .textFieldStyle(.plain); without a template the field drew nothing
         if (field.FieldKind == MCPField.Kind.Secret)
             textBox.PasswordChar = '\u2022'; // U+2022 BULLET
         SwiftFont.System(SwiftFont.TextStyle.Callout, design: SwiftFont.Design.Monospaced).Apply(textBox);

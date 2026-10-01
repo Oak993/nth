@@ -46,7 +46,9 @@ internal static class ChatDialogControls
         field.Template = new FuncControlTemplate<TextBox>((box, scope) =>
         {
             var text = new TextPresenter { Name = "PART_TextPresenter", TextWrapping = box.TextWrapping,
-                [!TextPresenter.TextProperty] = box[!TextBox.TextProperty] }.RegisterInNameScope(scope);
+                [!TextPresenter.TextProperty] = box[!TextBox.TextProperty],
+                [!TextPresenter.PasswordCharProperty] = box[!TextBox.PasswordCharProperty], // a secure field stays masked
+                [!TextPresenter.RevealPasswordProperty] = box[!TextBox.RevealPasswordProperty] }.RegisterInNameScope(scope);
             var prompt = new TextBlock { IsHitTestVisible = false, Foreground = Chrome.SecondaryText.Brush(box),
                 [!TextBlock.TextProperty] = box[!TextBox.PlaceholderTextProperty] };
             void Update() => prompt.IsVisible = showsPrompt && string.IsNullOrEmpty(box.Text);

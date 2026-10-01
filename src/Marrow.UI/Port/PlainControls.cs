@@ -47,6 +47,9 @@ public static class PlainControls
             Name = "PART_TextPresenter",
             VerticalAlignment = VerticalAlignment.Center,
             [!TextPresenter.TextProperty] = box[!TextBox.TextProperty],
+            // A SecureField's masking is drawn by the presenter: without these the typed secret showed in the clear.
+            [!TextPresenter.PasswordCharProperty] = box[!TextBox.PasswordCharProperty],
+            [!TextPresenter.RevealPasswordProperty] = box[!TextBox.RevealPasswordProperty],
         }.RegisterInNameScope(scope);
         void ShowPrompt() => prompt.IsVisible = string.IsNullOrEmpty(box.Text);
         box.PropertyChanged += (_, e) =>
@@ -56,6 +59,17 @@ public static class PlainControls
         ShowPrompt();
         return new Panel { Background = Brushes.Transparent, Children = { prompt, presenter } }; // A native plain TextField accepts input across its frame, including while empty (Chrome.swift:789-792).
     });
+
+    /// <summary>
+    /// <c>.textFieldStyle(.plain)</c> on a field built elsewhere (a SecureField's masking, a custom binding): the same
+    /// template as <see cref="TextField"/>. The app carries no theme package, so a TextBox without it draws nothing.
+    /// </summary>
+    public static T PlainTextField<T>(T box) where T : TextBox
+    {
+        box.Template = PlainTextFieldTemplate;
+        box.PlaceholderForeground = SwiftColor.PlaceholderTextColor.Brush(box);
+        return box;
+    }
 
     /// <summary><c>Button(action:) { label }.buttonStyle(.plain)</c>.</summary>
     public static Button Button(Control label, Action action)

@@ -372,6 +372,59 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
         });
     }
 
+    [Fact]
+    [Trait("Req", "UI-MCP-077")] // App/Views/Settings/MCPKeyPanel.swift:134-141 TextField/SecureField(field.placeholder, text:) .textFieldStyle(.plain)
+    public void The_key_field_is_drawn_with_its_prompt_and_then_the_typed_text()
+    {
+        // The app carries no theme package, so a TextBox shows nothing unless it is given a template: the field must be
+        // the port's plain text field (the prompt over a TextPresenter), not a bare TextBox.
+        OnMain(() =>
+        {
+            var view = new MCPKeyPanelView(Entry(fields: [Field("token", "Token", "Paste the token", MCPField.Kind.Text)]), new AppModel(), () => { });
+            var window = new Avalonia.Controls.Window { Content = view, Width = 520, Height = 600 };
+            window.Show();
+            try
+            {
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                var field = Assert.Single(Descendants(view).OfType<TextBox>());
+                Assert.True(field.Bounds.Height > 0, "the field has no height: " + field.Bounds);
+                var prompt = field.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == "Paste the token");
+                Assert.True(prompt.IsEffectivelyVisible && prompt.Bounds.Height > 0, "the prompt is not drawn");
+                field.Text = "secret-value";
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                Assert.False(prompt.IsVisible);
+                var presenter = Assert.Single(field.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.TextPresenter>());
+                Assert.Equal("secret-value", presenter.Text);
+                Assert.True(presenter.Bounds.Width > 0, "the typed text is not drawn");
+            }
+            finally { window.Close(); }
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-MCP-077")] // App/Views/Settings/MCPKeyPanel.swift:134-136 a secret field is a SecureField: what is typed is drawn masked
+    public void A_secret_key_is_drawn_masked()
+    {
+        OnMain(() =>
+        {
+            var view = new MCPKeyPanelView(Entry(fields: Secret()), new AppModel(), () => { });
+            var window = new Avalonia.Controls.Window { Content = view, Width = 520, Height = 600 };
+            window.Show();
+            try
+            {
+                var field = Assert.Single(Descendants(view).OfType<TextBox>());
+                field.Text = "sk-live-secret";
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                var presenter = Assert.Single(field.GetVisualDescendants().OfType<Avalonia.Controls.Presenters.TextPresenter>());
+                Assert.Equal('•', presenter.PasswordChar);
+            }
+            finally { window.Close(); }
+        });
+    }
+
     // Follow-up: MCPStore drafts are now observed. Deferred TextChanged callbacks are drained above
     // while the fake store and TestRuntime main actor remain active; field assertions are unchanged.
 

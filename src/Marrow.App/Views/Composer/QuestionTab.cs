@@ -435,6 +435,9 @@ internal sealed class QuestionPage : Decorator
                 PasswordChar = question.IsSecret ? '\U00002022' : '\0', // U+2022 BULLET
                 HorizontalAlignment = HorizontalAlignment.Stretch,
             };
+            // :236 .textFieldStyle(.roundedBorder), as ChatView's .roundedBorder fields (ChatView.cs, STOP #5 bezel metrics).
+            // The app carries no theme package: without a template the field drew nothing and could not be typed into.
+            Marrow.App.Port.ChatDialogControls.TextEditor(field, style: "RoundedBorder");
             if (written.Value.TryGetValue(question.Id, out var currentText))
                 field.Text = currentText;
             field.TextChanged += (_, _) =>
