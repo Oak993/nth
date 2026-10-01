@@ -3716,6 +3716,26 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-029")] // :1006-1007 TextField .roundedBorder: a long title scrolls inside the field
+    public void A_long_title_stays_inside_the_field_and_scrolls_to_keep_the_caret_in_view() => headless.OnUiThread(() =>
+    {
+        var title = string.Concat(Enumerable.Repeat("A long thread title ", 5)); // 100 characters
+        var popover = ShownRename(title, _ => { }, () => { });
+        try
+        {
+            var field = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(popover));
+            Assert.True(field.Bounds.Width <= 300 - 28 + 0.5, "the field grew past the popover: " + field.Bounds);
+            var line = field.GetVisualDescendants().OfType<ScrollViewer>().Single(v => v.Name == "PART_ScrollViewer");
+            field.Focus();
+            field.CaretIndex = title.Length;
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            WindowOf(popover).UpdateLayout();
+            Assert.True(line.Offset.X > 0, "the field did not scroll to the caret: " + line.Offset);
+        }
+        finally { WindowOf(popover).Close(); }
+    });
+
+    [Fact]
     [Trait("Req", "UI-SIDEBAR-029")] // :1009 .onSubmit { onRename(text) }: Return submits what is typed, the button's guard aside
     [Trait("Req", "PR-SIDEBAR-091")]
     public void Return_in_the_field_submits_the_typed_title() => headless.OnUiThread(() =>

@@ -64,7 +64,16 @@ internal static class ChatDialogControls
             // the Windows 11 text box (corner radius 4, padding 10,5,6,6, the control fill and hairline SystemButtons use,
             // the accent border while it has focus; UNVERIFIED numbers, recalled; not yet a numbered ED); recorded deviation
             // from the macOS bezel.
-            var bezel = new Border { CornerRadius = new CornerRadius(4), Padding = new Thickness(10, 5, 6, 6), BorderThickness = new Thickness(1), Child = content };
+            // A single line longer than the field scrolls inside the bezel to keep the caret in view (the TextBox brings
+            // its caret into view through the scroll view it finds as PART_ScrollViewer) and never paints past it.
+            var line = new ScrollViewer
+            {
+                Name = "PART_ScrollViewer",
+                Content = content,
+                HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
+            }.RegisterInNameScope(scope);
+            var bezel = new Border { CornerRadius = new CornerRadius(4), Padding = new Thickness(10, 5, 6, 6), BorderThickness = new Thickness(1), ClipToBounds = true, Child = line };
             bezel.Background = SystemButtons.StandardFill.Brush(bezel);
             void Stroke() => bezel.BorderBrush = (box.IsKeyboardFocusWithin ? Chrome.Accent : SystemButtons.StandardStroke).Brush(bezel);
             box.PropertyChanged += (_, e) => { if (e.Property == Avalonia.Input.InputElement.IsKeyboardFocusWithinProperty) Stroke(); };
