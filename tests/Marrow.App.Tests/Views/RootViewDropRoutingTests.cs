@@ -90,6 +90,9 @@ public sealed class RootViewDropRoutingTests(HeadlessSession headless)
     [InlineData(0.90, 0.90)]
     public void Folder_drop_routes_from_window_regions_and_creates_one_thread_in_the_last_folder(double x, double y) => headless.OnUiThread(() =>
     {
+        // The chat's Hydra button opens its intro popover on first appearance (HydraButton.swift:93); a headless window
+        // has no popup platform, so popovers are recorded (as ChatHeadlessFixtures does).
+        using var popovers = Presentation.Presenter.Override(new RecordingPresenter());
         using var harness = new AppModelHarness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
@@ -116,6 +119,9 @@ public sealed class RootViewDropRoutingTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-064")]
     public void Paths_removed_after_drag_enter_are_rejected_at_drop_without_creating_a_project() => headless.OnUiThread(() =>
     {
+        // The chat's Hydra button opens its intro popover on first appearance (HydraButton.swift:93); a headless window
+        // has no popup platform, so popovers are recorded (as ChatHeadlessFixtures does).
+        using var popovers = Presentation.Presenter.Override(new RecordingPresenter());
         using var harness = new AppModelHarness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
@@ -146,6 +152,9 @@ public sealed class RootViewDropRoutingTests(HeadlessSession headless)
     [InlineData(true)]
     public void Mixed_drop_attaches_files_in_input_order_to_the_new_last_folder_thread(bool previouslySelected) => headless.OnUiThread(() =>
     {
+        // The chat's Hydra button opens its intro popover on first appearance (HydraButton.swift:93); a headless window
+        // has no popup platform, so popovers are recorded (as ChatHeadlessFixtures does).
+        using var popovers = Presentation.Presenter.Override(new RecordingPresenter());
         using var harness = new AppModelHarness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
@@ -196,6 +205,9 @@ public sealed class RootViewDropRoutingTests(HeadlessSession headless)
     [InlineData(true)]
     public void File_only_drop_uses_the_current_selection_or_silently_discards(bool selected) => headless.OnUiThread(() =>
     {
+        // The chat's Hydra button opens its intro popover on first appearance (HydraButton.swift:93); a headless window
+        // has no popup platform, so popovers are recorded (as ChatHeadlessFixtures does).
+        using var popovers = Presentation.Presenter.Override(new RecordingPresenter());
         using var harness = new AppModelHarness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());

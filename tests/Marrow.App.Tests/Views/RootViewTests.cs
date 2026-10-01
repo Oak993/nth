@@ -597,6 +597,9 @@ public sealed class RootViewTests(HeadlessSession headless)
             using var frames = FrameClock.Source.Override(new ManualFrameSource());
             using var harness = new AppModelHarness();
             using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+            // The chat's Hydra button opens its intro popover on first appearance (HydraButton.swift:93); a headless window
+            // has no popup platform, so popovers are recorded (as ChatHeadlessFixtures does).
+            using var popovers = Presentation.Presenter.Override(new RecordingPresenter());
             var manager = harness.Main.OnMain(() => new WindowManager());
             using var shared = WindowManager.OverrideShared(manager);
             harness.Main.OnMain(() =>

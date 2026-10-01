@@ -75,6 +75,9 @@ public sealed class RootViewComposerDropBoundaryTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-065")]
     public void Hit_tested_mixed_drop_is_consumed_once_by_the_selected_composer_without_root_fallback() => headless.OnUiThread(() =>
     {
+        // The chat's Hydra button opens its intro popover on first appearance (HydraButton.swift:93); a headless window
+        // has no popup platform, so popovers are recorded (as ChatHeadlessFixtures does).
+        using var popovers = Presentation.Presenter.Override(new RecordingPresenter());
         using var harness = new AppModelHarness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
