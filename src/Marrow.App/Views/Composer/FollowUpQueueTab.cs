@@ -31,7 +31,10 @@ public sealed class FollowUpQueueTab : Decorator
     private readonly ThreadRuntime runtime;
     private readonly StackPanel rowsPanel;
     private readonly ScrollViewer scrollView;
+    // :88-122 the scroll content: the rule, a gap of 4, then the rows in a stack of their own with no spacing.
     private readonly StackPanel listContent;
+    private readonly StackPanel rowsStack;
+    // :124 `.padding(.top, 6)` on the list; the list's natural height (`listHeight`, :128-130) is measured with it.
     private readonly Border rowsClip;
     private readonly Dictionary<Guid, double> measuredHeights = [];
     private readonly Dictionary<Guid, FollowUpRow> rowControls = [];
@@ -58,14 +61,27 @@ public sealed class FollowUpQueueTab : Decorator
         this.runtime = runtime;
 
         var title = MakeTitle();
+        rowsStack = new StackPanel { Spacing = 0 }; // :94 VStack(alignment: .leading, spacing: 0)
+        listContent = new StackPanel { Spacing = 4 }; // :88 VStack(alignment: .leading, spacing: 4)
+        listContent.Children.Add(new Border
+        {
+            Height = 1,
+            Background = Chrome.SecondaryText.Brush(this),
+            Opacity = 0.5
+        }); // :89 Divider().opacity(0.5)
+        listContent.Children.Add(rowsStack);
         rowsPanel = new StackPanel { Spacing = 0 };
-        listContent = new StackPanel { Spacing = 4 };
         rowsClip = new Border
         {
             Child = listContent,
+            Padding = new Thickness(0, 6, 0, 0), // :124 .padding(.top, 6)
             ClipToBounds = false,
-            HorizontalAlignment = HorizontalAlignment.Stretch
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            // The list's own height, not the viewport's: a stretched border would report the scroll view's height back
+            // as the natural height (:125-127).
+            VerticalAlignment = VerticalAlignment.Top
         };
+        // :87,132 the rows live in a scroll view that scrolls only when the list is taller than its capped frame.
         scrollView = new ScrollViewer
         {
             Content = rowsClip,
@@ -74,6 +90,8 @@ public sealed class FollowUpQueueTab : Decorator
             VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Auto
         };
         scrollView.SizeChanged += (_, _) => UpdateRowsHeight();
+        // :128-130 `listHeight` is the rows' own height, measured inside the scroll view.
+        rowsClip.SizeChanged += (_, _) => UpdateRowsHeight();
 
         rowsPanel.Children.Add(title);
         rowsPanel.Children.Add(scrollView);
@@ -82,8 +100,8 @@ public sealed class FollowUpQueueTab : Decorator
         {
             Child = rowsPanel,
             Padding = new Thickness(12, 7, 12, 7 + Overlap),
-            MaxWidth = 560,
-            HorizontalAlignment = HorizontalAlignment.Center,
+            MaxWidth = 560, // :153 .frame(maxWidth: 560); the rows' text is maxWidth .infinity, so the tab takes what it is offered
+            HorizontalAlignment = HorizontalAlignment.Stretch,
             CornerRadius = new CornerRadius(12, 12, 0, 0),
             Background = new SolidColorBrush(Colors.Transparent)
         };
@@ -93,7 +111,6 @@ public sealed class FollowUpQueueTab : Decorator
         RefreshRows();
         this.Track(() => runtime.FollowUps, _ => RefreshRows());
         this.Track(() => runtime.FollowUpsCollapsed, _ => UpdateCollapsed());
-        this.Track(() => pairTarget, _ => UpdateRowStates());
     }
 
     private Control MakeTitle()
@@ -101,7 +118,9 @@ public sealed class FollowUpQueueTab : Decorator
         var button = new Button
         {
             Padding = new Thickness(0),
-            Background = null,
+            // :71 .contentShape(.rect): the whole title line is the button, the empty stretch between the words and the
+            // chevron included, so the line needs a (clear) fill to be hit.
+            Background = new SolidColorBrush(Colors.Transparent),
             BorderThickness = new Thickness(0),
             HorizontalContentAlignment = HorizontalAlignment.Stretch,
             Focusable = false
@@ -115,18 +134,36 @@ public sealed class FollowUpQueueTab : Decorator
         var icon = SwiftImage.SystemName("arrow.turn.down.right");
         icon.Font(Chrome.InlineIconFont);
         icon.ForegroundStyle(Chrome.SecondaryText);
+        icon.VerticalAlignment = VerticalAlignment.Center;
         Grid.SetColumn(icon, 0);
         line.Children.Add(icon);
 
-        var count = new TextBlock { Foreground = Chrome.PrimaryText.Opacity(0.9).Brush(button) };
+        // :55 HStack(spacing: 7): 7 points between every pair of neighbours.
+        var count = new TextBlock
+        {
+            Foreground = Chrome.PrimaryText.Opacity(0.9).Brush(button),
+            Margin = new Thickness(7, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium).MonospacedDigit().Apply(count);
         Grid.SetColumn(count, 1);
         line.Children.Add(count);
 
-        var queued = new TextBlock { Text = "queued", Foreground = Chrome.SecondaryText.Brush(button) };
+        var queued = new TextBlock
+        {
+            Text = "queued",
+            Foreground = Chrome.SecondaryText.Brush(button),
+            Margin = new Thickness(7, 0, 0, 0),
+            VerticalAlignment = VerticalAlignment.Center
+        };
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium).MonospacedDigit().Apply(queued);
         Grid.SetColumn(queued, 2);
         line.Children.Add(queued);
+
+        // :63 Spacer(minLength: 8) between its two 7-point gaps.
+        var spacer = new Border { MinWidth = 8, Margin = new Thickness(7, 0, 7, 0) };
+        Grid.SetColumn(spacer, 3);
+        line.Children.Add(spacer);
 
         var chevron = SwiftImage.SystemName("chevron.down");
         chevron.Font(Chrome.InlineIconFont);
@@ -144,7 +181,7 @@ public sealed class FollowUpQueueTab : Decorator
         button.Click += (_, _) =>
         {
             Transaction.WithAnimation(Chrome.PanelSlide, () => runtime.FollowUpsCollapsed = !runtime.FollowUpsCollapsed);
-            UpdateTitle(button, count, chevron);
+            Update();
         };
 
         void Update()
@@ -157,9 +194,10 @@ public sealed class FollowUpQueueTab : Decorator
             ToolTip.SetTip(button, help);
             AutomationProperties.SetName(button, promptCount == 1 ? "1 queued follow-up" : promptCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " queued follow-ups");
             AutomationProperties.SetHelpText(button, help);
+            // :82 .accessibilityValue(Text(isCollapsed ? "Collapsed" : "Expanded")); the port maps an accessibility value
+            // to the item status (ChatBadge.cs:123, SidebarView.cs:3892).
+            AutomationProperties.SetItemStatus(button, collapsed ? "Collapsed" : "Expanded");
         }
-
-        void UpdateTitle(Button target, TextBlock countBlock, SwiftImage chevronImage) => Update();
 
         button.Tag = (Action)Update;
         Update();
@@ -168,97 +206,129 @@ public sealed class FollowUpQueueTab : Decorator
         return button;
     }
 
+    // :94-122 ForEach(runtime.followUps, id: \.element.id): a row whose prompt survives keeps its control (so a grip
+    // under the pointer is never torn down mid-drag, :187-189), a new or changed prompt gets a new one, and the
+    // children follow the queue's order.
     private void RefreshRows()
     {
-        var ids = runtime.FollowUps.Select(prompt => prompt.Id).ToHashSet();
+        var prompts = runtime.FollowUps;
+        var ids = prompts.Select(prompt => prompt.Id).ToHashSet();
         foreach (var id in measuredHeights.Keys.Where(id => !ids.Contains(id)).ToArray())
-            measuredHeights.Remove(id);
+            measuredHeights.Remove(id); // :160-163 a row that left takes its measured height with it
 
-        listContent.Children.Clear();
-        listContent.Children.Add(new Border
+        foreach (var (id, gone) in rowControls.Where(pair => !ids.Contains(pair.Key)).ToArray())
         {
-            Height = 1,
-            Background = Chrome.SecondaryText.Brush(this),
-            Opacity = 0.5
-        });
-
-        var numbers = Numbers(runtime.FollowUps);
-        rowControls.Clear();
-        for (var index = 0; index < runtime.FollowUps.Count; index++)
-        {
-            var prompt = runtime.FollowUps[index];
-            var previous = index > 0 ? runtime.FollowUps[index - 1] : null;
-            var next = index + 1 < runtime.FollowUps.Count ? runtime.FollowUps[index + 1] : null;
-            var withPrevious = prompt.BundleID is not null && prompt.BundleID == previous?.BundleID;
-            var withNext = prompt.BundleID is not null && prompt.BundleID == next?.BundleID;
-            var isDragged = drag.Id == prompt.Id;
-
-            var row = new FollowUpRow(
-                numbers.TryGetValue(prompt.Id, out var position) ? position : index + 1,
-                prompt,
-                runtime,
-                isDragged,
-                prompt.Id != runtime.FollowUps[runtime.FollowUps.Count - 1].Id && !isDragged && !withNext,
-                withPrevious,
-                withNext,
-                pairTarget == prompt.Id,
-                isDragged && pairTarget is not null,
-                translation => DragChanged(prompt.Id, translation),
-                DragEnded);
-
-            rowControls[prompt.Id] = row;
-            row.SizeChanged += (_, args) =>
-            {
-                if (args.NewSize.Height <= 0) return;
-                measuredHeights[prompt.Id] = args.NewSize.Height;
-                UpdateRowsHeight();
-            };
-            listContent.Children.Add(row);
+            rowControls.Remove(id);
+            rowsStack.Children.Remove(gone);
         }
 
+        // :158-159 a row that left mid-drag (deleted, or sent) ends the drag cleanly.
+        if (drag.Id is { } held && !ids.Contains(held))
+        {
+            drag = new RowDrag<Guid>();
+            pairTarget = null;
+        }
+
+        var desired = new List<FollowUpRow>();
+        foreach (var prompt in prompts)
+        {
+            if (rowControls.TryGetValue(prompt.Id, out var existing) && SameContent(existing.Prompt, prompt))
+            {
+                desired.Add(existing);
+                continue;
+            }
+
+            if (existing is not null) rowsStack.Children.Remove(existing);
+            var row = NewRow(prompt);
+            rowControls[prompt.Id] = row;
+            desired.Add(row);
+        }
+
+        for (var index = 0; index < desired.Count; index++)
+        {
+            if (index < rowsStack.Children.Count && ReferenceEquals(rowsStack.Children[index], desired[index])) continue;
+            var at = rowsStack.Children.IndexOf(desired[index]);
+            if (at < 0) rowsStack.Children.Insert(index, desired[index]);
+            else rowsStack.Children.Move(at, index); // a move, not a remove and add: nothing leaves the visual tree
+        }
+
+        UpdateRowStates();
         UpdateRowsHeight();
         UpdateCollapsed();
     }
 
+    // The bundle is the queue's to change mid-drag (:253-258): the row keeps its control, and its grip, through it.
+    private static bool SameContent(FollowUpPrompt a, FollowUpPrompt b) => a with { BundleID = null } == b with { BundleID = null };
+
+    private FollowUpRow NewRow(FollowUpPrompt prompt)
+    {
+        var row = new FollowUpRow(
+            1,
+            prompt,
+            runtime,
+            false,
+            false,
+            false,
+            false,
+            false,
+            false,
+            translation => DragChanged(prompt.Id, translation),
+            DragEnded);
+        // :115 RowHeightReporter: a row's measured height, including its padding, is its slot in the stack.
+        row.SizeChanged += (_, args) =>
+        {
+            if (args.NewSize.Height <= 0) return;
+            if (!rowControls.ContainsKey(prompt.Id)) return;
+            measuredHeights[prompt.Id] = args.NewSize.Height;
+            UpdateRowsHeight();
+        };
+        return row;
+    }
+
     private void UpdateRowsHeight()
     {
-        if (listContent.Bounds.Height > 0) listHeight = listContent.Bounds.Height;
+        if (rowsClip.Bounds.Height > 0) listHeight = rowsClip.Bounds.Height;
         var heights = new ValueMap<Guid, double>(measuredHeights.Select(pair =>
             new KeyValuePair<Guid, double>(pair.Key, pair.Value)));
+        // :136 the frame: zero while folded, else the natural height cut to whole rows past seven.
         var height = IsCollapsed ? 0 : CappedHeight(listHeight, heights, runtime.FollowUps.Count);
         scrollView.Height = height;
-        rowsClip.Height = height;
-        rowsClip.Clip = new RectangleGeometry(new Rect(
+        // :142-146 the mask: 32 points past the sides always, 16 past top and bottom while open, closing with the fold.
+        scrollView.Clip = new RectangleGeometry(new Rect(
             -32,
             IsCollapsed ? 0 : -16,
-            rowsClip.Bounds.Width + 64,
-            rowsClip.Bounds.Height + (IsCollapsed ? 0 : 32)));
-        UpdateRowStates();
+            scrollView.Bounds.Width + 64,
+            height + (IsCollapsed ? 0 : 32)));
     }
 
     private void UpdateCollapsed()
     {
-        scrollView.Opacity = IsCollapsed ? 0 : 1;
-        scrollView.IsHitTestVisible = !IsCollapsed;
+        scrollView.Opacity = IsCollapsed ? 0 : 1; // :137
+        scrollView.IsHitTestVisible = !IsCollapsed; // :147
+        // :148 .accessibilityHidden(isCollapsed): the port maps accessibilityHidden to the Raw view (ChatBadge.cs:106).
         AutomationProperties.SetAccessibilityView(scrollView,
-            IsCollapsed ? AccessibilityView.Control : AccessibilityView.Content);
+            IsCollapsed ? AccessibilityView.Raw : AccessibilityView.Content);
         UpdateRowsHeight();
     }
 
+    // :95-111 each row's place in the stack: its number, its bundle neighbours, its rule, how far a held row is lifted.
     private void UpdateRowStates()
     {
-        foreach (var (id, row) in rowControls)
+        var prompts = runtime.FollowUps;
+        var numbers = Numbers(prompts);
+        for (var index = 0; index < prompts.Count; index++)
         {
-            var index = runtime.FollowUps.IndexOf(runtime.FollowUps.FirstOrDefault(prompt => prompt.Id == id)!);
-            if (index < 0) continue;
-            var prompt = runtime.FollowUps[index];
-            var previous = index > 0 ? runtime.FollowUps[index - 1] : null;
-            var next = index + 1 < runtime.FollowUps.Count ? runtime.FollowUps[index + 1] : null;
+            var prompt = prompts[index];
+            if (!rowControls.TryGetValue(prompt.Id, out var row)) continue;
+            var previous = index > 0 ? prompts[index - 1] : null;
+            var next = index + 1 < prompts.Count ? prompts[index + 1] : null;
             var withPrevious = prompt.BundleID is not null && prompt.BundleID == previous?.BundleID;
             var withNext = prompt.BundleID is not null && prompt.BundleID == next?.BundleID;
-            row.UpdateState(drag.Id == id, pairTarget == id, drag.Id == id && pairTarget is not null,
-                withPrevious, withNext, prompt.Id != runtime.FollowUps[runtime.FollowUps.Count - 1].Id
-                && drag.Id != id && !withNext);
+            var isDragged = drag.Id == prompt.Id;
+            row.UpdateState(isDragged, pairTarget == prompt.Id, isDragged && pairTarget is not null,
+                withPrevious, withNext, prompt.Id != prompts[prompts.Count - 1].Id && !isDragged && !withNext,
+                numbers.TryGetValue(prompt.Id, out var position) ? position : index + 1,
+                isDragged ? drag.VisualOffset : 0); // :118 .offset(y: isDragged ? drag.visualOffset : 0)
         }
     }
 
@@ -358,7 +428,7 @@ public sealed class FollowUpQueueTab : Decorator
 /// <summary>:299-510 <c>private struct FollowUpRow: View</c>.</summary>
 public sealed class FollowUpRow : Decorator
 {
-    private readonly int position;
+    private int position;
     private readonly FollowUpPrompt prompt;
     private readonly ThreadRuntime runtime;
     private readonly AttachmentPreviewSlot preview = new();
@@ -371,14 +441,22 @@ public sealed class FollowUpRow : Decorator
     private bool isPairTarget;
     private bool isPairing;
     private bool showsRule;
+    // The tab's `drag.visualOffset` for the held row (:118).
+    private double offsetY;
     // :324 whether the pointer is over the reorder grip, which brightens its icon (no cursor call - that is
     // .pointerStyle(isDragged ? .grabActive : .grabIdle) alone).
     private bool isHoveringGrip;
     private Point? dragOrigin;
     private Control? dragRoot;
     private readonly Border rowSurface;
-    private readonly StackPanel rowLine;
+    private readonly Grid rowLine;
+    private readonly Border rule;
+    private readonly Border pairFrame;
+    private SwiftImage? grip;
     private QueueIconButton? sendButton;
+
+    /// <summary>:301 <c>let prompt: FollowUpPrompt</c>.</summary>
+    internal FollowUpPrompt Prompt => prompt;
 
     // :331-334
     private static double ProseLift
@@ -432,20 +510,32 @@ public sealed class FollowUpRow : Decorator
         this.onDragChanged = onDragChanged;
         this.onDragEnded = onDragEnded;
 
-        rowLine = new StackPanel
+        // :343 HStack(alignment: .center, spacing: 8): the number or link, the grip, the thumbnails, the text, a spacer
+        // and the buttons. Columns, so the text takes what is left and the buttons sit at the trailing edge (:426).
+        rowLine = new Grid
         {
-            Orientation = Orientation.Horizontal,
-            Spacing = 8,
+            ColumnDefinitions = new ColumnDefinitions("Auto,Auto,Auto,*,Auto,Auto"),
             VerticalAlignment = VerticalAlignment.Center
         };
+        // :457 .padding(.vertical, 5): a one-line row is 32 tall.
+        var padded = new Border { Padding = new Thickness(0, 5), Child = rowLine };
+        // :458-460 the rule is an overlay along the bottom edge: it adds no height to the row.
+        rule = new Border { Height = 1, VerticalAlignment = VerticalAlignment.Bottom, IsHitTestVisible = false };
+        // :469-472 the pair target's frame is a stroke over the capsule: it adds no size either.
+        pairFrame = new Border { IsHitTestVisible = false, IsVisible = false, CornerRadius = new CornerRadius(999) };
+        var body = new Grid();
+        body.Children.Add(padded);
+        body.Children.Add(rule);
+        body.Children.Add(pairFrame);
         rowSurface = new Border
         {
-            Child = rowLine,
-            Padding = new Thickness(0, 5),
+            Child = body,
             HorizontalAlignment = HorizontalAlignment.Stretch
         };
         Child = rowSurface;
         BuildRow();
+        UpdateLeading();
+        UpdateGrip();
         UpdateSurface();
 
         this.Track(() => runtime.IsRunning, _ => UpdateSendHelp());
@@ -454,7 +544,6 @@ public sealed class FollowUpRow : Decorator
 
         // :386 the DragGesture is chained directly onto the grip Image (28x22), not the row - PointerPressed/
         // Moved/Released are wired onto the grip itself inside BuildRow(), not here.
-        SizeChanged += (_, _) => UpdateSurface();
         DetachedFromVisualTree += (_, _) =>
         {
             preview.Close();
@@ -462,10 +551,9 @@ public sealed class FollowUpRow : Decorator
         };
     }
 
-    private void BuildRow()
+    // The number, the link or the unlink button: the first cell of the line, rebuilt when the row's bundle state changes.
+    private void UpdateLeading()
     {
-        rowLine.Children.Clear();
-
         Control leading;
         if (isBundledWithPrevious || isPairTarget || isPairing)
         {
@@ -496,7 +584,9 @@ public sealed class FollowUpRow : Decorator
             else
             {
                 link.IsHitTestVisible = false;
-                AutomationProperties.SetAccessibilityView(link, AccessibilityView.Control);
+                link.Width = 14; // :377 the group's frame(width: 14)
+                // :368 .accessibilityHidden(true)
+                AutomationProperties.SetAccessibilityView(link, AccessibilityView.Raw);
                 leading = link;
             }
         }
@@ -511,62 +601,84 @@ public sealed class FollowUpRow : Decorator
                 Foreground = (isBundledWithNext ? Chrome.Accent : Chrome.SecondaryText).Brush(this)
             };
             SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium).MonospacedDigit().Apply(number);
-            AutomationProperties.SetAccessibilityView(number, AccessibilityView.Control);
+            // :374 .accessibilityHidden(true)
+            AutomationProperties.SetAccessibilityView(number, AccessibilityView.Raw);
             leading = number;
         }
-        rowLine.Children.Add(leading);
 
-        var grip = SwiftImage.SystemName("line.3.horizontal");
-        grip.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium));
-        UpdateGripForeground(grip); // :380
-        grip.Width = 28;
-        grip.Height = 22;
-        grip.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle); // :384
+        Grid.SetColumn(leading, 0);
+        if (leadingCell is { } old) rowLine.Children.Remove(old);
+        leadingCell = leading;
+        rowLine.Children.Add(leading);
+    }
+
+    private Control? leadingCell;
+
+    // Built once: the grip under the pointer must survive every state change of the row (:187-189).
+    private void BuildRow()
+    {
+        var gripImage = SwiftImage.SystemName("line.3.horizontal");
+        grip = gripImage;
+        gripImage.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium));
+        gripImage.Width = 28;
+        gripImage.Height = 22;
+        gripImage.Margin = new Thickness(8, 0, 0, 0);
+        // :384 .pointerStyle(isDragged ? .grabActive : .grabIdle)
         // :48 (Marrow.UI.Port.PointerStyleControl) resolves RenderScaling as 1 until the control has a TopLevel;
-        // BuildRow() runs before the caller attaches the row (FollowUpQueueTab.RefreshRows adds it to the tree only
-        // after `new FollowUpRow(...)` returns), so the cursor above is always baked at scale 1. Re-apply once the
+        // the cursor is baked when the grip is built, before the caller attaches the row. Re-apply once the
         // grip is actually attached, so a real monitor's RenderScaling gets picked up.
-        grip.AttachedToVisualTree += (_, _) => grip.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle);
-        ToolTip.SetTip(grip, "Drag above or below to reorder \U000000B7 drop onto the middle of another to send them together"); // U+00B7 MIDDLE DOT
-        AutomationProperties.SetName(grip, "Drag to reorder");
+        gripImage.AttachedToVisualTree += (_, _) => gripImage.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle);
+        ToolTip.SetTip(gripImage, "Drag above or below to reorder \U000000B7 drop onto the middle of another to send them together"); // U+00B7 MIDDLE DOT
+        AutomationProperties.SetName(gripImage, "Drag to reorder");
         // :383 .onHover { hovering in isHoveringGrip = hovering } - brightness only, no cursor call.
-        grip.PointerEntered += (_, _) => { isHoveringGrip = true; UpdateGripForeground(grip); };
-        grip.PointerExited += (_, _) => { isHoveringGrip = false; UpdateGripForeground(grip); };
+        gripImage.PointerEntered += (_, _) => { isHoveringGrip = true; UpdateGripForeground(gripImage); };
+        gripImage.PointerExited += (_, _) => { isHoveringGrip = false; UpdateGripForeground(gripImage); };
         // :386-389 the DragGesture (minimumDistance 1, .global) is chained onto the grip Image itself, so SwiftUI
         // only recognizes the reorder drag inside this 28x22 hit rect - not anywhere else in the row.
-        grip.PointerPressed += OnPointerPressed;
-        grip.PointerMoved += OnPointerMoved;
-        grip.PointerReleased += OnPointerReleased;
-        grip.PointerCaptureLost += (_, _) => EndPointerDrag();
-        rowLine.Children.Add(grip);
+        gripImage.PointerPressed += OnPointerPressed;
+        gripImage.PointerMoved += OnPointerMoved;
+        gripImage.PointerReleased += OnPointerReleased;
+        gripImage.PointerCaptureLost += (_, _) => EndPointerDrag();
+        Grid.SetColumn(gripImage, 1);
+        rowLine.Children.Add(gripImage);
 
         if (prompt.Attachments.Count > 0)
         {
-            var thumbnails = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+            var thumbnails = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Margin = new Thickness(8, 0, 0, 0) };
             foreach (var attachment in prompt.Attachments)
                 thumbnails.Children.Add(new Marrow.App.Views.Chat.AttachmentThumbnail(
                     attachment, preview, size: 22, anchorless: true));
             thumbnails.WindowRectAnchor(rect => preview.SetAnchor(rect));
             thumbnails.DetachedFromVisualTree += (_, _) => preview.Close();
+            Grid.SetColumn(thumbnails, 2);
             rowLine.Children.Add(thumbnails);
         }
 
+        var empty = prompt.Text.Trimmed().Length == 0;
         var text = new TextBlock
         {
-            Text = prompt.Text.Trimmed().Length == 0 ? AttachmentOnlyLabel : prompt.Text,
-            Foreground = (prompt.Text.Trimmed().Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText.Opacity(0.9)).Brush(this),
+            Text = empty ? AttachmentOnlyLabel : prompt.Text,
+            Foreground = (empty ? Chrome.SecondaryText : Chrome.PrimaryText.Opacity(0.9)).Brush(this),
             TextWrapping = TextWrapping.Wrap,
-            MaxHeight = 34,
+            MaxLines = 2, // :413,422 .lineLimit(2)
             TextTrimming = TextTrimming.CharacterEllipsis,
+            HorizontalAlignment = HorizontalAlignment.Left,
             VerticalAlignment = VerticalAlignment.Center,
-            Margin = new Thickness(0, ProseLift, 0, 0)
+            Margin = new Thickness(8, 0, 0, 0),
+            // :429 .alignmentGuide(.center) { $0[.center] + proseLift }: the text sits `proseLift` higher than the
+            // centre line, which moves it without changing the row's layout.
+            RenderTransform = new TranslateTransform(0, -ProseLift)
         };
         SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(text);
+        Grid.SetColumn(text, 3);
         rowLine.Children.Add(text);
 
-        rowLine.Children.Add(new Border { MinWidth = 4, HorizontalAlignment = HorizontalAlignment.Stretch });
+        // :430 Spacer(minLength: 4)
+        var spacer = new Border { MinWidth = 4, Margin = new Thickness(8, 0, 0, 0) };
+        Grid.SetColumn(spacer, 4);
+        rowLine.Children.Add(spacer);
 
-        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0 };
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0, Margin = new Thickness(8, 0, 0, 0) };
         sendButton = new QueueIconButton("paperplane", GetSendHelp(), () => runtime.SendFollowUpNow(prompt.Id));
         buttons.Children.Add(sendButton);
         var pencil = new QueueIconButton("pencil", "Edit follow-up", () =>
@@ -582,15 +694,21 @@ public sealed class FollowUpRow : Decorator
         });
         buttons.Children.Add(pencil);
         buttons.Children.Add(new QueueIconButton("trash", "Delete follow-up", () => runtime.RemoveFollowUp(prompt.Id)));
+        Grid.SetColumn(buttons, 5);
         rowLine.Children.Add(buttons);
-
-        rowLine.SizeChanged += (_, _) => UpdateSurface();
     }
 
     // :380 `isBundledWithNext ? Color.accentColor.opacity(isHoveringGrip ? 1 : 0.85) : Chrome.secondaryText.opacity(isHoveringGrip ? 1 : 0.7)`
-    private void UpdateGripForeground(SwiftImage grip) => grip.ForegroundStyle(isBundledWithNext
+    private void UpdateGripForeground(SwiftImage image) => image.ForegroundStyle(isBundledWithNext
         ? Chrome.Accent.Opacity(isHoveringGrip ? 1 : 0.85)
         : Chrome.SecondaryText.Opacity(isHoveringGrip ? 1 : 0.7));
+
+    private void UpdateGrip()
+    {
+        if (grip is null) return;
+        UpdateGripForeground(grip); // :380
+        grip.PointerStyle(isDragged ? PointerStyle.GrabActive : PointerStyle.GrabIdle); // :384
+    }
 
     private string GetSendHelp() =>
         runtime.HasWorkingNativeHeads && runtime.IsRunning
@@ -625,35 +743,56 @@ public sealed class FollowUpRow : Decorator
     }
 
     internal void UpdateState(bool dragged, bool pairTarget, bool pairing, bool bundledWithPrevious,
-        bool bundledWithNext, bool rule)
+        bool bundledWithNext, bool rule, int? position = null, double offsetY = 0)
     {
+        var newPosition = position ?? this.position;
         if (isDragged == dragged && isPairTarget == pairTarget && isPairing == pairing
             && isBundledWithPrevious == bundledWithPrevious && isBundledWithNext == bundledWithNext
-            && showsRule == rule) return;
+            && showsRule == rule && this.position == newPosition && this.offsetY == offsetY) return;
+        var leadingChanged = isPairTarget != pairTarget || isPairing != pairing
+            || isBundledWithPrevious != bundledWithPrevious || isBundledWithNext != bundledWithNext
+            || this.position != newPosition;
         isDragged = dragged;
         isPairTarget = pairTarget;
         isPairing = pairing;
         isBundledWithPrevious = bundledWithPrevious;
         isBundledWithNext = bundledWithNext;
         showsRule = rule;
-        BuildRow();
+        this.position = newPosition;
+        this.offsetY = offsetY;
+        // Only the number or link cell and the surface follow the state: the grip under the pointer stays the
+        // same control (:187-189).
+        if (leadingChanged) UpdateLeading();
+        UpdateGrip();
         UpdateSurface();
     }
 
     private void UpdateSurface()
     {
-        rowSurface.Margin = new Thickness(isPairing ? 14 : 0, 0, 0, 0);
-        rowSurface.Opacity = isDragged ? 1 : 1;
+        // :118 .offset(x: pairTarget != nil && isDragged ? 14 : 0, y: isDragged ? drag.visualOffset : 0)
+        RenderTransform = new TranslateTransform(isPairing ? 14 : 0, isDragged ? offsetY : 0);
+        // :482 .scaleEffect(isPairTarget ? 1.008 : isDragged ? 1.01 : 1)
+        var scale = isPairTarget ? 1.008 : isDragged ? 1.01 : 1;
+        rowSurface.RenderTransform = new ScaleTransform(scale, scale);
+        // :464-479 the lifted row rides on a capsule filled Chrome.overlay(0.12) with a black 0.28 shadow (radius 10,
+        // y 4); a pair target is lit with an accent capsule at 0.18 and framed 1.5 wide at 0.65.
         rowSurface.Background = isDragged
             ? Chrome.Overlay(0.12).Brush(this)
             : isPairTarget ? Chrome.Accent.Opacity(0.18).Brush(this) : null;
-        if (showsRule)
-            rowSurface.BorderBrush = Chrome.SecondaryText.Opacity(0.35).Brush(this);
-        else
-            rowSurface.BorderBrush = null;
-        rowSurface.BorderThickness = showsRule ? new Thickness(0, 0, 0, 1) : new Thickness(0);
         rowSurface.CornerRadius = isDragged || isPairTarget ? new CornerRadius(999) : new CornerRadius(0);
-        ZIndex = isDragged ? 1 : 0;
+        rowSurface.BoxShadow = isDragged
+            ? new BoxShadows(new BoxShadow { Color = Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), Blur = 10, OffsetY = 4 })
+            : default;
+        pairFrame.IsVisible = isPairTarget;
+        if (isPairTarget)
+        {
+            pairFrame.BorderBrush = Chrome.Accent.Opacity(0.65).Brush(this);
+            pairFrame.BorderThickness = new Thickness(1.5);
+        }
+        // :458-460 the rule under the row, off for the last row, while lifted and when the next row shares the bundle.
+        rule.IsVisible = showsRule;
+        rule.Background = Chrome.SecondaryText.Opacity(0.35).Brush(this);
+        ZIndex = isDragged ? 1 : 0; // :120
     }
 
     private void OnPointerPressed(object? sender, PointerPressedEventArgs e)
@@ -684,6 +823,7 @@ public sealed class FollowUpRow : Decorator
         onDragEnded();
     }
 }
+
 
 /// <summary>:512-532 <c>private struct QueueIconButton: View</c>.</summary>
 public sealed class QueueIconButton : Decorator
