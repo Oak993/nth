@@ -893,6 +893,34 @@ public sealed class HydraMergePopoverCardTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-095")] // :208-210 the open button hands the note's own link to NSWorkspace.shared.open, once per click
+    public void The_open_button_opens_the_notes_link_in_the_default_browser_once_per_click()
+    {
+        const string url = "https://github.com/acme/app/pull/7";
+        var opened = new List<string>();
+        var popover = Build(Plain(url));
+        headless.OnUiThread(() =>
+        {
+            // On the UI thread's own flow, where the click runs (the seam is an async-local override).
+            using var browser = Marrow.Services.Port.Workspace.Open.Override(link =>
+            {
+                opened.Add(link.AbsoluteString);
+                return true;
+            });
+            var open = Descendants<Button>(popover).Single(candidate => Text(candidate, "Open pull request") is not null);
+            var copy = Descendants<Button>(popover).Single(candidate => Text(candidate, "Copy link") is not null);
+
+            Assert.Empty(opened); // nothing opens until the button is clicked
+            open.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Equal([url], opened);
+            open.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Equal([url, url], opened);
+            copy.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Equal(2, opened.Count); // the copy button never opens the link
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-HYDRAMERGE-095")] // :182-215 the copy button sits left of the open button, the pair pushed to the trailing edge
     public void The_actions_row_puts_copy_link_before_the_open_button_at_the_trailing_edge()
     {

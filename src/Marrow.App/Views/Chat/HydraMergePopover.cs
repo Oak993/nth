@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.RegularExpressions;
 using Avalonia;
@@ -654,7 +653,9 @@ public sealed class HydraMergePopover : Decorator
         };
         open.Click += (_, _) =>
         {
-            Process.Start(new ProcessStartInfo(note.Link.Url.AbsoluteString) { UseShellExecute = true });
+            // :209 NSWorkspace.shared.open(note.link.url): the default browser, through the port's one seam for it
+            // (Marrow.Services.Port.Workspace.Open, as TimelineRows' links), so tests never start a real browser.
+            Marrow.Services.Port.Workspace.Open.Current(note.Link.Url);
         };
         Grid.SetColumn(open, 2);
         row.Children.Add(open);
