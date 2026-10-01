@@ -567,13 +567,18 @@ public sealed class FastModeButton : Decorator
         var fill = new AnimatedColor(circle);
         circle.Fill = fill.Brush;
 
+        bool? shownOn = null;
         void Apply(bool on, bool hovering)
         {
             iconHost.Children.Clear();
-            iconHost.Children.Add(SwiftImage.SystemName(on ? "bolt.fill" : "bolt") // :667
+            var bolt = SwiftImage.SystemName(on ? "bolt.fill" : "bolt") // :667
                 .Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)) // :668
                 .ForegroundStyle(on ? SwiftColor.Yellow : Chrome.SecondaryText) // :669
-                .SymbolEffect(SymbolEffectKind.Bounce, on)); // :670 MARROW_DEFERRED ED-182 (EffortSlider.swift:670)
+                .SymbolEffect(SymbolEffectKind.Bounce, on); // :670
+            iconHost.Children.Add(bolt);
+            // :670 .symbolEffect(.bounce, value: isOn): one bounce each time the value changes (SymbolBounce, measured).
+            if (shownOn is { } was && was != on) SymbolBounce.Play(bolt);
+            shownOn = on;
         }
 
         Apply(isOn.Value, state.IsHovering);

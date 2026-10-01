@@ -408,19 +408,28 @@ public sealed class EffortSliderTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-119")] // EffortSlider.swift:670 .symbolEffect(.bounce, value: isOn); ED-182 defers the effect itself but requires it be recorded (MARROW_DEFERRED ED-182), per SwiftImage.cs:32's own citation of this exact call site
-    public void A_fast_mode_buttons_glyph_records_the_deferred_bounce_symbol_effect_on_build_and_after_toggling() => headless.OnUiThread(() =>
+    [Trait("Req", "PR-COMPOSER-119")] // EffortSlider.swift:670 .symbolEffect(.bounce, value: isOn): one bounce per change (SymbolBounce, measured 2-chat-use.mov 47.55-48.20 s)
+    public void A_fast_mode_buttons_bolt_bounces_once_when_toggled_and_not_on_build() => headless.OnUiThread(() =>
     {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
         var box = new ObservableBoolBox();
         var control = new FastModeButton(box.AsBinding());
         var window = Show(control);
+        double Scale() => Assert.Single(window.GetVisualDescendants().OfType<SwiftImage>()).RenderTransform is ScaleTransform s ? s.ScaleX : 1;
 
         Assert.Equal(SymbolEffectKind.Bounce, Assert.Single(window.GetVisualDescendants().OfType<SwiftImage>()).DeferredSymbolEffect);
+        clock.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100));
+        Assert.Equal(1, Scale()); // no bounce on the first build: the value has not changed
 
         box.Value = true;
         Dispatcher.UIThread.RunJobs();
-
-        Assert.Equal(SymbolEffectKind.Bounce, Assert.Single(window.GetVisualDescendants().OfType<SwiftImage>()).DeferredSymbolEffect);
+        clock.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100));
+        Assert.True(Scale() > 1.2, "the bolt swells about 0.1 s after the toggle: " + Scale()); // video about 19 of 13.5 px
+        clock.Advance(TimeSpan.FromMilliseconds(250)); frames.Advance(TimeSpan.FromMilliseconds(250));
+        Assert.Equal(1, Scale()); // back at rest by about 0.3 s
         window.Close();
     });
 

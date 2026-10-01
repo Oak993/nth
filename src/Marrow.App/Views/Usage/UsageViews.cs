@@ -508,6 +508,9 @@ internal sealed class BankedResetsView : Decorator
             var glyph = SwiftImage.SystemName(symbol)
                 .Font(SwiftFont.Subheadline.FontWeight(SwiftFont.Weight.Semibold))
                 .ForegroundStyle(color)
+                // :266 .symbolEffect(.bounce, value: phase) is recorded, never played: the glyph exists only in the .done branch,
+                // which the phase change itself inserts (Applying -> Done), and a value-triggered symbol effect does not fire on
+                // insertion; the phases never go from one .done to another, so the Swift glyph never bounces either.
                 .SymbolEffect(SymbolEffectKind.Bounce, phase);
             var message = new TextBlock
             {
