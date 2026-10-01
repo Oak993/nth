@@ -19,9 +19,8 @@ public sealed class ThreadRuntimeHydraCommandWatchTests
     private const string ToolID = "tool-1";
     private const string Key = AgentID + "-" + ToolID;
 
-    private sealed record Setup(ThreadRuntimeTurnRig Rig, AppModelGitRepo Repo, string Tree);
 
-    private static Setup Open()
+    private static CommandWatchSetup Open()
     {
         AppModelGitRepo repo = null!;
         var rig = new ThreadRuntimeTurnRig(ProviderKind.Claude, hydraOn: true,
@@ -34,7 +33,7 @@ public sealed class ThreadRuntimeHydraCommandWatchTests
             ThreadRuntimeReflection.Set(rig.Runtime, "latestTree", tree); // a tree known to predate the command
             rig.Runtime.Rehearse(new ProviderEvent.AgentStarted(new AgentSpawn { Id = AgentID, Description = "Edit it", Prompt = "brief", IsBackground = true }));
         });
-        return new Setup(rig, repo, tree);
+        return new CommandWatchSetup(rig, repo, tree);
     }
 
     private static void Start(ThreadRuntimeTurnRig rig, string command, string tool = ToolID) => rig.H.Main.OnMain(() =>

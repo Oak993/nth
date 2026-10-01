@@ -25,7 +25,7 @@ public sealed class ThreadRuntimeSpawnWaitingHeadsTests
 
     [Fact]
     [Trait("Req", "PR-RUNTIME-233")] // :3030-3040 a cap of two with four waiting tasks sends two and leaves two, in block order
-    [Trait("Req", "PR-RUNTIME-258")] // :3039 the new head's record gets the queuedAt the task was stamped with, not the time it went out
+    [Trait("Req", "PR-RUNTIME-258")] // :3039 the new head's entry gets the queuedAt the task was stamped with, not the time it went out
     public void A_cap_of_two_with_four_waiting_tasks_sends_the_first_two_in_order_and_stamps_their_queued_time()
     {
         using var rig = new ThreadRuntimeDelegationRig(maxHeads: 2);

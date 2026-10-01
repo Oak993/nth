@@ -21,13 +21,12 @@ public sealed class ThreadRuntimeHeadFinishedOrderTests
 
     /// <summary>What the lead runtime held the moment hydraHeadFinished returned, before anything it posted could run (the
     /// report turn and the follow-up turn are posted tasks, and the test loop drains those when the call that made them ends).</summary>
-    private sealed record AfterFinish(bool FlushScheduled, bool FollowUpFlushScheduled, long Token, int PendingReports, int Batches);
 
-    private static AfterFinish Finish(ThreadRuntimeDelegationRig rig, ChatThread head, TurnStatus status = TurnStatus.Completed) =>
+    private static HeadFinishSnapshot Finish(ThreadRuntimeDelegationRig rig, ChatThread head, TurnStatus status = TurnStatus.Completed) =>
         rig.OnMain(() =>
         {
             rig.App.FinishHydraHead(head.Id, status, "all done");
-            return new AfterFinish(
+            return new HeadFinishSnapshot(
                 ThreadRuntimeReflection.Get<bool>(rig.Runtime, "hydraFlushScheduled"),
                 ThreadRuntimeReflection.Get<bool>(rig.Runtime, "followUpFlushScheduled"),
                 rig.Runtime.AutoStartedTurnToken,
