@@ -605,29 +605,37 @@ public sealed class WindowManagerNativeTests(WindowManagerNativeSession native)
                 return (window, target);
             });
             var handle = native.OnUi(() => window.TryGetPlatformHandle()?.Handle ?? 0);
-            // The menu runs its own modal loop on the UI thread (TrackPopupMenuEx), so it is presented from a task and
-            // driven from here with posted keys, as a person would: Down selects the first row, Return chooses it.
-            var presenting = Task.Run(() => native.OnUi(() =>
-            {
-                Marrow.UI.Port.NativeContextMenus.Presenter.Current.Present(target, new Point(20, 20), Marrow.UI.Port.NativeContextMenus.Entries(target.ContextMenu!.Items));
-                return 0;
-            }));
+            native.OnUi(() => WindowManagerNativeForeground.Acquire(handle, native.ThreadId));
+            var at = native.OnUi(() => target.PointToScreen(new Point(20, 20)));
+            var point = new NativeWindowPoint(at.X, at.Y);
+            Assert.True(N.GetCursorPos(out var originalCursor));
+            // A real right-click, guarded like WindowManagerNativePointer's: the test window is in front, the point is its
+            // client area, and no button is held. Nothing calls the presenter directly: the click reaches Avalonia as
+            // WM_RBUTTONDOWN/UP, Avalonia raises ContextRequested, and the class handler NativeContextMenus.Install put in
+            // place opens the Win32 menu. Its modal loop (TrackPopupMenuEx) runs on the UI thread, so it is driven from
+            // here with posted keys, as a person would: Down selects the first row, Return chooses it.
+            if ((N.GetAsyncKeyState(0x01) & 0x8000) != 0 || (N.GetAsyncKeyState(0x02) & 0x8000) != 0)
+                throw new InvalidOperationException("NATIVE_PRECONDITION: a mouse button is already held. Native input was not started.");
+            if (N.GetForegroundWindow() != handle || N.RootAt(point) != handle || N.Hit(handle, point) != N.HTCLIENT)
+                throw new InvalidOperationException("NATIVE_PRECONDITION: the menu target is covered, not in front, or not client area.");
+            nint popup = 0;
             try
             {
-                nint popup = 0;
-                N.Until(() => (popup = N.MenuOn(native.ThreadId)) != 0, "No native popup menu appeared on the window's thread.", 3000);
+                N.Check(N.SetCursorPos(point.X, point.Y), "SetCursorPos on the test window");
+                N.Mouse(N.MOUSE_MOVE);
+                if (N.RootAt(point) != handle) throw new InvalidOperationException("NATIVE_PRECONDITION: the test window lost the point.");
+                N.Mouse(N.MOUSE_RIGHTDOWN, N.MOUSE_RIGHTUP);
+                N.Until(() => (popup = N.MenuOn(native.ThreadId)) != 0, "No native popup menu appeared after a real right-click.", 3000);
                 N.Post(popup, 0x0100, 0x28); // WM_KEYDOWN VK_DOWN
                 N.Post(popup, 0x0100, 0x0D); // WM_KEYDOWN VK_RETURN
-                Assert.True(presenting.Wait(TimeSpan.FromSeconds(5)), "the native menu did not return after Return");
-                Assert.Equal(1, native.OnUi(() => clicked));
+                N.Until(() => N.MenuOn(native.ThreadId) == 0, "The native menu did not close after Return.", 5000);
+                N.Until(() => native.OnUi(() => clicked) == 1, "Choosing the first row did not click its item.", 5000);
+                Assert.Equal(1, native.OnUi(() => clicked)); // once, not twice
             }
             finally
             {
-                if (!presenting.IsCompleted)
-                {
-                    N.Post(handle, N.WM_CANCELMODE);
-                    presenting.Wait(TimeSpan.FromSeconds(5));
-                }
+                if (N.MenuOn(native.ThreadId) != 0) N.Post(handle, N.WM_CANCELMODE);
+                N.Check(N.SetCursorPos(originalCursor.X, originalCursor.Y), "Restore test cursor position");
             }
         });
     }
