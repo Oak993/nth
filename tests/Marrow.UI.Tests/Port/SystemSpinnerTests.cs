@@ -58,6 +58,21 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-117")]
+    public void A_spinner_given_no_size_is_the_small_16_point_spinner() => headless.OnUiThread(() =>
+    {
+        // ChatView.cs:2040 and TimelineRows.cs:2535 build their ProgressView with no size: it must still be drawn.
+        var bar = new ProgressBar { IsIndeterminate = true, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var window = Host(new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Children = { bar } });
+        try
+        {
+            var spinner = Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
+            Assert.Equal(new Size(16, 16), spinner.Bounds.Size);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-117")]
     public void A_determinate_progress_view_is_a_track_and_fill() => headless.OnUiThread(() =>
     {
         var bar = new ProgressBar { Minimum = 0, Maximum = 10, Value = 4, Width = 120, Height = 8 };

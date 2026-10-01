@@ -3,9 +3,10 @@
 // template shows its label and nothing else (probe 2026-10-01).
 //
 // ENGINEERING DECISION (proposal ED-229 (4), E:\Droppy\work\reference-video\ED_PROPOSAL_system_controls.md): the Windows
-// counterparts are the system's standard and accent buttons, from the Windows 11 design (WinUI Button / AccentButton:
-// corner radius 4, padding 11,5,11,6, a translucent fill with a hairline border, or the accent fill with white text);
-// recorded deviation from the macOS bezel. The label uses the port's body font. A disabled button keeps its shape at
+// counterparts are the system's standard and accent buttons as the Windows 11 design draws them (WinUI Button /
+// AccentButton: corner radius 4, padding 11,5,11,6, a translucent fill with a hairline border, or the accent fill with
+// white text). These numbers are UNVERIFIED (recalled from the WinUI defaults, no artifact in this repository) and the
+// design is not yet a numbered ED; recorded deviation from the macOS bezel. No hover, pressed or focus visual yet. The label uses the port's body font. A disabled button keeps its shape at
 // 40 % opacity (the macOS and Windows disabled look both dim the whole control).
 using Avalonia;
 using Avalonia.Controls;
@@ -67,7 +68,8 @@ public static class SystemButtons
         if (label is TextBlock text) text.Foreground = (prominent ? SwiftColor.White : Marrow.UI.Chrome.Chrome.PrimaryText).Brush(text);
         button.PropertyChanged += (_, e) =>
         {
-            if (e.Property == Avalonia.Input.InputElement.IsEnabledProperty) button.Opacity = button.IsEnabled ? 1 : 0.4;
+            // Effective, so a button disabled by its parent dims too.
+            if (e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty) button.Opacity = button.IsEffectivelyEnabled ? 1 : 0.4;
         };
         button.Click += (_, _) => action();
         return button;

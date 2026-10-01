@@ -5,10 +5,12 @@
 // reset, Hydra reports).
 //
 // ENGINEERING DECISION (proposal ED-229 (3), E:\Droppy\work\reference-video\ED_PROPOSAL_system_controls.md): the Windows
-// counterpart of the system busy indicator is the system's progress ring: an accent arc turning once a second, its
-// stroke an eighth of its size (at least 1.5 pt). Recorded deviation: not the macOS spoked spinner. Driven by the
-// port's frame clock (ED-117) so tests can step it; with reduce motion, or with no frame source bound, the arc stands
-// still. PortControlThemes gives every ProgressBar built without a template this spinner (indeterminate) or a plain
+// counterpart of the system busy indicator is the system's progress ring: an accent arc. Its period (1 s), sweep (100
+// degrees) and stroke (an eighth of its size, at least 1.5 pt) are UNVERIFIED (chosen to read as the Windows ring, not
+// measured). A spinner given no size is .controlSize(.small), 16 pt (the size the port's sites set). Recorded deviation:
+// not the macOS spoked spinner. Not yet a numbered ED. Driven by the port's frame clock (ED-117) so tests can step it;
+// with no frame source bound the arc stands still. It keeps turning under reduce motion: nothing in the source stops an
+// indeterminate ProgressView there. PortControlThemes gives every ProgressBar built without a template this spinner (indeterminate) or a plain
 // track-and-fill bar (determinate, for completeness; no site uses one yet).
 using Avalonia;
 using Avalonia.Controls;
@@ -28,6 +30,7 @@ public sealed class SystemSpinner : Control
     public const double Sweep = 100;
 
     private readonly Action<TimeSpan> frame;
+    private readonly IBrush stroke; // made once: SwiftColor.Brush binds the control's theme, so never call it per frame
     private IFrameSource? source;
     private bool waiting;
 
@@ -37,14 +40,17 @@ public sealed class SystemSpinner : Control
     public SystemSpinner()
     {
         frame = OnFrame;
+        stroke = Marrow.UI.Chrome.Chrome.Accent.Brush(this);
         IsHitTestVisible = false;
         AttachedToVisualTree += (_, _) => Start();
         DetachedFromVisualTree += (_, _) => Stop();
     }
 
+    /// <summary>.controlSize(.small): 16 pt when the site gives no size.</summary>
+    protected override Size MeasureOverride(Size availableSize) => new(16, 16);
+
     private void Start()
     {
-        if (EnvironmentValues.GetAccessibilityReduceMotion(this)) return;
         source = FrameClock.Source.Current;
         Request();
     }
@@ -74,7 +80,7 @@ public sealed class SystemSpinner : Control
     {
         waiting = false;
         Angle = now.TotalSeconds % Period / Period * 360;
-        InvalidateVisual();
+        if (IsEffectivelyVisible) InvalidateVisual(); // a hidden spinner keeps its phase without repainting
         Request();
     }
 
@@ -98,7 +104,7 @@ public sealed class SystemSpinner : Control
             path.ArcTo(At(Angle + Sweep), new Size(radius, radius), 0, isLargeArc: false, SweepDirection.Clockwise);
             path.EndFigure(isClosed: false);
         }
-        var pen = new Pen(Marrow.UI.Chrome.Chrome.Accent.Brush(this), stroke, lineCap: PenLineCap.Round);
+        var pen = new Pen(this.stroke, stroke, lineCap: PenLineCap.Round);
         context.DrawGeometry(null, pen, geometry);
     }
 }
@@ -107,10 +113,14 @@ public sealed class SystemSpinner : Control
 public sealed class SystemProgressTrack : Control
 {
     private readonly RangeBase owner;
+    private readonly IBrush wash; // made once (see SystemSpinner's stroke)
+    private readonly IBrush fill;
 
     public SystemProgressTrack(RangeBase owner)
     {
         this.owner = owner;
+        wash = Marrow.UI.Chrome.Chrome.Overlay(0.12).Brush(this);
+        fill = Marrow.UI.Chrome.Chrome.Accent.Brush(this);
         owner.PropertyChanged += (_, e) =>
         {
             if (e.Property == RangeBase.ValueProperty || e.Property == RangeBase.MinimumProperty || e.Property == RangeBase.MaximumProperty) InvalidateVisual();
@@ -124,8 +134,8 @@ public sealed class SystemProgressTrack : Control
         var top = (Bounds.Height - height) / 2;
         var span = owner.Maximum - owner.Minimum;
         var fraction = span <= 0 ? 0 : Math.Clamp((owner.Value - owner.Minimum) / span, 0, 1);
-        context.DrawRectangle(Marrow.UI.Chrome.Chrome.Overlay(0.12).Brush(this), null, new RoundedRect(new Rect(0, top, Bounds.Width, height), height / 2));
+        context.DrawRectangle(wash, null, new RoundedRect(new Rect(0, top, Bounds.Width, height), height / 2));
         if (fraction > 0)
-            context.DrawRectangle(Marrow.UI.Chrome.Chrome.Accent.Brush(this), null, new RoundedRect(new Rect(0, top, Bounds.Width * fraction, height), height / 2));
+            context.DrawRectangle(fill, null, new RoundedRect(new Rect(0, top, Bounds.Width * fraction, height), height / 2));
     }
 }

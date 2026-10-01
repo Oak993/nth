@@ -54,6 +54,7 @@ internal static class ChatDialogControls
                 [!TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty] }.RegisterInNameScope(scope);
             var prompt = new TextBlock { IsHitTestVisible = false, Foreground = Chrome.SecondaryText.Brush(box),
                 [!TextBlock.TextProperty] = box[!TextBox.PlaceholderTextProperty] };
+            PlainControls.FieldBrushes(box, text);
             void Update() => prompt.IsVisible = showsPrompt && string.IsNullOrEmpty(box.Text);
             box.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Update(); };
             Update();
@@ -61,7 +62,8 @@ internal static class ChatDialogControls
             if (style != "RoundedBorder") return content;
             // `.textFieldStyle(.roundedBorder)`: the system text field's bezel. ENGINEERING DECISION (proposal ED-229 (4)):
             // the Windows 11 text box (corner radius 4, padding 10,5,6,6, the control fill and hairline SystemButtons use,
-            // the accent border while it has focus); recorded deviation from the macOS bezel.
+            // the accent border while it has focus; UNVERIFIED numbers, recalled; not yet a numbered ED); recorded deviation
+            // from the macOS bezel.
             var bezel = new Border { CornerRadius = new CornerRadius(4), Padding = new Thickness(10, 5, 6, 6), BorderThickness = new Thickness(1), Child = content };
             bezel.Background = SystemButtons.StandardFill.Brush(bezel);
             void Stroke() => bezel.BorderBrush = (box.IsKeyboardFocusWithin ? Chrome.Accent : SystemButtons.StandardStroke).Brush(bezel);

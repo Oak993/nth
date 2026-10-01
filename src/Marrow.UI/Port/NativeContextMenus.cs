@@ -12,7 +12,9 @@
 // `Presenter`: the native Win32 popup menu (TrackPopupMenuEx, TPM_RETURNCMD: modal like NSMenu) in the app, a recording
 // presenter in tests (as R-TEST-7 does for popovers). The chosen item gets a normal MenuItem Click (and its Command).
 // Recorded deviations: SF Symbol icons and a destructive item's red title are not drawn (a Win32 menu shows text,
-// check marks, separators, submenus and the grey of a disabled item); the site code is unchanged.
+// check marks, separators, submenus and the grey of a disabled item); the menu follows the Windows menu theme, not the
+// app's dark/light choice; Opening's Cancel, item visibility, toggle flipping and Opened/Closed are not honoured (no site
+// uses them). The site code is unchanged. Not yet a numbered ED.
 using System.Collections;
 using System.ComponentModel;
 using System.Reflection;
@@ -140,13 +142,24 @@ internal sealed class Win32ContextMenuPresenter : IContextMenuPresenter
         if (handle == IntPtr.Zero) return; // no native window (a headless session): nothing to show the menu on
         var screen = target.PointToScreen(at);
         var commands = new List<Action?>();
-        var menu = Build(entries, commands);
+        var menu = IntPtr.Zero;
+        var chosen = 0;
         try
         {
-            var chosen = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON, screen.X, screen.Y, handle, IntPtr.Zero);
-            if (chosen > 0 && chosen <= commands.Count) commands[chosen - 1]?.Invoke();
+            menu = Build(entries, commands);
+            // TrackPopupMenuEx's documented contract: the owner must be the foreground window or a click outside the
+            // menu does not dismiss it, and a posted WM_NULL afterwards lets the next click reach the window.
+            SetForegroundWindow(handle);
+            chosen = TrackPopupMenuEx(menu, TPM_RETURNCMD | TPM_RIGHTBUTTON, screen.X, screen.Y, handle, IntPtr.Zero);
+            PostMessageW(handle, WM_NULL, IntPtr.Zero, IntPtr.Zero);
         }
-        finally { DestroyMenu(menu); } // destroys the submenus with it
+        finally
+        {
+            if (menu != IntPtr.Zero) DestroyMenu(menu); // destroys the submenus with it
+        }
+        // The chosen row runs after the menu is gone, and only while its control is still on screen: the UI thread kept
+        // dispatching during the modal loop, so the row (a thread, a message) may have left meanwhile.
+        if (chosen > 0 && chosen <= commands.Count && TopLevel.GetTopLevel(target) is not null) commands[chosen - 1]?.Invoke();
     }
 
     private static IntPtr Build(IReadOnlyList<ContextMenuEntry> entries, List<Action?> commands)
@@ -189,4 +202,16 @@ internal sealed class Win32ContextMenuPresenter : IContextMenuPresenter
     [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static extern bool DestroyMenu(IntPtr menu);
+
+    private const uint WM_NULL = 0x0000;
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool SetForegroundWindow(IntPtr window);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    private static extern bool PostMessageW(IntPtr window, uint message, IntPtr wParam, IntPtr lParam);
 }

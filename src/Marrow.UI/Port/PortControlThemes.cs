@@ -60,9 +60,10 @@ public static class PortControlThemes
     };
 
     // `.help(...)` (NSView.toolTip): the system tooltip. Without a template a ToolTip drew its text with no card, floating
-    // over whatever was under it. ENGINEERING DECISION (proposal ED-229): the Windows system tooltip's card, from the
-    // Windows 11 design (WinUI ToolTip: corner radius 4, padding 9,6,9,8, 12 pt text, a solid #F9F9F9 / #2C2C2C fill and a
-    // hairline border), in the port's own text colour; recorded deviation from the macOS help tag.
+    // over whatever was under it. ENGINEERING DECISION (proposal ED-229, not yet numbered): the Windows system tooltip's
+    // card as the Windows 11 design draws it (WinUI ToolTip: corner radius 4, padding 9,6,9,8, 12 pt text, a solid
+    // #F9F9F9 / #2C2C2C fill and a hairline border; UNVERIFIED numbers, recalled, no artifact), in the port's own text
+    // colour; recorded deviation from the macOS help tag.
     private static readonly SwiftColor TipFill = SwiftColor.Dynamic(SwiftColor.Rgb(0xF9F9F9), SwiftColor.Rgb(0x2C2C2C));
 
     private static readonly FuncControlTemplate<ToolTip> TipTemplate = new((tip, scope) =>
@@ -111,7 +112,7 @@ public static class PortControlThemes
     {
         // At rest a white 18 x 14 capsule; while dragged (1-settings-tour.mov 128-131 s) it grows to about 23 x 20 and
         // turns into translucent glass with the fill showing through (the size change is instant here: the source's
-        // curve is UNVERIFIED).
+        // curve is UNVERIFIED). The shadow and the glass alphas/border below are UNVERIFIED (estimated from the frames).
         var face = new Border { CornerRadius = new CornerRadius(7), Background = Brushes.White, BoxShadow = BoxShadows.Parse("0 0.5 2 0 #40000000") };
         var knob = new Thumb
         {

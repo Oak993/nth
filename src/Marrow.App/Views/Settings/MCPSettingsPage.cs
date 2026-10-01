@@ -694,6 +694,7 @@ internal sealed class MCPCustomEditor : Decorator
             [!TextPresenter.SelectionEndProperty] = box[!TextBox.SelectionEndProperty],
             [!TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty],
         }.RegisterInNameScope(scope);
+        PlainControls.FieldBrushes(box, presenter);
         void ShowPrompt() => prompt.IsVisible = string.IsNullOrEmpty(box.Text);
         box.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) ShowPrompt(); };
         ShowPrompt();

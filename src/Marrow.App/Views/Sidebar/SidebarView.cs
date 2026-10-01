@@ -1408,9 +1408,7 @@ public sealed class SidebarView : Decorator
         return new DeleteThreadPopover(Model.Thread(threadID) ?? thread, removeWorktree => ConfirmDeletion(threadID, removeWorktree)); // :225-227
     }
 
-    /// <summary>:239-252 renamePopover(for:on:). STOP #6 (RenameThreadPopover, this unit): the content this wraps has
-    /// no chrome yet, so this wrapper stays unwritten rather than calling a MARROW_STUB constructor from a live
-    /// path. PR-SIDEBAR-091.</summary>
+    /// <summary>:239-252 renamePopover(for:on:): the rename field in a popover on the row itself. PR-SIDEBAR-091.</summary>
     // STOP #6 closed 2026-10-01 (see RenameThreadPopover). PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030.
     private Control RenamePopover(ChatThread thread, Control row)
     {
@@ -1678,27 +1676,17 @@ internal sealed class DeleteThreadPopover : Decorator
     }
 }
 
-/// <summary>:987-1025 <c>private struct RenameThreadPopover: View</c>. PR-SIDEBAR-091: STOP #6 (see
-/// SidebarViewTests.cs).</summary>
+/// <summary>:987-1025 <c>private struct RenameThreadPopover: View</c>: what the rename popover asks, the title field and
+/// the choice. PR-SIDEBAR-091.</summary>
 internal sealed class RenameThreadPopover : Decorator
 {
     /// <param name="title">:988 <c>let title: String</c>.</param>
     /// <param name="onRename">:989 <c>let onRename: (String) -> Void</c>.</param>
     /// <param name="onCancel">:990 <c>let onCancel: () -> Void</c>.</param>
-    // :995-1000 init; :1002-1024 body. STOP #6 (this unit): `.textFieldStyle(.roundedBorder)` (:1007) and
-    // `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` (:1013, :1015-1017) have no Windows chrome anywhere
-    // in this port yet, and no ED/PA decision (this packet's part 4 list: ED-008, ED-009, ED-010, ED-041, ED-051,
-    // ED-059, ED-062, ED-149, ED-187, OD-0001, OD-0005, OD-0008, OD-0009, OD-0010, PA-0019) or engineering_decisions.md
-    // entry names either style. B3 re-citation (review pass, 2026-09-27): the B2 line numbers this comment used to
-    // cite (:1008, :1014, :1016) drifted by one line at B3 (AM-0003); re-verified directly against
-    // E:/Droppy/reference/droppy-code-v1.7.0's SidebarView.swift and corrected above. Also re-checked at B3:
-    // ED-193 through ED-211 (the whole B3 batch) and every helper in src/Marrow.UI/Chrome name no roundedBorder,
-    // bordered/borderedProminent button, or text-field recipe either; both STOPs stay open on that same missing
-    // foundation, not a stale one. Every other row-level popover this part ports (Delete, Archive) reuses
-    // PopoverItem or the already-decided `.glass`/`.glassProminent` recipe (OD-0005); this one alone needs a new,
-    // undecided pair.
-    // STOP #6 closed 2026-10-01: the field is the RoundedBorder editor ChatView's and QuestionTab's .roundedBorder fields
-    // use, the buttons SystemButtons.Bordered / BorderedProminent (ENGINEERING DECISION there, proposal ED-229 (4)).
+    // :995-1000 init; :1002-1024 body. Formerly STOP #6 (no Windows chrome for .roundedBorder / .bordered /
+    // .borderedProminent); closed 2026-10-01: the field is the RoundedBorder editor ChatView's and QuestionTab's
+    // .roundedBorder fields use, the buttons SystemButtons.Bordered / BorderedProminent (ENGINEERING DECISIONs there,
+    // proposal ED-229 (4), not yet numbered).
     public RenameThreadPopover(string title, Action<string> onRename, Action onCancel)
     {
         // :992-993 @State private var text: String (initialValue: title); @FocusState private var isFocused
@@ -1725,8 +1713,8 @@ internal sealed class RenameThreadPopover : Decorator
         var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Children = { cancel, rename } };
         // :1003 VStack(alignment: .leading, spacing: 10); :1021-1022 .padding(14).frame(width: 300)
         Child = new Border { Width = 300, Padding = new Thickness(14), Child = new StackPanel { Spacing = 10, Children = { heading, Field, buttons } } };
-        // :1023 .onAppear { isFocused = true }. An NSTextField that becomes first responder has its field editor select
-        // the whole text, so the title is selected, ready to be typed over.
+        // :1023 .onAppear { isFocused = true }. UNVERIFIED (AppKit behaviour, not in the source): an NSTextField that
+        // becomes first responder has its field editor select the whole text, so the title is selected here too.
         AttachedToVisualTree += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() => { Field.Focus(); Field.SelectAll(); });
     }
 

@@ -56,6 +56,7 @@ public static class PlainControls
             [!TextPresenter.SelectionEndProperty] = box[!TextBox.SelectionEndProperty],
             [!TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty],
         }.RegisterInNameScope(scope);
+        FieldBrushes(box, presenter);
         void ShowPrompt() => prompt.IsVisible = string.IsNullOrEmpty(box.Text);
         box.PropertyChanged += (_, e) =>
         {
@@ -74,6 +75,18 @@ public static class PlainControls
         box.Template = PlainTextFieldTemplate;
         box.PlaceholderForeground = SwiftColor.PlaceholderTextColor.Brush(box);
         return box;
+    }
+
+    /// <summary>
+    /// The caret and selection colours a port-templated field draws with: the field's own when it sets them, otherwise
+    /// the system selection colour (NSColor.selectedTextBackgroundColor) and an accent caret (UNVERIFIED for plain
+    /// fields: the composer's caret is the accent by its source, ComposerTextView :248; without a theme package a
+    /// TextBox has no brushes at all, so neither was drawn).
+    /// </summary>
+    public static void FieldBrushes(TextBox box, TextPresenter presenter)
+    {
+        presenter.SelectionBrush = box.SelectionBrush ?? SwiftColor.SelectedTextBackgroundColor.Brush(presenter);
+        presenter.CaretBrush = box.CaretBrush ?? Marrow.UI.Chrome.Chrome.AccentNSColor.Brush(presenter);
     }
 
     /// <summary>

@@ -34,6 +34,9 @@ public sealed class TextFieldSelectionTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs();
             Assert.Equal(0, presenter.SelectionStart);
             Assert.Equal(5, presenter.SelectionEnd);
+            // Without a theme package a TextBox has no brushes: the template supplies the highlight and the caret.
+            Assert.NotNull(presenter.SelectionBrush);
+            Assert.NotNull(presenter.CaretBrush);
         }
         finally { window.Close(); }
     });
