@@ -3207,7 +3207,9 @@ public sealed class ThreadRuntime : MainActorModel
             && entryIndex.TryGetValue(stream.EntryID, out var streamedEntry)
             && streamedEntry.Item.TimelineItemContent is TimelineItem.Content.Assistant streamedAssistant)
         {
-            EndDelegationStream();
+            // ThreadRuntime.swift:2851: `hydraStream = nil` only. The delegation parser stays until the next startTurn
+            // (PR-RUNTIME-261); endDelegationStream() would have cleared it too.
+            hydraStream = null;
             var sentText = HydraPrompts.MarkingDelegationBlockSent(streamedAssistant.Value.Text);
             streamedEntry.Item = streamedEntry.Item with
             {
@@ -3215,10 +3217,12 @@ public sealed class ThreadRuntime : MainActorModel
             };
             saveRevision += 1;
 
-            var all = HydraPrompts.Delegations(streamedAssistant.Value.Text);
-            var total = all is { Count: > 0 } ? all.Count : stream.Sent;
+            // :2855 HydraPrompts.streamedDelegations(in:)?.delegations ?? []: the streaming reader, which counts every closed
+            // task of a block still open (cut off, or one closing fence short), unlike delegations(in:), which needs the whole block.
+            var all = HydraPrompts.StreamedDelegationsIn(streamedAssistant.Value.Text)?.Delegations ?? ValueList<HydraDelegation>.Empty;
+            var total = all.Count == 0 ? stream.Sent : all.Count;
             var sent = stream.Sent;
-            if (total > sent && hydraBudget.CanDelegate && all is not null)
+            if (total > sent && hydraBudget.CanDelegate)
             {
                 var skip = (int)Math.Min(sent, all.Count);
                 var take = (int)Math.Max(0, MaxDelegatedTasks - sent);
@@ -3281,7 +3285,8 @@ public sealed class ThreadRuntime : MainActorModel
             };
             saveRevision += 1;
             ScheduleSave();
-            return RefuseBlock(HydraPrompts.HeldBackMessage(HydraPrompts.MaxDelegationRounds),
+            // :2908 heldBackMessage(count: delegations.count): the number of heads asked for, not the round cap.
+            return RefuseBlock(HydraPrompts.HeldBackMessage(delegations.Count),
                 $"This request has had all {HydraPrompts.MaxDelegationRounds} of its rounds of heads, and the lead had been told so already.");
         }
 
@@ -3633,8 +3638,13 @@ public sealed class ThreadRuntime : MainActorModel
         var capture = MainActor.Spawn(async () =>
         {
             if (previous is not null) await previous;
-            try { return await TaskHandle.Detached(() => git.CaptureTree()).Value; }
-            catch { return null; }
+            // :3463-3464 `try? await git.captureTree()`: a capture that fails yields nil. The error is caught inside the detached
+            // body: a non-throwing detached task has nowhere to put one, and it would end the process.
+            return await TaskHandle.Detached<string?>(async () =>
+            {
+                try { return await git.CaptureTree(); }
+                catch { return null; }
+            }).Value;
         });
         treeCaptures = capture.Value;
         return capture.Value;
