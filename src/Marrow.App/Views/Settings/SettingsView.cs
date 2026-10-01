@@ -496,12 +496,41 @@ internal sealed class BackdropOpacitySlider : Decorator
         var clear = SwiftImage.SystemName("circle.dotted").Font(SwiftFont.System(11)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(clear, "Clear");
         var solid = SwiftImage.SystemName("circle.fill").Font(SwiftFont.System(11)).ForegroundStyle(Chrome.SecondaryText); ToolTip.SetTip(solid, "Solid");
         var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, Children = { clear, slider, solid } }; // :528-539
-        var reset = PlainControls.Button(SwiftImage.SystemName("arrow.counterclockwise").Font(SwiftFont.System(11, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.SecondaryText), () => Transaction.WithAnimation(Animation.Snappy(0.2), () => value.Value = 0.5));
+        // :551-552 .frame(width: 22, height: 22).contentShape(.rect): DEFECT FIX (UI-SETTINGS-018), the whole 22pt square is the hit target; the bare glyph was hit
+        // only on its drawn pixels (the centre of the arrow is empty).
+        var reset = PlainControls.Button(new Panel { Background = Brushes.Transparent, Children = { SwiftImage.SystemName("arrow.counterclockwise").Font(SwiftFont.System(11, SwiftFont.Weight.Medium)).ForegroundStyle(Chrome.SecondaryText) } }, () => Transaction.WithAnimation(Animation.Snappy(0.2), () => value.Value = 0.5));
         reset.Width = 22; reset.Height = 22; reset.HorizontalAlignment = HorizontalAlignment.Left; reset.VerticalAlignment = VerticalAlignment.Center; reset.RenderTransform = new TranslateTransform(-28, 0); ToolTip.SetTip(reset, "Back to the stock look"); // :540-557
         var primed = false; var shown = false;
         var fade = new SettingsScalarAnimation(reset, 0, v => { var opacity = Math.Clamp(v, 0, 1); reset.Opacity = opacity; reset.RenderTransform = new TranslateTransform(-28 + 6 * (1 - opacity), 0); if (opacity == 0 && !shown) reset.IsVisible = false; });
         reset.Track(() => Math.Abs(value.Value - 0.5) >= 0.005, offStock => { shown = offStock; reset.IsEnabled = offStock; if (offStock) reset.IsVisible = true; fade.Set(offStock ? 1 : 0, primed ? Animation.Snappy(0.2) : null); primed = true; }); // :524,558-562
-        Child = new Panel { Children = { row, reset } }; AutomationProperties.SetName(this, "Window transparency"); // :563
+        // :543 `.overlay(alignment: .leading)`: DEFECT FIX (UI-SETTINGS-018). The reset sat in a plain Panel, so its 22pt height grew the group from 14
+        // to 22 and moved the slider 4pt up whenever the reset showed; an overlay takes no layout room (:540-542).
+        Child = new LeadingOverlayPanel { Children = { row, reset } }; AutomationProperties.SetName(this, "Window transparency"); // :563
+    }
+}
+
+/// <summary>SwiftUI <c>.overlay(alignment: .leading)</c> (SettingsView.swift:543-559): the panel is exactly the first child's size; the later
+/// children are laid against its leading edge, centred vertically, at their own size, and may spill past it.</summary>
+internal sealed class LeadingOverlayPanel : Panel
+{
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        if (Children.Count == 0) return default;
+        Children[0].Measure(availableSize);
+        for (var i = 1; i < Children.Count; i++) Children[i].Measure(Size.Infinity);
+        return Children[0].DesiredSize;
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        if (Children.Count == 0) return finalSize;
+        Children[0].Arrange(new Rect(finalSize));
+        for (var i = 1; i < Children.Count; i++)
+        {
+            var size = Children[i].DesiredSize;
+            Children[i].Arrange(new Rect(0, (finalSize.Height - size.Height) / 2, size.Width, size.Height));
+        }
+        return finalSize;
     }
 }
 
@@ -926,7 +955,9 @@ internal sealed class ProjectMarksRow : Decorator
             }
             return list;
         });
-        Child = new Panel { Children = { button, popup } }; // :1136
+        // :1132 .buttonStyle(.glass): DEFECT FIX (UI-SETTINGS-016), the Edit button had no glass capsule at all; the same recipe as Reveal and the other
+        // .glass buttons of this file. The .controlSize(.small) padding stays an OS-defined metric no record gives (UNVERIFIED, OD-0001).
+        Child = new Panel { Children = { button.ChromeGlassCapsule(), popup } }; // :1136
     }
 
     // :1128
