@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.LogicalTree;
 using Avalonia.Media;
 using Marrow.App.Tests.Fixtures;
@@ -18,9 +20,9 @@ namespace Marrow.App.Tests.Views.Chat;
 [Collection("Headless")]
 public sealed class HydraPanelStripTests(HeadlessSession headless)
 {
-    private void Run(Action<HydraPanelContext> test, bool poppedOut = false) => ChatHeadlessFixtures.Run(headless, () =>
+    private void Run(Action<HydraPanelContext> test, bool poppedOut = false, Action<Size>? onDrag = null, Action? onDragEnd = null) => ChatHeadlessFixtures.Run(headless, () =>
     {
-        using var context = new HydraPanelContext(visible: true, poppedOut: poppedOut);
+        using var context = new HydraPanelContext(visible: true, poppedOut: poppedOut, onDrag: onDrag, onDragEnd: onDragEnd);
         context.Tick(1); // the soft-appear of the stage capsule and the pop-out button has settled
         test(context);
     });
@@ -132,4 +134,28 @@ public sealed class HydraPanelStripTests(HeadlessSession headless)
         Assert.Equal(DragHandleView.Axis.Free, view.HandleAxis);
         Assert.True(view.AcceptsFirstMouse(null));
     });
+
+    [Fact]
+    [Trait("Req", "UI-HYDRA-020")] // HydraPanel.swift:171 + DragHandle.swift:216-245: press and drag moves the panel, after 2 points of slop; the travel is reported from the press and the release ends it
+    public void Pressing_and_dragging_the_drag_area_reports_the_travel_after_two_points_of_slop()
+    {
+        var travel = new List<Size>();
+        var ended = 0;
+        Run(c =>
+        {
+            var from = c.Where(c.WithTip("Drag to move")).Center;
+            c.Window.MouseMove(from, RawInputModifiers.None);
+            c.Window.MouseDown(from, MouseButton.Left, RawInputModifiers.None);
+            c.Window.MouseMove(from + new Point(1, 0), RawInputModifiers.None);
+            Assert.Empty(travel); // under the slop: a press, not a drag
+            c.Window.MouseMove(from + new Point(2, 0), RawInputModifiers.None);
+            Assert.Equal([new Size(2, 0)], travel);
+            c.Window.MouseMove(from + new Point(10, 7), RawInputModifiers.None);
+            Assert.Equal(new Size(10, 7), travel[^1]); // the travel since the press, y running down like the panel's offset
+            Assert.Equal(0, ended);
+            c.Window.MouseUp(from + new Point(10, 7), MouseButton.Left, RawInputModifiers.None);
+            Assert.Equal(1, ended);
+            Assert.Equal(new Size(10, 7), travel[^1]);
+        }, onDrag: travel.Add, onDragEnd: () => ended++);
+    }
 }

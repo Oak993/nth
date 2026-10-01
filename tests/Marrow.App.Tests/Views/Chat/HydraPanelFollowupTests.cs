@@ -176,6 +176,10 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
     public void Clear_finished_heads_performs_its_real_model_mutation_inside_panel_slide() => Run(c =>
     {
         c.Status(c.First,HydraHeadInfo.Status.Completed);
+        // The heads popover is a popup that builds its content when it is presented (HydraPanel.swift:258), so open it first.
+        using var presentation = Presentation.Presenter.Override(new RecordingPresenter());
+        c.Panel.IsVisible = true; c.Drain();
+        c.Tap(c.WithTip("2 heads"));
         Animation? seen = null;
         var (_,tracker) = ObservationTracking.Track(() => c.Model.Thread(c.First.Id)!.IsInPanel,()=>seen=Transaction.Current);
         var item = c.Find<PopoverItem>().Single(i => LogicalQuery.SelfAndDescendants<MiddleTruncatingText>(i).Any(t=>t.FullText=="Clear finished heads"));

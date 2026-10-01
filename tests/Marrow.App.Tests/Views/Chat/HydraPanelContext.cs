@@ -2,6 +2,8 @@ using System.Reflection;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Shapes;
+using Avalonia.Headless;
+using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
 using Avalonia.Threading;
@@ -34,7 +36,7 @@ namespace Marrow.App.Tests.Views.Chat;
         public ChatThread First { get; }
         public ChatThread Second { get; }
 
-        public HydraPanelContext(bool visible = false, Action<Guid>? popOut = null, bool withoutPopOut = false, Action? dismiss = null, bool poppedOut = false, Avalonia.Styling.ThemeVariant? theme = null)
+        public HydraPanelContext(bool visible = false, Action<Guid>? popOut = null, bool withoutPopOut = false, Action? dismiss = null, bool poppedOut = false, Avalonia.Styling.ThemeVariant? theme = null, Action<Size>? onDrag = null, Action? onDragEnd = null)
         {
             actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             frameClock = FrameClock.Source.Override(frames);
@@ -50,7 +52,7 @@ namespace Marrow.App.Tests.Views.Chat;
             Window = new Avalonia.Controls.Window { Width=420,Height=280 };
             if (theme is not null) Window.RequestedThemeVariant=theme;
             resize = new WindowLiveResize(Window);
-            Panel = harness.Main.OnMain(() => new HydraPanel(runtime,poppedOut ? [First] : [],new Size(420,280),null,null,_=>{},()=>{},dismiss ?? (()=>{}),isPoppedOut:poppedOut,popOut:withoutPopOut ? null : popOut ?? (_=>{})));
+            Panel = harness.Main.OnMain(() => new HydraPanel(runtime,poppedOut ? [First] : [],new Size(420,280),null,null,onDrag ?? (_=>{}),onDragEnd ?? (()=>{}),dismiss ?? (()=>{}),isPoppedOut:poppedOut,popOut:withoutPopOut ? null : popOut ?? (_=>{})));
             typeof(HydraPanel).GetProperty("StageFactory",BindingFlags.NonPublic|BindingFlags.Instance)?.SetValue(Panel,(Func<ChatThread,Control>)(head => new Border { Tag=head.Id }));
             AppEnvironment.SetAppModel(Panel,Model); AppEnvironment.SetWindowLiveResize(Panel,resize);
             // Attach real controls without asking the headless backend to shape Inter Medium glyphs.
@@ -85,6 +87,22 @@ namespace Marrow.App.Tests.Views.Chat;
             else resize.WndProc(0,0x0232,0,0,ref handled);
             Drain();
         }
+        /// <summary>The lead's runtime the panel observes.</summary>
+        public ThreadRuntime Runtime => runtime;
+        /// <summary>A real pointer move, press and release at the middle of the control (the headless window is the panel's frame).</summary>
+        public void Tap(Control control)
+        {
+            var at=Where(control).Center;
+            Window.MouseMove(at,RawInputModifiers.None); Drain();
+            Window.MouseDown(at,MouseButton.Left,RawInputModifiers.None);
+            Window.MouseUp(at,MouseButton.Left,RawInputModifiers.None);
+            Drain();
+        }
+        public void Hover(Control control) {Window.MouseMove(Where(control).Center,RawInputModifiers.None); Drain();}
+        public void HoverAway() {Window.MouseMove(new Point(210,230),RawInputModifiers.None); Drain();}
+        /// <summary>A native head the lead's provider could be asked to stop: it has its provider's id and may be stopped.</summary>
+        public void MakeStoppable(ChatThread head) {Model.UpdateThread(head.Id,t=>t with {Hydra=t.Hydra! with {CanStop=true,NativeID="native-"+head.Id}}); Drain();}
+        public void Kind(ChatThread head,HydraHeadInfo.Kind kind) {Model.UpdateThread(head.Id,t=>t with {Hydra=t.Hydra! with {HydraHeadInfoKind=kind}}); Drain();}
         public void Drain() {harness.Main.RunUntilIdle(); Dispatcher.UIThread.RunJobs(); harness.Main.RunUntilIdle();}
         public void Tick(double seconds) {var span=TimeSpan.FromTicks((long)Math.Round(seconds*TimeSpan.TicksPerSecond)); harness.Main.Advance(span); frames.Advance(span); Drain();}
         public void Dispose() {Window.Close(); Drain(); shared.Dispose(); frameClock.Dispose(); actor.Dispose(); harness.Dispose();}

@@ -5,6 +5,8 @@ using System.Linq;
 using System.Reflection;
 using Avalonia;
 using Avalonia.Automation;
+using Avalonia.Automation.Peers;
+using Avalonia.Automation.Provider;
 using Avalonia.Controls;
 using Avalonia.Controls.Primitives;
 using Avalonia.Input;
@@ -369,109 +371,155 @@ internal sealed record StageMark
 /// <summary>:216-288 <c>private struct HydraHeadsButton: View</c>.</summary>
 internal sealed class HydraHeadsButton : Decorator
 {
-    private Border? popover;
+    // :227-228 @State private var isPresented = false, isHovering = false
+    private sealed class ViewState : MainActorModel
+    {
+        private bool isPresented;
+        private bool isHovering;
+
+        public bool IsPresented { get => Read(isPresented); set => Set(ref isPresented, value); }
+
+        public bool IsHovering { get => Read(isHovering); set => Set(ref isHovering, value); }
+    }
+
+    /// <summary>
+    /// :250, :255, :257 The capsule itself: not a Button, a tap that rides along with the glass, with the button trait and
+    /// an action that toggles the popover for accessibility.
+    /// </summary>
+    private sealed class Capsule : Border
+    {
+        private readonly Action toggle;
+
+        public Capsule(Action toggle)
+        {
+            this.toggle = toggle;
+            // :250 .simultaneousGesture(TapGesture().onEnded { isPresented.toggle() }): a press and a release on the capsule, each
+            // one a tap (Avalonia's Tapped reads the second of two quick clicks as a double tap, which would drop a toggle).
+            var pressed = false;
+            PointerPressed += (_, e) => pressed = e.GetCurrentPoint(this).Properties.IsLeftButtonPressed;
+            PointerExited += (_, _) => pressed = false;
+            PointerCaptureLost += (_, _) => pressed = false;
+            PointerReleased += (_, _) =>
+            {
+                if (!pressed) return;
+                pressed = false;
+                toggle();
+            };
+        }
+
+        protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this, toggle);
+
+        private sealed class Peer(Control owner, Action toggle) : ControlAutomationPeer(owner), IInvokeProvider
+        {
+            protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button; // :255
+            void IInvokeProvider.Invoke() => toggle(); // :257
+        }
+    }
+
+    private readonly ViewState state = new();
     private readonly ThreadRuntime runtime;
     private readonly Action dismiss;
+    private readonly Capsule capsule;
+    private readonly AnimatedColor foreground;
+    private readonly Popup popover;
+    private IReadOnlyList<ChatThread> heads = [];
 
     // :223-225, :230-287
     public HydraHeadsButton(ThreadRuntime runtime, IReadOnlyList<ChatThread> heads, Action dismiss)
     {
-        this.runtime=runtime; this.dismiss=dismiss;
+        this.runtime = runtime;
+        this.dismiss = dismiss;
+        capsule = new Capsule(() => state.IsPresented = !state.IsPresented)
+        {
+            // :244-246 padded horizontally by capsuleHorizontalPadding, framed to capsuleContentHeight, padded vertically by
+            // capsuleVerticalPadding; :247 hit-shaped as a continuous capsule, so the whole of it takes the tap.
+            Padding = new Thickness(Chrome.CapsuleHorizontalPadding, Chrome.CapsuleVerticalPadding),
+            Height = Chrome.CapsuleHeight,
+            CornerRadius = new CornerRadius(Chrome.CapsuleHeight / 2),
+            Background = Brushes.Transparent,
+        };
+        foreground = new AnimatedColor(capsule);
+        foreground.Set(Chrome.PrimaryText.Opacity(0.92), null);
+
+        var surface = capsule.ChromeGlassCapsule(); // :249
+        // :251-253 .onHover { hovering in withAnimation(Chrome.hover) { isHovering = hovering } }
+        surface.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering));
+        // :258 .popover(isPresented: $isPresented, arrowEdge: .bottom)
+        popover = PlainControls.Popover(surface, new Binding<bool>(() => state.IsPresented, value => state.IsPresented = value), Menu, PlacementMode.Bottom);
+        Child = new Panel { Children = { surface, popover } };
+
+        // :243 .foregroundStyle(Chrome.primaryText.opacity(isHovering || isPresented ? 1 : 0.92))
+        this.Track(() => state.IsHovering || state.IsPresented,
+            lit => foreground.Set(Chrome.PrimaryText.Opacity(lit ? 1 : 0.92), Transaction.Current));
         Update(heads);
     }
 
     // :230-287 The count, selection, waiting count and head records all follow observation.
     internal void Update(IReadOnlyList<ChatThread> heads)
     {
-        var wasOpen=popover?.IsVisible ?? false;
+        this.heads = heads;
         // :231 let running = heads.count { $0.hydra?.status == .running }
-        var running = 0;
-        foreach (var head in heads)
-            if (head.Hydra?.HydraHeadInfoStatus == HydraHeadInfo.Status.Running) running++;
+        var running = heads.Count(head => head.Hydra?.HydraHeadInfoStatus == HydraHeadInfo.Status.Running);
 
-        // :232-242
-        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
-        row.Children.Add(new HydraSpokesMark());
-        row.Children.Add(new TextBlock
-        {
-            Text = heads.Count.ToString(CultureInfo.InvariantCulture),
-            FontSize = 12.5,
-            FontWeight = FontWeight.SemiBold,
-            FontFamily = new FontFamily("fonts:Inter#Inter")
-        });
-        if (running > 0) row.Children.Add(new MiniSpinner());
-        row.Children.Add(SwiftImage.SystemName("chevron.down").Font(Chrome.ChevronFont));
+        // :232-242 HStack(spacing: 6), its parts centred in the capsule as an HStack centres them.
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, VerticalAlignment = VerticalAlignment.Center };
+        row.Children.Add(Centred(new HydraSpokesMark()));
+        var count = new TextBlock { Text = heads.Count.ToString(CultureInfo.InvariantCulture), Foreground = foreground.Brush };
+        SwiftFont.System(12.5, SwiftFont.Weight.Semibold).MonospacedDigit().Apply(count); // :235
+        row.Children.Add(Centred(count));
+        if (running > 0) row.Children.Add(Centred(new MiniSpinner())); // :236-238
+        row.Children.Add(Centred(SwiftImage.SystemName("chevron.down").Font(Chrome.ChevronFont).ForegroundStyle(Chrome.SecondaryText))); // :239-241
+        capsule.Child = row;
 
-        // :243-249, :254-257
+        // :254-257 the tooltip and the accessibility label are "1 head" or "N heads"
         var label = heads.Count == 1 ? "1 head" : $"{heads.Count.ToString(CultureInfo.InvariantCulture)} heads";
-        var capsule = new Border
-        {
-            Child = row,
-            Padding = new Thickness(Chrome.CapsuleHorizontalPadding, Chrome.CapsuleVerticalPadding),
-            Height = Chrome.CapsuleHeight,
-            CornerRadius = new CornerRadius(Chrome.CapsuleHeight / 2),
-            Background = Chrome.GlassTint.Opacity(0.22).Brush(this)
-        };
         ToolTip.SetTip(capsule, label);
         AutomationProperties.SetName(capsule, label);
-        // :250 The tap rides along with the glass's own tracking, so the whole capsule presses the native
-        // way.
-        capsule.PointerPressed += (_, args) =>
-        {
-            if (args.GetCurrentPoint(capsule).Properties.IsLeftButtonPressed)
-            {
-                popover!.IsVisible = !popover!.IsVisible;
-                args.Handled = true;
-            }
-        };
 
-        // :258-286
-        var menu = new StackPanel { Spacing = 4 };
+        // :258-286 the popover reads the heads, the selection and the waiting count: while it is open it follows them.
+        if (state.IsPresented && popover.Child is not null) popover.Child = Menu();
+    }
+
+    private static T Centred<T>(T control) where T : Control
+    {
+        control.VerticalAlignment = VerticalAlignment.Center;
+        return control;
+    }
+
+    // :259-285
+    private Control Menu() => new PopoverMenu(() =>
+    {
+        var running = heads.Count(head => head.Hydra?.HydraHeadInfoStatus == HydraHeadInfo.Status.Running);
+        var menu = new StackPanel();
         menu.Children.Add(new PopoverSectionHeader(Header(running, runtime.HydraWaitingCount)));
         foreach (var head in heads)
         {
-            var rowControl = new HydraHeadRow(head, head.Id == runtime.HydraSelectedHeadID, () =>
+            menu.Children.Add(new HydraHeadRow(head, head.Id == runtime.HydraSelectedHeadID, () =>
             {
                 runtime.HydraSelectedHeadID = head.Id;
-                popover!.IsVisible = false;
-            });
-            menu.Children.Add(rowControl);
+                state.IsPresented = false;
+            }));
         }
 
-        var finished = false;
-        foreach (var head in heads)
-            if (head.Hydra?.IsFinished == true) finished = true;
-
+        var finished = heads.Any(head => head.Hydra?.IsFinished == true);
         if (running > 1 || finished) menu.Children.Add(new PopoverDivider());
         if (running > 1)
         {
             menu.Children.Add(new PopoverItem("Stop all heads", () =>
             {
                 InvokeModelAction(WindowManager.Shared.Model, "StopAllHydraHeads", runtime.ThreadID);
-                popover!.IsVisible = false;
-            }, "stop.circle"));
+                state.IsPresented = false;
+            }, symbol: "stop.circle"));
         }
         if (finished)
         {
+            // :280-282 inside a panel slide; the only action here that leaves the popover open (upstream defect 31).
             menu.Children.Add(new PopoverItem("Clear finished heads", () =>
-                Transaction.WithAnimation(Chrome.PanelSlide, () => InvokeModelAction(WindowManager.Shared.Model, "ClearFinishedHydraHeads", runtime.ThreadID)), "checkmark.circle"));
+                Transaction.WithAnimation(Chrome.PanelSlide, () => InvokeModelAction(WindowManager.Shared.Model, "ClearFinishedHydraHeads", runtime.ThreadID)),
+                symbol: "checkmark.circle"));
         }
-
-        popover = new Border
-        {
-            Child = menu,
-            IsVisible = wasOpen,
-            ZIndex = 100,
-            Background = Chrome.GlassTint.Opacity(0.22).Brush(this),
-            CornerRadius = new CornerRadius(8),
-            Padding = new Thickness(8)
-        };
-
-        var content = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
-        content.Children.Add(capsule);
-        content.Children.Add(popover);
-        Child = content;
-    }
+        return menu;
+    });
 
     // :274, :280-281. The Swift methods are on AppModel; resolve their C# names at the call boundary.
     private static void InvokeModelAction(AppModel model, string methodName, Guid threadID)
@@ -495,12 +543,14 @@ internal sealed class HydraSpokesMark : Decorator
     // :292-296
     public HydraSpokesMark()
     {
-        Child = new HydraMarkImage
+        var mark = new HydraMarkImage
         {
             Width = 15,
-            Height = 15,
-            Opacity = 0.9
+            Height = 15
         };
+        // :294 .foregroundStyle(Chrome.primaryText.opacity(0.9))
+        mark.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, Chrome.PrimaryText.Opacity(0.9).Brush(mark));
+        Child = mark;
     }
 }
 
@@ -695,7 +745,6 @@ internal sealed class HydraHeadFooter : Decorator
     // :443, :445-472
     public HydraHeadFooter(HydraHeadInfo info)
     {
-        var isDark = ActualThemeVariant == ThemeVariant.Dark;
         var row = new Grid
         {
             ColumnSpacing = 8,
@@ -758,11 +807,10 @@ internal sealed class HydraHeadFooter : Decorator
             row.Children.Add(steps);
         }
 
-        // :469 Chrome.panelControlFill(isDark:): Chrome.glassTint mixed toward white in dark by 0.12 or
-        // toward black in light by 0.04, at 0.55 opacity in dark and 0.42 in light.
-        var fill = Chrome.GlassTint
-            .Mix(isDark ? SwiftColor.White : SwiftColor.Black, isDark ? 0.12 : 0.04)
-            .Opacity(isDark ? 0.55 : 0.42);
+        // :469 Chrome.panelControlFill(isDark: colorScheme == .dark): Chrome.glassTint mixed toward white in dark by 0.12 or
+        // toward black in light by 0.04, at 0.55 opacity in dark and 0.42 in light. The colour scheme is read where the footer
+        // is drawn, so the fill is a pair that follows the theme (the control has none yet when it is built).
+        var fill = SwiftColor.Dynamic(light: Chrome.PanelControlFill(isDark: false), dark: Chrome.PanelControlFill(isDark: true));
 
         // :466-471 padded 14 horizontally and 10 vertically, backed by a 16-point continuous rounded
         // rectangle, then padded 20 horizontally and 14 at the bottom.
