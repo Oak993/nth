@@ -41,12 +41,16 @@ public sealed class SystemButtonsTests(HeadlessSession headless)
             Assert.True(button.IsFocused && ring.IsVisible, "keyboard focus shows the ring");
             button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
             Assert.Equal(1, clicks);
+            var drawn = (Panel)card.GetVisualParent()!; // the template's root: the card and the ring
+            button.Opacity = 0.5; // a site's own opacity (a fading row) is kept through the dim
             parent.IsEnabled = false; // the button's own IsEnabled stays true
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal(0.4, button.Opacity, 3);
+            Assert.Equal(0.4, drawn.Opacity, 3);
+            Assert.Equal(0.5, button.Opacity, 3);
             parent.IsEnabled = true;
             Dispatcher.UIThread.RunJobs();
-            Assert.Equal(1, button.Opacity, 3);
+            Assert.Equal(1, drawn.Opacity, 3);
+            Assert.Equal(0.5, button.Opacity, 3);
         }
         finally { window.Close(); }
     });

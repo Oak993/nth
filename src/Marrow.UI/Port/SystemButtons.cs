@@ -69,6 +69,7 @@ public static class SystemButtons
                 // (:focus-visible, so a mouse click does not show it).
                 var ring = new Border { Margin = new Thickness(-3), CornerRadius = new CornerRadius(7), BorderThickness = new Thickness(2), IsVisible = false, IsHitTestVisible = false };
                 ring.BorderBrush = Marrow.UI.Chrome.Chrome.PrimaryText.Brush(ring);
+                var root = new Panel { Children = { card, ring } };
                 var rest = (prominent ? Marrow.UI.Chrome.Chrome.Accent : StandardFill).Brush(card);
                 var hover = prominent ? Marrow.UI.Chrome.Chrome.Accent.Opacity(0.9).Brush(card) : StandardFillHover.Brush(card);
                 void Paint()
@@ -76,6 +77,9 @@ public static class SystemButtons
                     card.Background = owner.IsPointerOver && owner.IsEffectivelyEnabled ? hover : rest;
                     card.Child!.Opacity = owner.IsPressed ? 0.8 : 1;
                     ring.IsVisible = owner.Classes.Contains(":focus-visible");
+                    // Effective, so a button disabled by its parent dims too. The dim is the template's, so an Opacity the
+                    // site sets on the button itself is kept.
+                    root.Opacity = owner.IsEffectivelyEnabled ? 1 : 0.4;
                 }
                 owner.PropertyChanged += (_, e) =>
                 {
@@ -84,15 +88,10 @@ public static class SystemButtons
                 };
                 owner.Classes.CollectionChanged += (_, _) => Paint();
                 Paint();
-                return new Panel { Children = { card, ring } };
+                return root;
             }),
         };
         if (label is TextBlock text) text.Foreground = (prominent ? SwiftColor.White : Marrow.UI.Chrome.Chrome.PrimaryText).Brush(text);
-        button.PropertyChanged += (_, e) =>
-        {
-            // Effective, so a button disabled by its parent dims too.
-            if (e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty) button.Opacity = button.IsEffectivelyEnabled ? 1 : 0.4;
-        };
         button.Click += (_, _) => action();
         return button;
     }
