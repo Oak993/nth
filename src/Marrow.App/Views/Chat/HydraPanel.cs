@@ -264,9 +264,7 @@ public sealed class HydraPanel : Decorator
             // goes when there is little room beside it.
             var stage = new Grid();
             stage.Children.Add(capsuleBorder);
-            var stageDrag = new Border { Background = Brushes.Transparent };
-            WireDragHandle(stageDrag, onDrag, onDragEnd);
-            stage.Children.Add(stageDrag);
+            stage.Children.Add(new PanelDragHandle(onDrag, onDragEnd));
             return stage;
         }
 
@@ -288,14 +286,16 @@ public sealed class HydraPanel : Decorator
         if (!isPoppedOut) left.Children.Add(headsButton!);
         left.Children.Add(nameHost);
         // :169-175 The handle. Invisible, like a window's title bar with no title; the cursor says what it
-        // does.
-        var drag = new Border
+        // does. It (and the one over the stage capsule, :162) is PanelDragHandle (SubagentPanel.swift:646-666): the open
+        // hand over it, the closed hand while held, 2 points of slop and a first click that works when the window is not
+        // key. This file used to track the press itself with none of those; Marrow.App.Views.Chat.SubagentPanel.PanelDragHandle
+        // has since been re-pinned against B3 and wraps the shared Marrow.UI.Chrome.DragHandleView, so it is used here
+        // as the source does.
+        var drag = new PanelDragHandle(onDrag, onDragEnd)
         {
-            Background = Brushes.Transparent,
             HorizontalAlignment = HorizontalAlignment.Stretch,
             Height = StripHeight
         };
-        WireDragHandle(drag, onDrag, onDragEnd);
         ToolTip.SetTip(drag, "Drag to move");
         AutomationProperties.SetName(drag, "Drag to move");
 
@@ -317,7 +317,9 @@ public sealed class HydraPanel : Decorator
         }
 
         // :127, :167-168, :195-196 The strip's ends, padded 12 at the top and 14 at the outer edge.
-        var row = new Grid { Height = StripHeight };
+        // :127 HStack(alignment: .top, spacing: 8): the three groups are 8 points apart, and the strip is an overlay
+        // aligned to the panel's top (:92), so it takes the top of the panel rather than the middle of it.
+        var row = new Grid { Height = StripHeight, ColumnSpacing = 8, VerticalAlignment = VerticalAlignment.Top };
         row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
         row.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
@@ -340,67 +342,6 @@ public sealed class HydraPanel : Decorator
         row.Children.Add(drag);
         row.Children.Add(rightHolder);
         return row;
-    }
-
-    /// <summary>
-    /// :169-175. The strip's invisible handle. In the source the middle of the strip is
-    /// <c>PanelDragHandle</c> (SubagentPanel.swift:646-666), a thin <c>View</c> wrapping the shared
-    /// <c>DragHandle</c>/<c>DragHandleView</c> in UI/Chrome/DragHandle.swift (<c>DragHandleView: NSView</c>
-    /// :6-268, <c>DragHandle: NSViewRepresentable</c> :270-304): a press is tracked, the pointer's travel is
-    /// reported through <c>onChange</c> once it has passed the handle's 2-point slop, and the release is
-    /// reported through <c>onEnd</c>. B3 has no <c>PanelDragHandleView</c> symbol anywhere in the tree; that
-    /// name, and the press/move/release logic wired below, are what B2's SubagentPanel.swift used before the
-    /// shared DragHandle existed (B2 had no UI/Chrome/DragHandle.swift at all). The C# port's own
-    /// <c>Marrow.App.Views.Chat.SubagentPanel.PanelDragHandle</c> (SubagentPanel.cs:796-849) has since been
-    /// re-pinned against B3 (unit App.Views.Chat.SubagentPanel) and now wraps the shared
-    /// <see cref="Marrow.UI.Chrome.DragHandleView"/> instead of carrying its own B2-era
-    /// <c>PanelDragHandleView</c> press-tracking, so that precondition is now met: <c>WireDragHandle</c> here
-    /// is the one remaining place in the tree still duplicating that same pre-refactor pointer-tracking
-    /// directly instead of reusing the shared <c>Marrow.UI.Chrome.DragHandle</c> (the plan's N8). Re-pointing
-    /// this call site onto N8, the way SubagentPanel.cs's own <c>PanelDragHandle</c> now does, is out of this
-    /// unit's scope.
-    /// </summary>
-    private static void WireDragHandle(Border handle, Action<Size> onDrag, Action onDragEnd)
-    {
-        Point? last = null;
-        var moved = false;
-
-        handle.PointerPressed += (_, e) =>
-        {
-            if (!e.GetCurrentPoint(handle).Properties.IsLeftButtonPressed) return;
-            last = e.GetPosition(handle);
-            moved = false;
-            e.Pointer.Capture(handle);
-            e.Handled = true;
-        };
-        handle.PointerMoved += (_, e) =>
-        {
-            if (last is not { } previous) return;
-            var point = e.GetPosition(handle);
-            var step = new Size(point.X - previous.X, point.Y - previous.Y);
-            if (!moved)
-            {
-                // B2 SubagentPanel.swift:685 private let slop: CGFloat = 2 (pre-refactor; see WireDragHandle's
-                // doc comment above for why this file still mirrors the B2 logic rather than B3's DragHandle).
-                if (Math.Abs(step.Width) + Math.Abs(step.Height) < 2) return;
-                moved = true;
-            }
-            last = point;
-            onDrag(step);
-        };
-        handle.PointerReleased += (_, e) =>
-        {
-            if (last is null) return;
-            last = null;
-            e.Pointer.Capture(null);
-            onDragEnd();
-        };
-        handle.PointerCaptureLost += (_, _) =>
-        {
-            if (last is null) return;
-            last = null;
-            onDragEnd();
-        };
     }
 }
 

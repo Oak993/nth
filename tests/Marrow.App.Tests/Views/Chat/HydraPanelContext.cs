@@ -34,7 +34,7 @@ namespace Marrow.App.Tests.Views.Chat;
         public ChatThread First { get; }
         public ChatThread Second { get; }
 
-        public HydraPanelContext()
+        public HydraPanelContext(bool visible = false, Action<Guid>? popOut = null, bool withoutPopOut = false, Action? dismiss = null, bool poppedOut = false)
         {
             actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             frameClock = FrameClock.Source.Override(frames);
@@ -49,12 +49,12 @@ namespace Marrow.App.Tests.Views.Chat;
             runtime = harness.Main.OnMain(() => { Model.Settings.HydraShowsHeadDetails=false; var r=Model.Runtime(lead.Id); r.HydraSelectedHeadID=First.Id; return r; });
             Window = new Avalonia.Controls.Window { Width=420,Height=280 };
             resize = new WindowLiveResize(Window);
-            Panel = harness.Main.OnMain(() => new HydraPanel(runtime,[],new Size(420,280),null,null,_=>{},()=>{},()=>{},popOut:_=>{}));
+            Panel = harness.Main.OnMain(() => new HydraPanel(runtime,poppedOut ? [First] : [],new Size(420,280),null,null,_=>{},()=>{},dismiss ?? (()=>{}),isPoppedOut:poppedOut,popOut:withoutPopOut ? null : popOut ?? (_=>{})));
             typeof(HydraPanel).GetProperty("StageFactory",BindingFlags.NonPublic|BindingFlags.Instance)?.SetValue(Panel,(Func<ChatThread,Control>)(head => new Border { Tag=head.Id }));
             AppEnvironment.SetAppModel(Panel,Model); AppEnvironment.SetWindowLiveResize(Panel,resize);
             // Attach real controls without asking the headless backend to shape Inter Medium glyphs.
             // The sweep is independently laid out in the wave test; fonts are unchanged.
-            Panel.IsVisible=false;
+            Panel.IsVisible=visible;
             Window.Content=Panel; Window.Show(); Drain();
         }
 
@@ -64,6 +64,12 @@ namespace Marrow.App.Tests.Views.Chat;
             Hydra=new HydraHeadInfo(index,"Task",HydraHeadInfo.Kind.Native,HydraHeadInfo.Origin.Delegated) {CanStop=false},
         };
         public T[] Find<T>() where T : class => LogicalQuery.SelfAndDescendants<T>(Panel).ToArray();
+        /// <summary>The control's laid-out rectangle in the panel's own coordinates (the panel's top left is 0,0).</summary>
+        public Rect Where(Control control) => new(control.TranslatePoint(default,Panel) ?? default,control.Bounds.Size);
+        /// <summary>The one control whose tooltip is exactly this text.</summary>
+        public Control WithTip(string tip) => Find<Control>().Single(c => ToolTip.GetTip(c) as string==tip);
+        /// <summary>Tooltips of every control in the panel.</summary>
+        public string[] Tips() => Find<Control>().Select(c => ToolTip.GetTip(c) as string).OfType<string>().ToArray();
         public Guid StageId(Border stage) => (Guid)stage.Tag!;
         public Border Stage(Guid id) => Find<Border>().Single(s => s.Tag is Guid value && value==id);
         public Border[] Stages() => Find<Border>().Where(s=>s.Tag is Guid).ToArray();
