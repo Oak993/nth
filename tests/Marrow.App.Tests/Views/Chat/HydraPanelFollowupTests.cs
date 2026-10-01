@@ -65,7 +65,16 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
         c.Tick(.05);
         Assert.Equal(Chrome.PanelSlide.Progress(.05),clip.Opacity,6);
         c.Tick(.27);
-        Assert.Equal(.7,firstDot.Opacity,6); // one sweep peak at0.4*0.8s
+        // Since 1f779c4c5 the animated replicas are drawn by the compositor (DotFieldCompositionFrame) and the static canvas
+        // is hidden while animated, so the peak is read from a rendered frame (ComposerWorkingDots.swift:158-175). The context
+        // keeps the panel hidden to avoid headless glyph shaping; it is shown for this one render pass only.
+        c.Panel.IsVisible = true;
+        Dispatcher.UIThread.RunJobs(); Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        using (var pixels = Avalonia.Headless.HeadlessWindowExtensions.CaptureRenderedFrame(c.Window)) Assert.NotNull(pixels);
+        c.Panel.IsVisible = false;
+        var frame = typeof(DotFieldControl).GetProperty("LastRenderedFrame", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)!.GetValue(field);
+        Assert.NotNull(frame);
+        Assert.Equal(.7, (double)frame!.GetType().GetMethod("OpacityAt")!.Invoke(frame, [0, 0])!, 6); // one sweep peak at 0.4*0.8s
         c.Tick(1.68);
         Assert.Contains(sweep,c.Find<DotFieldSweep>()); // removal itself fades rather than vanishing
         c.Tick(.05);
