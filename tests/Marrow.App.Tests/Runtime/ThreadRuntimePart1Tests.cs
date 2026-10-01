@@ -232,6 +232,35 @@ public sealed class ThreadRuntimePart1Tests
     }
 
     [Fact]
+    [Trait("Req", "PR-COMPOSER-158")] // App/Runtime/ThreadRuntime.swift:849-856 unbundleFollowUp (the link glyph's tap)
+    public void Unbundling_takes_a_prompt_out_and_a_bundle_left_with_one_prompt_dissolves()
+    {
+        using var h = new AppModelHarness();
+        var (_, _, runtime) = OpenRuntime(h);
+
+        h.Main.OnMain(() =>
+        {
+            runtime.EnqueueFollowUp("a", []);
+            runtime.EnqueueFollowUp("b", []);
+            runtime.EnqueueFollowUp("c", []);
+            var (a, b, c) = (runtime.FollowUps[0].Id, runtime.FollowUps[1].Id, runtime.FollowUps[2].Id);
+            runtime.BundleFollowUp(b, a);
+            runtime.BundleFollowUp(c, a);
+            var bundle = runtime.FollowUps[0].BundleID;
+
+            runtime.UnbundleFollowUp(c); // :851 out on its own; a and b still share the bundle
+            Assert.Equal(new Guid?[] { bundle, bundle, null }, runtime.FollowUps.Select(p => p.BundleID));
+
+            runtime.UnbundleFollowUp(b); // :852 tidyBundles(): a, left alone in the bundle, is freed too
+            Assert.All(runtime.FollowUps, p => Assert.Null(p.BundleID));
+            Assert.Equal(new[] { a, b, c }, runtime.FollowUps.Select(p => p.Id)); // the order is unchanged
+
+            runtime.UnbundleFollowUp(a); // :850 guard: not in a bundle, nothing happens
+            Assert.All(runtime.FollowUps, p => Assert.Null(p.BundleID));
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-COMPOSER-171")] // App/Runtime/ThreadRuntime.swift:1074-1079
     public void Removing_a_bundled_prompt_dissolves_the_remaining_member_and_closes_its_edit()
     {
