@@ -1213,6 +1213,9 @@ public sealed record EffortPairBrand
     public ValueList<SwiftColor> Colors { get; init; } // :944
     public bool IsLight { get; init; }                 // :946
 
+    /// <summary>OD-0048: the heads' own brand when they run elsewhere (their liquid in the blend), else null.</summary>
+    public EffortBrand? HeadsBrand { get; init; }
+
     // :948-961 init(_ pair: HydraPair). PR-COMPOSER-130: a pair's far-end colours are the heads' provider's brand
     // when they run elsewhere, else the first four roster persona colours.
     public EffortPairBrand(HydraPair pair)
@@ -1220,6 +1223,7 @@ public sealed record EffortPairBrand
         if (pair.SendsHeadsElsewhere)
         {
             var brand = EffortBrand.Create(pair.HeadsProvider);
+            HeadsBrand = brand;
             Colors = brand switch
             {
                 EffortBrand.Antigravity => EffortBrand.Gemini,
@@ -1305,7 +1309,7 @@ public sealed class TrackEffect : Decorator
         IsHitTestVisible = false; AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw); // :1070-1071
         AttachedToVisualTree += (_, _) => { if (TopLevel.GetTopLevel(this) is Avalonia.Controls.Window window) FrontMonitor.Shared.Current.Observe(window); };
         this.TimelineView(() => new AnimationTimelineSchedule(
-            1.0 / (this.look.TrackLookKind == TrackLook.Kind.Supercharged && this.look.Pair is null ? 30 : 60),
+            1.0 / 60, // :1049 (30 for a solo supercharged track); DEVIATION OD-0051: that track is now liquid and runs at 60
             EnvironmentValues.GetAccessibilityReduceMotion(this) || !FrontMonitor.Shared.Current.IsVisible), date =>
         {
             time = (date - startedAt).TotalSeconds; canvas.InvalidateVisual();
@@ -1315,6 +1319,21 @@ public sealed class TrackEffect : Decorator
     // :1024-1026 pair kind changes preserve this view's clock and trait cache.
     internal void SetLook(TrackLook value) { look = value; canvas.InvalidateVisual(); }
 
+    /// <summary>OD-0051: maximum effort and every pair draw the liquid tube; the other levels keep the source's effects.</summary>
+    internal static bool IsLiquid(TrackLook look) => look.Pair is not null || look.TrackLookKind is TrackLook.Kind.Supercharged or TrackLook.Kind.Fusion;
+
+    private double bubblesWidth = -1;
+    private IReadOnlyList<LiquidBubble> bubbles = [];
+    private readonly int bubbleSeed = System.Threading.Interlocked.Increment(ref bubbleSeeds);
+    private static int bubbleSeeds;
+
+    // each track keeps its own seeded bubbles, rebuilt only when its width changes (as TraitCache, :1121-1132)
+    internal IReadOnlyList<LiquidBubble> Bubbles(Size size)
+    {
+        if (size.Width != bubblesWidth) { bubblesWidth = size.Width; bubbles = LiquidTrack.Bubbles(bubbleSeed, size.Width, size.Height); }
+        return bubbles;
+    }
+
     private sealed class EffectCanvas(TrackEffect owner) : Control
     {
         public override void Render(DrawingContext context)
@@ -1323,9 +1342,13 @@ public sealed class TrackEffect : Decorator
             var size = Bounds.Size;
             if (size.Width <= 8) return; // :1053
             var look = owner.look; var kind = look.TrackLookKind; var time = owner.time;
-            if (look.Pair is { } pair) DrawFusion(context, size, time, look.Brand.FillColor, pair.Colors); // :1054-1056, ED-213.
             var traits = owner.traits.Traits(size.Width); // :1057
-            if (kind is TrackLook.Kind.Supercharged or TrackLook.Kind.Fusion) DrawParticles(context, size, time, look.Spark, traits.Particles);
+            if (IsLiquid(look))
+            {
+                // DEVIATION OD-0048 / OD-0051: the liquid tube replaces the source's fusion (:1054-1056) and particles.
+                LiquidTrack.Draw(context, size, time, LiquidSpec.For(look), owner.Bubbles(size), look.IsLightFill, ActualThemeVariant);
+            }
+            else if (kind is TrackLook.Kind.Supercharged or TrackLook.Kind.Fusion) DrawParticles(context, size, time, look.Spark, traits.Particles);
             if (kind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion) { DrawStreaks(context, size, time, traits.Streaks); DrawBolts(context, size, time); }
             if (kind == TrackLook.Kind.Fusion) DrawSheen(context, size, time, look.Spark);
         }
@@ -1477,160 +1500,6 @@ public sealed class TrackEffect : Decorator
         var brush = (LinearGradientBrush)EffortView.Gradient([color.Opacity(0), color.Opacity(0.22), color.Opacity(0)], ThemeVariant.Light);
         brush.StartPoint = new RelativePoint(x, 0, RelativeUnit.Absolute); brush.EndPoint = new RelativePoint(x + band + 10, 0, RelativeUnit.Absolute);
         context.DrawGeometry(brush, null, path);
-    }
-
-    // :1232-1335 private static func drawFusion(_:size:time:lead:heads:)
-    private static void DrawFusion(DrawingContext context, Size size, double time, SwiftColor lead, IReadOnlyList<SwiftColor> heads) =>
-        context.Custom(new FusionOperation(size, time, lead, heads.ToArray())); // ED-213: additive paths on the Skia lease.
-
-    // ED-213: private to this sole plusLighter site. All frame values are captured before the render-thread lease.
-    private sealed class FusionOperation(Size size, double time, SwiftColor lead, SwiftColor[] heads) : ICustomDrawOperation
-    {
-        public Rect Bounds { get; } = new Rect(size).Inflate(28); // :1321 sigma 7, retaining the glow's four-sigma reach.
-        public bool HitTest(Point p) => false;
-        public bool Equals(ICustomDrawOperation? other) => false;
-        public void Dispose() { }
-
-        public void Render(ImmediateDrawingContext context)
-        {
-            var feature = context.TryGetFeature<ISkiaSharpApiLeaseFeature>()
-                ?? throw new InvalidOperationException("The fusion drawing needs the Skia renderer (ISkiaSharpApiLeaseFeature).");
-            using var lease = feature.Lease();
-            // The lease bypasses Avalonia's opacity paint, so apply the inherited opacity to the whole frame once.
-            using var opacity = new SKPaint { Color = SKColors.White.WithAlpha((byte)Math.Round(Math.Clamp(lease.CurrentOpacity, 0, 1) * 255)) };
-            var save = lease.SkCanvas.SaveLayer(opacity);
-            try { DrawFrame(lease.SkCanvas, size, time, lead, heads); }
-            finally { lease.SkCanvas.RestoreToCount(save); }
-        }
-
-        private static SKColor Color(SwiftColor value)
-        {
-            var color = value.Resolve(ThemeVariant.Light); // The source's lead/head colours are fixed sRGB literals.
-            return new SKColor(color.R, color.G, color.B, color.A);
-        }
-
-        // :1278-1282,1320-1328. A GraphicsContext copy with a filter is an isolated save layer; the additive
-        // blend applies on restore. Clip before the layer so its filtered result also stays inside the side path.
-        private static void PaintLayer(SKCanvas canvas, SKPath path, SKPaint paint, double sigma, bool additive, SKPath? clip)
-        {
-            var save = canvas.Save();
-            try
-            {
-                if (clip is not null) canvas.ClipPath(clip, SKClipOperation.Intersect, antialias: true);
-                using var blur = sigma > 0 ? SKImageFilter.CreateBlur((float)sigma, (float)sigma, SKShaderTileMode.Decal) : null;
-                using var layer = new SKPaint { BlendMode = additive ? SKBlendMode.Plus : SKBlendMode.SrcOver, ImageFilter = blur };
-                canvas.SaveLayer(layer);
-                canvas.DrawPath(path, paint);
-            }
-            finally { canvas.RestoreToCount(save); }
-        }
-
-        // :1232-1335. Gradients, plasma paths, deterministic sparks, glow, core, then the white sheen.
-        private static void DrawFrame(SKCanvas canvas, Size size, double time, SwiftColor lead, IReadOnlyList<SwiftColor> heads)
-        {
-            var width = size.Width; var height = size.Height;
-            var seam = width * (0.5 + 0.13 * Math.Sin(time * 0.7) + 0.05 * Math.Sin(time * 1.9 + 1));
-            var pulse = 0.5 + 0.5 * Math.Sin(time * 2.4);
-            var headsNear = heads.Count > 0 ? heads[0] : lead;
-
-            var colors = new System.Collections.Generic.List<SKColor> { Color(lead), Color(lead), Color(SwiftColor.White.Opacity(0.92)) };
-            var positions = new System.Collections.Generic.List<float> { 0, (float)Math.Max(0, seam / width - 0.22), (float)(seam / width) };
-            var farStart = Math.Min(1, seam / width + 0.16);
-            if (heads.Count == 1)
-            {
-                colors.Add(Color(headsNear)); positions.Add((float)farStart);
-                colors.Add(Color(headsNear)); positions.Add(1);
-            }
-            else
-            {
-                for (var index = 0; index < heads.Count; index++)
-                {
-                    colors.Add(Color(heads[index]));
-                    positions.Add((float)Math.Min(1, farStart + (1 - farStart) * index / (heads.Count - 1)));
-                }
-            }
-            using (var gradient = SKShader.CreateLinearGradient(new SKPoint(0, (float)(height / 2)), new SKPoint((float)width, (float)(height / 2)), colors.ToArray(), positions.ToArray(), SKShaderTileMode.Clamp))
-            using (var fill = new SKPaint { Shader = gradient, IsAntialias = true })
-                canvas.DrawRect(new SKRect(0, 0, (float)width, (float)height), fill); // :1240-1256
-
-            for (var band = 0; band < 3; band++) // :1261-1295
-            {
-                var seed = band + 300.0;
-                var amplitude = height * (0.12 + 0.16 * Random(seed, 1));
-                var wavelength = 30 + 34 * Random(seed, 2);
-                var speed = 22 + 34 * Random(seed, 3);
-                var thickness = 1.8 + 2.2 * Random(seed, 4);
-                var phase = time * speed / wavelength * 2 * Math.PI;
-                for (var stream = 0; stream < 2; stream++)
-                {
-                    var toNear = stream == 0;
-                    using var path = new SKPath();
-                    var steps = (int)(width / 3) + 1;
-                    for (var step = 0; step <= steps; step++)
-                    {
-                        var x = Math.Min(width, step * 3.0);
-                        var y = height / 2 + amplitude * Math.Sin(x / wavelength * 2 * Math.PI + (toNear ? phase : -phase) + seed * (toNear ? 1 : 1.7));
-                        if (step == 0) path.MoveTo((float)x, (float)y); else path.LineTo((float)x, (float)y);
-                    }
-                    var reach = width * 0.55;
-                    using var side = new SKPath();
-                    side.AddRect(toNear ? new SKRect(0, 0, (float)seam, (float)height) : new SKRect((float)seam, 0, (float)width, (float)height));
-                    var color = toNear ? headsNear : lead;
-                    var brightness = 0.32 + 0.16 * Random(seed, 5);
-                    var streamColors = toNear
-                        ? new[] { Color(color.Opacity(0)), Color(color.Opacity(brightness)) }
-                        : new[] { Color(color.Opacity(brightness)), Color(color.Opacity(0)) };
-                    using var shader = SKShader.CreateLinearGradient(new SKPoint((float)(toNear ? seam - reach : seam), 0),
-                        new SKPoint((float)(toNear ? seam : seam + reach), 0), streamColors, null, SKShaderTileMode.Clamp);
-                    using var stroke = new SKPaint { Shader = shader, IsAntialias = true, Style = SKPaintStyle.Stroke,
-                        StrokeWidth = (float)thickness, StrokeCap = SKStrokeCap.Round, StrokeJoin = SKStrokeJoin.Round };
-                    PaintLayer(canvas, path, stroke, 2.5, true, side);
-                }
-            }
-
-            for (var index = 0; index < 22; index++) // :1297-1316
-            {
-                var seed = index + 400.0;
-                var life = 0.7 + 0.8 * Random(seed, 1);
-                var age = (time + Random(seed, 2) * life) % life;
-                var progress = age / life;
-                var toNear = Random(seed, 3) < 0.5;
-                var speed = 28 + 74 * Random(seed, 4);
-                var x = seam + (toNear ? -1 : 1) * speed * age;
-                var y = height * (0.18 + 0.64 * Random(seed, 5)) + 5 * Math.Sin(age * 8 + seed);
-                var radius = 0.7 + 1.5 * (1 - progress);
-                var opacity = (1 - progress) * (0.5 + 0.5 * Random(seed, 6)) * EdgeFade(x, width);
-                if (opacity <= 0.01) continue;
-                var color = SwiftColor.White.Mix(toNear ? lead : headsNear, progress * 0.8);
-                using var spark = new SKPaint { Color = Color(color.Opacity(opacity)), IsAntialias = true };
-                canvas.DrawOval(new SKRect((float)(x - radius), (float)(y - radius), (float)(x + radius), (float)(y + radius)), spark);
-            }
-
-            var coreWidth = 9 + 8 * pulse; // :1318-1333
-            using (var glowPath = new SKPath())
-            using (var glow = new SKPaint { Color = Color(SwiftColor.White.Opacity(0.32 + 0.3 * pulse)), IsAntialias = true })
-            {
-                glowPath.AddOval(new SKRect((float)(seam - coreWidth), (float)(-height * 0.2), (float)(seam + coreWidth), (float)(height * 1.2)));
-                PaintLayer(canvas, glowPath, glow, 7, true, null);
-            }
-            using (var corePath = new SKPath())
-            using (var core = new SKPaint { Color = Color(SwiftColor.White.Opacity(0.5 + 0.4 * pulse)), IsAntialias = true })
-            {
-                corePath.AddRoundRect(new SKRect((float)(seam - 1.1), 2, (float)(seam + 1.1), (float)(height - 2)), 1.1f, 1.1f);
-                PaintLayer(canvas, corePath, core, 0.8, false, null);
-            }
-
-            // :1335 drawSheen(.white), transcribed from :1204-1225 on this same Skia canvas.
-            const double sheenBand = 46; const double period = 2.8;
-            var sheenX = -sheenBand + (width + sheenBand * 2) * ((time / period) % 1);
-            using var sheenPath = new SKPath();
-            sheenPath.MoveTo((float)(sheenX + 10), 0); sheenPath.LineTo((float)(sheenX + sheenBand + 10), 0);
-            sheenPath.LineTo((float)(sheenX + sheenBand), (float)height); sheenPath.LineTo((float)sheenX, (float)height); sheenPath.Close();
-            using var sheenShader = SKShader.CreateLinearGradient(new SKPoint((float)sheenX, 0), new SKPoint((float)(sheenX + sheenBand + 10), 0),
-                new[] { Color(SwiftColor.White.Opacity(0)), Color(SwiftColor.White.Opacity(0.22)), Color(SwiftColor.White.Opacity(0)) }, null, SKShaderTileMode.Clamp);
-            using var sheen = new SKPaint { Shader = sheenShader, IsAntialias = true };
-            canvas.DrawPath(sheenPath, sheen);
-        }
     }
 
     // :1338-1340 private static func edgeFade(_:width:). PR-COMPOSER-135: an edge fade over the last 14 points.

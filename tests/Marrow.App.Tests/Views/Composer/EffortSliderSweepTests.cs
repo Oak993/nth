@@ -340,7 +340,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Theory]
     [Trait("Decision", "ED-117")] // ED-117(7): cadence expectations rest on ED-117(2)-(6), so Decision ED-117 + Oracle O-34, never Req.
     [Trait("Oracle", "O-34")] // App/Views/Composer/EffortSlider.swift:1049-1050,1070-1071; PR-133 needs a ten-second run (see STOP).
-    [InlineData(TrackLook.Kind.Supercharged, false, false)]
+    [InlineData(TrackLook.Kind.Supercharged, false, true)] // DEVIATION OD-0051: the solo supercharged track is the liquid tube, at 60 Hz (source :1049 30 Hz)
     [InlineData(TrackLook.Kind.Supercharged, true, true)]
     [InlineData(TrackLook.Kind.Fast, false, true)]
     [InlineData(TrackLook.Kind.Fast, true, true)]
@@ -1336,7 +1336,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 // Kind: partial proof (oracle cadence, ten-second method missing)
 // Swift: DroppyCode/App/Views/Composer/EffortSlider.swift:1049-1050,1052-1053,1070-1071 (B3 52bc792)
 // Requirements: PR-COMPOSER-133
-// What is proven: source schedule (supercharged solo at 30 Hz, every other effect at 60 Hz, including paired
+// What is proven: source schedule (supercharged solo at 30 Hz in the source, 60 Hz here by DEVIATION OD-0051; every other effect at 60 Hz, including paired
 // supercharged) with 20/40 ms update checks across the mode/pair matrix, plus the source hit-test and
 // accessibility contract. Cadence expectations carry Decision ED-117 + Oracle O-34 per ED-117(7), never Req.
 // What is missing: the record's verification_method calls for an instrumented ten-second frame-count run in each
