@@ -668,7 +668,11 @@ internal sealed class HydraPairEditor : Decorator
     private static Control SectionLabel(string title)
     {
         var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 };
-        column.Children.Add(new Border { Height = 1, Background = Chrome.SecondaryText.Brush(column), Margin = new Thickness(14, 12, 14, 0) });
+        // :548-550 Divider().padding(.horizontal, 14).padding(.top, 12): the port's one Divider() hairline (PlainControls.Divider),
+        // not the secondary text colour, which drew it about three times as strong as every other divider.
+        var rule = PlainControls.Divider();
+        rule.Margin = new Thickness(14, 12, 14, 0);
+        column.Children.Add(rule);
         column.Children.Add(MakeText(title, SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Semibold), Chrome.SecondaryText, new Thickness(14, 10, 14, 4)));
         return column;
     }
