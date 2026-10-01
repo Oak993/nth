@@ -698,7 +698,7 @@ public sealed class TerminalPanelTests(HeadlessSession headless)
                     var host = Build(harness.App, harness.Runtime, TerminalTestFolders.Create("hide button"));
 
                     var hide = LogicalQuery.SelfAndDescendants<Button>(host)
-                        .Single(button => ToolTip.GetTip(button) as string == "Hide terminal");
+                        .Single(button => AutomationProperties.GetName(button) == "Hide terminal"); // :53; the tooltip also carries the chord (:52)
                     hide.RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
 
                     Assert.False(harness.Runtime.IsTerminalVisible);

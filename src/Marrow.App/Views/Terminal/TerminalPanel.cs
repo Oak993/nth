@@ -16,6 +16,7 @@ using Marrow.App.Views.Terminal.Port;
 using Marrow.App.Window;
 using Marrow.Core.Models;
 using Marrow.UI.Chrome;
+using Marrow.UI.Common;
 using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
@@ -80,8 +81,12 @@ public sealed class TerminalPanel : Decorator
         Grid.SetColumn(add, 1);
         header.Children.Add(add);
 
+        // :52 .help("Hide terminal\(ShortcutStore.hint(for: .toggleTerminal))"): the chord is read live, so a remapped or
+        // cleared Toggle terminal shortcut corrects the tooltip. :53 the accessibility label never carries it.
         var hide = MakeIconButton("chevron.down", "Hide terminal", () =>
             runtime.IsTerminalVisible = false);
+        ToolTip.SetTip(hide, "Hide terminal" + ShortcutStore.Hint(AppShortcut.ToggleTerminal));
+        this.Track(() => ShortcutStore.Hint(AppShortcut.ToggleTerminal), hint => ToolTip.SetTip(hide, "Hide terminal" + hint));
         Grid.SetColumn(hide, 3);
         header.Children.Add(hide);
 
@@ -204,9 +209,13 @@ public sealed class TerminalPanel : Decorator
 
         if (selected is null)
         {
+            // :64-78 The empty state's VStack is framed to the whole area below the row: the leading 12, trailing 6 and
+            // bottom 6 insets (:61-63) belong to the TerminalHost alone.
+            terminalArea.Margin = new Thickness(0);
             terminalArea.Child = MakeEmptyState(current);
             return;
         }
+        terminalArea.Margin = new Thickness(12, 0, 6, 6); // :61-63
 
         // :58-63 Keep and host the session's existing terminal view. Switching tabs reparents
         // this control rather than creating a replacement terminal.
@@ -257,7 +266,7 @@ public sealed class TerminalPanel : Decorator
         ToolTip.SetTip(button, help);
         AutomationProperties.SetName(button, help);
         button.Click += (_, _) => action();
-        return button;
+        return button.Chip(); // :41, :51 .buttonStyle(.chip)
     }
 
     private void ApplyHeight()
@@ -507,6 +516,10 @@ public sealed class TerminalHost : Decorator
             Dispatcher.UIThread.Post(() => session.View.Focus(), DispatcherPriority.Input);
         };
         DetachedFromVisualTree += (_, _) => DetachEscapeListener();
+
+        // :59,225-227 `isDark: colorScheme == .dark` is an input of the host: a light/dark change reaches updateNSView, which
+        // calls session.applyAppearance(isDark:) unconditionally (the session itself skips an unchanged value).
+        ActualThemeVariantChanged += (_, _) => session.ApplyAppearance(SwiftTheme.IsDark(this));
     }
 
     private void AttachEscapeListener()
@@ -576,6 +589,9 @@ public sealed class TerminalHostContainer : Decorator
         set
         {
             if (ReferenceEquals(Child, value)) return;
+            // :244 attach(to:) starts with view.removeFromSuperview(): the long-lived view leaves whichever container
+            // held it (a drawer that was hidden, or another thread's panel) before this one takes it.
+            if (value?.Parent is Decorator previous && !ReferenceEquals(previous, this)) previous.Child = null;
             Child = value;
             if (value is not null)
             {
