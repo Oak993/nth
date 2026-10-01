@@ -732,7 +732,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
         SettingsNavigation.Shared.RequestedPage = SettingsPage.Models; Sync();
         var page = Assert.Single(Nodes<ModelsSettingsPage>(view));
         var stack = Assert.IsType<StackPanel>(Field<Control>(view, "pageStack")); Assert.Equal(20, stack.Spacing); Assert.Equal(new Thickness(24, 60, 24, 24), stack.Margin);
-        var chrome = Nodes<StackPanel>(view).Single(x => x.MinHeight == 32); Assert.Equal(10, chrome.Spacing); Assert.Equal(new Thickness(14, 12, 14, 0), chrome.Margin);
+        var chrome = Nodes<StackPanel>(view).Single(x => x.MinHeight == 32); Assert.Equal(10, chrome.Spacing); Assert.Equal(new Thickness(14, 12, 156, 0), chrome.Margin); // trailing: OD-0044, clear of the Windows caption buttons
         var title = Assert.Single(Nodes<ChromeCompactTitle>(view)); Assert.Equal(15, Nodes<TextBlock>(title).Single().FontSize); Assert.Single(Nodes<PaneTopVeil>(view));
         var query = Nodes<TextBox>(Field<Control>(view, "detail")).Single(x => x.PlaceholderText == "Search models"); query.Text = "nonexistent-model"; Sync(); Assert.Same(page, Assert.Single(Nodes<ModelsSettingsPage>(view)));
         Field<ChromeScrollModel>(view, "scrollChrome").Update(27); Sync(); Assert.Equal(0.52, Field<ChromeScrollModel>(view, "scrollChrome").Progress, 10);

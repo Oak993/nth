@@ -120,11 +120,14 @@ public static class WindowChrome
     {
         public bool Configured;
         public TrafficLightButtons? Buttons;
+        public Canvas? Layer;
     }
 
-    private sealed class TrafficLightButtons(Border close, Border miniaturize, Border zoom)
+    // DEVIATION OD-0044 (OD-0046): Windows order, minimise, maximise, close, left to right at the top right.
+    private sealed class TrafficLightButtons(CaptionButton close, CaptionButton miniaturize, CaptionButton zoom, Panel cluster)
     {
-        public Border[] Items { get; } = [close, miniaturize, zoom]; // :183 order: close, miniaturize, zoom
+        public CaptionButton[] Items { get; } = [close, miniaturize, zoom];
+        public Panel Cluster { get; } = cluster;
     }
 
     // :105. `NSHashTable<NSWindow>.weakObjects()` -> a weak-keyed table so a closed, released window drops out
@@ -173,98 +176,124 @@ public static class WindowChrome
     /// <summary>:148-150 <c>static var titlebarHeight: CGFloat</c>.</summary>
     public static double TitlebarHeight => Chrome.SheetInset + Chrome.ChromeTopPadding + Chrome.CapsuleHeight; // :149
 
-    /// <summary>:177-230 <c>static func placeTrafficLights(on:sidebarVisible:animated:)</c>.</summary>
+    /// <summary>
+    /// :177-230 <c>static func placeTrafficLights(on:sidebarVisible:animated:)</c>. DEVIATION OD-0044 (OD-0046): the
+    /// buttons are Windows caption buttons fixed at the window's top right (<see cref="CaptionTop"/>, <see
+    /// cref="CaptionTrailingInset"/>), so the sidebar no longer moves them and there is no glide: a placement makes sure
+    /// they exist and are shown, every time (:185-186), and does nothing else.
+    /// </summary>
     public static void PlaceTrafficLights(Window window, bool sidebarVisible, bool animated)
     {
-        // :178-179
-        var leading = sidebarVisible ? Chrome.TrafficLightLeading : Chrome.SheetInset + Chrome.ChromeHorizontalPadding;
-        var top = sidebarVisible ? Chrome.TrafficLightTop : CollapsedTrafficLightTop;
-
-        var state = StateFor(window);
-        // :188-199 first placement creates the three buttons (stands in for activating the four constraints once).
-        var buttons = state.Buttons ??= CreateButtons(window);
-
-        var changed = false; // :182
-        var targets = new double[buttons.Items.Length];
-        for (var index = 0; index < buttons.Items.Length; index++) // :184 for (index, type) in types.enumerated()
-        {
-            var button = buttons.Items[index];
-            button.IsVisible = true; // :185-186 button.isHidden = false, unconditionally, every placement
-            var x = leading + index * Chrome.TrafficLightPitch; // :187
-            targets[index] = x;
-            // :202-210 rewrite only when the value actually differs
-            if (!Equal(Canvas.GetLeft(button), x) || !Equal(Canvas.GetTop(button), top)) changed = true;
-        }
-        if (!changed) return; // :214 guard changed else { return }
-
-        PortAnimation? animation = null;
-        if (animated && !WindowLiveResizeSignal.GetIsActive(window)) // :216; ED-224
-        {
-            // :223-227
-            var reduceMotion = Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
-            var duration = reduceMotion ? 0.18 : 0.32; // :225
-            animation = PortAnimation.EaseOut(duration); // :226 CAMediaTimingFunction(name: .easeOut)
-        }
-
-        for (var index = 0; index < buttons.Items.Length; index++)
-        {
-            var button = buttons.Items[index];
-            if (animation is null)
-            {
-                button.Transitions = null; // :217-218 titlebar.layoutSubtreeIfNeeded(), no animation group
-            }
-            else
-            {
-                var duration = TimeSpan.FromSeconds(animation.Duration);
-                var easing = animation.ToEasing();
-                button.Transitions = new Avalonia.Animation.Transitions
-                {
-                    new Avalonia.Animation.DoubleTransition { Property = Canvas.LeftProperty, Duration = duration, Easing = easing },
-                    new Avalonia.Animation.DoubleTransition { Property = Canvas.TopProperty, Duration = duration, Easing = easing },
-                };
-            }
-            Canvas.SetLeft(button, targets[index]);
-            Canvas.SetTop(button, top);
-        }
+        var buttons = StateFor(window).Buttons ??= CreateButtons(window);
+        foreach (var button in buttons.Items) button.IsVisible = true; // :185-186
+        buttons.Cluster.IsVisible = true;
     }
+
+    /// <summary>OD-0044: the button cluster's top edge, centring the 40-pt buttons on the chrome capsules' centre line
+    /// (ChromeTopPadding + CapsuleHeight / 2 = 28).</summary>
+    public static double CaptionTop => Chrome.SheetInset + Chrome.ChromeTopPadding + Chrome.CapsuleHeight / 2 - CaptionButton.ButtonHeight / 2;
+
+    /// <summary>OD-0044: the gap between the close button and the window's right edge.</summary>
+    public const double CaptionTrailingInset = 6;
+
+    /// <summary>OD-0044: the gap between the cluster and the chrome a window draws to its left.</summary>
+    public const double CaptionClearance = 8;
+
+    /// <summary>OD-0044: the cluster's width, three 46-pt buttons 2 pt apart.</summary>
+    public static double CaptionClusterWidth => CaptionButton.ButtonWidth * 3 + 2 * 2;
+
+    /// <summary>OD-0044: the trailing padding a window's top chrome row keeps so its last control ends clear of the
+    /// caption buttons (replaces the leading clearance the traffic lights needed, Chrome.swift :20-21).</summary>
+    public static double CaptionTrailingReserve => CaptionTrailingInset + CaptionClusterWidth + CaptionClearance;
+
+    /// <summary>OD-0044: the caption hook reports the hit-test value under the pointer (0: none of the buttons).</summary>
+    public static void SetCaptionHover(Window window, int hitTest)
+    {
+        if (StateFor(window).Buttons is not { } buttons) return;
+        foreach (var button in buttons.Items) button.IsHovered = HitTestOf(button) == hitTest;
+    }
+
+    /// <summary>OD-0044: the caption hook reports the button held down (0: none).</summary>
+    public static void SetCaptionPressed(Window window, int hitTest)
+    {
+        if (StateFor(window).Buttons is not { } buttons) return;
+        foreach (var button in buttons.Items) button.IsPressed = HitTestOf(button) == hitTest;
+    }
+
+    private static int HitTestOf(CaptionButton button) => button.ButtonKind switch
+    {
+        CaptionButton.Kind.Close => (int)Win32Properties.Win32HitTestValue.Close,
+        CaptionButton.Kind.Minimize => (int)Win32Properties.Win32HitTestValue.MinButton,
+        _ => (int)Win32Properties.Win32HitTestValue.MaxButton,
+    };
 
     private static bool Equal(double a, double b) => !double.IsNaN(a) && Math.Abs(a - b) < 0.0001;
 
-    /// <summary>The three window buttons for <paramref name="window"/>, close/miniaturize/zoom order (:183),
-    /// exposed for tests via InternalsVisibleTo.</summary>
-    internal static (Control Close, Control Miniaturize, Control Zoom) Buttons(Window window)
+    /// <summary>The three window buttons for <paramref name="window"/> (close, miniaturize, zoom), exposed for tests via
+    /// InternalsVisibleTo.</summary>
+    internal static (CaptionButton Close, CaptionButton Miniaturize, CaptionButton Zoom) Buttons(Window window)
     {
-        var buttons = StateFor(window).Buttons ?? CreateButtons(window);
-        StateFor(window).Buttons ??= buttons;
+        var buttons = StateFor(window).Buttons ??= CreateButtons(window);
         return (buttons.Items[0], buttons.Items[1], buttons.Items[2]);
     }
 
+    /// <summary>
+    /// OD-0044: the layer the window's caption buttons live on, for the window's factory to lay over the window's content
+    /// (last child of the content's root panel). It covers the whole client area but takes only the buttons' own hits.
+    /// </summary>
+    public static Canvas CaptionLayer(Window window) => StateFor(window).Layer ??= new Canvas();
+
+    /// <summary>The cluster holding the three buttons, exposed for tests via InternalsVisibleTo.</summary>
+    internal static Panel CaptionCluster(Window window) => (StateFor(window).Buttons ??= CreateButtons(window)).Cluster;
+
     private static TrafficLightButtons CreateButtons(Window window)
     {
-        // :183 order close, miniaturize, zoom; :197-198 width = height = trafficLightDiameter.
-        var close = MakeButton(Win32Properties.Win32HitTestValue.Close);
-        var miniaturize = MakeButton(Win32Properties.Win32HitTestValue.MinButton);
-        var zoom = MakeButton(Win32Properties.Win32HitTestValue.MaxButton);
-        var canvas = new Canvas();
-        canvas.Children.Add(close);
-        canvas.Children.Add(miniaturize);
-        canvas.Children.Add(zoom);
-        // Added through the overlay layer, never into the app's own content tree: AppKit's buttons are window
-        // chrome, not part of RootView's view hierarchy, and this mirrors that (PA note).
-        OverlayLayer.GetOverlayLayer(window)?.Children.Add(canvas);
-        return new TrafficLightButtons(close, miniaturize, zoom);
+        var close = MakeButton(CaptionButton.Kind.Close, Win32Properties.Win32HitTestValue.Close);
+        var miniaturize = MakeButton(CaptionButton.Kind.Minimize, Win32Properties.Win32HitTestValue.MinButton);
+        var zoom = MakeButton(CaptionButton.Kind.Maximize, Win32Properties.Win32HitTestValue.MaxButton);
+        // DEVIATION OD-0044: Windows order left to right (minimise, maximise, close), fixed at the top right.
+        var cluster = new StackPanel { Orientation = Avalonia.Layout.Orientation.Horizontal, Spacing = 2, IsVisible = false };
+        cluster.Children.Add(miniaturize);
+        cluster.Children.Add(zoom);
+        cluster.Children.Add(close);
+        Canvas.SetRight(cluster, CaptionTrailingInset);
+        Canvas.SetTop(cluster, CaptionTop);
+        // On the window's caption layer (CaptionLayer, which the window's factory lays over its content), never inside the
+        // app's own content tree: the caption buttons are window chrome, not part of RootView's view hierarchy (PA note).
+        // A window with no caption layer falls back to its overlay layer, when its template has one (the port's windows
+        // have no template, so they have none: an earlier version that used only the overlay layer never showed them).
+        var state = StateFor(window);
+        if (state.Layer is { } layer) layer.Children.Add(cluster);
+        else if (OverlayLayer.GetOverlayLayer(window) is { } overlay) overlay.Children.Add(cluster);
+        else (state.Layer = new Canvas()).Children.Add(cluster);
+        // Windows draws the restore glyph while the window is maximised, and greys maximise on a window that cannot be
+        // resized (Avalonia's CanMaximize follows CanResize); the hook ignores a disabled button's click (WindowManager).
+        void Sync()
+        {
+            zoom.IsMaximized = window.WindowState == Avalonia.Controls.WindowState.Maximized;
+            // OD-0046: the Windows caption buttons' own accessible names (Windows calls the maximised one Restore).
+            Avalonia.Automation.AutomationProperties.SetName(zoom, zoom.IsMaximized ? "Restore" : "Maximize");
+            zoom.IsEnabled = window.CanMaximize;
+            Win32Properties.SetNonClientHitTestResult(zoom, window.CanMaximize ? Win32Properties.Win32HitTestValue.MaxButton : Win32Properties.Win32HitTestValue.Client);
+        }
+        Sync();
+        window.PropertyChanged += (_, e) =>
+        {
+            if (e.Property == Window.WindowStateProperty || e.Property == Window.CanMaximizeProperty || e.Property == Window.CanResizeProperty) Sync();
+        };
+        return new TrafficLightButtons(close, miniaturize, zoom, cluster);
     }
 
-    private static Border MakeButton(Win32Properties.Win32HitTestValue kind)
+    private static CaptionButton MakeButton(CaptionButton.Kind kind, Win32Properties.Win32HitTestValue hitTest)
     {
-        var button = new Border
+        var button = new CaptionButton(kind) { IsVisible = false };
+        Win32Properties.SetNonClientHitTestResult(button, hitTest);
+        Avalonia.Automation.AutomationProperties.SetName(button, kind switch
         {
-            Width = Chrome.TrafficLightDiameter, // :197
-            Height = Chrome.TrafficLightDiameter, // :198
-            CornerRadius = new CornerRadius(Chrome.TrafficLightDiameter / 2),
-            IsVisible = false,
-        };
-        Win32Properties.SetNonClientHitTestResult(button, kind);
+            CaptionButton.Kind.Minimize => "Minimize",
+            CaptionButton.Kind.Maximize => "Maximize",
+            _ => "Close",
+        });
         return button;
     }
 }

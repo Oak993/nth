@@ -68,11 +68,16 @@ public sealed class WindowManager
     private sealed class CaptionState
     {
         public nint PendingHitTest;
+        public bool TrackingLeave;
     }
 
     private const uint WM_CONTEXTMENU = 0x007B;
     private const uint WM_NCLBUTTONDOWN = 0x00A1;
     private const uint WM_NCLBUTTONUP = 0x00A2;
+    private const uint WM_NCMOUSEMOVE = 0x00A0;
+    private const uint WM_NCMOUSELEAVE = 0x02A2;
+    private const uint TME_LEAVE = 0x00000002;
+    private const uint TME_NONCLIENT = 0x00000010;
     private const uint WM_LBUTTONUP = 0x0202;
     private const uint WM_NCHITTEST = 0x0084;
     private const uint WM_SYSCOMMAND = 0x0112;
@@ -310,6 +315,7 @@ public sealed class WindowManager
         // its one child out over the whole of it.
         var container = new Panel();
         container.Children.Add(hosting); // :107
+        container.Children.Add(WindowChrome.CaptionLayer(window)); // OD-0044: the caption buttons over the content
         window.Content = container; // :108
         // PORT-ONLY (OD-0008 C3): DroppyCodeApp.swift:21-25 installs `AppCommands(model: WindowManager.shared.model)` as
         // the menu bar, which answers the key equivalents of whichever window of the app is key. With no menu bar, each
@@ -343,8 +349,25 @@ public sealed class WindowManager
 
         switch (message)
         {
+            // OD-0044: the caption buttons' hover (Turn pulse) follows the non-client pointer: WM_NCMOUSEMOVE names the
+            // hit-test value under it, and WM_NCMOUSELEAVE (asked for once per entry with TrackMouseEvent) ends it.
+            case WM_NCMOUSEMOVE:
+                WindowChrome.SetCaptionHover(window, IsCaptionButton(wParam, window) ? (int)wParam : 0);
+                if (!state.TrackingLeave && OperatingSystem.IsWindows() && hWnd != 0)
+                {
+                    var track = new TrackMouseEventInfo { Size = (uint)Marshal.SizeOf<TrackMouseEventInfo>(), Flags = TME_LEAVE | TME_NONCLIENT, Window = hWnd };
+                    state.TrackingLeave = TrackMouseEvent(ref track);
+                }
+                break;
+
+            case WM_NCMOUSELEAVE:
+                state.TrackingLeave = false;
+                if (state.PendingHitTest == 0) WindowChrome.SetCaptionHover(window, 0);
+                break;
+
             case WM_NCLBUTTONDOWN when IsCaptionButton(wParam, window):
                 state.PendingHitTest = wParam;
+                WindowChrome.SetCaptionPressed(window, (int)wParam);
                 if (OperatingSystem.IsWindows() && hWnd != 0) _ = SetCapture(hWnd);
                 handled = true;
                 return 0;
@@ -357,6 +380,8 @@ public sealed class WindowManager
                 if (message == WM_LBUTTONUP) wParam = CaptionHitAtClientPoint(hWnd, lParam);
                 var hitTest = state.PendingHitTest;
                 state.PendingHitTest = 0;
+                WindowChrome.SetCaptionPressed(window, 0);
+                WindowChrome.SetCaptionHover(window, IsCaptionButton(wParam, window) ? (int)wParam : 0);
                 if (OperatingSystem.IsWindows() && hWnd != 0) _ = ReleaseCapture();
                 if (hitTest == wParam && IsCaptionButton(hitTest, window))
                 {
@@ -372,6 +397,7 @@ public sealed class WindowManager
 
             case WM_CANCELMODE:
             case WM_CAPTURECHANGED:
+                if (state.PendingHitTest != 0) WindowChrome.SetCaptionPressed(window, 0);
                 state.PendingHitTest = 0;
                 break;
 
@@ -516,6 +542,16 @@ public sealed class WindowManager
     }
 
     [DllImport("user32.dll", SetLastError = true)] private static extern nint SetCapture(nint hWnd);
+    [DllImport("user32.dll", SetLastError = true)] private static extern bool TrackMouseEvent(ref TrackMouseEventInfo info);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct TrackMouseEventInfo
+    {
+        public uint Size;
+        public uint Flags;
+        public nint Window;
+        public uint HoverTime;
+    }
     [DllImport("user32.dll", SetLastError = true)] private static extern bool ReleaseCapture();
     [DllImport("user32.dll", SetLastError = true)] private static extern nint GetSystemMenu(nint hWnd, bool revert);
     [DllImport("user32.dll", SetLastError = true)] private static extern uint EnableMenuItem(nint menu, uint item, uint enable);

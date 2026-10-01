@@ -652,8 +652,8 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-172")] // App/Views/Chat/ChatView.swift:1177
-    public void The_leading_inset_follows_holdsTrafficLights_not_the_sidebars_own_visibility()
+    [Trait("Req", "PR-CHAT-172")] // App/Views/Chat/ChatView.swift:1177; DEVIATION OD-0044: no traffic lights lead the row
+    public void The_row_keeps_the_plain_leading_inset_and_its_trailing_end_clear_of_the_caption_buttons()
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -667,7 +667,10 @@ public sealed class ChatViewPart1Tests(HeadlessSession headless)
                 var host = LogicalQuery.SelfAndDescendants<GlassEffectContainer>(row).Single();
 
                 Assert.False(model.Sidebar.HoldsTrafficLights); // a freshly made SidebarLayout starts without them
-                Assert.Equal(Chrome.ChromeHorizontalPadding + Chrome.TrafficLightsWidth + Chrome.TrafficLightClearance, host.Margin.Left);
+                // OD-0044: the caption buttons are Windows ones at the top right, so the row leads with its plain padding
+                // whoever holds them, and ends 156 pt in (6 + 3 x 46 + 2 x 2 + 8), clear of the cluster.
+                Assert.Equal(Chrome.ChromeHorizontalPadding, host.Margin.Left);
+                Assert.Equal(156, host.Margin.Right);
             });
         });
     }

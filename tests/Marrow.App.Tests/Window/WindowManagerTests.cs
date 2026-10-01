@@ -531,9 +531,14 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     {
         var window = ShowMain(harness, manager, new Border());
         var container = Assert.IsAssignableFrom<Panel>(window.Content);
-        var hosting = Assert.IsType<FrameHostingView>(Assert.Single(container.Children));
+        // :107 one hosting view, then (OD-0044) the caption buttons' layer over it, filling the window too.
+        Assert.Equal(2, container.Children.Count);
+        var hosting = Assert.IsType<FrameHostingView>(container.Children[0]);
+        Assert.Same(WindowChrome.CaptionLayer(window), container.Children[1]);
         Assert.Equal(new Rect(0, 0, 1320, 860), hosting.Bounds);
         Assert.Equal(new Rect(0, 0, 1320, 860), container.Bounds);
+        Assert.Equal(new Rect(0, 0, 1320, 860), container.Children[1].Bounds);
+        Assert.Same(WindowChrome.CaptionLayer(window), WindowChrome.CaptionCluster(window).Parent); // the buttons live on it
     });
 
     [Fact]

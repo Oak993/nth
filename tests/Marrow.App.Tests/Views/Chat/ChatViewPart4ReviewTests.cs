@@ -622,8 +622,8 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-172")] // App/Views/Chat/ChatView.swift:1177-1180
-    public void Caption_clearance_moves_through_frames_when_the_sidebar_takes_the_caption_buttons()
+    [Trait("Req", "PR-CHAT-172")] // App/Views/Chat/ChatView.swift:1177-1180; DEVIATION OD-0044: nothing to clear at the leading end
+    public void The_leading_inset_stays_put_when_the_sidebar_takes_the_caption_buttons()
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {
@@ -642,8 +642,9 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
             });
             h.Main.RunUntilIdle();
             h.Main.AdvanceMilliseconds(50); frames.Advance(TimeSpan.Zero);
-            var margin = Assert.Single(LogicalQuery.SelfAndDescendants<GlassEffectContainer>(row)).Margin.Left;
-            Assert.InRange(margin, Chrome.ChromeHorizontalPadding + .001, Chrome.ChromeHorizontalPadding + Chrome.TrafficLightsWidth + Chrome.TrafficLightClearance - .001);
+            var margin = Assert.Single(LogicalQuery.SelfAndDescendants<GlassEffectContainer>(row)).Margin;
+            Assert.Equal(Chrome.ChromeHorizontalPadding, margin.Left); // OD-0044: no glide, the caption buttons are at the right
+            Assert.Equal(156, margin.Right);
             h.Main.Advance(TimeSpan.FromSeconds(Chrome.PanelSlide.Duration)); frames.Advance(TimeSpan.Zero);
             Assert.Equal(Chrome.ChromeHorizontalPadding, Assert.Single(LogicalQuery.SelfAndDescendants<GlassEffectContainer>(row)).Margin.Left);
             window.Close();

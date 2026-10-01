@@ -1384,14 +1384,16 @@ internal sealed class ChatChromeRow : Decorator
             Reconcile(desired, transitioning, silent);
             built = true;
 
-            // :1177-1180 padding follows ownership of the caption buttons through panelSlide frames.
-            var target = Chrome.ChromeHorizontalPadding + (sidebarVisible ? 0 : Chrome.TrafficLightsWidth + Chrome.TrafficLightClearance);
+            // :1177-1180 padding follows ownership of the caption buttons through panelSlide frames. DEVIATION OD-0044: the
+            // caption buttons are Windows ones at the window's top right, so nothing leads the row; its trailing end keeps
+            // clear of them instead (WindowChrome.CaptionTrailingReserve, below).
+            var target = Chrome.ChromeHorizontalPadding;
             void ApplyClearance(double leading)
             {
                 clearance = leading;
                 foreach (var group in host.Children.OfType<GlassEffectContainer>())
-                    group.Margin = new Thickness(leading, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0);
-                container.Margin = new Thickness(leading, Chrome.ChromeTopPadding, Chrome.ChromeHorizontalPadding, 0);
+                    group.Margin = new Thickness(leading, Chrome.ChromeTopPadding, WindowChrome.CaptionTrailingReserve, 0);
+                container.Margin = new Thickness(leading, Chrome.ChromeTopPadding, WindowChrome.CaptionTrailingReserve, 0);
             }
             if (previousSidebarVisible is { } previous && previous != sidebarVisible)
             {

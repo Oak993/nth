@@ -528,56 +528,6 @@ public sealed class WindowChromeThirdTests(HeadlessSession headless)
             Assert.Same(view.GripLayerForTest.Background, view.GlowLayerForTest.Background); // same NSColor.labelColor source
         });
     }
-
-    // ---- UI-WIN-001, UI-WIN-002, UI-WIN-003: the traffic-light buttons as a screen ----
-    // Geometry, reuse and animation are already proven by PR-WIN-031 through PR-WIN-037 in WindowChromeTests
-    // (the same production code, WindowChrome.PlaceTrafficLights). These tests restate the screen-level result
-    // each button record describes, tying the geometry to the specific button rather than to the placement pass.
-
-    [Trait("Req", "UI-WIN-001")] // WindowChrome.swift:177-213, Chrome.swift:15-19. Close: first of three, pitch 23.
-    [Fact]
-    public void The_close_button_is_14_square_and_first_in_the_pitch()
-    {
-        headless.OnUiThread(() =>
-        {
-            var window = new Window();
-            WindowChrome.PlaceTrafficLights(window, sidebarVisible: true, animated: false);
-            var (close, _, _) = WindowChrome.Buttons(window);
-            Assert.Equal(14, ((Border)close).Width);
-            Assert.Equal(14, ((Border)close).Height);
-            Assert.Equal(18, Canvas.GetLeft((Border)close)); // leading + 0 * pitch
-            Assert.True(close.IsVisible); // :185-186 isHidden = false, unconditionally, every placement
-        });
-    }
-
-    [Trait("Req", "UI-WIN-002")] // WindowChrome.swift:183-199, Chrome.swift:15-17. Miniaturize: middle, leading + 23.
-    [Fact]
-    public void The_miniaturize_button_sits_at_leading_plus_one_pitch()
-    {
-        headless.OnUiThread(() =>
-        {
-            var window = new Window();
-            WindowChrome.PlaceTrafficLights(window, sidebarVisible: true, animated: false);
-            var (_, miniaturize, _) = WindowChrome.Buttons(window);
-            Assert.Equal(41, Canvas.GetLeft((Border)miniaturize)); // 18 + 23
-            Assert.Equal(16, Canvas.GetTop((Border)miniaturize));
-            WindowChrome.PlaceTrafficLights(window, sidebarVisible: false, animated: false);
-            Assert.Equal(37, Canvas.GetLeft((Border)miniaturize)); // 14 + 23, collapsed
-        });
-    }
-
-    [Trait("Req", "UI-WIN-003")] // WindowChrome.swift:183-199, WindowManager.swift:81. Zoom: trailing, leading + 46.
-    [Fact]
-    public void The_zoom_button_sits_at_leading_plus_two_pitches()
-    {
-        headless.OnUiThread(() =>
-        {
-            var window = new Window();
-            WindowChrome.PlaceTrafficLights(window, sidebarVisible: true, animated: false);
-            var (_, _, zoom) = WindowChrome.Buttons(window);
-            Assert.Equal(64, Canvas.GetLeft((Border)zoom)); // 18 + 2 * 23
-            WindowChrome.PlaceTrafficLights(window, sidebarVisible: false, animated: false);
-            Assert.Equal(60, Canvas.GetLeft((Border)zoom)); // 14 + 2 * 23, collapsed
-        });
-    }
+    // UI-WIN-001, UI-WIN-002, UI-WIN-003: superseded by OD-0044 (Windows caption buttons at the top right); their screen
+    // results are CaptionButtonTests.
 }

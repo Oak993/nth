@@ -259,7 +259,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
     {
         SettingsNavigation.Shared.RequestedPage = SettingsPage.Models; Sync(); Drain(view);
         var title = Nodes<ChromeCompactTitle>(view).Single(); var text = Nodes<TextBlock>(title).Single(); Assert.Equal("Models", text.Text); Assert.Equal(15, text.FontSize); Assert.Equal(FontWeight.SemiBold, text.FontWeight); Foreground(text, Chrome.PrimaryText);
-        var chrome = Nodes<StackPanel>(view).Single(s => s.MinHeight == 32); Assert.Equal(new Thickness(14, 12, 14, 0), chrome.Margin); Assert.Equal(10, chrome.Spacing);
+        var chrome = Nodes<StackPanel>(view).Single(s => s.MinHeight == 32); Assert.Equal(new Thickness(14, 12, 156, 0), chrome.Margin); /* trailing: OD-0044, clear of the Windows caption buttons */ Assert.Equal(10, chrome.Spacing);
         var row = Nodes<Grid>(chrome).Single(g => g.MinHeight == 32); Assert.Equal(10, row.ColumnSpacing); Assert.Equal(chrome.Bounds.Width - Nodes<ChromeSearchField>(view).Single().Bounds.Width - 10, title.Bounds.Width, 1);
         Assert.False(title.IsHitTestVisible); var model = Field<ChromeScrollModel>(view, "scrollChrome");
         // Chrome.swift:34-36 start 10,end44, quantum .04: 0...1 in 26 values.
