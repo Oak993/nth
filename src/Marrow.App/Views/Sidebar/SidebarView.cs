@@ -750,10 +750,10 @@ public sealed class SidebarView : Decorator
     // wiring) is still unassembled; needs a follow-up unit. Names PR-SIDEBAR-134, PR-SIDEBAR-135, UI-SIDEBAR-017
     // and the end-to-end half of UI-SIDEBAR-060.
     private Control ThreadRow(ChatThread thread, string? projectName, ProjectIcon? projectIcon, bool hasHelpers, bool isDragged = false) =>
-        ArchivePopover(thread, DeletePopover(thread, new SidebarThreadRow(thread, projectName, projectIcon, menuRequests,
+        // :874 archivePopover(for:on: renamePopover(for:on: deletePopover(for:on: SidebarThreadRow(...))))
+        ArchivePopover(thread, RenamePopover(thread, DeletePopover(thread, new SidebarThreadRow(thread, projectName, projectIcon, menuRequests,
             () => RequestRename(thread), () => RequestDeletion(thread.Id), isDragged,
-            inPopover ? null : listFrame, hasHelpers ? () => Fold(thread.Id) : null)));
-    // :872 The rename presentation wrapper alone remains unwritten under genuine STOP #6; its intent is wired.
+            inPopover ? null : listFrame, hasHelpers ? () => Fold(thread.Id) : null))));
 
     // MARK: Rows
 
@@ -1411,11 +1411,21 @@ public sealed class SidebarView : Decorator
     /// <summary>:239-252 renamePopover(for:on:). STOP #6 (RenameThreadPopover, this unit): the content this wraps has
     /// no chrome yet, so this wrapper stays unwritten rather than calling a MARROW_STUB constructor from a live
     /// path. PR-SIDEBAR-091.</summary>
-    // STOP opencode-App.Views.Sidebar.SidebarView #3: `.textFieldStyle(.roundedBorder)` and
-    // `.buttonStyle(.bordered)/(.borderedProminent)` need an ED/owner ruling naming the Windows chrome.
-    // Names PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030.
-    private Control RenamePopover(ChatThread thread, Control row) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:239 (STOP #6)");
+    // STOP #6 closed 2026-10-01 (see RenameThreadPopover). PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030.
+    private Control RenamePopover(ChatThread thread, Control row)
+    {
+        var threadID = thread.Id; // :240
+        var isPresented = new Binding<bool>(
+            () => state.Renaming?.Id == threadID, // :243
+            value => { if (!value) state.Renaming = null; }); // :244 clicking away keeps the thread's title
+        var popup = PlainControls.Popover(row, isPresented, () => BuildRenamePopoverContent(threadID), PlacementMode.Bottom); // :246 arrowEdge: .bottom
+        return new Panel { Children = { row, popup } };
+    }
+
+    /// <summary>:248 the rename popover's content, extracted so it is directly testable (as BuildDeletePopoverContent).</summary>
+    private Control BuildRenamePopoverContent(Guid threadID) =>
+        new RenameThreadPopover(state.RenameText, title => { Model.Rename(threadID, title); state.Renaming = null; }, () => state.Renaming = null) // :248
+            .PresentedChrome(); // :249 .presentedChrome()
 
     /// <summary>:267-291 archivePopover(for:on:). PR-SIDEBAR-094, PR-SIDEBAR-095, PR-SIDEBAR-096, PR-SIDEBAR-097.</summary>
     private Control ArchivePopover(ChatThread thread, Control row)
@@ -1687,9 +1697,41 @@ internal sealed class RenameThreadPopover : Decorator
     // foundation, not a stale one. Every other row-level popover this part ports (Delete, Archive) reuses
     // PopoverItem or the already-decided `.glass`/`.glassProminent` recipe (OD-0005); this one alone needs a new,
     // undecided pair.
-    // STOP opencode-App.Views.Sidebar.SidebarView #3 (same need as RenamePopover above).
-    public RenameThreadPopover(string title, Action<string> onRename, Action onCancel) =>
-        throw new NotImplementedException("MARROW_STUB DroppyCode/App/Views/Sidebar/SidebarView.swift:995 (STOP #6)");
+    // STOP #6 closed 2026-10-01: the field is the RoundedBorder editor ChatView's and QuestionTab's .roundedBorder fields
+    // use, the buttons SystemButtons.Bordered / BorderedProminent (ENGINEERING DECISION there, proposal ED-229 (4)).
+    public RenameThreadPopover(string title, Action<string> onRename, Action onCancel)
+    {
+        // :992-993 @State private var text: String (initialValue: title); @FocusState private var isFocused
+        var heading = new TextBlock { Text = "Rename thread" }; // :1004
+        SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(heading); // :1005 .font(.system(.body, weight: .semibold))
+        heading.Foreground = Chrome.PrimaryText.Brush(heading);
+        Field = new TextBox { Text = title, PlaceholderText = "Title", AcceptsReturn = false, HorizontalAlignment = HorizontalAlignment.Stretch }; // :1006 TextField("Title", text: $text)
+        Marrow.App.Port.ChatDialogControls.TextEditor(Field, style: "RoundedBorder"); // :1007 .textFieldStyle(.roundedBorder)
+        // :1009 .onSubmit { onRename(text) }: Return submits whatever is typed (the button's empty-title guard is its own).
+        Field.KeyDown += (_, e) =>
+        {
+            if (e.Key != Avalonia.Input.Key.Enter) return;
+            e.Handled = true;
+            onRename(Field.Text ?? "");
+        };
+        var cancel = SystemButtons.Bordered("Cancel", onCancel); // :1012-1013 Button("Cancel", action: onCancel).buttonStyle(.bordered)
+        var rename = SystemButtons.BorderedProminent("Rename", () => onRename(Field.Text ?? "")); // :1014-1015
+        rename.IsDefault = true; // :1016 .keyboardShortcut(.defaultAction)
+        void Guard() => rename.IsEnabled = FoundationText.Trim(Field.Text ?? "").Length != 0; // :1017 .disabled(text.trimmingCharacters(in: .whitespaces).isEmpty)
+        Field.PropertyChanged += (_, e) => { if (e.Property == TextBox.TextProperty) Guard(); };
+        Guard();
+        // :1010-1019 HStack { Spacer(); Cancel; Rename }; ENGINEERING DECISION (UNVERIFIED metric): the HStack's default
+        // spacing as 8 points, the gap the port uses for SwiftUI's default stack spacing elsewhere in this row family.
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, HorizontalAlignment = HorizontalAlignment.Right, Children = { cancel, rename } };
+        // :1003 VStack(alignment: .leading, spacing: 10); :1021-1022 .padding(14).frame(width: 300)
+        Child = new Border { Width = 300, Padding = new Thickness(14), Child = new StackPanel { Spacing = 10, Children = { heading, Field, buttons } } };
+        // :1023 .onAppear { isFocused = true }. An NSTextField that becomes first responder has its field editor select
+        // the whole text, so the title is selected, ready to be typed over.
+        AttachedToVisualTree += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() => { Field.Focus(); Field.SelectAll(); });
+    }
+
+    /// <summary>:1006 the title field (exposed for the popover's tests).</summary>
+    internal TextBox Field { get; }
 }
 
 /// <summary>:1030-1056 <c>private struct SidebarItem: Identifiable</c>: one entry of the sidebar list.</summary>

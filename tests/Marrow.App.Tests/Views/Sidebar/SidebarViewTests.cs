@@ -3655,6 +3655,110 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         window.Close();
     });
 
+    // ---- PR-SIDEBAR-091: the rename popover (STOP #6 closed 2026-10-01) ----
+
+    private static Control ShownRename(string title, Action<string> onRename, Action onCancel)
+    {
+        var popover = (Control)Activator.CreateInstance(Private("RenameThreadPopover"), title, onRename, onCancel)!;
+        var window = new AvaloniaWindow { Content = popover, Width = 360, Height = 200 };
+        window.Show();
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+        window.UpdateLayout();
+        return popover;
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-028")] // App/Views/Sidebar/SidebarView.swift:1002-1024 the rename popover
+    [Trait("Req", "UI-SIDEBAR-029")] // :1006-1009 the Title field
+    [Trait("Req", "UI-SIDEBAR-030")] // :1010-1018 Cancel and Rename
+    [Trait("Req", "PR-SIDEBAR-091")]
+    public void The_rename_popover_is_300_wide_with_its_heading_a_drawn_title_field_and_drawn_cancel_and_rename_buttons() => headless.OnUiThread(() =>
+    {
+        var popover = ShownRename("Fix the bug", _ => { }, () => { });
+        try
+        {
+            Assert.Equal(300, ((Decorator)popover).Child!.Bounds.Width, 0); // :1022 .padding(14).frame(width: 300)
+            Assert.Contains("Rename thread", Texts(popover)); // :1004
+            var field = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(popover));
+            Assert.Equal("Fix the bug", field.Text); // :995-1000 text starts as the title
+            Assert.Equal("Title", field.PlaceholderText); // :1006
+            Assert.True(field.Bounds.Height > 0, "the field is not drawn");
+            var buttons = LogicalQuery.SelfAndDescendants<Button>(popover).ToList();
+            Assert.Equal(["Cancel", "Rename"], buttons.Select(TextOf));
+            Assert.All(buttons, b => Assert.True(b.Bounds.Width > 0 && b.Bounds.Height > 0, TextOf(b) + " is not drawn"));
+            Assert.True(buttons[1].IsDefault); // :1016 .keyboardShortcut(.defaultAction)
+        }
+        finally { WindowOf(popover).Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-030")] // :1014-1017 Rename is disabled while the title is only spaces
+    [Trait("Req", "PR-SIDEBAR-091")]
+    public void Rename_is_disabled_for_a_blank_title_and_renames_with_the_typed_text_and_cancel_cancels() => headless.OnUiThread(() =>
+    {
+        var renamed = new List<string>();
+        var cancelled = 0;
+        var popover = ShownRename("Old", renamed.Add, () => cancelled++);
+        try
+        {
+            var field = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(popover));
+            var rename = LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Rename");
+            field.Text = "   ";
+            Assert.False(rename.IsEnabled);
+            field.Text = "New name";
+            Assert.True(rename.IsEnabled);
+            PointerClick(rename);
+            Assert.Equal(["New name"], renamed); // :1014 onRename(text)
+            PointerClick(LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Cancel"));
+            Assert.Equal(1, cancelled); // :1012
+        }
+        finally { WindowOf(popover).Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-029")] // :1009 .onSubmit { onRename(text) }: Return submits what is typed, the button's guard aside
+    [Trait("Req", "PR-SIDEBAR-091")]
+    public void Return_in_the_field_submits_the_typed_title() => headless.OnUiThread(() =>
+    {
+        var renamed = new List<string>();
+        var popover = ShownRename("Old", renamed.Add, () => { });
+        try
+        {
+            var field = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(popover));
+            field.Text = "Typed";
+            field.Focus();
+            WindowOf(popover).KeyPress(Key.Enter, RawInputModifiers.None, PhysicalKey.Enter, null);
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            Assert.Equal(["Typed"], renamed);
+        }
+        finally { WindowOf(popover).Close(); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-091")] // App/Views/Sidebar/SidebarView.swift:239-252 renamePopover(for:on:): renames through the model and closes
+    public void The_rename_popover_renames_the_thread_through_the_model_and_closes() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Old title", 0);
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var view = Detached(model);
+            var state = Field(view, "state")!;
+            SetProp(state, "RenameText", "Old title");
+            SetProp(state, "Renaming", thread);
+            var content = (Control)Call(view, "BuildRenamePopoverContent", thread.Id)!;
+            var popover = LogicalQuery.SelfAndDescendants<Control>(content).Single(c => c.GetType().Name == "RenameThreadPopover");
+            var field = Assert.Single(LogicalQuery.SelfAndDescendants<TextBox>(popover));
+            Assert.Equal("Old title", field.Text); // :248 title: renameText
+            field.Text = "Renamed";
+            LogicalQuery.SelfAndDescendants<Button>(popover).Single(b => TextOf(b) == "Rename").RaiseEvent(new RoutedEventArgs(Button.ClickEvent));
+            Assert.Equal("Renamed", model.Thread(thread.Id)!.Title); // :248 model.rename(threadID, to: $0)
+            Assert.Null(Get(state, "Renaming")); // :248 renaming = nil
+        });
+    });
+
     // ---- PR-SIDEBAR-088: DeleteThreadPopover's content ----
 
     private static string? TextOf(Button button) =>
