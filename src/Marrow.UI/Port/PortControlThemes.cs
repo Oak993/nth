@@ -59,6 +59,33 @@ public static class PortControlThemes
         Setters = { new Setter(TemplatedControl.TemplateProperty, ProgressTemplate) },
     };
 
+    // `.help(...)` (NSView.toolTip): the system tooltip. Without a template a ToolTip drew its text with no card, floating
+    // over whatever was under it. ENGINEERING DECISION (proposal ED-229): the Windows system tooltip's card, from the
+    // Windows 11 design (WinUI ToolTip: corner radius 4, padding 9,6,9,8, 12 pt text, a solid #F9F9F9 / #2C2C2C fill and a
+    // hairline border), in the port's own text colour; recorded deviation from the macOS help tag.
+    private static readonly SwiftColor TipFill = SwiftColor.Dynamic(SwiftColor.Rgb(0xF9F9F9), SwiftColor.Rgb(0x2C2C2C));
+
+    private static readonly FuncControlTemplate<ToolTip> TipTemplate = new((tip, scope) =>
+    {
+        var presenter = new ContentPresenter
+        {
+            Name = "PART_ContentPresenter",
+            FontSize = 12,
+            [!ContentPresenter.ContentProperty] = tip[!ContentControl.ContentProperty],
+        }.RegisterInNameScope(scope);
+        var card = new Border { CornerRadius = new CornerRadius(4), Padding = new Thickness(9, 6, 9, 8), BorderThickness = new Thickness(1), Child = presenter };
+        card.Background = TipFill.Brush(card);
+        card.BorderBrush = Marrow.UI.Chrome.Chrome.Overlay(0.15).Brush(card);
+        presenter.Foreground = Marrow.UI.Chrome.Chrome.PrimaryText.Brush(presenter);
+        return card;
+    });
+
+    /// <summary>The ToolTip default theme: the system tooltip card.</summary>
+    public static ControlTheme ToolTipTheme { get; } = new(typeof(ToolTip))
+    {
+        Setters = { new Setter(TemplatedControl.TemplateProperty, TipTemplate) },
+    };
+
     /// <summary>Registers the default themes on the application, after setup (app and test builders alike).</summary>
     public static AppBuilder WithPortControlThemes(this AppBuilder builder) =>
         builder.AfterSetup(setup =>
@@ -72,5 +99,6 @@ public static class PortControlThemes
     {
         application.Resources[typeof(ScrollViewer)] = ScrollViewerTheme;
         application.Resources[typeof(ProgressBar)] = ProgressBarTheme;
+        application.Resources[typeof(ToolTip)] = ToolTipTheme;
     }
 }
