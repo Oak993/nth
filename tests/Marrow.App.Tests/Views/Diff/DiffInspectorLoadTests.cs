@@ -255,4 +255,24 @@ public sealed class DiffInspectorLoadTests(HeadlessSession headless)
         Assert.Equal("b.txt", Target());
         Assert.Equal(2, Request());
     });
+
+    [Fact]
+    [Trait("Req", "PR-GIT-132")] // App/Views/Diff/DiffInspector.swift:128-129 (a load cancelled while it parses abandons its result and leaves the previous content in place)
+    public void A_load_cancelled_while_it_parses_leaves_the_previous_content_in_place() => headless.OnUiThread(() =>
+    {
+        using var rig = DiffInspectorRig.Open(DiffInspectorRig.Patches("a.txt"), DiffInspectorRig.Patches("b.txt"));
+        var inspector = rig.NewInspector();
+        rig.Reload(inspector);
+        Assert.Equal(new[] { "a.txt", "b.txt" }, CardPaths(inspector));
+        var pending = new TaskCompletionSource<ValueList<DiffFile>>();
+        rig.SeedDiff(pending.Task, rig.Turns[0].Id);
+        rig.Store.Main.OnMain(() => rig.Runtime.DiffSelection = rig.Turns[0].Id); // cached, so the load starts at once and waits on the parse
+        rig.Store.Main.Loop.RunUntilIdle();
+
+        rig.Store.Main.OnMain(() => rig.Runtime.DiffSelection = rig.Turns[1].Id); // a new key: the first load is cancelled
+        pending.SetResult(new ValueList<DiffFile>([new DiffFile("stale.txt", DiffFile.Change.Modified, false, ValueList<DiffHunk>.Empty)]));
+        rig.Store.Main.Loop.RunUntilIdle();
+
+        Assert.Equal(new[] { "a.txt", "b.txt" }, CardPaths(inspector));
+    });
 }

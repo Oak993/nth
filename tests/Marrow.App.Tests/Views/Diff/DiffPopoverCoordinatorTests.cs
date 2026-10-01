@@ -101,6 +101,12 @@ public sealed class DiffPopoverCoordinatorTests(HeadlessSession headless)
             rig.Coordinator.Reopen(rig.Second);
             Assert.Single(rig.Recorder.Calls);
 
+            // The bump was adopted: with the popover closed, the same value is no request.
+            rig.Coordinator.Close();
+            var afterClose = rig.Recorder.Calls.Count;
+            rig.Coordinator.Reopen(rig.Second);
+            Assert.Equal(afterClose, rig.Recorder.Calls.Count);
+
             // Away and back with no bump: nothing opens again.
             rig.Coordinator.Sync(rig.First.IsDiffVisible, rig.First);
             var closed = rig.Recorder.Calls.Count;

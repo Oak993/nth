@@ -97,6 +97,9 @@ public sealed class DiffInspectorChromeTests(HeadlessSession headless)
         Assert.Equal(12, Box(row, inspector).Y, 0.5); // .padding(.top, 12)
         Assert.Equal(14, menu.X, 0.5); // .padding(.horizontal, 14)
         Assert.Equal(640 - 14, capsule.Right, 0.5);
+        // HStack(alignment: .center): every item sits on the row's centre line, whatever its own height.
+        Assert.True(count.Height < capsule.Height && stat.Height < capsule.Height);
+        foreach (var item in new[] { menu, count, stat }) Assert.Equal(capsule.Y + capsule.Height / 2, item.Y + item.Height / 2, 0.5);
         Assert.Equal(10, stat.X - count.Right, 0.5); // HStack(spacing: 10)
         Assert.Equal(10, capsule.X - stat.Right, 0.5);
         Assert.True(count.X - menu.Right >= 8 + 2 * 10 - 0.5, "the spacer keeps at least 8 points between its neighbours' spacing");
@@ -414,5 +417,30 @@ public sealed class DiffInspectorChromeTests(HeadlessSession headless)
         var card = Assert.Single(Descendants<DiffFileCard>(scroll), candidate => (string)candidate.Tag! == "f20.txt");
         Assert.True(scroll.Offset.Y > 100, "the list scrolled");
         Assert.Equal(0, Box(card, scroll).Y, 1.0);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-GIT-134")] // App/Views/Diff/DiffInspector.swift:100-106 (the scroll runs when the request counter changes, not on every later redraw)
+    public void The_scroll_to_a_focused_file_happens_once_per_request_and_not_on_every_redraw() => headless.OnUiThread(() =>
+    {
+        using var rig = DiffInspectorRig.Open(DiffInspectorRig.Patches(Enumerable.Range(10, 20).Select(index => "f" + index + ".txt").ToArray()));
+        var inspector = rig.NewInspector();
+        rig.Present(inspector);
+        rig.FinishLoad(inspector);
+        rig.Store.Main.OnMain(() => rig.Runtime.ShowDiff(new Border(), turn: null, focusEdits: [new FileEdit("f20.txt", "old\n", "new\n")]));
+        rig.FinishLoad(inspector);
+        var scroll = Assert.IsType<ScrollViewer>(Root(inspector).Children[1]);
+        Assert.True(scroll.Offset.Y > 100, "the focused file was scrolled to");
+
+        // The reader scrolls back to the top and opens a card there: that is a redraw, not a new request.
+        scroll.Offset = new Vector(0, 0);
+        scroll.UpdateLayout();
+        var first = Assert.Single(Descendants<DiffFileCard>(scroll), card => (string)card.Tag! == "f10.txt");
+        rig.Store.Main.OnMain(() => ButtonOf(first).RaiseEvent(new RoutedEventArgs(Button.ClickEvent)));
+        rig.Store.Main.Loop.RunUntilIdle();
+        Dispatcher.UIThread.RunJobs();
+        scroll.UpdateLayout();
+
+        Assert.Equal(0, scroll.Offset.Y, 0.5);
     });
 }

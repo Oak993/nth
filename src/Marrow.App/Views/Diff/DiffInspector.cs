@@ -37,6 +37,7 @@ public sealed class DiffInspector : Decorator
     private bool isLoading;
     private string? scrollTarget;
     private long scrollRequest;
+    private long scrolledRequest;
     private string? loadKey;
     private TaskHandle? loadTask;
 
@@ -199,12 +200,15 @@ public sealed class DiffInspector : Decorator
             filesPanel.Margin = new Thickness(12);
             Grid.SetRow(scrollViewer, 1);
             root.Children.Add(scrollViewer);
-            if (scrollTarget is not null)
+            // :100-106 .onChange(of: scrollRequest): the scroll runs once for each request, not on every redraw.
+            if (scrollTarget is not null && scrolledRequest != scrollRequest)
             {
                 var requested = scrollRequest;
+                scrolledRequest = requested;
                 MainActor.Post(() =>
                 {
                     if (requested != scrollRequest || scrollTarget is null) return;
+                    scrollViewer.UpdateLayout(); // :102 after layout, so the card is there to scroll to
                     var target = filesPanel.Children
                         .OfType<Control>()
                         .FirstOrDefault(control => control.Tag as string == scrollTarget);

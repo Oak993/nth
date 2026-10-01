@@ -101,6 +101,7 @@ public sealed class DiffInspectorRig : IDisposable
         var load = Assert.IsAssignableFrom<TaskHandle>(typeof(DiffInspector)
             .GetField("loadTask", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(inspector));
         Assert.True(PumpUntil(() => load.Completion.IsCompleted));
+        Store.Main.Loop.RunUntilIdle(); // work the load posted for a later turn, such as the scroll
         Dispatcher.UIThread.RunJobs();
         foreach (var window in windows) window.UpdateLayout();
     }
