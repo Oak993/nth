@@ -2,6 +2,8 @@ using Avalonia.Threading;
 using Marrow.App.Port;
 using Marrow.App.Tests.Fixtures;
 using Marrow.Core.Port;
+using Marrow.Testing;
+using Marrow.UI.Port;
 using Xunit;
 
 namespace Marrow.App.Tests.Port;
@@ -78,5 +80,42 @@ public sealed class AppShellActivationTests(HeadlessSession headless)
         Assert.Equal(1, activations);
         Assert.True(main.IsActive);
         Assert.Null(launch.Checker.LastCheckedAt);
+    });
+
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-046")] // AppDelegate.swift:22, :28; UpdateChecker.swift:141-149; owner_decisions.md OD-0040
+    [Trait("Decision", "ED-103")]
+    public void The_launch_activation_reaches_the_update_observer_because_the_main_window_is_hooked_before_the_boot_shows_it() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var launch = new LaunchHarness(h => h.Defaults.Set("hasSeenTour", true));
+        // The production boot (AppDelegate.StartBoot's default), not the harness's plain show.
+        var production = new Marrow.App.AppDelegate().StartBoot;
+        BootStageWindow? boot = null;
+        launch.Delegate.StartBoot = (windows, show) => boot = production(windows, show);
+        var recorder = new ShellRecorder();
+        var shell = new AppShell(launch.Delegate, recorder.Exit, recorder.AfterWillTerminate);
+        try
+        {
+            launch.Harness.Main.OnMain(shell.FinishLaunching);
+            Dispatcher.UIThread.RunJobs();
+            // The stage is up; the main window is made (and hooked) but not shown yet, and :28's observer is installed.
+            Assert.NotNull(boot);
+            var main = launch.Manager.MainWindow;
+            Assert.NotNull(main);
+            Assert.False(main.IsVisible);
+            Assert.Null(launch.Checker.LastCheckedAt);
+
+            // OD-0040: the main window's first activation (WM_ACTIVATEAPP when the boot shows it) is an activation like
+            // any other, and nothing has been checked yet, so the catch-up check runs (:146-147).
+            var handled = false;
+            shell.WndProc(0, 0x001C, 1, 0, ref handled);
+            launch.Harness.Main.Loop.RunUntil(() => launch.Checker.LastCheckedAt is not null, TimeSpan.FromSeconds(3));
+            Assert.NotNull(launch.Checker.LastCheckedAt);
+        }
+        finally
+        {
+            boot?.Window.Close();
+        }
     });
 }

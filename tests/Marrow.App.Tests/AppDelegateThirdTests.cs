@@ -395,8 +395,10 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
 // order. Only a Release build reaches it (UpdateChecker.swift:133: nothing starts in a development build).
 // Readings or options: (a) count the launch activation (a catch-up check at launch plus the 8 s one); (b) count only
 // later activations.
-// Needed to proceed: a decision (or oracle item) on the launch activation; then the shell calls HandleActivation.
-// Done so far: nothing wired; PR-LAUNCH-046 stays SPECIFIED.
+// Needed to proceed: nothing; RESOLVED 2026-10-01 by OD-0040 (a): the launch counts.
+// Done so far: the shell's WM_ACTIVATEAPP hook calls HandleActivation (Port/AppShell.cs); with the boot sequence the
+// main window is made and hooked in applicationDidFinishLaunching and shown after :28, so its first activation runs
+// the catch-up check (AppShellActivationTests The_launch_activation_reaches_the_update_observer...).
 
 // STOP Boot #3 (build agent, 2026-09-26)
 // Kind: ambiguity
