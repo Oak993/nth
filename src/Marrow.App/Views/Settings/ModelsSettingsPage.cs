@@ -46,12 +46,24 @@ public sealed class ModelsSettingsPage : Decorator
     private readonly StackPanel root = new() { Orientation = Orientation.Vertical, Spacing = Chrome.SectionSpacing, HorizontalAlignment = HorizontalAlignment.Stretch }; // :30
     private ValueMap<ModelPin, double> rowHeights = ValueMap<ModelPin, double>.Empty; // :10
     private RowDrag<ModelPin> drag = new(); // :9
+    // :263 .animation(.spring(response: 0.25, dampingFraction: 0.8), value: isDragged): how far the grabbed row is lifted (0 at rest,
+    // 1 held). It lives on the page because every row is rebuilt as the pointer moves; the row that was last held keeps it while it drops.
+    private readonly SettingsScalarAnimation liftMotion;
+    private ModelPin? liftedPin;
+    private double lift;
+    private readonly Dictionary<ModelPin, PinnedModelRow> pinnedRows = new();
+    private static Animation LiftSpring => Animation.Spring(response: 0.25, dampingFraction: 0.8);
 
     // :6 var query = ""; :19-100 body
     public ModelsSettingsPage(string query = "")
     {
         this.query = query;
         Child = root;
+        liftMotion = new SettingsScalarAnimation(root, 0, value =>
+        {
+            lift = value;
+            if (liftedPin is { } held && pinnedRows.TryGetValue(held, out var row)) row.SetLift(value);
+        });
         // :20-22 body reads model.settings.modelList, the providers' statuses and catalogues, so it re-evaluates with them.
         this.Track(() =>
         {
@@ -147,6 +159,7 @@ public sealed class ModelsSettingsPage : Decorator
     private Control YourModels(AppModel model, ValueList<ModelPin> pins, ValueList<ModelPin> visiblePins, ProviderRegistry registry, AppSettings settings, string trimmed)
     {
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
+        pinnedRows.Clear();
 
         if (pins.Count == 0) // :34-40
         {
@@ -165,13 +178,16 @@ public sealed class ModelsSettingsPage : Decorator
                 // :50-58 VStack { divider; row }: the slot is what is offset, lifted and measured (:59-60).
                 var slot = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
                 slot.Children.Add(new ChromeRowDivider { Opacity = (visiblePins.Count > 0 && pin == visiblePins[0]) || isDragged ? 0 : 1 }); // :51, ruling :50
-                slot.Children.Add(new PinnedModelRow(
+                var pinnedRow = new PinnedModelRow(
                     model,
                     pin,
                     isDragged,
                     _ => { },
                     () => { },
-                    press => GripPressed(pin, press)));
+                    press => GripPressed(pin, press),
+                    liftedPin == pin ? lift : 0); // :255-263 the lift is animated, not a step
+                pinnedRows[pin] = pinnedRow;
+                slot.Children.Add(pinnedRow);
                 slot.RenderTransform = new TranslateTransform(0, isDragged ? drag.VisualOffset : 0); // :59
                 slot.ZIndex = isDragged ? 1 : 0; // :60
                 slot.SizeChanged += (_, args) =>
@@ -240,7 +256,12 @@ public sealed class ModelsSettingsPage : Decorator
         var registry = model.Providers;
         var settings = model.Settings;
 
-        if (drag.Id != pin) drag = new RowDrag<ModelPin> { Id = pin };
+        if (drag.Id != pin)
+        {
+            drag = new RowDrag<ModelPin> { Id = pin };
+            liftedPin = pin; // :263 isDragged turns true: the lift springs in
+            liftMotion.Set(1, LiftSpring);
+        }
         drag = drag with { Translation = translation };
 
         var trimmed = FoundationText.Trim(query, includeNewlines: true);
@@ -256,6 +277,7 @@ public sealed class ModelsSettingsPage : Decorator
     private void DragEnded()
     {
         if (drag.Id is null) return;
+        liftMotion.Set(0, LiftSpring); // :263 isDragged turns false: the drop springs back
         Transaction.WithAnimation(Animation.Spring(response: 0.32, dampingFraction: 0.8), () => drag = new RowDrag<ModelPin>());
         Rebuild();
     }
@@ -306,7 +328,7 @@ internal sealed class PinnedModelRow : Decorator
     // AppModel is passed directly rather than re-read via AppEnvironment.GetAppModel(this): this row is
     // constructed and parented in the same call as ModelsSettingsPage.Rebuild(), which already has it in scope,
     // and reading the environment here would need the same not-yet-attached deferral HydraCookbookRow required.
-    public PinnedModelRow(AppModel model, ModelPin pin, bool isDragged, Action<double> onDragChanged, Action onDragEnded, Action<PointerPressedEventArgs>? onGripPressed = null)
+    public PinnedModelRow(AppModel model, ModelPin pin, bool isDragged, Action<double> onDragChanged, Action onDragEnded, Action<PointerPressedEventArgs>? onGripPressed = null, double? lift = null)
     {
         var state = new ViewState();
         var registry = model.Providers;
@@ -368,6 +390,9 @@ internal sealed class PinnedModelRow : Decorator
         var summary = new TextBlock { Text = Summary(pin, option, preference), Foreground = Chrome.SecondaryText.Brush(texts) };
         SwiftFont.System(11).Apply(summary);
         texts.Children.Add(summary);
+        // :176 `settings.preference(for:model:)` is read by this row's own body: a choice made in the effort card, or anywhere else,
+        // re-draws the summary here without rebuilding the row (which would close the open card, whose presentation state is the row's).
+        this.Track(() => settings.Preference(pin.Provider, pin.ModelID), updated => summary.Text = Summary(pin, option, updated));
         Grid.SetColumn(texts, 1);
         label.Children.Add(texts);
 
@@ -426,15 +451,35 @@ internal sealed class PinnedModelRow : Decorator
             Child = row,
             Padding = new Thickness(10, 9, Chrome.RowControlTrailingPadding, 9), // :250 padding leading 10
         };
-        if (isDragged) // :255-263
-        {
-            surface.Background = Chrome.Overlay(0.12).Brush(surface);
-            surface.CornerRadius = new CornerRadius(10);
-            surface.BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), Blur = 10, OffsetY = 4 });
-            surface.RenderTransform = new ScaleTransform(1.02, 1.02);
-        }
+        // :255-263 the lifted look is a layer behind the row, scaled with it: a fill, a shadow and the 1.02 scale, all
+        // driven by one amount (0 at rest, 1 held) that the page springs (SetLift).
+        liftLayer = new Border { CornerRadius = new CornerRadius(10), IsHitTestVisible = false };
+        host = new Panel { Children = { liftLayer, surface } };
+        SetLift(lift ?? (isDragged ? 1 : 0));
+        Child = host;
+    }
 
-        Child = surface;
+    private readonly Border liftLayer;
+    private readonly Panel host;
+
+    /// <summary>:255-262 the lift: <c>.background { if isDragged { RoundedRectangle(cornerRadius: 10, style: .continuous)
+    /// .fill(Chrome.overlay(0.12)).shadow(color: .black.opacity(0.28), radius: 10, y: 4) } }</c> and <c>.scaleEffect(isDragged ? 1.02 : 1)</c>.
+    /// The background appears and goes by the default opacity transition, the scale follows the spring: one amount drives both.</summary>
+    public void SetLift(double amount)
+    {
+        if (amount <= 0)
+        {
+            liftLayer.Background = null;
+            liftLayer.BoxShadow = default;
+            liftLayer.Opacity = 1;
+            host.RenderTransform = null;
+            return;
+        }
+        liftLayer.Background = Chrome.Overlay(0.12).Brush(liftLayer);
+        liftLayer.BoxShadow = new BoxShadows(new BoxShadow { Color = Color.FromArgb((byte)(0.28 * 255), 0, 0, 0), Blur = 10, OffsetY = 4 });
+        liftLayer.Opacity = Math.Clamp(amount, 0, 1);
+        var scale = 1 + 0.02 * amount;
+        host.RenderTransform = new ScaleTransform(scale, scale);
     }
 
     // :266-273 summary(option:preference:)
@@ -634,6 +679,11 @@ internal sealed class ProviderModelsSection : Decorator
             if (catalogue.Count == 0)
             {
                 emptyMotion!.Set(expanded || isFiltering ? 1 : 0, animation);
+                // :341-344 the collapsed empty row is also `.disabled(!cardVisible)` (and not hit-testable, hidden from accessibility;
+                // the card below carries those two): a clipped "Load models" button must not take keyboard focus.
+                emptyReveal!.IsEnabled = expanded || isFiltering;
+                emptyReveal.IsHitTestVisible = expanded || isFiltering;
+                AutomationProperties.SetAccessibilityView(emptyReveal, expanded || isFiltering ? AccessibilityView.Content : AccessibilityView.Raw);
             }
             else
             {
