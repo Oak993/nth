@@ -70,7 +70,13 @@ public sealed class ClaudeScript
         ExecutablePath = ClaudeStandIns.CopyFor(label);
         ControlDirectory = Path.Combine(Path.GetDirectoryName(ExecutablePath)!, "control");
         Directory.CreateDirectory(ControlDirectory);
+        // A launch whose environment was built elsewhere (the registry's) finds its control folder from this file.
+        File.WriteAllText(Path.Combine(Path.GetDirectoryName(ExecutablePath)!, "control-dir.txt"), ControlDirectory, new UTF8Encoding(false));
     }
+
+    /// <summary>The working directory launch <paramref name="call"/> (0-based) ran in.</summary>
+    public string WorkingDirectory(int call) =>
+        File.ReadAllText(Path.Combine(ControlDirectory, "cwd-" + call + ".txt"));
 
     /// <summary>The environment entry that points the stand-in at this instance's control folder.</summary>
     public KeyValuePair<string, string> EnvironmentEntry => new("CLAUDE_STANDIN_DIR", ControlDirectory);

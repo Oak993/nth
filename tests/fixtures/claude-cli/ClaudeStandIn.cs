@@ -6,6 +6,7 @@
 //
 // Controlled by CLAUDE_STANDIN_DIR (an existing folder a test creates), which holds:
 //   argv-<n>.txt        written by the stand-in itself: every argument of call n (0-based), NUL-separated.
+//   cwd-<n>.txt         written by the stand-in itself: the working directory call n was started in.
 //   help.txt            what --help prints on stdout, when the run's sole argument is "--help" (missing: nothing).
 //   response.json       one JSON line control_response "response" object template, sent for every
 //                        control_request line read from stdin (part 2 onward may exercise several: the
@@ -42,6 +43,13 @@ internal static class ClaudeStandIn
     private static int Main(string[] args)
     {
         string dir = Environment.GetEnvironmentVariable("CLAUDE_STANDIN_DIR");
+        if (string.IsNullOrEmpty(dir))
+        {
+            // PORT-ONLY (R-TEST-8): a registry-built environment cannot carry CLAUDE_STANDIN_DIR, so a copy of this
+            // stand-in also finds its control folder from control-dir.txt next to its own executable.
+            string hint = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "control-dir.txt");
+            if (File.Exists(hint)) dir = File.ReadAllText(hint, Encoding.UTF8).Trim();
+        }
         if (string.IsNullOrEmpty(dir)) return 0;
         Directory.CreateDirectory(dir);
 
@@ -57,6 +65,8 @@ internal static class ClaudeStandIn
         string pendingArgv = Path.Combine(dir, "argv-" + call + ".txt.tmp");
         File.WriteAllBytes(pendingArgv, argv.ToArray());
         File.Move(pendingArgv, Path.Combine(dir, "argv-" + call + ".txt"));
+        // The folder this launch ran in (cwd-<n>.txt), so a test can prove where a probe was spawned.
+        File.WriteAllText(Path.Combine(dir, "cwd-" + call + ".txt"), Directory.GetCurrentDirectory(), new UTF8Encoding(false));
 
         if (args.Length == 1 && args[0] == "--help")
         {

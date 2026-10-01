@@ -72,6 +72,17 @@ public sealed class ProviderApiRig : IAsyncDisposable
         Runtime.Dispose();
     }
 
+    /// <summary>
+    /// Empties one provider's catalog. The constructor seeds an empty DeepSeek, Meta and Z.ai catalog and UpdateCatalog
+    /// never stores an empty list, so a registry whose catalog is empty (the state loadAPICatalog's seed step answers) can
+    /// only be reached through the private setter, by reflection (nothing public writes it).
+    /// </summary>
+    public void ClearCatalog(ProviderKind provider) => OnMain(() =>
+    {
+        var setter = typeof(ProviderRegistry).GetProperty(nameof(ProviderRegistry.Catalogs))!.GetSetMethod(nonPublic: true)!;
+        setter.Invoke(Registry, [Registry.Catalogs.Mutating(catalogs => catalogs.Remove(provider))]);
+    });
+
     /// <summary>A Z.ai quota body with one 5-hour window at the given percentage.</summary>
     public static string ZaiQuotaBody(double percentage) =>
         "{\"code\":200,\"success\":true,\"data\":{\"level\":\"pro\",\"limits\":[{\"type\":\"TOKENS_LIMIT\",\"unit\":3,\"number\":5,\"percentage\":" +
