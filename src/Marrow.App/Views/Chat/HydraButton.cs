@@ -64,7 +64,7 @@ public sealed class HydraButton : Decorator
     private readonly record struct Look(
         bool IsOn, long Running, bool HasHeads, bool IsDelegating, bool IsSending, bool IsHovering, string Help, string PanelHelp);
 
-    private readonly ChatThread thread;
+    private ChatThread thread;
     private readonly ThreadRuntime runtime;
     private readonly AppModel model;
     private readonly ViewState state = new();
@@ -130,8 +130,7 @@ public sealed class HydraButton : Decorator
         var tap = new HydraRightTap(() => state.IsHydraSwitchShown = !state.IsHydraSwitchShown);
         Child = new Panel { Children = { PlainControls.Background(surface, tap), idle, switchPopover, intro } };
 
-        Apply(Evaluate());
-        tracked = null;
+        Apply(Evaluate(), initial: true);
 
         AttachedToVisualTree += (_, _) =>
         {
@@ -153,6 +152,25 @@ public sealed class HydraButton : Decorator
             if (SwiftTask.IsCancelled) return;
             state.IsSending = false;
         });
+    }
+
+    /// <summary>
+    /// The parent passing a new <c>thread</c> (R-VIEW-1: :12 <c>let thread</c> changes while the view keeps its identity and its
+    /// state): the body is evaluated again with it, so switching Hydra on or off for the chat animates the charge in or out
+    /// rather than replacing the whole button.
+    /// </summary>
+    internal void Update(ChatThread thread)
+    {
+        if (this.thread == thread) return;
+        this.thread = thread;
+        if (tracked is null)
+        {
+            Apply(Evaluate());
+            return;
+        }
+
+        tracked.Dispose();
+        tracked = new Tracked<Look>(Evaluate, Apply);
     }
 
     // :93 .onAppear { if !model.settings.hasSeenHydraIntro, isOn { isIntroShown = true } }
@@ -208,15 +226,18 @@ public sealed class HydraButton : Decorator
     }
 
     // :39-100
-    private void Apply(Look look)
+    private void Apply(Look look) => Apply(look, initial: false);
+
+    // `initial`: the view's first body, in which what is already there arrives without a transition.
+    private void Apply(Look look, bool initial)
     {
         var animation = AnimationFor(shown, look) ?? Transaction.Current;
         shown = look;
-        Transaction.WithAnimation(animation, () =>
+        Transaction.WithAnimation(initial ? null : animation, () =>
         {
             mark.Update(look.IsOn, look.IsHovering);
-            UpdateCharge(look);
-            UpdateBadge(look);
+            UpdateCharge(look, initial);
+            UpdateBadge(look, initial);
         });
 
         ToolTip.SetTip(button, look.Help); // :98
@@ -225,14 +246,15 @@ public sealed class HydraButton : Decorator
     }
 
     // :40-43
-    private void UpdateCharge(Look look)
+    private void UpdateCharge(Look look, bool initial)
     {
         if (look.IsOn)
         {
             if (charge is null)
             {
                 charge = new HydraCharge(look.Running > 0).Transition(SwiftTransition.Scale(0.6).Combined(SwiftTransition.Opacity));
-                SwiftTransition.Insert(chargeSlot, 0, charge);
+                if (initial) SwiftTransition.Place(chargeSlot, 0, charge);
+                else SwiftTransition.Insert(chargeSlot, 0, charge);
             }
             else
             {
@@ -247,7 +269,7 @@ public sealed class HydraButton : Decorator
     }
 
     // :52-58
-    private void UpdateBadge(Look look)
+    private void UpdateBadge(Look look, bool initial)
     {
         var present = look.Running > 0 || look.IsSending || look.IsDelegating;
         var sending = look.IsSending || look.IsDelegating;
@@ -262,7 +284,8 @@ public sealed class HydraButton : Decorator
                     Margin = new Thickness(0, -3, -3, 0), // :55 .offset(x: 3, y: -3)
                 };
                 badge.Transition(SwiftTransition.Scale().Combined(SwiftTransition.Opacity)); // :56
-                SwiftTransition.Insert(badgeSlot, 0, badge);
+                if (initial) SwiftTransition.Place(badgeSlot, 0, badge);
+                else SwiftTransition.Insert(badgeSlot, 0, badge);
             }
             else
             {

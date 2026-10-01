@@ -1226,7 +1226,6 @@ internal sealed class ChatChromeRow : Decorator
         ThreadsButton? threadsButton = null;
         var threadsFloats = false;
         HydraButton? hydraButton = null;
-        ChatThread? hydraThread = null;
         var placed = new List<Control>();
         var leaving = new HashSet<Control>();
         var built = false;
@@ -1330,19 +1329,11 @@ internal sealed class ChatChromeRow : Decorator
             {
                 if (model.Settings.HydraEnabled && !thread.IsHelper) // :1138
                 {
-                    var renewed = false;
-                    if (hydraButton is not null && !Equals(hydraThread, thread))
-                    {
-                        Drop(hydraButton);
-                        hydraButton = null;
-                        renewed = true;
-                    }
+                    // :1139-1140 the view keeps its identity and its state while its `thread` input changes.
                     if (hydraButton is null)
-                    {
-                        hydraButton = new HydraButton(thread, runtime).Transition(SwiftTransition.SoftAppear); // :1139-1140
-                        hydraThread = thread;
-                        if (renewed) silent.Add(hydraButton);
-                    }
+                        hydraButton = new HydraButton(thread, runtime).Transition(SwiftTransition.SoftAppear);
+                    else
+                        hydraButton.Update(thread);
                     desired.Add(hydraButton);
                     transitioning.Add(hydraButton);
                 }

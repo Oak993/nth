@@ -65,6 +65,8 @@ public sealed class HydraButtonChargeTests(HeadlessSession headless)
             charge = Assert.IsType<HydraCharge>(Charge(rig));
             Assert.False(charge.IsHitTestVisible);
 
+            rig.Tick(1);
+            rig.Main.OnMain(() => rig.Window.UpdateLayout());
             var hit = rig.Window.InputHitTest(rig.MarkCentre) as Visual;
             Assert.NotNull(hit);
             Assert.DoesNotContain(hit.GetSelfAndVisualAncestors(), visual => ReferenceEquals(visual, charge));
@@ -270,6 +272,46 @@ public sealed class HydraButtonChargeTests(HeadlessSession headless)
             rig.Drain();
             Assert.Equal(installs + 1, view.InstallCount);
             Assert.True(view.HasAnimation(HydraChargeLayerView.ChargeLayer.Ring, HydraChargeLayerView.TurnKey));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-166")] // HydraButton.swift:12, :63 a new `thread` input switching Hydra off for the chat: the same button fades its charge out
+    [Trait("Req", "UI-HYDRA-001")] // HydraButton.swift:63
+    public void A_new_thread_value_switching_hydra_off_fades_the_charge_out_in_the_same_button()
+    {
+        Run(rig =>
+        {
+            var charge = Assert.IsType<HydraCharge>(Charge(rig));
+            var off = rig.Lead with { HydraEnabled = false };
+
+            rig.Main.OnMain(() => rig.Button.Update(off));
+            rig.Drain();
+            Assert.Same(charge, Charge(rig));
+            Assert.Equal(1, HydraTransitionProbe.Opacity(charge, rig.Mark), 0.01);
+            rig.Tick(0.05);
+            Assert.InRange(HydraTransitionProbe.Opacity(charge, rig.Mark), 0.05, 0.99);
+            rig.Tick(2);
+            Assert.Null(Charge(rig));
+            Assert.Equal("Hydra is on in Settings", ToolTip.GetTip(rig.Mark));
+
+            rig.Main.OnMain(() => rig.Button.Update(rig.Lead));
+            rig.Drain();
+            Assert.NotNull(Charge(rig));
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-166")] // HydraButton.swift:41-43 what is on screen when the mark first appears is not animated in
+    public void A_charge_present_when_the_mark_is_built_inside_an_animation_is_not_animated_in()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var rig = new HydraButtonRig(attach: false);
+            HydraButton button = null!;
+            rig.Main.OnMain(() => Transaction.WithAnimation(Animation.EaseOut(duration: 0.5), () => button = new HydraButton(rig.Lead, rig.Runtime)));
+            var charge = Assert.IsType<HydraCharge>(LogicalQuery.SelfAndDescendants<HydraCharge>(button).Single());
+            Assert.Equal(1, HydraTransitionProbe.Opacity(charge, button), 0.01);
         });
     }
 }

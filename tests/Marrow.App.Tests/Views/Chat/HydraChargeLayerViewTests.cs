@@ -468,16 +468,16 @@ public sealed class HydraChargeLayerViewTests(HeadlessSession headless)
         Assert.Equal(expected.Blue, actual.Blue, 0.1);
     }
 
-    private static Avalonia.Controls.Window Black(Control content)
+    private static Avalonia.Controls.Window Black(Control content, double side = 32)
     {
-        content.Width = 32;
-        content.Height = 32;
+        content.Width = side;
+        content.Height = side;
         var window = new Avalonia.Controls.Window
         {
             Width = 100,
             Height = 100,
             Background = Brushes.Black,
-            Content = new Border { Child = content, Width = 32, Height = 32, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top },
+            Content = new Border { Child = content, Width = side, Height = side, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top },
         };
         window.Show();
         return window;
@@ -515,6 +515,41 @@ public sealed class HydraChargeLayerViewTests(HeadlessSession headless)
             Advance(runtime, frames, 2); // one second past the origin: a quarter turn
             // what was at 9 o'clock has come round to 12 o'clock, and what was at 12 o'clock has gone on to 3
             AssertHue(FramePixels.Hues(window, (16, 1))[0], Otto);
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-167")] // HydraButton.swift:543-550 the glow: a circle two points in, its gradient fading from two to fifteen points out of the centre
+    public void The_glow_is_the_accent_at_point_four_six_of_its_rest_opacity_fading_with_the_distance()
+    {
+        Run((_, _) =>
+        {
+            var view = Configured(new SwiftColor(0, 0, 1)); // a pure blue accent: its strength is the blue channel
+            var window = Black(view);
+
+            var levels = FramePixels.Levels(window, (16, 16), (16 + 8, 16), (16 + 11, 16));
+            Assert.Equal(0.46 * 0.6, levels[0], 0.04); // alpha 0.46 at the glow's rest opacity 0.6
+            Assert.InRange(levels[1], 0.01, levels[0] - 0.05); // fainter further out
+            Assert.InRange(levels[2], 0.0, levels[1]); // and fainter still, inside the circle that stops 2 points short of the frame
+            window.Close();
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-167")] // HydraButton.swift:538 nothing is laid out in a frame of 4 points or less
+    public void A_frame_of_four_points_or_less_draws_nothing()
+    {
+        Run((_, _) =>
+        {
+            var tiny = Configured(new SwiftColor(0, 0, 1));
+            var window = Black(tiny, 4);
+            Assert.Equal(0, FramePixels.Levels(window, (2, 2))[0], 0.001);
+            window.Close();
+
+            var small = Configured(new SwiftColor(0, 0, 1));
+            window = Black(small, 8);
+            Assert.True(FramePixels.Levels(window, (4, 4))[0] > 0.05);
             window.Close();
         });
     }
