@@ -268,6 +268,17 @@ public sealed class HydraChargeLayerViewTests(HeadlessSession headless)
             Assert.Equal(3, view.RecolorCount); // a different colour array
             Assert.Equal(other.Length, view.StoredColors.Count);
             Assert.Equal(other[0].Resolve(ThemeVariant.Light), view.StoredColors[0].Resolve(ThemeVariant.Light));
+
+            // an accent that differs only in the dark appearance is a different accent
+            var light = new SwiftColor(0.2, 0.4, 0.9);
+            view.Configure(HydraCharge.LayerColors, SwiftColor.Dynamic(light, new SwiftColor(0.1, 0.1, 0.1)));
+            var recolors = view.RecolorCount;
+            view.Configure(HydraCharge.LayerColors, SwiftColor.Dynamic(light, new SwiftColor(0.1, 0.1, 0.1))); // the same again
+            Assert.Equal(recolors, view.RecolorCount);
+            view.Configure(HydraCharge.LayerColors, SwiftColor.Dynamic(light, new SwiftColor(0.7, 0.7, 0.7)));
+            Assert.Equal(recolors + 1, view.RecolorCount);
+            view.Configure(HydraCharge.LayerColors, SwiftColor.Dynamic(new SwiftColor(0.9, 0.9, 0.1), new SwiftColor(0.7, 0.7, 0.7))); // and one only in the light
+            Assert.Equal(recolors + 2, view.RecolorCount);
         });
     }
 
@@ -528,10 +539,11 @@ public sealed class HydraChargeLayerViewTests(HeadlessSession headless)
             var view = Configured(new SwiftColor(0, 0, 1)); // a pure blue accent: its strength is the blue channel
             var window = Black(view);
 
-            var levels = FramePixels.Levels(window, (16, 16), (16 + 8, 16), (16 + 11, 16));
+            var levels = FramePixels.Levels(window, (16, 16), (16 + 8, 16), (16 + 11, 16), (16 + 12, 16));
             Assert.Equal(0.46 * 0.6, levels[0], 0.04); // alpha 0.46 at the glow's rest opacity 0.6
             Assert.InRange(levels[1], 0.01, levels[0] - 0.05); // fainter further out
-            Assert.InRange(levels[2], 0.0, levels[1]); // and fainter still, inside the circle that stops 2 points short of the frame
+            Assert.InRange(levels[2], 0.0, levels[1]); // and fainter still
+            Assert.True(levels[3] > 0.02, "the glow reaches to 14 points from the centre: the frame less its 2-point padding");
             window.Close();
         });
     }

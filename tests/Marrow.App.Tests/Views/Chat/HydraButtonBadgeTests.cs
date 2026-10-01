@@ -258,4 +258,21 @@ public sealed class HydraButtonBadgeTests(HeadlessSession headless)
             Assert.Equal(expected.DesiredSize, spinner.DesiredSize);
         });
     }
+
+    [Fact]
+    [Trait("Req", "PR-HYDRA-161")] // HydraButton.swift:53 the badge is there while sending, though no head is running any more
+    public void The_pulse_outlasts_a_head_that_finishes_inside_it_and_then_the_badge_goes()
+    {
+        Run(rig =>
+        {
+            var head = rig.AddHead(HydraHeadInfo.Status.Running);
+            rig.SetHeadStatus(head, HydraHeadInfo.Status.Completed); // running 1 -> 0 inside the 0.9 s
+            rig.Tick(0.5);
+            var badge = Assert.IsType<HydraSendWorkingBadge>(rig.Badge);
+            Assert.True(Pulses(badge));
+
+            rig.Tick(2);
+            Assert.Null(rig.Badge);
+        });
+    }
 }

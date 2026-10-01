@@ -34,9 +34,6 @@ public sealed class HeadlessSession : IDisposable
     public void OnUiThread(Action body) => Session.Dispatch(() =>
     {
         MainActor.Bind(AvaloniaMainExecutor.Instance);
-        // A view that opens a popover on its own (the Hydra mark's first-chat intro, HydraButton.swift:93) must not try the
-        // real Popup, which headless cannot create; a test that reads what was presented overrides this with its own.
-        Presentation.Presenter.SetProcessDefault(new RecordingPresenter());
         inBody = true;
         try { body(); }
         finally { inBody = false; }

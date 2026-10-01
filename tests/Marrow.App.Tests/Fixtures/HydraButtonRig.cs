@@ -98,7 +98,8 @@ internal sealed class HydraButtonRig : IDisposable
     public void Drain()
     {
         harness.Main.RunUntilIdle();
-        Dispatcher.UIThread.RunJobs();
+        // A render pass can update the pointer-over element, whose hover handlers write main-actor state.
+        harness.Main.OnMain(() => Dispatcher.UIThread.RunJobs());
         harness.Main.RunUntilIdle();
     }
 

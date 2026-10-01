@@ -67,7 +67,8 @@ public sealed class HydraButtonChargeTests(HeadlessSession headless)
 
             rig.Tick(1);
             rig.Main.OnMain(() => rig.Window.UpdateLayout());
-            var hit = rig.Window.InputHitTest(rig.MarkCentre) as Visual;
+            rig.Main.OnMain(() => rig.Window.CaptureRenderedFrame()?.Dispose()); // the hit test reads the bounds a render pass records
+            var hit = rig.Window.GetVisualAt(rig.MarkCentre); // the visual tree's own hit test, which skips what takes no hits
             Assert.NotNull(hit);
             Assert.DoesNotContain(hit.GetSelfAndVisualAncestors(), visual => ReferenceEquals(visual, charge));
         });

@@ -1,5 +1,6 @@
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Marrow.UI.Port;
 
 namespace Marrow.App.Tests.Fixtures;
 
@@ -14,6 +15,9 @@ internal static class ChatHeadlessFixtures
 
     public static void Run(HeadlessSession session, Action body) => session.OnUiThread(() =>
     {
+        // A chat view that opens a popover on its own (the Hydra mark's first-chat intro, HydraButton.swift:93) must not try
+        // the real Popup, which headless cannot create; a test that reads what was presented overrides this with its own.
+        using var presentation = Presentation.Presenter.Override(new RecordingPresenter());
         try { body(); }
         finally
         {
