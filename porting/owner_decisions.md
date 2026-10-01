@@ -568,3 +568,18 @@ Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Cl
 - **Owner ruling, 2026-10-02 (chat):** "Lock and ship it! I love it!" for the canvas https://claude.ai/artifact/M12dhPeZAsbG2YZtQZ882C at version 15 (copy: E:\Droppy\work\design\effort-liquid-approved-v15.dc.html). "Ship" is read as: build it into the port; any release, signing or packaging still needs the owner's separate word (standing rule).
 - **What is locked:** OD-0047's palette (14 providers as shown: ChatGPT silver-white and Claude terracotta locked; DeepSeek, Meta, Gemini as the source; Cursor ember, Grok liquid obsidian with oil sheen, OpenCode terminal green, OpenCode Go cyan, Z.ai navy to electric blue, Devin teal, Copilot purple to peach, Command Code deep indigo, Pi crimson); the Max track as a glass tube of living liquid (seamless flowing currents, drifting caustic light, randomised wandering bubbles, a thin even rim, refraction toward the rounded rim with a faint colour fringe after rizzytoday/liquid-glass, no sweeping shine); OD-0048's blend formula (leads at the knob end, each lead 1.6 x a worker's stretch, soft OKLab mixing through each colour's heart); OD-0050's arrival of a new colour (clear living water, ink released only at the knob end in pulses, a Stable Fluids simulation with vorticity confinement and slight negative buoyancy, clouds thin with tracer particles at their fronts and dense behind, filling the tube and staying; a lighter rendering on low-power devices).
 - **Effect:** these are named deviations from EffortSlider.swift's TrackLook/TrackEffect/EffortBrand, approved by the owner; they are built test-first into the port's effort slider. The source's plain (non-Max) levels and the fast-mode bolt are untouched unless a later ruling says otherwise.
+
+## OD-0052 The liquid design's final form (canvas version 22) is locked
+
+- **Owner ruling, 2026-10-02 (chat):** "Alright lock this one in and move ahead now", for canvas version 22 of https://claude.ai/artifact/M12dhPeZAsbG2YZtQZ882C (copy: E:\Droppy\work\design\effort-liquid-locked-v22.dc.html). It supersedes OD-0051's reference copy (version 15); everything OD-0051 locked stands, with the owner's later rulings in the same session folded in.
+- **What version 22 adds to OD-0051 (each asked for by the owner):**
+  - The liquid reaches fully into both rounded ends: the glass bends inward at both ends (the displacement map's red channel rises to the right), and the knob's drop shadow is light (0 2 6 px, 14 %) so the liquid is not darkened beside the knob.
+  - Bubbles never repeat: every rise of every bubble is new (size, height, path, sway, speed, brightness, start point, then a random pause). Each bubble keeps an even stretch of the tube, and now and then one starts anywhere.
+  - The ink arrival takes 8.3 s in all (2.3 s of loading, then the fluid at twice its tuned pace, on real time); the solid colour takes over in a soft half second.
+  - It is smooth and light on modest hardware:
+    - drawn on the GPU in one pass per tube, the same mathematics as the CSS look;
+    - evenly paced frames (every n-th refresh, never below 60 fps);
+    - the fluid simulated and painted in a background worker, in lockstep with the display;
+    - nothing allocated per frame;
+    - only tubes in view are drawn.
+- **Effect:** the port's effort slider follows version 22's rendering (OD-0051's deviations, as refined here). Performance targets carry over: one small track at 60 fps, a negligible share of an integrated GPU.
