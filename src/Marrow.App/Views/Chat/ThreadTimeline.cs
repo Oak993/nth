@@ -45,6 +45,15 @@ public sealed class ThreadTimeline : Decorator
     private bool anchorsBottomOnGrowth = true; // :74
     private double viewportHeight; // :52
     private ScrollViewer? currentScroll;
+    // :384-440 the ScrollView is one view for the life of the timeline: its geometry handler sees every change as old ->
+    // new. Each draw swaps only its content; these are the current draw's pieces the long-lived handlers read.
+    private Grid? scrollOverlay;
+    private Control? currentRail;
+    private Control? drawnColumn;
+    private StackPanel? drawnBody;
+    private Control? drawnSentinel;
+    private Control? drawnEarlier;
+    private IReadOnlyList<DisplayBlock> drawnBlocks = [];
     private readonly Dictionary<string, Control> laidOutRows = [];
     private readonly Dictionary<string, (DisplayBlock Block, RowContext Context, Control Row)> rowViews = [];
     private readonly Dictionary<string, (QuestionRequest Request, Control Row)> questionViews = []; // :393-397, stable ForEach identity
@@ -59,7 +68,10 @@ public sealed class ThreadTimeline : Decorator
     // :363,436-441. Own the scroll presenter, as SidebarView does, rather than depending on a themed template.
     private static readonly FuncControlTemplate<ScrollViewer> TimelineScrollTemplate = new((viewer, scope) =>
     {
-        var presenter = new ScrollContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty] };
+        // Transparent, so the scroll view takes the wheel over its whole frame, as NSScrollView does: while ScrollFreeze
+        // (:2320-2325) turns hit-testing off on the rows, a presenter with no background left nothing under the pointer
+        // that belongs to the scroll view, and every notch after the first went nowhere.
+        var presenter = new ScrollContentPresenter { Name = "PART_ContentPresenter", Background = Brushes.Transparent, [!ContentPresenter.ContentProperty] = viewer[!ContentControl.ContentProperty] };
         presenter.GestureRecognizers.Add(new ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
         return presenter.RegisterInNameScope(scope);
     });
@@ -150,41 +162,63 @@ public sealed class ThreadTimeline : Decorator
                 {
                     tracking.ArmBlankWatch(); if (tracking.IsPinnedToBottom && !tracking.IsArriving) tracking.ArmViewportRefresh();
                 } // :346-354
-                var body = new StackPanel(); var hidden = WindowStartIndex(blocks);
+                // The column and its stack stay, like the ScrollView below: replacing them made the content extent collapse
+                // and regrow inside one draw, which moved the offset and read as the reader scrolling.
+                var body = drawnBody ??= new StackPanel(); body.Children.Clear(); var hidden = WindowStartIndex(blocks);
                 Button? earlier = hidden > 0 ? EarlierPill(hidden, () => { LoadEarlier(blocks); Draw(); }) : null;
                 if (earlier is not null) body.Children.Add(earlier);
                 body.Children.Add(rows);
                 var sentinel = new Border { Height = 1, Background = Brushes.Transparent }; body.Children.Add(sentinel); // :402-409
                 var resize = AppEnvironment.GetWindowLiveResize(this);
                 var width = SteppedWidth(resize.IsReshaping, Bounds.Width, model.Sidebar.IsSliding, paneWidthAtSlideStart, model.Sidebar.SlideDelta);
-                var column = CreateColumn(body, SteppedHeight(columnHeight, 0, 0), width);
-                var scroll = new ScrollViewer { Content = column, Template = TimelineScrollTemplate, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :384-440
-                if (currentScroll is null) tracking.HoldEnd(1.5); var oldOffset = currentScroll?.Offset ?? default;
-                currentScroll = scroll; viewportHeight = column.MinHeight;
-                scroll.SizeChanged += (_, _) => { viewportHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); column.MinHeight = viewportHeight; }; // :446-449
-                var oldMetrics = new ScrollMetrics();
-                scroll.ScrollChanged += (_, change) =>
+                Control column;
+                if (drawnColumn is Grid kept) { column = kept; kept.Width = width ?? double.NaN; }
+                else column = CreateColumn(body, SteppedHeight(columnHeight, 0, 0), width);
+                // :384-440 one ScrollView for the life of the timeline. A new scroll view per draw started its geometry
+                // history from zero, which read as "the reader was at the end": the first change re-pinned a reader who
+                // had scrolled up and snapped them down on every new row (Swift :686-709 leaves them where they are).
+                var created = currentScroll is null;
+                if (currentScroll is not { } scroll)
                 {
-                    var next = ScrollMetrics.From(scroll.Extent.Height, scroll.Viewport.Height, scroll.Offset.Y, 0, 0, scroll.Offset.Y + scroll.Viewport.Height / 2);
-                    // :439-441. Avalonia has no content-size anchor; retain the bottom-relative position before
-                    // classifying movement, and apply the offset next turn, never from the geometry callback.
-                    if (oldMetrics.ContentHeight > 0 && anchorsBottomOnGrowth && (change.ExtentDelta.Y != 0 || change.ViewportDelta.Y != 0))
+                    tracking.HoldEnd(1.5);
+                    scroll = new ScrollViewer { Template = TimelineScrollTemplate, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled };
+                    currentScroll = scroll;
+                    scroll.SizeChanged += (_, _) => { viewportHeight = SteppedHeight(scroll.Bounds.Height, 0, 0); if (drawnColumn is { } current) current.MinHeight = viewportHeight; }; // :446-449
+                    var oldMetrics = new ScrollMetrics();
+                    scroll.ScrollChanged += (_, change) =>
                     {
-                        var offset = Math.Clamp(next.Offset + change.ExtentDelta.Y - change.ViewportDelta.Y, 0, Math.Max(0, next.ContentHeight - next.ContainerHeight));
-                        if (Math.Abs(offset - next.Offset) > 1)
+                        var next = ScrollMetrics.From(scroll.Extent.Height, scroll.Viewport.Height, scroll.Offset.Y, 0, 0, scroll.Offset.Y + scroll.Viewport.Height / 2);
+                        // :439-441. Avalonia has no content-size anchor; retain the bottom-relative position before
+                        // classifying movement, and apply the offset next turn, never from the geometry callback.
+                        if (oldMetrics.ContentHeight > 0 && anchorsBottomOnGrowth && (change.ExtentDelta.Y != 0 || change.ViewportDelta.Y != 0))
                         {
-                            next = ScrollMetrics.From(next.ContentHeight, next.ContainerHeight, offset, 0, 0, offset + next.ContainerHeight / 2);
-                            MainActor.Post(() => { if (ReferenceEquals(currentScroll, scroll)) scroll.Offset = new Vector(scroll.Offset.X, offset); });
+                            // From the offset before this change: when the content shrinks under it, Avalonia has already
+                            // clamped the offset (OffsetDelta), and anchoring from the clamped value took the shrink off twice.
+                            var offset = Math.Clamp(next.Offset - change.OffsetDelta.Y + change.ExtentDelta.Y - change.ViewportDelta.Y, 0, Math.Max(0, next.ContentHeight - next.ContainerHeight));
+                            if (Math.Abs(offset - next.Offset) > 1)
+                            {
+                                next = ScrollMetrics.From(next.ContentHeight, next.ContainerHeight, offset, 0, 0, offset + next.ContainerHeight / 2);
+                                MainActor.Post(() => { if (ReferenceEquals(currentScroll, scroll)) scroll.Offset = new Vector(scroll.Offset.X, offset); });
+                            }
                         }
-                    }
-                    NoteMetrics(oldMetrics, next, resize.IsActive); oldMetrics = next; scrollChrome.Update(next.Travel);
-                    foreach (var pair in laidOutRows) tracking.SetVisible(pair.Key, VisibleFraction(pair.Value, scroll) >= 0.001);
-                    SetEndVisible(VisibleFraction(sentinel, scroll) >= 0.01);
-                    if (earlier is not null && VisibleFraction(earlier, scroll) >= 0.1 && !historyLoadPending) { LoadEarlier(blocks); MainActor.Post(Draw); }
-                };
-                var overlay = new Grid { Children = { scroll } };
-                if (CreateRail(blocks, showsMinimap, columnHeight) is { } rail) overlay.Children.Add(rail);
-                host.Child = overlay; MainActor.Post(() => { if (!ReferenceEquals(currentScroll, scroll)) return; if (tracking.IsPinnedToBottom) SnapEnd(); else scroll.Offset = oldOffset; });
+                        NoteMetrics(oldMetrics, next, AppEnvironment.GetWindowLiveResize(this).IsActive); oldMetrics = next; scrollChrome.Update(next.Travel);
+                        foreach (var pair in laidOutRows) tracking.SetVisible(pair.Key, VisibleFraction(pair.Value, scroll) >= 0.001);
+                        if (drawnSentinel is { } end) SetEndVisible(VisibleFraction(end, scroll) >= 0.01);
+                        if (drawnEarlier is { } pill && VisibleFraction(pill, scroll) >= 0.1 && !historyLoadPending) { LoadEarlier(drawnBlocks); MainActor.Post(Draw); }
+                    };
+                    scrollOverlay = new Grid { Children = { scroll } };
+                }
+                var oldOffset = scroll.Offset;
+                if (!created && scroll.Bounds.Height > 0) column.MinHeight = SteppedHeight(scroll.Bounds.Height, 0, 0);
+                viewportHeight = column.MinHeight;
+                drawnColumn = column; drawnSentinel = sentinel; drawnEarlier = earlier; drawnBlocks = blocks;
+                if (!ReferenceEquals(scroll.Content, column)) scroll.Content = column;
+                var overlay = scrollOverlay!;
+                if (currentRail is not null) overlay.Children.Remove(currentRail);
+                currentRail = CreateRail(blocks, showsMinimap, columnHeight);
+                if (currentRail is not null) overlay.Children.Add(currentRail);
+                if (!ReferenceEquals(host.Child, overlay)) host.Child = overlay;
+                MainActor.Post(() => { if (!ReferenceEquals(currentScroll, scroll)) return; if (tracking.IsPinnedToBottom) SnapEnd(); else scroll.Offset = oldOffset; });
                 if (!initialHistoryStarted) StartInitialHistoryLoad(blocks); // :594-607; task starts only with a timeline, never with the empty prompt.
             }
         }
