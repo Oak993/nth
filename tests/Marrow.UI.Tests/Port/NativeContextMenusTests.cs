@@ -16,12 +16,6 @@ namespace Marrow.UI.Tests.Port;
 [Collection("Headless")]
 public sealed class NativeContextMenusTests(HeadlessSession headless)
 {
-    private sealed class Recorder : IContextMenuPresenter
-    {
-        public List<(Control Target, Point At, IReadOnlyList<ContextMenuEntry> Entries)> Shown { get; } = [];
-        public void Present(Control target, Point at, IReadOnlyList<ContextMenuEntry> entries) => Shown.Add((target, at, entries));
-    }
-
     private static Window Host(Control content)
     {
         var layers = new VisualLayerManager { EnableOverlayLayer = true, Child = content };
@@ -44,7 +38,7 @@ public sealed class NativeContextMenusTests(HeadlessSession headless)
     [Trait("Decision", "ED-107")] // (5) the shared registration point that installs the handler
     public void A_right_click_shows_the_rows_the_menu_builds_on_opening_and_never_the_empty_managed_popup() => headless.OnUiThread(() =>
     {
-        var recorder = new Recorder();
+        var recorder = new ContextMenuRecorder();
         using var presenter = NativeContextMenus.Presenter.Override(recorder);
         var opens = 0;
         var target = new Border { Width = 200, Height = 100, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, Background = Avalonia.Media.Brushes.White };
@@ -87,7 +81,7 @@ public sealed class NativeContextMenusTests(HeadlessSession headless)
     [Trait("Decision", "ED-107")]
     public void Choosing_a_row_clicks_its_menu_item() => headless.OnUiThread(() =>
     {
-        var recorder = new Recorder();
+        var recorder = new ContextMenuRecorder();
         using var presenter = NativeContextMenus.Presenter.Override(recorder);
         var copied = 0;
         var copy = new MenuItem { Header = "Copy" };
@@ -108,7 +102,7 @@ public sealed class NativeContextMenusTests(HeadlessSession headless)
     [Trait("Decision", "ED-107")] // LinkParagraphView.swift:453-461 a right-click on prose falls through to AppKit's text menu
     public void A_right_click_on_message_prose_offers_copy_and_select_all_and_select_all_selects_the_text() => headless.OnUiThread(() =>
     {
-        var recorder = new Recorder();
+        var recorder = new ContextMenuRecorder();
         using var presenter = NativeContextMenus.Presenter.Override(recorder);
         var text = new ParagraphText();
         text.Append("The answer, in one paragraph.");
@@ -132,7 +126,7 @@ public sealed class NativeContextMenusTests(HeadlessSession headless)
     [Trait("Decision", "ED-107")]
     public void A_control_without_a_menu_shows_nothing() => headless.OnUiThread(() =>
     {
-        var recorder = new Recorder();
+        var recorder = new ContextMenuRecorder();
         using var presenter = NativeContextMenus.Presenter.Override(recorder);
         var window = Host(new Border { Width = 200, Height = 100, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top, Background = Avalonia.Media.Brushes.White });
         try
