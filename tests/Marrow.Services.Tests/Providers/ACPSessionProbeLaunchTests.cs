@@ -13,6 +13,7 @@ namespace Marrow.Services.Tests.Providers;
 // catalog folder under the system temp folder (:229-234). On Windows the folder reached CreateProcessW as
 // "/C:/Users/.../marrow-catalog", which is rejected ("The directory name is invalid"), so no probe ever started an
 // agent. The agent here is the compiled Claude stand-in (R-TEST-8), told to exit at once: the launch is what is proved.
+[Collection(PlanLimitsProcessCollection.Name)] // launches a stand-in process: runs with the other process tests, never beside them under load
 public sealed class ACPSessionProbeLaunchTests
 {
     private static SwiftURL FileUrl(string windowsPath) => SwiftURL.Create("marrow-native-path:" + windowsPath.Replace('\\', '/'))!;
