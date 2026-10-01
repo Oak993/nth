@@ -2187,6 +2187,22 @@ internal sealed class SidebarHelperRow : Decorator
             if (hovering) Model.WarmDocuments([current.Id]); // :1404
         });
 
+        // :1387-1397 .contextMenu on the button with its trailing overlay: snapshot-only, re-evaluated fresh at every open
+        // (UI-SIDEBAR-033 "right-click opens the helper's context menu"). The same per-open-refresh foundation as
+        // SidebarThreadRow's and ProjectRow's own menus (their ENGINEERING DECISION, ContextMenu.Opening over a live
+        // Model read): the host is overlayHost, so a right-click on the ellipsis or the status opens it as well, as
+        // SwiftUI's modifier covers the overlay.
+        var contextMenu = new ContextMenu();
+        contextMenu.Opening += (_, _) =>
+        {
+            var threadSnapshot = Model.Thread(snapshot.Id) ?? snapshot; // :1388, :1324-1325
+            var settleFirstSnapshot = !threadSnapshot.IsHelper && Model.Settings.ThreadFinishAction == ThreadFinishAction.Settle; // :1391
+            contextMenu.Items.Clear();
+            foreach (var item in new RowActionMenuButtons(ThreadActions.MakeContextMenu(Model, threadSnapshot, settleFirstSnapshot, menuRequests)).Items) // :1392-1396
+                contextMenu.Items.Add(item);
+        };
+        overlayHost.ContextMenu = contextMenu;
+
         overlayHost.Track(() =>
         {
             var thread = Model.Thread(snapshot.Id) ?? snapshot; // :1324-1325
@@ -2502,6 +2518,18 @@ internal sealed class HeadCardsRow : Decorator
                     });
                     button.Track(() => state.HoveredID == headID, hovering => animatedScale.Set(hovering ? 1.18 : 1, Transaction.Current)); // :1484-1486
                     ToolTip.SetTip(button, $"{info.Persona.Name} · {info.Task}"); // :1490 "\(persona.name) · \(task)"
+                    // :1493-1503 .contextMenu: the head's own thread, settleFirst false, re-evaluated fresh at every open
+                    // (UI-SIDEBAR-037 "right-click opens the head's context menu with settleFirst false"); the same
+                    // per-open-refresh foundation as the other rows' menus (ContextMenu.Opening).
+                    var headSnapshot = head;
+                    var headMenu = new ContextMenu();
+                    headMenu.Opening += (_, _) =>
+                    {
+                        headMenu.Items.Clear();
+                        foreach (var item in new RowActionMenuButtons(ThreadActions.MakeContextMenu(Model, headSnapshot, settleFirst: false, menuRequests)).Items) // :1498-1502
+                            headMenu.Items.Add(item);
+                    };
+                    button.ContextMenu = headMenu;
                     AutomationProperties.SetName(button, $"{info.Persona.Name}, {info.Task}"); // :1499
                     lineHost.Children.Add(button);
                 }
@@ -3857,6 +3885,49 @@ internal sealed class ActivityHeader : Decorator
     }
 }
 
+// :2375 HStack(alignment: .firstTextBaseline, spacing:) for a line of mixed sizes: every child is placed so that the
+// first baseline of each (a text's first line, a symbol's ED-182 baseline offset) lies on one line. A child that has
+// neither is aligned by its bottom edge, as a SwiftUI view without a baseline guide is. UI-SIDEBAR-040.
+internal sealed class FirstBaselineRow : Panel
+{
+    public FirstBaselineRow() => UseLayoutRounding = false; // keep the font's fractional first baseline
+
+    public double Spacing { get; init; }
+
+    private double baseline;
+
+    private static double Baseline(Control child)
+    {
+        if (child is TextBlock text && text.TextLayout.TextLines.Count != 0) return text.TextLayout.TextLines[0].Baseline;
+        var offset = TextBlock.GetBaselineOffset(child);
+        return offset > 0 ? offset : child.DesiredSize.Height;
+    }
+
+    protected override Size MeasureOverride(Size availableSize)
+    {
+        var width = Spacing * Math.Max(0, Children.Count - 1);
+        foreach (var child in Children)
+        {
+            child.Measure(Size.Infinity);
+            width += child.DesiredSize.Width;
+        }
+        baseline = Children.Count == 0 ? 0 : Children.Max(Baseline);
+        var height = Children.Count == 0 ? 0 : Children.Max(child => baseline - Baseline(child) + child.DesiredSize.Height);
+        return new Size(width, height);
+    }
+
+    protected override Size ArrangeOverride(Size finalSize)
+    {
+        var x = 0.0;
+        foreach (var child in Children)
+        {
+            child.Arrange(new Rect(x, baseline - Baseline(child), child.DesiredSize.Width, child.DesiredSize.Height));
+            x += child.DesiredSize.Width + Spacing;
+        }
+        return finalSize;
+    }
+}
+
 /// <summary>:2363-2406 <c>private struct SettledHeader: View</c>.</summary>
 internal sealed class SettledHeader : Decorator
 {
@@ -3882,12 +3953,11 @@ internal sealed class SettledHeader : Decorator
         countText.Opacity = 0.8; // :2387
         countText.Foreground = Chrome.SecondaryText.Brush(countText); // :2392
 
-        // :2375 HStack(alignment: .firstTextBaseline, spacing: 5). Bottom alignment approximates the mixed-size
-        // baseline (chevron 10 pt, title/count 12 pt).
-        // STOP opencode-App.Views.Sidebar.SidebarView #13: UI-SIDEBAR-040 needs a shared firstTextBaseline layout
-        // guide for SwiftImage alongside text. The current shared symbol API exposes no such guide or ED/PA recipe.
-        var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 5, Children = { chevron, title, countText } };
-        foreach (var part in header.Children) if (part is Layoutable layoutable) layoutable.VerticalAlignment = VerticalAlignment.Bottom;
+        // :2375 HStack(alignment: .firstTextBaseline, spacing: 5): the chevron (10 pt), the title and the count (12 pt)
+        // share one first-line baseline. The chevron's baseline is the ED-182 (Q1) one SwiftImage publishes through
+        // TextBlock.BaselineOffset, which FirstBaselineRow reads beside the text lines' own. This closes STOP #13
+        // (UI-SIDEBAR-040): the shared baseline layout it asked for is that offset, with no ED/PA of its own needed.
+        var header = new FirstBaselineRow { Spacing = 5, Children = { chevron, title, countText } };
 
         var content = new Border // :2393-2397
         {

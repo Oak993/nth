@@ -1092,11 +1092,11 @@ namespace Marrow.UI.Chrome
             }
             ApplyText();
 
-            var row = new StackPanel
+            var row = new TitleLine
             {
                 Orientation = Orientation.Horizontal,
                 Spacing = 8, // :711 HStack(spacing: 8)
-                Children = { iconSlot, text }, // :712-720 Spacer(minLength: 4) satisfied by stretch below
+                Children = { iconSlot, text }, // :712-720 Spacer(minLength: 4) is TitleLine's trailing 4 pt
             };
             foreach (var part in row.Children) part.VerticalAlignment = VerticalAlignment.Center;
 
@@ -1134,6 +1134,28 @@ namespace Marrow.UI.Chrome
             AutomationProperties.SetName(button, title); // :738 AddTraits(isSelected ? [.isSelected, .isButton] : .isButton)
 
             Child = overlay;
+        }
+
+        // :711-720 HStack(spacing: 8) { icon; title; Spacer(minLength: 4) } under a width the row's padding fixes. A plain
+        // horizontal StackPanel measures every child at infinite width, so the title would never be cut at its tail
+        // (:718-719 `.lineLimit(1).truncationMode(.tail)`) and would run under the reserved accessory space; this one
+        // measures the icon at its own size and gives the title the rest of the width, less the Spacer's minimum 4 pt,
+        // so the title truncates at the same place whether or not the accessory shows (UI-SIDEBAR-008).
+        private sealed class TitleLine : StackPanel
+        {
+            private const double SpacerMinLength = 4; // :720
+
+            protected override Size MeasureOverride(Size availableSize)
+            {
+                if (Children.Count != 2 || double.IsInfinity(availableSize.Width)) return base.MeasureOverride(availableSize);
+                var icon = Children[0];
+                var title = Children[1];
+                icon.Measure(new Size(double.PositiveInfinity, availableSize.Height));
+                title.Measure(new Size(Math.Max(0, availableSize.Width - icon.DesiredSize.Width - Spacing - SpacerMinLength), availableSize.Height));
+                return new Size(
+                    icon.DesiredSize.Width + Spacing + title.DesiredSize.Width,
+                    Math.Max(icon.DesiredSize.Height, title.DesiredSize.Height));
+            }
         }
 
         // ENGINEERING DECISION (skeleton, no rule names the form): Avalonia's Button peer carries no selection
