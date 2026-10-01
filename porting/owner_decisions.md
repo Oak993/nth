@@ -533,3 +533,8 @@ Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Cl
 
 - **Owner ruling, 2026-10-01 (chat):** "Use Apple's design kits."
 - **Effect:** for the OD-0042 controls the reference videos do not show (`.help()` tooltips, `ProgressView()` spinners, `.bordered`/`.borderedProminent` buttons, `.roundedBorder` fields), sizes, colours and states come from Apple's official public macOS design resources (Apple Design Resources UI kits, Human Interface Guidelines), each value cited to its page or kit and labelled SOURCE FACT (Apple design resource), never from memory.
+
+## OD-0046 Blend: Windows conventions, Droppy Code's design language
+
+- **Owner ruling, 2026-10-01 (chat):** the port keeps the exact look of Droppy Code on macOS (its liquid glass, colours, type, motion) so that it reads as made by the same designer, but where a platform convention differs, the Windows convention is followed, its elements drawn in the app's own design language. Example given: the caption buttons sit at the top right as Windows places them, not at the top left as macOS does, and are designed in the app's glass look (OD-0044).
+- **Effect:** a standing rule for platform-boundary elements (window chrome, caption buttons, placement and order of system affordances): their place, order and behaviour follow Windows; their appearance follows the source's design language. Each such element is still recorded as a named deviation where it departs from the source; everything that is not a platform convention keeps exact parity.
