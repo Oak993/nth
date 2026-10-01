@@ -25,6 +25,10 @@ public sealed class ACPSessionProbeLaunchTests
     public async Task the_catalog_probe_starts_its_agent_in_the_catalog_folder_under_the_system_temp_folder()
     {
         using var runtime = new TestRuntime();
+        // The launch gate (:26) is static: a test that ran on a manual clock can leave its next slot far ahead of the real
+        // clock, which would hold this launch past the timeout. Start from an open gate, as a fresh app does.
+        var gate = typeof(ACPSession).GetField("LaunchGate", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!.GetValue(null)!;
+        gate.GetType().GetField("nextSlot", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.SetValue(gate, SwiftDate.DistantPast);
         var script = new ClaudeScript("acp-probe-launch");
         File.WriteAllText(Path.Combine(script.ControlDirectory, "exit-now.txt"), "1"); // the stand-in exits as soon as it has recorded its launch
         var environment = new ValueMap<string, string>(new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value });
