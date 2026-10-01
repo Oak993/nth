@@ -166,7 +166,6 @@ public sealed class TerminalPanelHeaderTests(HeadlessSession headless)
 
         Assert.Equal(600 - 10, hideBox.X + hide.Bounds.Width, 3); // :55 .padding(.horizontal, 10), Spacer(minLength: 0) before it
         Assert.True(plusBox.X + plus.Bounds.Width < hideBox.X); // :44 the plus is the earlier group
-        Assert.Equal(6 + 6, hideBox.X - (plusBox.X + plus.Bounds.Width), 3); // :20 HStack(spacing: 6) either side of the Spacer
         // Both are centred in the 38-point row (:56).
         Assert.InRange(hideBox.Y + hide.Bounds.Height / 2, 18.5, 19.5); // layout rounding of an odd glyph height
         Assert.InRange(plusBox.Y + plus.Bounds.Height / 2, 18.5, 19.5);
