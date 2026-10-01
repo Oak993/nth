@@ -50,4 +50,14 @@ public sealed class TerminalEmptyStateTests(HeadlessSession headless)
             finally { window.Close(); }
         });
     });
+
+    [Fact]
+    [Trait("Req", "PR-TERM-001")]
+    public void The_drawer_is_white_8_percent_in_dark_and_98_point_5_percent_in_light()
+    {
+        // TerminalPanel.swift:107 .fill(colorScheme == .dark ? Color(white: 0.08) : Color(white: 0.985))
+        var colour = typeof(TerminalPanel).GetMethod("PanelColor", BindingFlags.Static | BindingFlags.NonPublic)!;
+        Assert.Equal(Color.FromRgb(20, 20, 20), (Color)colour.Invoke(null, [true])!);   // 0.08 x 255 = 20.4
+        Assert.Equal(Color.FromRgb(251, 251, 251), (Color)colour.Invoke(null, [false])!); // 0.985 x 255 = 251.2
+    }
 }
