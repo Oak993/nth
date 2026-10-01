@@ -12,7 +12,7 @@ namespace Marrow.UI.Tests.Port;
 public sealed class PortControlThemesTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Decision", "ENGINEERING")]
+    [Trait("Decision", "ED-107")] // (5) the one shared builder registration point, where PortControlThemes registers
     public void A_scroll_view_built_without_a_template_measures_its_content_and_scrolls_with_the_wheel_over_its_whole_frame() => headless.OnUiThread(() =>
     {
         var tall = new Border { Height = 2000, Width = 100 };
@@ -36,7 +36,7 @@ public sealed class PortControlThemesTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ENGINEERING")]
+    [Trait("Decision", "ED-107")] // (5) the one shared builder registration point, where PortControlThemes registers
     public void An_explicit_template_still_wins_over_the_default_theme() => headless.OnUiThread(() =>
     {
         var own = new Avalonia.Controls.Templates.FuncControlTemplate<ScrollViewer>((_, _) => new Border());
