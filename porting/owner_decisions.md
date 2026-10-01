@@ -523,3 +523,13 @@ Provenance for OD-0031 through OD-0035: owner chat relayed by J.A.R.V.I.S. and f
 - **Effect:** whether a press on the bare slider track turns the knob to glass is decided from a full search of both reference videos; until a clip shows it, the port keeps glass on a knob press only.
 
 Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Claude Opus 5.5), 2026-10-01, to the questions OD-PENDING-28 and OD-PENDING-29 (1)-(6) plus the slider track click.
+
+## OD-0044 Caption buttons: Windows order at the top right, a custom animated glass design
+
+- **Owner ruling, 2026-10-01 (chat), settling OD-PENDING caption-button placement:** the three window buttons move from the source's leading-edge traffic-light place to the Windows place and order (minimise, maximise, close at the top right), and are designed for the liquid-glass chrome: not basic icons, but glyphs that animate inside the button when the pointer hovers (lighting up, the glyph itself moving, "like the slider").
+- **Effect:** a named DEVIATION from WindowManager.swift/WindowChrome.swift's leading traffic lights. Five candidate designs are on the canvas https://claude.ai/artifact/E8tx6pDRH2roAcjTLrsFxc (A Halo draw, B Sliding lens, C Comet ring, D Liquid fill, E Spark morph); the owner picks one, then it is built test-first (hover, press, the Windows caption semantics and hit-testing of ED-063, reduce motion stills the animation). Until the pick, the current caption buttons stay.
+
+## OD-0045 Mac-look controls without video evidence: Apple's design resources are the reference
+
+- **Owner ruling, 2026-10-01 (chat):** "Use Apple's design kits."
+- **Effect:** for the OD-0042 controls the reference videos do not show (`.help()` tooltips, `ProgressView()` spinners, `.bordered`/`.borderedProminent` buttons, `.roundedBorder` fields), sizes, colours and states come from Apple's official public macOS design resources (Apple Design Resources UI kits, Human Interface Guidelines), each value cited to its page or kit and labelled SOURCE FACT (Apple design resource), never from memory.
