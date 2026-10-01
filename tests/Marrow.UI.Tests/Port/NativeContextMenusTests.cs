@@ -122,6 +122,128 @@ public sealed class NativeContextMenusTests(HeadlessSession headless)
         finally { window.Close(); }
     });
 
+    private static Border Target(ContextMenu menu) => new()
+    {
+        Width = 200, Height = 100, Background = Avalonia.Media.Brushes.White, ContextMenu = menu,
+        HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top,
+    };
+
+    [Fact]
+    [Trait("Decision", "ED-107")]
+    public void Choosing_a_row_runs_its_command_once() => headless.OnUiThread(() =>
+    {
+        var recorder = new ContextMenuRecorder();
+        using var presenter = NativeContextMenus.Presenter.Override(recorder);
+        var runs = 0;
+        var item = new MenuItem { Header = "Archive", Command = new CountingCommand(() => runs++) };
+        var window = Host(Target(new ContextMenu { Items = { item } }));
+        try
+        {
+            RightClick(window, new Point(20, 20));
+            recorder.Shown.Single().Entries[0].Choose!();
+            Assert.Equal(1, runs);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-107")]
+    public void A_menu_whose_opening_is_cancelled_is_not_shown() => headless.OnUiThread(() =>
+    {
+        var recorder = new ContextMenuRecorder();
+        using var presenter = NativeContextMenus.Presenter.Override(recorder);
+        var menu = new ContextMenu { Items = { new MenuItem { Header = "Copy" } } };
+        menu.Opening += (_, e) => e.Cancel = true;
+        var window = Host(Target(menu));
+        try
+        {
+            RightClick(window, new Point(20, 20));
+            Assert.Empty(recorder.Shown);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-107")]
+    public void Hidden_rows_are_left_out_and_a_divider_they_leave_alone_is_dropped() => headless.OnUiThread(() =>
+    {
+        var recorder = new ContextMenuRecorder();
+        using var presenter = NativeContextMenus.Presenter.Override(recorder);
+        var menu = new ContextMenu
+        {
+            Items =
+            {
+                new MenuItem { Header = "Copy" },
+                new Separator(),
+                new MenuItem { Header = "Delete", IsVisible = false },
+                new Separator { IsVisible = false },
+                new MenuItem { Header = "Rename" },
+            },
+        };
+        var window = Host(Target(menu));
+        try
+        {
+            RightClick(window, new Point(20, 20));
+            Assert.Equal(["Copy", "", "Rename"], recorder.Shown.Single().Entries.Select(e => e.Title));
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-107")]
+    public void Choosing_a_check_box_row_flips_it_as_a_menu_toggle_does() => headless.OnUiThread(() =>
+    {
+        var recorder = new ContextMenuRecorder();
+        using var presenter = NativeContextMenus.Presenter.Override(recorder);
+        var toggle = new MenuItem { Header = "Show reasoning", ToggleType = MenuItemToggleType.CheckBox, IsChecked = true };
+        var window = Host(Target(new ContextMenu { Items = { toggle } }));
+        try
+        {
+            RightClick(window, new Point(20, 20));
+            recorder.Shown.Single().Entries[0].Choose!();
+            Assert.False(toggle.IsChecked);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-107")]
+    public void The_menu_raises_opened_before_it_shows_and_closed_after() => headless.OnUiThread(() =>
+    {
+        var log = new List<string>();
+        var recorder = new ContextMenuLog(log);
+        using var presenter = NativeContextMenus.Presenter.Override(recorder);
+        var menu = new ContextMenu { Items = { new MenuItem { Header = "Copy" } } };
+        menu.Opened += (_, _) => log.Add("opened");
+        menu.Closed += (_, _) => log.Add("closed");
+        var window = Host(Target(menu));
+        try
+        {
+            RightClick(window, new Point(20, 20));
+            Assert.Equal(["opened", "present", "closed"], log);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-107")]
+    public void Shift_F10_on_a_focused_control_shows_its_menu() => headless.OnUiThread(() =>
+    {
+        var recorder = new ContextMenuRecorder();
+        using var presenter = NativeContextMenus.Presenter.Override(recorder);
+        var target = new Button { Content = "Row", Focusable = true, ContextMenu = new ContextMenu { Items = { new MenuItem { Header = "Copy" } } } };
+        var window = Host(target);
+        try
+        {
+            target.Focus();
+            window.KeyPress(Key.F10, RawInputModifiers.Shift, PhysicalKey.F10, null);
+            window.KeyRelease(Key.F10, RawInputModifiers.Shift, PhysicalKey.F10, null); // Avalonia asks for the menu on key-up
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(["Copy"], Assert.Single(recorder.Shown).Entries.Select(e => e.Title));
+        }
+        finally { window.Close(); }
+    });
+
     [Fact]
     [Trait("Decision", "ED-107")]
     public void A_control_without_a_menu_shows_nothing() => headless.OnUiThread(() =>

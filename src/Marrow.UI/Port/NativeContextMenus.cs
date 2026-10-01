@@ -6,15 +6,15 @@
 // true, 0x0, items never attached).
 //
 // ENGINEERING DECISION (proposal ED-229 (1), E:\Droppy\work\reference-video\ED_PROPOSAL_system_controls.md): the Windows
-// counterpart of the system menu is the system menu. One class handler takes every ContextRequested (right-click,
-// Shift+F10, the Menu key) on a control that has a ContextMenu, lets the menu rebuild its items as it would on opening
+// counterpart of the system menu is the system menu. One class handler takes every ContextRequested (right-click, the
+// Menu key, and Shift+F10, which this file adds) on a control that has a ContextMenu, lets the menu rebuild its items as it would on opening
 // (its Opening event, which every site uses for the source's fresh per-open read), and presents those items through
 // `Presenter`: the native Win32 popup menu (TrackPopupMenuEx, TPM_RETURNCMD: modal like NSMenu) in the app, a recording
 // presenter in tests (as R-TEST-7 does for popovers). The chosen item gets a normal MenuItem Click (and its Command).
 // Recorded deviations: SF Symbol icons and a destructive item's red title are not drawn (a Win32 menu shows text,
 // check marks, separators, submenus and the grey of a disabled item); the menu follows the Windows menu theme, not the
-// app's dark/light choice; Opening's Cancel, item visibility, toggle flipping and Opened/Closed are not honoured (no site
-// uses them). The site code is unchanged. Not yet a numbered ED.
+// app's dark/light choice. Opening's Cancel, hidden rows, a check-box row's flip and the menu's Opened/Closed are honoured
+// as Avalonia's own menu honours them. The site code is unchanged. Not yet a numbered ED.
 using System.Collections;
 using System.ComponentModel;
 using System.Reflection;
@@ -34,7 +34,7 @@ namespace Marrow.UI.Port;
 /// <param name="IsChecked">A check mark (a MenuItem with a ToggleType that is checked).</param>
 /// <param name="IsSeparator">A divider line; the other fields are unused.</param>
 /// <param name="Children">A submenu's rows; empty for a plain row.</param>
-/// <param name="Choose">What choosing the row does: the MenuItem's Click (and Command).</param>
+/// <param name="Choose">What choosing the row does: a toggle row's flip, then the MenuItem's Click (which runs its Command).</param>
 public sealed record ContextMenuEntry(string Title, bool IsEnabled, bool IsChecked, bool IsSeparator, IReadOnlyList<ContextMenuEntry> Children, Action? Choose);
 
 /// <summary>Shows a context menu's rows at a point of a control and runs the chosen row.</summary>
@@ -59,25 +59,45 @@ public static class NativeContextMenus
     {
         if (Interlocked.Exchange(ref installed, 1) == 1) return;
         Control.ContextRequestedEvent.AddClassHandler<Control>(OnContextRequested);
+        InputElement.KeyUpEvent.AddClassHandler<Control>(OnKeyUp);
+    }
+
+    // Avalonia asks for a context menu on key-up of its platform's OpenContextMenu gestures, which here are the Menu key
+    // alone (probe 2026-10-01). Shift+F10 is the other Windows keyboard gesture for the menu; it asks the same way, unless
+    // the platform's gestures already include it.
+    private static void OnKeyUp(Control control, KeyEventArgs e)
+    {
+        if (e.Handled || e.Key != Key.F10 || e.KeyModifiers != KeyModifiers.Shift) return;
+        var gestures = Application.Current?.PlatformSettings?.HotkeyConfiguration.OpenContextMenu;
+        if (gestures?.Any(gesture => gesture.Matches(e)) == true) return;
+        var request = new ContextRequestedEventArgs();
+        control.RaiseEvent(request);
+        e.Handled = request.Handled;
     }
 
     private static void OnContextRequested(Control control, ContextRequestedEventArgs e)
     {
         if (e.Handled || control.ContextMenu is not { } menu) return;
         e.Handled = true; // the managed popup would open empty
-        RaiseOpening(menu);
+        if (RaiseOpening(menu)) return;
         var entries = Entries(menu.Items);
         if (entries.Count == 0) return;
         var at = e.TryGetPosition(control, out var point) ? point : new Point(control.Bounds.Width / 2, control.Bounds.Height / 2);
-        Presenter.Current.Present(control, at, entries);
+        // The menu is modal: it is open for exactly the span of Present (the chosen row runs inside it, after the native
+        // menu is gone), so Opened and Closed bracket that call.
+        menu.RaiseEvent(new RoutedEventArgs(MenuBase.OpenedEvent));
+        try { Presenter.Current.Present(control, at, entries); }
+        finally { menu.RaiseEvent(new RoutedEventArgs(MenuBase.ClosedEvent)); }
     }
 
     // The sites rebuild their items in ContextMenu.Opening (the source's fresh per-open read); Avalonia raises it only from
-    // its own Open, so it is raised here the same way, with a cancellable argument the sites ignore.
-    private static void RaiseOpening(ContextMenu menu)
+    // its own Open, so it is raised here the same way. Returns whether a handler cancelled the open.
+    private static bool RaiseOpening(ContextMenu menu)
     {
         var field = typeof(ContextMenu).GetField("Opening", BindingFlags.Instance | BindingFlags.NonPublic);
-        (field?.GetValue(menu) as CancelEventHandler)?.Invoke(menu, new CancelEventArgs());
+        var args = new CancelEventArgs();
+        (field?.GetValue(menu) as CancelEventHandler)?.Invoke(menu, args);
+        return args.Cancel;
     }
 
     /// <summary>The rows of a MenuItem/Separator list.</summary>
@@ -86,6 +106,7 @@ public static class NativeContextMenus
         var entries = new List<ContextMenuEntry>();
         foreach (var item in items)
         {
+            if (item is Control { IsVisible: false }) continue; // a hidden row is not in the menu
             switch (item)
             {
                 case Separator:
@@ -101,8 +122,11 @@ public static class NativeContextMenus
                         Entries(menuItem.Items),
                         () =>
                         {
+                            // A check-box row flips and a radio row checks before its Click, as a toggle's binding changes
+                            // before its action runs. MenuItem's own click handling runs its Command.
+                            if (target.ToggleType == MenuItemToggleType.CheckBox) target.IsChecked = !target.IsChecked;
+                            else if (target.ToggleType == MenuItemToggleType.Radio) target.IsChecked = true;
                             target.RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
-                            if (target.Command is { } command && command.CanExecute(target.CommandParameter)) command.Execute(target.CommandParameter);
                         }));
                     break;
             }
