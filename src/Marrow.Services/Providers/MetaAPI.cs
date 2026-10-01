@@ -19,6 +19,11 @@ namespace Marrow.Services.Providers;
 // assembly-level InternalsVisibleTo above grants access to.
 public static class MetaAPI
 {
+    // PORT-ONLY R-TEST-10: scoped loopback endpoint boundary for production registry proofs (the same seam
+    // DeepSeekAPI.Endpoint and ZaiAPI.Endpoint already carry). Identity by default; requests, headers, response
+    // parsing and timing remain the pinned Swift path.
+    internal static Ambient<Func<Uri, Uri>> Endpoint { get; } = new(() => url => url);
+
     // :16
     public static readonly Uri BaseURL = new("https://api.meta.ai/v1");
 
@@ -38,12 +43,12 @@ public static class MetaAPI
     // :25-27
     public static async Task<bool> Validate(string apiKey, Uri? modelsUrl = null) =>
         // :26
-        await OpenAICompatibleAPI.Validate(modelsUrl ?? ModelsURL, apiKey);
+        await OpenAICompatibleAPI.Validate(modelsUrl ?? Endpoint.Current(ModelsURL), apiKey);
 
     // :29-31
     public static async Task<ValueList<ModelOption>> ListModels(string apiKey, Uri? modelsUrl = null) =>
         // :30
-        await OpenAICompatibleAPI.ListModels(modelsUrl ?? ModelsURL, apiKey, Option);
+        await OpenAICompatibleAPI.ListModels(modelsUrl ?? Endpoint.Current(ModelsURL), apiKey, Option);
 
     /// <summary>
     /// Probed live 2026-09-13: only `muse-spark-1.3` accepts "max". Every other checkpoint, including
