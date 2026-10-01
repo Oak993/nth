@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
-using System.Reflection;
 using System.Text;
 using Avalonia;
 using Avalonia.Automation;
@@ -338,12 +337,8 @@ public sealed class HydraButton : Decorator
             : $"Hydra is on, {running.ToString(CultureInfo.InvariantCulture)} heads working, show or hide the panel";
     }
 
-    // :10 @Environment(AppModel.self): the model the runtime belongs to. The runtime holds it weakly in a private property
-    // (ThreadRuntime.App) and no public member hands it out, so it is read by reflection (ED-119).
-    private static readonly PropertyInfo? RuntimeApp =
-        typeof(ThreadRuntime).GetProperty("App", BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
-
-    private static AppModel? FindAppModel(ThreadRuntime runtime) => RuntimeApp?.GetValue(runtime) as AppModel;
+    // :10 @Environment(AppModel.self): the model the runtime belongs to, which the runtime holds weakly (ThreadRuntime.App).
+    private static AppModel? FindAppModel(ThreadRuntime runtime) => runtime.App;
 
     // :113-136
     private static bool IsLeadDelegating(IReadOnlyList<TimelineEntry> entries)

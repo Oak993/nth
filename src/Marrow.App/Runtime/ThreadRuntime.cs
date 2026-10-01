@@ -444,7 +444,7 @@ public sealed class ThreadRuntime : MainActorModel
 
     // ThreadRuntime.swift:414-448, 496-508, 793-797, 1799, 1941, 1960-1962.
     // App ownership is weak because AppModel owns the runtime cache.
-    private AppModel? App => appReference is not null && appReference.TryGetTarget(out var value) ? value : null;
+    internal AppModel? App => appReference is not null && appReference.TryGetTarget(out var value) ? value : null;
 
     // :169
     public Guid ThreadID { get; }
