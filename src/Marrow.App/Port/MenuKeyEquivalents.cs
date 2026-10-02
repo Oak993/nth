@@ -63,7 +63,7 @@ public static class MenuKeyEquivalents
     }
 
     /// <summary>
-    /// ED-229: the "+" key equivalent (AppCommands.swift:53-54, Zoom In) as Windows types it. A key position never reads
+    /// ED-230: the "+" key equivalent (AppCommands.swift:53-54, Zoom In) as Windows types it. A key position never reads
     /// as "+" (ED-099), so on a Mac Cmd-Shift-= and the keypad + reach it by the character they type; here Shift with the
     /// "=" key, and the numeric keypad's +, are read as "+" with the other modifiers held (Shift is part of typing "+").
     /// Null for any other key. The dispatch offers it only after the chord itself found no command, so a shortcut set
@@ -88,7 +88,7 @@ public static class MenuKeyEquivalents
         EventHandler<KeyEventArgs> onKeyDown = (_, e) =>
         {
             if (e.Handled) return;
-            // ED-229: the chord as its key position first; only if nothing takes it, the "+" it types
+            // ED-230: the chord as its key position first; only if nothing takes it, the "+" it types
             if ((Shortcut(e) is { } pressed && perform(pressed)) || (Plus(e) is { } plus && perform(plus))) e.Handled = true;
         };
         window.AddHandler(InputElement.KeyDownEvent, onKeyDown, RoutingStrategies.Tunnel);

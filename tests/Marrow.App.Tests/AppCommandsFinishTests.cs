@@ -395,11 +395,11 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
         });
     });
 
-    // ===== ED-229: the "+" key equivalent, as Windows types it =====
+    // ===== ED-230: the "+" key equivalent, as Windows types it =====
 
     [Fact]
     [Trait("Req", "PR-WIN-222")] // App/AppCommands.swift:53-54 (Zoom In on "+")
-    [Trait("Decision", "ED-229")]
+    [Trait("Decision", "ED-230")]
     public void Ctrl_Shift_equals_and_Ctrl_keypad_plus_zoom_in_unless_a_shortcut_holds_that_chord() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();
