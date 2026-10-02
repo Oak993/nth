@@ -649,6 +649,9 @@ public sealed class FrontMonitor : MainActorModel
         window.Activated += (_, _) => { var wasVisible = IsVisible; RefreshVisibility(); Bump(wasVisible ? window : null); };
         window.Deactivated += (_, _) => RefreshVisibility(); window.Closed += (_, _) => RefreshVisibility();
         window.PropertyChanged += (_, change) => { if (change.Property == Visual.IsVisibleProperty || change.Property == Avalonia.Controls.Window.WindowStateProperty) { RefreshVisibility(); if (window.IsVisible && window.WindowState != WindowState.Minimized) Bump(window); } };
+        // Avalonia 12.1.2 raises Activated before IsActive becomes true, so the Activated handler above can read the old value:
+        // visibility is refreshed again when IsActive itself changes (found by the native frame run, 2026-10-02).
+        window.PropertyChanged += (_, change) => { if (change.Property == WindowBase.IsActiveProperty) RefreshVisibility(); };
         RefreshVisibility();
     }
 

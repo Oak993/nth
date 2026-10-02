@@ -225,6 +225,28 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-CHAT-137")] // App/Views/Chat/ThreadTimeline.swift:1337-1340 refreshVisibility on the window becoming key
+    public void Front_visibility_follows_the_window_becoming_active_even_when_no_activation_event_comes_after_it() => headless.OnUiThread(() =>
+    {
+        using var actor = Marrow.Core.Port.MainActor.Executor.Override(Marrow.UI.Port.AvaloniaMainExecutor.Instance);
+        // Avalonia 12.1.2 raises Activated before IsActive turns true, so the Activated handler can read the old value
+        // (native frame run, 2026-10-02: an active window left everything it shows paused). Here IsActive turns true with
+        // no Activated after it, as on a real window.
+        var monitor = (FrontMonitor)Activator.CreateInstance(typeof(FrontMonitor), nonPublic: true)!;
+        var window = new Avalonia.Controls.Window();
+        window.Show();
+        var setActive = typeof(Avalonia.Controls.WindowBase).GetProperty("IsActive")!.GetSetMethod(nonPublic: true)!;
+        setActive.Invoke(window, [false]);
+        Invoke<object?>(monitor, "Observe", window);
+        Assert.False(monitor.IsVisible);
+        setActive.Invoke(window, [true]);
+        Assert.True(monitor.IsVisible);
+        setActive.Invoke(window, [false]);
+        Assert.False(monitor.IsVisible);
+        window.Close();
+    });
+
+    [Fact]
     [Trait("Req", "PR-CHAT-156")] // App/Views/Chat/ThreadTimeline.swift:147-155,1784-1795
     public void Mention_targets_choose_newest_same_persona_and_persona_cache_keys_only_indices_and_roster() => OnMain(() =>
     {
