@@ -221,7 +221,12 @@ public sealed class DownloadsPopoverSecondTests(HeadlessSession headless)
         {
             var popover = new DownloadsPopover(_ => { }, () => { });
             Show(popover);
-            var (stack, _) = Parts(popover);
+            var (stack, listSlot) = Parts(popover);
+            // The .task load scans the folder on a real background thread and posts its result back to this dispatcher.
+            // Left unawaited, that post can land after the body, while HeadlessUnitTestSession tears the application
+            // down (it disposes the FontManager first, then runs every queued job in Dispatcher.ResetForUnitTests), and
+            // the list's relayout there threw "Could not create glyphTypeface. Font family: Inter (key: fonts:Inter)".
+            PumpUntil(() => IsPastLoading(listSlot));
             var explorerRow = Assert.IsType<PopoverItem>(stack.Children[3]);
             var button = Assert.IsType<Button>(explorerRow.Child);
             button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent));
