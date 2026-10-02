@@ -5,15 +5,15 @@ namespace Marrow.Core.Tests.Support;
 public sealed class AppInfoBuildChannelTests
 {
     [Fact] // Exercised in both Debug and Release test runs.
-    [Trait("Rule", "R-STR-9")] // No Req: pins .droppy-code, which PR-STORE-008 changes to .marrow (OD-0012 F1); rework.
+    [Trait("Req", "PR-STORE-008")] // Core/Support/Text.swift:5-6: the development build uses the -dev name (OD-0012 F1: ".marrow-dev")
     public void Cached_application_info_uses_the_compiled_build_channel()
     {
 #if DEBUG
         Assert.True(AppInfo.Current.IsDevelopment);
-        Assert.Equal(".droppy-code-dev", AppInfo.Current.StateDirectoryName);
+        Assert.Equal(".marrow-dev", AppInfo.Current.StateDirectoryName);
 #else
         Assert.False(AppInfo.Current.IsDevelopment);
-        Assert.Equal(".droppy-code", AppInfo.Current.StateDirectoryName);
+        Assert.Equal(".marrow", AppInfo.Current.StateDirectoryName);
 #endif
     }
 }

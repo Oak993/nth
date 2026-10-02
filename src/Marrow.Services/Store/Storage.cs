@@ -90,10 +90,9 @@ public sealed class StorageLocations : IStorageLocations
         threadsDirectory = CreateOnce(() => paths.Directory("threads")); // :25
         attachmentsDirectory = CreateOnce(() => paths.Directory("attachments")); // :27
 
-        // :34-39 stateDirectory(_:). DEVIATION OD-0012 F1: the folder name shown in Settings and handed to git is
-        // ".marrow" / ".marrow-dev", not upstream AppInfo.stateDirectoryName (".droppy-code" / ".droppy-code-dev",
-        // Text.swift:6): this path is a named exception to keeping AppInfo's own literal.
-        var stateDirectoryName = isDevelopment ? ".marrow-dev" : ".marrow"; // DEVIATION OD-0012 F1
+        // :34-39 stateDirectory(_:) under AppInfo.stateDirectoryName (Text.swift:6), which DEVIATION OD-0012 F1 makes
+        // ".marrow" / ".marrow-dev" (PR-STORE-008): the folder name shown in Settings and handed to git.
+        var stateDirectoryName = AppInfo.StateDirectoryNameFor(isDevelopment);
         worktreesDirectory = StateSubDirectory(homeDirectory, stateDirectoryName, "worktrees"); // :29
         patchesDirectory = StateSubDirectory(homeDirectory, stateDirectoryName, "patches"); // :32
     }

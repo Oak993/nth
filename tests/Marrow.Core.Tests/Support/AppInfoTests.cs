@@ -7,9 +7,9 @@ namespace Marrow.Core.Tests.Support;
 public sealed class AppInfoTests
 {
     [Theory]
-    [Trait("Rule", "R-STR-9")] // No Req: pins .droppy-code, which PR-STORE-008 changes to .marrow (OD-0012 F1); rework.
-    [InlineData(false, ".droppy-code")]
-    [InlineData(true, ".droppy-code-dev")]
+    [Trait("Req", "PR-STORE-008")] // Core/Support/Text.swift:5-6; DEVIATION OD-0012 F1: ".marrow" / ".marrow-dev", literal, with the dot
+    [InlineData(false, ".marrow")]
+    [InlineData(true, ".marrow-dev")]
     public void Packaged_development_flag_selects_the_exact_hidden_state_directory(bool development, string expected)
     {
         var info = AppInfo.Read(new Dictionary<string, object?>(), development);

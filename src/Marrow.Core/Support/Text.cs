@@ -20,7 +20,11 @@ public sealed record AppInfo
     public string Version { get; }
     public string Build { get; }
     public bool IsDevelopment { get; }
-    public string StateDirectoryName => IsDevelopment ? ".droppy-code-dev" : ".droppy-code";
+    // Text.swift:6. DEVIATION OD-0012 F1 (ED scope: the state folder is user-visible): ".marrow" / ".marrow-dev".
+    public string StateDirectoryName => StateDirectoryNameFor(IsDevelopment);
+
+    /// <summary>The home state folder's name for a build channel (Storage reads it for the worktrees and patches).</summary>
+    public static string StateDirectoryNameFor(bool isDevelopment) => isDevelopment ? ".marrow-dev" : ".marrow";
 
     private AppInfo(string name, string version, string build, bool isDevelopment) =>
         (Name, Version, Build, IsDevelopment) = (name, version, build, isDevelopment);
