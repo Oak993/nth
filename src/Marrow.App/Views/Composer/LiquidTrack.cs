@@ -31,6 +31,54 @@ namespace Marrow.App.Views.Composer;
 //   the tube's gloss (light above, shade below) and its inset rim lights.
 // Everything is a function of continuous time, so nothing loops visibly or jumps. Light on hardware: one pass, one
 // small track, at 60 Hz only while the window is visible.
+// DEVIATION OD-0073 (ED-248): in fast mode the currents and the caustic run 1.5x (the Strike canvas's --cf 4.67 s,
+// --sf 7.33 s, --cp 4 s; the breathe and the bubbles keep their pace), and the Strike lightning (LiquidStrike.cs) is
+// screen-blended over the liquid, under the gloss and the rims, unbent by the glass (on the canvas it is a plain layer
+// over the liquid): the glass pass samples it once, at the pixel itself.
+
+/// <summary>
+/// How far the liquid's moving layers have gone, in passes: the first current (7 s a pass, 4.67 s in fast mode), the
+/// slow current (11 s, 7.33 s) and the caustic's sweeps (6 s each way, 4 s).
+/// </summary>
+public readonly record struct LiquidFlow(double Fast, double Slow, double Caustic)
+{
+    public static (double Fast, double Slow, double Caustic) Periods(bool fastMode) => fastMode ? (4.67, 7.33, 4) : (7, 11, 6);
+
+    /// <summary>The flow of a track that has run at one pace since time 0.</summary>
+    public static LiquidFlow At(double time, bool fastMode)
+    {
+        var (fast, slow, caustic) = Periods(fastMode);
+        return new LiquidFlow(time / fast, time / slow, time / caustic);
+    }
+}
+
+/// <summary>
+/// A track's flow across fast-mode changes: a change of pace keeps every layer where it is and only changes its speed
+/// from then on, so a pair's track (which keeps its view when fast mode is toggled) never jumps.
+/// </summary>
+public sealed class LiquidPace
+{
+    private bool? fastMode;
+    private LiquidFlow offset;
+
+    public LiquidFlow At(double time, bool fast)
+    {
+        if (fastMode is { } was && was != fast)
+        {
+            var before = Flow(time, was);
+            var after = LiquidFlow.At(time, fast);
+            offset = new LiquidFlow(before.Fast - after.Fast, before.Slow - after.Slow, before.Caustic - after.Caustic);
+        }
+        fastMode = fast;
+        return Flow(time, fast);
+    }
+
+    private LiquidFlow Flow(double time, bool fast)
+    {
+        var flow = LiquidFlow.At(time, fast);
+        return new LiquidFlow(flow.Fast + offset.Fast, flow.Slow + offset.Slow, flow.Caustic + offset.Caustic);
+    }
+}
 
 /// <summary>One stretch of the liquid: its colours (left to right) and its share of the track.</summary>
 public sealed record LiquidSegment(IReadOnlyList<SwiftColor> Colors, double Weight, bool Oil, SwiftColor Strand, bool Lead);
@@ -254,11 +302,19 @@ public static class LiquidTrack
     }
 
     /// <summary>An alternating CSS animation's eased progress (ease-in-out, period seconds per direction).</summary>
-    public static double Alternate(double time, double period)
+    public static double Alternate(double time, double period) => AlternateAt(time / period);
+
+    /// <summary>The same, <paramref name="sweeps"/> sweeps in (one sweep each way per period).</summary>
+    public static double AlternateAt(double sweeps)
     {
-        var q = time / period % 2;
+        var q = sweeps % 2;
         return CubicBezier(0.42, 0, 0.58, 1, q <= 1 ? q : 2 - q);
     }
+
+    /// <summary>The currents' and the caustic's offsets (px) for a flow over a track's width: each current slides left by
+    /// its pass's fraction of the track, the caustic tile pans by up to the track's width to and fro.</summary>
+    public static (double Fast, double Slow, double Caustic) Offsets(LiquidFlow flow, double track) =>
+        ((flow.Fast - Math.Floor(flow.Fast)) * track, (flow.Slow - Math.Floor(flow.Slow)) * track, track * AlternateAt(flow.Caustic));
 
     /// <summary>The gradient across a width, one sRGB texel per device pixel, interpolated in OKLab as CSS does.</summary>
     public static SKColor[] GradientRow(IReadOnlyList<(Color Color, double At)> stops, int pixels)
@@ -456,6 +512,7 @@ public static class LiquidTrack
             half4 g = liquid.eval(p + refraction.y * off);
             half4 b = liquid.eval(p + refraction.z * off);
             half4 o = half4(r.r, g.g, b.b, 1.0 - (1.0 - r.a) * (1.0 - g.a) * (1.0 - b.a));
+            //LIGHT
             float d = capsule(p, size);
             float cov = clamp(0.5 - d * scale, 0.0, 1.0);
             // the tube's gloss: light above, shade below
@@ -519,6 +576,11 @@ public static class LiquidTrack
     private static readonly Lazy<SKRuntimeEffect> CausticEffect = Compile(Uniforms_ + Helpers + CausticMain, "caustic");
     private static readonly Lazy<SKRuntimeEffect> CoverEffect = Compile(Uniforms_ + Helpers + CoverMain, "coverage");
     private static readonly Lazy<SKRuntimeEffect> Effect = Compile("uniform shader liquid;\n" + Uniforms_ + Helpers + GlassMain, "glass");
+
+    // OD-0073: the glass for fast mode also screens the Strike layer over the refracted liquid, before the gloss and rims
+    // (the canvas's mix-blend-mode: screen; premultiplied, so cs + cb - cs cb for colour and alpha alike)
+    private static readonly Lazy<SKRuntimeEffect> LitEffect = Compile("uniform shader liquid;\nuniform shader light;\n" + Uniforms_ + Helpers +
+        GlassMain.Replace("//LIGHT", "half4 l = light.eval(p); o = l + o - l * o;", StringComparison.Ordinal), "lit glass");
     private static readonly Lazy<SKRuntimeEffect> BubbleEffect = Compile(BubbleShader, "bubble");
 
     /// <summary>Compiles every pass (tests use it to prove the sources are valid SkSL).</summary>
@@ -526,19 +588,24 @@ public static class LiquidTrack
     {
         get
         {
-            foreach (var pass in new[] { BaseEffect, OilEffect, StrandsEffect, SlowEffect, CausticEffect, CoverEffect, BubbleEffect }) _ = pass.Value;
+            foreach (var pass in new[] { BaseEffect, OilEffect, StrandsEffect, SlowEffect, CausticEffect, CoverEffect, BubbleEffect, LitEffect }) _ = pass.Value;
             return Effect.Value;
         }
     }
 
     /// <summary>One frame's values, resolved on the UI thread.</summary>
-    internal sealed record Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles, IReadOnlyList<Color> StrandColors);
+    internal sealed record Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles,
+        IReadOnlyList<Color> StrandColors, LiquidFlow Flow, IReadOnlyList<StrikeOp>? Strike);
 
-    /// <summary>Draws the liquid tube and its bubbles into <paramref name="context"/> at <paramref name="time"/>.</summary>
+    /// <summary>
+    /// Draws the liquid tube and its bubbles into <paramref name="context"/> at <paramref name="time"/>: its currents and
+    /// caustic at <paramref name="flow"/> (by default a normal pace since time 0), and the Strike lightning
+    /// <paramref name="strike"/> over it when given (OD-0073).
+    /// </summary>
     public static void Draw(DrawingContext context, Size size, double track, double time, LiquidSpec spec, SKColor[] gradient,
-        BubbleLanes? bubbles, bool darkBubbles, ThemeVariant theme) =>
+        BubbleLanes? bubbles, bool darkBubbles, ThemeVariant theme, LiquidFlow? flow = null, IReadOnlyList<StrikeOp>? strike = null) =>
         context.Custom(new Operation(new Frame(size, track, time, gradient, spec, bubbles, darkBubbles,
-            spec.Segments.Select(s => s.Strand.Resolve(theme)).ToArray())));
+            spec.Segments.Select(s => s.Strand.Resolve(theme)).ToArray(), flow ?? LiquidFlow.At(time, false), strike)));
 
     /// <summary>The gradient row for a spec at a device width.</summary>
     public static SKColor[] GradientFor(LiquidSpec spec, int pixels, ThemeVariant theme) =>
@@ -582,9 +649,11 @@ public static class LiquidTrack
         };
         // the currents: one model has the canvas's wave1 (amplitude 5, 4 cycles) and wave2 (7, 2 cycles, phase 2) in a
         // 30-unit viewBox; a blend has a strand per model (the lead 10, a worker 6, 4 cycles, phases spread evenly, 3
-        // wide) and wave3 (8, 2 cycles, phase 1) in a 40-unit viewBox. 7 s and 11 s a pass.
-        var fastOffset = (float)(f.Time % 7 / 7 * track);
-        var slowOffset = (float)(f.Time % 11 / 11 * track);
+        // wide) and wave3 (8, 2 cycles, phase 1) in a 40-unit viewBox. 7 s and 11 s a pass (OD-0073: 4.67 s and 7.33 s in
+        // fast mode), as the frame's flow says.
+        var (fastPx, slowPx, causticPx) = Offsets(f.Flow, track);
+        var fastOffset = (float)fastPx;
+        var slowOffset = (float)slowPx;
         var shapes = new float[MaxStrands * 4]; var colors = new float[MaxStrands * 4];
         int strands;
         if (!f.Spec.IsBlend)
@@ -614,8 +683,8 @@ public static class LiquidTrack
         u["strands"] = (float)strands;
         u["strandShape"] = shapes;
         u["strandColor"] = colors;
-        // the caustic tile pans by up to the track's width, 6 s each way
-        u["caustic"] = (float)(track * Alternate(f.Time, 6));
+        // the caustic tile pans by up to the track's width, 6 s each way (OD-0073: 4 s in fast mode)
+        u["caustic"] = (float)causticPx;
         var (oil, oilMask) = Oil(f.Spec, w, f.Time);
         u["oil"] = oil; u["oilMask"] = oilMask;
         return u;
@@ -691,12 +760,30 @@ public static class LiquidTrack
             }
             Layer(CoverEffect, SKBlendMode.DstIn);
 
+            // OD-0073: the Strike lightning, drawn source-over into its own layer at device scale; the glass screens it over
+            // the refracted liquid (above the bubbles, under the gloss and rims) and clips it with the tube
+            using var light = frame.Strike is { Count: > 0 }
+                ? (lease.GrContext is { } gpuLight ? SKSurface.Create(gpuLight, true, info) : null) ?? SKSurface.Create(info)
+                : null;
+            if (light is not null)
+            {
+                var lc = light.Canvas;
+                lc.Clear(SKColors.Transparent);
+                lc.Scale((float)scale);
+                Strike.Render(lc, frame.Strike!);
+            }
+
             // (B) the glass: the composed liquid refracted per channel, the gloss and the rims
             using var composed = surface.Snapshot();
             using var sampled = composed.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Linear),
                 SKMatrix.CreateScale((float)(1 / scale), (float)(1 / scale)));
-            var glass = Effect.Value;
-            using var glassShader = glass.ToShader(Uniforms(glass, frame, scale), new SKRuntimeEffectChildren(glass) { ["liquid"] = sampled });
+            using var lightImage = light?.Snapshot();
+            using var lightShader = lightImage?.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Linear),
+                SKMatrix.CreateScale((float)(1 / scale), (float)(1 / scale)));
+            var glass = lightShader is null ? Effect.Value : LitEffect.Value;
+            var glassChildren = new SKRuntimeEffectChildren(glass) { ["liquid"] = sampled };
+            if (lightShader is not null) glassChildren["light"] = lightShader;
+            using var glassShader = glass.ToShader(Uniforms(glass, frame, scale), glassChildren);
             using var glassPaint = new SKPaint { Shader = glassShader, IsAntialias = true, Color = SKColors.White.WithAlpha((byte)Math.Clamp(lease.CurrentOpacity * 255, 0, 255)) };
             canvas.DrawRect(rect, glassPaint);
         }

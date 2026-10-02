@@ -1045,8 +1045,10 @@ internal static class EffortView
                 EffortBrand.Claude or EffortBrand.Deepseek or EffortBrand.Purple => new SolidColorBrush(look.Brand.FillColor.Resolve(theme)),
                 _ => Gradient(look.Brand.LiquidStops, theme), // OD-0047: the new brands' liquid colours
             },
-            TrackLook.Kind.Fast => new SolidColorBrush(EffortPalette.FastFill.Resolve(theme)),
-            _ => Gradient([look.Brand.FillColor, look.Brand.FillColor, EffortPalette.FastFill], theme), // :993-996
+            // :992-996 the amber fast fill and the brand-to-amber fusion. DEVIATION OD-0073 (ED-248): fast mode is the model's
+            // liquid with Strike at every effort, so the fill under it (seen only at its rim and while it fades in) is the
+            // brand's, as at the top
+            _ => Fill(look with { TrackLookKind = TrackLook.Kind.Supercharged }, theme),
         };
     }
 }
@@ -1300,7 +1302,6 @@ public sealed class TrackEffect : Decorator
 {
     private TrackLook look = null!;
     private readonly DateTimeOffset startedAt = SwiftDate.Now;
-    private readonly TraitCache traits = new();
     private readonly EffectCanvas canvas;
     private double time;
     /// <param name="look">:1040 <c>let look: TrackLook</c>.</param>
@@ -1318,13 +1319,31 @@ public sealed class TrackEffect : Decorator
         {
             time = (date - startedAt).TotalSeconds; canvas.InvalidateVisual();
         }); // :1049-1068
+        // OD-0073: Reduce Motion turned on or off at run time shows the fast look's still (or lets it run) at once
+        PropertyChanged += (_, change) => { if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) canvas.InvalidateVisual(); };
     }
 
     // :1024-1026 pair kind changes preserve this view's clock and trait cache.
     internal void SetLook(TrackLook value) { look = value; canvas.InvalidateVisual(); }
 
-    /// <summary>OD-0051: maximum effort and every pair draw the liquid tube; the other levels keep the source's effects.</summary>
-    internal static bool IsLiquid(TrackLook look) => look.Pair is not null || look.TrackLookKind is TrackLook.Kind.Supercharged or TrackLook.Kind.Fusion;
+    /// <summary>OD-0051: maximum effort and every pair draw the liquid tube; OD-0073: so does fast mode at every effort.</summary>
+    internal static bool IsLiquid(TrackLook look) => look.Pair is not null || look.TrackLookKind != TrackLook.Kind.Plain;
+
+    /// <summary>OD-0073: fast mode (below the top, or at it) draws Strike over the liquid.</summary>
+    internal static bool IsFast(TrackLook look) => look.TrackLookKind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion;
+
+    private readonly LiquidPace pace = new();
+    private StrikeChannels? strikes;
+
+    /// <summary>This track's Strike seed (the board's seed * 97 + 13 over the track's own number).</summary>
+    internal int StrikeSeed => unchecked(bubbleSeed * 97 + 13);
+
+    /// <summary>The knob's centre, in from the liquid's end, and its radius (the slider's knob: 42 px, centred on the fill's
+    /// end less 21). The Strike channel leaves the knob's centre; its sparks start inside the knob.</summary>
+    internal double KnobInset { get; set; } = EffortSlider.ThumbSize / 2;
+    internal double KnobRadius { get; set; } = EffortSlider.ThumbSize / 2;
+
+    internal StrikeGeometry StrikeGeometryFor(Size size) => new(size.Width, size.Height, size.Width - KnobInset, KnobRadius);
 
     /// <summary>
     /// The whole track's width (the slider sets it; the effect itself spans only the filled part). The liquid's currents,
@@ -1367,126 +1386,26 @@ public sealed class TrackEffect : Decorator
             base.Render(context);
             var size = Bounds.Size;
             if (size.Width <= 8) return; // :1053
-            var look = owner.look; var kind = look.TrackLookKind; var time = owner.time;
-            var traits = owner.traits.Traits(size.Width); // :1057
-            if (IsLiquid(look))
+            var look = owner.look; var time = owner.time;
+            if (!IsLiquid(look)) return;
+            // DEVIATION OD-0048 / OD-0051: the liquid tube replaces the source's fusion (:1054-1056) and particles; its
+            // sweeping sheen is gone (no artificial shine). DEVIATION OD-0073 (ED-248): fast mode, below the top or at it,
+            // is Strike over the liquid, in place of the source's streaks and bolts (:1057-1064), its currents 1.5x.
+            var spec = LiquidSpec.For(look);
+            var track = Math.Max(owner.TrackWidth, size.Width);
+            var darkBubbles = look.Pair is null && look.IsLightFill; // the canvas's white liquid has dark-rimmed bubbles
+            var fast = IsFast(look);
+            // reduce motion stills the fast look as the canvas does: every animation stopped (the liquid at rest, no
+            // bubbles), one frame of the lightning 35 ms into strike 1
+            var still = fast && EnvironmentValues.GetAccessibilityReduceMotion(owner);
+            IReadOnlyList<StrikeOp>? strike = null;
+            if (fast)
             {
-                // DEVIATION OD-0048 / OD-0051: the liquid tube replaces the source's fusion (:1054-1056) and particles.
-                // The fast mode's streaks and bolts still run over it; its sweeping sheen does not (no artificial shine).
-                var spec = LiquidSpec.For(look);
-                var track = Math.Max(owner.TrackWidth, size.Width);
-                var darkBubbles = look.Pair is null && look.IsLightFill; // the canvas's white liquid has dark-rimmed bubbles
-                LiquidTrack.Draw(context, size, track, time, spec, owner.Gradient(spec, size.Width, ActualThemeVariant), owner.Bubbles(track, size.Height), darkBubbles, ActualThemeVariant);
+                owner.strikes ??= new StrikeChannels(owner.StrikeSeed);
+                strike = owner.strikes.Scene(owner.StrikeGeometryFor(size), still ? Strike.StillTime(owner.StrikeSeed) : time, StrikeTint.For(look.Brand));
             }
-            if (kind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion) { DrawStreaks(context, size, time, traits.Streaks); DrawBolts(context, size, time); }
+            LiquidTrack.Draw(context, size, track, still ? 0 : time, spec, owner.Gradient(spec, size.Width, ActualThemeVariant),
+                still ? null : owner.Bubbles(track, size.Height), darkBubbles, ActualThemeVariant, still ? default(LiquidFlow) : owner.pace.At(time, fast), strike);
         }
-    }
-
-    /// <summary>:1084-1091 <c>struct Streak: Equatable</c>.</summary>
-    public sealed record Streak
-    {
-        public double Length { get; init; }     // :1085
-        public double Speed { get; init; }      // :1086
-        public double Thickness { get; init; }  // :1087
-        public double Start { get; init; }      // :1088
-        public double Height { get; init; }     // :1089
-        public double Brightness { get; init; } // :1090
-    }
-
-    /// <summary>:1093-1116 <c>struct Traits: Equatable</c>.</summary>
-    // :1094-1095. DEVIATION OD-0051: the particles (:1094) are gone with the particle fill the liquid tube replaced; the
-    // fast mode's streaks remain.
-    public sealed record Traits(ValueList<Streak> Streaks)
-    {
-        // :1099-1115 static func build(width:) -> Traits. PR-COMPOSER-134: one streak per fourteen points, with per-index
-        // deterministic values (TrackEffect.Random); the source's one particle per five points is gone (OD-0051).
-        public static Traits Build(double width)
-        {
-            var streaks = Enumerable.Range(0, Math.Max(5, (int)(width / 14))).Select(index =>
-            {
-                var seed = (double)index + 100;
-                return new Streak
-                {
-                    Length = 10 + 20 * Random(seed, 1),
-                    Speed = 110 + 190 * Random(seed, 2),
-                    Thickness = 1.1 + 1.1 * Random(seed, 3),
-                    Start = Random(seed, 4),
-                    Height = 0.2 + 0.6 * Random(seed, 5),
-                    Brightness = 0.35 + 0.55 * Random(seed, 6),
-                };
-            });
-
-            return new Traits(new ValueList<Streak>(streaks));
-        }
-    }
-
-    /// <summary>:1121-1132 <c>final class TraitCache</c>.</summary>
-    public sealed class TraitCache
-    {
-        private double width = -1.0;
-        private Traits built = new(ValueList<Streak>.Empty);
-
-        // :1125-1131 func traits(width:) -> Traits. PR-COMPOSER-134: rebuilt only when the width changes.
-        public Traits Traits(double width)
-        {
-            if (width != this.width)
-            {
-                this.width = width;
-                built = TrackEffect.Traits.Build(width);
-            }
-
-            return built;
-        }
-    }
-
-    // :1151-1171 private static func drawStreaks(_:size:time:streaks:)
-    private static void DrawStreaks(DrawingContext context, Size size, double time, IReadOnlyList<Streak> streaks)
-    {
-        foreach (var streak in streaks)
-        {
-            var span = size.Width + streak.Length + 12;
-            var x = (streak.Start * span + time * streak.Speed) % span - streak.Length - 6;
-            var y = size.Height * streak.Height;
-            var brightness = streak.Brightness * EdgeFade(x + streak.Length, size.Width);
-            if (brightness <= 0.02) continue;
-            var rect = new Rect(x, y - streak.Thickness / 2, streak.Length, streak.Thickness);
-            var brush = EffortView.Gradient([SwiftColor.White.Opacity(0), SwiftColor.White.Opacity(brightness)], ThemeVariant.Light);
-            context.DrawGeometry(brush, null, new RectangleGeometry(rect, streak.Thickness / 2, streak.Thickness / 2));
-        }
-    }
-
-    // :1175-1201 private static func drawBolts(_:size:time:)
-    private static void DrawBolts(DrawingContext context, Size size, double time)
-    {
-        for (var slot = 0; slot < 2; slot++)
-        {
-            var seed = slot + 200.0;
-            var period = 1.4 + 0.9 * Random(seed, 1);
-            var offset = Random(seed, 2) * period;
-            var cycle = Math.Floor((time + offset) / period);
-            var phase = time + offset - cycle * period;
-            const double flash = 0.26;
-            if (phase >= flash) continue;
-            var intensity = Math.Sin(phase / flash * Math.PI);
-            var cycleSeed = seed + cycle * 7.31;
-            var x = 12 + (size.Width - 24) * Random(cycleSeed, 3);
-            if (x <= 6 || x >= size.Width - 6) continue;
-            var lean = 3 + 3 * Random(cycleSeed, 4);
-            var path = EffortView.Path([new Point(x + lean, 3), new Point(x - lean * 0.4, size.Height * 0.42), new Point(x + lean * 0.5, size.Height * 0.5), new Point(x - lean, size.Height - 3)], false);
-            using (context.PushEffect(CometPainter.GaussianBlur(3), new Rect(size).Inflate(12)))
-                context.DrawGeometry(null, new Pen(new SolidColorBrush(EffortPalette.Fast.Opacity(0.9 * intensity).Resolve(ThemeVariant.Light)), 4, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), path);
-            context.DrawGeometry(null, new Pen(new SolidColorBrush(SwiftColor.White.Opacity(intensity).Resolve(ThemeVariant.Light)), 1.5, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), path);
-        }
-    }
-
-    // :1338-1340 private static func edgeFade(_:width:). PR-COMPOSER-135: an edge fade over the last 14 points.
-    private static double EdgeFade(double x, double width) =>
-        Math.Min(1, Math.Min(Math.Max(0, x / 14), Math.Max(0, (width - x) / 14)));
-
-    // :1343-1346 nonisolated static func random(_:_:). Deterministic per-index pseudo-random value (PR-COMPOSER-134).
-    public static double Random(double index, double trait)
-    {
-        var value = Math.Sin(index * 12.9898 + trait * 78.233) * 43758.5453;
-        return value - Math.Floor(value);
     }
 }
