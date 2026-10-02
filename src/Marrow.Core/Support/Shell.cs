@@ -660,8 +660,12 @@ public static class LoginEnvironment
     public static string HomeDirectory => HomeForTesting.Current is { Length: > 0 } home
         ? home : System.Environment.GetFolderPath(System.Environment.SpecialFolder.UserProfile);
 
+    // PORT-ONLY test seam (PR-RUNTIME-025): lets a test hold or observe the load, to see that a caller awaits it before it
+    // releases a session. The process default runs the shared Loader exactly as the Swift static does; no production code overrides it.
+    internal static Ambient<Func<Task>> LoadForTesting { get; } = new(() => shared.Value.Load());
+
     /// <summary>:357-365</summary>
-    public static Task Load() => shared.Value.Load();
+    public static Task Load() => LoadForTesting.Current();
 
     /// <summary>
     /// :393-400 The git binary every Git call runs, found once: the value the load stored, else the lookup over
