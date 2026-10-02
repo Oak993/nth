@@ -116,6 +116,9 @@ public sealed class PopoverScroll : Decorator
         };
         if (!isPremeasured)
         {
+            // The content keeps its own height (a ScrollView offers it unbounded height): stretched to the viewport it
+            // would report the viewport back and the scroll could grow but never shrink.
+            body.VerticalAlignment = VerticalAlignment.Top;
             body.LayoutUpdated += (_, _) => // :85-87 onGeometryChange(for: height)
             {
                 var height = body.Bounds.Height;

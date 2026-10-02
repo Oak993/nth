@@ -140,6 +140,9 @@ public sealed class UsageFloatingPanel : Decorator
             Child = usagePanel,
             Padding = new Thickness(0, HydraPanel.StripHeight, 0, 8),
             HorizontalAlignment = HorizontalAlignment.Stretch,
+            // A ScrollView's content keeps its own height; the viewport stretching it would make the height reported
+            // above the panel's own and pin the panel at its full size (seen in the native gallery).
+            VerticalAlignment = VerticalAlignment.Top,
         };
 
         return new ScrollViewer

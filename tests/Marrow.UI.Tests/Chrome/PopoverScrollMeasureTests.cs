@@ -76,4 +76,30 @@ public sealed class PopoverScrollMeasureTests(HeadlessSession headless)
         var markdown = Lines("```csharp", "var x = 1;", "```", "", "| a | b |", "|---|---|", "| 1 | 2 |");
         Assert.Equal(HostedHeight(markdown), PopoverScroll.MeasuredHeight(Body(markdown), Width));
     });
+
+    // :85-87 without a width the scroll follows the content's height as it changes (onGeometryChange of the content), in
+    // both directions: content that shrinks takes the scroll down with it, down to minHeight.
+    [Fact]
+    [Trait("Req", "PR-HYDRA-213")] // UI/Chrome/Popovers.swift:85-90 onGeometryChange(for: height) then the clamp
+    public void An_unmeasured_scroll_follows_its_content_down_as_well_as_up() => headless.OnUiThread(() =>
+    {
+        var first = new Border { Height = 120 };
+        var second = new Border { Height = 80 };
+        var body = new StackPanel { Children = { first, second } }; // no height of its own: it takes its children's
+        var popover = new PopoverScroll(() => body);
+        var window = new Window { Width = 800, Height = 600, Content = popover };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var scroll = (ScrollViewer)popover.Child!;
+        Assert.Equal(200, scroll.Height, 0.5);
+
+        body.Children.Remove(second);
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(120, scroll.Height, 0.5); // was stuck at 200: the viewport had stretched the content it reads
+
+        first.Height = 50;
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(80, scroll.Height, 0.5); // the 80-point floor
+        window.Close();
+    });
 }

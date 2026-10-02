@@ -94,6 +94,31 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
     }
 
     [Fact]
+    [Trait("Req", "PR-USAGE-060")] // App/Views/Usage/UsageFloatingPanel.swift:16-18, :34 the content's own height, which the placer sizes the panel to
+    public void In_a_tall_panel_the_reported_height_is_the_usage_content_not_the_panel()
+    {
+        session.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var runtime = MakeRuntime(harness, usage: null, provider: ProviderKind.Codex);
+            var reports = new System.Collections.Generic.List<double>();
+            var panel = new UsageFloatingPanel(
+                runtime, ProviderKind.Codex, headsProvider: null, size: new Size(360, 600),
+                onContentHeight: h => reports.Add(h), onDrag: _ => { }, onDragEnd: () => { }, dismiss: () => { });
+            Show(panel, harness);
+
+            // :34 onGeometryChange reads the ScrollView content's own height: a ScrollView offers its content unbounded
+            // height, so the content keeps its natural size however tall the panel is. The native gallery showed the
+            // panel stuck at its full height with an empty half: the port read the content after the viewport had
+            // stretched it, and so reported the panel's own height back.
+            var content = Assert.Single(LogicalQuery.SelfAndDescendants<UsagePanel>(panel));
+            Assert.NotEmpty(reports);
+            Assert.Equal(content.DesiredSize.Height + HydraPanel.StripHeight + 8, reports[^1], 0.5);
+            Assert.True(reports[^1] < 600 - 50, $"reported {reports[^1]} for a 600-point panel");
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-USAGE-060")] // App/Views/Usage/UsageFloatingPanel.swift:26-29, :38-45
     [Trait("Req", "PR-USAGE-061")] // App/Views/Usage/UsageFloatingPanel.swift:38-45
     [Trait("Rule", "R-STR-9")]
