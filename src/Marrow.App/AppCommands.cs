@@ -21,8 +21,8 @@ using Marrow.UI.Port;
 // TourWindowController.Present's attach of the dispatch to each window they build (STOP #6, resolved by fix/shortcuts).
 // AltGr handling is still unsettled (STOP #7); the Welcome tour palette row needs its own decision (STOP #4).
 // The zoom items (:53-62) carry literal key equivalents, "+", "-", "0" and "=". Port/MenuKeyEquivalents.cs reads a key
-// event as a US key position (ED-099), which gives "=", "-" and "0" but never "+": how a key press reaches the "+" key
-// equivalent, and whether these four match by character rather than position, is STOP App.AppCommands #2.
+// event as a US key position (ED-099), which gives "=", "-" and "0" but never "+": ED-229 reads Shift with the "=" key,
+// and the keypad +, as "+" when the chord itself takes nothing (STOP App.AppCommands #2, resolved).
 
 namespace Marrow.App;
 

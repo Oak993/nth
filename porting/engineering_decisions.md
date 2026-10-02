@@ -1665,3 +1665,7 @@ sweep endpoint is compared in the existing TimeSpan clock domain; no source timi
 constant, test expectation or timeout changes. Headless rendering does not prove
 production off-UI render-thread ownership. PR-COMPOSER-103, T-M7-086 and capture
 parity/UI-COMPOSER-017 remain open; no record or packet status advances here.
+
+## ED-229
+
+[WIN][SHORTCUTS] How the "+" key equivalent is pressed (STOP App.AppCommands #2). AppCommands.swift:53-54 gives Zoom In the literal key equivalent "+" with Command, and :59-62 adds a hidden "=" item because "US keyboards produce '=' for Command-plus without Shift". On a Mac a menu key equivalent matches the character the key types, so Cmd-Shift-= and the keypad + reach "+". The port reads key events as US key positions (ED-099), which never produce "+", so on Windows the "+" item was unreachable (Ctrl+Shift+= and Ctrl+numpad + did nothing). DECISION: `MenuKeyEquivalents.Plus` reads Shift with the "=" key, and the numeric keypad's + (with or without Shift), as the key equivalent "+" with the other modifiers held, Shift removed because it is part of typing "+". The window dispatch offers the chord as its key position first and offers the "+" reading only when no command took the chord, so a user shortcut bound to Ctrl+Shift+= keeps working. Only "+" is read this way: the other keypad keys are left out because no source item needs them and reading them as digits would change which commands Ctrl+keypad-digit reaches. Tests: AppCommandsFinishTests (Decision ED-229).

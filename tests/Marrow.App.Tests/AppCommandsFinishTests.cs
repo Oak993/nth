@@ -395,6 +395,40 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
         });
     });
 
+    // ===== ED-229: the "+" key equivalent, as Windows types it =====
+
+    [Fact]
+    [Trait("Req", "PR-WIN-222")] // App/AppCommands.swift:53-54 (Zoom In on "+")
+    [Trait("Decision", "ED-229")]
+    public void Ctrl_Shift_equals_and_Ctrl_keypad_plus_zoom_in_unless_a_shortcut_holds_that_chord() => headless.OnUiThread(() =>
+    {
+        using var launch = new LaunchHarness();
+        var store = FreshStore();
+        using var shared = ShortcutStore.Shared.Override(store);
+        AvaloniaWindow main = null!;
+        launch.Harness.Main.OnMain(() => { launch.Manager.ShowMain(); main = LaunchHarness.WindowOf(launch.MainContent)!; });
+        long Zoom() => launch.Harness.Main.OnMain(() => launch.Manager.Model.Settings.AppZoom);
+        void PressIn(Key key, PhysicalKey physical, RawInputModifiers modifiers) =>
+            launch.Harness.Main.OnMain(() => { Press(main, key, physical, modifiers); Dispatcher.UIThread.RunJobs(); });
+        try
+        {
+            Assert.Equal(100, Zoom());
+            PressIn(Key.OemPlus, PhysicalKey.Equal, RawInputModifiers.Control | RawInputModifiers.Shift); // typing "+" with Ctrl
+            Assert.Equal(110, Zoom());
+            PressIn(Key.Add, PhysicalKey.NumPadAdd, RawInputModifiers.Control); // the keypad's +
+            Assert.Equal(125, Zoom()); // the next step after 110 (AppZoom.swift)
+            PressIn(Key.Add, PhysicalKey.NumPadAdd, RawInputModifiers.None); // no Ctrl: no command holds a bare "+"
+            Assert.Equal(125, Zoom()); // the next step after 110 (AppZoom.swift)
+            // a shortcut set on Ctrl+Shift+= keeps the chord: the "+" reading is only a fallback
+            var activity = launch.Harness.Main.OnMain(() => launch.Manager.Model.Settings.SidebarActivityView);
+            launch.Harness.Main.OnMain(() => store.Set(new KeyChord(0x0D, ChordModifiers.Control | ChordModifiers.Shift), AppShortcut.ToggleActivityView));
+            PressIn(Key.OemPlus, PhysicalKey.Equal, RawInputModifiers.Control | RawInputModifiers.Shift);
+            Assert.Equal(125, Zoom()); // the next step after 110 (AppZoom.swift)
+            Assert.NotEqual(activity, launch.Harness.Main.OnMain(() => launch.Manager.Model.Settings.SidebarActivityView));
+        }
+        finally { launch.Harness.Main.OnMain(() => { main.Hide(); Dispatcher.UIThread.RunJobs(); }); }
+    });
+
     // ===== PR-WIN-222 to PR-WIN-225: the zoom chords rescale every hosted tree =====
 
     [Fact]

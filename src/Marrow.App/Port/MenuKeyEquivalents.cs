@@ -63,6 +63,23 @@ public static class MenuKeyEquivalents
     }
 
     /// <summary>
+    /// ED-229: the "+" key equivalent (AppCommands.swift:53-54, Zoom In) as Windows types it. A key position never reads
+    /// as "+" (ED-099), so on a Mac Cmd-Shift-= and the keypad + reach it by the character they type; here Shift with the
+    /// "=" key, and the numeric keypad's +, are read as "+" with the other modifiers held (Shift is part of typing "+").
+    /// Null for any other key. The dispatch offers it only after the chord itself found no command, so a shortcut set
+    /// on Ctrl+Shift+= still wins.
+    /// </summary>
+    public static KeyboardShortcut? Plus(KeyEventArgs e)
+    {
+        var modifiers = (ChordModifiers)e.KeyModifiers & KeyChord.AllowedModifiers;
+        if (e.PhysicalKey == PhysicalKey.NumPadAdd || e.Key == Key.Add)
+            return new KeyboardShortcut(new KeyEquivalent("+"), modifiers & ~ChordModifiers.Shift);
+        if (e.PhysicalKey == PhysicalKey.Equal && modifiers.HasFlag(ChordModifiers.Shift))
+            return new KeyboardShortcut(new KeyEquivalent("+"), modifiers & ~ChordModifiers.Shift);
+        return null;
+    }
+
+    /// <summary>
     /// Puts the dispatch on <paramref name="window"/> until the result is disposed: every key-down the window's own
     /// handlers left unconsumed is offered to <paramref name="perform"/>, and consumed when it returns true.
     /// </summary>
@@ -70,8 +87,9 @@ public static class MenuKeyEquivalents
     {
         EventHandler<KeyEventArgs> onKeyDown = (_, e) =>
         {
-            if (e.Handled || Shortcut(e) is not { } pressed) return;
-            if (perform(pressed)) e.Handled = true;
+            if (e.Handled) return;
+            // ED-229: the chord as its key position first; only if nothing takes it, the "+" it types
+            if ((Shortcut(e) is { } pressed && perform(pressed)) || (Plus(e) is { } plus && perform(plus))) e.Handled = true;
         };
         window.AddHandler(InputElement.KeyDownEvent, onKeyDown, RoutingStrategies.Tunnel);
         return new Detachment(() => window.RemoveHandler(InputElement.KeyDownEvent, onKeyDown));
