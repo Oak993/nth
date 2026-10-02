@@ -42,7 +42,8 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // window read 42.9 bare and 0.0 through it, active and inactive), and the boot hand-over (Port/BootStageWindow.cs,
 // WindowCloak) keeps the ~230 ms between the Acrylic's tint and its blur (probes P13, P14; OD-0041) out of sight at launch.
 // What ED-236 leaves open is its UNRESOLVED list: the wedge between the 26 pt shape and the rectangular window, and the same
-// gap on a user-opened Settings window. The three
+// gap on a user-opened Settings window, which ED-249 (OD-0074) closes: every open of Settings is shown cloaked and revealed at
+// glass-ready with Rise (Port/SettingsRise.cs). The three
 // window.center() calls (:43, :68, :82) use ED-225; Apple's exact bias remains UNVERIFIED OD-0001.
 // makeWindow also carries the port's stand-in for the menu bar DroppyCodeApp.swift:24 installs: each window it makes
 // dispatches the AppCommands chords itself (OD-0008 C3, Port/MenuKeyEquivalents.cs; STOP App.AppCommands #6).
@@ -153,8 +154,31 @@ public sealed class WindowManager
         var window = settingsWindow ?? MakeSettingsWindow(); // :34
         settingsWindow = window; // :35
         CenterOverMainWindow(window); // :36
+        // DEVIATION OD-0074 (ED-249): an open of the hidden window is Rise (Port/SettingsRise.cs): shown cloaked, revealed
+        // at glass-ready, then activated, the glass fading in and the items rising in a 0.26 s wave. A window already up is
+        // brought forward as before, except while it is still cloaked for its reveal (the reveal activates it).
+        if (!window.IsVisible && settingsView is { } view)
+        {
+            settingsRise?.Stop();
+            settingsRise = SettingsRise.Open(window, view, SettingsCloak, () => ShowRestoring(window), window.Activate);
+            return;
+        }
+        if (settingsRise is { Waiting: true }) return;
         Present(window); // :37
     }
+
+    /// <summary>PORT-ONLY (OD-0074, ED-249): how the Settings window is cloaked for its open; DWM cloaking
+    /// (<see cref="WindowCloak"/>) unless a test stands in for it.</summary>
+    internal Func<AvaloniaWindow, bool, bool> SettingsCloak { get; set; } = WindowCloak.Set;
+
+    // PORT-ONLY (OD-0074, ED-249): the Settings window's current open; null when it could not be cloaked.
+    private SettingsRise? settingsRise;
+
+    // PORT-ONLY (OD-0074, ED-249): the Settings window's content when it is the real SettingsView (:81).
+    private SettingsView? settingsView;
+
+    /// <summary>PORT-ONLY: the Settings window's current open, for tests.</summary>
+    internal SettingsRise? SettingsOpening => settingsRise;
 
     /// <summary>:40-55 Opens a window centered over the main window, kept on the screen the main window is on.</summary>
     private void CenterOverMainWindow(AvaloniaWindow window)
@@ -216,13 +240,19 @@ public sealed class WindowManager
         // from one of its windows (PR-WIN-013 windows_path): the window is shown (ordered front; a hidden window comes
         // back) and then activated, which asks Windows for the foreground (SetForegroundWindow); when Windows refuses
         // it, the window's taskbar button flashes instead.
+        ShowRestoring(window);
+        window.Activate();
+    }
+
+    // :59 the ordering front of makeKeyAndOrderFront, without its activation (Present; the Settings open, ED-249).
+    private void ShowRestoring(AvaloniaWindow window)
+    {
         window.Show();
         // OD-0038: a minimised window is restored to the state it had before it was minimised (normal or maximised),
         // for the second launch and the reopen alike. Whether makeKeyAndOrderFront alone deminiaturizes is UNVERIFIED
         // (OD-0001); the owner ruled it does here.
         if (window.WindowState == WindowState.Minimized)
             window.WindowState = restoredStates.TryGetValue(window, out var restored) ? restored.Value : WindowState.Normal;
-        window.Activate();
     }
 
     // OD-0038: each window's last state other than minimised, which a restore returns it to.
@@ -253,7 +283,7 @@ public sealed class WindowManager
     // :80-84 private func makeSettingsWindow() -> NSWindow
     private AvaloniaWindow MakeSettingsWindow()
     {
-        var window = MakeWindow("Settings", Size.Settings, resizable: false, SettingsContent, windowClass: () => new SecondaryWindow()); // :81
+        var window = MakeWindow("Settings", Size.Settings, resizable: false, () => { var content = SettingsContent(); settingsView = content as SettingsView; return content; }, windowClass: () => new SecondaryWindow()); // :81
         WindowCentering.Center(window, FrameSizeOf(window)); // :82 window.center(), ED-225
         return window; // :83
     }
