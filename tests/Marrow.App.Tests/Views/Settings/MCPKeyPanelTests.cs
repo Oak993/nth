@@ -373,6 +373,30 @@ public sealed class MCPKeyPanelTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-MCP-217")] // App/Views/Settings/MCPKeyPanel.swift:108 HStack(spacing: 8), centre alignment by default
+    public void Each_step_text_sits_on_the_centre_line_of_its_18_point_number_circle()
+    {
+        OnMain(() =>
+        {
+            var view = new MCPKeyPanelView(Entry(keysUrl: "", fields: Secret("token", "Access Token")), new AppModel(), () => { });
+            var window = new Avalonia.Controls.Window { Content = view, Width = 520, Height = 600 };
+            window.Show();
+            try
+            {
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                var text = Descendants(view).OfType<TextBlock>().Single(block => block.Text == "Enter the access token");
+                var row = Assert.IsType<StackPanel>(text.Parent);
+                var circle = Assert.IsType<Border>(row.Children[0]);
+                // The 15-point callout line is shorter than the 18-point circle: the HStack puts it on the circle's centre line.
+                Assert.Equal(text.DesiredSize.Height, text.Bounds.Height, 0.5);
+                Assert.Equal(circle.Bounds.Center.Y, text.Bounds.Center.Y, 0.5);
+            }
+            finally { window.Close(); }
+        });
+    }
+
+    [Fact]
     [Trait("Req", "UI-MCP-077")] // App/Views/Settings/MCPKeyPanel.swift:134-141 TextField/SecureField(field.placeholder, text:) .textFieldStyle(.plain)
     public void The_key_field_is_drawn_with_its_prompt_and_then_the_typed_text()
     {

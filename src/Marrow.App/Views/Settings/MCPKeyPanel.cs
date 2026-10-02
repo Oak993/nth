@@ -252,6 +252,7 @@ public sealed class MCPKeyPanelView : Decorator
                 Background = Brushes.Transparent,
                 BorderBrush = Brushes.Transparent,
                 HorizontalAlignment = HorizontalAlignment.Left,
+                VerticalAlignment = VerticalAlignment.Center,
             };
             link.Click += (_, _) => OpenURL(url);
             first.Children.Add(link);
@@ -316,7 +317,7 @@ public sealed class MCPKeyPanelView : Decorator
     // :117-122 step text and accessory
     private static TextBlock StepText(string text)
     {
-        var block = new TextBlock { Text = text };
+        var block = new TextBlock { Text = text, VerticalAlignment = VerticalAlignment.Center }; // :108, :117 HStack: each child on the centre line
         SwiftFont.Callout.Apply(block);
         block.Foreground = Chrome.PrimaryText.Brush(block);
         return block;

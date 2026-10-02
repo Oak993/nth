@@ -448,6 +448,20 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-MCP-082")] // MCPSetupPanel.swift:170 HStack(spacing: 8), centre alignment by default
+    public void A_single_line_step_text_sits_on_the_centre_line_of_its_18_point_number_circle()
+    {
+        Run(NeedsSetup(), session =>
+        {
+            var row = (Grid)StepsBlock(session).Children[0];
+            var circle = row.Children.OfType<Border>().Single();
+            var text = row.Children.OfType<TextBlock>().Single();
+            Assert.Equal(text.DesiredSize.Height, text.Bounds.Height, 0.5); // the callout line is 15 points, the circle 18
+            Assert.Equal(circle.Bounds.Center.Y, text.Bounds.Center.Y, 0.5);
+        });
+    }
+
+    [Fact]
     [Trait("Req", "UI-MCP-082")] // MCPSetupPanel.swift:220-228 HStack(spacing: 8) { ZStack { Circle().fill(Chrome.accent.opacity(0.18)).frame(18, 18); number .footnote semibold Chrome.accent } }
     public void The_number_sits_centred_in_an_18_point_accent_circle_eight_points_before_the_step_text()
     {
