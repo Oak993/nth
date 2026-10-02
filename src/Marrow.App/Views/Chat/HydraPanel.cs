@@ -710,8 +710,9 @@ internal sealed class HydraHeadTranscript : Decorator
         }
 
         // :419-432
+        // :419 .safeAreaInset(edge: .bottom): the inset is docked first and the body, added last, takes what is left (a DockPanel's
+        // last child fills, so a docked child added after the body would fill the whole panel instead of the bottom edge).
         var content = new DockPanel();
-        content.Children.Add(body);
         if (head.Hydra?.HydraHeadInfoKind == HydraHeadInfo.Kind.Droppy)
         {
             // :421-425 A child Droppy Code runs itself can be steered and answered like any chat.
@@ -730,6 +731,7 @@ internal sealed class HydraHeadTranscript : Decorator
             DockPanel.SetDock(footer, Dock.Bottom);
             content.Children.Add(footer);
         }
+        content.Children.Add(body);
 
         // :433-435
         var transcript = new Grid();
