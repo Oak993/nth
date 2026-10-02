@@ -322,8 +322,9 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
             var checklist = Assert.Single(RootViewRig.All<ProviderChecklist>(section));
             Assert.Equal(10, RootViewRig.In(checklist, host).Top - RootViewRig.In(header, host).Bottom, 0.5);
 
-            // Provider.swift:4-17 case order, :22-37 display names.
-            string[] names = ["Codex", "Claude", "Cursor", "OpenCode Zen", "OpenCode Go", "Grok", "DeepSeek", "Meta", "Z.ai", "Devin", "Antigravity", "Copilot", "Command Code", "Pi"];
+            // Provider.swift:4-17 case order, :22-37 display names; then OpenRouter, the port's API-key provider declared after
+            // Pi (OD-0049, ED-234), which the checklist lists like DeepSeek, Meta and Z.ai.
+            string[] names = ["Codex", "Claude", "Cursor", "OpenCode Zen", "OpenCode Go", "Grok", "DeepSeek", "Meta", "Z.ai", "Devin", "Antigravity", "Copilot", "Command Code", "Pi", "OpenRouter"];
             var rows = RootViewRig.All<ProviderStatusRow>(checklist);
             var dividers = RootViewRig.All<ChromeRowDivider>(checklist);
             Assert.Equal(names.Length, rows.Length);

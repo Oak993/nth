@@ -286,21 +286,6 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
     // at the hand-over, with its content already at that frame's opacity, and only then does the launch show it (Present:
     // Show, Activate). Cloaking itself is a fake here; the real DWM cloak and the screen pixels are GlassWindowNativeTests.
 
-    private sealed class CloakLog(AvaloniaWindow main, BootStageWindow[] boot)
-    {
-        public List<(string Event, bool Visible, bool ShowActivated, double Elapsed, double ContentOpacity)> Events { get; } = [];
-        public bool Accepts { get; init; } = true;
-
-        public bool Cloak(AvaloniaWindow window, bool cloaked)
-        {
-            Assert.Same(main, window);
-            Events.Add((cloaked ? "cloak" : "uncloak", main.IsVisible, main.ShowActivated, boot[0].Stage.Elapsed, ((Control)main.Content!).Opacity));
-            return Accepts;
-        }
-
-        public void Shown() => Events.Add(("show", main.IsVisible, main.ShowActivated, boot[0].Stage.Elapsed, ((Control)main.Content!).Opacity));
-    }
-
     [Fact]
     [Trait("Decision", "ED-236")]
     public void The_main_window_is_shown_cloaked_when_the_disintegration_begins_and_uncloaked_just_before_the_hand_over_shows_it() => headless.OnUiThread(() =>

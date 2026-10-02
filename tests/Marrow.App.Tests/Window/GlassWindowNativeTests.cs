@@ -37,20 +37,6 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
     private const double Blurred = 3;       // below this the stripes are gone
     private const double ScrimAlpha = 66 / 255.0; // the test's stand-in for the app-drawn scrim, black
 
-    private sealed class Stripes : Control
-    {
-        public override void Render(DrawingContext context)
-        {
-            var scale = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
-            var step = 6 / scale; // six physical pixels
-            for (var x = 0.0; x < Bounds.Width; x += 2 * step)
-            {
-                context.FillRectangle(Brushes.White, new Rect(x, 0, step, Bounds.Height));
-                context.FillRectangle(Brushes.Black, new Rect(x + step, 0, step, Bounds.Height));
-            }
-        }
-    }
-
     private static void Themeless(AvaloniaWindow window) =>
         window.Template = new FuncControlTemplate<AvaloniaWindow>((owner, _) => new ContentPresenter { Content = owner.Content });
 
@@ -111,42 +97,9 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
 
     // Reads a small block of the screen as fast as it can from its own thread (a few hundred times a second), so every
     // frame the compositor presents there is likely to be seen.
-    private sealed class Sampler : IDisposable
-    {
-        public readonly record struct Sample(double Milliseconds, double Mean, double Contrast);
-
-        private readonly List<Sample> samples = [];
-        private readonly Stopwatch clock = Stopwatch.StartNew();
-        private readonly Thread thread;
-        private volatile bool running = true;
-
-        public Sampler(PixelPoint at)
-        {
-            thread = new Thread(() =>
-            {
-                while (running)
-                {
-                    var grab = ScreenGrab.Of(at.X, at.Y, 60, 12);
-                    lock (samples) samples.Add(new Sample(clock.Elapsed.TotalMilliseconds, grab.MeanLuma(), grab.StripeContrast()));
-                }
-            }) { IsBackground = true };
-            thread.Start();
-        }
-
-        public double Now => clock.Elapsed.TotalMilliseconds;
-
-        public Sample[] Stop()
-        {
-            running = false;
-            thread.Join();
-            lock (samples) return samples.ToArray();
-        }
-
-        public void Dispose() => Stop();
-    }
 
     // The frames that show the glass window's tint over stripes that are still sharp: the P13 gap.
-    private static Sampler.Sample[] TintedOverSharp(IEnumerable<Sampler.Sample> samples, double bareMean) =>
+    private static GlassSample[] TintedOverSharp(IEnumerable<GlassSample> samples, double bareMean) =>
         samples.Where(s => s.Contrast >= Blurred && s.Mean < bareMean - 1.5).ToArray();
 
     private static void WaitFor(Func<bool> condition, string reason, int milliseconds = 4000) => N.Until(condition, reason, milliseconds);
@@ -223,7 +176,7 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
     // One launch of the real factory main window under the boot stage (BootStageWindow), over the stripes. Returns what
     // the screen showed at a block inside the window's top left (away from the centre, where the mark is) from before the
     // stage began until it had closed, the stripes' own mean luma, and when the hand-over showed the main window.
-    private (Sampler.Sample[] Timeline, double BareMean, double ShownAt) Launch(WindowManagerNativeSubject subject, PixelRect work, bool handOver, bool reduceMotion)
+    private (GlassSample[] Timeline, double BareMean, double ShownAt) Launch(WindowManagerNativeSubject subject, PixelRect work, bool handOver, bool reduceMotion)
     {
         var frame = new PixelPoint(work.X + (work.Width - 900) / 2, work.Y + (work.Height - 600) / 2);
         var (manager, window) = native.OnUi(() =>
