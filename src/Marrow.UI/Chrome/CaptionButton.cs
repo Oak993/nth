@@ -11,8 +11,8 @@ namespace Marrow.UI.Chrome;
 // owner picked it (porting/owner_decisions.md OD-0044; visual reference: the canvas's More.dc.html, variant N). They
 // replace WindowChrome.swift's traffic lights: Windows places and orders them (minimise, maximise or restore, close at
 // the top right) and performs them (the hit-test values below, WindowManager's caption hook); this control only draws.
-//   At rest: the glyph alone, 12 pt at a 1.4 pt stroke in the label colour, centred in a 46 x 40 button.
-//   Hovered: two rings (24 pt, 1.5 pt stroke; white at 65 % on dark, the label colour at 35 % on light; close: rose
+//   At rest: the glyph alone, 12 pt at a 1.4 pt stroke (colour: OD-0068, below), centred in a 46 x 40 button.
+//   Hovered: two rings (24 pt, 1.5 pt stroke; white at 65 % on dark (light: OD-0068, below); close: rose
 //   rgb(255, 107, 139) at 90 %) leave the glyph, scale 0.45 -> 1.55 and fade to nothing over 1.3 s on
 //   cubic-bezier(0.2, 0.6, 0.3, 1) (the comet's own ring curve, CometMotion.RingRadius), the second 0.45 s after the
 //   first, repeating while hovered; the glyph ticks on the same 1.3 s beat: 1 -> 0.86 at 12 % -> 1.06 at 30 % -> 1.
@@ -21,6 +21,17 @@ namespace Marrow.UI.Chrome;
 // disabled (maximise on a window that cannot resize, as Windows greys it), the glyph draws at 35 % and nothing animates;
 // under reduce motion a hovered button shows one still ring at full size and 45 % of its opacity instead of the pulse.
 // The clock is the frame-clock seam (ED-117 (1)): frames are the only wake-ups, time is SwiftClock's.
+// OD-0068 (ED-244) amends the picked variant's colours only (motion, sizes and timing stay OD-0044's): the glyph and the
+// rings take a colour that contrasts with the theme's own appearance, dark on a light theme and light on a dark one,
+// rather than the label colour at 85 % (ED-051), which is 5:1 at best on a light surface and had no inactive state:
+//   glyph at rest      light: rgb(24, 24, 27)   dark: white            (at least 4.5:1 over the window behind it)
+//   window inactive    light: rgb(92, 92, 96)   dark: rgb(200, 200, 204) (at least 3:1; hovered or pressed, the
+//                      glyph takes its active colour again, as Windows' own caption buttons do)
+//   hover rings        light: the glyph colour at 65 %   dark: white at 65 % (OD-0044's)
+//   close's rings      light: deep rose rgb(176, 18, 62) at 90 %   dark: rose rgb(255, 107, 139) at 90 % (OD-0044's)
+// The appearance is the button's own ActualThemeVariant, which follows the window's (the theme's scheme, or Windows' for
+// System); a change of it draws the button again (a theme switch used to leave the old appearance's glyph in place until
+// the next hover, which is how the light gallery windows came to show white glyphs).
 
 /// <summary>One Windows caption button drawn as OD-0044's Turn pulse (see the file note).</summary>
 public sealed class CaptionButton : Control
@@ -38,12 +49,38 @@ public sealed class CaptionButton : Control
     public const double PressedGlyphOpacity = 0.7;
     public const double DisabledGlyphOpacity = 0.35;
 
+    /// <summary>OD-0068 (ED-244): the glyph on a light theme, at rest in an active window.</summary>
+    public static readonly Color LightGlyph = Color.FromRgb(24, 24, 27);
+    /// <summary>OD-0068 (ED-244): the glyph on a light theme while the window is inactive.</summary>
+    public static readonly Color LightInactiveGlyph = Color.FromRgb(92, 92, 96);
+    /// <summary>OD-0068 (ED-244): the glyph on a dark theme, at rest in an active window.</summary>
+    public static readonly Color DarkGlyph = Color.FromRgb(255, 255, 255);
+    /// <summary>OD-0068 (ED-244): the glyph on a dark theme while the window is inactive.</summary>
+    public static readonly Color DarkInactiveGlyph = Color.FromRgb(200, 200, 204);
+    /// <summary>OD-0044: the close button's rose rings on a dark theme, rgb(255, 107, 139) at 90 %.</summary>
+    public static readonly Color DarkCloseRing = Color.FromArgb(230, 255, 107, 139);
+    /// <summary>OD-0068 (ED-244): the deeper rose of the close button's rings on a light theme, at 90 %.</summary>
+    public static readonly Color LightCloseRing = Color.FromArgb(230, 176, 18, 62);
+    /// <summary>OD-0044 (dark), OD-0068 (light): the opacity of the other buttons' rings, 65 %.</summary>
+    public const byte RingAlpha = 166;
+
+    /// <summary>OD-0068 (ED-244): the glyph's colour on a dark (<paramref name="dark"/>) or light theme, in an active
+    /// or an inactive window.</summary>
+    public static Color GlyphColor(bool dark, bool windowActive) =>
+        dark ? windowActive ? DarkGlyph : DarkInactiveGlyph : windowActive ? LightGlyph : LightInactiveGlyph;
+
+    /// <summary>OD-0044, OD-0068 (ED-244): the hover rings' colour for <paramref name="kind"/> on a dark or light theme.</summary>
+    public static Color RingColor(Kind kind, bool dark) => kind == Kind.Close
+        ? dark ? DarkCloseRing : LightCloseRing
+        : dark ? Color.FromArgb(RingAlpha, DarkGlyph.R, DarkGlyph.G, DarkGlyph.B) : Color.FromArgb(RingAlpha, LightGlyph.R, LightGlyph.G, LightGlyph.B);
+
     private readonly Action<TimeSpan> tick;
     private IFrameSource? source;
     private bool waiting;
     private bool hovered;
     private bool pressed;
     private bool maximized;
+    private bool windowActive = true;
     private ContinuousInstant hoverStart;
 
     public CaptionButton(Kind kind)
@@ -53,6 +90,7 @@ public sealed class CaptionButton : Control
         Height = ButtonHeight;
         tick = OnFrame;
         DetachedFromVisualTree += (_, _) => Stop();
+        ActualThemeVariantChanged += (_, _) => InvalidateVisual(); // OD-0068: draw again in the new appearance
     }
 
     public Kind ButtonKind { get; }
@@ -91,6 +129,14 @@ public sealed class CaptionButton : Control
     {
         get => maximized;
         set { if (maximized == value) return; maximized = value; InvalidateVisual(); }
+    }
+
+    /// <summary>OD-0068 (ED-244): the window is the active one (WindowChrome follows the window's IsActive); an inactive
+    /// window's glyph at rest takes the dimmer inactive colour.</summary>
+    public bool IsWindowActive
+    {
+        get => windowActive;
+        set { if (windowActive == value) return; windowActive = value; InvalidateVisual(); }
     }
 
     private static bool ReduceMotion => Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion;
@@ -144,15 +190,13 @@ public sealed class CaptionButton : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        var theme = ActualThemeVariant;
-        var dark = PlainControls.IsDark(theme);
-        var ink = Chrome.PrimaryText.Resolve(theme);
+        var dark = PlainControls.IsDark(ActualThemeVariant);
         var centre = new Point(Bounds.Width / 2, Bounds.Height / 2);
         var enabled = IsEffectivelyEnabled;
+        var ink = GlyphColor(dark, windowActive || (enabled && (hovered || pressed)));
         if (hovered && enabled)
         {
-            var ring = ButtonKind == Kind.Close ? Color.FromArgb(230, 255, 107, 139)
-                : dark ? Color.FromArgb(166, 255, 255, 255) : Color.FromArgb(89, ink.R, ink.G, ink.B);
+            var ring = RingColor(ButtonKind, dark);
             if (ReduceMotion) DrawRing(context, centre, ring, 1, 0.45);
             else
                 for (var index = 0; index < 2; index++)

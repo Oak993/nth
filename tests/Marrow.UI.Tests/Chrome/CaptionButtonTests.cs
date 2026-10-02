@@ -21,7 +21,7 @@ using Chrome = Marrow.UI.Chrome.Chrome; // ED-095: the Swift type Chrome, not th
 //   order minimise, maximise, close; buttons 46 x 40, 2 pt apart; Windows hit-test values MinButton, MaxButton, Close;
 //   restore glyph and the name Restore while maximised; maximise greyed and a plain client hit when the window cannot resize;
 //   hovered: two rings, scale 0.45 -> 1.55, opacity 0.9 -> 0 on cubic-bezier(.2, .6, .3, 1) over 1.3 s, the second 0.45 s
-//   later; the glyph ticks 1 -> 0.86 (12 %) -> 1.06 (30 %) -> 1; close's rings rose rgb(255, 107, 139).
+//   later; the glyph ticks 1 -> 0.86 (12 %) -> 1.06 (30 %) -> 1; close's rings rose rgb(255, 107, 139) on dark (OD-0068: a deeper rose on light; CaptionContrastTests).
 // The sidebar no longer moves them and they never glide (the records PR-WIN-031 to PR-WIN-036 and UI-WIN-001 to UI-WIN-003
 // describe the traffic lights these replace; each test names the record whose subject it now covers).
 [Collection("Headless")]
@@ -215,7 +215,8 @@ public sealed class CaptionButtonTests(HeadlessSession headless)
         using var clock = SwiftClock.Provider.Override(time);
         using var motion = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform(reduceMotion: false));
         var button = new CaptionButton(CaptionButton.Kind.Close);
-        var window = new Window { Width = 46, Height = 40, Content = button, Background = Brushes.Black };
+        // OD-0044's rose is the dark appearance's (OD-0068 gives a light one a deeper rose): a dark window, as the black says.
+        var window = new Window { Width = 46, Height = 40, Content = button, Background = Brushes.Black, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark };
         window.Show();
         try
         {

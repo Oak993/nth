@@ -288,10 +288,17 @@ public static class WindowChrome
             zoom.IsEnabled = window.CanMaximize;
             Win32Properties.SetNonClientHitTestResult(zoom, window.CanMaximize ? Win32Properties.Win32HitTestValue.MaxButton : Win32Properties.Win32HitTestValue.Client);
         }
+        // OD-0068 (ED-244): an inactive window's glyphs take their dimmer colour, as Windows dims its own caption buttons.
+        void SyncActive()
+        {
+            foreach (var button in new[] { miniaturize, zoom, close }) button.IsWindowActive = window.IsActive;
+        }
         Sync();
+        SyncActive();
         window.PropertyChanged += (_, e) =>
         {
             if (e.Property == Window.WindowStateProperty || e.Property == Window.CanMaximizeProperty || e.Property == Window.CanResizeProperty) Sync();
+            else if (e.Property == WindowBase.IsActiveProperty) SyncActive();
         };
         return new TrafficLightButtons(close, miniaturize, zoom, cluster);
     }
