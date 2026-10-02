@@ -625,3 +625,11 @@ Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Cl
 ## OD-0062 Installer: Velopack
 
 - **Owner ruling, 2026-10-02 (chat), choice "Velopack":** release preparation builds toward a Velopack per-user install (%LOCALAPPDATA%, delta updates, a feed that can later point at GitHub Releases). Local only: nothing is signed, published or released without the owner's word (OD-0058).
+
+## OD-0063 Colour intensity follows the model and the effort; a router takes the maker's colour
+
+- **Owner ruling, 2026-10-02 (chat, translated from Hindi/Urdu):** within one maker's locked palette (OD-0047, OD-0050/OD-0061), the colour's INTENSITY differs per model and per effort level: a stronger model of the same maker wears a more intense ("vicious") shade of the same palette than a weaker one (e.g. Claude's strongest models more intense than Sonnet or Haiku; each Grok model its own intensity), and each effort level shifts it again, so every model at every effort has its own shade (e.g. Sonnet 5.5 at High differs from Opus at Low), and the liquid's animation adjusts with the effort. This holds for every model and effort the app offers.
+- **OpenRouter is not a colour:** it is a router, not a model maker. A model chosen through OpenRouter wears the colour of the maker that created that model (its id's vendor, e.g. anthropic/... takes Claude's palette), at that model's own intensity. The canvas's separate "OpenRouter" colour is withdrawn.
+- **Palette canvas feedback (OD-0061, https://claude.ai/artifact/Nny65Zii8axSS64u1AZ7Ws):** the colours are approved in spirit; NVIDIA's green is to be darkened slightly to a more premium, more intense green that sits with the others.
+- **Unchanged:** the fast-mode (1.5x) bolt animation is constant and integrated as it is.
+- **Effect:** the intensity rule (how model strength and effort map to shade within a palette) is designed on a canvas and approved before it is built (as OD-0050/OD-0061); nothing is applied in the app until the owner chooses.
