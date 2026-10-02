@@ -5,6 +5,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Media;
 using Avalonia.Styling;
+using Marrow.App.Port;
 using Marrow.App.Views.Chat;
 using Marrow.App.Window;
 using Marrow.Core.Models;
@@ -53,20 +54,7 @@ public sealed class FloatingSidebarPanel : Decorator
             ClipToBounds = false
         };
 
-        var isDark = ActualThemeVariant == ThemeVariant.Dark;
-        var plate = new Border
-        {
-            CornerRadius = new CornerRadius(22),
-            Background = (isDark
-                ? new SwiftColor(0, 0, 0, 0.3)
-                : new SwiftColor(1, 1, 1, 0.34)).Brush(this),
-            BoxShadow = new BoxShadows(new BoxShadow
-            {
-                Color = new SwiftColor(0, 0, 0, isDark ? 1 : 0.65).Resolve(ActualThemeVariant),
-                Blur = 28,
-                OffsetY = 10
-            })
-        };
+        var plate = new Border { CornerRadius = new CornerRadius(22) };
 
         var sidebar = new SidebarView(inPopover: true, dismiss: null);
         var sidebarHolder = new Border
@@ -82,9 +70,26 @@ public sealed class FloatingSidebarPanel : Decorator
             Height = size.Height,
             CornerRadius = new CornerRadius(22),
             ClipToBounds = true,
-            Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this),
             Child = surfaceContent
         };
+        // :87, :97 `let isDark = colorScheme == .dark` is read inside `body`, so the tint, the plate and its shadow follow the
+        // scheme as it changes (the control is built before it has a theme, so this cannot be fixed at construction).
+        void UpdateTheme()
+        {
+            var isDark = ActualThemeVariant == ThemeVariant.Dark;
+            surface.Background = Chrome.GlassTint.Opacity(isDark ? 0.22 : 0.16).Brush(this); // :92
+            plate.Background = (isDark
+                ? new SwiftColor(0, 0, 0, 0.3)
+                : new SwiftColor(1, 1, 1, 0.34)).Brush(this); // :99
+            plate.BoxShadow = new BoxShadows(new BoxShadow
+            {
+                Color = new SwiftColor(0, 0, 0, isDark ? 1 : 0.65).Resolve(ActualThemeVariant),
+                Blur = 28,
+                OffsetY = 10
+            }); // :100
+        }
+        UpdateTheme();
+        ActualThemeVariantChanged += (_, _) => UpdateTheme();
         SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.RoundedRectangle(22, RoundedCornerStyle.Continuous))); // :90
 
         var panel = new Grid
@@ -98,13 +103,47 @@ public sealed class FloatingSidebarPanel : Decorator
         panel.Children.Add(panelContents);
         canvas.Children.Add(panel);
 
+        var placed = origin;
+        var slide = new ChatFrameAnimation(this);
+        slide.AttachLifetime();
+
         void Place(Point point)
         {
+            placed = point;
             Canvas.SetLeft(panel, point.X);
             Canvas.SetTop(panel, point.Y);
         }
 
-        var strip = new Grid { Height = StripHeight };
+        // :102, :104 `.offset(x:y:)` with `.animation(dragOrigin == nil ? Chrome.panelSlide : nil, value: origin)`: a change of
+        // origin slides while the strip is not held and snaps while it is.
+        void Settle(Point target)
+        {
+            slide.Stop();
+            if (dragOrigin is not null || target == placed || TopLevel.GetTopLevel(this) is null)
+            {
+                Place(target);
+                return;
+            }
+            var from = placed;
+            slide.Start(Chrome.PanelSlide, progress =>
+                Place(new Point(from.X + (target.X - from.X) * progress, from.Y + (target.Y - from.Y) * progress)));
+        }
+
+        // :28-34 `body` reads the settings again whenever it runs: the stored size, the resting origin from it, the origin drawn.
+        void Refresh()
+        {
+            size = ReadSize(model.Settings.SidebarPanelSize ?? DefaultSize, area);
+            rest = Clamp(model.Settings.SidebarPanelOrigin ?? new Point(FloatingSidebarPanelMargin, Chrome.ContentTopInset), size, area);
+            origin = dragOrigin ?? rest;
+            canvas.Width = Width = area.Width;
+            canvas.Height = Height = area.Height;
+            surface.Width = panel.Width = size.Width;
+            surface.Height = panel.Height = size.Height;
+            Settle(origin);
+        }
+
+        // :39 .overlay(alignment: .top): the strip hugs the top of the panel (a fixed-height Grid would otherwise centre).
+        var strip = new Grid { Height = StripHeight, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
         strip.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
         strip.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
         strip.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Auto));
@@ -177,6 +216,7 @@ public sealed class FloatingSidebarPanel : Decorator
             var moved = Clamp(new Point(start.X + translation.Width, start.Y + translation.Height), size, area);
             dragOrigin = moved;
             origin = moved;
+            slide.Stop();
             Place(origin);
         }
 
@@ -186,6 +226,7 @@ public sealed class FloatingSidebarPanel : Decorator
                 model.Settings.SidebarPanelOrigin = finalOrigin;
             dragOrigin = null;
             grab = null;
+            Refresh(); // :114-118 the next body reads the written origin as the resting one
         }
 
         void Resize(Size translation)
@@ -198,11 +239,7 @@ public sealed class FloatingSidebarPanel : Decorator
             model.Settings.SidebarPanelSize = next;
 
             // The source reads the persisted value back through the size floor on each body update.
-            size = ReadSize(next, area);
-            surface.Width = size.Width;
-            surface.Height = size.Height;
-            panel.Width = size.Width;
-            panel.Height = size.Height;
+            Refresh();
         }
 
         var resizeCursor = new Cursor(StandardCursorType.BottomRightCorner);
@@ -227,14 +264,7 @@ public sealed class FloatingSidebarPanel : Decorator
         updateArea = newArea =>
         {
             area = newArea;
-            size = ReadSize(model.Settings.SidebarPanelSize ?? DefaultSize, area);
-            rest = Clamp(model.Settings.SidebarPanelOrigin ?? new Point(FloatingSidebarPanelMargin, Chrome.ContentTopInset), size, area);
-            origin = dragOrigin ?? rest;
-            canvas.Width = Width = area.Width;
-            canvas.Height = Height = area.Height;
-            surface.Width = panel.Width = size.Width;
-            surface.Height = panel.Height = size.Height;
-            Place(origin);
+            Refresh();
         };
 
         Place(origin);

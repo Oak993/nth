@@ -898,6 +898,7 @@ public sealed class RootViewTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-063")] // App/Views/RootView.swift:14-43 overlay at 22-31 takes no layout space
     public void The_sidebar_resize_overlay_does_not_reserve_detail_width(bool visible, bool onlyFloating) => headless.OnUiThread(() =>
     {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the floating panel slides when the window resizes (FloatingSidebarPanel.swift:104)
         using var launch = new LaunchHarness();
         var model = launch.Manager.Model;
         AvaloniaWindow window = null!;
