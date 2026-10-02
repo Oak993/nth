@@ -98,6 +98,7 @@ public static class Presentation
                 return;
             }
             var wasOpen = popup.IsOpen;
+            if (presented) PopoverHost.Prepare(popup); // the anchor's appearance and the panel fill (ED-238)
             popup.IsOpen = presented;
             // NSPopover grows in from its arrow (PopoverAppear.cs); the child is final once the popup has opened.
             if (presented && !wasOpen && popup.IsOpen && popup.Child is { } content) PopoverAppear.Play(content, popup.Placement);

@@ -241,6 +241,7 @@ public static class PortControlThemes
         application.Resources[typeof(ToolTip)] = ToolTipTheme;
         application.Resources[typeof(Slider)] = SliderTheme;
         RegisterPrimaryTextDefault(application);
+        PopoverHost.Register(application); // the panel a presented popover's top-level draws (PopoverHost.cs, ED-238)
     }
 
     // SwiftUI draws a Text, and any glyph, with no foreground style of its own in `.primary`: labelColor, which follows
