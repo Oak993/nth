@@ -34,11 +34,17 @@ public sealed class CountingFrameSource(IFrameSource inner) : IFrameSource
         return count;
     }
 
-    /// <summary>The gaps between delivered frames, in whole milliseconds, as "gap:count" pairs, most frequent first.</summary>
-    public string GapHistogram()
+    /// <summary>
+    /// The gaps between the frames delivered since <paramref name="from"/>, in whole milliseconds, as "gap:count" pairs,
+    /// most frequent first, then the five longest.
+    /// </summary>
+    public string GapHistogram(int from = 0)
     {
-        var gaps = stamps.Zip(stamps.Skip(1), (a, b) => (int)Math.Round(b - a)).GroupBy(g => g).OrderByDescending(g => g.Count()).Take(8);
-        return string.Join(" ", gaps.Select(g => $"{g.Key}:{g.Count()}"));
+        var measured = stamps.Skip(from).ToList();
+        var all = measured.Zip(measured.Skip(1), (a, b) => (int)Math.Round(b - a)).ToList();
+        var gaps = all.GroupBy(g => g).OrderByDescending(g => g.Count()).Take(8);
+        var longest = all.Select((gap, i) => (gap, at: measured[i] - measured[0])).OrderByDescending(x => x.gap).Take(5);
+        return string.Join(" ", gaps.Select(g => $"{g.Key}:{g.Count()}")) + "; longest " + string.Join(" ", longest.Select(x => $"{x.gap}@{x.at:F0}"));
     }
 
     /// <summary>Changes of the watched value seen so far.</summary>

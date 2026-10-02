@@ -90,7 +90,7 @@ public sealed class EffortSliderNativeFrameTests(WindowManagerNativeSession nati
             {
                 var stamps = frames.Stamps;
                 return (frames.Updates - startUpdates, stamps.Count - startFrame, frames.AllowedUpdates(startFrame, 1000.0 / 60),
-                    stamps[^1] - stamps[startFrame], frames.GapHistogram());
+                    stamps[^1] - stamps[startFrame], frames.GapHistogram(startFrame));
             });
             var diagnosis = $"updates {updates}, frames {delivered} over {span:F0} ms, ED-232 allows {allowed}, gaps ms {gaps}";
             // The frame clock delivers at least 60 frames a second on this display ...
