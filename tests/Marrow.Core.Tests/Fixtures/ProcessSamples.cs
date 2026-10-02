@@ -262,6 +262,86 @@ public static class ProcessScripts
         [Console]::Out.Flush()
         Start-Sleep 60
         """;
+
+    /// <summary>
+    /// A helper script that never finishes on its own within a test (60 s asleep): the stand-in for a CTRL_BREAK
+    /// helper stuck in any way (ED-242; the one seen on this PC sat at PowerShell's debugger prompt).
+    /// </summary>
+    public const string StrandedHelper = "[Threading.Thread]::Sleep(60000)";
+
+    /// <summary>A helper script that runs 2 s and leaves with <see cref="SlowHelperExitCode"/>.</summary>
+    public const string SlowHelper = "[Threading.Thread]::Sleep(2000); exit 7";
+
+    /// <summary>The exit code of <see cref="SlowHelper"/>; nothing else in these tests exits with it.</summary>
+    public const int SlowHelperExitCode = 7;
+
+    /// <summary>
+    /// What the break probe exits with: 0 when it attached to the target's console and GenerateConsoleCtrlEvent took the
+    /// event; <see cref="BreakProbeAttachFailed"/> plus the Win32 error when AttachConsole failed;
+    /// <see cref="BreakProbeSendFailed"/> plus the Win32 error when GenerateConsoleCtrlEvent failed.
+    /// </summary>
+    public const int BreakProbeAttachFailed = 1000;
+
+    /// <inheritdoc cref="BreakProbeAttachFailed"/>
+    public const int BreakProbeSendFailed = 2000;
+
+    /// <summary>
+    /// A separate process doing to <paramref name="pid"/> what a helper sent for a pid since reused does: FreeConsole,
+    /// AttachConsole(pid), GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid), 50 ms, FreeConsole (the helper's calls).
+    /// It is a pipe child of the launcher, so it leads a process group of its own and the event never reaches it.
+    /// </summary>
+    public static string BreakProbe(int pid) =>
+        """
+        Add-Type -TypeDefinition @'
+        using System.Runtime.InteropServices;
+        public static class MarrowBreakProbe
+        {
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern bool FreeConsole();
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern bool AttachConsole(uint pid);
+            [DllImport("kernel32.dll", SetLastError = true)] private static extern bool GenerateConsoleCtrlEvent(uint ctrlEvent, uint group);
+            public static int Send(uint pid)
+            {
+                FreeConsole();
+                if (!AttachConsole(pid)) return 1000 + Marshal.GetLastWin32Error();
+                var code = GenerateConsoleCtrlEvent(1, pid) ? 0 : 2000 + Marshal.GetLastWin32Error();
+                System.Threading.Thread.Sleep(50);
+                FreeConsole();
+                return code;
+            }
+        }
+        '@
+        exit [MarrowBreakProbe]::Send(
+        """ + pid.ToString(System.Globalization.CultureInfo.InvariantCulture) + ")\n";
+}
+
+/// <summary>What a pid names right now, read through OpenProcess (which, unlike Process.GetProcessById, opens an exited process that is still referenced).</summary>
+public static class ProcessIdentity
+{
+    private const uint PROCESS_QUERY_LIMITED_INFORMATION = 0x1000;
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern Microsoft.Win32.SafeHandles.SafeProcessHandle OpenProcess(uint access, bool inherit, int pid);
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool GetExitCodeProcess(Microsoft.Win32.SafeHandles.SafeProcessHandle process, out uint code);
+
+    /// <summary>A handle of the caller's own to the process <paramref name="pid"/> names (exited or not).</summary>
+    public static Microsoft.Win32.SafeHandles.SafeProcessHandle Open(int pid)
+    {
+        var handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (handle.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
+        return handle;
+    }
+
+    /// <summary>The exit code of the process <paramref name="pid"/> names (259 while it runs), or null when it names none.</summary>
+    public static int? ExitCode(int pid)
+    {
+        using var handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
+        if (handle.IsInvalid) return null;
+        return GetExitCodeProcess(handle, out var code) ? unchecked((int)code) : null;
+    }
 }
 
 /// <summary>The test host's own console attachment, to show the launcher never trades it away (probe P6 deviation 4).</summary>

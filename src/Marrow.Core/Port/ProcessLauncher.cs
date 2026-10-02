@@ -471,7 +471,26 @@ public sealed class ProcessLauncher : IProcessControl
             return;
         }
         var pid = ProcessIdentifier;
-        if (pid > 0) ProcessNative.SendCtrlBreak(pid);
+        if (pid <= 0) return;
+        // ED-242: a handle of the helper's own keeps the child's pid from being given to another process before the
+        // helper has attached (the child may already have exited, its exit not yet seen). Without one (a duplicate
+        // the system refused) the helper goes as before.
+        SafeProcessHandle? reserved = null;
+        lock (gate)
+        {
+            if (process is { IsClosed: false } child)
+            {
+                try
+                {
+                    reserved = ProcessNative.DuplicateProcessHandle(child);
+                }
+                catch (Win32Exception)
+                {
+                    reserved = null;
+                }
+            }
+        }
+        ProcessNative.SendCtrlBreak(pid, reserved);
     }
 
     /// <summary>The group kill (ED-047 (a)): TerminateJobObject; with no job, the pid alone.</summary>
@@ -854,6 +873,20 @@ internal static class ProcessNative
             throw new Win32Exception(Marshal.GetLastWin32Error());
     }
 
+    [DllImport("kernel32.dll", EntryPoint = "DuplicateHandle", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool DuplicateProcess(IntPtr sourceProcess, SafeProcessHandle source, IntPtr targetProcess,
+        out SafeProcessHandle target, uint access, bool inherit, uint options);
+
+    /// <summary>A second, non-inheritable handle to <paramref name="source"/>: the process (and its pid) lives on while it is open.</summary>
+    public static SafeProcessHandle DuplicateProcessHandle(SafeProcessHandle source)
+    {
+        var self = GetCurrentProcess();
+        if (!DuplicateProcess(self, source, self, out var copy, 0, false, DUPLICATE_SAME_ACCESS))
+            throw new Win32Exception(Marshal.GetLastWin32Error());
+        return copy;
+    }
+
     /// <summary>An inheritable duplicate of <paramref name="source"/>, for the child's handle list only.</summary>
     public static SafeFileHandle DuplicateInheritable(SafeHandle source)
     {
@@ -883,16 +916,22 @@ internal static class ProcessNative
     }
 
     /// <summary>
-    /// The CTRL_BREAK helper of probe P6: a separate process, created with a hidden console in a process group of its
-    /// own, that runs FreeConsole, AttachConsole(pid), GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid), FreeConsole.
-    /// P6 used its own exe in a helper mode; a library has no entry point, so the helper here is Windows PowerShell
-    /// declaring the three kernel32 calls through Reflection.Emit (no compiler run). It is not awaited: like
-    /// Foundation's terminate(), the call returns at once, and the kill deadlines run from the call.
+    /// The CTRL_BREAK helper of probe P6: a separate process, created with a hidden console of its own, that runs
+    /// FreeConsole, AttachConsole(pid), GenerateConsoleCtrlEvent(CTRL_BREAK_EVENT, pid), FreeConsole. P6 used its own
+    /// exe in a helper mode; a library has no entry point, so the helper here is Windows PowerShell declaring the three
+    /// kernel32 calls through Reflection.Emit (no compiler run). It is not awaited: like Foundation's terminate(), the
+    /// call returns at once, and the kill deadlines run from the call. <paramref name="reserved"/>, a handle to the
+    /// target that this call takes over, keeps the target's pid from being reused until the helper has ended. The
+    /// helper's lifetime is bounded (ED-242): see <see cref="CtrlBreakHelper"/>.
     /// </summary>
-    public static void SendCtrlBreak(int pid)
+    public static void SendCtrlBreak(int pid, SafeProcessHandle? reserved = null) =>
+        CtrlBreakHelper.Start(CtrlBreakScript(pid), reserved).Release(CtrlBreakHelper.Lifetime);
+
+    /// <summary>The helper's PowerShell script for <paramref name="pid"/>: the four kernel32 calls of P6.</summary>
+    internal static string CtrlBreakScript(int pid)
     {
         var target = pid.ToString(CultureInfo.InvariantCulture);
-        var script =
+        return
             "$a=[AppDomain]::CurrentDomain.DefineDynamicAssembly((New-Object Reflection.AssemblyName 'MarrowCtrlBreak'),'Run')\n" +
             "$t=$a.DefineDynamicModule('MarrowCtrlBreak').DefineType('MarrowCtrlBreak','Public,Class')\n" +
             "foreach($d in @(@('FreeConsole',[bool],[Type[]]@()),@('AttachConsole',[bool],[Type[]]@([uint32])),@('GenerateConsoleCtrlEvent',[bool],[Type[]]@([uint32],[uint32])))){" +
@@ -906,18 +945,200 @@ internal static class ProcessNative
             "[Threading.Thread]::Sleep(50)\n" +
             "$null=$k::FreeConsole()\n" +
             "if($sent){exit 0}else{exit 2}\n";
+    }
+}
+
+/// <summary>
+/// One CTRL_BREAK helper process (ED-242). Two ways a helper outlived its work, both reproduced on this PC:
+/// <list type="number">
+/// <item>Its creator ended inside CreateProcessW, between the creation of the process (its first thread suspended) and
+/// the resume: the helper stayed suspended for ever with no parent (one thread, about 2 MB, no CPU; a test host that
+/// exited while a background thread was launching a helper). So the helper is created inside a job of its own whose
+/// only handle is this object's, with KILL_ON_JOB_CLOSE: if the creator ends at any point of the launch the system
+/// closes that handle and the job ends the helper. Once the launch has returned the limit is cleared, so a helper that
+/// is running still finishes its one call after the app has quit, as before.</item>
+/// <item>A CTRL_BREAK that reached a helper while Windows PowerShell was starting on its hidden console made it break
+/// into the script debugger ("Entering debug mode", a [DBG] prompt) and wait for console input that never comes (or
+/// end it with STATUS_CONTROL_C_EXIT, its own CTRL_BREAK unsent). It reached the helper because the helper led a
+/// process group named by its own pid: any process attached to the helper's console by that pid and sending
+/// CTRL_BREAK to that group, which is what a helper sent for a stale pid that the system had given to a new helper
+/// does. So the helper no longer starts a process group (no CREATE_NEW_PROCESS_GROUP): an event for the group of its
+/// pid then reaches nobody. It is still never in its target's group, so the CTRL_BREAK it sends does not reach it.
+/// And the caller hands over a handle to the target, held until the helper ends, so the target's pid is not reused
+/// before the helper has attached (no helper, nor any other process, receives an event meant for an exited
+/// child).</item>
+/// </list>
+/// And whatever else might hold one, a helper never lives longer than <see cref="Lifetime"/> while the app runs: a
+/// background thread waits for it, ends it at that deadline (TerminateProcess) and closes the handles.
+/// (Created with no console, DETACHED_PROCESS as P6 created its helper, Windows PowerShell exits 0 at once without
+/// running its command, measured 2026-10-02; so the helper keeps its hidden console, CREATE_NO_WINDOW.)
+/// </summary>
+internal sealed class CtrlBreakHelper
+{
+    /// <summary>
+    /// How long a helper may run while the app does (ED-242). The helper is PowerShell: about 0.3 s when idle, over
+    /// 3 s seen under load; the bound sits above the ladders' 1 s and 3 s kill steps, which run from the call anyway.
+    /// </summary>
+    internal static readonly TimeSpan Lifetime = TimeSpan.FromSeconds(10);
+
+    private const uint ExpiredExitCode = 9;
+    private const int JobObjectExtendedLimitInformation = 9;
+    private const uint JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE = 0x00002000;
+
+    private readonly SafeProcessHandle process;
+    private readonly SafeWaitHandle job;
+    private readonly SafeProcessHandle? reserved;
+
+    private CtrlBreakHelper(SafeProcessHandle process, SafeWaitHandle job, SafeProcessHandle? reserved, int processId)
+    {
+        this.process = process;
+        this.job = job;
+        this.reserved = reserved;
+        ProcessId = processId;
+    }
+
+    /// <summary>The helper's pid (its handle is held until <see cref="Release"/> lets it go).</summary>
+    internal int ProcessId { get; }
+
+    /// <summary>The launch: <see cref="Create"/>, then <see cref="CompleteLaunch"/>.</summary>
+    internal static CtrlBreakHelper Start(string script, SafeProcessHandle? reserved = null)
+    {
+        var helper = Create(script, reserved);
+        helper.CompleteLaunch();
+        return helper;
+    }
+
+    /// <summary>
+    /// Creates the helper running <paramref name="script"/> in Windows PowerShell, inside its kill-on-close job, on a
+    /// hidden console of its own, in the app's process group (not a group of its own) and with null standard handles (it
+    /// inherits nothing from the app). It takes over <paramref name="reserved"/>, closed when the helper is let go.
+    /// Until <see cref="CompleteLaunch"/> the helper ends with this object's handles: a creator that ends now (or
+    /// inside CreateProcessW, where an orphan would stay suspended) takes its helper with it.
+    /// </summary>
+    internal static CtrlBreakHelper Create(string script, SafeProcessHandle? reserved = null)
+    {
         var powerShell = Path.Join(System.Environment.SystemDirectory, "WindowsPowerShell", "v1.0", "powershell.exe");
         var commandLine = ProcessLauncher.BuildCommandLine(powerShell,
             ["-NoProfile", "-NonInteractive", "-EncodedCommand", Convert.ToBase64String(Encoding.Unicode.GetBytes(script))]) + "\0";
-        var startup = new StartupInfoEx();
-        startup.StartupInfo.cb = Marshal.SizeOf<StartupInfoEx>();
-        // Null standard handles: the helper inherits nothing from the app.
-        startup.StartupInfo.dwFlags = STARTF_USESTDHANDLES;
-        if (!CreateProcessW(powerShell, commandLine.ToCharArray(), IntPtr.Zero, IntPtr.Zero, false,
-                CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP | CREATE_UNICODE_ENVIRONMENT | EXTENDED_STARTUPINFO_PRESENT,
-                IntPtr.Zero, null, ref startup, out var information))
+        var job = ProcessNative.CreateJobObjectW(IntPtr.Zero, null);
+        if (job.IsInvalid) throw new Win32Exception(Marshal.GetLastWin32Error());
+        IntPtr attributeList = IntPtr.Zero;
+        IntPtr jobArray = IntPtr.Zero;
+        var attributeListReady = false;
+        try
+        {
+            SetLimits(job, JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE);
+            var listSize = IntPtr.Zero;
+            ProcessNative.InitializeProcThreadAttributeList(IntPtr.Zero, 1, 0, ref listSize); // the sizing call fails by design
+            attributeList = Marshal.AllocHGlobal(listSize);
+            if (!ProcessNative.InitializeProcThreadAttributeList(attributeList, 1, 0, ref listSize))
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            attributeListReady = true;
+            // The job is the process's from its creation, before its first thread runs (P5).
+            jobArray = Marshal.AllocHGlobal(IntPtr.Size);
+            Marshal.WriteIntPtr(jobArray, job.DangerousGetHandle());
+            ProcessNative.Update(attributeList, ProcessNative.PROC_THREAD_ATTRIBUTE_JOB_LIST, jobArray, IntPtr.Size);
+            var startup = new ProcessNative.StartupInfoEx();
+            startup.StartupInfo.cb = Marshal.SizeOf<ProcessNative.StartupInfoEx>();
+            // Null standard handles: the helper inherits nothing from the app.
+            startup.StartupInfo.dwFlags = ProcessNative.STARTF_USESTDHANDLES;
+            startup.lpAttributeList = attributeList;
+            var flags = ProcessNative.CREATE_NO_WINDOW | ProcessNative.CREATE_UNICODE_ENVIRONMENT |
+                ProcessNative.EXTENDED_STARTUPINFO_PRESENT;
+            if (!ProcessNative.CreateProcessW(powerShell, commandLine.ToCharArray(), IntPtr.Zero, IntPtr.Zero, false, flags,
+                    IntPtr.Zero, null, ref startup, out var information))
+                throw new Win32Exception(Marshal.GetLastWin32Error());
+            ProcessNative.CloseHandle(information.hThread);
+            var process = new SafeProcessHandle(information.hProcess, ownsHandle: true);
+            return new CtrlBreakHelper(process, job, reserved, information.dwProcessId);
+        }
+        catch
+        {
+            job.Dispose();
+            reserved?.Dispose();
+            throw;
+        }
+        finally
+        {
+            if (attributeListReady) ProcessNative.DeleteProcThreadAttributeList(attributeList);
+            if (attributeList != IntPtr.Zero) Marshal.FreeHGlobal(attributeList);
+            if (jobArray != IntPtr.Zero) Marshal.FreeHGlobal(jobArray);
+        }
+    }
+
+    /// <summary>The launch has returned: from here a quit of the app no longer cuts the helper's one call short.</summary>
+    internal void CompleteLaunch() => SwiftTry.Ignore(() => SetLimits(job, 0));
+
+    /// <summary>
+    /// Returns at once. A background thread waits up to <paramref name="lifetime"/> for the helper to end, ends it with
+    /// TerminateProcess if it has not, and closes its handles.
+    /// </summary>
+    internal void Release(TimeSpan lifetime)
+    {
+        var milliseconds = (uint)Math.Clamp((long)Math.Ceiling(lifetime.TotalMilliseconds), 0, ProcessNative.INFINITE - 1);
+        ProcessNative.StartBackground("Marrow Ctrl+Break helper", () =>
+        {
+            if (ProcessNative.WaitForSingleObject(process, milliseconds) != 0)
+                ProcessNative.TerminateProcess(process, ExpiredExitCode);
+            job.Dispose();
+            process.Dispose();
+            reserved?.Dispose();
+        });
+    }
+
+    /// <summary>Closes the helper's handles without waiting, as the system does when its creator ends.</summary>
+    internal void Abandon()
+    {
+        job.Dispose();
+        process.Dispose();
+        reserved?.Dispose();
+    }
+
+    private static void SetLimits(SafeWaitHandle job, uint flags)
+    {
+        var limits = new ExtendedLimits();
+        limits.Basic.LimitFlags = flags;
+        if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, ref limits, Marshal.SizeOf<ExtendedLimits>()))
             throw new Win32Exception(Marshal.GetLastWin32Error());
-        CloseHandle(information.hThread);
-        CloseHandle(information.hProcess);
+    }
+
+    [DllImport("kernel32.dll", SetLastError = true)]
+    [DefaultDllImportSearchPaths(DllImportSearchPath.System32)]
+    private static extern bool SetInformationJobObject(SafeWaitHandle job, int kind, ref ExtendedLimits info, int length);
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct BasicLimits
+    {
+        public long PerProcessUserTimeLimit;
+        public long PerJobUserTimeLimit;
+        public uint LimitFlags;
+        public nuint MinimumWorkingSetSize;
+        public nuint MaximumWorkingSetSize;
+        public uint ActiveProcessLimit;
+        public nuint Affinity;
+        public uint PriorityClass;
+        public uint SchedulingClass;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct IoCounters
+    {
+        public ulong ReadOperationCount;
+        public ulong WriteOperationCount;
+        public ulong OtherOperationCount;
+        public ulong ReadTransferCount;
+        public ulong WriteTransferCount;
+        public ulong OtherTransferCount;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct ExtendedLimits
+    {
+        public BasicLimits Basic;
+        public IoCounters Io;
+        public nuint ProcessMemoryLimit;
+        public nuint JobMemoryLimit;
+        public nuint PeakProcessMemoryUsed;
+        public nuint PeakJobMemoryUsed;
     }
 }
