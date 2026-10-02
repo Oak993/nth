@@ -202,12 +202,23 @@ public sealed class URLError : Exception, ILocalizedError
     /// exception's message; with none, Windows' own text for the error the code stands for (WSAETIMEDOUT for
     /// .timedOut, an aborted operation for .cancelled); otherwise null (R-ERR-2).
     /// </summary>
-    public string? ErrorDescription => InnerException?.Message ?? URLErrorCode switch
+    public string? ErrorDescription => (InnerException is { } underlying ? WindowsText(underlying) : null) ?? URLErrorCode switch
     {
         Code.TimedOut => new SocketException((int)SocketError.TimedOut).Message,
         Code.Cancelled => new OperationCanceledException().Message,
         _ => null,
     };
+
+    // The underlying exception's message, unless it is only .NET's wrapper ("An error occurred while sending the
+    // request.") around a Winsock error: then the Windows error's own text, as OD-0056 asks. An outer message that
+    // already carries the Windows text (and adds the address) is kept.
+    private static string WindowsText(Exception underlying)
+    {
+        for (var inner = underlying.InnerException; inner is not null; inner = inner.InnerException)
+            if (inner is SocketException socket)
+                return underlying.Message.Contains(socket.Message, StringComparison.Ordinal) ? underlying.Message : socket.Message;
+        return underlying.Message;
+    }
 
     public override string Message => ErrorDescription ?? base.Message;
 

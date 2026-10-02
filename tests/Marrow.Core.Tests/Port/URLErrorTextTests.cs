@@ -60,6 +60,24 @@ public sealed class URLErrorTextTests
 
     [Fact]
     [Trait("Rule", "R-ERR-2")]
+    public void A_generic_dotnet_wrapper_gives_way_to_the_Windows_socket_error_inside_it()
+    {
+        // OD-0056 asks for the Windows networking error's own message: when the outer exception is only .NET's
+        // "An error occurred while sending the request." around a Winsock error, the Winsock text is shown.
+        var reset = new SocketException((int)SocketError.ConnectionReset);
+        var wrapped = new HttpRequestException("An error occurred while sending the request.", new IOException("Unable to read data from the transport connection.", reset));
+        Assert.Equal(reset.Message, SwiftErrors.LocalizedDescription(new URLError(URLError.Code.NetworkConnectionLost, wrapped)));
+        // An outer message that already carries the Windows text (and adds the address) is kept as it is.
+        var refused = new SocketException((int)SocketError.ConnectionRefused);
+        var named = new HttpRequestException(refused.Message + " (127.0.0.1:9)", refused);
+        Assert.Equal(named.Message, SwiftErrors.LocalizedDescription(new URLError(URLError.Code.CannotConnectToHost, named)));
+        // With no Windows error inside, the outer message stands.
+        var plain = new HttpRequestException("The response ended prematurely.");
+        Assert.Equal(plain.Message, SwiftErrors.LocalizedDescription(new URLError(URLError.Code.NetworkConnectionLost, plain)));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-ERR-2")]
     public async Task A_connection_severed_inside_the_body_shows_the_message_of_the_error_that_cut_it()
     {
         // The read of the body fails with the transport's own exception; the URLError the caller gets keeps it.
