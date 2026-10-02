@@ -668,3 +668,8 @@ Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Cl
 
 - **Owner ruling, 2026-10-02 (chat, translated from Hindi/Urdu):** for the features to be carried over from the legacy Marrow app, the UI is designed fresh: for each feature, 10-15 design variants are made on a canvas, the owner chooses one and decides where in the app it goes, and features are added one by one, so each is a premium addition and never looks like an unrefined carry-over from the legacy app (which was not refined).
 - **Effect:** extends the earlier rule that legacy features carry capability only and are designed in Droppy Code's glass language, canvas-approved, after parity. No legacy feature UI is built before its variant canvas is approved; one feature at a time.
+
+## OD-0071 Scrolling is soft and weighted everywhere, like the Mac
+
+- **Owner ruling, 2026-10-02 (chat, translated from Hindi/Urdu):** wherever anything scrolls (in the chat and anywhere else), the scrolling must be soft and "premium weighted", as it feels on the Mac: it must feel premium.
+- **Effect:** every scroll area (chat timeline, diff and terminal panels, Settings pages and sidebar, the thread sidebar, popovers, menus, panels, the command palette) uses one scrolling behaviour modelled on the Mac's as measured from the reference videos at full frame rate: eased, interpolated wheel steps, momentum with a natural decay for precision touchpads, a soft settle at the ends, animated keyboard and programmatic scrolls (e.g. scroll to bottom), and overlay scroll indicators as the Mac shows them; paced on the display's refresh with zero dropped frames (OD-0069, ED-237).
