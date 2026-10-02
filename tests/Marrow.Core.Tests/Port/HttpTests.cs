@@ -1213,12 +1213,5 @@ public sealed class HttpTests
         Assert.Equal(code, new URLError(code).URLErrorCode);
     }
 
-    [Fact]
-    [Trait("Rule", "R-ERR-2")]
-    public void A_URLError_has_no_invented_localized_description()
-    {
-        // R-ERR-2: a Foundation NSError's localized text cannot be reproduced on Windows, so the helper refuses it and
-        // each site that shows one (MCPProxy.swift:302, OpenAICompatibleSession.swift:702) needs its own decision.
-        Assert.Throws<NotSupportedException>(() => SwiftErrors.LocalizedDescription(new URLError(URLError.Code.TimedOut)));
-    }
+    // The text a URLError shows (OD-0056, replacing the earlier refusal to give it any) is in URLErrorTextTests.
 }

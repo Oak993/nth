@@ -175,13 +175,41 @@ public sealed class HTTPURLResponse : URLResponse
 
 /// <summary>
 /// Swift <c>URLError</c> (MCPProxy.swift:311, :354; OpenAICompatibleSession.swift:88-97 retries by code). It is not
-/// a CancellationError: a cancelled request throws URLError(.cancelled) (R-TASK-2). It carries no localized text:
-/// Foundation's cannot be reproduced on Windows (R-ERR-2).
+/// a CancellationError: a cancelled request throws URLError(.cancelled) (R-TASK-2).
+/// OD-0056: Foundation's English text for it ("The request timed out.") cannot be reproduced, and the owner chose
+/// the Windows networking error's own message in its place. <see cref="ErrorDescription"/> (what
+/// <c>SwiftErrors.LocalizedDescription</c> returns, the one place the decision lives) is the message of the
+/// exception the failure came from (a SocketException's, an HttpRequestException's), or, for a limit this port's own
+/// timer ended, Windows' text for the matching error. No other text is invented (R-ERR-2): a code that has neither
+/// (badURL, unsupportedURL, httpTooManyRedirects, badServerResponse thrown by the port itself) still has none.
 /// </summary>
-public sealed class URLError(URLError.Code code) : Exception
+public sealed class URLError : Exception, ILocalizedError
 {
+    /// <summary>Swift: <c>URLError(code)</c>; <paramref name="underlying"/> is the Windows/.NET failure it stands for, if any (OD-0056).</summary>
+    public URLError(Code code, Exception? underlying = null) : base(null, underlying)
+    {
+        URLErrorCode = code;
+    }
+
     /// <summary>Swift: <c>code</c> (R-NAME-3).</summary>
-    public Code URLErrorCode { get; } = code;
+    public Code URLErrorCode { get; }
+
+    /// <summary>PORT-ONLY (OD-0056): the Windows/.NET exception this error was made from; null for a limit the port's own timer ended.</summary>
+    public Exception? Underlying => InnerException;
+
+    /// <summary>
+    /// Swift: <c>localizedDescription</c> (OD-0056, deviation from Foundation's wording): the underlying Windows/.NET
+    /// exception's message; with none, Windows' own text for the error the code stands for (WSAETIMEDOUT for
+    /// .timedOut, an aborted operation for .cancelled); otherwise null (R-ERR-2).
+    /// </summary>
+    public string? ErrorDescription => InnerException?.Message ?? URLErrorCode switch
+    {
+        Code.TimedOut => new SocketException((int)SocketError.TimedOut).Message,
+        Code.Cancelled => new OperationCanceledException().Message,
+        _ => null,
+    };
+
+    public override string Message => ErrorDescription ?? base.Message;
 
     /// <summary><c>URLError.Code</c>, with the NSURLError raw values.</summary>
     public enum Code
@@ -590,15 +618,29 @@ public sealed class URLSession
     // R-NET-1: one HttpClient for every session. No automatic redirect (the unit follows them itself, keeping
     // Authorization to the same origin, O-29), no automatic decompression (the unit decodes, keeping the headers as
     // sent), no cookie container (the sessions' stores), and no timeout of its own (the unit's timers).
-    private static readonly HttpClient Client = new(new SocketsHttpHandler
+    private static readonly SocketsHttpHandler DefaultHandler = new()
     {
         AllowAutoRedirect = false,
         AutomaticDecompression = System.Net.DecompressionMethods.None,
         UseCookies = false,
-    })
+    };
+
+    private static readonly HttpClient Client = new(DefaultHandler)
     {
         Timeout = System.Threading.Timeout.InfiniteTimeSpan,
     };
+
+    /// <summary>
+    /// PORT-ONLY (OD-0057): the test seam on the HTTP client. Every request of every session is sent through the
+    /// handler in <c>Transport.Current</c>, and its process default is the handler the port has always used, so
+    /// production behaviour is unchanged: nothing outside a test overrides it. A test overrides it for its own
+    /// async flow with a handler that answers in-process (an https upstream no stand-in server can be, R-TEST-9,
+    /// R-TEST-10). Only the wire is replaced: the redirect, decoding, timer and error rules of this unit still run
+    /// on top, and an overriding handler gets the same client settings (no timeout of its own, R-NET-1). It is
+    /// read once per request, in the caller's flow, so a background loop sees the override only if it was
+    /// started inside it.
+    /// </summary>
+    public static Ambient<HttpMessageHandler> Transport { get; } = new(DefaultHandler);
 
     // UNVERIFIED O-48: URLSession follows 20 redirects and fails the 21st with URLError(.httpTooManyRedirects);
     // swift-corelibs-foundation swift-6.2-RELEASE FoundationNetworking/URLSession/HTTP/HTTPURLProtocol.swift:459-465
@@ -664,6 +706,10 @@ public sealed class URLSession
         var clock = SwiftClock.Provider.Current;
         var task = SwiftTask.CancellationToken;
         var app = AppInfo.Current;
+        // PORT-ONLY (OD-0057): the handler a test put on this flow; the process default is today's client.
+        var handler = Transport.Current;
+        var transport = ReferenceEquals(handler, DefaultHandler) ? Client
+            : new HttpClient(handler, disposeHandler: false) { Timeout = System.Threading.Timeout.InfiniteTimeSpan };
         if (task.IsCancellationRequested) throw new URLError(URLError.Code.Cancelled);
         if (!request.Url.IsAbsoluteUri || (request.Url.Scheme != Uri.UriSchemeHttp && request.Url.Scheme != Uri.UriSchemeHttps))
             throw new URLError(URLError.Code.UnsupportedURL);
@@ -688,7 +734,7 @@ public sealed class URLSession
             {
                 using var message = Build(hop, app);
                 exchange.ArmIdle();
-                response = await Client.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, exchange.Token);
+                response = await transport.SendAsync(message, HttpCompletionOption.ResponseHeadersRead, exchange.Token);
             }
             catch (Exception error) when (SwiftTry.IsThrownError(error))
             {
@@ -897,13 +943,16 @@ public sealed class URLSession
         internal URLError End(Exception error, bool inBody)
         {
             URLError.Code code;
+            bool fromTransport;
             lock (gate)
             {
+                fromTransport = failure is null;
                 code = failure ?? Translate(error, inBody);
                 failure ??= code;
                 if (!ended) Stop();
             }
-            return error is URLError same && same.URLErrorCode == code ? same : new URLError(code);
+            // OD-0056: an error the port's own timer or a cancel ended carries no exception, one a transport raised keeps it.
+            return error is URLError same && same.URLErrorCode == code ? same : new URLError(code, fromTransport ? error : null);
         }
 
         internal URLError.Code? Failure
@@ -960,7 +1009,7 @@ public sealed class URLSession
     {
         private readonly Channel<byte[]> chunks = Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions { SingleWriter = true });
         private readonly Exchange? exchange;
-        private URLError.Code? error;
+        private URLError? error;
 
         private AsyncBytes(Exchange? exchange) => this.exchange = exchange;
 
@@ -1018,12 +1067,12 @@ public sealed class URLSession
                         chunks.Writer.TryWrite(chunk);
                     }
                 }
-                if (!exchange.Complete()) error = exchange.Failure;
+                if (!exchange.Complete()) error = exchange.Failure is { } limit ? new URLError(limit) : null;
                 else store?.Invoke(kept!.ToArray());
             }
             catch (Exception failure) when (SwiftTry.IsThrownError(failure))
             {
-                error = exchange.End(failure, inBody: true).URLErrorCode;
+                error = exchange.End(failure, inBody: true);
             }
             finally
             {
@@ -1056,7 +1105,7 @@ public sealed class URLSession
         {
             while (await chunks.Reader.WaitToReadAsync())
                 if (chunks.Reader.TryRead(out var chunk)) return chunk;
-            if (error is { } code) throw new URLError(code);
+            if (error is { } ended) throw new URLError(ended.URLErrorCode, ended.Underlying);
             return null;
         }
 
