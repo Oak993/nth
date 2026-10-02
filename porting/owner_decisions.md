@@ -699,3 +699,12 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 
 - **Owner ruling, 2026-10-02 (chat, "My choice", with a screenshot of the variant):** the Settings window's open transition is variant 2 "Rise" from the choices canvas https://claude.ai/artifact/8vQa4UTFxApeS1mbCSA8Uf (board SettingsOpen.dc.html; locked copy E:/Droppy/work/design/settings-open-rise-2-locked.dc.html): the glass fades in, then the sidebar items and the page rows rise into place in a quick wave, 0.26 s from when the glass is ready.
 - **Effect:** settles OD-0072's Settings-open choice: the plain tint before the Acrylic blur (ED-236) is never seen; the window stays hidden (cloaked) until its glass is ready, then Rise plays. Built test-first to the locked canvas's timing and offsets, on the frame clock, with reduce motion showing the window without the wave.
+
+## OD-0075 Choices: liquid at every effort, corner filled, Tools page, accent picker, OpenRouter picker
+
+- **Owner answers, 2026-10-02 (chat), on the choices canvas https://claude.ai/artifact/8vQa4UTFxApeS1mbCSA8Uf:**
+  - **Liquid scope:** liquid at every effort level (settles OD-0072; each model and effort at its OD-0063 intensity).
+  - **Window corner:** the wedge is filled with the window's scrim (settles OD-0072).
+  - **Tool updates:** variant 04, a Tools page in the Settings sidebar listing each provider tool's installed and latest versions in columns, with Update, Update all and Retry on failure.
+  - **Accent:** the app offers several accent themes to choose from in Settings, so the accent becomes the user's preference; the Windows accent is the shipped default. New UI: designed on the canvas (variants) before it is built.
+- **OpenRouter model picker (OD-0060's canvas https://claude.ai/artifact/BNoUoc4vvCLK5pHzYMmVcA):** approved, except that the list overlaps the currently selected model's chip below it; the overlap is fixed on the canvas first, then the picker is built.
