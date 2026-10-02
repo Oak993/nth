@@ -2891,11 +2891,9 @@ public sealed class AppCommandsTests(HeadlessSession headless)
 // Finishing pass (AppCommandsFinishTests.cs and the retagged tests above; base c639bab13).
 // - STOP #3 is resolved: AppModel now holds the 80 ms fallbacks and the empty-thread delete (AppModel.cs:872-921), so
 //   PR-WIN-113, PR-WIN-114 and UI-WIN-025 carry Req traits, with the chord carried out to its end in AppCommandsFinishTests.
-// - STOP #2 stays open for the "+" key only: Ctrl with "+" is tested as the chord the port holds (PerformKeyEquivalent);
-//   no Windows key event reads as "+", so only Ctrl with "=" reaches Zoom In from a keyboard. PR-WIN-222 and UI-WIN-074
-//   are tagged on their stated result ("only the chord remains, Ctrl with the + key equivalent"); the key route is a question.
-// - STOP #4 stays open: PR-UPDATE-092, PR-WIN-115, UI-UPDATE-055, UI-WIN-027 and the palette clause of PR-WIN-089 need the
-//   "Welcome tour" palette row, whose place, symbol and id OD-0012 G5 leaves open (PR-WIN-115 open_question). They keep
-//   their partial-evidence traits and no test is written for the row.
+// - STOP #2 is resolved by ED-230 (2026-10-02): Shift with the "=" key, and the keypad +, read as the "+" key equivalent
+//   when the chord itself takes no command (AppCommandsFinishTests.Ctrl_Shift_equals_and_Ctrl_keypad_plus_...).
+// - STOP #4 is resolved by OD-0053 (2026-10-02): the "Welcome tour" palette row follows Settings, symbol sparkles, id
+//   welcome-tour, no chord; CommandPaletteTests carries PR-WIN-115, PR-UPDATE-092, UI-UPDATE-055 and UI-WIN-027.
 // - STOP #7 (AltGr) and #8 (overlapping chords, UNK-0003) are unchanged; neither is part of the stated result of PR-WIN-101
 //   or PR-WIN-092.

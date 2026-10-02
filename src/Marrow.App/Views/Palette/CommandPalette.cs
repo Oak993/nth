@@ -18,6 +18,8 @@ using Marrow.Core.Port;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
+using Marrow.App.Views.Tour;
+
 namespace Marrow.App.Views.Palette;
 
 // Source: DroppyCode/App/Views/Palette/CommandPalette.swift (B3 52bc792), :1-211.
@@ -293,6 +295,10 @@ public sealed class CommandPalette : Decorator
         }
         actions.Add(new Item("settings", "Settings", null, null, "gearshape", ShortcutStore.Label(AppShortcut.OpenSettings), // :176-178
             () => WindowManager.Shared.ShowSettings()));
+        // DEVIATION OD-0012 G5, placed by OD-0053: the Help menu's "Welcome tour" (AppCommands.swift:111-113) has no menu
+        // bar to live in, so it is a palette action right after Settings: the sparkles symbol, no chord (the source gives
+        // the command none), presenting the tour whether or not it was seen (PR-WIN-115, PR-UPDATE-092).
+        actions.Add(new Item("welcome-tour", "Welcome tour", null, null, "sparkles", null, () => Views.Tour.Tour.Present(model)));
 
         var matchingActions = needle.Length == 0 // :180
             ? actions

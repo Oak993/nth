@@ -93,7 +93,7 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-173")] // App/Views/Palette/CommandPalette.swift:176-178
-    public void Settings_action_is_always_last_and_reads_Settings_with_no_ellipsis()
+    public void Settings_action_reads_Settings_with_no_ellipsis_after_the_base_actions() // OD-0053: the tour row follows it
     {
         headless.OnUiThread(() =>
         {
@@ -104,6 +104,83 @@ public sealed class CommandPaletteTests(HeadlessSession headless)
                 var (_, _, palette) = Build(model);
                 var titles = Titles(palette);
                 Assert.Equal("Settings", titles[3]); // fourth row: no thread selected
+            });
+        });
+    }
+
+    // ---- The Welcome tour row, OD-0012 G5 placed by OD-0053 ----
+
+    [Fact]
+    [Trait("Req", "PR-WIN-115")] // App/AppCommands.swift:111-113; DEVIATION OD-0012 G5 / OD-0053: a palette row after Settings
+    [Trait("Req", "UI-UPDATE-055")] // App/AppCommands.swift:111-113: titled "Welcome tour", no chord, never disabled
+    [Trait("Req", "UI-WIN-027")] // App/AppCommands.swift:111-113
+    public void The_welcome_tour_row_follows_settings_with_sparkles_and_no_chord_and_is_found_by_its_title()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            var directory = harness.NewFolder("p");
+            CommandPalette palette = null!;
+            AvaloniaWindow window = null!;
+            harness.Main.OnMain(() =>
+            {
+                (_, window, palette) = Build(model);
+                var titles = Titles(palette);
+                Assert.Equal("Welcome tour", titles[4]); // right after Settings (titles[3])
+                var row = RowParts(palette.RowsPanel.Children[4]);
+                Assert.Equal("sparkles", Assert.IsType<SwiftImage>(Assert.Single(row.Icon.Children)).SymbolName);
+                Assert.True(string.IsNullOrEmpty(row.Chord.Text)); // the source gives the command no shortcut
+                Assert.True(palette.RowsPanel.Children[4].IsEnabled);
+                // with a thread selected the row still follows Settings
+                var project = model.AddProject(new Project("P", directory).Url);
+                model.SelectedThreadID = model.NewThread(project)!.Id;
+                window.Close();
+                (_, window, palette) = Build(model);
+                titles = Titles(palette);
+                Assert.Equal(Array.IndexOf(titles, "Settings") + 1, Array.IndexOf(titles, "Welcome tour"));
+                palette.QueryField.Text = " TOUR ";
+            });
+            harness.Main.OnMain(() =>
+            {
+                Settle(window);
+                Assert.Equal(["Welcome tour"], Titles(palette).Where(title => title is "Welcome tour" or "Settings").ToArray());
+                window.Close();
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-092")] // App/AppCommands.swift:111-113; TourPages.swift:26-28: presents the tour whatever hasSeenTour says
+    [Trait("Req", "PR-WIN-115")] // the tour is presented from the palette
+    public void Choosing_the_welcome_tour_row_closes_the_palette_and_presents_the_tour_even_after_it_was_seen()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+            AvaloniaWindow window = null!;
+            var tourWindow = typeof(Marrow.App.Views.Tour.TourWindowController).GetField("window", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+            harness.Main.OnMain(() =>
+            {
+                model.Settings.HasSeenTour = true;
+                Marrow.App.Views.Tour.TourWindowController.Shared.Close();
+                Assert.Null(tourWindow.GetValue(Marrow.App.Views.Tour.TourWindowController.Shared));
+                CommandPalette palette;
+                (_, window, palette) = Build(model);
+                model.IsCommandPalettePresented = true;
+                var index = Array.IndexOf(Titles(palette), "Welcome tour");
+                var point = Centre(palette.RowsPanel.Children[index], window);
+                window.MouseDown(point, MouseButton.Left, RawInputModifiers.None);
+                window.MouseUp(point, MouseButton.Left, RawInputModifiers.None);
+            });
+            harness.Main.OnMain(() =>
+            {
+                Dispatcher.UIThread.RunJobs();
+                Assert.False(model.IsCommandPalettePresented); // :204 close() runs before the action
+                Assert.NotNull(tourWindow.GetValue(Marrow.App.Views.Tour.TourWindowController.Shared)); // the tour is up
+                Marrow.App.Views.Tour.TourWindowController.Shared.Close();
+                window.Close();
             });
         });
     }

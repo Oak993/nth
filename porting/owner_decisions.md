@@ -583,3 +583,13 @@ Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Cl
     - nothing allocated per frame;
     - only tubes in view are drawn.
 - **Effect:** the port's effort slider follows version 22's rendering (OD-0051's deviations, as refined here). Performance targets carry over: one small track at 60 fps, a negligible share of an integrated GPU.
+
+## OD-0053 The Welcome tour's palette row: after Settings, with sparkles
+
+- **Owner ruling, 2026-10-02 (chat), choice "After Settings (Recommended)":** the Help menu's "Welcome tour" (AppCommands.swift:111-113), which OD-0012 G5 moves into the command palette, is the row right after Settings, with the `sparkles` symbol, id `welcome-tour`, no chord.
+- **Effect:** closes STOP App.AppCommands #4 (PR-WIN-115, PR-UPDATE-092, UI-UPDATE-055, UI-WIN-027 and the palette clause of PR-WIN-089).
+
+## OD-0054 Apple's macOS design kit may be downloaded
+
+- **Owner ruling, 2026-10-02 (chat), choice "Yes, download it":** for OD-0045, Claude may download Apple's official macOS UI kit from developer.apple.com/design/resources and accept Apple's terms for it on the owner's behalf; values measured from it are cited to the kit.
+
