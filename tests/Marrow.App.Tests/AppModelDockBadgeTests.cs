@@ -6,8 +6,8 @@ namespace Marrow.App.Tests;
 
 // App/AppModel.swift:1261-1264 updateDockBadge (the count of threads that are unread, not archived and not in a panel), and
 // the places that call it: turnFinished :1197, markRead :1230 and :1246, archive/unarchive/settle, delete.
-// The Windows taskbar overlay cannot draw text (PR-LAUNCH-066 windows_path), so the model keeps the count the badge text
-// would be made from, and that is what these tests read (ED-119: nothing public observes it).
+// The model keeps the count the badge text is made from, and these tests read it (ED-119). The taskbar overlay built from
+// that count (ED-219) is checked in Port/TaskbarBadgeTests.cs.
 public sealed class AppModelDockBadgeTests
 {
     [Fact]

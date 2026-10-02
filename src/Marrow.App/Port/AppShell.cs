@@ -25,6 +25,7 @@ public sealed class AppShell : ITerminationSender
     private const uint WM_ENDSESSION = 0x0016;
     private const uint WM_ACTIVATEAPP = 0x001C;
     private const uint WM_SETTINGCHANGE = 0x001A;
+    private const uint WM_DPICHANGED = 0x02E0;
 
     private readonly Action exit;
     private readonly Action afterWillTerminate;
@@ -61,6 +62,8 @@ public sealed class AppShell : ITerminationSender
         if (windows.MainWindow is { } main)
         {
             Win32Properties.AddWndProcHookCallback(main, WndProc);
+            // ED-219: the badge computed while the delegate launched had no window to sit on yet.
+            (TaskbarBadge.Overlay.Current as WindowsTaskbarOverlay)?.Reapply();
             // AppDelegate.swift:28 installs UpdateChecker.swift:141-149's didBecomeActive observer.
             // WM_ACTIVATEAPP, handled below, is the app-level boundary; Window.Activated also fires
             // when focus moves between two windows of this same app.
@@ -168,6 +171,10 @@ public sealed class AppShell : ITerminationSender
         if (msg == WM_ENDSESSION && wParam != 0) WillTerminate();
         // ED-084: WM_SETTINGCHANGE (broadcast to every top-level window) re-reads Windows' "Animation effects" setting.
         if (msg == WM_SETTINGCHANGE) SystemReduceMotion.Shared.Current.Refresh();
+        // ED-219: Explorer made the taskbar button (again), or the DPI, and so the small-icon size, changed: the unread
+        // badge's overlay icon is set again.
+        if (msg == WM_DPICHANGED || msg == WindowsTaskbarOverlay.TaskbarButtonCreated)
+            (TaskbarBadge.Overlay.Current as WindowsTaskbarOverlay)?.Reapply();
         return 0;
     }
 }

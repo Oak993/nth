@@ -93,7 +93,7 @@ public sealed partial class AppModel : MainActorModel
     private bool persistenceEnabled = true; // AppModel.swift:118
     private HashSet<Guid> sessionsToRelease = []; // AppModel.swift:1008
     private bool libraryLoadFailed; // DEVIATION OD-0008: protect library.json after a failed load.
-    private long dockUnreadCount; // AppModel.swift:1270-1273; Windows has no text badge surface.
+    private long dockUnreadCount; // AppModel.swift:1270-1273; shown as the taskbar overlay (ED-219).
 
     public AppSettings Settings { get; }          // AppModel.swift:15
     public ProviderRegistry Providers { get; }    // AppModel.swift:16
@@ -1348,8 +1348,9 @@ public sealed partial class AppModel : MainActorModel
     // AppModel.swift:1261-1264
     public void UpdateDockBadge() // AppModel.swift:1261-1264
     {
-        // The source count is retained for consumers; Windows taskbar overlays cannot display its decimal text.
+        // ED-219: NSApp.dockTile.badgeLabel (:1273) is the main window's taskbar overlay icon, cleared at zero.
         dockUnreadCount = threads.LongCount(thread => thread.HasUnread && !thread.IsArchived && !thread.IsInPanel);
+        Marrow.App.Port.TaskbarBadge.Show(dockUnreadCount);
     }
 
     // MARK: - Text generation

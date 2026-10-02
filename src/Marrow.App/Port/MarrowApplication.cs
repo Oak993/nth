@@ -22,5 +22,9 @@ public sealed class MarrowApplication : Application
         .UsePlatformDetect()
         .WithSwiftFonts()
         .WithPortControlThemes() // default templates for controls built without one (Marrow.UI/Port/PortControlThemes.cs)
-        .AfterSetup(_ => SystemReduceMotion.Install()); // ED-084: every window follows Windows' "Animation effects" setting
+        .AfterSetup(_ =>
+        {
+            SystemReduceMotion.Install(); // ED-084: every window follows Windows' "Animation effects" setting
+            WindowsTaskbarOverlay.Install(); // ED-219: the Dock unread badge is the taskbar overlay icon
+        });
 }
