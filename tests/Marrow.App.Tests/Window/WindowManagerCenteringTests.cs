@@ -49,6 +49,7 @@ public sealed class WindowManagerCenteringTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-WIN-006")] // App/Window/WindowManager.swift:67-70; ED-225
+    [Trait("Req", "UI-LAUNCH-001")] // the first launch's 1320 x 860 content, centred (WindowManager.swift:67-70; ED-225)
     public void A_first_run_main_uses_the_pointer_monitor_work_area_and_the_one_third_vertical_bias() => WithManager((manager, harness, screens, cursor) =>
     {
         manager.ShowMain();

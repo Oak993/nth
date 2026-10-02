@@ -107,6 +107,7 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
     [Fact]
     [Trait("Decision", "ED-236")]
     [Trait("Req", "UI-SETTINGS-001")] // WindowChrome.swift:116-117 through WindowManager.swift:101; OD-0014, OD-0005
+    [Trait("Req", "UI-LAUNCH-001")] // the main window's clear glass: Acrylic plus the app's scrim (OD-0014)
     public void The_real_main_window_blurs_the_stripes_behind_it_under_the_scrim_and_stays_blurred_when_it_is_inactive() => native.Run(subject =>
     {
         var (work, scale) = native.OnUi(() => Work(subject.Main));
@@ -246,6 +247,7 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
     [Fact]
     [Trait("Decision", "ED-236")]
     [Trait("Req", "PR-LAUNCH-028")] // AppDelegate.swift:22 (OD-0018); OD-0041; ED-103 (4)-(5)
+    [Trait("Req", "UI-LAUNCH-001")] // shown automatically at launch, through the boot hand-over (OD-0018, OD-0041)
     public void Under_the_full_boot_sequence_the_hand_over_shows_the_main_window_blurred_and_never_as_scrim_over_sharp_stripes() => native.Run(subject =>
     {
         var (work, scale) = native.OnUi(() => Work(subject.Main));

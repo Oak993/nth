@@ -1,0 +1,72 @@
+{
+ "exe": "E:\\Droppy\\wt\\cl\\terminal-verify\\src\\Marrow.App\\bin\\Debug\\net10.0-windows10.0.19041.0\\Marrow.App.exe",
+ "dataRoot": "%TEMP%/marrow-launch-* (fresh, deleted after)",
+ "workArea": [
+  0,
+  0,
+  2560,
+  1392
+ ],
+ "firstWindowMs": 678,
+ "timeline": [
+  {
+   "t_ms": 678,
+   "title": "Window",
+   "class": "Avalonia-728805a7-e9f1-4dba-8f93-f97b18861ae7",
+   "rect": [
+    0,
+    0,
+    2560,
+    1392
+   ],
+   "client": [
+    2560,
+    1392
+   ],
+   "dpi": 96
+  },
+  {
+   "t_ms": 5150,
+   "title": "Marrow Dev",
+   "class": "Avalonia-e4dc9d5e-eb50-4fd0-a139-54dc35cd71f5",
+   "rect": [
+    612,
+    164,
+    1948,
+    1032
+   ],
+   "client": [
+    1320,
+    860
+   ],
+   "dpi": 96
+  },
+  {
+   "t_ms": 6694,
+   "title": "Window",
+   "class": "Avalonia-11d4852f-b5fa-42d4-9e6f-1330850d0c76",
+   "rect": [
+    950,
+    402,
+    1610,
+    989
+   ],
+   "client": [
+    660,
+    587
+   ],
+   "dpi": 96
+  }
+ ],
+ "shots": [
+  "boot-stage-1.5s.png (screen crop 1172,495-1388,700, the mark only)",
+  "main-and-tour-9.0s.png (screen crop to the main window frame)"
+ ],
+ "exitCode": 0,
+ "dataRootFiles": [
+  "Marrow Code\\UserDefaults.json",
+  "Marrow Code\\library.json",
+  "Marrow Code\\mcp\\proxy-port",
+  "Marrow Code\\notification-icon.png"
+ ]
+}

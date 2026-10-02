@@ -212,7 +212,9 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
     });
 }
 
-// STOP opencode-App.AppDelegate #1
+// STOP opencode-App.AppDelegate #1 - RESOLVED 2026-10-02: the Acrylic hint and its boot hand-over landed (ED-236, WindowManager
+// STOP #5 closed; GlassWindowNativeTests), and a clean-data boot capture of the real app was taken under OD-0055
+// (porting/verification/native/launch-2026-10-02/RESULT.md). The tests carry the Req.
 // Kind: missing external composition evidence/material dependency.
 // Swift: App/AppDelegate.swift:22; ED-103 (5), (7), ED-180, OD-0018.
 // Records: PR-LAUNCH-028, PR-LAUNCH-071, UI-LAUNCH-001.
@@ -245,8 +247,9 @@ public sealed class AppDelegateProofTests(HeadlessSession headless)
 // landed. Present only calls Show/Activate and does not restore WindowState.Minimized. Need the source/oracle ruling
 // on makeKeyAndOrderFront restoring a minimized window, then the WindowManager owner's restore binding.
 
-// STOP opencode-App.AppDelegate #5 - native-close half RESOLVED by OD-0039 (follow the Swift); reopen-path pointer
-// proofs still open.
+// STOP opencode-App.AppDelegate #5 - RESOLVED: the native-close half by OD-0039 (follow the Swift); the reopen paths are
+// clicked in SettingsViewTests (the About page's "Welcome tour" Show button) and CommandPaletteTests (the palette row,
+// OD-0053); the first-launch tour seen natively in porting/verification/native/launch-2026-10-02/RESULT.md.
 // Kind: record/source scope ambiguity and missing whole-record pointer proof.
 // Swift: App/AppDelegate.swift:24-26; TourPages.swift:27; TourWindowController.swift:103-107,145-148.
 // Records: UI-LAUNCH-002.

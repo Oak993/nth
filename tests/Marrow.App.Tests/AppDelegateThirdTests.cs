@@ -96,8 +96,8 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Source-derived partial proof; the STOP prevents a whole Windows contract claim.
-    // Partial proof PR-LAUNCH-071; STOP opencode-App.AppDelegate #1. // App/AppDelegate.swift:22-33
+    [Trait("Rule", "R-TEST-4")]
+    [Trait("Req", "PR-LAUNCH-071")] // App/AppDelegate.swift:22-33; the clean-data native capture: porting/verification/native/launch-2026-10-02
     public void First_launch_opens_the_chat_then_only_the_delayed_tour_with_no_onboarding_alert()
     {
         WithLaunch(h => WriteProjectWithUnusedThread(h), launch =>
@@ -174,7 +174,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-070")] // App/AppDelegate.swift:24-26
     [Trait("Req", "PR-LAUNCH-037")] // App/AppDelegate.swift:24-26
     [Trait("Req", "PR-UPDATE-090")] // App/AppDelegate.swift:22-26; App/AppSettings.swift:178
-    // Partial proof UI-LAUNCH-002; STOP opencode-App.AppDelegate #5. // App/AppDelegate.swift:24-26
+    [Trait("Req", "UI-LAUNCH-002")] // App/AppDelegate.swift:24-26; the clean-data native capture: porting/verification/native/launch-2026-10-02
     public void On_a_first_launch_the_tour_is_presented_exactly_700_ms_after_the_main_window()
     {
         WithLaunch(null, launch =>
@@ -197,7 +197,7 @@ public sealed class AppDelegateThirdTests(HeadlessSession headless)
     [Trait("Req", "PR-WIN-070")] // App/AppDelegate.swift:24
     [Trait("Req", "PR-LAUNCH-037")] // App/AppDelegate.swift:24
     [Trait("Req", "PR-UPDATE-090")] // App/AppDelegate.swift:24; App/AppSettings.swift:178
-    // Partial proof UI-LAUNCH-002; STOP opencode-App.AppDelegate #5. // App/AppDelegate.swift:24
+    [Trait("Req", "UI-LAUNCH-002")] // App/AppDelegate.swift:24
     public void When_the_tour_has_been_seen_launch_never_presents_it()
     {
         WithLaunch(h => h.Defaults.Set(HasSeenTourKey, true), launch =>
