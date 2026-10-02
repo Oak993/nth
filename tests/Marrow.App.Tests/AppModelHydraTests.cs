@@ -2124,19 +2124,28 @@ public sealed class AppModelHydraTests
         var repository = AppModelGitRepo.WithCommit(HydraTreeCacheScratch());
         var git = new Git(repository.Root);
 
+        // The check's git read must really wait, not merely usually. With the checkout's watch standing, the read can be
+        // answered without waiting at all: when the watch's cookie has already been seen by the time it is registered
+        // (the watcher thread beat it) and the watch's snapshot is current, currentTree returns inline, the whole check
+        // finishes before the test can land anything, and the old starting point is rightly handed out (about 1 run in 5).
+        // With the watch down, the read is the scratch-index walk through git processes, and a process can never have
+        // exited before it was awaited. This is the same read the cache makes for a checkout nothing watches.
+        WorkingTreeWatch.Shared(git.Directory, Path.Combine(git.Directory, ".git"))?.TearDown();
+
         var first = await CaptureHydraTree(repository.Root, git);
         await Task.Delay(TimeSpan.FromSeconds(1.2)); // inside the 3 s lifetime; a new commit now gets a later timestamp
 
         // The capture is still fresh, so the next head checks the tree against it; a landing happens while that read is
         // under way. The capture from before the landing must not be handed out, however recent and however equal the tree.
         // The cache's own lock is held from the start of the check to the landing, so the check cannot finish in between
-        // whatever the machine's load (the git read always waits: on the watch's cookie or on a git process).
+        // whatever the machine's load; the check is proved to be waiting on git before the landing is made.
         var gate = HydraTreeCacheType().GetField("Gate", BindingFlags.Static | BindingFlags.NonPublic)!.GetValue(null)!;
         Task<(string Tree, string Commit)> checking;
         Monitor.Enter(gate);
         try
         {
             checking = StartHydraTreeCapture(repository.Root, git);
+            Assert.False(checking.IsCompleted, "the check finished before the landing: its read did not wait on git");
             InvalidateHydraTreeCache(repository.Root);
         }
         finally
