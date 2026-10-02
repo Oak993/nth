@@ -50,6 +50,10 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Req", "UI-UPDATE-021")] // App/Views/Settings/AboutUpdateViews.swift:822-845; UI/Chrome/Chrome.swift:1055-1080
+    [Trait("Req", "PR-SETTINGS-240")] // App/Views/Settings/AboutUpdateViews.swift:836-844 (detail order and sentences, OD-0012 F1 product name)
+    [Trait("Req", "PR-UPDATE-076")] // App/Views/Settings/AboutUpdateViews.swift:822-845 (title, button label, disabled while checking, detail order)
+    [Trait("Req", "UI-SETTINGS-071")] // App/Views/Settings/AboutUpdateViews.swift:826-833 (Check now | Checking, enabled | disabled)
+    [Trait("Req", "UI-UPDATE-022")] // App/Views/Settings/AboutUpdateViews.swift:826-833 (label and disabled state share isChecking)
     [Trait("Decision", "ED-059")] // PR-SETTINGS-240/PR-UPDATE-076 partial: every sentence/metric, not a manufactured capture reference.
     [InlineData(false, null, false, false)] [InlineData(false, null, false, true)]
     [InlineData(false, "The request timed out.", true, false)] [InlineData(false, "The request timed out.", true, true)]

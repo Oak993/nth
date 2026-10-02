@@ -190,6 +190,7 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-013")] // App/Views/Settings/AboutUpdateViews.swift:241-244
     [Trait("Req", "UI-UPDATE-014")] // App/Views/Settings/AboutUpdateViews.swift:241-244
     [Trait("Req", "UI-SETTINGS-057")] // App/Views/Settings/AboutUpdateViews.swift:241-244 ("above the card")
+    [Trait("Req", "UI-UPDATE-015")] // App/Views/Settings/AboutUpdateViews.swift:241-244: arrowEdge .top, light dismissal, the same card again closes it
     public void Each_card_presents_its_own_popover_above_itself() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
@@ -424,6 +425,7 @@ public sealed class AboutUpdateViewsProofInputTests(HeadlessSession headless)
     [Trait("Req", "PR-UPDATE-073")] // App/Views/Settings/AboutUpdateViews.swift:643-671
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:643-671
     [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:643-671
+    [Trait("Req", "UI-UPDATE-005")] // App/Views/Settings/AboutUpdateViews.swift:671: the ready/standing change eases 0.18 s in both directions
     public void The_face_change_eases_in_and_out_over_0_18_seconds_in_both_directions_for_wash_symbol_and_title() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();

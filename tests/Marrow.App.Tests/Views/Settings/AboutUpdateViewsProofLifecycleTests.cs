@@ -54,6 +54,9 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
     [Fact]
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:617-621,693-703
     [Trait("Decision", "ED-071")] // App/Views/Settings/AboutUpdateViews.swift:821-845; OD-0012 I1; partial until small glass style/capture is proven.
+    [Trait("Req", "PR-SETTINGS-240")] // App/Views/Settings/AboutUpdateViews.swift:826-844; OD-0012 I1: empty feed, no request, "No update feed is set. " + checked suffix
+    [Trait("Req", "PR-UPDATE-076")] // App/Views/Settings/AboutUpdateViews.swift:839; OD-0012 I1 error in front of the checked phrase
+    [Trait("Req", "UI-SETTINGS-071")] // App/Views/Settings/AboutUpdateViews.swift:826-829; OD-0012 I1 click asks the checker, empty feed sends no request
     [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:617-621,693-703 (with geometry/modifier tests)
     [Trait("Req", "UI-UPDATE-003")] // App/Views/Settings/AboutUpdateViews.swift:617-621,693-703
     [Trait("Req", "PR-UPDATE-075")] // App/Views/Settings/AboutUpdateViews.swift:678-703
@@ -87,6 +90,8 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
 
     [Fact]
     [Trait("Decision", "ED-071")] // App/Views/Settings/AboutUpdateViews.swift:826-829; UpdateChecker.swift:178-180; partial row proof.
+    [Trait("Req", "PR-UPDATE-076")] // App/Views/Settings/AboutUpdateViews.swift:826-829: the button runs a foreground check, never a background one (no toast)
+    [Trait("Req", "UI-UPDATE-022")] // App/Views/Settings/AboutUpdateViews.swift:826-829; UpdateChecker.swift:178-180: foreground, cannot raise a notification
     public void Successful_pointer_check_is_foreground_and_never_toasts_a_newer_release() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -115,6 +120,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:638-675
     [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:638-675
     [Trait("Decision", "ED-180")] // UI-UPDATE-005 partial: press renderer remains deferred, though the real pointer invokes installation.
+    [Trait("Req", "UI-UPDATE-005")] // App/Views/Settings/AboutUpdateViews.swift:638-640,673-675: click starts the install, a second click is ignored, the button is gone once it runs
     public void Ready_pointer_click_runs_real_install_and_a_stale_second_click_reads_live_state_and_starts_nothing() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
@@ -159,6 +165,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
     [Trait("Req", "PR-UPDATE-060")] // App/Views/Settings/AboutUpdateViews.swift:728-733; App/AppUpdater.swift:157-166
     [Trait("Req", "PR-UPDATE-063")] // App/Views/Settings/AboutUpdateViews.swift:737-743
     [Trait("Decision", "ED-084")] // PR-UPDATE-061 partial: inherited environment is not connected to the Windows setting on impl/b2.
+    [Trait("Req", "PR-UPDATE-061")] // App/Views/Settings/AboutUpdateViews.swift:795-818: target 1.0 at 550 ms, reset at 2600 ms (1450 ms with Reduce Motion)
     [InlineData(false, false, 2600)] [InlineData(true, false, 1450)] [InlineData(false, true, 2600)]
     public void Page_consumes_cancels_old_work_mounts_caught_up_settles_and_never_replays(bool reduced, bool failureReset, int total) => headless.OnUiThread(() =>
     {
@@ -251,6 +258,7 @@ public sealed class AboutUpdateViewsProofLifecycleTests(HeadlessSession headless
     [Fact]
     [Trait("Decision", "ED-084")] // PR-UPDATE-061 partial: the phase guard at Swift :801, not system-setting integration
     [Trait("Req", "PR-SETTINGS-243")] // App/Views/Settings/AboutUpdateViews.swift:800-801 ("only if the progress is still in the celebrating phase")
+    [Trait("Req", "PR-UPDATE-061")] // App/Views/Settings/AboutUpdateViews.swift:801: a phase change before the 550 ms guard aborts the sweep
     public void A_phase_change_before_the_550_millisecond_guard_ends_the_real_sweep() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime(); using var frames = FrameClock.Source.Override(new ManualFrameSource());

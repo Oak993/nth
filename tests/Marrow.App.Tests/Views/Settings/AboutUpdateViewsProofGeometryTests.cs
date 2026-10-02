@@ -104,6 +104,8 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-002")] // App/Views/Settings/AboutUpdateViews.swift:587-621,650-682
     [Trait("Req", "UI-UPDATE-003")] // App/Views/Settings/AboutUpdateViews.swift:587-621,693-703
     [Trait("Req", "UI-UPDATE-004")] // App/Views/Settings/AboutUpdateViews.swift:587-621,693-703
+    [Trait("Req", "PR-UPDATE-072")] // App/Views/Settings/AboutUpdateViews.swift:587-621: standing order error, then never checked, then up to date; labels, symbols, tints
+    [Trait("Req", "UI-UPDATE-005")] // App/Views/Settings/AboutUpdateViews.swift:638-682: the ready face (symbol, text, blue, 0.2 wash, tooltip, accessibility)
     [InlineData(false, null, false, "Not checked yet", "clock", "Marrow has not asked GitLab for a release yet")]
     [InlineData(true, null, false, "Up to date", "checkmark.seal.fill", "Marrow 1.7.0 is the latest version")]
     [InlineData(false, "GitLab answered with HTTP 503.", false, "Check failed", "exclamationmark.triangle.fill", "GitLab answered with HTTP 503.")]
@@ -183,6 +185,7 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-180")] // PR-UPDATE-074 source geometry proven; macOS capture comparison remains unavailable (OD-0001).
+    [Trait("Req", "PR-UPDATE-074")] // App/Views/Settings/AboutUpdateViews.swift:625-636: 104 pt slider in the capsule (12/28/2), no label or button, failed phase not in the set
     [Trait("Req", "UI-UPDATE-006")] // App/Views/Settings/AboutUpdateViews.swift:625-636; App/AppUpdater.swift:72-78
     [Trait("Req", "UI-SETTINGS-056")] // App/Views/Settings/AboutUpdateViews.swift:625-636
     [Trait("Req", "PR-SETTINGS-242")] // App/Views/Settings/AboutUpdateViews.swift:625-636 (104-point slider in the glass capsule)
@@ -272,6 +275,8 @@ public sealed class AboutUpdateViewsProofGeometryTests(HeadlessSession headless)
 
     [Theory]
     [Trait("Decision", "ED-059")] // App/Views/Settings/AboutUpdateViews.swift:255-301; partial proof, macOS capture unavailable (OD-0001).
+    [Trait("Req", "PR-SETTINGS-246")] // App/Views/Settings/AboutUpdateViews.swift:255-301: header, bullets 9 apart, rollup last and smaller, one colour
+    [Trait("Req", "UI-UPDATE-015")] // App/Views/Settings/AboutUpdateViews.swift:255-301: popover geometry, typography, colours, scroll cap
     [InlineData(false)] [InlineData(true)]
     public void Popover_with_and_without_rollup_has_source_header_colours_wrapping_duplicate_bullets_and_scroll(bool rollup) => headless.OnUiThread(() =>
     {
