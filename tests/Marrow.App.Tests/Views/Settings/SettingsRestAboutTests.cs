@@ -55,6 +55,26 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
     }
 
     [Fact]
+    [Trait("Req", "UI-SETTINGS-059")] // App/Views/Settings/SettingsView.swift:1066 HStack(spacing: 12), centre alignment by default
+    public void Attribution_row_centres_the_two_line_labels_and_the_link_on_the_40_point_logos_line()
+    {
+        With(() => new MadeByDroppyRow(SwiftURL.Create("https://getdroppy.app")!), (view, _, h, w) =>
+        {
+            var grid = Assert.IsType<Grid>(Assert.Single(Nodes<Button>(view)).Content);
+            var logo = Assert.IsType<SwiftImage>(grid.Children[0]);
+            var centre = logo.Bounds.Center.Y;
+            // An HStack centres each child vertically: the two-line labels (about 31 points) and the link line (about 15) sit at
+            // their own height on the 40-point logo's centre line, not at the top of the row.
+            foreach (var child in new Control[] { grid.Children[1], grid.Children[2] })
+            {
+                Assert.Equal(child.DesiredSize.Height - child.Margin.Top - child.Margin.Bottom, child.Bounds.Height, 0.5);
+                Assert.Equal(centre, child.Bounds.Center.Y, 0.5);
+            }
+            Assert.Equal(40, logo.Bounds.Height, 0.5);
+        }, height: 220);
+    }
+
+    [Fact]
     [Trait("Req", "UI-SETTINGS-059")] // App/Views/Settings/SettingsView.swift:1060-1102; OD-0012 F3
     [Trait("Req", "UI-UPDATE-026")] // App/Views/Settings/SettingsView.swift:1060-1102
     [Trait("Req", "UI-UPDATE-027")] // App/Views/Settings/SettingsView.swift:1081-1096

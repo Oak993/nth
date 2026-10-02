@@ -130,6 +130,26 @@ public sealed class ShortcutsSettingsPageReviewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SETTINGS-043")] // App/Views/Settings/ShortcutsSettingsPage.swift:24 HStack(alignment: .center, spacing: 8)
+    public void Header_title_sits_on_the_centre_line_of_its_20_point_badge() => headless.OnUiThread(() =>
+    {
+        using var rt = new TestRuntime();
+        using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var shared = ShortcutStore.Shared.Override(FreshStore());
+        var header = new ShortcutSectionHeader("Threads", "bubble.left", null);
+        var window = Show(header);
+        var row = header.GetVisualDescendants().OfType<StackPanel>().Single();
+        var badge = header.GetVisualDescendants().OfType<SidebarIconBadge>().Single();
+        var label = header.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "Threads");
+        // The 16-point title is shorter than the 20-point badge; the HStack (alignment: .center) puts it on the badge's centre line.
+        Assert.Equal(label.DesiredSize.Height, label.Bounds.Height, 0.5);
+        Assert.Equal(badge.Bounds.Center.Y, label.Bounds.Center.Y, 0.5);
+        Assert.Same(row, label.Parent);
+        window.Close();
+    });
+
+    [Fact]
     [Trait("Req", "UI-SETTINGS-043")] // App/Views/Settings/ShortcutsSettingsPage.swift:24-35,272-276
     [Trait("Req", "UI-SETTINGS-047")] // App/Views/Settings/ShortcutsSettingsPage.swift:450-481
     public void Header_and_action_pills_have_source_geometry_colors_and_instant_press_scales() => headless.OnUiThread(() =>

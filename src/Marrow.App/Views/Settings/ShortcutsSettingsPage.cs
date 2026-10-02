@@ -52,7 +52,7 @@ public sealed class ShortcutSectionHeader : Decorator
     public ShortcutSectionHeader(string title, string symbol, Control? accessory)
     {
         var badge = new SidebarIconBadge(() => new SidebarSymbol(symbol)); // :25-27
-        var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap }; // :28, :31
+        var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, VerticalAlignment = VerticalAlignment.Center }; // :28, :31; :24 alignment: .center
         SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold).Apply(text); // :29
         text.Foreground = Chrome.SecondaryText.Brush(text); // :30
         var left = new StackPanel
