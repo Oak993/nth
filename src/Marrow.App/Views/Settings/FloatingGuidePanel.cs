@@ -46,11 +46,14 @@ public class FloatingGuidePanel
     // :16-26 func present(_ content: some View)
     protected void Present(Control content)
     {
-        content.Measure(new Size(width, double.PositiveInfinity)); // :17
-        var measuredHeight = Math.Ceiling(content.DesiredSize.Height);
         var window = panel ?? MakePanel(); // :18
         window.Content = content; // :19
         window.Width = width;
+        // :17 fittingSize of the content at the panel's width, measured once it is in the panel: a detached control has
+        // no styles or templates yet, so its fields and buttons measured short (the key guide by 16-28 pt).
+        window.Measure(new Size(width, double.PositiveInfinity));
+        content.Measure(new Size(width, double.PositiveInfinity));
+        var measuredHeight = Math.Ceiling(content.DesiredSize.Height);
         window.Height = Math.Max(measuredHeight, 100); // :20
 
         // :21-23 Place at the main screen's visible top right with a 24-point inset.

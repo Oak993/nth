@@ -106,6 +106,39 @@ public sealed class FloatingGuidePanelTests(HeadlessSession headless)
         });
     }
 
+    // :17-20 the panel's content height is the content's fittingSize at the panel's width: what the content measures once
+    // it is in the panel, styled and templated (a detached measure left the key guide's field and buttons short).
+    [Fact]
+    [Trait("Req", "PR-MCP-215")] // App/Views/Settings/FloatingGuidePanel.swift:16-26
+    public void Each_panel_is_exactly_as_tall_as_its_content_measured_in_the_panel()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            using var harness = new AppModelHarness();
+            var model = harness.MakeModel();
+
+            void Check(FloatingGuidePanel owner, double width)
+            {
+                var window = PanelOf(owner)!;
+                var content = (Control)window.Content!;
+                content.Measure(new Avalonia.Size(width, double.PositiveInfinity));
+                var fitting = Math.Ceiling(content.DesiredSize.Height);
+                Assert.True(fitting > 100, $"the fixture's content should be taller than the floor, was {fitting}");
+                Assert.Equal(fitting, window.Height);
+                Assert.Equal(fitting, content.Bounds.Height, 0.5);
+            }
+
+            harness.Main.OnMain(() => { MCPKeyPanel.Shared.Present(KeyEntry(), model); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });
+            Check(MCPKeyPanel.Shared, 380);
+            MCPKeyPanel.Shared.Close();
+
+            harness.Main.OnMain(() => { MCPSetupPanel.Shared.Present(SetupEntry(), Guide(), model); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); });
+            Check(MCPSetupPanel.Shared, 400);
+            MCPSetupPanel.Shared.Close();
+        });
+    }
+
     // :58-64 startEscapeMonitor(): an application-wide monitor, not scoped to the panel window itself (needed
     // because a truly non-activating panel never receives OS keyboard focus).
     [Fact]
