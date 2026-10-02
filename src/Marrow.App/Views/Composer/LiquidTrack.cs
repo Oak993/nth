@@ -311,8 +311,16 @@ public static class LiquidTrack
     internal const int MaxBubbles = 24;
     internal const int MaxStrands = 3;
 
-    private const string Shader = """
-        uniform shader grad;            // the liquid's gradient, one texel per device pixel
+    // ED-233: the liquid is drawn in small passes, not one shader. The one-shader form (content() three times for the
+    // refraction, each with the currents, caustic, oil and 24 bubbles) overflowed the native stack of ANGLE's D3D shader
+    // compile on Avalonia's render thread: the default GPU backend (AngleEgl) crashed the process the first time a liquid
+    // track drew (native run 2026-10-02, exit 0xC00000FD). Now: (A) the liquid is composed once into an offscreen surface
+    // at device scale: the gradient, then each layer with Skia's own W3C separable blend modes (screen for the oil, soft
+    // light for the currents, overlay for the caustic, each the canvas's mix-blend-mode), then each bubble on its own small
+    // rectangle, then the capsule's coverage; (B) the glass pass samples that surface three times through the
+    // displacement map for the refraction and adds the gloss and the rims. The values are the same as before; the layers
+    // meet through an 8-bit surface instead of float registers.
+    private const string Uniforms_ = """
         uniform float2 size;            // the liquid (the filled part of the track), px
         uniform float track;            // the whole track's width, px: currents, light and bubbles keep their scale
         uniform float gradWidth;        // texels in grad
@@ -327,29 +335,16 @@ public static class LiquidTrack
         uniform float caustic;          // the caustic tile's offset, px
         uniform float4 oil;             // on, left px, width px, tile offset px
         uniform float oilMask;          // 1 in a blend: the oil fades at its stretch's ends
-        uniform float bubbles;
-        uniform float4 bubA[24];        // centre x, centre y, scale, opacity
-        uniform float4 bubB[24];        // border box side, dark rim, unused, unused
         uniform float3 refraction;      // the channels' displacement scales
 
+        """;
+
+    private const string Helpers = """
         float erf(float x) { float a = 0.147; float x2 = x * x; float r = sqrt(max(0.0, 1.0 - exp(-x2 * (1.2732395 + a * x2) / (1.0 + a * x2)))); return x < 0.0 ? -r : r; } // max: Skia's CPU exp() can return a hair over 1 near 0
         float capsule(float2 p, float2 s) {
             float r = s.y * 0.5; float2 a = float2(r, r); float2 b = float2(max(r, s.x - r), r);
             float2 pa = p - a; float2 ba = b - a; float h = clamp(dot(pa, ba) / max(dot(ba, ba), 0.0001), 0.0, 1.0);
             return length(pa - ba * h) - r;
-        }
-        float3 softLight(float3 cb, float3 cs) {
-            float3 d = mix(sqrt(max(cb, float3(0.0))), ((16.0 * cb - 12.0) * cb + 4.0) * cb, step(cb, float3(0.25)));
-            return mix(cb + (2.0 * cs - 1.0) * (d - cb), cb - (1.0 - 2.0 * cs) * cb * (1.0 - cb), step(cs, float3(0.5)));
-        }
-        float3 overlayB(float3 cb, float3 cs) { return mix(cs + (2.0 * cb - 1.0) - cs * (2.0 * cb - 1.0), 2.0 * cs * cb, step(cb, float3(0.5))); }
-        float3 screenB(float3 cb, float3 cs) { return cb + cs - cb * cs; }
-        half4 blendOver(half4 dst, half4 src, int mode) {
-            if (src.a <= 0.0) return dst;
-            float3 cs = float3(src.rgb) / float(src.a); float3 cb = dst.a > 0.0 ? float3(dst.rgb) / float(dst.a) : float3(0.0);
-            float3 bl = mode == 1 ? softLight(cb, cs) : mode == 2 ? overlayB(cb, cs) : screenB(cb, cs);
-            float3 mixed = (1.0 - float(dst.a)) * cs + float(dst.a) * bl;
-            return half4(half3(float(src.a) * mixed + (1.0 - float(src.a)) * float3(dst.rgb)), src.a + dst.a * (1.0 - src.a));
         }
         half4 over(half4 dst, half4 src) { return src + dst * (1.0 - src.a); }
         // a blurred SVG stroke along a sine, in the current's own viewBox (2000 wide over twice the track)
@@ -363,8 +358,25 @@ public static class LiquidTrack
             float w = shape.w * 0.5; float s = 2.0 * 1.41421356;
             return clamp(0.5 * (erf((d + w) / s) - erf((d - w) / s)), 0.0, 1.0);
         }
-        float ellipseAlpha(float2 uv, float2 c, float2 r, float a) { float t = length((uv - c) / r); return a * max(0.0, 1.0 - t / 0.7); }
-        half4 oilLayer(float2 p) {
+
+        """;
+
+    // (A1) the liquid's colour, breathing (saturate, then brightness), opaque.
+    private const string BaseMain = """
+        half4 main(float2 p) {
+            float3 c = float3(grad.eval(float2(clamp(p.x / size.x, 0.0, 1.0) * gradWidth, 0.5)).rgb);
+            float s = breathe.x;
+            c = float3(dot(c, float3(0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s)),
+                       dot(c, float3(0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s)),
+                       dot(c, float3(0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s)));
+            c = clamp(clamp(c, 0.0, 1.0) * breathe.y, 0.0, 1.0);
+            return half4(half3(c), 1.0);
+        }
+        """;
+
+    // (A2) Grok's oil sheen, screened over the liquid (under the currents in a blend, over the light for one model).
+    private const string OilMain = """
+        half4 main(float2 p) {
             float lx = p.x - oil.y;
             if (oil.x < 0.5 || lx < 0.0 || lx > oil.z) return half4(0.0);
             float tw = 2.6 * oil.z; float th = size.y;
@@ -377,80 +389,59 @@ public static class LiquidTrack
             half4 s2 = half4(half3(40.0, 220.0, 210.0) / 255.0 * 0.30, 0.30);
             half4 s3 = half4(half3(255.0, 110.0, 180.0) / 255.0 * 0.28, 0.28);
             half4 s4 = half4(half3(255.0, 220.0, 140.0) / 255.0 * 0.20, 0.20);
-            half4 g = t <= 0.18 ? s0 : t <= 0.32 ? mix(s0, s1, half((t - 0.18) / 0.14)) : t <= 0.42 ? mix(s1, s2, half((t - 0.32) / 0.10))
-                : t <= 0.52 ? mix(s2, s3, half((t - 0.42) / 0.10)) : t <= 0.60 ? mix(s3, s4, half((t - 0.52) / 0.08)) : t <= 0.74 ? mix(s4, s0, half((t - 0.60) / 0.14)) : s0;
+            half4 g = s0;
+            if (t <= 0.18) g = s0;
+            else if (t <= 0.32) g = mix(s0, s1, half((t - 0.18) / 0.14));
+            else if (t <= 0.42) g = mix(s1, s2, half((t - 0.32) / 0.10));
+            else if (t <= 0.52) g = mix(s2, s3, half((t - 0.42) / 0.10));
+            else if (t <= 0.60) g = mix(s3, s4, half((t - 0.52) / 0.08));
+            else if (t <= 0.74) g = mix(s4, s0, half((t - 0.60) / 0.14));
             float m = 1.0;
             if (oilMask > 0.5) { float f = lx / oil.z; m = f < 0.3 ? f / 0.3 : f > 0.7 ? (1.0 - f) / 0.3 : 1.0; }
             return g * half(0.9 * m);
         }
-        // one CSS bubble: the soft halo outside, the radial highlight, the 1 px rim; then the element's opacity
-        half4 bubble(float2 p, float4 A, float4 B) {
-            float outer = B.x; float sz = outer - 2.0; float R0 = outer * 0.5; float sc = A.z; float px = 1.0 / (scale * sc);
-            float2 q = (p - A.xy) / sc + float2(R0);
-            float d = length(q - float2(R0)) - R0;
-            float inside = clamp(0.5 - d / px, 0.0, 1.0);
-            float halo = 0.5 * (1.0 - erf(d / (1.5 * 1.41421356)));
-            half4 col = half4(1.0) * half(0.25 * halo * (1.0 - inside));
-            bool dark = B.y > 0.5;
-            float2 c0 = float2(1.0 + 0.32 * sz, 1.0 + 0.28 * sz); float rad = length(float2(0.68 * sz, 0.72 * sz));
-            float t = length(q - c0) / max(rad, 0.001);
-            half4 bg;
-            if (!dark) {
-                half4 a0 = half4(0.95); half4 a1 = half4(0.14); half4 a2 = half4(0.0);
-                bg = t <= 0.16 ? a0 : t <= 0.46 ? mix(a0, a1, half((t - 0.16) / 0.30)) : t <= 0.72 ? mix(a1, a2, half((t - 0.46) / 0.26)) : a2;
-            } else {
-                half4 a0 = half4(0.98); half4 a1 = half4(half3(20.0, 22.0, 30.0) / 255.0 * 0.06, 0.06); half4 a2 = half4(0.0);
-                bg = t <= 0.18 ? a0 : t <= 0.50 ? mix(a0, a1, half((t - 0.18) / 0.32)) : t <= 0.72 ? mix(a1, a2, half((t - 0.50) / 0.22)) : a2;
-            }
-            col = over(col, bg * half(inside));
-            float ring = clamp(0.5 - d / px, 0.0, 1.0) * clamp(0.5 + (d + 1.0) / px, 0.0, 1.0);
-            half4 rc = dark ? half4(half3(20.0, 22.0, 30.0) / 255.0 * 0.5, 0.5) : half4(0.72);
-            col = over(col, rc * half(ring));
-            return col * half(A.w);
-        }
-        half4 content(float2 p) {
-            float cov = clamp(0.5 - capsule(p, size) * scale, 0.0, 1.0);
-            if (cov <= 0.0) return half4(0.0);
-            // the liquid, breathing (saturate, then brightness)
-            float3 c = float3(grad.eval(float2(clamp(p.x / size.x, 0.0, 1.0) * gradWidth, 0.5)).rgb);
-            float s = breathe.x;
-            c = float3(dot(c, float3(0.213 + 0.787 * s, 0.715 - 0.715 * s, 0.072 - 0.072 * s)),
-                       dot(c, float3(0.213 - 0.213 * s, 0.715 + 0.285 * s, 0.072 - 0.072 * s)),
-                       dot(c, float3(0.213 - 0.213 * s, 0.715 - 0.715 * s, 0.072 + 0.928 * s)));
-            c = clamp(clamp(c, 0.0, 1.0) * breathe.y, 0.0, 1.0);
-            half4 o = half4(half3(c), 1.0);
-            // a blend's oil is drawn under its currents
-            if (oilMask > 0.5) o = blendOver(o, oilLayer(p), 3);
-            // the first current: one strand, or a strand per model, composited, then soft-light
+        """;
+
+    // (A3) the first current: one strand, or a strand per model, composited; soft-lit over the liquid.
+    private const string StrandsMain = """
+        half4 main(float2 p) {
             half4 sa = half4(0.0);
             for (int i = 0; i < 3; i++) {
                 if (float(i) >= strands) break;
                 float a = strand(p, curA.z, curA.x, strandShape[i]);
                 sa = over(sa, half4(strandColor[i]) * half(a));
             }
-            o = blendOver(o, sa * half(curA.y), 1);
-            if (curB.w > 0.5) o = blendOver(o, half4(1.0) * half(strand(p, curB.z, curB.x, waveB) * curB.y), 1);
-            // the caustic light
+            return sa * half(curA.y);
+        }
+        """;
+
+    // (A4) the slow current, soft-lit.
+    private const string SlowMain = """
+        half4 main(float2 p) { return half4(1.0) * half(strand(p, curB.z, curB.x, waveB) * curB.y); }
+        """;
+
+    // (A5) the caustic light, overlaid.
+    private const string CausticMain = """
+        float ellipseAlpha(float2 uv, float2 c, float2 r, float a) { float t = length((uv - c) / r); return a * max(0.0, 1.0 - t / 0.7); }
+        half4 main(float2 p) {
             float tw = 2.0 * track; float th = size.y; float2 uv = float2(mod(p.x - caustic, tw), p.y);
             float c1 = ellipseAlpha(uv, float2(0.12 * tw, 0.38 * th), float2(38.0, 10.0), 0.55);
             float c2 = ellipseAlpha(uv, float2(0.37 * tw, 0.66 * th), float2(54.0, 12.0), 0.40);
             float c3 = ellipseAlpha(uv, float2(0.63 * tw, 0.34 * th), float2(44.0, 10.0), 0.50);
             float c4 = ellipseAlpha(uv, float2(0.88 * tw, 0.62 * th), float2(60.0, 13.0), 0.38);
             float ca = 1.0 - (1.0 - c1) * (1.0 - c2) * (1.0 - c3) * (1.0 - c4);
-            o = blendOver(o, half4(1.0) * half(ca * 0.8), 2);
-            // one model's oil is drawn over its light
-            if (oilMask < 0.5) o = blendOver(o, oilLayer(p), 3);
-            for (int i = 0; i < 24; i++) {
-                if (float(i) >= bubbles) break;
-                float4 A = bubA[i];
-                if (A.w <= 0.003) continue;
-                float reach = (bubB[i].x * 0.5 + 6.0) * A.z;
-                if (abs(p.x - A.x) > reach || abs(p.y - A.y) > reach) continue;
-                o = over(o, bubble(p, A, bubB[i]));
-            }
-            return o * half(cov);
+            return half4(1.0) * half(ca * 0.8);
         }
-        // the glass map, as the canvas draws it: red across, blue down, a blurred neutral capsule laid over the middle
+        """;
+
+    // (A7) the capsule's coverage, kept with DstIn.
+    private const string CoverMain = """
+        half4 main(float2 p) { return half4(clamp(0.5 - capsule(p, size) * scale, 0.0, 1.0)); }
+        """;
+
+    // (B) the glass map, as the canvas draws it (red across, blue down, a blurred neutral capsule laid over the middle),
+    // sampled per channel; then the gloss and the inset rims.
+    private const string GlassMain = """
         float2 displacement(float2 p) {
             float inset = min(size.x, size.y) * 0.12; float sigma = max(3.0, size.y * 0.16);
             float2 innerSize = size - 2.0 * inset;
@@ -461,16 +452,18 @@ public static class LiquidTrack
         }
         half4 main(float2 p) {
             float2 off = displacement(p);
-            half4 r = content(p + refraction.x * off);
-            half4 g = content(p + refraction.y * off);
-            half4 b = content(p + refraction.z * off);
+            half4 r = liquid.eval(p + refraction.x * off);
+            half4 g = liquid.eval(p + refraction.y * off);
+            half4 b = liquid.eval(p + refraction.z * off);
             half4 o = half4(r.r, g.g, b.b, 1.0 - (1.0 - r.a) * (1.0 - g.a) * (1.0 - b.a));
             float d = capsule(p, size);
             float cov = clamp(0.5 - d * scale, 0.0, 1.0);
             // the tube's gloss: light above, shade below
             float ty = p.y / size.y;
-            half4 gl = ty <= 0.35 ? mix(half4(0.16), half4(0.04), half(ty / 0.35)) : ty <= 0.55 ? mix(half4(0.04), half4(0.0), half((ty - 0.35) / 0.20))
-                : mix(half4(0.0), half4(0.0, 0.0, 0.0, 0.18), half((ty - 0.55) / 0.45));
+            half4 gl;
+            if (ty <= 0.35) gl = mix(half4(0.16), half4(0.04), half(ty / 0.35));
+            else if (ty <= 0.55) gl = mix(half4(0.04), half4(0.0), half((ty - 0.35) / 0.20));
+            else gl = mix(half4(0.0), half4(0.0, 0.0, 0.0, 0.18), half((ty - 0.55) / 0.45));
             o = over(o, gl);
             // the inset rims: a 1 px light line, light falling in from the top edge, shade from the bottom edge
             float line = clamp(0.5 - d * scale, 0.0, 1.0) * clamp(0.5 + (d + 1.0) * scale, 0.0, 1.0);
@@ -483,11 +476,60 @@ public static class LiquidTrack
         }
         """;
 
-    private static readonly Lazy<SKRuntimeEffect> Effect = new(() =>
-        SKRuntimeEffect.CreateShader(Shader, out var error) ?? throw new InvalidOperationException("Liquid shader did not compile: " + error));
+    // (A6) one CSS bubble: the soft halo outside, the radial highlight, the 1 px rim; then the element's opacity.
+    private const string BubbleShader = """
+        uniform float scale;   // device pixels per px
+        uniform float4 A;      // centre x, centre y, scale, opacity
+        uniform float4 B;      // border box side, dark rim, unused, unused
+        float erf(float x) { float a = 0.147; float x2 = x * x; float r = sqrt(max(0.0, 1.0 - exp(-x2 * (1.2732395 + a * x2) / (1.0 + a * x2)))); return x < 0.0 ? -r : r; }
+        half4 over(half4 dst, half4 src) { return src + dst * (1.0 - src.a); }
+        half4 main(float2 p) {
+            float outer = B.x; float sz = outer - 2.0; float R0 = outer * 0.5; float sc = A.z; float px = 1.0 / (scale * sc);
+            float2 q = (p - A.xy) / sc + float2(R0);
+            float d = length(q - float2(R0)) - R0;
+            float inside = clamp(0.5 - d / px, 0.0, 1.0);
+            float halo = 0.5 * (1.0 - erf(d / (1.5 * 1.41421356)));
+            half4 col = half4(1.0) * half(0.25 * halo * (1.0 - inside));
+            bool dark = B.y > 0.5;
+            float2 c0 = float2(1.0 + 0.32 * sz, 1.0 + 0.28 * sz); float rad = length(float2(0.68 * sz, 0.72 * sz));
+            float t = length(q - c0) / max(rad, 0.001);
+            half4 bg;
+            if (!dark) {
+                half4 a0 = half4(0.95); half4 a1 = half4(0.14); half4 a2 = half4(0.0);
+                if (t <= 0.16) bg = a0; else if (t <= 0.46) bg = mix(a0, a1, half((t - 0.16) / 0.30)); else if (t <= 0.72) bg = mix(a1, a2, half((t - 0.46) / 0.26)); else bg = a2;
+            } else {
+                half4 a0 = half4(0.98); half4 a1 = half4(half3(20.0, 22.0, 30.0) / 255.0 * 0.06, 0.06); half4 a2 = half4(0.0);
+                if (t <= 0.18) bg = a0; else if (t <= 0.50) bg = mix(a0, a1, half((t - 0.18) / 0.32)); else if (t <= 0.72) bg = mix(a1, a2, half((t - 0.50) / 0.22)); else bg = a2;
+            }
+            col = over(col, bg * half(inside));
+            float ring = clamp(0.5 - d / px, 0.0, 1.0) * clamp(0.5 + (d + 1.0) / px, 0.0, 1.0);
+            half4 rc = dark ? half4(half3(20.0, 22.0, 30.0) / 255.0 * 0.5, 0.5) : half4(0.72);
+            col = over(col, rc * half(ring));
+            return col * half(A.w);
+        }
+        """;
 
-    /// <summary>Compiles the shader (tests use it to prove the source is valid SkSL).</summary>
-    internal static SKRuntimeEffect CompiledEffect => Effect.Value;
+    private static Lazy<SKRuntimeEffect> Compile(string source, string what) => new(() =>
+        SKRuntimeEffect.CreateShader(source, out var error) ?? throw new InvalidOperationException("Liquid " + what + " shader did not compile: " + error));
+
+    private static readonly Lazy<SKRuntimeEffect> BaseEffect = Compile("uniform shader grad;\n" + Uniforms_ + Helpers + BaseMain, "base");
+    private static readonly Lazy<SKRuntimeEffect> OilEffect = Compile(Uniforms_ + Helpers + OilMain, "oil");
+    private static readonly Lazy<SKRuntimeEffect> StrandsEffect = Compile(Uniforms_ + Helpers + StrandsMain, "current");
+    private static readonly Lazy<SKRuntimeEffect> SlowEffect = Compile(Uniforms_ + Helpers + SlowMain, "slow current");
+    private static readonly Lazy<SKRuntimeEffect> CausticEffect = Compile(Uniforms_ + Helpers + CausticMain, "caustic");
+    private static readonly Lazy<SKRuntimeEffect> CoverEffect = Compile(Uniforms_ + Helpers + CoverMain, "coverage");
+    private static readonly Lazy<SKRuntimeEffect> Effect = Compile("uniform shader liquid;\n" + Uniforms_ + Helpers + GlassMain, "glass");
+    private static readonly Lazy<SKRuntimeEffect> BubbleEffect = Compile(BubbleShader, "bubble");
+
+    /// <summary>Compiles every pass (tests use it to prove the sources are valid SkSL).</summary>
+    internal static SKRuntimeEffect CompiledEffect
+    {
+        get
+        {
+            foreach (var pass in new[] { BaseEffect, OilEffect, StrandsEffect, SlowEffect, CausticEffect, CoverEffect, BubbleEffect }) _ = pass.Value;
+            return Effect.Value;
+        }
+    }
 
     /// <summary>One frame's values, resolved on the UI thread.</summary>
     internal sealed record Frame(Size Size, double Track, double Time, SKColor[] Gradient, LiquidSpec Spec, BubbleLanes? Bubbles, bool DarkBubbles, IReadOnlyList<Color> StrandColors);
@@ -520,13 +562,16 @@ public static class LiquidTrack
         return (new[] { 1f, (float)left, (float)span, (float)(-1.6 * span * position) }, spec.IsBlend ? 1f : 0f);
     }
 
-    /// <summary>The shader's uniforms for a frame (separate so tests can read them).</summary>
-    internal static SKRuntimeEffectUniforms Uniforms(Frame f, double scale)
+    /// <summary>The glass pass's uniforms for a frame (separate so tests can read them).</summary>
+    internal static SKRuntimeEffectUniforms Uniforms(Frame f, double scale) => Uniforms(Effect.Value, f, scale);
+
+    // Every pass but the bubbles declares the same uniforms (Uniforms_), so one filler serves them all.
+    private static SKRuntimeEffectUniforms Uniforms(SKRuntimeEffect effect, Frame f, double scale)
     {
         var (w, h) = (f.Size.Width, f.Size.Height);
         var track = Math.Max(f.Track, w);
         var breathe = Breathe(f.Time);
-        var u = new SKRuntimeEffectUniforms(Effect.Value)
+        var u = new SKRuntimeEffectUniforms(effect)
         {
             ["size"] = new[] { (float)w, (float)h },
             ["track"] = (float)track,
@@ -573,21 +618,24 @@ public static class LiquidTrack
         u["caustic"] = (float)(track * Alternate(f.Time, 6));
         var (oil, oilMask) = Oil(f.Spec, w, f.Time);
         u["oil"] = oil; u["oilMask"] = oilMask;
-        var bubA = new float[MaxBubbles * 4]; var bubB = new float[MaxBubbles * 4];
+        return u;
+    }
+
+    /// <summary>The bubbles risen at this frame: centre x, centre y, scale, opacity; border box side, dark rim.</summary>
+    internal static IReadOnlyList<(float[] A, float[] B)> Bubbles(Frame f)
+    {
+        var list = new List<(float[], float[])>();
         var count = Math.Min(MaxBubbles, f.Bubbles?.Count ?? 0);
         for (var i = 0; i < count; i++)
         {
             if (f.Bubbles!.At(i, f.Time) is not { } now) continue; // between rises
-            var (centre, radius, opacity) = BubbleAt(now.Rise, h, now.Progress);
-            bubA[i * 4] = (float)centre.X; bubA[i * 4 + 1] = (float)centre.Y; bubA[i * 4 + 2] = (float)(radius / (now.Rise.Outer / 2)); bubA[i * 4 + 3] = (float)opacity;
-            bubB[i * 4] = (float)now.Rise.Outer; bubB[i * 4 + 1] = f.DarkBubbles ? 1 : 0;
+            var (centre, radius, opacity) = BubbleAt(now.Rise, f.Size.Height, now.Progress);
+            if (opacity <= 0.003) continue;
+            list.Add((new[] { (float)centre.X, (float)centre.Y, (float)(radius / (now.Rise.Outer / 2)), (float)opacity },
+                new[] { (float)now.Rise.Outer, f.DarkBubbles ? 1f : 0f, 0f, 0f }));
         }
-        u["bubbles"] = (float)count;
-        u["bubA"] = bubA;
-        u["bubB"] = bubB;
-        return u;
+        return list;
     }
-
 
     private sealed class Operation(Frame frame) : ICustomDrawOperation
     {
@@ -603,13 +651,54 @@ public static class LiquidTrack
             using var lease = feature.Lease();
             var canvas = lease.SkCanvas;
             var scale = Math.Max(1, canvas.TotalMatrix.ScaleX);
+            var (w, h) = (frame.Size.Width, frame.Size.Height);
+            var rect = new SKRect(0, 0, (float)w, (float)h);
+            var info = new SKImageInfo(Math.Max(1, (int)Math.Ceiling(w * scale)), Math.Max(1, (int)Math.Ceiling(h * scale)), SKColorType.Rgba8888, SKAlphaType.Premul);
+
+            // (A) the liquid, composed once at device scale
+            using var surface = (lease.GrContext is { } gpu ? SKSurface.Create(gpu, true, info) : null) ?? SKSurface.Create(info);
+            var liquid = surface.Canvas;
+            liquid.Clear(SKColors.Transparent);
+            liquid.Scale((float)scale);
             using var bitmap = new SKBitmap(frame.Gradient.Length, 1, SKColorType.Rgba8888, SKAlphaType.Premul) { Pixels = frame.Gradient };
             using var image = SKImage.FromBitmap(bitmap);
             using var grad = image.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp, new SKSamplingOptions(SKFilterMode.Linear));
-            var uniforms = Uniforms(frame, scale);
-            using var shader = Effect.Value.ToShader(uniforms, new SKRuntimeEffectChildren(Effect.Value) { ["grad"] = grad });
-            using var paint = new SKPaint { Shader = shader, IsAntialias = true, Color = SKColors.White.WithAlpha((byte)Math.Clamp(lease.CurrentOpacity * 255, 0, 255)) };
-            canvas.DrawRect(new SKRect(0, 0, (float)frame.Size.Width, (float)frame.Size.Height), paint);
+            void Layer(Lazy<SKRuntimeEffect> pass, SKBlendMode mode, SKShader? child = null, string? childName = null)
+            {
+                var effect = pass.Value;
+                var children = new SKRuntimeEffectChildren(effect);
+                if (child is not null) children[childName!] = child;
+                using var shader = effect.ToShader(Uniforms(effect, frame, scale), children);
+                using var paint = new SKPaint { Shader = shader, BlendMode = mode };
+                liquid.DrawRect(rect, paint);
+            }
+            var (oil, oilMask) = Oil(frame.Spec, w, frame.Time);
+            var hasOil = oil[0] > 0.5f;
+            Layer(BaseEffect, SKBlendMode.SrcOver, grad, "grad");
+            if (hasOil && oilMask > 0.5f) Layer(OilEffect, SKBlendMode.Screen); // a blend's oil goes under its currents
+            Layer(StrandsEffect, SKBlendMode.SoftLight);
+            Layer(SlowEffect, SKBlendMode.SoftLight);
+            Layer(CausticEffect, SKBlendMode.Overlay);
+            if (hasOil && oilMask < 0.5f) Layer(OilEffect, SKBlendMode.Screen); // one model's oil goes over its light
+            var bubbleEffect = BubbleEffect.Value;
+            foreach (var (a, b) in Bubbles(frame))
+            {
+                var bubble = new SKRuntimeEffectUniforms(bubbleEffect) { ["scale"] = (float)scale, ["A"] = a, ["B"] = b };
+                using var shader = bubbleEffect.ToShader(bubble, new SKRuntimeEffectChildren(bubbleEffect));
+                using var paint = new SKPaint { Shader = shader };
+                var reach = (b[0] * 0.5f + 6f) * a[2];
+                liquid.DrawRect(new SKRect(a[0] - reach, a[1] - reach, a[0] + reach, a[1] + reach), paint);
+            }
+            Layer(CoverEffect, SKBlendMode.DstIn);
+
+            // (B) the glass: the composed liquid refracted per channel, the gloss and the rims
+            using var composed = surface.Snapshot();
+            using var sampled = composed.ToShader(SKShaderTileMode.Decal, SKShaderTileMode.Decal, new SKSamplingOptions(SKFilterMode.Linear),
+                SKMatrix.CreateScale((float)(1 / scale), (float)(1 / scale)));
+            var glass = Effect.Value;
+            using var glassShader = glass.ToShader(Uniforms(glass, frame, scale), new SKRuntimeEffectChildren(glass) { ["liquid"] = sampled });
+            using var glassPaint = new SKPaint { Shader = glassShader, IsAntialias = true, Color = SKColors.White.WithAlpha((byte)Math.Clamp(lease.CurrentOpacity * 255, 0, 255)) };
+            canvas.DrawRect(rect, glassPaint);
         }
     }
 }
