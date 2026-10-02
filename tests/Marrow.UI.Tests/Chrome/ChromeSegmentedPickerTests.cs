@@ -77,6 +77,21 @@ public sealed class ChromeSegmentedPickerTests(HeadlessSession headless)
         window.Close();
     });
 
+    [Fact]
+    [Trait("Req", "UI-THEME-054")] // UI/Chrome/ChromeSegmentedPicker.swift:61-62 .frame(minWidth: 26).frame(height: 22): a frame centres its content
+    public void Review_segment_title_sits_on_the_centre_line_of_its_22_point_capsule() => headless.OnUiThread(() =>
+    {
+        var cell = new CellSample<int?>(1);
+        var picker = new ChromeSegmentedPicker<int?>(HydraOptions(), new Binding<int?>(() => cell.Value, v => cell.Value = v));
+        var window = Show(picker);
+        var segment = Segment(picker, "3");
+        var title = Label(segment);
+        // The 14-point title is shorter than the 22-point frame: it is centred in it at its own height, not drawn at its top.
+        Assert.Equal(title.DesiredSize.Height, title.Bounds.Height, 0.5);
+        Assert.Equal(segment.Bounds.Height / 2, title.TranslatePoint(new Point(0, title.Bounds.Height / 2), segment)!.Value.Y, 0.5);
+        window.Close();
+    });
+
     private const double StripHeight = 28;       // Chrome.swift:33 capsuleContentHeight
     private const double StripPadding = 3;       // ChromeSegmentedPicker.swift:37
     private const double SegmentSpacing = 2;     // :30

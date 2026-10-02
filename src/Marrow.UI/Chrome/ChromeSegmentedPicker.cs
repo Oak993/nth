@@ -353,6 +353,7 @@ namespace Marrow.UI.Chrome
                     Text = _option.Title,
                     MaxLines = 1,
                     HorizontalAlignment = HorizontalAlignment.Center, // :61 frame's default center alignment
+                    VerticalAlignment = VerticalAlignment.Center, // :62 likewise vertically: the 22-point frame centres the line
                 };
                 return text;
             }
