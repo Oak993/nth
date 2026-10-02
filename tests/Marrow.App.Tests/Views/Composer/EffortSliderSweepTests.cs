@@ -561,21 +561,17 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-135")] // App/Views/Composer/EffortSlider.swift:1134-1148
-    public void Particle_rendering_uses_the_source_position_radius_and_shimmer()
+    [Trait("Req", "PR-COMPOSER-135")] // EffortSlider.swift:1134-1148; DEVIATION OD-0051: the liquid tube replaces the particle fill at Max
+    [Trait("Req", "PR-COMPOSER-137")] // EffortSlider.swift:1204-1225; DEVIATION OD-0051: and the fusion's sweeping sheen (no artificial shine)
+    public void Max_and_fusion_draw_the_liquid_tube_in_place_of_the_particles_and_the_sheen()
     {
-        headless.OnUiThread(() =>
-        {
-            using var frames = FrameClock.Source.Override(new ManualFrameSource());
-            var drawing = new DrawingGroup();
-            using (var context = drawing.Open())
-                typeof(TrackEffect).GetMethod("DrawParticles", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-                    .Invoke(null, [context, new Size(100, 34), 0.0, SwiftColor.White,
-                        new[] { new TrackEffect.Particle { Start = 0.5, Height = 0.5, Radius = 1, Brightness = 0.5, Speed = 12, ShimmerRate = 2 } }]);
-            var particle = Assert.Single(drawing.Children.OfType<GeometryDrawing>());
-            Assert.Equal(new Rect(49, 16, 2, 2), particle.Geometry!.Bounds); // x=.5*108-4=50, y=34*(.16+.68*.5)=17
-            Assert.InRange(Assert.IsAssignableFrom<ISolidColorBrush>(particle.Brush).Color.A, 75, 77); // .5*.6=.3
-        });
+        // the source's particle and sheen painters are gone; both looks draw the liquid
+        Assert.Null(typeof(TrackEffect).GetMethod("DrawParticles", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static));
+        Assert.Null(typeof(TrackEffect).GetMethod("DrawSheen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static));
+        Assert.True(TrackEffect.IsLiquid(new TrackLook(TrackLook.Kind.Supercharged, EffortBrand.Claude)));
+        Assert.True(TrackEffect.IsLiquid(new TrackLook(TrackLook.Kind.Fusion, EffortBrand.Claude)));
+        // the fast mode's own streaks and bolts stay (PR-COMPOSER-136 below)
+        Assert.False(TrackEffect.IsLiquid(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude)));
     }
 
     [Fact]
@@ -595,30 +591,6 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var gradient = Assert.IsType<LinearGradientBrush>(streak.Brush);
             Assert.Equal(0, gradient.GradientStops[0].Color.A);
             Assert.InRange(gradient.GradientStops[1].Color.A, 127, 128);
-        });
-    }
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-137")] // App/Views/Composer/EffortSlider.swift:1204-1225
-    public void Sheen_starts_one_band_before_the_track_and_repeats_at_2_point_8_seconds()
-    {
-        headless.OnUiThread(() =>
-        {
-            using var frames = FrameClock.Source.Override(new ManualFrameSource());
-            foreach (var time in new[] { 0.0, 2.8 })
-            {
-                var drawing = new DrawingGroup();
-                using (var context = drawing.Open())
-                    typeof(TrackEffect).GetMethod("DrawSheen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-                        .Invoke(null, [context, new Size(100, 34), time, SwiftColor.White]);
-                var sheen = Assert.Single(drawing.Children.OfType<GeometryDrawing>());
-                Assert.Equal(new Rect(-46, 0, 56, 34), sheen.Geometry!.Bounds);
-                var gradient = Assert.IsType<LinearGradientBrush>(sheen.Brush);
-                Assert.Equal(3, gradient.GradientStops.Count);
-                Assert.Equal(0, gradient.GradientStops[0].Color.A);
-                Assert.InRange(gradient.GradientStops[1].Color.A, 55, 57);
-                Assert.Equal(0, gradient.GradientStops[2].Color.A);
-            }
         });
     }
 

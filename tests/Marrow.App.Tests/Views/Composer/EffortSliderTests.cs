@@ -229,16 +229,12 @@ public sealed class EffortSliderTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-134")] // EffortSlider.swift:1099-1115
-    public void TrackEffect_Traits_Build_scales_particle_and_streak_counts_with_width_and_floors_them()
+    [Trait("Req", "PR-COMPOSER-134")] // EffortSlider.swift:1099-1115; DEVIATION OD-0051: the particles went with the particle fill
+    public void TrackEffect_Traits_Build_scales_the_streak_count_with_width_and_floors_it()
     {
-        var narrow = TrackEffect.Traits.Build(10);
-        Assert.Equal(10, narrow.Particles.Count); // floor of 10, not 10/5=2
-        Assert.Equal(5, narrow.Streaks.Count);    // floor of 5, not 10/14=0
-
-        var wide = TrackEffect.Traits.Build(280);
-        Assert.Equal(56, wide.Particles.Count); // 280/5
-        Assert.Equal(20, wide.Streaks.Count);   // 280/14
+        Assert.Equal(5, TrackEffect.Traits.Build(10).Streaks.Count);   // floor of 5, not 10/14=0
+        Assert.Equal(20, TrackEffect.Traits.Build(280).Streaks.Count); // 280/14
+        Assert.Equal(["Streaks"], typeof(TrackEffect.Traits).GetProperties().Select(property => property.Name).Where(name => name != "EqualityContract"));
     }
 
     [Fact]

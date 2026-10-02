@@ -899,6 +899,7 @@ public sealed class EffortSlider : Decorator
             }
         }
         else if (currentEffect is not null) currentEffect.SetLook(look);
+        foreach (var child in effects.Children) if (child is TrackEffect effect) effect.TrackWidth = width; // OD-0051: the liquid keeps the track's scale
         drawnLook = look;
     }
 
@@ -1322,17 +1323,39 @@ public sealed class TrackEffect : Decorator
     /// <summary>OD-0051: maximum effort and every pair draw the liquid tube; the other levels keep the source's effects.</summary>
     internal static bool IsLiquid(TrackLook look) => look.Pair is not null || look.TrackLookKind is TrackLook.Kind.Supercharged or TrackLook.Kind.Fusion;
 
-    private double bubblesWidth = -1;
-    private IReadOnlyList<LiquidBubble> bubbles = [];
+    /// <summary>
+    /// The whole track's width (the slider sets it; the effect itself spans only the filled part). The liquid's currents,
+    /// light and bubbles keep the track's scale, so moving the knob never stretches them.
+    /// </summary>
+    internal double TrackWidth { get; set; }
+
+    private BubbleLanes? bubbles;
     private readonly int bubbleSeed = System.Threading.Interlocked.Increment(ref bubbleSeeds);
     private static int bubbleSeeds;
 
-    // each track keeps its own seeded bubbles, rebuilt only when its width changes (as TraitCache, :1121-1132)
-    internal IReadOnlyList<LiquidBubble> Bubbles(Size size)
+    // each track keeps its own seeded bubbles, every rise new, started again only when the track's size changes
+    internal BubbleLanes Bubbles(double track, double height)
     {
-        if (size.Width != bubblesWidth) { bubblesWidth = size.Width; bubbles = LiquidTrack.Bubbles(bubbleSeed, size.Width, size.Height); }
+        if (bubbles is null || bubbles.Width != track || bubbles.Height != height) bubbles = new BubbleLanes(bubbleSeed, track, height);
         return bubbles;
     }
+
+    private (LiquidSpec Spec, int Pixels, ThemeVariant Theme)? gradientFor;
+    private SkiaSharp.SKColor[] gradient = [];
+
+    // the liquid's OKLab gradient, one texel per device pixel, recomputed only when the look, width or theme changes
+    internal SkiaSharp.SKColor[] Gradient(LiquidSpec spec, double width, ThemeVariant theme)
+    {
+        var pixels = Math.Max(1, (int)Math.Ceiling(width * (TopLevel.GetTopLevel(this)?.RenderScaling ?? 1)));
+        if (gradientFor is not { } key || key.Pixels != pixels || key.Theme != theme || !key.Spec.Equals(spec) && !SameStops(key.Spec, spec))
+        {
+            gradientFor = (spec, pixels, theme);
+            gradient = LiquidTrack.GradientFor(spec, pixels, theme);
+        }
+        return gradient;
+    }
+
+    private static bool SameStops(LiquidSpec a, LiquidSpec b) => a.Stops().SequenceEqual(b.Stops());
 
     private sealed class EffectCanvas(TrackEffect owner) : Control
     {
@@ -1346,23 +1369,14 @@ public sealed class TrackEffect : Decorator
             if (IsLiquid(look))
             {
                 // DEVIATION OD-0048 / OD-0051: the liquid tube replaces the source's fusion (:1054-1056) and particles.
-                LiquidTrack.Draw(context, size, time, LiquidSpec.For(look), owner.Bubbles(size), look.IsLightFill, ActualThemeVariant);
+                // The fast mode's streaks and bolts still run over it; its sweeping sheen does not (no artificial shine).
+                var spec = LiquidSpec.For(look);
+                var track = Math.Max(owner.TrackWidth, size.Width);
+                var darkBubbles = look.Pair is null && look.IsLightFill; // the canvas's white liquid has dark-rimmed bubbles
+                LiquidTrack.Draw(context, size, track, time, spec, owner.Gradient(spec, size.Width, ActualThemeVariant), owner.Bubbles(track, size.Height), darkBubbles, ActualThemeVariant);
             }
-            else if (kind is TrackLook.Kind.Supercharged or TrackLook.Kind.Fusion) DrawParticles(context, size, time, look.Spark, traits.Particles);
             if (kind is TrackLook.Kind.Fast or TrackLook.Kind.Fusion) { DrawStreaks(context, size, time, traits.Streaks); DrawBolts(context, size, time); }
-            if (kind == TrackLook.Kind.Fusion) DrawSheen(context, size, time, look.Spark);
         }
-    }
-
-    /// <summary>:1074-1082 <c>struct Particle: Equatable</c>.</summary>
-    public sealed record Particle
-    {
-        public double Height { get; init; }      // :1075
-        public double Speed { get; init; }       // :1076
-        public double Radius { get; init; }      // :1077
-        public double Start { get; init; }       // :1079
-        public double Brightness { get; init; }  // :1080
-        public double ShimmerRate { get; init; } // :1081
     }
 
     /// <summary>:1084-1091 <c>struct Streak: Equatable</c>.</summary>
@@ -1377,26 +1391,14 @@ public sealed class TrackEffect : Decorator
     }
 
     /// <summary>:1093-1116 <c>struct Traits: Equatable</c>.</summary>
-    public sealed record Traits(ValueList<Particle> Particles, ValueList<Streak> Streaks) // :1094-1095
+    // :1094-1095. DEVIATION OD-0051: the particles (:1094) are gone with the particle fill the liquid tube replaced; the
+    // fast mode's streaks remain.
+    public sealed record Traits(ValueList<Streak> Streaks)
     {
-        // :1099-1115 static func build(width:) -> Traits. PR-COMPOSER-134: one particle per five points and one
-        // streak per fourteen, with per-index deterministic values (TrackEffect.Random).
+        // :1099-1115 static func build(width:) -> Traits. PR-COMPOSER-134: one streak per fourteen points, with per-index
+        // deterministic values (TrackEffect.Random); the source's one particle per five points is gone (OD-0051).
         public static Traits Build(double width)
         {
-            var particles = Enumerable.Range(0, Math.Max(10, (int)(width / 5))).Select(index =>
-            {
-                var seed = (double)index;
-                return new Particle
-                {
-                    Height = Random(seed, 1),
-                    Speed = 12 + 28 * Random(seed, 2),
-                    Radius = 0.7 + 1.1 * Random(seed, 3),
-                    Start = Random(seed, 4),
-                    Brightness = 0.22 + 0.5 * Random(seed, 5),
-                    ShimmerRate = 2 + 3 * Random(seed, 6),
-                };
-            });
-
             var streaks = Enumerable.Range(0, Math.Max(5, (int)(width / 14))).Select(index =>
             {
                 var seed = (double)index + 100;
@@ -1411,7 +1413,7 @@ public sealed class TrackEffect : Decorator
                 };
             });
 
-            return new Traits(new ValueList<Particle>(particles), new ValueList<Streak>(streaks));
+            return new Traits(new ValueList<Streak>(streaks));
         }
     }
 
@@ -1419,7 +1421,7 @@ public sealed class TrackEffect : Decorator
     public sealed class TraitCache
     {
         private double width = -1.0;
-        private Traits built = new(ValueList<Particle>.Empty, ValueList<Streak>.Empty);
+        private Traits built = new(ValueList<Streak>.Empty);
 
         // :1125-1131 func traits(width:) -> Traits. PR-COMPOSER-134: rebuilt only when the width changes.
         public Traits Traits(double width)
@@ -1431,23 +1433,6 @@ public sealed class TrackEffect : Decorator
             }
 
             return built;
-        }
-    }
-
-    // :1134-1148 private static func drawParticles(_:size:time:color:particles:)
-    private static void DrawParticles(DrawingContext context, Size size, double time, SwiftColor color, IReadOnlyList<Particle> particles)
-    {
-        var span = size.Width + 8;
-        for (var i = 0; i < particles.Count; i++)
-        {
-            var particle = particles[i];
-            var x = (particle.Start * span + time * particle.Speed) % span - 4;
-            var y = size.Height * (0.16 + 0.68 * particle.Height);
-            var shimmer = 0.6 + 0.4 * Math.Sin(time * particle.ShimmerRate + i);
-            var opacity = particle.Brightness * shimmer * EdgeFade(x, size.Width);
-            if (opacity <= 0.01) continue;
-            context.DrawGeometry(new SolidColorBrush(color.Opacity(opacity).Resolve(ThemeVariant.Light)), null,
-                new EllipseGeometry(new Rect(x - particle.Radius, y - particle.Radius, particle.Radius * 2, particle.Radius * 2)));
         }
     }
 
@@ -1489,17 +1474,6 @@ public sealed class TrackEffect : Decorator
                 context.DrawGeometry(null, new Pen(new SolidColorBrush(EffortPalette.Fast.Opacity(0.9 * intensity).Resolve(ThemeVariant.Light)), 4, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), path);
             context.DrawGeometry(null, new Pen(new SolidColorBrush(SwiftColor.White.Opacity(intensity).Resolve(ThemeVariant.Light)), 1.5, lineCap: PenLineCap.Round, lineJoin: PenLineJoin.Round), path);
         }
-    }
-
-    // :1204-1225 private static func drawSheen(_:size:time:color:)
-    private static void DrawSheen(DrawingContext context, Size size, double time, SwiftColor color)
-    {
-        const double band = 46; const double period = 2.8;
-        var x = -band + (size.Width + band * 2) * ((time / period) % 1);
-        var path = EffortView.Path([new Point(x + 10, 0), new Point(x + band + 10, 0), new Point(x + band, size.Height), new Point(x, size.Height)], true);
-        var brush = (LinearGradientBrush)EffortView.Gradient([color.Opacity(0), color.Opacity(0.22), color.Opacity(0)], ThemeVariant.Light);
-        brush.StartPoint = new RelativePoint(x, 0, RelativeUnit.Absolute); brush.EndPoint = new RelativePoint(x + band + 10, 0, RelativeUnit.Absolute);
-        context.DrawGeometry(brush, null, path);
     }
 
     // :1338-1340 private static func edgeFade(_:width:). PR-COMPOSER-135: an edge fade over the last 14 points.
