@@ -313,7 +313,9 @@ internal sealed class HydraCookbookButton : Decorator
         button.Click += (_, _) => state.IsOpen = true;
 
         var popover = new Popup { Placement = PlacementMode.Bottom, PlacementTarget = button, IsLightDismissEnabled = true };
-        popover.Opened += (_, _) => popover.Child = new HydraCookbookPanel().PresentedChrome();
+        // :215-218 SwiftUI hands the popover's content the presenting view's environment; this popup never joins the page's tree,
+        // so its content (HydraCookbookPanel.swift:6-7 reads @Environment(AppModel.self)) is given the model directly.
+        popover.Opened += (_, _) => popover.Child = AppEnvironment.Carry(new HydraCookbookPanel().PresentedChrome(), button);
         popover.Closed += (_, _) => { if (state.IsOpen) state.IsOpen = false; };
         var shown = false;
         button.Track(() => state.IsOpen, presented =>
@@ -433,7 +435,8 @@ internal sealed class HydraPairRow : Decorator
         openButton.Track(() => state.IsHovering, hovering => chevron.Opacity = hovering ? 1 : 0);
 
         var editorPopover = new Popup { Placement = PlacementMode.Right, PlacementTarget = openButton, IsLightDismissEnabled = true };
-        editorPopover.Opened += (_, _) => editorPopover.Child = new HydraPairEditor(pair.Id) { Width = 360 }.PresentedChrome();
+        // :268-271 as the cookbook popover: the editor reads @Environment(AppModel.self), so the content carries the model.
+        editorPopover.Opened += (_, _) => editorPopover.Child = AppEnvironment.Carry(new HydraPairEditor(pair.Id) { Width = 360 }.PresentedChrome(), openButton);
         editorPopover.Closed += (_, _) => { if (state.IsEditing) state.IsEditing = false; };
         var shown = false;
         openButton.Track(() => state.IsEditing, presented =>

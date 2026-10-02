@@ -25,6 +25,15 @@ public sealed class AppEnvironment
 
     public static void SetAppModel(Control control, AppModel value) => control.SetValue(AppModelProperty, value);
 
+    // SwiftUI hands a popover's content the environment of the view that presents it. A Popup that is not itself added to the
+    // tree hosts its content in a window of its own, outside the main window's tree, so the content inherits no AppModel; the
+    // presenting view carries it over with this (the same as ModelEffortButton and ContextMeter do for their panels).
+    public static T Carry<T>(T content, Control presenter) where T : Control
+    {
+        SetAppModel(content, GetAppModel(presenter));
+        return content;
+    }
+
     public static readonly AttachedProperty<WindowLiveResize?> WindowLiveResizeProperty =
         AvaloniaProperty.RegisterAttached<AppEnvironment, Control, WindowLiveResize?>("WindowLiveResize", null, inherits: true);
 
