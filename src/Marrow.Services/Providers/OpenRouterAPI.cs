@@ -13,8 +13,9 @@ namespace Marrow.Services.Providers;
 //
 // What differs from those three, and why:
 //  - The models endpoint answers 200 without a key, so a models call cannot prove a key; Validate reads GET /key, which
-//    answers 401 for a key OpenRouter does not know. (UNVERIFIED: written from OpenRouter's public API reference, never
-//    called from here; nothing in this port may reach the network.)
+//    answers 401 for a key OpenRouter does not know. The endpoint is OpenRouter's documented key endpoint
+//    (https://openrouter.ai/docs/api-reference/limits, read 2026-10-02: GET https://openrouter.ai/api/v1/key); never
+//    called from here (nothing in this port's tests may reach the network), so a first real key confirms the 401.
 //  - OpenRouter lists several hundred models, each with its own context length, price and abilities, so the list is
 //    parsed from the whole item (OpenAICompatibleAPI.ListModels only looks at ids) and the per-model context length and
 //    image ability the session needs are kept beside the persisted ModelOption rows (ModelOption has no field for them).
