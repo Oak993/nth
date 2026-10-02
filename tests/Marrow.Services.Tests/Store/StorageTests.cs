@@ -128,6 +128,34 @@ public sealed class StorageTests
         Assert.True(Directory.Exists(directory));
     }
 
+    [Fact]
+    [Trait("Req", "PR-LAUNCH-070")] // Services/Store/Storage.swift:19-25,31-48: two roots, each created on first use and kept for the process
+    public void The_store_root_and_the_home_state_directory_are_two_roots_each_made_on_first_use_and_then_kept()
+    {
+        using var scratch = new StorageScratchFolder();
+        var state = Path.Combine(scratch.Home, ".marrow");
+        Assert.False(Directory.Exists(scratch.Root));
+        Assert.False(Directory.Exists(state));
+
+        // The home root is untouched until its first folder is asked for, and the store root likewise.
+        var threads = Storage.ThreadsDirectory;
+        Assert.True(Directory.Exists(threads));
+        Assert.False(Directory.Exists(state));
+        var worktrees = Storage.WorktreesDirectory;
+        Assert.True(Directory.Exists(worktrees));
+
+        // Library, threads and attachments under the store root; worktrees and patches under the home dot-folder.
+        Assert.StartsWith(scratch.Root, threads, StringComparison.Ordinal);
+        Assert.StartsWith(scratch.Root, Storage.AttachmentsDirectory, StringComparison.Ordinal);
+        Assert.StartsWith(state + Path.DirectorySeparatorChar, worktrees, StringComparison.Ordinal);
+        Assert.StartsWith(state + Path.DirectorySeparatorChar, Storage.PatchesDirectory, StringComparison.Ordinal);
+
+        // Each URL is resolved once: a folder deleted later is not created again by the next read.
+        Directory.Delete(worktrees);
+        Assert.Equal(worktrees, Storage.WorktreesDirectory);
+        Assert.False(Directory.Exists(worktrees));
+    }
+
     // ---- PR-STORE-010 ----
 
     [Fact]
