@@ -23,6 +23,11 @@ namespace Marrow.Core.Tests.Models;
 // owns is proven here.
 public sealed class ProviderTests
 {
+    // ED-234: ProviderKind.OpenRouter has no Swift case (OD-0049, OD-0060). The records below describe the fourteen cases of
+    // Provider.swift:3-18, so they range over those; the OpenRouter case is proven by ProviderOpenRouterTests.
+    private static IReadOnlyList<ProviderKind> SourceCases { get; } =
+        [.. SwiftEnum<ProviderKind>.AllCases.Where(kind => kind != ProviderKind.OpenRouter)];
+
     // PR-PROVREG-001: :3-18. Exactly 14 cases in source declaration order, with these rawValues, and
     // Id == rawValue (:19).
     [Trait("Req", "PR-PROVREG-001")] // Core/Models/Provider.swift:3-19
@@ -47,8 +52,8 @@ public sealed class ProviderTests
             (ProviderKind.Pi, "pi"),
         ];
 
-        Assert.Equal(expected.Length, SwiftEnum<ProviderKind>.AllCases.Count);
-        Assert.Equal(expected.Select(e => e.Case), SwiftEnum<ProviderKind>.AllCases);
+        Assert.Equal(expected.Length, SourceCases.Count);
+        Assert.Equal(expected.Select(e => e.Case), SourceCases);
         foreach (var (kind, raw) in expected)
         {
             Assert.Equal(raw, SwiftEnum<ProviderKind>.RawValue(kind));
@@ -831,7 +836,7 @@ public sealed class ProviderTests
             ProviderKind.Codex, ProviderKind.Claude, ProviderKind.Copilot,
             ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Pi,
         ];
-        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+        foreach (var kind in SourceCases)
             Assert.Equal(expectedTrue.Contains(kind), kind.SupportsCompact);
     }
 
@@ -948,8 +953,8 @@ public sealed class ProviderTests
     public void IsAPIKeyBased_is_true_for_exactly_three_providers()
     {
         ProviderKind[] expectedTrue = [ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai];
-        Assert.Equal(14, SwiftEnum<ProviderKind>.AllCases.Count);
-        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+        Assert.Equal(14, SourceCases.Count);
+        foreach (var kind in SourceCases)
             Assert.Equal(expectedTrue.Contains(kind), kind.IsAPIKeyBased);
         Assert.False(ProviderKind.OpencodeGo.IsAPIKeyBased);
     }
@@ -974,7 +979,7 @@ public sealed class ProviderTests
     public void AcceptsAPIKey_is_true_for_exactly_four_providers()
     {
         ProviderKind[] expectedTrue = [ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Commandcode];
-        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+        foreach (var kind in SourceCases)
             Assert.Equal(expectedTrue.Contains(kind), kind.AcceptsAPIKey);
     }
 
@@ -984,7 +989,7 @@ public sealed class ProviderTests
     [Fact]
     public void ApiHost_is_non_null_for_exactly_three_providers()
     {
-        foreach (var kind in SwiftEnum<ProviderKind>.AllCases)
+        foreach (var kind in SourceCases)
         {
             var expected = kind switch
             {
@@ -1012,7 +1017,7 @@ public sealed class ProviderTests
         Assert.Equal("dev.meta.ai", ProviderKind.Meta.ApiKeySource);
         Assert.Equal("z.ai/manage-apikey/apikey-list", ProviderKind.Zai.ApiKeySource);
         Assert.Equal("commandcode.ai/studio", ProviderKind.Commandcode.ApiKeySource);
-        foreach (var kind in SwiftEnum<ProviderKind>.AllCases.Except(
+        foreach (var kind in SourceCases.Except(
             [ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Commandcode]))
         {
             Assert.Null(kind.ApiKeySource);
@@ -1031,7 +1036,7 @@ public sealed class ProviderTests
         Assert.Equal("MODEL_API_KEY", ProviderKind.Meta.ApiKeyEnvVar);
         Assert.Equal("ZAI_API_KEY", ProviderKind.Zai.ApiKeyEnvVar);
         Assert.Equal("COMMAND_CODE_API_KEY", ProviderKind.Commandcode.ApiKeyEnvVar);
-        foreach (var kind in SwiftEnum<ProviderKind>.AllCases.Except(
+        foreach (var kind in SourceCases.Except(
             [ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.Zai, ProviderKind.Commandcode]))
         {
             Assert.Null(kind.ApiKeyEnvVar);
@@ -1057,7 +1062,7 @@ public sealed class ProviderTests
     [Fact]
     public void SupportsImages_is_true_for_twelve_providers_including_opencodeGo()
     {
-        var trueCount = SwiftEnum<ProviderKind>.AllCases.Count(k => k.SupportsImages);
+        var trueCount = SourceCases.Count(k => k.SupportsImages);
         Assert.Equal(12, trueCount);
         Assert.True(ProviderKind.OpencodeGo.SupportsImages);
     }
@@ -1306,7 +1311,7 @@ public sealed class ProviderTests
         ];
         foreach (var kind in expectedTrue) Assert.True(kind.SupportsCompact);
         foreach (var kind in expectedFalse) Assert.False(kind.SupportsCompact);
-        Assert.Equal(SwiftEnum<ProviderKind>.AllCases.Count, expectedTrue.Length + expectedFalse.Length);
+        Assert.Equal(SourceCases.Count, expectedTrue.Length + expectedFalse.Length);
     }
 
     // UI-PROVACP-034: :161-195. The four runtime-mode rows in source declaration order, with their exact

@@ -134,7 +134,7 @@ public static partial class PlanLimitsReader
         ProviderKind.Commandcode => CommandCodeAPI.PlanLimits(environment),
         ProviderKind.Pi => PiPlanLimits.Read(environment),
         ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo or ProviderKind.Grok or
-            ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Devin => Task.FromResult<PlanLimits?>(null),
+            ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Devin or ProviderKind.OpenRouter => Task.FromResult<PlanLimits?>(null),
     };
 
     // :84-90. API-key subscriptions read their windows from the API instead of a CLI. PR-PROVREG-171.
@@ -144,7 +144,7 @@ public static partial class PlanLimitsReader
         ProviderKind.Codex or ProviderKind.Claude or ProviderKind.Cursor or ProviderKind.Opencode or
             ProviderKind.OpencodeGo or ProviderKind.Grok or ProviderKind.Deepseek or ProviderKind.Meta or
             ProviderKind.Devin or ProviderKind.Antigravity or ProviderKind.Copilot or ProviderKind.Commandcode or
-            ProviderKind.Pi => Task.FromResult<PlanLimits?>(null),
+            ProviderKind.Pi or ProviderKind.OpenRouter => Task.FromResult<PlanLimits?>(null),
     };
 
     // :92-102. PR-PROVREG-173, PR-USAGE-078 (USAGE.json duplicates PROVREG.json's record for these lines).

@@ -799,6 +799,10 @@ public class OpenAICompatibleSession : ProviderSession
         return payload; // :580
     }
 
+    // PORT-ONLY (ED-234). The window the usage ring measures a model against: the provider's one window (:23), unless a
+    // subclass knows each model's own (OpenRouter lists a context length per model).
+    protected virtual int ContextWindowFor(string model) => OpenAICompatibleSessionConfig.ContextWindow;
+
     // :588-590. DeepSeek turns thinking on and maps the effort; Meta takes a top-level
     // reasoning_effort; Z.ai sets clear_thinking, a max_tokens cap and tool_stream (later parts).
     public virtual void ApplyProviderPayload(Dictionary<string, JSONValue> payload, string model, string? effort, bool withTools)
@@ -863,7 +867,8 @@ public class OpenAICompatibleSession : ProviderSession
         }
 
         sseDrain?.Cancel(); // :648
-        var contextWindow = OpenAICompatibleSessionConfig.ContextWindow; // :649
+        // PORT-ONLY (ED-234): :649 reads the provider's one window; a provider whose models differ (OpenRouter) answers per model.
+        var contextWindow = ContextWindowFor(payload["model"].JSONValueString ?? currentModel); // :649
         var (stream, continuation) = AsyncStream<StreamChunk>.MakeStream(); // :650
         var coalescer = new StreamCoalescer(continuation); // :651
         var drain = TaskHandle.Detached(async () => // :652-661

@@ -700,6 +700,7 @@ internal sealed class ProviderSettingsSection : Decorator
         {
             ProviderKind.Deepseek => settings.DeepseekAPIKeyInput, ProviderKind.Meta => settings.MetaAPIKeyInput,
             ProviderKind.Zai => settings.ZaiAPIKeyInput, ProviderKind.Commandcode => settings.CommandcodeAPIKeyInput,
+            ProviderKind.OpenRouter => settings.OpenRouterAPIKeyInput, // PORT-ONLY (ED-234)
             _ => "",
         };
     }

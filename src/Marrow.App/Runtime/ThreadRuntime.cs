@@ -1945,6 +1945,7 @@ public sealed class ThreadRuntime : MainActorModel
                     ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1490
                     ProviderKind.Meta => new MetaSession(configuration),
                     ProviderKind.Zai => new ZaiSession(configuration),
+                    ProviderKind.OpenRouter => new OpenRouterSession(configuration), // PORT-ONLY (ED-234)
                     _ => throw new InvalidOperationException($"{thread.Provider} is not an API-key provider."),
                 };
                 Observe(created);
@@ -2026,6 +2027,7 @@ public sealed class ThreadRuntime : MainActorModel
                 ProviderKind.Deepseek => new DeepSeekSession(configuration), // :1557
                 ProviderKind.Meta => new MetaSession(configuration),
                 ProviderKind.Zai => new ZaiSession(configuration),
+                ProviderKind.OpenRouter => new OpenRouterSession(configuration), // PORT-ONLY (ED-234)
                 _ => throw new InvalidOperationException($"Unsupported provider session: {thread.Provider}."),
             };
             Observe(created);

@@ -37,6 +37,9 @@ public enum ProviderKind
     [RawValue("copilot")] Copilot,
     [RawValue("commandcode")] Commandcode,
     [RawValue("pi")] Pi,
+    // PORT-ONLY (OD-0049, OD-0060, ED-234): no Swift case. An API-key provider in the manner of deepseek, meta and zai. The
+    // case name is the brand's own spelling (R-NAME-2 would give "Openrouter"; the raw value is the lowercase wire form).
+    [RawValue("openrouter")] OpenRouter,
 }
 
 public static class ProviderKindExtensions
@@ -63,6 +66,7 @@ public static class ProviderKindExtensions
             ProviderKind.Copilot => "Copilot", // :34
             ProviderKind.Commandcode => "Command Code", // :35 - PR-PROVREG-013
             ProviderKind.Pi => "Pi", // :36 - PR-PROVREG-014
+            ProviderKind.OpenRouter => "OpenRouter", // ED-234
             _ => throw new UnreachableException(),
         };
 
@@ -86,6 +90,7 @@ public static class ProviderKindExtensions
                                                 // name from matching the command interpreter; that resolver
                                                 // lives in the ProviderRegistry unit, not here.
             ProviderKind.Pi => "pi", // :55 - PR-PROVCLI-266, PR-PROVREG-027
+            ProviderKind.OpenRouter => "", // ED-234: an API-key provider with no local CLI, like deepseek, meta and zai
             _ => throw new UnreachableException(),
         };
 
@@ -109,6 +114,7 @@ public static class ProviderKindExtensions
             ProviderKind.Copilot => "copilot login", // :75
             ProviderKind.Commandcode => "cmd login", // :76 - PR-PROVCLI-203
             ProviderKind.Pi => "pi", // :77 - PR-PROVCLI-266
+            ProviderKind.OpenRouter => "OPENROUTER_API_KEY=sk-or-...", // ED-234
             _ => throw new UnreachableException(),
         };
 
@@ -130,11 +136,12 @@ public static class ProviderKindExtensions
             ProviderKind.Copilot => SwiftTraps.Unwrap(SwiftURL.Create("https://github.com/github/copilot-cli")), // :94 - PR-PROVREG-051
             ProviderKind.Commandcode => SwiftTraps.Unwrap(SwiftURL.Create("https://commandcode.ai/docs/quickstart")), // :95 - PR-PROVREG-052
             ProviderKind.Pi => SwiftTraps.Unwrap(SwiftURL.Create("https://pi.dev/docs/latest")), // :96 - PR-PROVREG-053
+            ProviderKind.OpenRouter => SwiftTraps.Unwrap(SwiftURL.Create("https://openrouter.ai/keys")), // ED-234: where a key is made
             _ => throw new UnreachableException(),
         };
 
-        // :101 `self == .deepseek || self == .meta || self == .zai`.
-        public bool IsAPIKeyBased => kind is ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai; // PR-PROVREG-059, 060
+        // :101 `self == .deepseek || self == .meta || self == .zai`, and OpenRouter (ED-234).
+        public bool IsAPIKeyBased => kind is ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter; // PR-PROVREG-059, 060
 
         // :104 `self == .cursor || self == .opencode || self == .opencodeGo || self == .grok || self == .devin`.
         public bool UsesACP => kind is ProviderKind.Cursor or ProviderKind.Opencode or ProviderKind.OpencodeGo
@@ -149,6 +156,7 @@ public static class ProviderKindExtensions
             ProviderKind.Deepseek => "api.deepseek.com", // :114 - PR-PROVREG-059
             ProviderKind.Meta => "api.meta.ai/v1", // :115 - PR-PROVREG-060
             ProviderKind.Zai => "api.z.ai/api/coding/paas/v4", // :116
+            ProviderKind.OpenRouter => "openrouter.ai/api/v1", // ED-234
             _ => null, // :117
         };
 
@@ -159,6 +167,7 @@ public static class ProviderKindExtensions
             ProviderKind.Meta => "dev.meta.ai", // :125 - PR-PROVREG-060
             ProviderKind.Zai => "z.ai/manage-apikey/apikey-list", // :126
             ProviderKind.Commandcode => "commandcode.ai/studio", // :127 - PR-PROVREG-039
+            ProviderKind.OpenRouter => "openrouter.ai/keys", // ED-234
             _ => null, // :128
         };
 
@@ -169,6 +178,7 @@ public static class ProviderKindExtensions
             ProviderKind.Meta => "MODEL_API_KEY", // :136 - PR-PROVREG-060
             ProviderKind.Zai => "ZAI_API_KEY", // :137
             ProviderKind.Commandcode => "COMMAND_CODE_API_KEY", // :138
+            ProviderKind.OpenRouter => "OPENROUTER_API_KEY", // ED-234: the variable PiCLI.swift:38 already passes through
             _ => null, // :139
         };
 
@@ -179,7 +189,7 @@ public static class ProviderKindExtensions
         public bool SupportsCompact => kind switch
         {
             ProviderKind.Codex or ProviderKind.Claude or ProviderKind.Copilot or ProviderKind.Deepseek
-                or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Pi => true, // :151
+                or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.Pi or ProviderKind.OpenRouter => true, // :151, ED-234
             _ => false, // :152 - PR-PROVREG-057
         };
 

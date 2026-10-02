@@ -1110,6 +1110,7 @@ public static class EffortBrandExtensions
             ProviderKind.Copilot => EffortBrand.Copilot,
             ProviderKind.Commandcode => EffortBrand.Commandcode,
             ProviderKind.Pi => EffortBrand.Pi,
+            ProviderKind.OpenRouter => EffortBrand.Purple, // OD-0050 pending: automatic colour
             null => EffortBrand.Purple, // :869
             _ => throw new UnreachableException(),
         };

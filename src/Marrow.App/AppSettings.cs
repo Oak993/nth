@@ -276,6 +276,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         public const string MetaAPIKey = "metaAPIKey";
         public const string ZaiAPIKey = "zaiAPIKey";
         public const string CommandcodeAPIKey = "commandcodeAPIKey";
+        public const string OpenRouterAPIKey = "openRouterAPIKey"; // PORT-ONLY (ED-234): only ever cleared, as the other four are
         public const string HydraEnabled = "hydraEnabled";
         public const string PanelSize = "floatingPanelSize";
         public const string HydraDefaultEnabled = AppSettings.HydraDefaultEnabledKey;
@@ -326,6 +327,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         public required StoredKey Meta { get; init; }        // :419
         public required StoredKey Zai { get; init; }         // :420
         public required StoredKey Commandcode { get; init; } // :421
+        public required StoredKey OpenRouter { get; init; }  // PORT-ONLY (ED-234)
     }
 
     // OD-0012 E5: the one line shown under a key field whose key the protected store refused.
@@ -379,6 +381,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     private string metaAPIKeyInput = "";
     private string zaiAPIKeyInput = "";
     private string commandcodeAPIKeyInput = "";
+    private string openRouterAPIKeyInput = "";
     private ValueMap<string, string> binaryPaths = ValueMap<string, string>.Empty;
     private ValueList<string> disabledProviders = ValueList<string>.Empty;
     private ValueMap<string, string> lastModels = ValueMap<string, string>.Empty;
@@ -669,6 +672,14 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
             StoreAPIKeyChange(value, oldValue, ProviderKind.Commandcode, Key.CommandcodeAPIKey));
     }
 
+    // PORT-ONLY (ED-234): the OpenRouter key, kept in the protected store like the other four (the account is in APIKeychain).
+    public string OpenRouterAPIKeyInput
+    {
+        get => Read(openRouterAPIKeyInput);
+        set => Set(ref openRouterAPIKeyInput, value, oldValue =>
+            StoreAPIKeyChange(value, oldValue, ProviderKind.OpenRouter, Key.OpenRouterAPIKey));
+    }
+
     /// <summary>
     /// One provider key changed: hand it to the protected store and keep a plaintext copy in the defaults only for
     /// a Mac (upstream) whose Keychain refused it; the port keeps only the clearing half (OD-0008 A6).
@@ -695,12 +706,13 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
 
     // :433-441 readKeys(fallbacks:). One Keychain round trip per key, off the caller's thread. B3: each call goes
     // through StoredKeyFor(:443-445), replacing the four deleted per-wrapper ApiKey(fallback:) calls B2 made here.
-    private static StoredKeys ReadKeys((string Deepseek, string Meta, string Zai, string Commandcode) fallbacks) => new()
+    private static StoredKeys ReadKeys((string Deepseek, string Meta, string Zai, string Commandcode, string OpenRouter) fallbacks) => new()
     {
         Deepseek = StoredKeyFor(ProviderKind.Deepseek, fallbacks.Deepseek),
         Meta = StoredKeyFor(ProviderKind.Meta, fallbacks.Meta),
         Zai = StoredKeyFor(ProviderKind.Zai, fallbacks.Zai),
         Commandcode = StoredKeyFor(ProviderKind.Commandcode, fallbacks.Commandcode),
+        OpenRouter = StoredKeyFor(ProviderKind.OpenRouter, fallbacks.OpenRouter),
     };
 
     // :443-445 storedKey(for:fallback:): APIKeychain.key(for: provider, fallback: "") (named StoredKeyFor rather
@@ -717,11 +729,12 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
     }
 
     // :424-431
-    private (string Deepseek, string Meta, string Zai, string Commandcode) KeyFallbacks => (
+    private (string Deepseek, string Meta, string Zai, string Commandcode, string OpenRouter) KeyFallbacks => (
         defaults.String(Key.DeepseekAPIKey) ?? "",
         defaults.String(Key.MetaAPIKey) ?? "",
         defaults.String(Key.ZaiAPIKey) ?? "",
-        defaults.String(Key.CommandcodeAPIKey) ?? "");
+        defaults.String(Key.CommandcodeAPIKey) ?? "",
+        defaults.String(Key.OpenRouterAPIKey) ?? "");
 
     // :450-453
     private void ReadKeychainIfNeeded()
@@ -749,11 +762,13 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         MetaAPIKeyInput = keys.Meta.Value;
         ZaiAPIKeyInput = keys.Zai.Value;
         CommandcodeAPIKeyInput = keys.Commandcode.Value;
+        OpenRouterAPIKeyInput = keys.OpenRouter.Value;
         isReadingKeychain = false;
         if (keys.Deepseek.InKeychain) defaults.RemoveObject(Key.DeepseekAPIKey);
         if (keys.Meta.InKeychain) defaults.RemoveObject(Key.MetaAPIKey);
         if (keys.Zai.InKeychain) defaults.RemoveObject(Key.ZaiAPIKey);
         if (keys.Commandcode.InKeychain) defaults.RemoveObject(Key.CommandcodeAPIKey);
+        if (keys.OpenRouter.InKeychain) defaults.RemoveObject(Key.OpenRouterAPIKey);
     }
 
     // :500-502. Keys are ProviderKind raw values.
@@ -1128,6 +1143,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
         metaAPIKeyInput = "";
         zaiAPIKeyInput = "";
         commandcodeAPIKeyInput = "";
+        openRouterAPIKeyInput = "";
         binaryPaths = defaults.Dictionary(Key.BinaryPaths) is { } binaryPathsStored && binaryPathsStored.Values.All(v => v is string)
             ? new ValueMap<string, string>(binaryPathsStored.Select(p => new KeyValuePair<string, string>(p.Key, (string)p.Value)))
             : ValueMap<string, string>.Empty;
@@ -1314,6 +1330,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
             ProviderKind.Meta => metaAPIKeyInput,
             ProviderKind.Zai => zaiAPIKeyInput,
             ProviderKind.Commandcode => commandcodeAPIKeyInput,
+            ProviderKind.OpenRouter => openRouterAPIKeyInput, // PORT-ONLY (ED-234)
             _ => "",
         }, includeNewlines: true);
         if (stored.Length != 0) return stored;
@@ -1334,6 +1351,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
             ProviderKind.Meta => metaAPIKeyInput,
             ProviderKind.Zai => zaiAPIKeyInput,
             ProviderKind.Commandcode => commandcodeAPIKeyInput,
+            ProviderKind.OpenRouter => openRouterAPIKeyInput, // PORT-ONLY (ED-234)
             _ => "",
         };
     }
@@ -1348,6 +1366,7 @@ public sealed class AppSettings : MainActorModel, ProviderSettings
             case ProviderKind.Deepseek: DeepseekAPIKeyInput = value; break;
             case ProviderKind.Meta: MetaAPIKeyInput = value; break;
             case ProviderKind.Zai: ZaiAPIKeyInput = value; break;
+            case ProviderKind.OpenRouter: OpenRouterAPIKeyInput = value; break; // PORT-ONLY (ED-234)
         }
     }
 }

@@ -171,6 +171,9 @@ public sealed partial class ProviderRegistry : MainActorModel
         .Select(ZaiAPI.Option)
         .OfType<ModelOption>());
 
+    // PORT-ONLY (ED-234): OpenRouter's router row, so the provider has a default model before its list has loaded.
+    public static ValueList<ModelOption> OpenRouterSeed => new([OpenRouterAPI.SeedOption]);
+
     // :134-142
     public static readonly ValueList<ModelOption> AntigravitySeed = new(new[]
     {
@@ -257,6 +260,9 @@ public sealed partial class ProviderRegistry : MainActorModel
         // :189
         if (!(catalogs.TryGetValue(ProviderKind.Zai, out var zaiList) && zaiList.Count > 0))
             catalogs = catalogs.Mutating(d => d[ProviderKind.Zai] = ZaiSeed);
+        // PORT-ONLY (ED-234): the same for OpenRouter.
+        if (!(catalogs.TryGetValue(ProviderKind.OpenRouter, out var openRouterList) && openRouterList.Count > 0))
+            catalogs = catalogs.Mutating(d => d[ProviderKind.OpenRouter] = OpenRouterSeed);
         // :190-192
         var antigravityStale = !(catalogs.TryGetValue(ProviderKind.Antigravity, out var antigravityList) && antigravityList.Count > 0)
             || antigravityList.Any(option => option.Id.EndsWith("-high", StringComparison.Ordinal)
@@ -717,6 +723,7 @@ public sealed partial class ProviderRegistry : MainActorModel
             case ProviderKind.Deepseek: // :864-865
             case ProviderKind.Meta:
             case ProviderKind.Zai:
+            case ProviderKind.OpenRouter: // ED-234
                 return new ProviderStatus.Auth.Unknown();
             default:
                 throw new UnreachableException();
@@ -818,6 +825,16 @@ public sealed partial class ProviderRegistry : MainActorModel
                 PlanLimits = planLimits.Mutating(d => d.Remove(ProviderKind.Zai)); // :427
                 limitsFetchedAt.Remove(ProviderKind.Zai); // :420
             }
+        }
+        else if (provider == ProviderKind.OpenRouter) // PORT-ONLY (ED-234), shaped like the Meta branch
+        {
+            var valid = await OpenRouterAPI.Validate(apiKey);
+            Statuses = statuses.Mutating(d => d[provider] = new ProviderStatus
+            {
+                Version = "API",
+                ProviderStatusAuth = valid ? new ProviderStatus.Auth.SignedIn(null) : new ProviderStatus.Auth.SignedOut(),
+                ApiKeyConfigured = true,
+            });
         }
         else // :422
         {
@@ -1079,7 +1096,7 @@ public sealed partial class ProviderRegistry : MainActorModel
                 ProviderKind.Cursor or ProviderKind.Grok or ProviderKind.Devin =>
                     await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await ACPSession.ProbeModels(provider, executable, environment)), // :491
                 ProviderKind.Opencode or ProviderKind.OpencodeGo => await OpenCodeCatalog(force, executable, environment), // :492
-                ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai => null, // :493
+                ProviderKind.Deepseek or ProviderKind.Meta or ProviderKind.Zai or ProviderKind.OpenRouter => null, // :493
                 _ => throw new UnreachableException(),
             };
             var list = raw is null ? null : OpenCodeModels(raw, provider); // :495
@@ -1152,6 +1169,7 @@ public sealed partial class ProviderRegistry : MainActorModel
             ProviderKind.Deepseek => DeepseekSeed,
             ProviderKind.Meta => MetaSeed,
             ProviderKind.Zai => ZaiSeed,
+            ProviderKind.OpenRouter => OpenRouterSeed, // PORT-ONLY (ED-234)
             _ => null,
         };
         if (seed is null) return; // :574
@@ -1167,6 +1185,7 @@ public sealed partial class ProviderRegistry : MainActorModel
                 ProviderKind.Deepseek => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await DeepSeekAPI.ListModels(apiKey)),
                 ProviderKind.Meta => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await MetaAPI.ListModels(apiKey)),
                 ProviderKind.Zai => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await ZaiAPI.ListModels(apiKey)),
+                ProviderKind.OpenRouter => await SwiftTry.OptionalAsync(async () => (ValueList<ModelOption>?)await OpenRouterAPI.ListModels(apiKey)), // PORT-ONLY (ED-234)
                 _ => null,
             };
             if (list is { Count: > 0 }) // :588

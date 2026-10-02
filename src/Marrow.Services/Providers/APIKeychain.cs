@@ -66,6 +66,7 @@ public static class APIKeychain
         ProviderKind.Meta => "Meta API Key",                // :29
         ProviderKind.Zai => "Z.ai API Key",                 // :30
         ProviderKind.Commandcode => "Command Code API Key", // :31
+        ProviderKind.OpenRouter => "OpenRouter API Key",     // PORT-ONLY (ED-234): the one account of a provider the source lacks
         _ => null,                                          // :32
     };
 

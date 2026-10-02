@@ -317,7 +317,7 @@ public sealed partial class AppModel : MainActorModel
         await Providers.RefreshAll(); // AppModel.swift:263
         await TaskGroup.Run(async group =>
         {
-            foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex, ProviderKind.Deepseek, ProviderKind.Meta })
+            foreach (var provider in new[] { ProviderKind.Claude, ProviderKind.Codex, ProviderKind.Deepseek, ProviderKind.Meta, ProviderKind.OpenRouter /* PORT-ONLY (ED-234) */ })
             {
                 if (!Providers.Status(provider).IsInstalled) continue;
                 group.AddTask(() => MainActor.Invoke(() => Providers.LoadCatalog(provider)));

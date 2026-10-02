@@ -121,6 +121,7 @@ public sealed class ThreadRuntimeSecondTests
             ProviderKind.Deepseek,
             ProviderKind.Meta,
             ProviderKind.Zai,
+            ProviderKind.OpenRouter, // ED-234: an API-key provider like the three above
         };
 
         foreach (var provider in Enum.GetValues<ProviderKind>())

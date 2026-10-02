@@ -794,7 +794,7 @@ public sealed class AppSettingsTests
             Assert.All(operations, o => Assert.Equal("read", o.Op));      // the fill never writes a key back
             Assert.All(operations, o => Assert.False(o.OnMain));          // detached, off the main loop
             Assert.Equal(
-                new[] { "DeepSeek API Key", "Meta API Key", "Z.ai API Key", "Command Code API Key" }.Select(CredentialTarget).Order(StringComparer.Ordinal),
+                new[] { "DeepSeek API Key", "Meta API Key", "Z.ai API Key", "Command Code API Key", "OpenRouter API Key" /* ED-234 */ }.Select(CredentialTarget).Order(StringComparer.Ordinal),
                 operations.Select(o => o.Target).Order(StringComparer.Ordinal));
             Assert.DoesNotContain(scope.Defaults.Writes, w => w.Op == "set");
 
@@ -819,7 +819,7 @@ public sealed class AppSettingsTests
             var settings = new AppSettings();
             Assert.Equal("stored-DeepSeek API Key", settings.ApiKey(ProviderKind.Deepseek));
             var reads = scope.Credentials.Operations.Count;
-            Assert.Equal(4, scope.Credentials.Operations.Select(o => o.Target).Distinct().Count()); // one batch, four accounts
+            Assert.Equal(5, scope.Credentials.Operations.Select(o => o.Target).Distinct().Count()); // one batch, four accounts and OpenRouter's (ED-234)
             Assert.All(scope.Credentials.Operations, o => Assert.Equal("read", o.Op));
             Assert.Equal("stored-Command Code API Key", settings.ApiKeyInput(ProviderKind.Commandcode));
             _ = settings.ApiKey(ProviderKind.Commandcode);
