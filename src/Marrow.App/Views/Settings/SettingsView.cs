@@ -485,7 +485,7 @@ internal sealed class AppZoomCard : Decorator
             var button = PlainControls.Button(SwiftImage.SystemName(symbol).Font(SwiftFont.System(11, weight)).ForegroundStyle(Chrome.SecondaryText), action); button.Width = 22; button.Height = 22; ToolTip.SetTip(button, help); return button;
         }
         var smaller = Command("textformat.size.smaller", "Zoom out", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: false)); // :475-483
-        var label = new TextBlock { MinWidth = 46, TextAlignment = TextAlignment.Center, Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(11, SwiftFont.Weight.Medium).MonospacedDigit()); // :483-486
+        var label = new TextBlock { MinWidth = 46, TextAlignment = TextAlignment.Center, VerticalAlignment = VerticalAlignment.Center, Foreground = Chrome.PrimaryText.Brush(this) }.Font(SwiftFont.System(11, SwiftFont.Weight.Medium).MonospacedDigit()); // :483-486
         var larger = Command("textformat.size.larger", "Zoom in", () => percent.Value = AppZoom.Next((int)percent.Value, increasing: true)); // :491-499
         var reset = Command("arrow.counterclockwise", "Back to the stock size", () => percent.Value = 100, SwiftFont.Weight.Medium); // :501-510
         controls.Children.Add(smaller); controls.Children.Add(label); controls.Children.Add(larger); controls.Children.Add(reset);

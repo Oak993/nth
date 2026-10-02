@@ -410,6 +410,15 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-SETTINGS-268")] // App/Views/Settings/SettingsView.swift:470 HStack(spacing: 8), centre alignment by default
+    public void Zoom_percentage_sits_on_the_centre_line_of_the_22_point_buttons_beside_it() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
+    {
+        var zoom = Row(view, "Zoom"); var value = Nodes<TextBlock>(zoom).Single(x => x.MinWidth == 46); var button = Nodes<Button>(zoom).First();
+        // The 14-point label is shorter than the 22-point buttons: the HStack puts it at its own height on their centre line (it sat at the top).
+        Assert.Equal(value.DesiredSize.Height, value.Bounds.Height, 0.5); Assert.Equal(button.Bounds.Center.Y, value.Bounds.Center.Y, 0.5);
+    });
+
+    [Fact]
     [Trait("Req", "PR-SETTINGS-268")] // App/Views/Settings/SettingsView.swift:462-517
     [Trait("Req", "UI-SETTINGS-079")] // App/Views/Settings/SettingsView.swift:460-517
     public void Zoom_buttons_step_all_eight_levels_and_reset_keeps_its_slot_with_primary_tabular_digits() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
