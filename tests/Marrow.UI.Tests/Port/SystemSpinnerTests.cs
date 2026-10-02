@@ -8,8 +8,9 @@ using Marrow.UI.Tests.Fixtures;
 
 namespace Marrow.UI.Tests.Port;
 
-// SystemSpinner (PORT-ONLY, proposal ED-229 (3)): a ProgressView() built as an Avalonia ProgressBar without a template is
-// drawn as the system busy indicator, turning with the frame clock.
+// SystemSpinner: a ProgressView() built as an Avalonia ProgressBar without a template is drawn as the macOS spinner
+// (OD-0042 "Mac look", OD-0045: "Apple macOS 27 UI Kit", Progress Indicators / Circular / Indeterminate, 2 Sm and 3 Rg,
+// SOURCE FACT (Apple design resource), read 2026-10-02), stepping with the frame clock.
 [Collection("Headless")]
 public sealed class SystemSpinnerTests(HeadlessSession headless)
 {
@@ -34,10 +35,16 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
         {
             var spinner = Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
             Assert.Equal(new Size(16, 16), spinner.Bounds.Size);
+            Assert.Equal(0, spinner.Lead);
+            // The lead moves on one spoke, clockwise, every eighth of SystemSpinner.Period, in whole steps.
+            frames.Advance(TimeSpan.FromSeconds(0.1));
+            Assert.Equal(0, spinner.Lead);
+            frames.Advance(TimeSpan.FromSeconds(0.05));
+            Assert.Equal(1, spinner.Lead);
             frames.Advance(TimeSpan.FromSeconds(0.25));
-            Assert.Equal(90, spinner.Angle, 3); // a quarter turn in a quarter of SystemSpinner.Period
-            frames.Advance(TimeSpan.FromSeconds(0.25));
-            Assert.Equal(180, spinner.Angle, 3);
+            Assert.Equal(3, spinner.Lead);
+            frames.Advance(TimeSpan.FromSeconds(0.625));
+            Assert.Equal(0, spinner.Lead); // a full turn later it starts over
         }
         finally { window.Close(); }
     });
@@ -51,7 +58,7 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
         try
         {
             var spinner = Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
-            Assert.Equal(0, spinner.Angle);
+            Assert.Equal(0, spinner.Lead);
         }
         finally { window.Close(); }
     });
@@ -102,6 +109,83 @@ public sealed class SystemSpinnerTests(HeadlessSession headless)
         {
             var track = Assert.Single(bar.GetVisualDescendants().OfType<SystemProgressTrack>());
             Assert.Equal(new Size(120, 8), track.Bounds.Size);
+        }
+        finally { window.Close(); }
+    });
+
+    [Theory]
+    [InlineData(16.0, 3.0, 8.0, 2.0)]
+    [InlineData(32.0, 6.0, 16.0, 4.0)]
+    [Trait("Decision", "ED-231")]
+    public void The_spokes_are_capsules_scaled_from_the_kits_32_point_spinner(double size, double inner, double outer, double width)
+    {
+        // 3 Rg: eight 4 x 10 capsules spanning 6 to 16 from the centre; 2 Sm: exactly half (2 x 5, 3 to 8).
+        var spoke = SystemSpinner.Spoke(size);
+        Assert.Equal(inner, spoke.Inner, 6);
+        Assert.Equal(outer, spoke.Outer, 6);
+        Assert.Equal(width, spoke.Width, 6);
+    }
+
+    [Theory]
+    [InlineData(0, new[] { 0.55, 0.06, 0.13, 0.20, 0.27, 0.34, 0.41, 0.48 })]
+    [InlineData(3, new[] { 0.34, 0.41, 0.48, 0.55, 0.06, 0.13, 0.20, 0.27 })]
+    [Trait("Decision", "ED-231")]
+    public void The_lead_spoke_is_brightest_and_the_trail_fades_by_seven_hundredths_a_spoke(int lead, double[] opacities)
+    {
+        // Spokes from 12 o'clock clockwise, lead at 12: 0.55, then 0.06, 0.13 ... 0.48.
+        for (var spoke = 0; spoke < 8; spoke++) Assert.Equal(opacities[spoke], SystemSpinner.SpokeOpacity(spoke, lead), 6);
+    }
+
+    [Theory]
+    [InlineData("Dark")]
+    [InlineData("Light")]
+    [Trait("Decision", "ED-231")]
+    public void The_spokes_are_white_in_dark_and_black_in_light_not_the_accent(string variant) => headless.OnUiThread(() =>
+    {
+        var theme = variant == "Dark" ? Avalonia.Styling.ThemeVariant.Dark : Avalonia.Styling.ThemeVariant.Light;
+        var bar = new ProgressBar { IsIndeterminate = true, Width = 16, Height = 16 };
+        var window = new Window { Content = bar, Width = 200, Height = 200, RequestedThemeVariant = theme };
+        window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            var spinner = Assert.Single(bar.GetVisualDescendants().OfType<SystemSpinner>());
+            var expected = variant == "Dark" ? Avalonia.Media.Colors.White : Avalonia.Media.Colors.Black;
+            Assert.Equal(expected, spinner.SpokeColor);
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-231")]
+    public void Each_spoke_is_drawn_eleven_points_out_at_its_own_opacity_with_the_lead_at_twelve_o_clock() => headless.OnUiThread(() =>
+    {
+        // A 32-point spinner, white on black (Dark): a spoke's centre (11 out) reads as its opacity, the middle stays black.
+        var bar = new ProgressBar { IsIndeterminate = true, Width = 32, Height = 32, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var window = new Window { Content = bar, Width = 64, Height = 64, Background = Avalonia.Media.Brushes.Black, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark };
+        window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            using var frame = window.CaptureRenderedFrame() ?? throw new Xunit.Sdk.XunitException("no rendered frame");
+            using var buffer = frame.Lock();
+            double Level(double x, double y)
+            {
+                var row = new byte[buffer.RowBytes];
+                System.Runtime.InteropServices.Marshal.Copy(buffer.Address + (int)Math.Floor(y) * buffer.RowBytes, row, 0, buffer.RowBytes);
+                var at = (int)Math.Floor(x) * 4;
+                return Math.Max(row[at], Math.Max(row[at + 1], row[at + 2])) / 255.0;
+            }
+            Assert.Equal(0, Level(16, 16), 2);
+            for (var spoke = 0; spoke < 8; spoke++)
+            {
+                var angle = spoke * Math.PI / 4;
+                var level = Level(16 + 11 * Math.Sin(angle), 16 - 11 * Math.Cos(angle));
+                Assert.True(Math.Abs(level - SystemSpinner.SpokeOpacity(spoke, 0)) < 0.04, $"spoke {spoke}: drawn {level:F3}, kit {SystemSpinner.SpokeOpacity(spoke, 0):F2}");
+            }
         }
         finally { window.Close(); }
     });
