@@ -689,3 +689,8 @@ Owner answers in chat, 2026-10-02, to the questions put with recommendations:
 - **About page licence line:** "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY." (OD-0012 H settled.)
 - **Provider key link:** choose "a" or "an" by the name's first sound ("Get an OpenRouter key"), for every provider.
 - **Fast mode below a model's top effort:** a new, better animation (e.g. electricity coursing through the tube); 10-15 variants on a canvas for the owner to choose.
+
+## OD-0073 Fast mode is "Strike" (variant A2)
+
+- **Owner ruling, 2026-10-02 (chat, "My choice", with a screenshot of the variant):** fast mode's animation is variant A2 "Strike" from the choices canvas https://claude.ai/artifact/8vQa4UTFxApeS1mbCSA8Uf (board FastA.dc.html; locked copy E:/Droppy/work/design/fast-mode-strike-A2-locked.dc.html): a faint leader leaves the knob, then the whole channel strikes in two or three flickers; the liquid flashes from inside and the channel glows out; small sparks play at the knob between strikes; in fast mode the liquid's currents run 1.5x faster. Shown on the canvas below a model's top effort (Claude, High) and at the top (DeepSeek, Gemini at Max), in dark and light.
+- **Effect:** replaces OD-0063's "the fast-mode bolt animation stays constant" and OD-0072's open fast-mode choice: the port's fast look draws Strike over the model's own liquid (OD-0063 intensity) at every effort, built test-first to the locked canvas's timing, geometry and colours, cheap per frame (ED-233 GPU passes, ED-237 pacing), looping seamlessly, and stilled under reduce motion.
