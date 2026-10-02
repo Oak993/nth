@@ -109,6 +109,21 @@ public sealed class RootViewProviderRowTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-WIN-064")] // App/Views/RootView.swift:371 HStack(spacing: 12), centre alignment by default
+    public void The_18_point_icon_sits_on_the_centre_line_of_the_two_line_text_beside_it()
+    {
+        OnRow(ProviderKind.Codex, Status(ProviderKind.Codex, "checking"), (row, host) =>
+        {
+            // An HStack centres each child vertically: the icon (18) beside the name-and-status stack (two lines, taller) is on
+            // its centre line, not at its top.
+            var icon = Assert.Single(RootViewRig.All<SwiftImage>(row));
+            var text = Assert.IsType<StackPanel>(RootViewRig.Text(row, "Codex").Parent);
+            Assert.Equal(RootViewRig.In(text, host).Center.Y, RootViewRig.In(icon, host).Center.Y, 0.5);
+            Assert.Equal(RootViewRig.In(text, host).Center.Y, RootViewRig.In(Assert.Single(RootViewRig.All<ProgressBar>(row)), host).Center.Y, 0.5);
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-WIN-083")] // App/Views/RootView.swift:373,376-380; Chrome.swift:76-79
     [Trait("Req", "UI-WIN-064")] // App/Views/RootView.swift:373-380 the row's typography and colours
     public void The_icon_is_in_the_primary_label_colour_the_name_at_body_the_status_at_subheadline_in_secondary_text()

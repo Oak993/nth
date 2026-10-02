@@ -107,6 +107,24 @@ public sealed class RootViewNoThreadTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-WIN-070")] // App/Views/RootView.swift:428 VStack(spacing: 16), centre alignment by default
+    [Trait("Req", "UI-WIN-071")] // App/Views/RootView.swift:434-440 the New thread button
+    [Trait("Req", "UI-WIN-072")] // App/Views/RootView.swift:441-446 the chord hint
+    public void The_heading_the_button_and_the_chord_hint_are_each_centred_at_their_own_width_like_the_symbol()
+    {
+        OnPane((host, _) =>
+        {
+            // A VStack centres each child at its own width. The heading is the widest line, so the button stretched across
+            // its width (a capsule as wide as the heading) and the hint sat flush left under it.
+            foreach (Control child in new Control[] { RootViewRig.Text(host, "Pick a thread or start a new one"), NewThread(host), RootViewRig.Text(host, "Ctrl+N") })
+            {
+                Assert.Equal(child.DesiredSize.Width, child.Bounds.Width, 0.5); // at its own width
+                Assert.Equal(host.Bounds.Width / 2, RootViewRig.In(child, host).Center.X, 0.5);
+            }
+        });
+    }
+
+    [Fact]
     [Trait("Req", "UI-WIN-072")] // App/Views/RootView.swift:441-446 `if let chord = ShortcutStore.label(for: .newThread)`: absent when cleared, current after a remap
     public void The_chord_hint_follows_a_remap_and_is_absent_while_the_chord_is_cleared()
     {

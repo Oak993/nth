@@ -127,6 +127,22 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-WIN-059")] // App/Views/RootView.swift:316 VStack(spacing: 10), centre alignment by default
+    [Trait("Req", "UI-WIN-060")] // App/Views/RootView.swift:325-327 the drop hint
+    public void Add_a_project_and_the_drop_hint_are_each_centred_at_their_own_width_on_the_page()
+    {
+        OnWelcome(host =>
+        {
+            // The hint is the wider line; the capsule is its own width under it, not stretched to the hint's.
+            foreach (Control child in new Control[] { AddProject(host), RootViewRig.Text(host, "Or drop a folder anywhere in this window.") })
+            {
+                Assert.Equal(child.DesiredSize.Width, child.Bounds.Width, 0.5);
+                Assert.Equal(host.Bounds.Width / 2, RootViewRig.In(child, host).Center.X, 0.5);
+            }
+        }, width: 1320);
+    }
+
+    [Fact]
     [Trait("Req", "UI-WIN-058")] // App/Views/RootView.swift:312-314, OD-0012 F2
     public void The_tagline_is_the_title3_style_in_secondary_text_third_in_the_stack()
     {

@@ -913,6 +913,9 @@ public sealed class WelcomeView : Decorator
         SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(dropHint);
         dropHint.Foreground = Chrome.SecondaryText.Brush(dropHint);
 
+        // :316 a VStack centres each child at its own width; the stack would stretch the capsule to the hint's width.
+        addProjectButton.HorizontalAlignment = HorizontalAlignment.Center;
+        dropHint.HorizontalAlignment = HorizontalAlignment.Center;
         var addProjectStack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 10, HorizontalAlignment = HorizontalAlignment.Center };
         addProjectStack.Children.Add(addProjectButton);
         addProjectStack.Children.Add(dropHint);
@@ -1119,11 +1122,16 @@ public sealed class NoThreadView : Decorator
         newThreadLabel.Children.Add(new TextBlock { Text = "New thread", VerticalAlignment = VerticalAlignment.Center });
 
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 16, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        // :428 a VStack centres each child at its own width; the stack would stretch the button to the heading's width and
+        // leave the hint flush left.
+        heading.HorizontalAlignment = HorizontalAlignment.Center;
         stack.Children.Add(symbol);
         stack.Children.Add(heading);
         this.Track(() => AppEnvironment.GetAppModel(this), model =>
         {
-            stack.Children.Insert(2, WelcomeView.GlassProminentButton(newThreadLabel, LargeControlHeight, () => model.NewThread())); // :434-440
+            var button = WelcomeView.GlassProminentButton(newThreadLabel, LargeControlHeight, () => model.NewThread()); // :434-440
+            button.HorizontalAlignment = HorizontalAlignment.Center;
+            stack.Children.Insert(2, button);
         });
         // :441-446 the chord hint, omitted entirely when the shortcut has been cleared: the body reads the store's label, so a
         // remap shows at once.
@@ -1138,7 +1146,7 @@ public sealed class NoThreadView : Decorator
             }
             if (chordText is null)
             {
-                chordText = new TextBlock();
+                chordText = new TextBlock { HorizontalAlignment = HorizontalAlignment.Center };
                 SwiftFont.System(SwiftFont.TextStyle.Subheadline).Apply(chordText);
                 chordText.Foreground = Chrome.SecondaryText.Brush(chordText);
                 stack.Children.Add(chordText);
