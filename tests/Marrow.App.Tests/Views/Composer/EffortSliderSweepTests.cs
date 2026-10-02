@@ -598,28 +598,9 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
         Assert.Null(typeof(TrackEffect).GetMethod("DrawSheen", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static));
         Assert.True(TrackEffect.IsLiquid(new TrackLook(TrackLook.Kind.Supercharged, EffortBrand.Claude)));
         Assert.True(TrackEffect.IsLiquid(new TrackLook(TrackLook.Kind.Fusion, EffortBrand.Claude)));
-        // the fast mode's own streaks and bolts stay (PR-COMPOSER-136 below)
-        Assert.False(TrackEffect.IsLiquid(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude)));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-136")] // App/Views/Composer/EffortSlider.swift:1151-1201
-    public void Speed_streak_is_a_rounded_gradient_with_a_transparent_tail()
-    {
-        headless.OnUiThread(() =>
-        {
-            using var frames = FrameClock.Source.Override(new ManualFrameSource());
-            var drawing = new DrawingGroup();
-            using (var context = drawing.Open())
-                typeof(TrackEffect).GetMethod("DrawStreaks", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Static)!
-                    .Invoke(null, [context, new Size(100, 34), 0.0,
-                        new[] { new TrackEffect.Streak { Start = 0.5, Length = 10, Thickness = 2, Height = 0.5, Brightness = 0.5 } }]);
-            var streak = Assert.Single(drawing.Children.OfType<GeometryDrawing>());
-            Assert.Equal(new Rect(45, 16, 10, 2), streak.Geometry!.Bounds); // .5*122-10-6=45
-            var gradient = Assert.IsType<LinearGradientBrush>(streak.Brush);
-            Assert.Equal(0, gradient.GradientStops[0].Color.A);
-            Assert.InRange(gradient.GradientStops[1].Color.A, 127, 128);
-        });
+        // DEVIATION OD-0073: fast mode below the top is the liquid too, with Strike in place of the streaks and bolts
+        // (PR-COMPOSER-136; EffortSliderStrikeTests)
+        Assert.True(TrackEffect.IsLiquid(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude)));
     }
 
     private static Avalonia.Controls.Window Show(Control content)
@@ -796,15 +777,10 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
                 case TrackLook.Kind.Supercharged:
                     Assert.Equal(EffortBrand.Purple.FillColor.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :991
                     break;
-                case TrackLook.Kind.Fast:
-                    Assert.Equal(EffortPalette.FastFill.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color); // Swift :992
-                    break;
                 default:
-                    var fusion = Assert.IsType<LinearGradientBrush>(fill.Background); // Swift :993-996: the brand colour for the first two stops
-                    Assert.Equal(3, fusion.GradientStops.Count);
-                    Assert.Equal(EffortBrand.Purple.FillColor.Resolve(theme), fusion.GradientStops[0].Color);
-                    Assert.Equal(EffortBrand.Purple.FillColor.Resolve(theme), fusion.GradientStops[1].Color);
-                    Assert.Equal(EffortPalette.FastFill.Resolve(theme), fusion.GradientStops[2].Color);
+                    // Swift :992-996 (amber fast fill, brand-to-amber fusion); DEVIATION OD-0073 (ED-248): fast mode is the
+                    // model's liquid with Strike at every effort, so the fill under it is the brand's, as at the top
+                    Assert.Equal(EffortBrand.Purple.FillColor.Resolve(theme), Assert.IsAssignableFrom<ISolidColorBrush>(fill.Background).Color);
                     break;
             }
             var effects = slider.GetVisualDescendants().OfType<TrackEffect>().ToArray();

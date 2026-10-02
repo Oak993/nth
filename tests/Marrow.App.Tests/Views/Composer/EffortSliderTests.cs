@@ -228,46 +228,8 @@ public sealed class EffortSliderTests(HeadlessSession headless)
         Assert.Equal(Resolved(SwiftColor.White), Resolved(look.Spark)); // :1018 a pair never sparks
     }
 
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-134")] // EffortSlider.swift:1099-1115; DEVIATION OD-0051: the particles went with the particle fill
-    public void TrackEffect_Traits_Build_scales_the_streak_count_with_width_and_floors_it()
-    {
-        Assert.Equal(5, TrackEffect.Traits.Build(10).Streaks.Count);   // floor of 5, not 10/14=0
-        Assert.Equal(20, TrackEffect.Traits.Build(280).Streaks.Count); // 280/14
-        Assert.Equal(["Streaks"], typeof(TrackEffect.Traits).GetProperties().Select(property => property.Name).Where(name => name != "EqualityContract"));
-    }
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-134")] // EffortSlider.swift:1099-1115
-    public void TrackEffect_Traits_Build_is_deterministic_per_width()
-    {
-        var first = TrackEffect.Traits.Build(200);
-        var second = TrackEffect.Traits.Build(200);
-        Assert.Equal(first, second);
-    }
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-134")] // EffortSlider.swift:1121-1132
-    public void TrackEffect_TraitCache_rebuilds_only_when_the_width_changes()
-    {
-        var cache = new TrackEffect.TraitCache();
-        var first = cache.Traits(200);
-        var same = cache.Traits(200);
-        var different = cache.Traits(300);
-
-        Assert.Same(first, same);
-        Assert.NotSame(first, different);
-    }
-
-    [Fact]
-    [Trait("Req", "PR-COMPOSER-134")] // EffortSlider.swift:1343-1346
-    public void TrackEffect_Random_is_deterministic_and_stays_in_zero_to_one()
-    {
-        var first = TrackEffect.Random(3, 2);
-        var second = TrackEffect.Random(3, 2);
-        Assert.Equal(first, second);
-        Assert.InRange(first, 0, 1);
-    }
+    // PR-COMPOSER-134 (EffortSlider.swift:1099-1132, 1343-1346, the streak traits, their cache and their random): DEVIATION
+    // OD-0073, gone with the streaks and bolts Strike replaces; EffortSliderStrikeTests.The_source_streaks_and_bolts_are_gone.
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-140")] // EffortSlider.swift:11
