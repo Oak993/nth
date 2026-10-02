@@ -183,6 +183,28 @@ public sealed class PopoversTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-SIDEBAR-106")] // UI/Chrome/Popovers.swift:275 HStack(spacing: 8): the default alignment is .center
+    [Trait("Req", "UI-SIDEBAR-013")] // UI/Chrome/Popovers.swift:307-318 the title and the detail
+    public void PopoverItem_title_and_detail_sit_on_the_26_point_rows_centre_line_each_at_its_own_height() => headless.OnUiThread(() =>
+    {
+        var item = new PopoverItem("Rename", () => { }, detail: "Ctrl+R", symbol: "pencil");
+        var window = Show(item, ThemeVariant.Light);
+
+        // An HStack centres each child vertically; an Avalonia StackPanel stretches them, which drew the text at the top of the
+        // 26-point row (16 points of text in the first 16, the glyph column's height).
+        var row = Assert.Single(SelfAndDescendants(item), c => c is StackPanel sp && sp.Orientation == Orientation.Horizontal);
+        Assert.Equal(26, row.Height);
+        var title = Assert.Single(VisualQuery.Descendants<MiddleTruncatingText>(item));
+        var detail = Assert.Single(VisualQuery.Descendants<TextBlock>(item), block => block.Text == "Ctrl+R");
+        foreach (var text in new TextBlock[] { title, detail })
+        {
+            Assert.Equal(text.DesiredSize.Height, text.Bounds.Height, 0.5); // at its own height
+            Assert.Equal(13, text.Bounds.Center.Y, 0.5); // on the row's centre line
+        }
+        window.Close();
+    });
+
+    [Fact]
     [Trait("Req", "PR-SIDEBAR-106")] // UI/Chrome/Popovers.swift:320 foregroundStyle(isDestructive ? Chrome.danger : Chrome.primaryText)
     public void PopoverItem_is_drawn_in_danger_when_destructive_and_primaryText_otherwise() => headless.OnUiThread(() =>
     {

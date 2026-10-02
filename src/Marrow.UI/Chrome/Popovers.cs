@@ -465,9 +465,10 @@ public sealed class PopoverItem : Decorator
 /// (Popovers.swift :275, :312). Children take their natural width; the <see cref="Spacer"/> takes 16 plus whatever
 /// width the row is given beyond that, so the detail sits at the trailing edge; when the row is narrower than its
 /// content the <see cref="MiddleTruncatingText"/> title is given what is left, as SwiftUI compresses a truncating
-/// Text before anything else (:307-311). Still a horizontal StackPanel to every caller.
+/// Text before anything else (:307-311). Still a horizontal StackPanel to every caller; an <see cref="HStack"/>, so each
+/// child sits on the row's centre line as :275's default alignment puts it (a stretched title drew at the row's top).
 /// </summary>
-internal sealed class PopoverRowPanel : StackPanel
+internal sealed class PopoverRowPanel : HStack
 {
     /// <summary>:312 the <c>Spacer(minLength: 16)</c> child.</summary>
     public Control? Spacer { get; set; }
