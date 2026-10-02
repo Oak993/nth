@@ -436,8 +436,21 @@ public sealed class PromptEditorPopover<TContent> where TContent : Control
     private void ResizeToContent(Popup popup, Control content, bool initial)
     {
         if (popup.Child is null) return;
-        content.Measure(new Size(EditorWidth, double.PositiveInfinity));
-        var size = content.DesiredSize;
+        var available = new Size(EditorWidth, double.PositiveInfinity);
+        Size size;
+        if (initial && TopLevel.GetTopLevel(content) is null)
+        {
+            // :218-230 the size of the hosted view, with its styles and templates in effect. The popup is not open yet, so the
+            // content is in no window: it is measured in one, out of the popup (a control has one parent) and put back.
+            popup.Child = null;
+            try { size = StyledMeasure.Of(content, available); }
+            finally { popup.Child = content; }
+        }
+        else
+        {
+            content.Measure(available);
+            size = content.DesiredSize;
+        }
         if (size.Width <= 0 || size.Height <= 0) return;
 
         if (initial || !popupSized)

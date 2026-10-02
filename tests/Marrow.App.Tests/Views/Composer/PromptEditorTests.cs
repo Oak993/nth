@@ -346,4 +346,45 @@ public sealed class PromptEditorTests(HeadlessSession headless)
         window.Close();
         Dispatcher.UIThread.RunJobs();
     });
+
+    // :218-230 the popover's content size is the hosted view's size, with its styles and templates in effect. The editor
+    // measured detached left its buttons' templates and its attachment row out (161 pt for 177, and 175 for 241 with three
+    // attachments), so the popup opened short until its first layout corrected it.
+    [Theory]
+    [InlineData(0)]
+    [InlineData(3)]
+    [Trait("Req", "PR-COMPOSER-182")] // App/Views/Composer/PromptEditor.swift:218-230
+    public void The_popup_opens_at_its_editor_measured_in_a_window(int attachmentCount) => headless.OnUiThread(() =>
+    {
+        var attachments = Enumerable.Range(0, attachmentCount)
+            .Select(index => new Attachment { Id = Guid.NewGuid(), Name = "file" + index + ".png", Path = "C:/x/file" + index + ".png", MimeType = "image/png" })
+            .ToArray();
+        PromptEditor Editor() => MakeEditor("Edit message", "hello", attachments);
+
+        var hosted = Editor();
+        var hostWindow = new Avalonia.Controls.Window { Width = 700, Height = 600, Content = hosted };
+        hostWindow.Show(); Dispatcher.UIThread.RunJobs();
+        hosted.Measure(new Size(520, double.PositiveInfinity));
+        var expected = hosted.DesiredSize;
+        hostWindow.Close();
+
+        using var runtime = new TestRuntime();
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var anchor = new Border { Width = 40, Height = 30, Background = Brushes.Transparent, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Left, VerticalAlignment = Avalonia.Layout.VerticalAlignment.Top };
+        var window = new Avalonia.Controls.Window { Width = 600, Height = 300, Content = anchor };
+        window.Show(); Dispatcher.UIThread.RunJobs();
+        var popover = new PromptEditorPopover<PromptEditor>();
+        popover.SetAnchor(anchor);
+        var edit = runtime.OnMain(() => new PromptEdit(Guid.NewGuid(), "hello", ValueList<Attachment>.Empty));
+
+        runtime.OnMain(() => popover.Sync(edit, () => { }, _ => Editor()));
+
+        var popup = Assert.Single(presenter.Calls).Popup;
+        Assert.Equal(expected.Width, popup.Width);
+        Assert.Equal(expected.Height, popup.Height);
+        Assert.IsType<PromptEditor>(popup.Child); // measured out of the popup and put back
+        runtime.OnMain(popover.Close);
+        window.Close(); Dispatcher.UIThread.RunJobs();
+    });
 }
