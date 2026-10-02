@@ -17,7 +17,7 @@ public static class MCPSetupPanelRig
 {
     /// <summary>A remote server on a loopback port nothing listens on, so even a probe that did run reaches no real service.</summary>
     public static MCPCatalogEntry Entry(string id = "gitlab", string name = "GitLab") =>
-        new(id, name, "GitLab", "Source control", MCPCategory.Developer, "", 0,
+        new(id, name, "GitLab", "Source control", MCPCategory.Developer, "mcp-gitlab", 0xFC6D26,
             new MCPTransport.Http("http://127.0.0.1:9/mcp", ValueMap<string, string>.Empty), "https://gitlab.com");
 
     /// <summary>The one guide the app ships (a GitLab server that is off on its own side), with its note replaceable.</summary>

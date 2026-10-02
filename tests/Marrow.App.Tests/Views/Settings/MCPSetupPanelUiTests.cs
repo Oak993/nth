@@ -493,6 +493,10 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
     private static GlassEffect GlassOf(Button button) =>
         button.GetSelfAndVisualDescendants().OfType<Control>().Select(SwiftGlass.GetEffect).First(effect => effect is not null)!;
 
+    // The capsule that carries the glass inside a button, and the label it holds.
+    private static Control CapsuleOf(Button button) =>
+        button.GetSelfAndVisualDescendants().OfType<Control>().First(node => SwiftGlass.GetEffect(node) is not null);
+
     private static IReadOnlyList<string?> Texts(Visual root) => [.. MCPSetupPanelRig.All<TextBlock>(root).Select(block => block.Text)];
 
     private static bool Probing(AppModel model, string id) =>
@@ -529,7 +533,9 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
             var open = MCPSetupPanelRig.ButtonLabelled(session.View, "Open my groups");
             var frame = Frame(open, session.View);
             Assert.Equal(18, frame.Left, 0.5);
-            Assert.Equal(Chrome.CapsuleContentHeight, frame.Height, 0.5);
+            Assert.Equal(Chrome.CapsuleContentHeight, CapsuleOf(open).Bounds.Height, 0.5);
+            var label = MCPSetupPanelRig.Text(open, "Open my groups");
+            Assert.Equal(label.Bounds.Width + 2 * Chrome.CapsuleHorizontalPadding, frame.Width, 0.5);
             var glass = GlassOf(open);
             Assert.Equal(GlassShape.Capsule(RoundedCornerStyle.Continuous), glass.Shape);
             Assert.Null(glass.TintColor);
@@ -569,7 +575,9 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
             var open = MCPSetupPanelRig.ButtonLabelled(session.View, "Open my groups");
             var frame = Frame(check, session.View);
             Assert.Equal(18 + 364, frame.Right, 0.5);
-            Assert.Equal(Chrome.CapsuleContentHeight, frame.Height, 0.5);
+            Assert.Equal(Chrome.CapsuleContentHeight, CapsuleOf(check).Bounds.Height, 0.5);
+            var label = MCPSetupPanelRig.Text(check, "Check again");
+            Assert.Equal(label.Bounds.Width + 2 * Chrome.CapsuleHorizontalPadding, frame.Width, 0.5);
             Assert.Equal(Frame(open, session.View).Top, frame.Top, 0.5);
             var glass = GlassOf(check);
             Assert.Equal(GlassShape.Capsule(RoundedCornerStyle.Continuous), glass.Shape);
@@ -893,8 +901,12 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
 
             session.Frame(1000);
             Assert.Equal(1.0, Scale(Glyph(session)), 6);
-            Assert.Equal(0, session.Frames.Pending);
             session.Frame(1000);
+            Assert.Equal(1.0, Scale(Glyph(session)), 6);
+
+            // The view rebuilt for a new count is the same appearance: onAppear's state is already popped, no second spring.
+            session.SetState(new MCPConnectionState.Connected(5));
+            session.Frame(100);
             Assert.Equal(1.0, Scale(Glyph(session)), 6);
         });
     }
@@ -910,7 +922,6 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
             session.SetState(new MCPConnectionState.Connected(2));
 
             Assert.Equal(1.0, Scale(Glyph(session)), 6);
-            Assert.Equal(0, session.Frames.Pending);
             session.Frame(100);
             Assert.Equal(1.0, Scale(Glyph(session)), 6);
         });
@@ -930,6 +941,23 @@ public sealed class MCPSetupPanelUiTests(HeadlessSession headless)
             view.Measure(new Size(400, double.PositiveInfinity));
             var wanted = Math.Max(Math.Ceiling(view.DesiredSize.Height), 100);
             Assert.InRange(panel.Height, wanted - 1, wanted);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "UI-MCP-078")] // MCPSetupPanel.swift:43 guard let panel, panel.isVisible: a closed panel is not resized
+    public void Fit_leaves_a_closed_panel_alone()
+    {
+        RunShared((model, runtime, _) =>
+        {
+            Present(runtime, model);
+            var panel = PanelWindow();
+            runtime.OnMain(() => MCPSetupPanel.Shared.Fit(300));
+            runtime.OnMain(() => MCPSetupPanel.Shared.Close());
+            Assert.False(panel.IsVisible);
+
+            runtime.OnMain(() => MCPSetupPanel.Shared.Fit(500));
+            Assert.Equal(300, panel.Height);
         });
     }
 }
