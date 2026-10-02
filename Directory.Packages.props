@@ -13,6 +13,9 @@
     <PackageVersion Include="Avalonia.Headless" Version="12.1.2" />
     <!-- OD-0009: the text face is Inter (measured closer to the Mac oracle than Segoe UI Variable, probe P9 INTER.md). -->
     <PackageVersion Include="Avalonia.Fonts.Inter" Version="12.1.2" />
+    <!-- OD-0062 / ED-235: the Velopack per-user installer. Keep this equal to the vpk tool's version (vpk 1.2.161): vpk packs the
+         app with its own Update.exe and warns when the library in the app differs. -->
+    <PackageVersion Include="Velopack" Version="1.2.161" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="3.1.4" />

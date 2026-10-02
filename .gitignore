@@ -5,3 +5,6 @@ obj/
 
 # Raw per-run test output from porting/tools/req_verify.mjs; the bound summary requirements.json is committed.
 porting/verification/runs/
+
+# scripts/package-windows.ps1: the local Velopack publish folder and installer output (OD-0062; never committed).
+artifacts/

@@ -7,6 +7,7 @@ using Marrow.Services.Port;
 using Marrow.Services.Store;
 using Marrow.UI.Markdown;
 using Marrow.UI.Port;
+using Velopack;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App;
@@ -32,6 +33,11 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
+        // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
+        // arguments) this handles the event and exits the process; in every other run, a dev run or a Velopack install
+        // started normally, it returns at once and changes nothing.
+        VelopackApp.Build().Run();
         WindowsToastStartup.RestoreDevRoot(args); // ED-212/ED-220: retain protocol launch's instance identity
 #if DEBUG
         // ED-212, review fix: a mistyped or since-deleted MARROW_DEV_DATA_ROOT must not silently fall back to the
