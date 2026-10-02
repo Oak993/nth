@@ -65,10 +65,12 @@ public sealed class MessageEditor : Decorator
             }
         }
 
+        // :46-55 are PromptEditor's @ViewBuilder `extra`, so in Swift each view is a child of PromptEditor.swift:59
+        // VStack(spacing: 14): this stack keeps that 14-point gap between them.
         var extra = new StackPanel
         {
             Orientation = Orientation.Vertical,
-            Spacing = 8,
+            Spacing = 14,
             HorizontalAlignment = HorizontalAlignment.Stretch,
         };
 

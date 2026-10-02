@@ -1,3 +1,4 @@
+using Avalonia;
 using Avalonia.Controls;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
@@ -44,5 +45,23 @@ public sealed class MessageEditorShellTests(HeadlessSession headless)
             Assert.Same(rig.Edit, rig.Runtime.MessageEdit);
         }
         finally { window.Close(); }
+    });
+
+    // :46-55 the extra views (file changes, the notice, the error line) come from PromptEditor's @ViewBuilder `extra`, so they
+    // are children of PromptEditor.swift:59 VStack(alignment: .leading, spacing: 14): 14 points apart, not a stack of their own.
+    [Fact]
+    [Trait("Req", "UI-CHAT-015")] // MessageEditor.swift:46-55 inside PromptEditor.swift:59,77 VStack(spacing: 14)
+    public void The_file_changes_box_and_the_notice_sit_fourteen_points_apart_as_children_of_the_prompt_editor_stack() => headless.OnUiThread(() =>
+    {
+        using var rig = new MessageEditorRig(EditorPreviewKind.NoFiles);
+        rig.WaitForPreview();
+        rig.Relayout();
+
+        var notice = Assert.Single(rig.All<TextBlock>(), text => text.Text == "Sending replaces this message and everything after it.");
+        var stack = Assert.IsAssignableFrom<Panel>(notice.Parent);
+        var box = (Control)stack.Children[stack.Children.IndexOf(notice) - 1];
+        var noticeTop = notice.TranslatePoint(new Avalonia.Point(0, 0), rig.Editor)!.Value.Y;
+        var boxBottom = box.TranslatePoint(new Avalonia.Point(0, box.Bounds.Height), rig.Editor)!.Value.Y;
+        Assert.Equal(14, noticeTop - boxBottom, 3);
     });
 }
