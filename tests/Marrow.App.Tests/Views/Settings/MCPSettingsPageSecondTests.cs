@@ -40,6 +40,17 @@ public sealed class MCPSettingsPageSecondTests(HeadlessSession headless)
         });
     }
     [Fact]
+    [Trait("Req", "UI-MCP-004")] // App/Views/Settings/MCPSettingsPage.swift:95 HStack(spacing: 4), centre alignment by default
+    public void Lead_title_sits_on_the_centre_line_of_its_22_point_information_button()
+    {
+        Ui((model, _) => { var lead = new MCPLeadCard(); using var window = Attach(lead, model);
+            var title = Nodes<TextBlock>(lead).Single(x => x.Text == "Connected servers lead"); var button = Nodes<Button>(lead).Single(x => AutomationProperties.GetName(x) == "About connected servers");
+            // The 16-point title is shorter than the 22-point button: the HStack puts it at its own height on the button's centre line.
+            Assert.Equal(title.DesiredSize.Height, title.Bounds.Height, 0.5);
+            Assert.Equal(button.TranslatePoint(new Point(0, button.Bounds.Height / 2), lead)!.Value.Y, title.TranslatePoint(new Point(0, title.Bounds.Height / 2), lead)!.Value.Y, 0.5);
+        });
+    }
+    [Fact]
     [Trait("Req", "UI-MCP-006")] // App/Views/Settings/MCPSettingsPage.swift:38-47
     [Trait("Rule", "R-TEST-2")] // App/Views/Settings/MCPSettingsPage.swift:40-45
     public void Connected_card_has_source_radius_and_dividers_and_header_style()

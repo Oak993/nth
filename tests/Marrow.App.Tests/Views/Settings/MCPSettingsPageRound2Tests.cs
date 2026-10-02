@@ -735,7 +735,7 @@ public sealed class MCPSettingsPageRound2Tests(HeadlessSession headless)
             // UI-MCP-094: first in an HStack(spacing: 4), the information button after it.
             var title = TextAt(page, "Connected servers lead"); TextStyle(title, 13, FontWeight.SemiBold, Chrome.PrimaryText);
             var infoButton = Assert.Single(Nodes<MCPHoverInfoButton>(page), b => b.Parent == title.Parent);
-            Assert.Equal(At(title, page).Right + 4, At(infoButton, page).Left, 6); Assert.Equal(At(title, page).Top, At(Assert.IsAssignableFrom<Control>(title.Parent), page).Top, 6);
+            Assert.Equal(At(title, page).Right + 4, At(infoButton, page).Left, 6); Assert.Equal(At(Assert.IsAssignableFrom<Control>(title.Parent), page).Center.Y, At(title, page).Center.Y, 6); /* an HStack centres the 16-point title on the 22-point info button: it is not at the stack's top */
             // UI-MCP-093: one header per non-empty category, declaration order, grid 10 below the header.
             var sections = Nodes<ChromeSection>(page).Where(s => s.Parent == stack).ToArray();
             Assert.Equal(new[] { "Developer", "Browser", "Search", "Work", "Data", "Cloud", "Knowledge" }, sections.Select(s => Texts(s)[0]));

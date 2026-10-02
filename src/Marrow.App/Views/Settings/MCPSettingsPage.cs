@@ -213,7 +213,8 @@ internal sealed class MCPLeadCard : Decorator
     // :89-122
     public MCPLeadCard()
     {
-        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { MCPSettingsPage.Text("Connected servers lead", 13, Chrome.PrimaryText, SwiftFont.Weight.Semibold), new MCPHoverInfoButton("About connected servers", Facts) } };
+        var leadText = MCPSettingsPage.Text("Connected servers lead", 13, Chrome.PrimaryText, SwiftFont.Weight.Semibold); leadText.VerticalAlignment = VerticalAlignment.Center; // :95 HStack(spacing: 4) centres the title on the 22-point info button
+        var title = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { leadText, new MCPHoverInfoButton("About connected servers", Facts) } };
         var copy = new StackPanel { Spacing = 6, Children = { title, MCPSettingsPage.Text("Connect a server here and every thread can use it. Anything set up in a terminal or another app stays just as it is.", 12, Chrome.SecondaryText) } };
         // :90 HStack(alignment: .top); :119 continuous rounded rectangle.
         var shield = MCPSettingsPage.Symbol("checkmark.shield.fill", 22, Chrome.Accent); shield.VerticalAlignment = VerticalAlignment.Top; copy.VerticalAlignment = VerticalAlignment.Top;
