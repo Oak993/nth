@@ -63,7 +63,10 @@ public sealed class WindowManagerNativeSession : IDisposable
         }
     }
 
-    internal T OnUi<T>(Func<T> body)
+    internal T OnUi<T>(Func<T> body) => OnUi(body, TimeSpan.FromSeconds(4));
+
+    // The gallery builds whole windows of content on the STA, which takes longer than a probe of a control does.
+    internal T OnUi<T>(Func<T> body, TimeSpan bound)
     {
         if (disposed) throw new ObjectDisposedException(nameof(WindowManagerNativeSession));
         if (Volatile.Read(ref loopFailure) is { } failure) ExceptionDispatchInfo.Capture(failure).Throw();
@@ -74,7 +77,7 @@ public sealed class WindowManagerNativeSession : IDisposable
             try { completion.TrySetResult(body()); }
             catch (Exception error) { completion.TrySetException(error); }
         }, null), DispatcherPriority.Send);
-        return completion.Task.WaitAsync(TimeSpan.FromSeconds(4)).GetAwaiter().GetResult();
+        return completion.Task.WaitAsync(bound).GetAwaiter().GetResult();
     }
 
     internal void OnUi(Action body) => OnUi(() => { body(); return true; });

@@ -25,7 +25,8 @@ internal static class WindowManagerNativeChildProtocol
         // Do not accept arbitrary filter syntax or a class-wide fallback that could recurse.
         var type = factType ?? typeof(WindowManagerNativeTests);
         if (type != typeof(WindowManagerNativeTests) && type != typeof(WindowManagerFactoryStretchTests) &&
-            type != typeof(EffortSliderNativeFrameTests) && type != typeof(GlassWindowNativeTests))
+            type != typeof(EffortSliderNativeFrameTests) && type != typeof(GlassWindowNativeTests) &&
+            type != typeof(GalleryNativeTests))
             throw new InvalidOperationException("Native child selection is not an allowed test type.");
         var method = type.GetMethod(member, BindingFlags.Instance | BindingFlags.Public | BindingFlags.DeclaredOnly);
         if (method is null || method.ReturnType != typeof(void) || method.GetParameters().Length != 0 ||
@@ -47,7 +48,8 @@ internal static class WindowManagerNativeChildProtocol
         using var parent = Process.GetCurrentProcess();
         var request = new WindowManagerNativeRequest(nonce, fact, run, Environment.ProcessId,
             parent.StartTime.ToUniversalTime().Ticks, Path.GetFullPath(typeof(WindowManagerNativeTests).Assembly.Location),
-            typeof(WindowManagerNativeTests).Module.ModuleVersionId, typeof(WindowManager).Module.ModuleVersionId);
+            typeof(WindowManagerNativeTests).Module.ModuleVersionId, typeof(WindowManager).Module.ModuleVersionId,
+            GalleryRun.RequestedDirectory());
         Write(run, "request.json", request);
         return request;
     }
@@ -147,7 +149,8 @@ internal static class WindowManagerNativeChildProtocol
 }
 
 internal sealed record WindowManagerNativeRequest(string Nonce, string FactName, string RunDirectory,
-    int ParentProcessId, long ParentStartedUtcTicks, string TestAssemblyPath, Guid TestModuleVersion, Guid AppModuleVersion);
+    int ParentProcessId, long ParentStartedUtcTicks, string TestAssemblyPath, Guid TestModuleVersion, Guid AppModuleVersion,
+    string? GalleryDirectory = null);
 
 internal sealed record WindowManagerNativeReady(WindowManagerNativeRequest Request, int ChildProcessId, long ChildStartedUtcTicks);
 
