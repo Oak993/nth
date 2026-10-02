@@ -109,7 +109,10 @@ public sealed class CommandCodeSessionLaunchTests
         Directory.CreateDirectory(Path.GetDirectoryName(rig.SupportDirectory)!);
         File.WriteAllText(rig.SupportDirectory, "not a directory");
 
-        await Assert.ThrowsAnyAsync<Exception>(async () => await rig.Session.Start());
+        // :98 `async throws`: the failure comes back through the Task, not as a throw out of the call.
+        var start = rig.Session.Start();
+        Assert.True(start.IsFaulted);
+        await Assert.ThrowsAnyAsync<Exception>(() => start);
 
         Assert.False(rig.Session.IsRunning);
         Assert.True(File.Exists(rig.SupportDirectory)); // untouched: nothing was created beside it
@@ -146,7 +149,9 @@ public sealed class CommandCodeSessionLaunchTests
         Directory.CreateDirectory(rig.SupportDirectory);
         File.WriteAllText(rig.ApprovalsRoot, "not a directory"); // a file where the approvals folder must be
 
-        await Assert.ThrowsAnyAsync<Exception>(async () => await rig.Session.Start());
+        var start = rig.Session.Start(); // :98 `async throws`: faulted, never thrown out of the call
+        Assert.True(start.IsFaulted);
+        await Assert.ThrowsAnyAsync<Exception>(() => start);
 
         Assert.False(rig.Session.IsRunning);
         Assert.True(File.Exists(rig.ModPath)); // the mod was installed before the directory step failed

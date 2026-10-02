@@ -142,6 +142,15 @@ public sealed class CommandCodeSession : ProviderSession
         {
             return Task.FromException<string>(new ProviderError(new ProviderError.Case.Failed("Command Code no longer has this conversation; starting a new one.")));
         }
+        // :98 `async throws`: a failure installing the mod or creating the approvals directory also reaches the caller
+        // through the Task, as the guards above do, never as a throw out of the call itself.
+        try { return Task.FromResult(Launch()); }
+        catch (Exception error) when (SwiftTry.IsThrownError(error)) { return Task.FromException<string>(error); }
+    }
+
+    // :103-112 the part of start() after its guards.
+    private string Launch()
+    {
         var mod = CommandCodeAPI.InstallMod(); // :103
         modURL = mod;
         // ENGINEERING DECISION, matching ProviderRegistry.FileUrl's own comment: CommandCodeAPI.SupportDirectory
@@ -159,7 +168,7 @@ public sealed class CommandCodeSession : ProviderSession
         StartWatcher(approvalDirectory); // :109 (part 2/3 body)
         started = true; // :110
         stopped = false; // :111
-        return Task.FromResult(sessionID ?? ""); // :112
+        return sessionID ?? ""; // :112
     }
 
     /// <summary>~/.commandcode/projects/&lt;project&gt;/&lt;session&gt;.jsonl, the transcript a resume
