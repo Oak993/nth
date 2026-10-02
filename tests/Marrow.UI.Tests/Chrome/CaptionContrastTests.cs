@@ -49,20 +49,9 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
 
     // The pulse runs on the frame-clock seam (ED-117): the scene holds a manual frame source, clock and motion setting for
     // as long as it is shown, so every render of it (not only the hover's own) sees them.
-    private sealed record Scene(Window Window, ManualFrameSource Frames, ManualTimeProvider Time, CaptionButton[] Buttons, IDisposable[] Seams) : IDisposable
-    {
-        public void Dispose()
-        {
-            Window.Close();
-            foreach (var seam in Seams.Reverse()) seam.Dispose();
-        }
-    }
-
-    private sealed record Measured(double Rest, double Hover, double Pressed, double Inactive, double Ring, double CloseRing);
 
     [Fact]
     [Trait("Decision", "ED-244")]
-    [Trait("Owner", "OD-0068")]
     public void Every_theme_in_both_appearances_contrasts_at_rest_hovered_pressed_and_in_an_inactive_window() => headless.OnUiThread(() =>
     {
         var renders = Environment.GetEnvironmentVariable("MARROW_CAPTION_RENDERS");
@@ -74,7 +63,7 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
             {
                 var variant = theme.Scheme() ?? os;
                 var dark = variant == ThemeVariant.Dark;
-                var results = new Dictionary<double, Measured>();
+                var results = new Dictionary<double, CaptionMeasured>();
                 foreach (var transparency in Transparencies)
                 {
                     var label = $"{theme}-{(os == ThemeVariant.Dark ? "dark" : "light")}";
@@ -88,7 +77,7 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
                     if (m.Ring < 3) failures.Add($"{where}: hover ring {m.Ring:F2}:1 < 3");
                     if (!dark && m.CloseRing < 3) failures.Add($"{where}: close ring {m.CloseRing:F2}:1 < 3");
                 }
-                static double Worst(Dictionary<double, Measured> r, Func<Measured, double> f) => r.Values.Min(f);
+                static double Worst(Dictionary<double, CaptionMeasured> r, Func<CaptionMeasured, double> f) => r.Values.Min(f);
                 table.Append(CultureInfo.InvariantCulture, $"| {theme} | {os} | {variant} | {Worst(results, m => m.Rest):F2} / {results[0.5].Rest:F2} | {Worst(results, m => m.Hover):F2} | {Worst(results, m => m.Pressed):F2} | {Worst(results, m => m.Inactive):F2} | {Worst(results, m => m.Ring):F2} | {Worst(results, m => m.CloseRing):F2} / {results[0.5].CloseRing:F2} |\n");
             }
         if (renders is not null) File.WriteAllText(System.IO.Path.Combine(renders, "contrast.md"), table.ToString());
@@ -97,7 +86,6 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-244")]
-    [Trait("Owner", "OD-0068")]
     public void A_theme_switch_draws_the_glyphs_again_in_the_new_appearance() => headless.OnUiThread(() =>
     {
         // The light gallery windows showed white glyphs: the buttons had drawn under the dark theme first and were never
@@ -127,7 +115,6 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-244")]
-    [Trait("Owner", "OD-0068")]
     public void The_buttons_follow_the_window_s_activation() => headless.OnUiThread(() =>
     {
         var original = ThemeManager.Current;
@@ -155,8 +142,6 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-244")]
-    [Trait("Owner", "OD-0068")]
-    [Trait("Owner", "OD-0044")]
     public void The_colours_contrast_by_appearance_and_close_keeps_its_rose_deeper_on_light() => headless.OnUiThread(() =>
     {
         // Dark on light themes, light on dark themes.
@@ -204,7 +189,6 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Decision", "ED-244")]
-    [Trait("Owner", "OD-0044")]
     public void The_turn_pulse_s_sizes_motion_and_timing_are_unchanged()
     {
         Assert.Equal(46, CaptionButton.ButtonWidth);
@@ -227,7 +211,7 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
 
     // ---- the scene ----
 
-    private Measured Measure(AppTheme theme, ThemeVariant variant, double transparency, string? renders, string label)
+    private CaptionMeasured Measure(AppTheme theme, ThemeVariant variant, double transparency, string? renders, string label)
     {
         var original = ThemeManager.Current;
         try
@@ -268,14 +252,14 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
                 Settle();
                 var inactive = Glyphs(scene).Min(g => Contrast(g.Glyph, g.Backdrop));
                 Save(scene, renders, $"{label}-inactive.png");
-                return new Measured(restMin, hover, pressed, inactive, ring, closeRing);
+                return new CaptionMeasured(restMin, hover, pressed, inactive, ring, closeRing);
             }
             finally { scene.Dispose(); }
         }
         finally { ThemeManager.Current = original; }
     }
 
-    private static Scene Show(AppTheme theme, ThemeVariant variant, double transparency)
+    private static CaptionScene Show(AppTheme theme, ThemeVariant variant, double transparency)
     {
         ThemeManager.Current = theme; // the backdrop's tint reads the theme surface when it is built
         var frames = new ManualFrameSource();
@@ -299,12 +283,12 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
         window.Show();
         WindowChrome.PlaceTrafficLights(window, sidebarVisible: true, animated: false);
         var (close, miniaturize, zoom) = WindowChrome.Buttons(window);
-        var scene = new Scene(window, frames, time, [miniaturize, zoom, close], seams);
+        var scene = new CaptionScene(window, frames, time, [miniaturize, zoom, close], seams);
         Settle();
         return scene;
     }
 
-    private static void Hover(Scene scene, int hitTest, double seconds)
+    private static void Hover(CaptionScene scene, int hitTest, double seconds)
     {
         WindowChrome.SetCaptionHover(scene.Window, hitTest);
         scene.Time.Advance(TimeSpan.FromSeconds(seconds));
@@ -325,7 +309,7 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
     private static void Activate(Window window) =>
         typeof(WindowBase).GetMethod("HandleActivated", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(window, null);
 
-    private static void Save(Scene scene, string? dir, string name)
+    private static void Save(CaptionScene scene, string? dir, string name)
     {
         if (dir is null) return;
         using var frame = scene.Window.CaptureRenderedFrame()!;
@@ -334,7 +318,7 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
 
     // Each button's glyph (the pixel within its 12-pt box, plus the tick's room, that contrasts most with the backdrop)
     // and the backdrop beside it (the button's own top-left corner, which neither the glyph nor a ring reaches).
-    private static (Color Glyph, Color Backdrop)[] Glyphs(Scene scene)
+    private static (Color Glyph, Color Backdrop)[] Glyphs(CaptionScene scene)
     {
         var pixels = Pixels(scene.Window);
         return scene.Buttons.Select(button =>
@@ -356,16 +340,7 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
         }).ToArray();
     }
 
-    private sealed record PixelGrid(byte[] Bytes, int Stride, bool Rgba)
-    {
-        public Color At(int x, int y)
-        {
-            var i = y * Stride + x * 4;
-            return Rgba ? Color.FromRgb(Bytes[i], Bytes[i + 1], Bytes[i + 2]) : Color.FromRgb(Bytes[i + 2], Bytes[i + 1], Bytes[i]);
-        }
-    }
-
-    private static PixelGrid Pixels(Window window)
+    private static CaptionPixelGrid Pixels(Window window)
     {
         using var frame = window.CaptureRenderedFrame()!;
         var format = frame.Format ?? Avalonia.Platform.PixelFormat.Rgba8888;
@@ -374,7 +349,7 @@ public sealed class CaptionContrastTests(HeadlessSession headless)
         var pin = System.Runtime.InteropServices.GCHandle.Alloc(bytes, System.Runtime.InteropServices.GCHandleType.Pinned);
         try { frame.CopyPixels(new PixelRect(frame.PixelSize), pin.AddrOfPinnedObject(), bytes.Length, stride); }
         finally { pin.Free(); }
-        return new PixelGrid(bytes, stride, format == Avalonia.Platform.PixelFormat.Rgba8888);
+        return new CaptionPixelGrid(bytes, stride, format == Avalonia.Platform.PixelFormat.Rgba8888);
     }
 
     // ---- WCAG 2 contrast ----
