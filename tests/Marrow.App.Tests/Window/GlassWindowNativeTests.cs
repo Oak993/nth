@@ -214,9 +214,9 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         using var sampler = new Sampler(new PixelPoint(at.X + 30, at.Y + (int)(size.Height * scale) - 52));
         Thread.Sleep(1500);
         var last = sampler.Stop()[^1];
-        // the card's tint and scrim over a blur: darker than the stripes' mean, no stripes left
+        // the card's tint and scrim (black in the dark theme, white in the light one) over a blur: the stripes' mean moved, no stripes left
         Assert.True(last.Contrast < Blurred, $"tour: contrast {last.Contrast:F2}");
-        Assert.True(last.Mean < bare.MeanLuma() * 0.8, $"tour: mean {last.Mean:F1} against the stripes' {bare.MeanLuma():F1}");
+        Assert.True(Math.Abs(last.Mean - bare.MeanLuma()) > 15, $"tour: mean {last.Mean:F1} against the stripes' {bare.MeanLuma():F1}");
         GC.KeepAlive(stripes);
     }, factType: typeof(GlassWindowNativeTests));
 
@@ -270,7 +270,7 @@ public sealed class GlassWindowNativeTests(WindowManagerNativeSession native)
         // Control: the same launch without the hand-over (the window is shown at the hand-over, as before ED-236). The
         // instrument must see the P13 gap in it, or seeing none with the hand-over would prove nothing.
         var (plain, plainBare, plainShown) = Launch(subject, work, handOver: false, reduceMotion: true);
-        var plainGap = TintedOverSharp(plain, plainBare);
+        var plainGap = TintedOverSharp(plain.Where(s => s.Milliseconds >= plainShown - 30), plainBare); // from the hand-over on
         Assert.True(plainGap.Length >= 20, $"the instrument saw only {plainGap.Length} samples of scrim over sharp stripes without the hand-over");
         Assert.InRange(plainGap[^1].Milliseconds - plainGap[0].Milliseconds, 80, 600); // P13: about 150 to 200 ms
 
