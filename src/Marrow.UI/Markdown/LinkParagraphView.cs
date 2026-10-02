@@ -171,6 +171,9 @@ public sealed class LinkParagraphView : Decorator
         return set;
     }
 
+    /// <summary>:139, :202 <c>base.descender</c> of the base face at <paramref name="pointSize"/>: negative, in points.</summary>
+    internal static double BaseDescender(double pointSize) => AttributedFonts(pointSize).Descender;
+
     // NSFont.descender: the base face's descent below the baseline, negative, in points. Avalonia's glyph metrics
     // store Descent positive below the baseline, in design units (as InlineText.Metrics reads them).
     private static double Descender(SwiftFont font)
@@ -683,8 +686,16 @@ public sealed class LinkTextView : Decorator
         var block = textBlock;
         if (block is null || textLength == 0 || block.TextLayout is not { } layout) return null;
         var hit = layout.HitTestPoint(point);
-        if (!hit.IsInside || hit.TextPosition < 0 || hit.TextPosition >= textLength) return null;
-        return hit.TextPosition;
+        if (!hit.IsInside) return null;
+        // :417-419 `glyphIndex(for: point)` and the check that the glyph's own bounding rect holds the point: the
+        // character under the pointer. Avalonia's hit test answers with a caret position instead, which is the
+        // character after the one under the right half of its box, so the neighbour before it is tried too.
+        foreach (var candidate in new[] { hit.TextPosition, hit.TextPosition - 1 })
+        {
+            if (candidate < 0 || candidate >= textLength) continue;
+            if (layout.HitTestTextRange(candidate, 1).Any(rect => rect.Contains(point))) return candidate;
+        }
+        return null;
     }
 
     // The control the text is drawn by: the paragraph's SelectableTextBlock, or the run's presenter (ED-210).
@@ -792,9 +803,16 @@ public sealed class LinkTextView : Decorator
                 var host = url.Host is { } value ? SwiftString.Lowercased(value) : null;
                 if (host is not null && FaviconCache.Cached(host) is { } icon)
                 {
+                    // :139 bounds y = base.descender + 1: the icon's bottom edge sits that far above the baseline
+                    // (below it, as the descender is negative). A negative bottom margin lets the 14 point image
+                    // hang below the box whose bottom Avalonia puts on the baseline.
                     block.Inlines!.Add(new InlineUIContainer
                     {
-                        Child = new Image { Source = icon, Width = 14, Height = 14 },
+                        Child = new Image
+                        {
+                            Source = icon, Width = 14, Height = 14,
+                            Margin = new Thickness(0, 0, 0, LinkParagraphView.BaseDescender(pointSize) + 1),
+                        },
                     });
                     textLength++;
                     block.Inlines!.Add(new Run(" ") { FontSize = pointSize, Foreground = textColor.Brush(block) });
@@ -855,6 +873,8 @@ public sealed class LinkTextView : Decorator
                     Source = DragonImageForText(persona, glyphSize),
                     Width = glyphSize,
                     Height = glyphSize,
+                    // :202 bounds y = base.descender + 1 (see the favicon's margin in RenderText).
+                    Margin = new Thickness(0, 0, 0, LinkParagraphView.BaseDescender(pointSize) + 1),
                 },
             });
             var attachmentLocation = textLength;
@@ -873,8 +893,13 @@ public sealed class LinkTextView : Decorator
             };
             block.Inlines!.Add(nameRun);
             if (targets.TryGetValue(persona.Name, out var target))
-                heads.Add(new HeadRange(attachmentLocation, persona.Name.Length + 2, nameLocation,
-                    persona.Name.Length, target.Url, persona.Name));
+            {
+                // :207-216 the .hydraHead attribute sits on the glyph (one character) and on the name; the space
+                // between them (:214) carries none, so a point over it is no head mention. Two ranges, as
+                // IndexRanges finds them for the run path.
+                heads.Add(new HeadRange(attachmentLocation, 1, nameLocation, persona.Name.Length, target.Url, persona.Name));
+                heads.Add(new HeadRange(nameLocation, persona.Name.Length, nameLocation, persona.Name.Length, target.Url, persona.Name));
+            }
             textLength += persona.Name.Length;
             runStart = match.UpperBound;
         }
