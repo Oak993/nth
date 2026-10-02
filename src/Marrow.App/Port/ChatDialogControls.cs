@@ -106,8 +106,11 @@ internal static class ChatDialogControls
             void Update() => marker.Child = SwiftImage.SystemName(owner.IsChecked == true ? "checkmark.square.fill" : "square");
             owner.IsCheckedChanged += (_, _) => Update();
             Update();
-            return new StackPanel { Orientation = Orientation.Horizontal, Children = { marker,
-                new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope) } };
+            // The marker and the label sit on one centre line, and the whole control at its own height in a taller row (an
+            // HStack centres its children; a stretched label drew at the row's top).
+            marker.VerticalAlignment = VerticalAlignment.Center;
+            return new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center, Children = { marker,
+                new ContentPresenter { Name = "PART_ContentPresenter", VerticalAlignment = VerticalAlignment.Center, [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope) } };
         });
     }
 

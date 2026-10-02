@@ -90,6 +90,35 @@ public sealed class ChatViewPart3ReviewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-GIT-036")] // App/Views/Chat/ChatView.swift:1572-1594 an HStack: the checkbox beside the 28-point glass button is centred on it
+    public void The_push_checkbox_label_sits_on_the_centre_line_of_the_glass_buttons_in_its_row()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            h.Main.OnMain(() =>
+            {
+                var sheet = new CommitSheet(model, Runtime(h, model, h.NewFolder("repo")), h.Scratch, new GitStatusModel(), () => { });
+                var window = new Avalonia.Controls.Window { Width = 700, Height = 700, Content = sheet };
+                window.Show();
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                try
+                {
+                    var button = sheet.WriteForMeButton;
+                    var label = LogicalQuery.SelfAndDescendants<TextBlock>(sheet).Single(t => t.Text == "Push after committing");
+                    Point CentreOf(Control c) => c.TranslatePoint(new Point(0, c.Bounds.Height / 2), sheet)!.Value;
+                    // The label (16 points) is shorter than the 28-point row: it sits at its own height on the buttons' centre line (it was
+                    // drawn at the row's top, 6 points high).
+                    Assert.Equal(label.DesiredSize.Height, label.Bounds.Height, 0.5);
+                    Assert.Equal(CentreOf(button).Y, CentreOf(label).Y, 0.5);
+                }
+                finally { window.Close(); }
+            });
+        });
+    }
+
+    [Fact]
     [Trait("Req", "UI-GIT-033")] // App/Views/Chat/ChatView.swift:1547,1605-1609
     public void Loading_waits_for_appearance_and_restarts_after_the_sheet_is_shown_again()
     {
