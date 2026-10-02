@@ -776,14 +776,14 @@ public sealed class ShortcutRecordingPopoverContent : Decorator
 {
     public ShortcutRecordingPopoverContent(ShortcutRecordingSession session)
     {
-        var capsRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 }; // :434
+        var capsRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, HorizontalAlignment = HorizontalAlignment.Center }; // :434, :433 a VStack centres each child at its own width
         var capRows = new Dictionary<string, KeycapView>();
 
-        var message = new TextBlock { MaxLines = 1, TextWrapping = TextWrapping.NoWrap, IsVisible = false }; // :441-445
+        var message = new TextBlock { MaxLines = 1, TextWrapping = TextWrapping.NoWrap, IsVisible = false, HorizontalAlignment = HorizontalAlignment.Center }; // :441-445
         SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Medium).Apply(message); // :442
         message.Foreground = KeycapColors.Rejected.Brush(message); // :443
 
-        var actionsRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, IsVisible = false }; // :448-459
+        var actionsRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8, IsVisible = false, HorizontalAlignment = HorizontalAlignment.Center }; // :448-459
         var actionButtons = new Dictionary<string, Control>();
 
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12, Children = { capsRow, message, actionsRow } }; // :433

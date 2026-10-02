@@ -175,6 +175,42 @@ public sealed class ShortcutsSettingsPageTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-SETTINGS-220")] // App/Views/Settings/ShortcutsSettingsPage.swift:433 VStack(spacing: 12), centre alignment by default
+    [Trait("Req", "UI-SETTINGS-046")] // App/Views/Settings/ShortcutsSettingsPage.swift:434-459 the caps, the message and the actions
+    public void Recording_popover_centres_the_caps_the_message_and_the_actions_each_at_its_own_width()
+    {
+        using var defaults = UserDefaults.Standard.Override(new InMemorySettingsStore());
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var shared = ShortcutStore.Shared.Override(FreshStore());
+        headless.OnUiThread(() =>
+        {
+            var session = new ShortcutRecordingSession();
+            var actions = new[]
+            {
+                new ShortcutRecordingAction("clear", "Clear", true, () => { }),
+                new ShortcutRecordingAction("reset", "Reset to default", false, () => { }),
+            };
+            session.Begin(AppShortcut.CommandPalette, actions, ChordModifiers.None, () => { }, _ => { });
+            session.HandleKeyDown(0x31, ChordModifiers.Control, isAutoRepeat: false); // Ctrl+N is New thread's chord: rejected, with a message
+            Assert.NotNull(session.Message);
+
+            var content = new ShortcutRecordingPopoverContent(session);
+            var window = Show(content);
+            var stack = Assert.IsType<StackPanel>(Assert.IsType<Border>(content.Child).Child);
+            Assert.Equal(3, stack.Children.Count);
+            // A VStack centres each child at its own width; the StackPanel stretched the three rows to the widest (the message or
+            // the actions), so the keycaps sat at the left edge.
+            foreach (var row in stack.Children)
+            {
+                Assert.Equal(row.DesiredSize.Width, row.Bounds.Width, 0.5);
+                Assert.Equal(stack.Bounds.Width / 2, row.Bounds.Center.X, 0.5);
+            }
+            Assert.NotEqual(stack.Bounds.Width, stack.Children[0].Bounds.Width); // the caps are the narrow row here
+            window.Close();
+        });
+    }
+
+    [Fact]
     [Trait("Req", "UI-SETTINGS-048")] // App/Views/Settings/ShortcutsSettingsPage.swift:68-75
     [Trait("Req", "PR-SETTINGS-222")] // App/Views/Settings/ShortcutsSettingsPage.swift:68-75
     public void Fixed_row_chords_read_verbatim_in_windows_notation_with_the_en_dash_kept()
