@@ -362,6 +362,44 @@ public sealed class QuestionTabTests(HeadlessSession headless)
             Assert.Equal(0, next.Margin.Right);
         });
     }
+
+    // :55-62 pageHeight is the tallest page's natural height, NSHostingView(rootView: probe).fittingSize: a hosted view,
+    // measured with its styles and templates in effect. A detached page left its choice buttons and answer field out
+    // (94 pt for a page that measures 217), so the sheet's page area came out at the 120 pt floor.
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-189")] // App/Views/Composer/QuestionTab.swift:55-62
+    public void The_page_area_is_as_tall_as_the_tallest_page_measured_in_a_window()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var request = Request(
+                Question("one", header: "Scope", prompt: "Which approach should I take for the migration?",
+                    choices: [Choice("Rewrite it (Recommended)", "Cleaner but slower"), Choice("Patch it"), Choice("Skip")]),
+                Question("two", prompt: "Anything else?", choices: [Choice("Yes"), Choice("No")], allowsMultiple: true, allowsOther: true));
+
+            var tallest = 0.0;
+            foreach (var question in request.Questions)
+            {
+                var page = new QuestionPage(question,
+                    new Binding<ValueMap<string, ValueList<string>>>(() => ValueMap<string, ValueList<string>>.Empty, _ => { }),
+                    new Binding<ValueMap<string, string>>(() => ValueMap<string, string>.Empty, _ => { }),
+                    () => { }, () => { });
+                var window = new Avalonia.Controls.Window { Width = 640, Height = 400, Content = page };
+                window.Show();
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                page.Measure(new Size(460, double.PositiveInfinity));
+                tallest = Math.Max(tallest, page.DesiredSize.Height);
+                window.Close();
+            }
+            Assert.InRange(tallest, 121, 360); // between the floor and the cap, or the sheet would not show the measure
+
+            var sheet = new QuestionSheet(request, null!);
+
+            var pageHeight = (double)typeof(QuestionSheet).GetField("pageHeight", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(sheet)!;
+            Assert.Equal(tallest, pageHeight);
+        });
+    }
 }
 
 // STOP App.Views.Composer.QuestionTab #1 (verifier, 2026-09-29)

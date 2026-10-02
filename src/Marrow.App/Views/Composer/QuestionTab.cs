@@ -79,8 +79,9 @@ public sealed class QuestionSheet : Decorator
                 new Binding<ValueMap<string, ValueList<string>>>(() => ValueMap<string, ValueList<string>>.Empty, _ => { }),
                 new Binding<ValueMap<string, string>>(() => ValueMap<string, string>.Empty, _ => { }),
                 () => Advance(), () => { });
-            probe.Measure(new Size(QuestionSheetWidth, double.PositiveInfinity));
-            largest = Math.Max(largest, probe.DesiredSize.Height);
+            // :59-60 NSHostingView(rootView: probe).fittingSize: a hosted view, so measured in a window, where the choice buttons
+            // and the answer field have their templates (detached, a page measured 94 pt that measures 217).
+            largest = Math.Max(largest, StyledMeasure.Of(probe, new Size(QuestionSheetWidth, double.PositiveInfinity)).Height);
         }
 
         pageHeight = Math.Min(Math.Max(largest, 120), QuestionSheetMaxHeight);
