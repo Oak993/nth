@@ -1410,7 +1410,12 @@ internal sealed class ContextMeter : Decorator
             Grid.SetColumn(popout, 2); header.Children.Add(popout); // :748
             stack.Children.Add(header);
             stack.Children.Add(new UsagePanel(usage, provider, headsProvider)); // :757 width and padding are owned by UsagePanel
-            return stack.PresentedChrome(); // :759
+            var presentedContent = stack.PresentedChrome(); // :759
+            // :757 SwiftUI hands the popover the presenting view's environment; the popup's own window sits outside this view's
+            // tree, so the panel's inherited @Environment(AppModel.self) (UsagePanel.swift:9,27) is attached to it directly,
+            // as ModelEffortButton does for its panel (EffortSlider.cs).
+            AppEnvironment.SetAppModel(presentedContent, model);
+            return presentedContent;
         }
     }
 
