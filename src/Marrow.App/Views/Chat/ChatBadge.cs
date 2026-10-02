@@ -238,8 +238,9 @@ public sealed class BadgePopoverCoordinator
         {
             if (weakSelf.TryGetTarget(out var coordinator)) coordinator.Close();
         }); // :144 content.environment(\.closePopover, { [weak self] in self?.close() })
-        content.Measure(Size.Infinity); // :145 NSHostingView(rootView: content).fittingSize
-        var size = content.DesiredSize;
+        // :145 NSHostingView(rootView: content).fittingSize: the size of a hosted view, so measured in a window, where the
+        // content's buttons and fields have their templates (detached, the question sheet measured 246 pt, not 262).
+        var size = StyledMeasure.Of(content, Size.Infinity);
         if (size.Width <= 0 || size.Height <= 0) size = new Size(460, 320); // :146
         popover.SetFixedContent(content, size); // :147 measured once and frozen
 

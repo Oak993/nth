@@ -8,6 +8,7 @@ using Avalonia.Threading;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using Marrow.App.Views.Composer;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Common;
@@ -127,6 +128,48 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
             var fallbackFrame = Assert.IsType<Border>(fallbackPopup.Child);
             Assert.Equal(460, fallbackFrame.Width);
             Assert.Equal(320, fallbackFrame.Height);
+            window.Close();
+        });
+    }
+
+    // :145 NSHostingView(rootView: content).fittingSize, frozen at :147: the size of a hosted view, with its styles and templates
+    // in effect. The question sheet's footer buttons are templated controls, which a detached sheet measured 16 pt short (246
+    // for 262 with one question).
+    [Fact]
+    [Trait("Req", "PR-CHAT-141")] // App/Views/Chat/ChatBadge.swift:145-147
+    public void A_badge_popover_is_exactly_as_big_as_its_content_measured_in_a_window()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var presenter = new RecordingPresenter();
+            using var presenterScope = Presentation.Presenter.Override(presenter);
+            var question = new QuestionRequest.Question("q", "Scope", "Which approach should I take for the migration?",
+                new ValueList<QuestionRequest.Choice>([new("Rewrite it (Recommended)", "Cleaner but slower"), new("Patch it"), new("Skip")]),
+                false, false, false);
+            var request = new QuestionRequest("request", new ValueList<QuestionRequest.Question>([question]));
+
+            var hosted = new QuestionSheet(request, null!);
+            var hostWindow = new AvaloniaWindow { Width = 640, Height = 600, Content = hosted };
+            hostWindow.Show();
+            Dispatcher.UIThread.RunJobs();
+            hosted.Measure(Size.Infinity);
+            var expected = hosted.DesiredSize;
+            hostWindow.Close();
+
+            var window = new AvaloniaWindow { Content = new Border() };
+            window.Show();
+            _ = AppCurrentEvent.CurrentWindow;
+            window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
+            var coordinator = new BadgePopoverCoordinator();
+            coordinator.SetAnchor(new Rect(10, 20, 30, 40));
+
+            coordinator.Show(new QuestionSheet(request, null!));
+
+            var frame = Assert.IsType<Border>(Assert.Single(presenter.Calls).Popup.Child);
+            Assert.Equal(expected.Width, frame.Width);
+            Assert.Equal(expected.Height, frame.Height);
+            coordinator.Close();
             window.Close();
         });
     }
