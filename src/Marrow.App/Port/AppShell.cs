@@ -13,6 +13,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Marrow.App.Window;
 using Marrow.Core.Port;
+using Marrow.UI.Port;
 using AvaloniaWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Port;
@@ -23,6 +24,7 @@ public sealed class AppShell : ITerminationSender
     // winuser.h
     private const uint WM_ENDSESSION = 0x0016;
     private const uint WM_ACTIVATEAPP = 0x001C;
+    private const uint WM_SETTINGCHANGE = 0x001A;
 
     private readonly Action exit;
     private readonly Action afterWillTerminate;
@@ -164,6 +166,8 @@ public sealed class AppShell : ITerminationSender
             Marrow.App.Views.Chat.HydraChargeLayerView.PostApplicationDidBecomeActive();
         }
         if (msg == WM_ENDSESSION && wParam != 0) WillTerminate();
+        // ED-084: WM_SETTINGCHANGE (broadcast to every top-level window) re-reads Windows' "Animation effects" setting.
+        if (msg == WM_SETTINGCHANGE) SystemReduceMotion.Shared.Current.Refresh();
         return 0;
     }
 }

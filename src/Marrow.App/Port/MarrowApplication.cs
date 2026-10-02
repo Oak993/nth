@@ -21,5 +21,6 @@ public sealed class MarrowApplication : Application
     public static AppBuilder BuildAvaloniaApp() => AppBuilder.Configure<MarrowApplication>()
         .UsePlatformDetect()
         .WithSwiftFonts()
-        .WithPortControlThemes(); // default templates for controls built without one (Marrow.UI/Port/PortControlThemes.cs)
+        .WithPortControlThemes() // default templates for controls built without one (Marrow.UI/Port/PortControlThemes.cs)
+        .AfterSetup(_ => SystemReduceMotion.Install()); // ED-084: every window follows Windows' "Animation effects" setting
 }
