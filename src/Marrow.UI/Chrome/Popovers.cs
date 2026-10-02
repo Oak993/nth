@@ -131,8 +131,9 @@ public sealed class PopoverScroll : Decorator
     /// takes at <paramref name="width"/>, one unconstrained layout off screen.</summary>
     public static double MeasuredHeight(Control of, double width)
     {
-        of.Measure(new Size(width, double.PositiveInfinity));
-        return Math.Ceiling(of.DesiredSize.Height); // :79 .rounded(.up)
+        // :79 NSHostingView(rootView: of.frame(width:)).fittingSize: a hosted view, so measured in a window, where its
+        // styles and templates are in effect (detached, a code block's copy button and a table's scroll viewer measured short).
+        return Math.Ceiling(StyledMeasure.Of(of, new Size(width, double.PositiveInfinity)).Height); // :79 .rounded(.up)
     }
 }
 
