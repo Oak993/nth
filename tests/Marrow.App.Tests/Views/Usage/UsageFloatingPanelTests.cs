@@ -97,6 +97,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
     [Trait("Req", "PR-USAGE-060")] // App/Views/Usage/UsageFloatingPanel.swift:26-29, :38-45
     [Trait("Req", "PR-USAGE-061")] // App/Views/Usage/UsageFloatingPanel.swift:38-45
     [Trait("Rule", "R-STR-9")]
+    [Trait("Req", "UI-USAGE-040")] // App/Views/Usage/UsageFloatingPanel.swift:39-44 the placeholder: padded 50 on top, then centred in the panel; wanted height 94
     public void Panel_shows_the_placeholder_sentence_naming_the_provider_when_there_is_nothing_to_show()
     {
         session.OnUiThread(() =>
@@ -115,6 +116,12 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
             // :44 onAppear reports exactly stripHeight (50) + 44 = 94, not a measured value (UI-USAGE-040).
             Assert.Equal(HydraPanel.StripHeight + 44, reported);
             Assert.Equal(94.0, reported);
+            // :42-43 .padding(.top, HydraPanel.stripHeight).frame(maxWidth: .infinity, maxHeight: .infinity): the text plus
+            // its 50-point top padding is centred in the panel, so the text's top sits at (height + 50 - text height) / 2.
+            var sentence = LogicalQuery.SelfAndDescendants<TextBlock>(panel).Single(block => block.Text == "Nothing to show for Cursor yet.");
+            var top = sentence.TranslatePoint(new Point(0, 0), panel)!.Value;
+            Assert.Equal((panel.Bounds.Height + HydraPanel.StripHeight - sentence.Bounds.Height) / 2, top.Y, 1);
+            Assert.Equal((panel.Bounds.Width - sentence.Bounds.Width) / 2, top.X, 1);
         });
     }
 
