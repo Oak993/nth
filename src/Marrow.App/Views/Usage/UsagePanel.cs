@@ -161,11 +161,15 @@ public sealed class UsagePanel : Decorator
         if (showsCredits) content.Children.Add(new CreditsView(provider));
     }
 
-    // :55, :62, :89, :102. Divider().padding(.vertical, 14)
-    private static Control Divider() => new ChromeDivider
+    // :55, :62, :89, :102. Divider().padding(.vertical, 14): SwiftUI's own horizontal hairline across the content width
+    // (UI-USAGE-035 "Full content width"), as UsageViews.swift:34's rule is drawn (UsageViews.cs PlainControls.Divider).
+    // Not ChromeDivider (Chrome.swift:324-331), the 1 x 14 vertical bar between capsule items.
+    private static Control Divider()
     {
-        Margin = new Thickness(0, 14, 0, 14),
-    };
+        var rule = PlainControls.Divider();
+        rule.Margin = new Thickness(0, 14, 0, 14);
+        return rule;
+    }
 
     // :110-119 static func tokens(_ count: Int) -> String
     public static string Tokens(long count)

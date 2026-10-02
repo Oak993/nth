@@ -14,6 +14,9 @@ namespace Marrow.App.Tests.Views.Usage;
 [Collection("Headless")]
 public sealed class UsagePanelReviewTests(HeadlessSession headless)
 {
+    // SwiftUI's Divider(): the one point high horizontal hairline (UI-USAGE-035), not Chrome's vertical ChromeDivider bar.
+    private static bool IsRule(Control control) => control is Border { Height: 1 };
+
     private static StackPanel Body(UsagePanel panel) => Assert.IsType<StackPanel>(Assert.IsType<Border>(panel.Child).Child);
 
     [Fact]
@@ -48,7 +51,7 @@ public sealed class UsagePanelReviewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() => {
             var children = Body(new UsagePanel(null, ProviderKind.Commandcode, ProviderKind.Cursor)).Children;
-            Assert.Collection(children, c=>Assert.IsType<Border>(c), c=>Assert.IsType<PlanLimitsView>(c), c=>Assert.IsType<ChromeDivider>(c), c=>Assert.IsType<CreditsView>(c));
+            Assert.Collection(children, c=>Assert.IsType<Border>(c), c=>Assert.IsType<PlanLimitsView>(c), c=>Assert.True(IsRule(c)), c=>Assert.IsType<CreditsView>(c));
         });
     }
 
@@ -59,7 +62,7 @@ public sealed class UsagePanelReviewTests(HeadlessSession headless)
     {
         headless.OnUiThread(() => {
             var children = Body(new UsagePanel(context ? new ContextUsage {UsedTokens=2,WindowTokens=4} : null, ProviderKind.Commandcode)).Children;
-            Assert.Equal(expected, children.OfType<ChromeDivider>().Count());
+            Assert.Equal(expected, children.Count(IsRule));
             var limits = children.OfType<PlanLimitsView>().Single(); var credits = children.OfType<CreditsView>().Single();
             Assert.Equal(children.IndexOf(limits)+(context ? 2:1),children.IndexOf(credits));
         });
@@ -75,7 +78,7 @@ public sealed class UsagePanelReviewTests(HeadlessSession headless)
         headless.OnUiThread(() => {
             var lead = SwiftEnum<ProviderKind>.FromRawValue(leadRaw)!.Value; var heads = SwiftEnum<ProviderKind>.FromRawValue(headsRaw)!.Value;
             var panel = new UsagePanel(context ? new ContextUsage {UsedTokens=2,WindowTokens=4} : null, lead, heads);
-            Assert.Equal(dividers, Body(panel).Children.OfType<ChromeDivider>().Count());
+            Assert.Equal(dividers, Body(panel).Children.Count(IsRule));
             var headers = Body(panel).Children.OfType<Border>().Select(b=>b.Child).OfType<StackPanel>().SelectMany(p=>p.Children).OfType<TextBlock>().Select(t=>t.Text).ToArray();
             if (headsRaw == "cursor") Assert.DoesNotContain(headers,t=>t!.StartsWith("Heads ·",StringComparison.Ordinal));
             else Assert.Contains("Heads · DeepSeek",headers);

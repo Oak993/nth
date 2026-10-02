@@ -75,6 +75,7 @@ public sealed class UsageViewsProblemNoteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-USAGE-051")] // :73-75 .font(.system(.callout)).foregroundStyle(Chrome.secondaryText).padding(.top, 8)
+    [Trait("Req", "PR-USAGE-111")] // UsageViews.swift:73 .font(.system(.callout)): 12 points
     [Trait("Req", "UI-PROVREG-018")] // "Directly under the header with padding top 8, which is smaller than the 14 used for limit rows."
     [Trait("Req", "UI-USAGE-019")] // "Padded 8 at the top, directly under the header."; ED-059 .callout is 12
     public void The_sentence_is_callout_text_in_the_secondary_colour_8_points_under_the_header() => headless.OnUiThread(() =>
@@ -113,6 +114,7 @@ public sealed class UsageViewsProblemNoteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-USAGE-049")] // :48-50 Image(systemName: "exclamationmark.triangle.fill").font(.system(.footnote, weight: .semibold)).foregroundStyle(Chrome.warning)
+    [Trait("Req", "PR-USAGE-111")] // UsageViews.swift:48 .font(.system(.footnote, weight: .semibold)): 10 points
     [Trait("Req", "UI-PROVREG-019")]
     [Trait("Req", "UI-USAGE-016")] // ED-059 .footnote is 10
     public void The_triangle_is_a_semibold_footnote_glyph_in_the_warning_colour() => headless.OnUiThread(() =>
@@ -130,6 +132,7 @@ public sealed class UsageViewsProblemNoteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-USAGE-049")] // :51-54 Text(verbatim: problem).font(.system(.subheadline)).foregroundStyle(Chrome.secondaryText)
+    [Trait("Req", "PR-USAGE-111")] // UsageViews.swift:51 .font(.system(.subheadline)): 11 points
     [Trait("Req", "UI-PROVREG-019")]
     [Trait("Req", "UI-USAGE-016")] // ED-059 .subheadline is 11
     public void The_problem_text_is_subheadline_in_the_secondary_colour() => headless.OnUiThread(() =>
@@ -237,6 +240,7 @@ public sealed class UsageViewsProblemNoteTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-USAGE-050")] // :59-63 .font(.system(.callout)).foregroundStyle(Chrome.secondaryText)
+    [Trait("Req", "PR-USAGE-111")] // UsageViews.swift:61 .font(.system(.callout)): 12 points
     [Trait("Req", "UI-PROVREG-020")]
     [Trait("Req", "UI-USAGE-017")] // ED-059 .callout is 12
     public void The_prompt_is_callout_text_in_the_secondary_colour() => headless.OnUiThread(() =>

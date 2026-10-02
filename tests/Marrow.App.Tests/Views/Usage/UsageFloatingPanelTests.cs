@@ -121,6 +121,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
     [Fact]
     [Trait("Req", "PR-USAGE-061")] // App/Views/Usage/UsageFloatingPanel.swift:39-41
     [Trait("Decision", "ED-062")]
+    [Trait("Req", "PR-USAGE-111")] // App/Views/Usage/UsageFloatingPanel.swift:40 .font(.system(.body)): 13 points
     public void Placeholder_text_uses_body_style_and_secondary_text_color()
     {
         session.OnUiThread(() =>
@@ -288,6 +289,7 @@ public sealed class UsageFloatingPanelTests(HeadlessSession session)
     [Fact]
     [Trait("Req", "PR-USAGE-065")] // App/Views/Usage/UsageFloatingPanel.swift:79-99
     [Trait("Req", "UI-USAGE-037")] // App/Views/Usage/UsageFloatingPanel.swift:79-99
+    [Trait("Req", "PR-USAGE-111")] // App/Views/Usage/UsageFloatingPanel.swift:86 .font(.system(size: 12.5, weight: .medium)): the one fixed size left
     public void Title_capsule_shows_the_lead_icon_and_the_word_usage_at_12_5_medium()
     {
         session.OnUiThread(() =>

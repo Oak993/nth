@@ -326,6 +326,7 @@ public sealed class UsageViewsBankedResetsTests(HeadlessSession headless)
     [InlineData(PlanLimits.ResetOutcome.NoCredit, "No banked resets are left.", "info.circle", false)]
     [InlineData(PlanLimits.ResetOutcome.AlreadyRedeemed, "That reset was already used.", "info.circle", false)]
     [Trait("Req", "UI-PROVREG-025")] // :260-273 the outcome line: glyph and message in success, or secondary text
+    [Trait("Req", "PR-USAGE-111")] // UsageViews.swift:265, :269 .font(.system(.subheadline, weight: .semibold)) on the glyph, .font(.system(.subheadline)) on the message
     public void The_outcome_line_is_a_subheadline_glyph_and_message_in_the_success_or_the_secondary_colour(PlanLimits.ResetOutcome outcome, string message, string symbol, bool success) => headless.OnUiThread(() =>
     {
         using var rig = new UsageViewsRig();
@@ -364,6 +365,7 @@ public sealed class UsageViewsBankedResetsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-PROVREG-026")] // :274-279 case .failed(let message): Text(verbatim:).font(.system(.subheadline)).foregroundStyle(Chrome.danger).padding(.top, 4)
+    [Trait("Req", "PR-USAGE-111")] // UsageViews.swift:276 .font(.system(.subheadline)): 11 points
     [Trait("Req", "PR-USAGE-046")] // "One line of text in the .subheadline text style in Chrome.danger, 4 points under the header ... no prefix, no icon and no full stop added"
     public void A_failure_is_the_error_text_alone_in_subheadline_danger_4_points_under_the_header() => headless.OnUiThread(() =>
     {
@@ -536,6 +538,7 @@ public sealed class UsageViewsBankedResetsTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "UI-PROVREG-032")] // :353-360 HStack(spacing: 6) { ProgressView().controlSize(.mini), Text("Resetting…").font(.system(.callout)).foregroundStyle(Chrome.secondaryText) }
+    [Trait("Req", "PR-USAGE-111")] // UsageViews.swift:357 .font(.system(.callout)): 12 points
     [Trait("Req", "UI-USAGE-029")] // "a mini spinner then the label"; "The ellipsis is the single character U+2026"
     public void The_row_being_spent_shows_a_spinner_and_Resetting_6_points_apart_in_place_of_its_button() => headless.OnUiThread(() =>
     {
@@ -570,6 +573,7 @@ public sealed class UsageViewsBankedResetsTests(HeadlessSession headless)
     [Trait("Req", "PR-USAGE-034")] // :30-39 Divider().padding(.top, 14) then BankedResetsView(...).padding(.top, 14), the divider only when there are windows
     [Trait("Req", "UI-PROVREG-022")] // "A plain Divider with padding top 14, drawn only when banked resets are present AND the windows list is non-empty."
     [Trait("Req", "UI-USAGE-020")] // "the block is padded 14 at the top and preceded by a divider when there are windows"
+    [Trait("Req", "UI-USAGE-035")] // UsageViews.swift:32-36 "14 points above only between windows and banked resets": a rule 14 under the last window, none of its own below
     public void With_windows_the_banked_resets_follow_a_rule_14_below_the_last_row_and_14_above_the_block() => headless.OnUiThread(() =>
     {
         using var rig = new UsageViewsRig();
@@ -592,6 +596,7 @@ public sealed class UsageViewsBankedResetsTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-USAGE-034")] // "A provider reporting reset credits but zero windows shows the block with no rule above it."
     [Trait("Req", "UI-PROVREG-022")] // "hidden when there are banked resets but no windows"
+    [Trait("Req", "UI-USAGE-035")] // UsageViews.swift:33 "only when there is at least one window"
     public void Without_windows_the_block_has_no_rule_above_it_and_sits_14_under_the_header() => headless.OnUiThread(() =>
     {
         using var rig = new UsageViewsRig();
