@@ -39,6 +39,7 @@ public sealed class SettingsViewFinishPaneSearchTests(HeadlessSession headless) 
     [Fact]
     [Trait("Req", "UI-SETTINGS-010")] // App/Views/Settings/SettingsView.swift:211-215,251-253,280; UI/Chrome/Chrome.swift:827-868
     [Trait("Req", "UI-MCP-090")] // App/Views/Settings/SettingsView.swift:214,252,280; App/Views/Settings/MCPSettingsPage.swift:22-31,77-85,381-399
+    [Trait("Req", "PR-MCP-202")] // App/Views/Settings/SettingsView.swift:214,252; the field half: prompt "Search servers", filtering as typed, query emptied when the page changes
     public void Server_search_capsule_is_the_header_field_that_filters_the_category_grids_and_the_custom_section_and_empties_with_the_page()
     {
         With(() => new SettingsView(), (view, model, h, w) =>

@@ -461,6 +461,8 @@ internal sealed class MCPCustomSection : Decorator
                 dividers.Remove(gone);
             }
             Child = visible.Length == 0 && query.Trimmed().Length > 0 ? null : section;
+            // :387-390 a body with no content is no child of the page's VStack, so it adds no 20-point spacing of its own.
+            IsVisible = Child is not null;
         });
     }
 }

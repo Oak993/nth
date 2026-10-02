@@ -758,7 +758,7 @@ public sealed class MCPSettingsPageRound2Tests(HeadlessSession headless)
             Assert.Same(footer, stack.Children[^1]);
             page.SetQuery("absent in every catalog"); w.UpdateLayout();
             Assert.DoesNotContain(Nodes<ChromeSection>(page).Where(s => s.Parent == stack), s => Texts(s)[0] is not ("Connected" or "Custom"));
-            Assert.Same(footer, stack.Children[^1]); Assert.Equal(At(stack.Children[^2], page).Bottom + 20, At(footer, page).Top, 6);
+            Assert.Same(footer, stack.Children[^1]); Assert.Equal(At(stack.Children.Where(c => c.IsVisible).SkipLast(1).Last(), page).Bottom + 20, At(footer, page).Top, 6); // :36 an empty Custom body is no child of the VStack, so the footer follows the last visible section
         }
         finally { w.Close(); }
     });
