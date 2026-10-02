@@ -35,8 +35,14 @@ using AvaloniaWindow = Avalonia.Controls.Window;
 // (:101) is installed by makeWindow below and is tested through a real user32 message window. UI-SETTINGS-001 (the Settings window, :21, :80-84, :92-99) is this file's as far as building, placing,
 // opening and keeping the window go. SettingsView's real body, preserved state and requested-page handling are now
 // exercised by WindowManagerNextTests (closes the Settings portion of STOP #1 and #4). The real main body still
-// depends on the concurrent RootView/SidebarView repairs (STOP #7). The Acrylic hint
-// OD-0014 names for the clear window (WindowChrome.swift:116-117, reached from :101) is STOP #5. The three
+// depends on the concurrent RootView/SidebarView repairs (STOP #7). The Acrylic backdrop OD-0014 names for the clear
+// window (WindowChrome.swift:116-117, reached from :101) was STOP #5; ED-236 closed it: WindowChrome.Configure sets
+// WindowChrome.GlassBackdrop ([AcrylicBlur, Transparent]) on the main and Settings windows made here (the tour window and
+// the guide panels carry it too), proved on real screen pixels by GlassWindowNativeTests (the stripes behind the main
+// window read 42.9 bare and 0.0 through it, active and inactive), and the boot hand-over (Port/BootStageWindow.cs,
+// WindowCloak) keeps the ~230 ms between the Acrylic's tint and its blur (probes P13, P14; OD-0041) out of sight at launch.
+// What ED-236 leaves open is its UNRESOLVED list: the wedge between the 26 pt shape and the rectangular window, and the same
+// gap on a user-opened Settings window. The three
 // window.center() calls (:43, :68, :82) use ED-225; Apple's exact bias remains UNVERIFIED OD-0001.
 // makeWindow also carries the port's stand-in for the menu bar DroppyCodeApp.swift:24 installs: each window it makes
 // dispatches the AppCommands chords itself (OD-0008 C3, Port/MenuKeyEquivalents.cs; STOP App.AppCommands #6).

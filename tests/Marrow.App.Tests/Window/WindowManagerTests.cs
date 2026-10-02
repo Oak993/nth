@@ -1016,7 +1016,7 @@ public sealed class WindowManagerTests(HeadlessSession headless)
     // (the 26 pt clip, the backdrop at settings.backdropOpacity), the sidebar drag (SettingsView.swift:193), the page
     // hand-over (SettingsView.swift:123-127) and the openers (AppCommands.swift:12-14, CommandPalette.swift:176-178)
     // belong to other units: STOP App.Window.WindowManager #4 below. The Acrylic material OD-0014 names for the clear
-    // window over the desktop is set nowhere yet: STOP App.Window.WindowManager #5 below.
+    // window over the desktop is WindowChrome.Configure's (ED-236), closed STOP App.Window.WindowManager #5 below.
 
     [Fact]
     [Trait("Req", "UI-SETTINGS-001")] // App/Window/WindowManager.swift:21, :80-84, :93-97
@@ -1059,6 +1059,22 @@ public sealed class WindowManagerTests(HeadlessSession headless)
         Assert.Null(container.Background);
         Assert.Equal(new Point(0, 0), content.TranslatePoint(new Point(0, 0), window));
         Assert.Equal(new Size(780, 580), content.Bounds.Size);
+    });
+
+    // ED-236 (OD-0014, closes STOP #5): the clear window over the desktop is Acrylic under the app-drawn scrim, on both
+    // windows WindowChrome.configure (:101) reaches. Native pixels: GlassWindowNativeTests.
+    [Fact]
+    [Trait("Decision", "ED-236")]
+    [Trait("Req", "UI-SETTINGS-001")] // WindowChrome.swift:116-117 through WindowManager.swift:101; OD-0014
+    public void The_main_window_and_the_Settings_window_ask_for_the_Acrylic_backdrop_over_the_clear_window() => WithManager((harness, manager) =>
+    {
+        var main = ShowMain(harness, manager, new Border());
+        var settings = ShowSettings(harness, manager, new Border());
+        foreach (var window in new[] { main, settings })
+        {
+            Assert.Equal([WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Transparent], window.TransparencyLevelHint);
+            Assert.Equal(Colors.Transparent, Assert.IsAssignableFrom<ISolidColorBrush>(window.Background).Color); // the clear window is kept
+        }
     });
 
     [Fact]
@@ -1225,26 +1241,23 @@ public sealed class WindowManagerTests(HeadlessSession headless)
 // Done so far: the five UI-SETTINGS-001 tests above (style and fixed size, clear window under a transparent title
 // bar, placement without autosave, kept view state, the page requested on reopen); nothing is written for these sites.
 
-// STOP App.Window.WindowManager #5 (build agent, 2026-09-26)
-// Kind: missing dependency
+// CLOSED STOP App.Window.WindowManager #5 (2026-10-02, ED-236)
+// Kind: missing dependency (was)
 // Swift: DroppyCode/UI/Chrome/WindowChrome.swift:116-117 `window.isOpaque = false` / `window.backgroundColor = .clear`,
 // reached from DroppyCode/App/Window/WindowManager.swift:101 (B3 52bc792)
 // Requirements: UI-SETTINGS-001 (colors, and its OD-0014 note); PR-WIN-058 and PR-WIN-059 draw over it
-// What is unclear or missing: OD-0014 keeps the window clear, so until a wallpaper is set the glass sits over the
-// desktop "drawn as Acrylic plus the app-drawn scrim" (OD-0005, probe P3), and ADR-0002 names the means:
-// Window.TransparencyLevelHint = AcrylicBlur, per window. Nothing sets it on the main or the Settings window:
-// UI/Chrome/WindowChrome.cs (Configure, the twin of :116-117) sets a transparent Background only, and probe P3's
-// control `ctl_none_opaque` (hint None) captured such a window as solid black (porting/probes/p3/RESULT.md). The
-// twin site is WindowChrome.Configure (unit UI.Chrome.WindowChrome), not this file: WindowManager.swift sets no
-// background. One fact is also unsettled: AppKit's clear window shows nothing outside the 26 pt continuous shape the
-// content draws (SettingsView.swift:120, Chrome.swift:218), while an AcrylicBlur window paints the material over its
-// whole client area, corners included, and no probe or decision says how the area outside that shape looks.
-// Readings or options: (a) set AcrylicBlur in WindowChrome.Configure beside the transparent Background -> the desktop
-// shows through as Acrylic, and the corners outside the 26 pt shape show Acrylic too; (b) (a) plus a corner treatment
-// that clears them -> needs a probe; (c) leave it -> a black window where upstream shows the desktop.
-// Needed to proceed: a decision (ED or owner) naming the unit that sets the windows' Acrylic hint and ruling on the
-// corners outside the 26 pt shape; a capture check by probe P3's method.
-// Done so far: the clear window background (:116-117 through :101) is tested above; nothing is written for the hint.
+// Was: OD-0014 keeps the window clear, so until a wallpaper is set the glass sits over the desktop "drawn as Acrylic plus
+// the app-drawn scrim" (OD-0005, probe P3), and nothing set the Acrylic hint, which left the main and the tour windows
+// without a blur (native launch capture 2026-10-02: other windows' text showed through sharp).
+// Closed by ED-236 (a decision naming the unit): WindowChrome.Configure, the twin of :116-117, sets
+// WindowChrome.GlassBackdrop = [AcrylicBlur, Transparent] beside the transparent Background, so the main window and the
+// Settings window made here have the Acrylic under the app-drawn scrim, and so does the tour window. Proved by
+// The_main_window_and_the_Settings_window_ask_for_the_Acrylic_backdrop_over_the_clear_window and on real screen pixels by
+// GlassWindowNativeTests (stripes behind the real main window: contrast 42.9 bare, 0.0 through it, active and inactive).
+// OD-0041's start-up gap is covered by the boot hand-over (BootStageWindowTests, GlassWindowNativeTests).
+// Still open, named in ED-236 and not decided here: the corners outside the 26 pt shape show the Acrylic without the scrim
+// (the window is a rectangle DWM rounds by 8 px; luma 126 beside 93 inside the shape), and a user-opened Settings window
+// shows the 225 ms gap on its first show.
 
 // ED-225 supplies WindowManager.swift:43, :68, :82's screen-centering binding. WindowManagerCenteringTests covers
 // owner/pointer monitor selection, working area, horizontal center, one-third free height above, and clamping.

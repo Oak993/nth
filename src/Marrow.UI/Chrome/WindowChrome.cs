@@ -136,6 +136,14 @@ public static class WindowChrome
 
     private static WindowState StateFor(Window window) => states.GetOrCreateValue(window);
 
+    /// <summary>
+    /// ED-236: what a window whose content is glass over a clear window asks for as its backdrop: Acrylic, and, where the
+    /// platform cannot give it, the plain transparent window it was before (Avalonia takes the first level the platform
+    /// supports; a list of Acrylic alone would leave a window without it opaque black, probe P3's `ctl_none_opaque`).
+    /// </summary>
+    public static IReadOnlyList<WindowTransparencyLevel> GlassBackdrop { get; } =
+        [WindowTransparencyLevel.AcrylicBlur, WindowTransparencyLevel.Transparent];
+
     /// <summary>:107-132 <c>static func configure(_ window: NSWindow)</c>.</summary>
     public static void Configure(Window window)
     {
@@ -153,6 +161,10 @@ public static class WindowChrome
         // have no separate action here because Avalonia recomputes the DWM shadow itself).
         window.WindowDecorations = WindowDecorations.Full;
         window.Background = Brushes.Transparent;
+        // ED-236 (OD-0005, OD-0014, closes WindowManager STOP #5): the clear window's material over the desktop. AppKit's
+        // clear window shows the desktop through the glass blurred; here the window itself composites Acrylic and the
+        // app-drawn scrim (Chrome.WindowBackdrop, SwiftGlass) lies on it, as probe P3 requires.
+        window.TransparencyLevelHint = GlassBackdrop;
         // OD-0017 adopts ED-101 for every resizable top-level window after its first native frame.
         // Settings remains on Avalonia's presentation because its factory sets CanResize = false.
         if (window.CanResize) _ = ResizeStretch.Attach(window);

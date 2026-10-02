@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    P14 (OD-0041, ED-236): how an AcrylicBlur window's tint-before-blur gap (P13) can be hidden at the boot hand-over.
+    A throwaway probe, never production code. Built like P3: this folder sits under the repo root, so
+    Directory.Build.props / Directory.Packages.props apply (Avalonia 12.1.2).
+  -->
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <RootNamespace>P14</RootNamespace>
+    <AssemblyName>p14</AssemblyName>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <CheckForOverflowUnderflow>false</CheckForOverflowUnderflow>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    <WarningLevel>0</WarningLevel>
+    <NoWarn>$(NoWarn);CA1310;CA1305;CA1304;CA1311</NoWarn>
+    <AnalysisLevel>none</AnalysisLevel>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" />
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Skia" />
+  </ItemGroup>
+
+</Project>

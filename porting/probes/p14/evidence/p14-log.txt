@@ -1,0 +1,115 @@
+scale=1 backdrop at 100, 100
+  handle before Show: 0x13610E4
+== visible: ActualTransparencyLevel=AcrylicBlur WS_EX_LAYERED=False showAt=311ms revealAt=-1ms
+  t=   -307ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    -45ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    113ms (since Show) mean=  96.0 edge=  32.3 SHARP/dark
+  t=    313ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=    576ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=    826ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=   1088ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=   1338ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  backdrop mean=127.5 edge=42.9; first change at +80ms, first blurred frame at +313ms (from Show); samples tinted-but-sharp from there: 15 of 95 samples
+  while shown: mean 79.0..127.5, edge 0.0..42.9
+  handle before Show: 0x13710E4
+== content0: ActualTransparencyLevel=AcrylicBlur WS_EX_LAYERED=False showAt=308ms revealAt=-1ms
+  t=   -305ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    -43ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    219ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    265ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=    515ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=    778ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=   1044ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=   1307ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  backdrop mean=127.5 edge=42.9; first change at +265ms, first blurred frame at +265ms (from Show); samples tinted-but-sharp from there: 0 of 92 samples
+  while shown: mean 127.0..127.5, edge 0.0..42.9
+  handle before Show: 0x13810E4
+== window0: ActualTransparencyLevel=AcrylicBlur WS_EX_LAYERED=False showAt=307ms revealAt=1517ms
+  t=   -305ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    -42ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    220ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    266ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=    516ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=    779ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=   1041ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=   1228ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark   <- reveal
+  t=   1491ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=   1741ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  backdrop mean=127.5 edge=42.9; first change at +2ms, first blurred frame at +2ms (from reveal); samples tinted-but-sharp from there: 0 of 47 samples
+  while shown at window opacity 0: mean 127.0..127.5, edge 0.0..42.9
+  handle before Show: 0x13910E4
+== window0-borderless: ActualTransparencyLevel=AcrylicBlur WS_EX_LAYERED=False showAt=307ms revealAt=1517ms
+  t=   -302ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    -45ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=     18ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=    281ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=    547ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=    810ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=   1073ms (since Show) mean= 127.0 edge=   0.0 BLUR/grey
+  t=   1215ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark   <- reveal
+  t=   1477ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=   1739ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  backdrop mean=127.5 edge=42.9; first change at +5ms, first blurred frame at +5ms (from reveal); samples tinted-but-sharp from there: 0 of 47 samples
+  while shown at window opacity 0: mean 127.0..127.5, edge 0.0..42.9
+  handle before Show: 0x13A10E4
+  layered alpha0 ok=True
+== layered0: ActualTransparencyLevel=AcrylicBlur WS_EX_LAYERED=False showAt=303ms revealAt=1513ms
+  t=   -300ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    -42ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=     67ms (since Show) mean=  96.5 edge=  32.4 SHARP/dark
+  t=    267ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=    529ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=    780ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=   1042ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=   1293ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark   <- reveal
+  t=   1555ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=   1818ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  backdrop mean=127.5 edge=42.9; first change at +3ms, first blurred frame at +3ms (from reveal); samples tinted-but-sharp from there: 0 of 47 samples
+  while shown at window opacity 0: mean 79.0..127.5, edge 0.0..42.9
+  handle before Show: 0x13B10E4
+== offscreen: ActualTransparencyLevel=AcrylicBlur WS_EX_LAYERED=False showAt=306ms revealAt=1516ms
+  t=   -301ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    -43ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    220ms (since Show) mean= 109.1 edge=  36.9 SHARP/grey
+  t=    470ms (since Show) mean= 109.1 edge=  34.1 SHARP/grey
+  t=    732ms (since Show) mean= 109.1 edge=  34.1 SHARP/grey
+  t=    983ms (since Show) mean= 109.1 edge=  34.1 SHARP/grey
+  t=   1228ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark   <- reveal
+  t=   1491ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=   1741ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  backdrop mean=127.5 edge=42.9; first change at +2ms, first blurred frame at +19ms (from reveal); samples tinted-but-sharp from there: 1 of 47 samples
+  while shown at window opacity 0: mean 108.9..127.5, edge 34.1..42.9
+  handle before Show: 0x13C10E4
+  cloak hr=0x0
+== cloak:0: ActualTransparencyLevel=AcrylicBlur WS_EX_LAYERED=False showAt=307ms revealAt=308ms
+  t=   -303ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    -45ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=     17ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark   <- reveal
+  t=    268ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=    530ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  backdrop mean=127.5 edge=42.9; first change at +16ms, first blurred frame at +16ms (from reveal); samples tinted-but-sharp from there: 0 of 47 samples
+  handle before Show: 0x13D10E4
+  cloak hr=0x0
+== cloak:300: ActualTransparencyLevel=AcrylicBlur WS_EX_LAYERED=False showAt=306ms revealAt=616ms
+  t=   -304ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    -42ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    221ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    313ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark   <- reveal
+  t=    575ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=    825ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  backdrop mean=127.5 edge=42.9; first change at +3ms, first blurred frame at +3ms (from reveal); samples tinted-but-sharp from there: 0 of 47 samples
+  while shown at window opacity 0: mean 127.5..127.5, edge 42.9..42.9
+  handle before Show: 0x13E10E4
+  cloak hr=0x0
+== cloak:1200: ActualTransparencyLevel=AcrylicBlur WS_EX_LAYERED=False showAt=307ms revealAt=1516ms
+  t=   -302ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    -45ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    205ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    468ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    718ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=    980ms (since Show) mean= 127.5 edge=  42.9 SHARP/grey
+  t=   1215ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark   <- reveal
+  t=   1477ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  t=   1739ms (since Show) mean=  79.0 edge=   0.0 BLUR/dark
+  backdrop mean=127.5 edge=42.9; first change at +6ms, first blurred frame at +6ms (from reveal); samples tinted-but-sharp from there: 0 of 47 samples
+  while shown at window opacity 0: mean 127.5..127.5, edge 42.9..42.9

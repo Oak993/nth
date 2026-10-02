@@ -131,7 +131,10 @@ public sealed class TourWindowController
             Content = rootView,
             Topmost = true,
             ShowInTaskbar = false,
-            TransparencyLevelHint = [Avalonia.Controls.WindowTransparencyLevel.Transparent],
+            // ED-236 (OD-0005, OD-0014): the card is glass (TourView.swift:79-86 `.glassEffect(.regular, in: shape)`) over
+            // a clear window (TourWindowController.swift:82-83), so the window composites Acrylic under the card's
+            // app-drawn tint and scrim, as WindowChrome.Configure does for the main window.
+            TransparencyLevelHint = Marrow.UI.Chrome.WindowChrome.GlassBackdrop,
         };
 
         // Set up transparent background

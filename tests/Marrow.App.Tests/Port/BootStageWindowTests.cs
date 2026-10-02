@@ -280,6 +280,180 @@ public sealed class BootStageWindowTests(HeadlessSession headless)
         Assert.Equal(["main window built", "settings window built"], launch.Events.Where(e => e.EndsWith(" built", StringComparison.Ordinal)));
     });
 
+    // ---- ED-236 (OD-0041, probes P13 and P14): the main window's Acrylic backdrop is ready before its content appears ----
+    // Expected values: the window is shown early and cloaked when the disintegration begins (final rest + 0.1 s, ED-103
+    // (4); reduce motion 0.5 s before its 2.5 s hand-over), at least 0.5 s before ED-103 (5) hands over; it is uncloaked
+    // at the hand-over, with its content already at that frame's opacity, and only then does the launch show it (Present:
+    // Show, Activate). Cloaking itself is a fake here; the real DWM cloak and the screen pixels are GlassWindowNativeTests.
+
+    private sealed class CloakLog(AvaloniaWindow main, BootStageWindow[] boot)
+    {
+        public List<(string Event, bool Visible, bool ShowActivated, double Elapsed, double ContentOpacity)> Events { get; } = [];
+        public bool Accepts { get; init; } = true;
+
+        public bool Cloak(AvaloniaWindow window, bool cloaked)
+        {
+            Assert.Same(main, window);
+            Events.Add((cloaked ? "cloak" : "uncloak", main.IsVisible, main.ShowActivated, boot[0].Stage.Elapsed, ((Control)main.Content!).Opacity));
+            return Accepts;
+        }
+
+        public void Shown() => Events.Add(("show", main.IsVisible, main.ShowActivated, boot[0].Stage.Elapsed, ((Control)main.Content!).Opacity));
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-236")]
+    public void The_main_window_is_shown_cloaked_when_the_disintegration_begins_and_uncloaked_just_before_the_hand_over_shows_it() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var content = new Border();
+        var main = MainWindow(content);
+        var holder = new BootStageWindow[1];
+        var log = new CloakLog(main, holder);
+        var boot = BootStageWindow.Start(main, reduceMotion: false, () => { log.Shown(); main.Show(); }, log.Cloak);
+        holder[0] = boot;
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            // Not ready: the mark turns, and nothing of the main window is cloaked, shown or touched.
+            for (var t = 0.0; t < 12; t += Step) Frame(time, frames, Step);
+            Assert.Empty(log.Events);
+            Assert.False(main.IsVisible);
+            Assert.Equal(1, content.Opacity);
+
+            var readyAt = boot.Stage.Elapsed;
+            boot.Ready();
+            var sequence = new BootSequence(BootStageWindow.Layout(new Rect(0, 0, 900, 600)), reduceMotion: false);
+            var warmAt = BootSequence.FinalRest(readyAt) + .1;
+            var showAt = sequence.MainWindowShownAt(readyAt);
+            var cloakedFrames = 0;
+            for (var i = 0; i < 600 && boot.Window.IsVisible; i++)
+            {
+                Frame(time, frames, Step);
+                if (log.Events.Count > 0 && log.Events.All(e => e.Event == "cloak"))
+                {
+                    // cloaked and shown, not yet handed over: the content follows the stage
+                    Assert.True(main.IsVisible);
+                    Assert.Equal(boot.Stage.Frame.ContentOpacity, content.Opacity);
+                    Assert.True(boot.MainIsCloaked);
+                    cloakedFrames++;
+                }
+            }
+
+            Assert.Equal(["cloak", "uncloak", "show"], log.Events.Select(e => e.Event));
+            var (cloak, uncloak, show) = (log.Events[0], log.Events[1], log.Events[2]);
+            // cloaked before it was ever shown, and shown without taking the foreground
+            Assert.False(cloak.Visible);
+            Assert.False(cloak.ShowActivated);
+            Assert.InRange(cloak.Elapsed, warmAt, warmAt + Step + 1e-9);
+            Assert.True(main.ShowActivated); // restored: the hand-over activates it as before
+            // the lead the backdrop gets: well over the ~0.35 s P13 saw the blur take
+            Assert.True(uncloak.Elapsed - cloak.Elapsed >= 0.5, $"lead {uncloak.Elapsed - cloak.Elapsed}");
+            Assert.True(cloakedFrames > 8);
+            // uncloaked at the hand-over, with the content already at the hand-over frame's opacity, before the show runs
+            Assert.InRange(uncloak.Elapsed, showAt, showAt + Step + 1e-9);
+            Assert.True(uncloak.Visible);
+            Assert.True(uncloak.ContentOpacity > 0 && uncloak.ContentOpacity < 1, $"content opacity {uncloak.ContentOpacity}");
+            Assert.Equal(uncloak.Elapsed, show.Elapsed);
+            Assert.Equal(uncloak.ContentOpacity, show.ContentOpacity);
+            Assert.False(boot.MainIsCloaked);
+            Assert.Equal(1, content.Opacity); // the stage closed
+        }
+        finally
+        {
+            boot.Window.Close();
+            main.Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-236")]
+    public void With_reduce_motion_the_main_window_is_shown_cloaked_half_a_second_before_the_hand_over() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var main = MainWindow(new Border());
+        var holder = new BootStageWindow[1];
+        var log = new CloakLog(main, holder);
+        var boot = BootStageWindow.Start(main, reduceMotion: true, () => { log.Shown(); main.Show(); }, log.Cloak);
+        holder[0] = boot;
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            boot.Ready();
+            for (var i = 0; i < 100 && boot.Window.IsVisible; i++) Frame(time, frames, Step);
+            Assert.Equal(["cloak", "uncloak", "show"], log.Events.Select(e => e.Event));
+            Assert.False(log.Events[0].Visible);
+            Assert.False(log.Events[0].ShowActivated);
+            Assert.InRange(log.Events[0].Elapsed, 2.0, 2.0 + Step + 1e-9); // 2.5 s less BootStageWindow.ReduceMotionWarmLead
+            Assert.InRange(log.Events[1].Elapsed, 2.5, 2.5 + Step + 1e-9);
+        }
+        finally
+        {
+            boot.Window.Close();
+            main.Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-236")]
+    public void A_main_window_that_cannot_be_cloaked_is_not_shown_early_and_the_hand_over_is_the_plain_show() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var content = new Border();
+        var main = MainWindow(content);
+        var holder = new BootStageWindow[1];
+        var log = new CloakLog(main, holder) { Accepts = false };
+        var visibleAtShow = new List<bool>();
+        var boot = BootStageWindow.Start(main, reduceMotion: false, () => { visibleAtShow.Add(main.IsVisible); log.Shown(); main.Show(); }, log.Cloak);
+        holder[0] = boot;
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            for (var t = 0.0; t < 2; t += Step) Frame(time, frames, Step);
+            boot.Ready();
+            for (var i = 0; i < 600 && boot.Window.IsVisible; i++)
+            {
+                Frame(time, frames, Step);
+                if (visibleAtShow.Count == 0) Assert.False(main.IsVisible); // never shown early
+            }
+            Assert.Equal(["cloak", "show"], log.Events.Select(e => e.Event)); // asked once, refused, never uncloaked
+            Assert.Equal([false], visibleAtShow);
+            Assert.False(boot.MainIsCloaked);
+            Assert.Equal(1, content.Opacity);
+        }
+        finally
+        {
+            boot.Window.Close();
+            main.Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-236")]
+    public void A_window_without_a_win32_handle_cannot_be_cloaked_and_is_left_as_it_was() => headless.OnUiThread(() =>
+    {
+        var window = MainWindow(new Border());
+        try
+        {
+            Assert.False(WindowCloak.Set(window, true));
+            Assert.False(WindowCloak.Set(window, false));
+            Assert.False(window.IsVisible);
+        }
+        finally
+        {
+            window.Close();
+        }
+    });
+
     private static void Advance(LaunchHarness launch, ManualFrameSource frames, double seconds)
     {
         launch.Harness.Main.Advance(TimeSpan.FromSeconds(seconds));
