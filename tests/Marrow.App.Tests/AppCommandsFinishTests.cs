@@ -328,7 +328,7 @@ public sealed class AppCommandsFinishTests(HeadlessSession headless)
     // ===== PR-WIN-089: the whole command table, with no menu bar =====
 
     [Fact]
-    [Trait("Rule", "R-TEST-1")] // partial evidence for PR-WIN-089 only: its Welcome tour palette row is blocked on a decision (STOP App.AppCommands #4)
+    [Trait("Req", "PR-WIN-089")] // App/AppCommands.swift:11-114 every command of the seven placements, no menu bar (OD-0008 C3); the palette rows, the Welcome tour row included (OD-0053, STOP #4 resolved), are CommandPaletteTests
     public void The_whole_command_table_keeps_the_source_order_chords_and_enablement_and_no_window_draws_a_menu_bar() => headless.OnUiThread(() =>
     {
         using var launch = new LaunchHarness();

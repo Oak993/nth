@@ -267,7 +267,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // ===== PR-WIN-089, PR-WIN-095, PR-WIN-102, PR-WIN-103: the command set as a table =====
 
     [Fact]
-    // Partial evidence for PR-WIN-089; whole record remains STOP. // App/AppCommands.swift:11-114
+    // Partial evidence for PR-WIN-089 (the whole record: AppCommandsFinishTests). // App/AppCommands.swift:11-114
     [Trait("Req", "PR-WIN-095")] // App/AppCommands.swift:27-35
     [Trait("Req", "PR-WIN-102")] // App/AppCommands.swift:37-52
     [Trait("Req", "PR-WIN-103")] // App/AppCommands.swift:65-98
@@ -305,7 +305,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // Partial evidence for PR-WIN-089; whole record remains STOP. // App/AppCommands.swift:11-114
+    // Partial evidence for PR-WIN-089 (the whole record: AppCommandsFinishTests). // App/AppCommands.swift:11-114
     [Trait("Decision", "ED-099")]
     public void Attached_to_a_window_a_chord_works_with_no_menu_present_and_is_consumed() => headless.OnUiThread(() =>
     {
@@ -1099,7 +1099,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     // and a real key-down goes through Avalonia's keyboard device to that window.
 
     [Fact]
-    // Partial evidence for PR-WIN-089; whole record remains STOP. // App/DroppyCodeApp.swift:21-25; App/AppCommands.swift:40-41; App/Window/WindowManager.swift:26-30
+    // Partial evidence for PR-WIN-089 (the whole record: AppCommandsFinishTests). // App/DroppyCodeApp.swift:21-25; App/AppCommands.swift:40-41; App/Window/WindowManager.swift:26-30
     [Trait("Decision", "ED-099")]
     public void A_chord_pressed_in_the_main_window_the_app_shows_runs_its_command_with_no_menu_present() => headless.OnUiThread(() =>
     {
@@ -1153,7 +1153,7 @@ public sealed class AppCommandsTests(HeadlessSession headless)
     });
 
     [Fact]
-    // Partial evidence for PR-WIN-089; whole record remains STOP. // App/DroppyCodeApp.swift:21-25; App/AppCommands.swift:40-41; App/Views/Tour/TourWindowController.swift:8-11,110
+    // Partial evidence for PR-WIN-089 (the whole record: AppCommandsFinishTests). // App/DroppyCodeApp.swift:21-25; App/AppCommands.swift:40-41; App/Views/Tour/TourWindowController.swift:8-11,110
     [Trait("Decision", "ED-099")]
     public void While_the_tour_window_is_key_a_chord_pressed_in_it_runs_its_command() => headless.OnUiThread(() =>
     {
