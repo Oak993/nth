@@ -267,12 +267,52 @@ public sealed class SwiftColor
         _ => false,
     };
 
-    private Color Resolve(ThemeVariant theme, Func<Color> accent) => kind switch
+    internal Color Resolve(ThemeVariant theme, Func<Color> accent) => kind switch
     {
         Kind.Fixed => Color.FromArgb(Byte(alpha), Byte(red), Byte(green), Byte(blue)),
         Kind.Pair => (IsDark(theme) ? dark! : light!).Resolve(theme, accent),
-        _ => Faded(accent(), alpha),
+        _ => Faded(Legible(accent(), IsDark(theme)), alpha),
     };
+
+    // ED-238. The accent keeps the user's Windows colour unless it has under 3:1 contrast against the appearance's window
+    // background (macOS 27 UI Kit, Window backgrounds: Dark #1E1E1E, Light #FFFFFF; OD-0045), the way AppKit's accent is
+    // always one that reads (Graphite is a mid grey); then it is mixed toward white (Dark) or black (Light) by the smallest
+    // 1/255 step that reaches 3:1, WCAG 2.x's contrast for a UI component. An opaque black accent therefore reads as
+    // #686868 on Dark and stays black on Light.
+    private const double MinimumAccentContrast = 3;
+
+    private static Color Legible(Color accent, bool dark)
+    {
+        var window = dark ? Color.FromRgb(0x1E, 0x1E, 0x1E) : Colors.White;
+        if (Contrast(accent, window) >= MinimumAccentContrast) return accent;
+        var pole = dark ? (byte)255 : (byte)0;
+        for (var step = 1; step <= 255; step++)
+        {
+            var candidate = Color.FromArgb(accent.A, Toward(accent.R, pole, step), Toward(accent.G, pole, step), Toward(accent.B, pole, step));
+            if (Contrast(candidate, window) >= MinimumAccentContrast) return candidate;
+        }
+        return Color.FromArgb(accent.A, pole, pole, pole);
+    }
+
+    private static byte Toward(byte channel, byte pole, int step) =>
+        (byte)Math.Round(channel + (pole - channel) * (step / 255.0), MidpointRounding.AwayFromZero);
+
+    private static double Contrast(Color a, Color b)
+    {
+        var (first, second) = (Luminance(a), Luminance(b));
+        return (Math.Max(first, second) + 0.05) / (Math.Min(first, second) + 0.05);
+    }
+
+    // WCAG 2.x relative luminance of an sRGB colour (alpha ignored).
+    private static double Luminance(Color color)
+    {
+        static double Linear(byte channel)
+        {
+            var value = channel / 255.0;
+            return value <= 0.04045 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
+        }
+        return 0.2126 * Linear(color.R) + 0.7152 * Linear(color.G) + 0.0722 * Linear(color.B);
+    }
 
     private static Color Faded(Color accent, double factor) =>
         Color.FromArgb(Byte(accent.A / 255.0 * factor), accent.R, accent.G, accent.B);
@@ -295,7 +335,11 @@ public sealed class SwiftColor
         Application.Current?.PlatformSettings
         ?? throw new InvalidOperationException("The system accent needs a running Avalonia application.");
 
-    private static Color CurrentAccent() => PlatformSettings.GetColorValues().AccentColor1;
+    private static Color CurrentAccent() => AccentSource.Current();
+
+    /// <summary>Where the system accent is read from: the platform's personalization accent (ED-051). A test overrides it
+    /// to stand for a PC whose accent is a given colour (headless always reports #0078D7).</summary>
+    internal static Ambient<Func<Color>> AccentSource { get; } = new((Func<Color>)(() => PlatformSettings.GetColorValues().AccentColor1));
 
     /// <summary>Keeps one brush in step with its control's appearance and, when needed, the system accent.</summary>
     private sealed class BrushBinding
@@ -327,7 +371,7 @@ public sealed class SwiftColor
         {
             if (settings is not null) return;
             settings = PlatformSettings;
-            accent = settings.GetColorValues().AccentColor1;
+            accent = CurrentAccent();
             settings.ColorValuesChanged += OnColorValuesChanged;
             Update();
         }
