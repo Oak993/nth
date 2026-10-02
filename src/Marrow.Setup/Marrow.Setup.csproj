@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    OD-0072, ED-247: the Marrow installer the owner shares. A small bootstrapper around Velopack's Setup.exe that first
+    checks what is installed (src/Marrow.Core/Support/InstallerGate.cs, compiled in here; this project references no
+    other Marrow project) and only then runs the embedded Setup.exe. Built by scripts/package-windows.ps1, which passes
+    the Setup.exe that vpk pack produced and the same title, id and version it gave vpk. Built without them (as part of
+    Marrow.sln) it compiles but has nothing to install and says so.
+  -->
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AssemblyName>Marrow.Setup</AssemblyName>
+    <RootNamespace>Marrow.Setup</RootNamespace>
+    <ApplicationIcon>..\Marrow.App\Assets\icon.ico</ApplicationIcon>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <Product>Marrow</Product>
+    <AssemblyTitle>Marrow Setup</AssemblyTitle>
+    <InstallerTitle Condition="'$(InstallerTitle)' == ''">Marrow</InstallerTitle>
+    <InstallerAppId Condition="'$(InstallerAppId)' == ''">MarrowCode</InstallerAppId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Marrow.Core\Support\InstallerGate.cs" Link="InstallerGate.cs" />
+    <AssemblyMetadata Include="InstallerTitle" Value="$(InstallerTitle)" />
+    <AssemblyMetadata Include="InstallerAppId" Value="$(InstallerAppId)" />
+    <AssemblyMetadata Include="InstallerVersion" Value="$(InstallerVersion)" />
+    <EmbeddedResource Include="$(VelopackSetupExe)" LogicalName="VelopackSetup.exe" Condition="'$(VelopackSetupExe)' != ''" />
+  </ItemGroup>
+
+</Project>
