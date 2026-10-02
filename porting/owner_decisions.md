@@ -592,4 +592,5 @@ Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Cl
 ## OD-0054 Apple's macOS design kit may be downloaded
 
 - **Owner ruling, 2026-10-02 (chat), choice "Yes, download it":** for OD-0045, Claude may download Apple's official macOS UI kit from developer.apple.com/design/resources and accept Apple's terms for it on the owner's behalf; values measured from it are cited to the kit.
+- **Where the kit is (checked 2026-10-02):** Apple publishes it as a Figma community file and a Sketch web share, not as a file: "Apple macOS 27 UI Kit", https://sketch.com/s/57153a31-3379-4737-8ac6-dbfd6525f052 (viewable without an account: 4,679 symbols with their sizes, 67 text styles, 285 layer styles, 110 colour variables, an inspector, and an "Export Design Tokens" option). Droppy Code 1.7.0 targets macOS 26; the current kit is macOS 27, so each value taken from it is cited as "macOS 27 UI Kit" and checked against the reference videos where they show the control.
 
