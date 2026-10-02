@@ -147,6 +147,23 @@ public sealed class RichLinkAutolinkTests
     }
 
     [Fact]
+    [Trait("Req", "PR-THEME-127")] // DroppyCode/UI/Markdown/MarkdownView.swift:792-797 AttributedString(markdown:) reads link text as inline content (CommonMark: code spans and emphasis inside a link's text)
+    public void BaseAttributed_reads_code_and_emphasis_inside_a_links_text_and_keeps_the_link_on_every_piece()
+    {
+        var code = BaseAttributed("Open [`ls -la`](https://getdroppy.app) here");
+        var codeLink = Assert.Single(code.Runs, r => r.Link is not null);
+        Assert.Equal("ls -la", codeLink.Text);
+        Assert.True(codeLink.IsCode);
+        Assert.Equal("Open ls -la here", code.PlainText);
+
+        var mixed = BaseAttributed("[**Droppy** site](https://getdroppy.app)");
+        Assert.Equal("Droppy site", mixed.PlainText);
+        Assert.All(mixed.Runs, r => Assert.Equal("https://getdroppy.app", r.Link!.RelativeString));
+        Assert.True(Assert.Single(mixed.Runs, r => r.Text == "Droppy").IsBold);
+        Assert.False(Assert.Single(mixed.Runs, r => r.Text == " site").IsBold);
+    }
+
+    [Fact]
     [Trait("Req", "PR-THEME-127")] // DroppyCode/UI/Markdown/MarkdownView.swift:828-834: a malformed marker degrades to plain text, never throws
     public void BaseAttributed_never_throws_on_malformed_markup()
     {

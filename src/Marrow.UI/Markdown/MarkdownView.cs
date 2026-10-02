@@ -1069,7 +1069,9 @@ public static partial class RichLink
                         if (SwiftURL.Create(urlText) is { } url)
                         {
                             FlushText(i);
-                            runs.Add(new AttributedRun(label, Link: url));
+                            // AttributedString(markdown:) reads a link's text as inline content (CommonMark): a code
+                            // span or emphasis inside it keeps its style, and every piece carries the link.
+                            foreach (var piece in ParseInline(label).Runs) runs.Add(piece with { Link = url });
                             i = closeParen + 1;
                             textStart = i;
                             continue;
