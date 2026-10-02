@@ -344,6 +344,7 @@ public sealed class UserMessageRow : Decorator
         chip.Children.Add(excerpt);
         // :110 .modifier(ChipChrome()).
         var chrome = new ChipChrome().Body(chip);
+        chrome.HorizontalAlignment = HorizontalAlignment.Right; // :96 VStack(alignment: .trailing): each chip at its own width, flush right
         ToolTip.SetTip(chrome, quote.Text); // :111 .help(quote.text)
         AutomationProperties.SetName(chrome, "Quote: " + quote.Excerpt); // :112-113 children combined, one label
         return chrome;

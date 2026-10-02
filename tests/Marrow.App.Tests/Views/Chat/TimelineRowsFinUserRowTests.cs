@@ -192,6 +192,30 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-CHAT-008")] // TimelineRows.swift:96 VStack(alignment: .trailing, spacing: 4): each chip at its own width, flush right
+    public void Quote_chips_keep_their_own_widths_and_meet_at_the_trailing_edge() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        h.Main.OnMain(() =>
+        {
+            var row = new UserMessageRow(UserEntry("> short\n\n> " + new string('x', 30) + " " + new string('y', 30) + "\n\nthe typed words", Guid.NewGuid()), h.Runtime, false);
+            var window = Show(row);
+            try
+            {
+                var chips = Mounted<Border>(row).Where(border => AutomationProperties.GetName(border)?.StartsWith("Quote: ", StringComparison.Ordinal) == true).ToList();
+                Assert.Equal(2, chips.Count);
+                // A trailing-aligned VStack leaves each child at its own width; the StackPanel stretched the short chip to the long one's,
+                // so its capsule drew wider than its words.
+                foreach (var chip in chips) Assert.Equal(chip.DesiredSize.Width, chip.Bounds.Width, 0.5);
+                Assert.True(chips[0].Bounds.Width < chips[1].Bounds.Width);
+                double Right(Control c) => c.TranslatePoint(new Point(c.Bounds.Width, 0), window)!.Value.X;
+                Assert.Equal(Right(chips[1]), Right(chips[0]), 0.5);
+            }
+            finally { Close(window); }
+        });
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-010")] // TimelineRows.swift:130-161, :179-183
     [Trait("Req", "UI-GIT-049")] // TimelineRows.swift:130-156
     public void The_pencil_lives_on_a_reserved_hover_line_that_shows_on_hover_and_never_moves_the_message() => headless.OnUiThread(() =>
