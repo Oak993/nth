@@ -90,6 +90,19 @@ public sealed class ShellTests
         Assert.Equal("gh was not found on your PATH.", SwiftErrors.LocalizedDescription(error));
     }
 
+    [Fact]
+    [Trait("Req", "PR-GIT-051")] // Core/Support/Shell.swift:128-131: a tool not on the PATH throws "<name> was not found on your PATH." and spawns nothing
+    public async Task A_tool_missing_from_the_path_throws_the_exact_sentence_without_starting_anything()
+    {
+        const string tool = "marrow-test-no-such-forge-cli";
+        Assert.Null(LoginEnvironment.Which(tool)); // nothing by this name anywhere on the PATH (PATHEXT included)
+
+        var error = await Assert.ThrowsAsync<ShellError>(() => Shell.RunTool(tool, ["pr", "create"]));
+
+        Assert.Equal(tool + " was not found on your PATH.", error.Message);
+        Assert.Equal(error.Message, SwiftErrors.LocalizedDescription(error));
+    }
+
     // ---- Shell.run (:36-108) ----
 
     [Fact]
