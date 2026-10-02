@@ -1568,6 +1568,9 @@ Windows apps show unread counts. DECISION:
 - nil clears the overlay;
 - the accessible description is the count as text;
 - the COM call goes through a seam, so tests record the count and rendered pixels and never touch the real taskbar.
+- (owner, 2026-10-02: "Use Inter for the badge digits") the count is set in Inter (OD-0009's face), SemiBold for legibility at
+  16 px (the weight is an ENGINEERING DECISION; the source names no badge font), loaded from Avalonia.Fonts.Inter and drawn
+  with SkiaSharp so no Avalonia platform is needed.
 ENGINEERING DECISION.
 
 

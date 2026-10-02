@@ -6,12 +6,15 @@
 // source's String(unread); no "99+" is invented). Zero clears the overlay. The accessible description is the count as text.
 // The COM call is behind ITaskbarOverlay: Windows binds WindowsTaskbarOverlay (WindowsTaskbarOverlay.cs) at start-up; a test
 // binds a recorder through TaskbarBadge.Overlay, and the process default draws nothing and calls nothing, so a test that
-// forgets to bind one can never reach the real taskbar. The drawing is a small rasteriser with its own stroke digits so that
-// it needs no Avalonia platform, no font and no window: the model calls it from the main actor in a headless run too.
+// forgets to bind one can never reach the real taskbar. The digits are set in Inter SemiBold (owner, 2026-10-02: "Use Inter
+// for the badge digits"; Inter is the app's face, OD-0009; the weight is an ENGINEERING DECISION for legibility at 16 px), drawn
+// with SkiaSharp straight from the font file Avalonia.Fonts.Inter ships, so no Avalonia platform or window is needed: the model
+// calls this from the main actor in a headless run too.
 using System.Globalization;
 using Avalonia.Styling;
 using Marrow.Core.Port;
 using Marrow.UI.Theme;
+using SkiaSharp;
 
 namespace Marrow.App.Port;
 
@@ -52,127 +55,49 @@ public static class TaskbarBadge
     /// <summary>Swift's <c>String(unread)</c>: the decimal count, never capped.</summary>
     public static string Text(long unread) => unread.ToString(CultureInfo.InvariantCulture);
 
-    // Glyph cells are 4 by 6 units, a gap of 1.4 between digits, strokes 1.1 units wide with round ends.
-    private const double GlyphWidth = 4;
-    private const double GlyphHeight = 6;
-    private const double GlyphGap = 1.4;
-    private const double StrokeWidth = 1.1;
-    private const int Samples = 4; // per axis, per pixel
-
     // NSColor.systemRed at its light value, from the colour the port already keeps for it (AppTheme.System's Danger).
     private static readonly Avalonia.Media.Color Red = AppTheme.System.Spec().Danger.Resolve(ThemeVariant.Light);
 
-    /// <summary>The badge for a count: a red disc filling the square, the count's digits in white, centred and shrunk to fit.</summary>
+    private static readonly Lazy<SKTypeface> face = new(() =>
+    {
+        using var stream = new Avalonia.Platform.StandardAssetLoader().Open(new Uri("avares://Avalonia.Fonts.Inter/Assets/Inter-SemiBold.ttf"));
+        return SKTypeface.FromStream(stream) ?? throw new InvalidOperationException("Inter SemiBold could not be loaded.");
+    });
+
+    /// <summary>The face the count is set in: Inter SemiBold.</summary>
+    public static SKTypeface Typeface => face.Value;
+
+    /// <summary>The badge for a count: a red disc filling the square, the count in white Inter SemiBold, centred and shrunk to fit.</summary>
     public static TaskbarOverlayIcon Render(long count, int size)
     {
         var text = Text(count);
-        var segments = TextSegments(text, size, out var strokeRadius);
+        using var bitmap = new SKBitmap(new SKImageInfo(size, size, SKColorType.Bgra8888, SKAlphaType.Premul));
+        using (var canvas = new SKCanvas(bitmap))
+        {
+            canvas.Clear(SKColors.Transparent);
+            using var disc = new SKPaint { IsAntialias = true, Color = new SKColor(Red.R, Red.G, Red.B) };
+            canvas.DrawCircle(size / 2f, size / 2f, size / 2f, disc);
+
+            // The text may fill 62% of the height, and its ink's diagonal 86% of the diameter, so a long count gets smaller
+            // instead of leaving the disc.
+            using var font = new SKFont(Typeface, 1) { Edging = SKFontEdging.Antialias, Subpixel = true };
+            font.MeasureText(text, out var unit);
+            var scale = Math.Min(0.62f * size / unit.Height,
+                0.86f * size / MathF.Sqrt(unit.Width * unit.Width + unit.Height * unit.Height));
+            font.Size = scale;
+            font.MeasureText(text, out var ink);
+            using var white = new SKPaint { IsAntialias = true, Color = SKColors.White };
+            canvas.DrawText(text, size / 2f - ink.MidX, size / 2f - ink.MidY, SKTextAlign.Left, font, white);
+        }
+        // Straight alpha, BGRA, top row first.
         var pixels = new byte[size * size * 4];
-        var radius = size / 2.0;
-        var radiusSquared = radius * radius;
-        var reach = strokeRadius * strokeRadius;
-        for (var y = 0; y < size; y++)
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try
         {
-            for (var x = 0; x < size; x++)
-            {
-                var disc = 0;
-                var ink = 0;
-                for (var j = 0; j < Samples; j++)
-                {
-                    for (var i = 0; i < Samples; i++)
-                    {
-                        var sx = x + (i + 0.5) / Samples;
-                        var sy = y + (j + 0.5) / Samples;
-                        var dx = sx - radius;
-                        var dy = sy - radius;
-                        if (dx * dx + dy * dy > radiusSquared) continue;
-                        disc++;
-                        if (Touches(segments, sx, sy, reach)) ink++;
-                    }
-                }
-                if (disc == 0) continue;
-                var white = (double)ink / disc;
-                var offset = (y * size + x) * 4;
-                pixels[offset] = Mix(Red.B, white);
-                pixels[offset + 1] = Mix(Red.G, white);
-                pixels[offset + 2] = Mix(Red.R, white);
-                pixels[offset + 3] = (byte)Math.Round(255.0 * disc / (Samples * Samples));
-            }
+            using var source = bitmap.PeekPixels();
+            source.ReadPixels(new SKImageInfo(size, size, SKColorType.Bgra8888, SKAlphaType.Unpremul), handle.AddrOfPinnedObject(), size * 4);
         }
+        finally { handle.Free(); }
         return new TaskbarOverlayIcon(count, text, size, pixels);
-    }
-
-    private static byte Mix(byte red, double white) => (byte)Math.Round(red + (255 - red) * white);
-
-    // The digits as pixel-space segments, centred in the square. The scale is the smaller of two limits: the text may fill
-    // 62% of the height, and its bounding box's diagonal 86% of the diameter, so a long count gets smaller instead of
-    // leaving the disc.
-    private static (double X0, double Y0, double X1, double Y1)[] TextSegments(string text, int size, out double strokeRadius)
-    {
-        var width = text.Length * GlyphWidth + (text.Length - 1) * GlyphGap;
-        var boxWidth = width + StrokeWidth;
-        var boxHeight = GlyphHeight + StrokeWidth;
-        var scale = Math.Min(0.62 * size / boxHeight, 0.86 * size / Math.Sqrt(boxWidth * boxWidth + boxHeight * boxHeight));
-        strokeRadius = StrokeWidth * scale / 2;
-        var left = size / 2.0 - width * scale / 2;
-        var top = size / 2.0 - GlyphHeight * scale / 2;
-        var segments = new List<(double, double, double, double)>();
-        for (var index = 0; index < text.Length; index++)
-        {
-            var originX = left + index * (GlyphWidth + GlyphGap) * scale;
-            foreach (var stroke in Glyphs[text[index] - '0'])
-            {
-                for (var point = 1; point < stroke.Length; point++)
-                {
-                    segments.Add((
-                        originX + stroke[point - 1].X * scale, top + stroke[point - 1].Y * scale,
-                        originX + stroke[point].X * scale, top + stroke[point].Y * scale));
-                }
-            }
-        }
-        return segments.ToArray();
-    }
-
-    private static bool Touches((double X0, double Y0, double X1, double Y1)[] segments, double x, double y, double reachSquared)
-    {
-        foreach (var (x0, y0, x1, y1) in segments)
-        {
-            var vx = x1 - x0;
-            var vy = y1 - y0;
-            var length = vx * vx + vy * vy;
-            var t = length == 0 ? 0 : Math.Clamp(((x - x0) * vx + (y - y0) * vy) / length, 0, 1);
-            var dx = x - (x0 + t * vx);
-            var dy = y - (y0 + t * vy);
-            if (dx * dx + dy * dy <= reachSquared) return true;
-        }
-        return false;
-    }
-
-    // Each digit as polylines in a 4 by 6 cell, y down. An arc runs its angles clockwise on screen: 180 is left, 270 top,
-    // 360 right, 450 bottom.
-    private static readonly (double X, double Y)[][][] Glyphs =
-    [
-        /* 0 */ [Arc(2, 3, 2, 3, 0, 360)],
-        /* 1 */ [[(0.4, 1.5), (2, 0), (2, 6)]],
-        /* 2 */ [Arc(2, 1.8, 2, 1.8, 180, 380).Concat([(0, 6), (4, 6)]).ToArray()],
-        /* 3 */ [Arc(2, 1.5, 1.9, 1.5, 200, 450).Concat(Arc(2, 4.5, 2, 1.5, 270, 520)).ToArray()],
-        /* 4 */ [[(3.2, 6), (3.2, 0), (0, 4.4), (4, 4.4)]],
-        /* 5 */ [[(3.6, 0), (0.6, 0), (0.5, 2.6)], Arc(2, 4, 2, 2, 240, 500)],
-        /* 6 */ [Arc(2, 4, 2, 2, 0, 360), [(0.1, 4), (0.6, 1.4), (3.2, 0)]],
-        /* 7 */ [[(0, 0), (4, 0), (1.4, 6)]],
-        /* 8 */ [Arc(2, 1.5, 1.7, 1.5, 0, 360), Arc(2, 4.5, 2, 1.5, 0, 360)],
-        /* 9 */ [Arc(2, 2, 2, 2, 0, 360), [(3.9, 2), (3.4, 4.6), (0.8, 6)]],
-    ];
-
-    private static (double X, double Y)[] Arc(double cx, double cy, double rx, double ry, double from, double to)
-    {
-        var steps = Math.Max(2, (int)Math.Ceiling(Math.Abs(to - from) / 20));
-        var points = new (double, double)[steps + 1];
-        for (var step = 0; step <= steps; step++)
-        {
-            var angle = (from + (to - from) * step / steps) * Math.PI / 180;
-            points[step] = (cx + rx * Math.Cos(angle), cy + ry * Math.Sin(angle));
-        }
-        return points;
     }
 }

@@ -170,6 +170,34 @@ public sealed class TaskbarBadgeTests
                 if (a == 255) Assert.Equal((byte)255, r);
             }
         if (size >= 24) Assert.True(BadgePixels.HasPureWhite(icon), "the text is white where a stroke covers a pixel whole");
+        // Straight alpha: a rim pixel the disc only partly covers keeps systemRed's own channels (within unpremultiplying's
+        // rounding) at a lower alpha, never darkened toward black.
+        var rimPixels = 0;
+        for (var y = 0; y < size; y++)
+            for (var x = 0; x < size; x++)
+            {
+                var (a, r, g, b) = BadgePixels.At(icon, x, y);
+                var distance = Math.Sqrt(Math.Pow(x + 0.5 - size / 2.0, 2) + Math.Pow(y + 0.5 - size / 2.0, 2));
+                if (a < 64 || a == 255 || distance < size * 0.4) continue; // below a quarter, 8-bit unpremultiplying is too coarse to compare
+                rimPixels++;
+                Assert.InRange(r, (byte)253, (byte)255);
+                Assert.InRange(g, (byte)56, (byte)62);
+                Assert.InRange(b, (byte)45, (byte)51);
+            }
+        Assert.True(rimPixels > 0, "the disc's edge is antialiased");
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-219")] // owner, 2026-10-02: "Use Inter for the badge digits" (OD-0009's face); weight semibold
+    public void The_count_is_set_in_Inter_semibold()
+    {
+        var face = TaskbarBadge.Typeface;
+        Assert.Equal("Inter", face.FamilyName);
+        Assert.Equal(600, face.FontWeight);
+        Assert.Equal(SkiaSharp.SKFontStyleSlant.Upright, face.FontSlant);
+        // Every digit has its own glyph in the face (none falls back to another font's).
+        using var font = new SkiaSharp.SKFont(face);
+        Assert.All("0123456789", digit => Assert.NotEqual((ushort)0, font.GetGlyph(digit)));
     }
 
     [Theory]
