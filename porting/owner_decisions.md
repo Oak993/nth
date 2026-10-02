@@ -594,3 +594,18 @@ Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Cl
 - **Owner ruling, 2026-10-02 (chat), choice "Yes, download it":** for OD-0045, Claude may download Apple's official macOS UI kit from developer.apple.com/design/resources and accept Apple's terms for it on the owner's behalf; values measured from it are cited to the kit.
 - **Where the kit is (checked 2026-10-02):** Apple publishes it as a Figma community file and a Sketch web share, not as a file: "Apple macOS 27 UI Kit", https://sketch.com/s/57153a31-3379-4737-8ac6-dbfd6525f052 (viewable without an account: 4,679 symbols with their sizes, 67 text styles, 285 layer styles, 110 colour variables, an inspector, and an "Export Design Tokens" option). Droppy Code 1.7.0 targets macOS 26; the current kit is macOS 27, so each value taken from it is cited as "macOS 27 UI Kit" and checked against the reference videos where they show the control.
 
+## OD-0055 Native evidence runs on this PC
+
+- **Owner ruling, 2026-10-02 (chat), choice "Yes, run it":** Claude may launch the port's own debug build (never the owner's separate Electron app "Marrow") on this PC, with its data folder redirected (MARROW_DEV_DATA_ROOT, ED-212) so the owner's real data is never touched, to record native evidence: the effort slider's frame counts (PR-COMPOSER-132/133) and the launch captures on a clean data folder (PR-LAUNCH-071, UI-LAUNCH-001/002).
+
+## OD-0056 Network errors show Windows' own error text
+
+- **Owner ruling, 2026-10-02 (chat), choice "Windows' own error text":** where Swift shows a Foundation URLError's localizedDescription (for example MCPHub over http: "The request timed out."), the port shows the Windows networking error's own message instead of Apple's English text. DEVIATION from the source wording, recorded; R-ERR-2's "no invented text" stands, since the text is the platform's.
+
+## OD-0057 Test seam for HTTPS requests
+
+- **Owner ruling, 2026-10-02 (chat), choice "Add the seam":** a test-only handler seam on the app's HTTP client (production behaviour unchanged), so PR-MCP-068 and the OAuth retry's success path can be tested.
+
+## OD-0058 Order of work after parity
+
+- **Owner ruling, 2026-10-02 (chat):** "OpenRouter and logo colours first, Release Preparation second, Polish and review pass third and then legacy Marrow features." Release preparation is local only: nothing is signed, published or released without the owner's word.
