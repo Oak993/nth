@@ -30,14 +30,28 @@ namespace Marrow.App;
 /// </summary>
 public static class Program
 {
+    /// <summary>
+    /// ED-235: Velopack's hook runs only in a Velopack install (Update.exe one folder above the app's own, its
+    /// <c>current</c> folder). Velopack's Run() writes %LOCALAPPDATA%\velopack\velopack.log on every call, installed or
+    /// not, so a dev run or a test host never calls it.
+    /// </summary>
+    internal static void RunVelopackHook(string baseDirectory)
+    {
+        if (!InstalledByVelopack(baseDirectory)) return;
+        VelopackApp.Build().Run();
+    }
+
+    internal static bool InstalledByVelopack(string baseDirectory) =>
+        Path.GetDirectoryName(Path.TrimEndingDirectorySeparator(baseDirectory)) is { } root
+        && File.Exists(Path.Combine(root, "Update.exe"));
+
     [STAThread]
     public static int Main(string[] args)
     {
         // OD-0062, ED-235: Velopack's startup hook, before anything else (before the single-instance lock, the toast
         // identity, every binding). When Update.exe runs the app to install, update or uninstall it (--veloapp-*
-        // arguments) this handles the event and exits the process; in every other run, a dev run or a Velopack install
-        // started normally, it returns at once and changes nothing.
-        VelopackApp.Build().Run();
+        // arguments) this handles the event and exits the process; started normally it returns at once.
+        RunVelopackHook(AppContext.BaseDirectory);
         WindowsToastStartup.RestoreDevRoot(args); // ED-212/ED-220: retain protocol launch's instance identity
 #if DEBUG
         // ED-212, review fix: a mistyped or since-deleted MARROW_DEV_DATA_ROOT must not silently fall back to the

@@ -1,21 +1,20 @@
 using System.Reflection;
 using System.Reflection.Emit;
-using Velopack;
 using Velopack.Locators;
 
 namespace Marrow.App.Tests;
 
-// PORT-ONLY (no Swift twin): OD-0062 / ED-235. The Velopack hook is the first thing Program.Main does, and in a run that
-// Velopack did not install (a dev run, this test host) it must change nothing. Program.Main cannot run in a test host
-// (STAThread, the single-instance lock, the full Avalonia lifetime, the real %LOCALAPPDATA%\Marrow Code folder), so the
-// order is proved from Main's own IL (its first two calls), and the no-op from the library call Main makes. The installed
-// case (Update.exe running the app with --veloapp-install, -updated, -obsolete or -uninstall) cannot be tested here
-// without installing the app onto this PC: Velopack's Run() exits the process for those arguments.
+// PORT-ONLY (no Swift twin): OD-0062 / ED-235. The Velopack hook is the first thing Program.Main does, and a run that
+// Velopack did not install (a dev run, this test host) never calls Velopack at all: its Run() writes a log file under
+// %LOCALAPPDATA% on every call. Program.Main cannot run in a test host (STAThread, the single-instance lock, the full
+// Avalonia lifetime, the real %LOCALAPPDATA%\Marrow Code folder), so the order is proved from Main's own IL. The
+// installed case (Update.exe running the app with --veloapp-install, -updated, -obsolete or -uninstall) cannot be tested
+// here without installing the app onto this PC: Velopack's Run() exits the process for those arguments.
 public sealed class VelopackStartupHookTests
 {
     [Fact]
     [Trait("Decision", "ED-235")]
-    public void Main_calls_VelopackApp_Build_then_Run_before_anything_else()
+    public void Main_runs_the_Velopack_hook_before_anything_else()
     {
         var main = typeof(Program).GetMethod(nameof(Program.Main), BindingFlags.Public | BindingFlags.Static)!;
         var il = main.GetMethodBody()!.GetILAsByteArray()!;
@@ -29,32 +28,49 @@ public sealed class VelopackStartupHookTests
             at = operandAt + OperandSize(code, il, operandAt);
         }
 
+        // AppContext.BaseDirectory's getter, then the hook with it
         Assert.Equal(2, calls.Count);
-        Assert.Equal(typeof(VelopackApp), calls[0].DeclaringType);
-        Assert.Equal(nameof(VelopackApp.Build), calls[0].Name);
-        Assert.Equal(typeof(VelopackApp), calls[1].DeclaringType);
-        Assert.Equal(nameof(VelopackApp.Run), calls[1].Name);
+        Assert.Equal(typeof(AppContext), calls[0].DeclaringType);
+        Assert.Equal("get_BaseDirectory", calls[0].Name);
+        Assert.Equal(typeof(Program), calls[1].DeclaringType);
+        Assert.Equal(nameof(Program.RunVelopackHook), calls[1].Name);
     }
 
     [Fact]
     [Trait("Decision", "ED-235")]
-    public void The_hook_returns_and_changes_nothing_when_the_app_was_not_installed_by_Velopack()
+    public void Only_a_Velopack_install_runs_the_hook()
     {
-        var before = Environment.GetEnvironmentVariables();
+        var root = Path.Combine(Path.GetTempPath(), "velopack-layout-" + Guid.NewGuid().ToString("N"));
+        var current = Directory.CreateDirectory(Path.Combine(root, "current")).FullName;
+        try
+        {
+            // a dev build or a test host: no Update.exe above the app's folder
+            Assert.False(Program.InstalledByVelopack(current + Path.DirectorySeparatorChar));
+            Assert.False(Program.InstalledByVelopack(current));
+            Assert.False(Program.InstalledByVelopack(AppContext.BaseDirectory));
+            // Velopack's layout: <root>\Update.exe and <root>\current\Marrow.App.exe
+            File.WriteAllBytes(Path.Combine(root, "Update.exe"), []);
+            Assert.True(Program.InstalledByVelopack(current + Path.DirectorySeparatorChar));
+            Assert.True(Program.InstalledByVelopack(current));
+            // Update.exe beside the app, not above it, is not that layout
+            Assert.False(Program.InstalledByVelopack(root));
+        }
+        finally { Directory.Delete(root, recursive: true); }
+    }
 
-        // No hook argument: the plain launch a dev run is.
-        VelopackApp.Build().SetArgs([]).Run();
-        // A bare hook name without the version Update.exe always passes is not a hook call either.
-        VelopackApp.Build().SetArgs(["--veloapp-install"]).Run();
-        // A launch argument the app handles itself (a toast activation) passes straight through.
-        VelopackApp.Build().SetArgs(["--some-toast-argument", "1.7.0"]).Run();
+    [Fact]
+    [Trait("Decision", "ED-235")]
+    public void A_run_that_Velopack_did_not_install_never_calls_Velopack()
+    {
+        // Velopack's Run() logs to %LOCALAPPDATA%\velopack\velopack.log on every call; the hook must not reach it here.
+        var log = new FileInfo(Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "velopack", "velopack.log"));
+        var before = log.Exists ? (log.Length, log.LastWriteTimeUtc) : (-1L, default(DateTime));
 
-        Assert.False(VelopackLocator.Current.IsPortable);
-        Assert.Null(VelopackLocator.Current.CurrentlyInstalledVersion);
-        Assert.Null(VelopackLocator.Current.AppUserModelId);
-        var after = Environment.GetEnvironmentVariables();
-        Assert.Equal(before.Count, after.Count);
-        foreach (var key in before.Keys) Assert.Equal(before[key], after[key]);
+        Program.RunVelopackHook(AppContext.BaseDirectory);
+
+        log.Refresh();
+        Assert.Equal(before, log.Exists ? (log.Length, log.LastWriteTimeUtc) : (-1L, default(DateTime)));
+        Assert.False(VelopackLocator.IsCurrentSet);
     }
 
     private static readonly Dictionary<short, OpCode> Codes = typeof(OpCodes)
