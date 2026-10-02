@@ -44,6 +44,12 @@ public sealed class AvaloniaFrameSource(TopLevel topLevel) : IFrameSource
             // A withdrawn request still gets Avalonia's frame, and does nothing with it.
             if (waiting.Remove(request)) request.Frame(time);
         });
+        // ED-237: a frame whose callback changes nothing on screen lets Avalonia's render loop go idle, and the next
+        // requested frame then waits for the idle wake-up (16-31 ms) instead of the display's next refresh; a timeline
+        // drawing every n-th refresh fell to about 48 updates a second on a 240 Hz display. A commit request each
+        // frame keeps the loop on the display's refresh while frames are wanted (an empty commit draws nothing).
+        if (Avalonia.Rendering.Composition.ElementComposition.GetElementVisual(topLevel)?.Compositor is { } compositor)
+            _ = compositor.RequestCommitAsync();
     }
 
     public void CancelFrame(Action<TimeSpan> frame)

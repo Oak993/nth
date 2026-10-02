@@ -21,12 +21,10 @@ namespace Marrow.App.Tests.Window.Native;
 // They found and now guard: the liquid's GPU crash (ED-233), the half-rate timeline (ED-232), FrontMonitor missing a window's
 // activation, and Reduce Motion not pausing a running timeline.
 //
-// STOP EffortSlider native #1
-// Kind: platform measurement (UNRESOLVED).
-// On the owner's 240 Hz display Avalonia 12.1.2's frame clock delivers 4 ms frames broken by frequent 21-29 ms stalls (about
-// 80 frames a second), so the track gets about 48 updates a second, not 60. The tests assert what is the port's to keep (every
-// update ED-232 allows over the frames that come, never more than 60 a second). Win32 composition mode, a 1 ms system timer
-// and the rendering mode did not change the stalls. Needed: the cause inside Avalonia's render loop.
+// STOP EffortSlider native #1 - RESOLVED 2026-10-02 by ED-237. On the owner's 240 Hz display Avalonia's render loop went idle
+// after a frame that changed nothing on screen, and the next requested frame waited 16-31 ms for its idle wake-up: the
+// track got about 48 updates a second. AvaloniaFrameSource now requests a compositor commit with each frame (probe: an
+// unchanging window 40 -> 240 frames a second, the liquid tube 81 -> 240, no gap over 15 ms), and the tests require 58.
 // A run where the parent cannot pass the foreground to the child (foreground grant=False) cannot bring its window to the front;
 // such a failure is environmental and is retried alone (the flake rule).
 [Collection("WindowManagerNative")]
@@ -98,9 +96,9 @@ public sealed class EffortSliderNativeFrameTests(WindowManagerNativeSession nati
             // The frame clock delivers at least 60 frames a second on this display ...
             Assert.True(delivered * 1000.0 / span >= 60, diagnosis);
             // ... and the timeline takes every update its 1/60 interval allows over the frames that came (ED-232), never
-            // more; no more than 60 a second. UNRESOLVED (STOP below): Avalonia's frame clock stalls 21-29 ms at times on
-            // a 240 Hz display, so the frames that come allow about 48 a second, not 60.
+            // more: 60 a second (OD-0052: never below 60; ED-237 keeps the frames coming on an unchanged frame).
             Assert.InRange(updates, allowed - 5, allowed + 5); // the timeline reads its clock a little after the frame's stamp
+            Assert.True(updates * 1000.0 / span >= 58, diagnosis);
             Assert.True(updates * 1000.0 / span <= 60.5, diagnosis);
         }, fact, typeof(EffortSliderNativeFrameTests));
     }
