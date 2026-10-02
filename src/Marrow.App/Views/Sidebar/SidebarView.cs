@@ -2662,12 +2662,13 @@ internal sealed class HelperStubRow : Decorator
         var label = new TextBlock { TextWrapping = TextWrapping.NoWrap }; // :1588-1589
         SwiftFont.Subheadline.Apply(label); // :1590
 
-        var spinner = new MiniSpinner(cellSize: 2.4) { Margin = new Thickness(0, 0, 4, 0) }; // :1592-1594
+        var spinner = new MiniSpinner(cellSize: 2.4) { Margin = new Thickness(0, 0, 4, 0), VerticalAlignment = VerticalAlignment.Center }; // :1592-1594
         var leading = new StackPanel // :1585 HStack(spacing: 5) { chevron; label; Spacer(minLength: 4); [spinner] }
         {
             Orientation = Orientation.Horizontal,
             Spacing = 5,
             HorizontalAlignment = HorizontalAlignment.Left,
+            VerticalAlignment = VerticalAlignment.Center, // :1585 an HStack centres each child on the row's height
             Children = { chevron, label },
         };
         var contentRow = new DockPanel { LastChildFill = true, Children = { leading } }; // spinner docks Right when working

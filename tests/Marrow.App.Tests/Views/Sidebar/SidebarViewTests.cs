@@ -4866,6 +4866,29 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "PR-SIDEBAR-113")] // App/Views/Sidebar/SidebarView.swift:1585 HStack(spacing: 5), centre alignment by default
+    public void The_folded_stubs_chevron_and_label_sit_on_the_centre_line_of_its_24_point_row() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helperA = NewThread(project, "Helper A", 1) with { ParentThreadID = parent.Id };
+        var helperB = NewThread(project, "Helper B", 2) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helperA, helperB]);
+        harness.Main.OnMain(() =>
+        {
+            var row = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { helperA, helperB }, (Action)(() => { }))!;
+            WindowOf(Hosted(model, row)).UpdateLayout();
+            var shape = LogicalQuery.SelfAndDescendants<Border>(row).Single(border => border.Height == ThreadRowMetrics.HelperHeight);
+            var label = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(text => text.Text == "2 helpers");
+            // The label (14 points) is shorter than the 24-point row; the HStack puts it at its own height on the row's centre line.
+            Assert.Equal(label.DesiredSize.Height, label.Bounds.Height, 0.5);
+            Assert.Equal(shape.Bounds.Height / 2, label.TranslatePoint(new Point(0, label.Bounds.Height / 2), shape)!.Value.Y, 0.5);
+            WindowOf(row).Close();
+        });
+    });
+
+    [Fact]
     [Trait("Req", "UI-SIDEBAR-035")] // App/Views/Sidebar/SidebarView.swift (cited source contract below)
     [Trait("Req", "PR-SIDEBAR-115")] // App/Views/Sidebar/SidebarView.swift:1583, :1606-1609
     public void Clicking_the_folded_stub_anywhere_including_the_connector_unfolds_the_helpers() => headless.OnUiThread(() =>
