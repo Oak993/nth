@@ -2,32 +2,48 @@
 // (a bezel; the prominent one filled with the accent). The app carries no theme package, so an Avalonia Button without a
 // template shows its label and nothing else (probe 2026-10-01).
 //
-// ENGINEERING DECISION (proposal ED-229 (4), E:\Droppy\work\reference-video\ED_PROPOSAL_system_controls.md): the Windows
-// counterparts are the system's standard and accent buttons as the Windows 11 design draws them (WinUI Button /
-// AccentButton: corner radius 4, padding 11,5,11,6, a translucent fill with a hairline border, or the accent fill with
-// white text). These numbers are UNVERIFIED (recalled from the WinUI defaults, no artifact in this repository) and the
-// design is not yet a numbered ED; recorded deviation from the macOS bezel. The label uses the port's body font. A disabled button keeps its shape at
-// 40 % opacity (the macOS and Windows disabled look both dim the whole control).
+// OD-0042 ("Mac look, native menu") and OD-0045 ("Use Apple's design kits"): the macOS push button at
+// `.controlSize(.regular)`, the size every site sets (QuestionTab.swift:165, SidebarView.swift:1018). Every value below
+// is a SOURCE FACT (Apple design resource) from the "Apple macOS 27 UI Kit" (Sketch web share, Buttons / <Dark|Light> /
+// Content Area / Bordered and Bordered Default / 3 Rg, Inspect panel, read 2026-10-02; E:\Droppy\work\apple-kit\
+// macos27-uikit-controls.md): 24 high, padding 4 / 4 / 16 / 16, radius 6 (the kit's corners are Smooth "Apple (60%)";
+// the port draws a circular arc, OD-0005), no border, the label SF Pro Medium 13 / 16 (the port's own font family, as
+// everywhere). States are the kit's: Idle, Clicked, Disabled; there is no hover state. Replaces the Windows 11 buttons of
+// the ED-229 proposal (OD-0042).
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Presenters;
 using Avalonia.Controls.Templates;
 using Avalonia.Media;
-using Avalonia.Styling;
 
 namespace Marrow.UI.Port;
 
 /// <summary>PORT-ONLY. The bordered and bordered-prominent buttons (see the file note).</summary>
 public static class SystemButtons
 {
-    /// <summary>The Windows 11 control fill (ControlFillColorDefault), shared by the standard button and the text field bezel.</summary>
-    public static SwiftColor StandardFill { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.7), new SwiftColor(white: 1, opacity: 0.06));
+    /// <summary>Layer style Content Area / 01 - Bordered / 01 - Idle: Light #000000@0.08, Dark #FFFFFF@0.07.</summary>
+    public static SwiftColor StandardFill { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.08), new SwiftColor(white: 1, opacity: 0.07));
 
-    /// <summary>The Windows 11 control fill under the pointer (ControlFillColorSecondary; UNVERIFIED, recalled).</summary>
-    public static SwiftColor StandardFillHover { get; } = SwiftColor.Dynamic(new SwiftColor(white: 1, opacity: 0.5), new SwiftColor(white: 1, opacity: 0.084));
+    /// <summary>01 - Bordered / 03 - Clicked: #000000@0.16 / #FFFFFF@0.16.</summary>
+    public static SwiftColor StandardFillPressed { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.16), new SwiftColor(white: 1, opacity: 0.16));
 
-    /// <summary>The Windows 11 control hairline (ControlStrokeColorDefault).</summary>
-    public static SwiftColor StandardStroke { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.06), new SwiftColor(white: 1, opacity: 0.07));
+    /// <summary>01 - Bordered / 04 - Disabled: #000000@0.04 / #FFFFFF@0.04.</summary>
+    public static SwiftColor StandardFillDisabled { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.04), new SwiftColor(white: 1, opacity: 0.04));
+
+    /// <summary>Labels 1 Primary: Light #000000@0.85, Dark #FFFFFF@1.</summary>
+    public static SwiftColor LabelPrimary { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.85), new SwiftColor(white: 1, opacity: 1));
+
+    /// <summary>Labels 3 Tertiary: Light #000000@0.25, Dark #FFFFFF@0.25.</summary>
+    public static SwiftColor LabelTertiary { get; } = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.25), new SwiftColor(white: 1, opacity: 0.25));
+
+    /// <summary>04 - Prominent / 03 - Clicked: the fill under #000000@0.1 (Light, plus darker) / #FFFFFF@0.1 (Dark, plus lighter).</summary>
+    private static readonly SwiftColor ProminentPress = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.1), new SwiftColor(white: 1, opacity: 0.1));
+
+    /// <summary>3 Rg: radius 6.</summary>
+    public const double Radius = 6;
+
+    /// <summary>The focus ring style: a 3.5 pt band outside the control.</summary>
+    public const double FocusBand = 3.5;
 
     /// <summary><c>Button(title, action:).buttonStyle(.bordered)</c>.</summary>
     public static Button Bordered(string title, Action action) => Make(Title(title), action, prominent: false);
@@ -38,10 +54,11 @@ public static class SystemButtons
     /// <summary><c>Button(action:) { label }.buttonStyle(.bordered)</c> with a label view (a glyph).</summary>
     public static Button Bordered(Control label, Action action) => Make(label, action, prominent: false);
 
+    // 3 Rg label: SF Pro Medium (500) 13 px, line height 16, centred.
     private static TextBlock Title(string title)
     {
-        var label = new TextBlock { Text = title, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center };
-        SwiftFont.Body.Apply(label);
+        var label = new TextBlock { Text = title, HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Center, LineHeight = 16 };
+        SwiftFont.System(13, weight: SwiftFont.Weight.Medium).Apply(label);
         return label;
     }
 
@@ -52,46 +69,73 @@ public static class SystemButtons
             Content = label,
             Template = new FuncControlTemplate<Button>((owner, scope) =>
             {
-                var card = new Border
+                var bezel = new Border
                 {
-                    CornerRadius = new CornerRadius(4),
-                    Padding = new Thickness(11, 5, 11, 6),
-                    BorderThickness = new Thickness(prominent ? 0 : 1),
-                    Child = new ContentPresenter
-                    {
-                        Name = "PART_ContentPresenter",
-                        [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty],
-                    }.RegisterInNameScope(scope),
+                    Name = "PART_Bezel",
+                    CornerRadius = new CornerRadius(Radius),
+                    Padding = new Thickness(16, 4, 16, 4),
                 };
-                if (!prominent) card.BorderBrush = StandardStroke.Brush(card);
-                // States, as the Windows buttons show them (UNVERIFIED values, recalled): a lighter fill under the pointer,
-                // the label dimmed while pressed, and a 2 pt ring around the button while it has keyboard focus
-                // (:focus-visible, so a mouse click does not show it).
-                var ring = new Border { Margin = new Thickness(-3), CornerRadius = new CornerRadius(7), BorderThickness = new Thickness(2), IsVisible = false, IsHitTestVisible = false };
-                ring.BorderBrush = Marrow.UI.Chrome.Chrome.PrimaryText.Brush(ring);
-                var root = new Panel { Children = { card, ring } };
-                var rest = (prominent ? Marrow.UI.Chrome.Chrome.Accent : StandardFill).Brush(card);
-                var hover = prominent ? Marrow.UI.Chrome.Chrome.Accent.Opacity(0.9).Brush(card) : StandardFillHover.Brush(card);
+                var presenter = new ContentPresenter
+                {
+                    Name = "PART_ContentPresenter",
+                    [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty],
+                }.RegisterInNameScope(scope);
+                // The prominent button's Clicked state lays a wash over its fill and under its label (the whole bezel, out
+                // past the padding); the bordered one swaps its fill instead.
+                var press = new Border { Name = "PART_Press", CornerRadius = new CornerRadius(Radius), Margin = new Thickness(-16, -4, -16, -4), IsVisible = false, IsHitTestVisible = false };
+                press.Background = ProminentPress.Brush(press);
+                bezel.Child = new Panel { Children = { press, presenter } };
+                // The focus ring: 3.5 px #0088FF@0.25 outside the control (the accent stands for System Blue, as it does
+                // for the prominent fill), shown for keyboard focus only (:focus-visible, so a click does not show it).
+                var ring = new Border
+                {
+                    Name = "PART_Focus",
+                    Margin = new Thickness(-FocusBand),
+                    CornerRadius = new CornerRadius(Radius + FocusBand),
+                    BorderThickness = new Thickness(FocusBand),
+                    IsVisible = false,
+                    IsHitTestVisible = false,
+                };
+                ring.BorderBrush = Marrow.UI.Chrome.Chrome.Accent.Opacity(0.25).Brush(ring);
+                var root = new Panel { Children = { bezel, ring } };
+                var idle = (prominent ? Marrow.UI.Chrome.Chrome.Accent : StandardFill).Brush(bezel);
+                var pressed = StandardFillPressed.Brush(bezel);
+                var disabled = StandardFillDisabled.Brush(bezel);
+                var text = label as TextBlock;
+                var primary = text is null ? null : (prominent ? SwiftColor.White : LabelPrimary).Brush(text);
+                var tertiary = text is null || prominent ? null : LabelTertiary.Brush(text);
                 void Paint()
                 {
-                    card.Background = owner.IsPointerOver && owner.IsEffectivelyEnabled ? hover : rest;
-                    card.Child!.Opacity = owner.IsPressed ? 0.8 : 1;
+                    // Effective, so a button disabled by its parent shows its disabled look too; an Opacity the site sets on
+                    // the button itself is kept.
+                    var enabled = owner.IsEffectivelyEnabled;
+                    var down = owner.IsPressed && enabled;
+                    if (prominent)
+                    {
+                        // 04 - Disabled: the fill at 40 % layer opacity and the white label at 50 %.
+                        bezel.Background = idle;
+                        bezel.Opacity = enabled ? 1 : 0.4;
+                        label.Opacity = enabled ? 1 : 0.5;
+                        press.IsVisible = down;
+                    }
+                    else
+                    {
+                        bezel.Background = !enabled ? disabled : down ? pressed : idle;
+                        if (text is not null) text.Foreground = enabled ? primary : tertiary;
+                    }
                     ring.IsVisible = owner.Classes.Contains(":focus-visible");
-                    // Effective, so a button disabled by its parent dims too. The dim is the template's, so an Opacity the
-                    // site sets on the button itself is kept.
-                    root.Opacity = owner.IsEffectivelyEnabled ? 1 : 0.4;
                 }
                 owner.PropertyChanged += (_, e) =>
                 {
-                    if (e.Property == Avalonia.Input.InputElement.IsPointerOverProperty || e.Property == Button.IsPressedProperty ||
-                        e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty || e.Property == Avalonia.Input.InputElement.IsFocusedProperty) Paint();
+                    if (e.Property == Button.IsPressedProperty || e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty ||
+                        e.Property == Avalonia.Input.InputElement.IsFocusedProperty) Paint();
                 };
                 owner.Classes.CollectionChanged += (_, _) => Paint();
                 Paint();
                 return root;
             }),
         };
-        if (label is TextBlock text) text.Foreground = (prominent ? SwiftColor.White : Marrow.UI.Chrome.Chrome.PrimaryText).Brush(text);
+        if (label is TextBlock title) title.Foreground = (prominent ? SwiftColor.White : LabelPrimary).Brush(title);
         button.Click += (_, _) => action();
         return button;
     }

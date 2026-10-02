@@ -1701,8 +1701,8 @@ internal sealed class RenameThreadPopover : Decorator
     /// <param name="onCancel">:990 <c>let onCancel: () -> Void</c>.</param>
     // :995-1000 init; :1002-1024 body. Formerly STOP #6 (no Windows chrome for .roundedBorder / .bordered /
     // .borderedProminent); closed 2026-10-01: the field is the RoundedBorder editor ChatView's and QuestionTab's
-    // .roundedBorder fields use, the buttons SystemButtons.Bordered / BorderedProminent (ENGINEERING DECISIONs there,
-    // proposal ED-229 (4), not yet numbered).
+    // .roundedBorder fields use, the buttons SystemButtons.Bordered / BorderedProminent, both drawn as the macOS controls
+    // from Apple's macOS 27 UI Kit (OD-0042, OD-0045).
     public RenameThreadPopover(string title, Action<string> onRename, Action onCancel)
     {
         // :992-993 @State private var text: String (initialValue: title); @FocusState private var isFocused

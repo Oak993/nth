@@ -296,7 +296,7 @@ public sealed class QuestionSheet : Decorator
         Button? previous = null;
         if (request.Questions.Count > 1)
         {
-            // :124-129 .buttonStyle(.bordered) (SystemButtons: the Windows standard button, ED-229 proposal (4))
+            // :124-129 .buttonStyle(.bordered) (SystemButtons: the macOS push button, OD-0042 / OD-0045)
             previous = SystemButtons.Bordered(SwiftImage.SystemName("chevron.left"), () => SetPage(Math.Max(0, page - 1)));
             previous.Margin = new Thickness(0, 0, 8, 0);
             ToolTip.SetTip(previous, "Previous question");

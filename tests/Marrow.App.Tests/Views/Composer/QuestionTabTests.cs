@@ -215,14 +215,36 @@ public sealed class QuestionTabTests(HeadlessSession headless)
                 var presenter = Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(field).OfType<Avalonia.Controls.Presenters.TextPresenter>().Single();
                 Assert.Equal("123456", presenter.Text);
                 Assert.Equal('•', presenter.PasswordChar); // :231 SecureField
-                // :236 .roundedBorder: the field sits in a bezel (the Windows text box, proposal ED-229 (4)), accent while focused.
+                // :236-238 .roundedBorder at .controlSize(.regular): the macOS field bezel (OD-0042, OD-0045: "Apple macOS
+                // 27 UI Kit", Text Fields / 3 Rg and layer style Content Area / Input Fields, SOURCE FACT (Apple design
+                // resource)): 24 high, radius 6, fill #1E1E1E / #FFFFFF, a 1 px #FFFFFF@0.04 / #000000@0.05 border, the
+                // text 6 in from each side; keyboard focus adds a 3.5 px accent@0.25 ring outside it.
                 var bezel = Assert.IsType<Border>(Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualChildren(field)));
-                Assert.Equal(new CornerRadius(4), bezel.CornerRadius);
+                var theme = bezel.ActualThemeVariant;
+                var dark = theme == Avalonia.Styling.ThemeVariant.Dark;
+                Assert.Equal(new CornerRadius(6), bezel.CornerRadius);
                 Assert.Equal(new Thickness(1), bezel.BorderThickness);
-                var resting = ((Avalonia.Media.ISolidColorBrush)bezel.BorderBrush!).Color;
-                field.Focus();
+                Assert.Equal(new Thickness(5, 0, 5, 0), bezel.Padding);
+                Assert.Equal(24, field.Bounds.Height, 3);
+                Assert.Equal(Marrow.UI.Port.SwiftColor.Rgb(dark ? 0x1E1E1Eu : 0xFFFFFFu).Resolve(theme), ((Avalonia.Media.ISolidColorBrush)bezel.Background!).Color);
+                Assert.Equal(new Marrow.UI.Port.SwiftColor(white: dark ? 1 : 0, opacity: dark ? 0.04 : 0.05).Resolve(theme), ((Avalonia.Media.ISolidColorBrush)bezel.BorderBrush!).Color);
+                Assert.Equal(0, bezel.BoxShadow.Count);
+                field.Focus(Avalonia.Input.NavigationMethod.Tab);
                 Avalonia.Threading.Dispatcher.UIThread.RunJobs();
-                Assert.NotEqual(resting, ((Avalonia.Media.ISolidColorBrush)bezel.BorderBrush!).Color);
+                Assert.Equal(1, bezel.BoxShadow.Count);
+                var ring = bezel.BoxShadow[0];
+                Assert.Equal(3.5, ring.Spread);
+                Assert.Equal(0, ring.Blur);
+                Assert.False(ring.IsInset);
+                Assert.Equal(Marrow.UI.Chrome.Chrome.Accent.Opacity(0.25).Resolve(theme), ring.Color);
+                // The other appearance: the bezel follows the theme.
+                window.RequestedThemeVariant = dark ? Avalonia.Styling.ThemeVariant.Light : Avalonia.Styling.ThemeVariant.Dark;
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                var other = bezel.ActualThemeVariant;
+                Assert.NotEqual(theme, other);
+                Assert.Equal(Marrow.UI.Port.SwiftColor.Rgb(dark ? 0xFFFFFFu : 0x1E1E1Eu).Resolve(other), ((Avalonia.Media.ISolidColorBrush)bezel.Background!).Color);
+                Assert.Equal(new Marrow.UI.Port.SwiftColor(white: dark ? 0 : 1, opacity: dark ? 0.05 : 0.04).Resolve(other), ((Avalonia.Media.ISolidColorBrush)bezel.BorderBrush!).Color);
+                Assert.Equal(Marrow.UI.Chrome.Chrome.Accent.Opacity(0.25).Resolve(other), bezel.BoxShadow[0].Color);
             }
             finally { window.Close(); }
         });
@@ -233,7 +255,7 @@ public sealed class QuestionTabTests(HeadlessSession headless)
     public void The_footer_buttons_are_drawn_skip_bordered_and_send_prominent()
     {
         // An Avalonia Button without a template showed only its label in this theme-less app; the footer uses
-        // SystemButtons (the Windows standard and accent buttons, proposal ED-229 (4)).
+        // SystemButtons (the macOS push buttons, OD-0042 / OD-0045).
         headless.OnUiThread(() =>
         {
             using var runtime = new TestRuntime();
@@ -249,8 +271,13 @@ public sealed class QuestionTabTests(HeadlessSession headless)
                 var skip = Named("Skip");
                 var send = Named("Send");
                 Assert.True(skip.Bounds.Height > 0 && send.Bounds.Height > 0);
-                Assert.Equal(new Thickness(1), Card(skip).BorderThickness); // bordered: a hairline bezel
-                Assert.Equal(new Thickness(0), Card(send).BorderThickness); // prominent: the accent fill
+                // OD-0042 / OD-0045 (macOS 27 UI Kit, 3 Rg): bordered is the 7 % / 8 % wash, prominent the accent fill; both
+                // borderless and 24 high (:165 .controlSize(.regular)).
+                Assert.Equal(Marrow.UI.Port.SystemButtons.StandardFill.Resolve(skip.ActualThemeVariant), ((Avalonia.Media.ISolidColorBrush)Card(skip).Background!).Color);
+                Assert.Equal(Marrow.UI.Chrome.Chrome.Accent.Resolve(send.ActualThemeVariant), ((Avalonia.Media.ISolidColorBrush)Card(send).Background!).Color);
+                Assert.Equal(new Thickness(0), Card(skip).BorderThickness);
+                Assert.Equal(24, skip.Bounds.Height, 3);
+                Assert.Equal(24, send.Bounds.Height, 3);
                 Assert.True(send.IsDefault);
             }
             finally { window.Close(); }

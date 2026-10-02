@@ -14,6 +14,11 @@ namespace Marrow.App.Port;
 
 internal static class ChatDialogControls
 {
+    // Layer style Content Area / Input Fields / 01 - Idle (macOS 27 UI Kit): fill Light #FFFFFF / Dark #1E1E1E, border
+    // Light #000000@0.05 / Dark #FFFFFF@0.04.
+    internal static readonly SwiftColor FieldFill = SwiftColor.Dynamic(SwiftColor.Rgb(0xFFFFFF), SwiftColor.Rgb(0x1E1E1E));
+    internal static readonly SwiftColor FieldStroke = SwiftColor.Dynamic(new SwiftColor(white: 0, opacity: 0.05), new SwiftColor(white: 1, opacity: 0.04));
+
     public static void Plain(Button button) => button.Template = new FuncControlTemplate<Button>((owner, scope) =>
         new ContentPresenter { Name = "PART_ContentPresenter", [!ContentPresenter.ContentProperty] = owner[!ContentControl.ContentProperty] }.RegisterInNameScope(scope));
     // Native style kinds are kept without guessing the platform's implicit metric values (ChatView STOP #5).
@@ -60,24 +65,35 @@ internal static class ChatDialogControls
             Update();
             var content = new Panel { Children = { prompt, text } };
             if (style != "RoundedBorder") return content;
-            // `.textFieldStyle(.roundedBorder)`: the system text field's bezel. ENGINEERING DECISION (proposal ED-229 (4)):
-            // the Windows 11 text box (corner radius 4, padding 10,5,6,6, the control fill and hairline SystemButtons use,
-            // the accent border while it has focus; UNVERIFIED numbers, recalled; not yet a numbered ED); recorded deviation
-            // from the macOS bezel.
+            // `.textFieldStyle(.roundedBorder)`: the system text field's bezel at the regular size every site uses
+            // (ChatView.swift:1673,1682, QuestionTab.swift:237-238, SidebarView.swift:1007). OD-0042 / OD-0045: SOURCE FACT
+            // (Apple design resource), "Apple macOS 27 UI Kit", Text Fields / <Dark|Light> / 3 Rg and layer style Content
+            // Area / Input Fields (read 2026-10-02; E:\Droppy\work\apple-kit\macos27-uikit-controls.md): 24 high, radius 6,
+            // fill #1E1E1E / #FFFFFF, a 1 px border #FFFFFF@0.04 / #000000@0.05, the text 6 in from the left and 6 from
+            // the right while typing, centred vertically. The kit draws the border outside the 24-point frame; Avalonia
+            // draws it inside, so the padding gives back the point (ENGINEERING DECISION). Keyboard focus adds the
+            // focus ring, a 3.5 px accent@0.25 band outside the bezel (the accent stands for System Blue). The site's
+            // font is kept (ChatView sets callout monospaced on its command field).
             // A single line longer than the field scrolls inside the bezel to keep the caret in view (the TextBox brings
             // its caret into view through the scroll view it finds as PART_ScrollViewer) and never paints past it.
             var line = new ScrollViewer
             {
                 Name = "PART_ScrollViewer",
                 Content = content,
+                VerticalAlignment = VerticalAlignment.Center,
                 HorizontalScrollBarVisibility = ScrollBarVisibility.Hidden,
                 VerticalScrollBarVisibility = ScrollBarVisibility.Disabled,
             }.RegisterInNameScope(scope);
-            var bezel = new Border { CornerRadius = new CornerRadius(4), Padding = new Thickness(10, 5, 6, 6), BorderThickness = new Thickness(1), ClipToBounds = true, Child = line };
-            bezel.Background = SystemButtons.StandardFill.Brush(bezel);
-            void Stroke() => bezel.BorderBrush = (box.IsKeyboardFocusWithin ? Chrome.Accent : SystemButtons.StandardStroke).Brush(bezel);
-            box.PropertyChanged += (_, e) => { if (e.Property == Avalonia.Input.InputElement.IsKeyboardFocusWithinProperty) Stroke(); };
-            Stroke();
+            var bezel = new Border { CornerRadius = new CornerRadius(6), Padding = new Thickness(5, 0, 5, 0), BorderThickness = new Thickness(1), MinHeight = 24, ClipToBounds = true, Child = line };
+            bezel.Background = FieldFill.Brush(bezel);
+            bezel.BorderBrush = FieldStroke.Brush(bezel);
+            var ring = Chrome.Accent.Opacity(0.25).Brush(bezel);
+            void Focus() => bezel.BoxShadow = box.IsKeyboardFocusWithin && ring is Avalonia.Media.ISolidColorBrush halo
+                ? new Avalonia.Media.BoxShadows(new Avalonia.Media.BoxShadow { Spread = 3.5, Color = halo.Color })
+                : default;
+            box.PropertyChanged += (_, e) => { if (e.Property == Avalonia.Input.InputElement.IsKeyboardFocusWithinProperty) Focus(); };
+            bezel.ActualThemeVariantChanged += (_, _) => Focus();
+            Focus();
             return bezel;
         });
     }

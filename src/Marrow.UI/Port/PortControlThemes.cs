@@ -71,24 +71,46 @@ public static class PortControlThemes
     };
 
     // `.help(...)` (NSView.toolTip): the system tooltip. Without a template a ToolTip drew its text with no card, floating
-    // over whatever was under it. ENGINEERING DECISION (proposal ED-229, not yet numbered): the Windows system tooltip's
-    // card as the Windows 11 design draws it (WinUI ToolTip: corner radius 4, padding 9,6,9,8, 12 pt text, a solid
-    // #F9F9F9 / #2C2C2C fill and a hairline border; UNVERIFIED numbers, recalled, no artifact), in the port's own text
-    // colour; recorded deviation from the macOS help tag.
-    private static readonly SwiftColor TipFill = SwiftColor.Dynamic(SwiftColor.Rgb(0xF9F9F9), SwiftColor.Rgb(0x2C2C2C));
+    // over whatever was under it. OD-0042 ("Mac look") / OD-0045: the macOS help tag, every value a SOURCE FACT (Apple
+    // design resource) from the "Apple macOS 27 UI Kit" (Tooltips / Dark and / Light, Inspect panel, read 2026-10-02;
+    // E:\Droppy\work\apple-kit\macos27-uikit-controls.md): the card fits its text with padding 6 horizontal and 3
+    // vertical, square corners (the Inspect panel lists none), fill Dark #262626@0.8 / Light #E7E7E7@0.85, shadows
+    // 0 0 2 #000000@0.4 and 0 2 8 #000000@0.2 and, in Dark, an inner 0.6 hairline #FFFFFF@0.15; the text SF Pro Medium 11 /
+    // 13 (the port's own family), Dark #FFFFFF@0.96 (Labels Dark Vibrant 1 Primary, plus lighter), Light #4C4C4C (plus
+    // darker; both drawn in normal blending). Not drawn: the kit's 45-point background blur behind the card (a tooltip
+    // is its own popup; OD-0005 governs materials). The card keeps 8 / 8 / 8 / 10 points round it inside the tip so the
+    // popup does not clip its shadows (ENGINEERING DECISION).
+    private static readonly SwiftColor TipFill = SwiftColor.Dynamic(SwiftColor.Rgb(0xE7E7E7).Opacity(0.85), SwiftColor.Rgb(0x262626).Opacity(0.8));
+
+    private static readonly SwiftColor TipText = SwiftColor.Dynamic(SwiftColor.Rgb(0x4C4C4C), new SwiftColor(white: 1, opacity: 0.96));
 
     private static readonly FuncControlTemplate<ToolTip> TipTemplate = new((tip, scope) =>
     {
         var presenter = new ContentPresenter
         {
             Name = "PART_ContentPresenter",
-            FontSize = 12,
+            FontSize = 11,
+            FontWeight = FontWeight.Medium,
+            LineHeight = 13,
             [!ContentPresenter.ContentProperty] = tip[!ContentControl.ContentProperty],
         }.RegisterInNameScope(scope);
-        var card = new Border { CornerRadius = new CornerRadius(4), Padding = new Thickness(9, 6, 9, 8), BorderThickness = new Thickness(1), Child = presenter };
+        var card = new Border { Name = "PART_Tag", Padding = new Thickness(6, 3), Margin = new Thickness(8, 8, 8, 10), Child = presenter };
         card.Background = TipFill.Brush(card);
-        card.BorderBrush = Marrow.UI.Chrome.Chrome.Overlay(0.15).Brush(card);
-        presenter.Foreground = Marrow.UI.Chrome.Chrome.PrimaryText.Brush(presenter);
+        presenter.Foreground = TipText.Brush(presenter);
+        void Shadows()
+        {
+            var theme = card.ActualThemeVariant;
+            var outer = new[]
+            {
+                new BoxShadow { Blur = 2, Color = new SwiftColor(white: 0, opacity: 0.4).Resolve(theme) },
+                new BoxShadow { OffsetY = 2, Blur = 8, Color = new SwiftColor(white: 0, opacity: 0.2).Resolve(theme) },
+            };
+            card.BoxShadow = theme == ThemeVariant.Dark
+                ? new BoxShadows(outer[0], [outer[1], new BoxShadow { IsInset = true, Spread = 0.6, Color = new SwiftColor(white: 1, opacity: 0.15).Resolve(theme) }])
+                : new BoxShadows(outer[0], [outer[1]]);
+        }
+        card.ActualThemeVariantChanged += (_, _) => Shadows();
+        Shadows();
         return card;
     });
 
