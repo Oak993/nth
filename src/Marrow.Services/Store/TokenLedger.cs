@@ -296,14 +296,16 @@ internal static class CodexFingerprintStore
             return result; // :303
         }
 
-        if (UserDefaults.Standard.Current.Dictionary(LegacyDefaultsKey) is not { } legacy) // :305
+        // :305-307 `as? [String: [String: Any]]`: the cast is all or nothing, so one value that is not a dictionary
+        // leaves the key on disk and returns [:] without saving (it never reaches :308).
+        if (UserDefaults.Standard.Current.Dictionary(LegacyDefaultsKey) is not { } legacy
+            || !legacy.Values.All(entry => entry is IReadOnlyDictionary<string, object>))
             return ValueMap<string, CodexFileFingerprint>.Empty; // :306
         UserDefaults.Standard.Current.RemoveObject(LegacyDefaultsKey); // :308
         var migratedMap = new Dictionary<string, CodexFileFingerprint>(SwiftStringComparer.Instance);
         foreach (var (path, value) in legacy) // :309-311
         {
-            if (value is IReadOnlyDictionary<string, object> entryDict
-                && CodexFileFingerprint.FromLegacyDict(entryDict, path) is { } fingerprint)
+            if (CodexFileFingerprint.FromLegacyDict((IReadOnlyDictionary<string, object>)value, path) is { } fingerprint)
                 migratedMap[path] = fingerprint;
         }
         var migratedResult = new ValueMap<string, CodexFileFingerprint>(migratedMap, SwiftStringComparer.Instance);
