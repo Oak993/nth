@@ -234,9 +234,9 @@ public sealed class SettingsView : Decorator
             SettingsPage.SourceControl => new SourceControlSettingsPage(), SettingsPage.Shortcuts => new ShortcutsSettingsPage(), SettingsPage.Archive => new ArchiveSettingsPage(), SettingsPage.About => new AboutSettingsPage(),
         };
         var hasControls = state.Page is SettingsPage.Providers or SettingsPage.Models or SettingsPage.Mcp or SettingsPage.Archive or SettingsPage.About; // :270-272
-        pageStack = new StackPanel { Spacing = Chrome.SectionSpacing, Margin = new Thickness(Chrome.ContentHorizontalPadding + 8, hasControls ? Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 16 : 22, Chrome.ContentHorizontalPadding + 8, 24), Children = { content } }; // :220-227
+        pageStack = new StackPanel { Spacing = Chrome.SectionSpacing, Margin = new Thickness(Chrome.ContentHorizontalPadding + 8, hasControls ? Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 16 : PageTopWithoutControls, Chrome.ContentHorizontalPadding + 8, 24), Children = { content } }; // :220-227
         pageStack.Track(() => scrollTracker.IsFrozen, value => pageStack.IsHitTestVisible = !value);
-        var scroll = new ScrollViewer { Template = SettingsScrollTemplate, Content = pageStack, VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :228-230
+        var scroll = new ScrollViewer { Template = SettingsScrollTemplate, Content = ClearingCaptionButtons(pageStack, hasControls), VerticalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Hidden, HorizontalScrollBarVisibility = Avalonia.Controls.Primitives.ScrollBarVisibility.Disabled }; // :228-230
         WireScroll(scroll, page: true);
         var accessories = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
         var chromeRow = new Grid { ColumnDefinitions = new ColumnDefinitions("*,Auto"), ColumnSpacing = 10, MinHeight = Chrome.CapsuleHeight, Children = { new ChromeCompactTitle(state.Page.Title, scrollChrome), accessories } }; Grid.SetColumn(accessories, 1);
@@ -248,6 +248,19 @@ public sealed class SettingsView : Decorator
         if (state.Page == SettingsPage.About) accessories.Children.Add(new AboutUpdateChromeAccessory()); // :260-262
         detail.Child = new Panel { Children = { scroll, new PaneTopVeil(scrollChrome) { VerticalAlignment = VerticalAlignment.Top }, chrome } }.DetailSheet();
     }
+
+    // DEVIATION OD-0044, OD-0046, ED-239: a page's content starts below the Windows caption buttons. The source puts the
+    // traffic lights over the sidebar's empty top (:137-140), so its pages that have no chrome controls start 22 below the
+    // sheet edge (:225 "Pages without chrome controls start just below the sheet edge; the others clear their capsules").
+    // The port's buttons sit at the top right, in the capsules' row (WindowChrome.CaptionTop), over the detail pane, so
+    // those pages clear that row as the others do: Chrome.chromeTopPadding + Chrome.capsuleHeight + 16 (:225), the same
+    // 60 as a page with controls. The page's own margin keeps the source's 22; the difference is added above it, so the
+    // content at rest never runs under the buttons (scrolled content passes under them through the pane's top veil).
+    private static Control ClearingCaptionButtons(Control pageStack, bool hasControls) =>
+        hasControls ? pageStack : new Border { Padding = new Thickness(0, Chrome.ChromeTopPadding + Chrome.CapsuleHeight + 16 - PageTopWithoutControls, 0, 0), Child = pageStack };
+
+    // :225 the top padding of a page without chrome controls.
+    private const double PageTopWithoutControls = 22;
 
     // :228-241 ScrollView: the unthemed app owns its real vertical content presenter.
     private static readonly FuncControlTemplate<ScrollViewer> SettingsScrollTemplate = new((viewer, scope) =>
