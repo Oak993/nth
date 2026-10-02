@@ -2296,6 +2296,7 @@ internal sealed class SidebarHelperRow : Decorator
         Control content = showsActions ? actionsButton : new ActivityStatus(thread); // :1376-1380
         content.Margin = new Thickness(0, 0, 6, 0); // :1382 .padding(.trailing, 6)
         content.HorizontalAlignment = HorizontalAlignment.Right;
+        content.VerticalAlignment = VerticalAlignment.Center; // :1375 .overlay(alignment: .trailing) centres it on the row's height
         return content;
     }
 
@@ -3193,6 +3194,7 @@ internal sealed class SidebarThreadRow : Decorator
         }
         content.Margin = new Thickness(0, 0, 6, 0); // :1800 .padding(.trailing, 6)
         content.HorizontalAlignment = HorizontalAlignment.Right;
+        content.VerticalAlignment = VerticalAlignment.Center; // :1773 .overlay(alignment: .trailing) centres it on the row's height
         return content;
     }
 
@@ -3213,6 +3215,7 @@ internal sealed class SidebarThreadRow : Decorator
         var icon = new RowAccessoryIcon(folded ? "chevron.right" : "chevron.down"); // :1808, OD-0010 Lucide chevron-right/chevron-down
         var button = PlainControls.Button(icon, toggle); // :1807, :1810 .buttonStyle(.plain)
         button.HorizontalAlignment = HorizontalAlignment.Right; // :1804 .overlay(alignment: .trailing)
+        button.VerticalAlignment = VerticalAlignment.Center; // the same overlay centres it on the row's height
         button.Margin = new Thickness(0, 0, ThreadRowMetrics.FoldInset, 0); // :1811, 46
         var tip = folded ? "Show helpers" : "Hide helpers"; // :1812
         ToolTip.SetTip(button, tip);

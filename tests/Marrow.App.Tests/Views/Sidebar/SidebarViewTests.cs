@@ -3544,6 +3544,28 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         });
     }
 
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-075")] // App/Views/Sidebar/SidebarView.swift:1772-1801 the trailing content of .overlay(alignment: .trailing) is centred vertically
+    public void The_relative_time_sits_on_the_vertical_centre_of_its_thread_row() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var project = NewProject(harness, "Alpha");
+        var thread = AppModelSamples.Thread(project) with { Title = "Fix the build" }; // a fresh thread: the label reads "now" (no ICU needed)
+        var model = Model(harness, [project], [thread]);
+        harness.Main.OnMain(() =>
+        {
+            var row = LiveThreadRow(thread);
+            var window = WindowOf(Hosted(model, row));
+            window.UpdateLayout();
+            var label = LogicalQuery.SelfAndDescendants<TextBlock>(row).Single(text => text.Text == "now");
+            // An .overlay(alignment: .trailing) centres its content on the row's height; the panel stretched the label, which drew at the
+            // row's top.
+            Assert.Equal(label.DesiredSize.Height - label.Margin.Top - label.Margin.Bottom, label.Bounds.Height, 0.5);
+            Assert.Equal(row.Bounds.Height / 2, label.TranslatePoint(new Point(0, label.Bounds.Height / 2), row)!.Value.Y, 0.5);
+        });
+    });
+
     // ---- PR-SIDEBAR-076: the title's trailing clearance ----
 
     [Fact]
