@@ -205,6 +205,12 @@ public static class FrameClock
         var timeline = new AnimationTimeline(schedule, update);
         control.AttachedToVisualTree += (_, _) => timeline.Appear();
         control.DetachedFromVisualTree += (_, _) => timeline.Disappear();
+        // \.accessibilityReduceMotion is an inherited Avalonia property (ED-084), which observation tracking does not see:
+        // SwiftUI re-evaluates the schedule when that environment value changes, so the timeline re-reads it then too.
+        control.PropertyChanged += (_, change) =>
+        {
+            if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) timeline.Reschedule();
+        };
         return control;
     }
 }
@@ -296,6 +302,7 @@ public sealed class AnimationTimeline
     private bool appeared;
     private bool outstanding;
     private ContinuousInstant lastDraw;
+    private ContinuousInstant due; // ED-232: when the last due draw was due
 
     public AnimationTimeline(Func<AnimationTimelineSchedule> schedule, Action<DateTimeOffset> update)
     {
@@ -316,6 +323,7 @@ public sealed class AnimationTimeline
         appeared = true;
         source = FrameClock.Source.Current;
         Draw();
+        due = lastDraw; // ED-232: the first due time is the appearance
         tracked = new Tracked<AnimationTimelineSchedule>(schedule, Apply);
     }
 
@@ -338,6 +346,12 @@ public sealed class AnimationTimeline
     public void Redraw()
     {
         if (Date is { } date) update(date);
+    }
+
+    /// <summary>Re-reads the schedule now (an environment value it read changed outside observation tracking).</summary>
+    internal void Reschedule()
+    {
+        if (appeared) Apply(schedule());
     }
 
     private void Apply(AnimationTimelineSchedule next)
@@ -365,10 +379,24 @@ public sealed class AnimationTimeline
     {
         outstanding = false;
         if (!Running) return; // paused or gone: the stale request does nothing
-        if (current.MinimumInterval is not { } interval
-            || FrameClock.IsComplete(lastDraw, SwiftClock.Now, SwiftTask.Seconds(interval)))
+        if (current.MinimumInterval is not { } interval)
         {
             Draw();
+        }
+        else
+        {
+            // ED-232 (OD-0059, amends ED-117 (2)-(4)): draws are due one interval apart from the previous due time, not
+            // from the moment the previous frame happened to run. A frame callback's timing jitters, and measuring from
+            // it skipped every other frame of a ~60 Hz frame clock for a 1/60 interval (native run 2026-10-02: 33 updates
+            // a second). Never faster than the interval on average; a timeline more than two intervals behind (a pause,
+            // a slow frame) takes the frame it is at as its new start instead of catching up.
+            var span = SwiftTask.Seconds(interval);
+            var now = SwiftClock.Now;
+            if (FrameClock.IsComplete(due, now, span))
+            {
+                Draw();
+                due = now - due >= span + span ? now : due + span;
+            }
         }
         if (Running) Request();
     }

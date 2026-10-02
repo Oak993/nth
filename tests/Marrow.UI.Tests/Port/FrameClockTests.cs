@@ -603,9 +603,10 @@ public sealed class FrameClockTests
             timeline.Appear();
         });
         Assert.Equal(1, frames.Pending);
-        // 7 ms apart, to 203 ms. 49 is the boundary: 49 + 1 equals 50 ms exactly; 42 + 1 does not reach it.
+        // 7 ms apart, to 203 ms. ED-232: due every 50 ms from the appearance (50, 100, 150, 200), each met at the first
+        // frame where elapsed + 1 ms reaches it: 49 (49 + 1 = 50), then 105 (98 + 1 < 100), 154 (147 + 1 < 150), 203.
         Frames(runtime, frames, count: 29, everyMilliseconds: 7);
-        Assert.Equal([Start, At(49), At(98), At(147), At(196)], dates);
+        Assert.Equal([Start, At(49), At(105), At(154), At(203)], dates);
         Assert.Equal(1, frames.Pending); // it keeps asking while it runs
         Assert.Equal(0, runtime.Time.ActiveTimers);
     }
@@ -641,7 +642,7 @@ public sealed class FrameClockTests
     [Trait("Decision", "ED-083")]
     [Trait("Decision", "ED-117")]
     [Trait("Oracle", "O-34")]
-    public void An_animation_timeline_at_one_24th_of_a_second_updates_every_44_ms_over_4_ms_frames_24_dates_to_1020_ms()
+    public void An_animation_timeline_at_one_24th_of_a_second_keeps_24_updates_a_second_over_4_ms_frames_25_dates_to_1020_ms()
     {
         using var runtime = new TestRuntime();
         var frames = new ManualFrameSource();
@@ -653,9 +654,11 @@ public sealed class FrameClockTests
             var timeline = new AnimationTimeline(() => new AnimationTimelineSchedule(MinimumInterval: 1.0 / 24.0, Paused: false), dates.Add);
             timeline.Appear();
         });
-        // 1/24 s is 416667 ticks: 40 + 1 ms falls short, 44 + 1 ms reaches it.
+        // 1/24 s is 416667 ticks. ED-232: due k * 416667 ticks after the appearance, met at the first 4 ms frame where
+        // elapsed + 1 ms reaches it, so the gaps alternate 40 and 44 ms and the rate stays 24 a second (24 updates by 1000 ms).
         Frames(runtime, frames, count: 255);
-        Assert.Equal(new[] { Start }.Concat(Enumerable.Range(1, 23).Select(k => At(44 * k))), dates);
+        int[] expected = [44, 84, 128, 168, 208, 252, 292, 336, 376, 416, 460, 500, 544, 584, 628, 668, 708, 752, 792, 836, 876, 916, 960, 1000];
+        Assert.Equal(new[] { Start }.Concat(expected.Select(At)), dates);
     }
 
     // The value is the port's parked choice for unverified SwiftUI and Core Animation behaviour (O-34).
@@ -711,7 +714,7 @@ public sealed class FrameClockTests
     [Trait("Decision", "ED-083")]
     [Trait("Decision", "ED-117")]
     [Trait("Oracle", "O-34")]
-    public void An_animation_timeline_holds_still_while_paused_and_resumes_measured_from_its_last_draw_before_the_pause()
+    public void An_animation_timeline_holds_still_while_paused_and_resumes_at_once_starting_its_due_times_again()
     {
         using var runtime = new TestRuntime();
         var frames = new ManualFrameSource();
@@ -745,7 +748,9 @@ public sealed class FrameClockTests
             Frames(runtime, frames, count: 1);
             Assert.Equal(1, frames.Pending);
         }
-        Assert.Equal([Start, At(36), At(144), At(180), At(216)], dates);
+        // ED-232: the first frame after the resume is long past due, so it draws and starts the due times again from 144
+        // (177.3, 210.7): 180 (176 + 1 < 177.3) and 212 (208 + 1 < 210.7).
+        Assert.Equal([Start, At(36), At(144), At(180), At(212)], dates);
     }
 
     // The value is the port's parked choice for unverified SwiftUI and Core Animation behaviour (O-34).
@@ -779,7 +784,8 @@ public sealed class FrameClockTests
             Assert.InRange(dates.Count - before, 0, 1);
             Assert.Equal(1, frames.Pending);
         }
-        Assert.Equal([Start, At(36), At(72)], dates);
+        // ED-232: due at 33.3 and 66.7 ms from the appearance: 36 and 68 (64 + 1 < 66.7).
+        Assert.Equal([Start, At(36), At(68)], dates);
     }
 
     // The value is the port's parked choice for unverified SwiftUI and Core Animation behaviour (O-34).
@@ -814,9 +820,9 @@ public sealed class FrameClockTests
         Assert.Equal([Start, At(36), At(36)], dates); // the last draw's date, never SwiftDate.Now
         Assert.Equal(0, frames.Pending); // no request
         runtime.OnMain(() => scrolling.Value = false); // at 60 ms
-        Frames(runtime, frames, count: 10); // 64 to 100 ms: due from 36, so 72 (68 + 1 < 69.33)
-        Assert.Equal([Start, At(36), At(36), At(72)], dates);
-        runtime.OnMain(() => Assert.Equal(At(72), timeline!.Date));
+        Frames(runtime, frames, count: 10); // 64 to 100 ms. ED-232: due at 66.7 and 100 (the redraw moved neither): 68 and 100
+        Assert.Equal([Start, At(36), At(36), At(68), At(100)], dates);
+        runtime.OnMain(() => Assert.Equal(At(100), timeline!.Date));
     }
 
     // The value is the port's parked choice for unverified SwiftUI and Core Animation behaviour (O-34).
