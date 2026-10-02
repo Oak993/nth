@@ -73,8 +73,9 @@ public sealed class LinkPopover
             mergeTarget?.Merge(r); // :32
         });
         Popovers.SetClosePopoverBox(content, closeBox); // :34 .environment(\.closePopoverBox, closeBox)
-        content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
-        var size = content.DesiredSize; // :35 NSHostingView(rootView: content).intrinsicContentSize
+        // :35 NSHostingView(rootView: content).intrinsicContentSize: the size of a hosted view, so measured in a window, where
+        // the rows' button templates are in effect (detached, the rows measured 12 pt tall instead of 64).
+        var size = StyledMeasure.Of(content, new Size(double.PositiveInfinity, double.PositiveInfinity));
         if (size.Width <= 0 || size.Height <= 0) size = new Size(220, 110); // :36
         popover.SetFixedContent(content, size); // :37
         // :39 preferredEdge: .minY, "below the words in the flipped text view" (the source's own comment):

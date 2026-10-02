@@ -268,4 +268,42 @@ public sealed class LinkPopoverTests(HeadlessSession headless)
             window.Close();
         }
     });
+
+    // :35 NSHostingView(rootView: content).intrinsicContentSize is the size of a hosted view, with its styles and templates
+    // in effect; the rows are buttons, which a detached control measures empty (12 pt tall, 23 with Merge, for 64 and 101).
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "UI-THEME-042")] // DroppyCode/UI/Markdown/LinkPopover.swift:35-37: the popover is its content's measured size
+    public void The_popover_is_exactly_as_big_as_its_content_measured_in_a_window(bool withMerge) => headless.OnUiThread(() =>
+    {
+        var url = SwiftURL.Create(withMerge ? "https://gitlab.com/g/p/-/merge_requests/7" : "https://example.com/x")!;
+        LinkPopoverContent Make() => new(url, withMerge ? MergeRequestLink.Create(url) : null, _ => { });
+        var hosted = Make();
+        var hostWindow = new Window { Width = 400, Height = 300, Content = hosted };
+        hostWindow.Show();
+        Dispatcher.UIThread.RunJobs();
+        hosted.Measure(Size.Infinity);
+        var expected = hosted.DesiredSize;
+        hostWindow.Close();
+        Assert.True(expected.Height > 40, $"the fixture's rows should be taller than a detached measure, was {expected}");
+
+        var recorder = new PopoverRecorder();
+        using var presenter = Presentation.Presenter.Override(recorder);
+        var anchor = new Border { Width = 10, Height = 10 };
+        var window = Show(anchor);
+        try
+        {
+            LinkPopover.Shared.Show(url, withMerge ? new MergeRequestTarget(Guid.NewGuid(), _ => { }) : null, new Rect(0, 0, 10, 10), anchor);
+
+            var frame = Assert.IsType<Border>(Assert.Single(recorder.Calls).Popup.Child);
+            Assert.Equal(expected.Width, frame.Width);
+            Assert.Equal(expected.Height, frame.Height);
+        }
+        finally
+        {
+            LinkPopover.Shared.Close();
+            window.Close();
+        }
+    });
 }
