@@ -609,3 +609,19 @@ Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Cl
 ## OD-0058 Order of work after parity
 
 - **Owner ruling, 2026-10-02 (chat):** "OpenRouter and logo colours first, Release Preparation second, Polish and review pass third and then legacy Marrow features." Release preparation is local only: nothing is signed, published or released without the owner's word.
+
+## OD-0059 Animation timing may be amended for a steady 60
+
+- **Owner ruling, 2026-10-02 (chat), choice "Yes, amend ED-117":** a TimelineView's draws are timed one interval apart from the previous due time, not from when the last frame happened to run, so a 1/60 animation reaches 60 updates a second when frames jitter (native run: about 33 a second on the owner's PC under the old rule). Never faster than the interval. Recorded as ED-232 (amends ED-117).
+
+## OD-0060 OpenRouter: engine now, picker after review
+
+- **Owner ruling, 2026-10-02 (chat), choice "Build the engine, hold the UI":** the OpenRouter provider plumbing (catalogue, keys, requests) is built and tested offline; the model picker UI waits for the owner's approval of its canvas (https://claude.ai/artifact/BNoUoc4vvCLK5pHzYMmVcA).
+
+## OD-0061 Logo colours: a palette canvas first
+
+- **Owner ruling, 2026-10-02 (chat), choice "Prepare a canvas":** the OD-0047/OD-0050 provider palette is proposed on a canvas (every provider against the locked liquid slider and the logos, light and dark); nothing is applied in the app until the owner chooses.
+
+## OD-0062 Installer: Velopack
+
+- **Owner ruling, 2026-10-02 (chat), choice "Velopack":** release preparation builds toward a Velopack per-user install (%LOCALAPPDATA%, delta updates, a feed that can later point at GitHub Releases). Local only: nothing is signed, published or released without the owner's word (OD-0058).
