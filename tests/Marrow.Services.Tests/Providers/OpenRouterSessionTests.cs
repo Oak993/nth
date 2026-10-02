@@ -294,6 +294,8 @@ public sealed class OpenRouterSessionTests
     [InlineData("This model's maximum context length is 8192 tokens. However, you requested 9000 tokens.", 400, "The conversation no longer fits this model's context window. Start a new thread or compact first.")]
     [InlineData("Provider returned error", 504, "OpenRouter timed out before finishing. Try again.")]
     [InlineData("the request timed out", 200, "OpenRouter timed out before finishing. Try again.")]
+    [InlineData("Rate limit exceeded: free-models-per-day", 200, "OpenRouter is rate-limited right now. Wait a moment and try again.")]
+    [InlineData("The upstream provider is rate-limited", 200, "OpenRouter is rate-limited right now. Wait a moment and try again.")]
     [InlineData("anything", 401, "OpenRouter rejected the API key. Check it in Settings \u2192 Providers \u2192 OpenRouter (keys are made at openrouter.ai/keys).")]
     [InlineData("anything", 402, "OpenRouter has no credits left for this request. Add credits at openrouter.ai/credits, or pick a free model, then try again.")]
     [InlineData("anything", 404, "OpenRouter has no provider serving that model right now. Pick another model in the model picker.")]

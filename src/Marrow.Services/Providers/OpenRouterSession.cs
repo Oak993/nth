@@ -63,7 +63,7 @@ public sealed class OpenRouterSession : OpenAICompatibleSession
         {
             return "OpenRouter rejected the API key. Check it in Settings \U00002192 Providers \U00002192 OpenRouter (keys are made at openrouter.ai/keys).";
         }
-        if (statusCode == 402 || lower.Contains("insufficient credits", StringComparison.Ordinal) || lower.Contains("more credits", StringComparison.Ordinal) || lower.Contains("requires more credits", StringComparison.Ordinal))
+        if (statusCode == 402 || lower.Contains("insufficient credits", StringComparison.Ordinal) || lower.Contains("more credits", StringComparison.Ordinal))
         {
             return "OpenRouter has no credits left for this request. Add credits at openrouter.ai/credits, or pick a free model, then try again.";
         }

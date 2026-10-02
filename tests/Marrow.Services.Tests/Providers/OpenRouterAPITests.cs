@@ -218,6 +218,20 @@ public sealed class OpenRouterAPITests
         Assert.Empty(await OpenRouterAPI.ListModels(OpenRouterBodies.Key).WaitAsync(Guard));
     }
 
+    [Theory]
+    [InlineData(401)]
+    [InlineData(429)]
+    [InlineData(503)]
+    [Trait("Decision", "ED-234")]
+    public async Task A_refusal_is_an_empty_catalogue_even_when_its_body_looks_like_a_list(int status)
+    {
+        using var runtime = new TestRuntime();
+        using var handler = new InProcessHttpHandler { Answer = _ => InProcessHttpHandler.Reply(status, OpenRouterBodies.ModelsJson) };
+        using var scope = URLSession.Transport.Override(handler);
+
+        Assert.Empty(await OpenRouterAPI.ListModels(OpenRouterBodies.Key).WaitAsync(Guard));
+    }
+
     [Fact]
     [Trait("Decision", "ED-234")]
     public async Task A_failed_answer_leaves_the_facts_of_the_last_good_list_in_place()
