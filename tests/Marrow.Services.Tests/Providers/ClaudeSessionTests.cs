@@ -756,6 +756,77 @@ public sealed class ClaudeSessionTests
         Assert.NotNull(commands);
     }
 
+    // ---- PR-PROVCLI-025 ----
+
+    private const string RealHandshakeReply =
+        "{\"type\":\"control_response\",\"response\":{\"request_id\":\"handshake\",\"response\":{\"models\":[{\"value\":\"real-model\"}],\"commands\":[\"real\"]}}}";
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-025")] // ClaudeSession.swift:200-202 (only type control_response AND response.request_id == "handshake" is accepted; everything else is skipped)
+    public async Task Handshake_skips_every_decoy_message_and_accepts_only_the_exact_control_response_for_handshake()
+    {
+        using var runtime = new TestRuntime();
+        var script = new ClaudeScript("handshake-decoys");
+        // Each decoy carries a usable commands array, so accepting any of them would hand back a wrong catalog (or the
+        // "could not load" failure) instead of the real one that arrives last.
+        var decoys = new[]
+        {
+            "{\"type\":\"system\",\"subtype\":\"init\"}",
+            "{\"type\":\"system\",\"response\":{\"request_id\":\"handshake\",\"response\":{\"commands\":[\"decoy-system\"]}}}",
+            "{\"type\":\"control_response\",\"response\":{\"request_id\":\"marrow-1\",\"response\":{\"commands\":[\"decoy-other-id\"]}}}",
+            "{\"type\":\"control_response\",\"response\":{\"request_id\":\"Handshake\",\"response\":{\"commands\":[\"decoy-case\"]}}}",
+            "{\"type\":\"control_response\",\"response\":{\"request_id\":\"handshake2\",\"response\":{\"commands\":[\"decoy-longer-id\"]}}}",
+            "{\"type\":\"control_response\",\"response\":{\"response\":{\"commands\":[\"decoy-no-id\"]}}}",
+            "{\"type\":\"control_response\",\"request_id\":\"handshake\",\"response\":{\"request_id\":null,\"response\":{\"commands\":[\"decoy-top-level-id\"]}}}",
+            "{\"type\":\"control_request\",\"response\":{\"request_id\":\"handshake\",\"response\":{\"commands\":[\"decoy-request\"]}}}",
+            "{\"type\":\"stream_event\",\"event\":{\"type\":\"content_block_delta\"}}",
+            "{\"type\":\"result\",\"response\":{\"request_id\":\"handshake\",\"response\":{\"commands\":[\"decoy-result\"]}}}",
+        };
+        script.SetResponse(string.Join("\n", decoys) + "\n" + RealHandshakeReply);
+        var environment = new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
+
+        var (models, commands) = await ClaudeSession.Handshake(
+            FileUrl(script.ExecutablePath), FileUrl(Path.GetDirectoryName(script.ExecutablePath)!), environment).WaitAsync(TimeSpan.FromSeconds(20));
+
+        Assert.Equal(["real"], commands.Select(command => command.Name));
+        Assert.Equal(["real-model"], models.Select(model => model.Id));
+    }
+
+    // ---- PR-PROVCLI-027 ----
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-027")] // ClaudeSession.swift:208 (the stream ends with no match: the unfinished-discovery failure, nothing returned)
+    public async Task Handshake_reports_an_unfinished_discovery_when_the_stream_ends_with_no_matching_reply()
+    {
+        using var runtime = new TestRuntime();
+        var script = new ClaudeScript("handshake-silent-exit");
+        File.WriteAllText(Path.Combine(script.ControlDirectory, "exit-now.txt"), "1"); // a stand-in that exits at once, never answering
+        var environment = new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
+
+        var error = await Assert.ThrowsAsync<ProviderError>(() => ClaudeSession.Handshake(
+            FileUrl(script.ExecutablePath), FileUrl(Path.GetDirectoryName(script.ExecutablePath)!), environment).WaitAsync(TimeSpan.FromSeconds(20)));
+
+        Assert.IsType<ProviderError.Case.Failed>(error.ErrorCase);
+        Assert.Equal("Claude's command discovery did not finish. Try again.", error.ErrorDescription);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-027")] // ClaudeSession.swift:200-202,208 (a reply for a different id does not count: the stream then ends with no match)
+    public async Task Handshake_reports_an_unfinished_discovery_when_only_a_reply_for_another_id_arrived()
+    {
+        using var runtime = new TestRuntime();
+        var script = new ClaudeScript("handshake-other-id");
+        script.SetResponse("{\"type\":\"control_response\",\"response\":{\"request_id\":\"marrow-9\",\"response\":{\"commands\":[\"decoy\"]}}}");
+        script.SetExitAfterReply();
+        var environment = new Dictionary<string, string> { [script.EnvironmentEntry.Key] = script.EnvironmentEntry.Value };
+
+        var error = await Assert.ThrowsAsync<ProviderError>(() => ClaudeSession.Handshake(
+            FileUrl(script.ExecutablePath), FileUrl(Path.GetDirectoryName(script.ExecutablePath)!), environment).WaitAsync(TimeSpan.FromSeconds(20)));
+
+        Assert.IsType<ProviderError.Case.Failed>(error.ErrorCase);
+        Assert.Equal("Claude's command discovery did not finish. Try again.", error.ErrorDescription);
+    }
+
     private static string MinimalHandshakeResponse() =>
         "{\"type\":\"control_response\",\"response\":{\"request_id\":\"__REQUEST_ID__\",\"response\":{\"commands\":[]}}}";
 

@@ -3043,6 +3043,122 @@ public sealed class CodexSessionTests
         Assert.Empty(events.OfType<ProviderEvent.Exited>()); // stopping: no exit notice
     }
 
+    // ---- PR-PROVCLI-441 ----
+
+    private static JsonElement LiveState(StorageScratchFolder storage, TokenLedger ledger, TestRuntime runtime)
+    {
+        runtime.OnMain(() => ledger.FlushLiveSpend());
+        using var document = JsonDocument.Parse(File.ReadAllBytes(Path.Combine(storage.Root, "token-activity-live-v2.json")));
+        return document.RootElement.Clone();
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-441")] // CodexSession.swift:662-674 (guard spend > 0: zero or negative does nothing at all)
+    public void RecordCodexSpend_of_zero_or_less_writes_no_ledger_row_and_emits_no_event()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var ledger = runtime.OnMain(() => (TokenLedger)Activator.CreateInstance(typeof(TokenLedger), nonPublic: true)!);
+        using var ledgerScope = TokenLedger.Shared.Override(ledger);
+        var session = new CodexSession(Config(Script("spend-nothing")));
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        runtime.OnMain(() => InvokePrivate(session, "RecordCodexSpend", 0L, "ABC-123", "gpt-5", null));
+        runtime.OnMain(() => InvokePrivate(session, "RecordCodexSpend", -7L, "ABC-123", "gpt-5", "head-1"));
+
+        Assert.Empty(events);
+        Assert.Empty(ledger.DailyTotals);
+        Assert.False(File.Exists(Path.Combine(storage.Root, "token-activity-live-v2.json"))); // no save was ever scheduled
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-441")] // CodexSession.swift:673-676; TokenLedger.swift:122-126,128-145 (rollout id lowercased; daily total and liveCodex both grow; one event)
+    public void RecordCodexSpend_with_a_rollout_id_adds_to_daily_and_liveCodex_under_the_lowercased_id_and_emits_one_event()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var ledger = runtime.OnMain(() => (TokenLedger)Activator.CreateInstance(typeof(TokenLedger), nonPublic: true)!);
+        using var ledgerScope = TokenLedger.Shared.Override(ledger);
+        var session = new CodexSession(Config(Script("spend-ledger")));
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+        var before = ledger.DailyTotals.Values.Sum();
+
+        runtime.OnMain(() => InvokePrivate(session, "RecordCodexSpend", 120L, "ABC-123", "gpt-5", null));
+
+        Assert.Equal(before + 120, ledger.DailyTotals.Values.Sum());
+        var live = LiveState(storage, ledger, runtime);
+        Assert.Equal(120, live.GetProperty("liveCodex").GetProperty("abc-123").GetInt64());
+        Assert.False(live.GetProperty("liveCodex").TryGetProperty("ABC-123", out _));
+        Assert.Equal(120, live.GetProperty("daily").EnumerateObject().Sum(day => day.Value.GetInt64()));
+        var spend = Assert.Single(events.OfType<ProviderEvent.TokenSpend>()).Value;
+        Assert.Equal(ProviderKind.Codex, spend.Provider);
+        Assert.Equal(120, spend.TotalTokens);
+        Assert.Equal("gpt-5", spend.Model);
+        Assert.Null(spend.AgentID);
+        Assert.Null(spend.InputTokens);
+        Assert.Null(spend.OutputTokens);
+        Assert.Null(spend.CachedInputTokens);
+        Assert.Single(events);
+
+        // A second spend under the same id in other casing accumulates on the same lowercased key.
+        runtime.OnMain(() => InvokePrivate(session, "RecordCodexSpend", 30L, "abc-123", "gpt-5", null));
+        Assert.Equal(150, LiveState(storage, ledger, runtime).GetProperty("liveCodex").GetProperty("abc-123").GetInt64());
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-441")] // CodexSession.swift:673-676 (the head's agent id and model ride on the event; nil or empty rollout id writes no ledger row)
+    public void RecordCodexSpend_without_a_rollout_id_emits_the_event_only_and_carries_the_agent_id()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var ledger = runtime.OnMain(() => (TokenLedger)Activator.CreateInstance(typeof(TokenLedger), nonPublic: true)!);
+        using var ledgerScope = TokenLedger.Shared.Override(ledger);
+        var session = new CodexSession(Config(Script("spend-no-rollout")));
+        var events = new List<ProviderEvent>();
+        session.OnEvent = events.Add;
+
+        runtime.OnMain(() => InvokePrivate(session, "RecordCodexSpend", 50L, "", "gpt-5", "head-9"));
+        runtime.OnMain(() => InvokePrivate(session, "RecordCodexSpend", 5L, null, null, null));
+
+        Assert.Empty(ledger.DailyTotals);
+        Assert.False(File.Exists(Path.Combine(storage.Root, "token-activity-live-v2.json")));
+        var spends = events.OfType<ProviderEvent.TokenSpend>().Select(e => e.Value).ToList();
+        Assert.Equal(2, spends.Count);
+        Assert.Equal(2, events.Count);
+        Assert.Equal(50, spends[0].TotalTokens);
+        Assert.Equal("gpt-5", spends[0].Model);
+        Assert.Equal("head-9", spends[0].AgentID);
+        Assert.Equal(ProviderKind.Codex, spends[0].Provider);
+        Assert.Equal(5, spends[1].TotalTokens);
+        Assert.Null(spends[1].Model);
+        Assert.Null(spends[1].AgentID);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-PROVCLI-441")] // windows_path of PR-PROVCLI-441: the rollout id is lowercased culture-invariantly (TokenLedger.swift:125)
+    public void RecordCodexSpend_lowercases_the_rollout_id_culture_invariantly()
+    {
+        using var storage = new StorageScratchFolder();
+        using var runtime = new TestRuntime();
+        var ledger = runtime.OnMain(() => (TokenLedger)Activator.CreateInstance(typeof(TokenLedger), nonPublic: true)!);
+        using var ledgerScope = TokenLedger.Shared.Override(ledger);
+        var session = new CodexSession(Config(Script("spend-turkish")));
+        var previous = System.Globalization.CultureInfo.CurrentCulture;
+        try
+        {
+            System.Globalization.CultureInfo.CurrentCulture = System.Globalization.CultureInfo.GetCultureInfo("tr-TR");
+            runtime.OnMain(() => InvokePrivate(session, "RecordCodexSpend", 10L, "ID-I1", "gpt-5", null));
+        }
+        finally
+        {
+            System.Globalization.CultureInfo.CurrentCulture = previous;
+        }
+
+        Assert.Equal(10, LiveState(storage, ledger, runtime).GetProperty("liveCodex").GetProperty("id-i1").GetInt64());
+    }
+
     // ---- PR-PROVCLI-132 ----
 
     [Fact]

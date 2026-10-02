@@ -219,13 +219,9 @@ public sealed class CommandCodeSessionTests
             error.Message);
     }
 
-    // PR-PROVCLI-207 (mod install, approvals-directory creation, watcher start, started/stopped
-    // flags) is the success path immediately past the guard above. Start() calls the parameterless
-    // CommandCodeAPI.InstallMod(), which resolves the real Environment.SpecialFolder.LocalApplicationData
-    // (CommandCodeAPI.cs:643) with no seam Start() passes through, so driving Start() to that success
-    // path in a test would write to the real %LOCALAPPDATA%\Marrow Code\CommandCode - the folder the
-    // hard fences forbid touching. UNTESTABLE at this part's boundary for that reason; the same
-    // filesystem-seam gap is why PR-PROVCLI-216 and PR-PROVCLI-217 (below) are untestable.
+    // PR-PROVCLI-207 (mod install, approvals-directory creation, watcher start, started/stopped flags) is covered by
+    // CommandCodeSessionLaunchTests: Start() runs there against a data root redirected through DevDataRoot (ED-212), so the
+    // mod and the approvals directories land under MARROW_PORT_DATA_DIR, never under the real %LOCALAPPDATA%.
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-208")] // DroppyCode/Services/Providers/CommandCodeSession.swift:126-128
@@ -385,24 +381,10 @@ public sealed class CommandCodeSessionTests
         Assert.Empty(result);
     }
 
-    // PR-PROVCLI-209's flag resets (runtimeMode, interactionMode, model, effort, isFinalReport,
-    // turnCounter, turnActive, interruptRequested, runResult, runError, stream.ResetForTurn()) and its
-    // dictionary clears (editSnapshots/toolNames/toolInputs) all happen inline at the top of Send,
-    // before Send unconditionally calls the real MCPBridge.InstallBridge() (no DI seam on that call)
-    // and reads MCPPaths.ClaudeConfigURL under the live Storage.Locations - so driving Send far enough
-    // to observe the reset without touching the real %LOCALAPPDATA%\Marrow Code is not possible without
-    // widening Send's signature beyond what this part's records ask for. The flag half of the record is
-    // covered indirectly by BuildArguments (:210-215, PR-PROVCLI-210/211/212/213/215) and by
-    // Interrupt/Stop's own interruptRequested and turnActive assertions above; the dictionary-clear
-    // half and the unconditional-clear-regardless-of-turnActive nuance are UNTESTABLE at this part's
-    // boundary for the reason above.
-    //
-    // PR-PROVCLI-216 (StdioProcess construction, the process.Start() failure wrapping and turnActive
-    // reset) and PR-PROVCLI-217 (the stdin prompt write, CloseInput, the .turnStarted event and the
-    // read-then-await-exit task) sit even further past that same MCPBridge.InstallBridge() call
-    // (CommandCodeSession.cs:176, Send :174-176), so reaching either one from a test hits the identical
-    // real-%LOCALAPPDATA%\Marrow Code touch and is UNTESTABLE at this part's boundary for the same
-    // reason as PR-PROVCLI-209 and PR-PROVCLI-207 above.
+    // PR-PROVCLI-209 (the nine per-turn resets), PR-PROVCLI-216 (the wrapped launch failure) and PR-PROVCLI-217 (the stdin
+    // write and close, the turnStarted event, the read task) are covered by CommandCodeSessionTurnTests and
+    // CommandCodeSessionLaunchTests, which run real turns through the Command Code stand-in with the data root redirected
+    // (ED-212), so Send's MCP bridge install and MCP config read never touch the real %LOCALAPPDATA%\Marrow Code.
 
     [Fact]
     [Trait("Req", "PR-PROVCLI-219")] // DroppyCode/Services/Providers/CommandCodeSession.swift:229-235
