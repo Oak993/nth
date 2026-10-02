@@ -722,6 +722,19 @@ public sealed class OpenAICompatibleSessionSecondTests
         Assert.Equal("DeepSeek could not reach the network after 3 attempts. Check the connection, then try again.", message);
     }
 
+    [Fact]
+    [Trait("Req", "PR-PROVAPI-123")] // OpenAICompatibleSession.swift:563 error.localizedDescription of a URLError; OD-0056: the Windows networking error's own message
+    public void TerminalTransportMessage_for_a_timed_out_request_gives_Windows_text_for_a_timed_out_connection_as_the_reason()
+    {
+        var session = new OpenAICompatibleSessionCapturingSeam(MakeConfig(new Uri("http://127.0.0.1:1/v1/chat/completions")), MakeSessionConfiguration()).Wired();
+
+        var message = session.TerminalTransportMessageForTests(new URLError(URLError.Code.TimedOut));
+
+        // Foundation's own wording ("The request timed out.") cannot be reproduced; Windows' text for the same wait is asked of Windows.
+        var windows = new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.TimedOut).Message;
+        Assert.Equal($"DeepSeek could not reach the network after 3 attempts. Check the connection, then try again. ({windows})", message);
+    }
+
     // ---- PR-PROVAPI-136 ----
 
     [Fact]

@@ -681,12 +681,9 @@ public class OpenAICompatibleSession : ProviderSession
     }
 
     // :560-567. What is left when the connection keeps dropping: how many times the same request
-    // was tried, and the transport's own reason. STOP-PROVAPI-123 (section 6, kind: unverified):
-    // error.localizedDescription for a URLError has no defined Swift text in this port
-    // (SwiftErrors.LocalizedDescription throws NotSupportedException for it by design - R-ERR-2,
-    // O-14 - confirmed by Marrow.Core.Tests HttpTests "SwiftErrors.LocalizedDescription throws for
-    // a URLError"); no ED or OD records a per-code replacement text. Reproduced literally: this
-    // call surfaces the same unresolved gap loudly instead of inventing wording.
+    // was tried, and the transport's own reason. STOP-PROVAPI-123 (section 6, kind: unverified),
+    // settled by OD-0056: Foundation's text for a URLError cannot be reproduced, so the reason is
+    // the Windows networking error's own message (the URLError's description; see Port/Http.cs).
     private string TerminalTransportMessage(Exception error) // :562
     {
         var reason = SwiftErrors.LocalizedDescription(error); // :563

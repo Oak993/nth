@@ -290,12 +290,9 @@ public sealed class AppUpdaterInstallTests
     [Trait("Req", "PR-UPDATE-046")] // App/AppUpdater.swift:523-527
     public async Task A_dropped_connection_fails_the_download()
     {
-        // A dropped connection surfaces as a real URLError, and SwiftErrors.LocalizedDescription has no text
-        // defined for one by design (O-14; Marrow.Core.Tests HttpTests: "SwiftErrors.LocalizedDescription(new
-        // URLError(...)) throws NotSupportedException"). OpenAICompatibleSession.cs:562-567's own transport-error
-        // call site carries the identical gap and is, likewise, only tested through a synthetic ILocalizedError
-        // (OpenAICompatibleSessionRetryLadderSeam.cs FakeTransportReasonError); this test follows the same
-        // established limitation rather than asserting text the framework cannot honestly produce here.
+        // A dropped connection surfaces as a real URLError. OD-0056: its localizedDescription is the Windows
+        // networking error's own message, so the alert text is the fixed sentence followed by that message (the
+        // source's "The update could not be downloaded. \(error.localizedDescription)", :523-527).
         await using var server = new LoopbackHttpServer();
         var reply = Task.Run(async () =>
         {
@@ -305,8 +302,11 @@ public sealed class AppUpdaterInstallTests
         var destination = Path.Combine(Path.GetTempPath(), $"aut-{Guid.NewGuid():N}");
         try
         {
-            await Assert.ThrowsAnyAsync<Exception>(() =>
+            var error = await Assert.ThrowsAsync<UpdateInstallError>(() =>
                 new Downloader(_ => { }).Download(SwiftURL.Create(server.Url("/x").ToString())!, destination));
+            const string Prefix = "The update could not be downloaded. ";
+            Assert.StartsWith(Prefix, error.ErrorDescription, StringComparison.Ordinal);
+            Assert.False(string.IsNullOrWhiteSpace(error.ErrorDescription![Prefix.Length..]), "the Windows error's message is missing");
         }
         finally
         {

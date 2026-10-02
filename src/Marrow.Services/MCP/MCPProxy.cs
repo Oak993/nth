@@ -423,10 +423,11 @@ public sealed class MCPProxy
     }
 
     // ENGINEERING DECISION: :305's Logger.error uses error.localizedDescription, which never fails in Swift. A
-    // raw .NET exception with no ILocalizedError/ISwiftErrorIdentity (a bare URLError, for instance) has no
-    // recorded Foundation text (SwiftErrors.LocalizedDescription then throws, per R-ERR-2's "needs a recorded
-    // decision"); since this string is diagnostic only, never the response body sent to the client, it falls
-    // back to error.Message rather than losing the whole exchange to a log call.
+    // raw .NET exception with no ILocalizedError/ISwiftErrorIdentity has no recorded Foundation text
+    // (SwiftErrors.LocalizedDescription then throws, per R-ERR-2's "needs a recorded decision"); since this
+    // string is diagnostic only, never the response body sent to the client, it falls back to error.Message
+    // rather than losing the whole exchange to a log call. A URLError is not such an exception any more: its
+    // description is the Windows networking error's own message (OD-0056).
     private static string SafeLocalizedDescription(Exception error) =>
         SwiftTry.Optional(() => SwiftErrors.LocalizedDescription(error)) ?? error.Message;
 

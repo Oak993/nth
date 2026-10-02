@@ -1,3 +1,4 @@
+using System.Net.Sockets;
 using System.Text;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
@@ -139,12 +140,17 @@ public sealed class MCPHubDeadlineTests
         runtime.Advance(TimeSpan.FromSeconds(59.9));
         await HubDeadlineRig.AssertStillWaiting(listing);
         runtime.Advance(TimeSpan.FromSeconds(0.2));
-        // The walk failed on page 2, so Swift drops the server from the list (:59-63) and tools() returns []. How the
-        // port ends is NOT asserted: it prints the error with SwiftErrors.LocalizedDescription, which throws
-        // NotSupportedException for a URLError (no Foundation text, R-ERR-2), so tools() faults instead of returning
-        // []. Reported as a defect needing a per-site decision; this test pins only WHEN the page gives up.
-        await Task.WhenAny(listing, Task.Delay(Bound));
-        Assert.True(listing.IsCompleted, "the listing was still waiting past page 2's own sixty seconds");
+        // The walk failed on page 2, so Swift prints the error and drops the server from the list (:59-63, :68) and
+        // tools() returns [] (nothing of page 1 either: the cache is only written after the whole walk, :55-56).
+        // The print needs the error's localizedDescription; OD-0056 gives a URLError the Windows error's own text, so
+        // this ends in the empty list and does not fault with NotSupportedException any more.
+        var tools = await listing.WaitAsync(Bound);
+        Assert.Empty(tools);
+
+        // The server stays dropped (:55 failed.insert, :54 `if failed.contains(id) { continue }`): the next listing
+        // returns [] at once. The server never answers another request, so a listing that asked it again would still
+        // be waiting for it (its own sixty seconds are on the manual clock, which nobody moves now).
+        Assert.Empty(await hub.Tools().WaitAsync(Bound));
     }
 
     [Fact]
@@ -167,10 +173,15 @@ public sealed class MCPHubDeadlineTests
         runtime.Advance(TimeSpan.FromSeconds(119.9));
         await HubDeadlineRig.AssertStillWaiting(call);
         runtime.Advance(TimeSpan.FromSeconds(0.2));
-        // Swift wraps the platform's timeout error as MCPHubError.server("The request timed out.") (:77). The port
-        // cannot build that text: SwiftErrors.LocalizedDescription throws NotSupportedException for a URLError (no
-        // Foundation text, R-ERR-2), so the call faults with that instead. Reported as a defect needing a per-site
-        // decision; this test pins only WHEN the call gives up.
-        await Assert.ThrowsAnyAsync<Exception>(() => call).WaitAsync(Bound);
+        // Swift wraps the platform's timeout error as MCPHubError.server(error.localizedDescription) (:77-79), where
+        // Foundation says "The request timed out.". OD-0056: the port shows the Windows networking error's own
+        // message for the same failure, here the one for a connection that did not answer in time (Winsock's
+        // WSAETIMEDOUT, asked of Windows itself so the test follows the machine's language).
+        var error = await Assert.ThrowsAsync<MCPHubError>(() => call).WaitAsync(Bound);
+        var windows = new SocketException((int)SocketError.TimedOut).Message;
+        var wrapped = Assert.IsType<MCPHubError.Case.Server>(error.ErrorCase);
+        Assert.Equal(windows, wrapped.Message);
+        Assert.Equal(windows, error.ErrorDescription);
+        Assert.NotEqual("The request timed out.", error.ErrorDescription);
     }
 }

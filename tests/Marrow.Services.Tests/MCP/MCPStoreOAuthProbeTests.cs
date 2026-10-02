@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.MCP;
@@ -22,10 +23,13 @@ namespace Marrow.Services.Tests.MCP;
 // The proxy's accept loop runs with the secret store MCPProxySingletonFixture captured, so every test here binds
 // that same store (the collection fixture) for SecretStore.Shared instead of an MCPStoreHarness store.
 //
+// An https upstream that answers (OD-0057). URLSession.Transport is the test seam on the HTTP client: FakeGitLabUpstream
+// stands behind it as "https://gitlab.example.test/api/v4/mcp", answering in-process (no socket, no network). The
+// handler is the one MCPProxySingletonFixture installed for the proxy's own flow (its forwarding runs there), and
+// this class puts the same handler on its own flow, where the sign-in and the probe run, so one script answers both.
+// That makes the retry's success reachable (PR-MCP-065) and PR-MCP-068's 403 and 404 answers from the upstream.
+//
 // Not reachable here, and why:
-//  - the retry's SUCCESS (the second probe signing in through the browser and answering): the catalog has no OAuth
-//    upstream on a plain-http address and URLSession has no handler seam, so no stand-in answers as an https MCP
-//    server. The retry is proven up to and including its second attempt's sign-in reaching the upstream.
 //  - the second catch clause (MCPProbeError.http 401/403 with an OAuth upstream, :322): MCPProbe.probeRemote turns a
 //    401/403 from an OAuth server into unauthorizedOAuth or needsSetup before the store sees it, so nothing can
 //    throw that pair there; only its guard (a plain server is not retried) is observable, below.
@@ -43,18 +47,32 @@ public sealed class MCPStoreOAuthProbeTests : IDisposable
     private readonly IDisposable secrets;
     private readonly IDisposable browser;
     private readonly IDisposable executor;
+    private readonly IDisposable transport;
+    private readonly ConcurrentQueue<string> opened = new();
+    private Func<string, Task>? visitBrowser;
 
     public MCPStoreOAuthProbeTests(MCPProxySingletonFixture fixture)
     {
         this.fixture = fixture;
         secrets = SecretStore.Shared.Override(fixture.Store);
-        browser = Workspace.Open.Override(_ => true);
+        // The browser: records the address it was sent to and, when a test sets visitBrowser, comes back to the
+        // sign-in's callback the way the person would after approving.
+        browser = Workspace.Open.Override(url =>
+        {
+            opened.Enqueue(url.AbsoluteString);
+            if (visitBrowser is { } visit) _ = Task.Run(() => visit(url.AbsoluteString));
+            return true;
+        });
         executor = MainActor.Executor.Override(new DirectMainExecutor());
+        transport = URLSession.Transport.Override(fixture.Https);
     }
 
     public void Dispose()
     {
         MCPOAuth.SignOut("gitlab");
+        MCPProxy.Shared.Current.Unregister("gitlab");
+        fixture.Https.Reset();
+        transport.Dispose();
         executor.Dispose();
         browser.Dispose();
         secrets.Dispose();
@@ -185,5 +203,161 @@ public sealed class MCPStoreOAuthProbeTests : IDisposable
         Assert.Equal("That key was refused. Press Try again and paste a new one.", failed.Message); // MCPProbe.swift:35
         // One initialize, no second probe: a retry would have posted again.
         Assert.Single(server.Received);
+    }
+
+    // ---- an https upstream that answers (OD-0057) ----
+
+    private const string GoodSession = """{"access_token":"at-new","expires_at":4102444800}""";
+
+    /// Points GitLab at the in-process https upstream and connects: nothing answers yet, so the first probe's sign-in is
+    /// refused at its first request and the card fails; the connection (the address) is saved, as in ConnectGitLab.
+    private async Task<(MCPStore Store, MCPCatalogEntry Entry)> ConnectGitLabOverHttps()
+    {
+        var store = new MCPStore();
+        var entry = store.Entry("gitlab")!;
+        store.SetDraft(FakeGitLabUpstream.Host, entry.Fields.Single(field => field.Key == "instance"), entry);
+        store.Connect(entry);
+        await WaitWhileConnecting(store, entry.Id);
+        Assert.IsType<MCPConnectionState.Failed>(store.State(entry.Id));
+        return (store, entry);
+    }
+
+    private IEnumerable<InProcessRequest> UpstreamCalls(string path) =>
+        fixture.Https.Received.Where(request => request.Url.AbsolutePath == path);
+
+    [Theory]
+    [Trait("Req", "PR-MCP-068")] // MCPStore.swift:339-343 needsSetup: .needsSetup(guide), the OAuth session is NOT signed out; MCPProbe.swift:156-169 GitLab's 403 "MCP server disabled" and its 404
+    [InlineData(403, "MCP server disabled")]
+    [InlineData(404, "404 Not Found")]
+    public async Task A_signed_in_probe_the_upstream_answers_as_switched_off_needs_setup_and_keeps_the_sign_in(int status, string answer)
+    {
+        var (store, entry) = await ConnectGitLabOverHttps();
+        var savedBefore = File.ReadAllBytes(MCPPaths.ConnectionsURL);
+        var savedAt = File.GetLastWriteTimeUtc(MCPPaths.ConnectionsURL);
+        Assert.True(MCPKeychain.Set(GoodSession, entry.Id, "oauth"));
+        new FakeGitLabUpstream { McpAnswer = _ => InProcessHttpHandler.Reply(status, answer, "text/plain") }.Install(fixture.Https);
+
+        store.Refresh(entry);
+        await WaitWhileConnecting(store, entry.Id);
+
+        // The state is needsSetup with GitLab's guide, built from the upstream's own address (MCPProbe.swift:191-208).
+        var needs = Assert.IsType<MCPConnectionState.NeedsSetup>(store.State(entry.Id));
+        Assert.Equal("Turn on GitLab's MCP server", needs.Guide.Title);
+        Assert.Equal(
+            "You're signed in, but GitLab keeps its MCP server off until a group owner turns it on. Until then, the address answers not found.",
+            needs.Guide.Reason);
+        Assert.Equal("Open my groups", needs.Guide.PageLabel);
+        Assert.Equal("https://gitlab.example.test/dashboard/groups", needs.Guide.PageURL);
+        // The sign-in is kept (:341-342): the session is still the stored one, and no browser round trip ran.
+        Assert.True(MCPOAuth.IsSignedIn(entry.Id));
+        Assert.Equal("at-new", await MCPOAuth.AccessToken(entry.Id));
+        Assert.Empty(opened);
+        // The probe reached the upstream through the proxy with that session, once: needsSetup is not a rejection, so
+        // no second attempt was made (a retry would have signed out first).
+        var posted = Assert.Single(UpstreamCalls("/api/v4/mcp"), request => request.Method == "POST");
+        Assert.Equal("Bearer at-new", posted.Header("Authorization"));
+        Assert.Empty(UpstreamCalls("/register"));
+        Assert.Empty(UpstreamCalls("/token"));
+        // Nothing is saved (:339-343): the connections file is as Connect left it, not even rewritten with the same bytes.
+        Assert.Equal(savedBefore, File.ReadAllBytes(MCPPaths.ConnectionsURL));
+        Assert.Equal(savedAt, File.GetLastWriteTimeUtc(MCPPaths.ConnectionsURL));
+        // Nothing is exported: exportAll would have replaced the proxy's routes with the connected servers' (none
+        // yet, :40-49), dropping the route this probe registered. The route is still there and forwards upstream.
+        await Task.Delay(300); // an export runs a moment after the state flips (the same pause as the other probe tests)
+        var (routeStatus, routeBody) = await MCPProxyRawClient.Get(MCPProxy.Port, "/mcp/gitlab");
+        Assert.DoesNotContain("unknown server", routeBody, StringComparison.Ordinal);
+        Assert.Equal(401, routeStatus); // the upstream's own answer to a GET without a token
+        Assert.Null(store.Connection(entry.Id)!.ConnectedAt);
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-068")] // MCPStore.swift:341-342 "Keep the sign-in so Check again re-probes without another browser round trip"
+    public async Task Pressing_Check_again_after_needs_setup_re_probes_with_the_kept_session_and_connects_without_the_browser()
+    {
+        var (store, entry) = await ConnectGitLabOverHttps();
+        Assert.True(MCPKeychain.Set(GoodSession, entry.Id, "oauth"));
+        var upstream = new FakeGitLabUpstream { McpAnswer = _ => InProcessHttpHandler.Reply(403, "MCP server disabled", "text/plain") };
+        upstream.Install(fixture.Https);
+        store.Refresh(entry);
+        await WaitWhileConnecting(store, entry.Id);
+        Assert.IsType<MCPConnectionState.NeedsSetup>(store.State(entry.Id));
+
+        // The group owner turns the server on; the person presses Check again (MCPStore.refresh, :131-135).
+        upstream.McpAnswer = FakeGitLabUpstream.Working;
+        store.Refresh(entry);
+        await WaitWhileConnecting(store, entry.Id);
+
+        Assert.Equal(new MCPConnectionState.Connected(2), store.State(entry.Id)); // the two tools the server lists
+        Assert.Empty(opened);
+        Assert.Empty(UpstreamCalls("/register"));
+        Assert.Empty(UpstreamCalls("/token"));
+        Assert.Empty(UpstreamCalls("/prm"));
+        Assert.All(UpstreamCalls("/api/v4/mcp").Where(request => request.Method == "POST"),
+            request => Assert.Equal("Bearer at-new", request.Header("Authorization")));
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-065")] // MCPStore.swift:317-321 unauthorizedOAuth: signOut, unregister, probeOnce again; its success is the result (:328-337)
+    public async Task A_refused_OAuth_probe_signs_in_again_in_the_browser_and_the_second_probe_connects()
+    {
+        var (store, entry) = await ConnectGitLabOverHttps();
+        new FakeGitLabUpstream().Install(fixture.Https);
+        // The person approves in the browser: the callback comes back with a code and the state the sign-in sent.
+        visitBrowser = async address =>
+        {
+            var query = OAuthHarness.QueryPairs(address);
+            var port = CallbackClient.PortOf(OAuthHarness.Value(query, "redirect_uri"));
+            await CallbackClient.Get(port, "/callback?code=code-1&state=" + OAuthHarness.Value(query, "state"));
+        };
+        // A session the proxy cannot use (expired, no refresh token): the proxy answers 401 on its own, which the
+        // probe reads as unauthorizedOAuth.
+        Assert.True(MCPKeychain.Set(ExpiredSession, entry.Id, "oauth"));
+
+        store.Refresh(entry);
+        await WaitWhileConnecting(store, entry.Id);
+
+        // The second attempt succeeded: connected, with the tools the server listed, stamped as connected.
+        Assert.Equal(new MCPConnectionState.Connected(2), store.State(entry.Id));
+        var connection = store.Connection(entry.Id)!;
+        Assert.NotNull(connection.ConnectedAt);
+        Assert.Equal(["get_issue", "create_issue"], connection.Tools.Select(tool => tool.Name));
+        // signOut ran and the second probeOnce signed in again, once, in the browser, against the upstream's own
+        // authorization endpoint; the new session replaced the refused one.
+        var visited = Assert.Single(opened);
+        Assert.StartsWith(FakeGitLabUpstream.Base + "/authorize?", visited, StringComparison.Ordinal);
+        Assert.Single(UpstreamCalls("/register"));
+        Assert.Single(UpstreamCalls("/token"));
+        Assert.True(MCPOAuth.IsSignedIn(entry.Id));
+        Assert.Equal(FakeGitLabUpstream.Token, await MCPOAuth.AccessToken(entry.Id));
+        // The probe went through the route the second attempt registered, with the new token: the three calls of a
+        // probe, and the refused session never reached the upstream.
+        var mcpCalls = UpstreamCalls("/api/v4/mcp").Where(request => request.Method == "POST").ToList();
+        Assert.Equal(3, mcpCalls.Count);
+        Assert.All(mcpCalls, request => Assert.Equal("Bearer " + FakeGitLabUpstream.Token, request.Header("Authorization")));
+        Assert.DoesNotContain(fixture.Https.Received, request => request.Header("Authorization") == "Bearer stale");
+    }
+
+    [Fact]
+    [Trait("Req", "PR-MCP-069")] // MCPStore.swift:344-347 any other probe error becomes .failed(message: error.localizedDescription); OD-0056: a URLError's is the Windows error's own message
+    public async Task A_probe_of_an_https_server_that_cannot_be_reached_fails_with_the_Windows_error_s_message()
+    {
+        // The name does not resolve: the transport raises an HttpRequestException carrying Winsock's WSAHOST_NOT_FOUND.
+        var windows = new System.Net.Sockets.SocketException((int)System.Net.Sockets.SocketError.HostNotFound);
+        fixture.Https.Answer = _ => throw new HttpRequestException(HttpRequestError.NameResolutionError, windows.Message, windows);
+        var store = new MCPStore();
+        var custom = new MCPCustomServer(MCPCustomServer.MakeID("Unreachable"), "Unreachable", MCPCustomServer.Kind.Http)
+        {
+            Url = "https://plain.example.test/mcp",
+        };
+        Assert.Null(store.SaveCustom(custom));
+        var entry = store.Entry(custom.Id)!;
+
+        store.Connect(entry);
+        await WaitWhileConnecting(store, entry.Id);
+
+        var failed = Assert.IsType<MCPConnectionState.Failed>(store.State(entry.Id));
+        Assert.Equal(windows.Message, failed.Message);
+        Assert.NotEqual("A server with the specified hostname could not be found.", failed.Message); // Foundation's wording
+        Assert.Single(fixture.Https.Received); // one initialize, no retry
     }
 }

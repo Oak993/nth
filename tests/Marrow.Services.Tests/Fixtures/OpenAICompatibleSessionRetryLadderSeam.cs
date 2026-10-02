@@ -38,11 +38,10 @@ public sealed class OpenAICompatibleSessionRetryLadderSeam(OpenAICompatibleSessi
 }
 
 // A test-only error with a defined Swift-style description (ILocalizedError), used to prove
-// PR-PROVAPI-123's message-composition formula without the O-14 gap that SwiftErrors.
-// LocalizedDescription has for a real URLError (Marrow.Core.Tests HttpTests
-// "SwiftErrors.LocalizedDescription(new URLError(...)) throws NotSupportedException"; also noted
-// at OpenAICompatibleSession.cs:652-658). Any LocalizedError produces the same composed sentence,
-// since :566-567's formatting does not depend on the error's own type.
+// PR-PROVAPI-123's message-composition formula with a reason text the test chooses. (A real URLError now has
+// the Windows error's own message as its description, OD-0056, whose wording depends on the machine's language.)
+// Any LocalizedError produces the same composed sentence, since :566-567's formatting does not depend on the
+// error's own type.
 public sealed class FakeTransportReasonError(string? description) : Exception, ILocalizedError
 {
     public string? ErrorDescription => description;
