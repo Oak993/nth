@@ -72,6 +72,20 @@ public sealed class HydraProgressBarReviewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-HYDRA-031")] // App/Views/Chat/HydraPanel.swift:137 HStack(spacing: 6): the clock beside a 16-point glyph is centred on it
+    public void Elapsed_time_is_centred_at_its_own_height_in_a_taller_slot() => headless.OnUiThread(() =>
+    {
+        var view = new HydraElapsedTime(SwiftDate.Now.AddSeconds(-3), SwiftDate.Now, false);
+        var slot = new Grid { Height = 16, Children = { view } };
+        var w = Show(slot);
+        var label = Assert.IsType<TextBlock>(view.Child);
+        // The 14-point line is shorter than the 16-point slot (the strip's glyph); an HStack centres it there, at its own height.
+        Assert.Equal(label.DesiredSize.Height, label.Bounds.Height, 0.5);
+        Assert.Equal(8, label.TranslatePoint(new Avalonia.Point(0, label.Bounds.Height / 2), slot)!.Value.Y, 0.5);
+        w.Close();
+    });
+
+    [Fact]
     [Trait("Req", "PR-HYDRA-184")] // App/Views/Chat/HydraProgressBar.swift:186-198,369-388
     [Trait("Req", "PR-HYDRA-185")] // App/Views/Chat/HydraProgressBar.swift:133-144,199-206
     public void Fourth_running_bar_releases_its_frame_request_after_the_055_rise_task() => headless.OnUiThread(() =>

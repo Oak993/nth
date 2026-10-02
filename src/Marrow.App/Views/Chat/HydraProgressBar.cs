@@ -786,6 +786,7 @@ public sealed class HydraElapsedTime : Decorator
         var label = new TextBlock
         {
             Foreground = Chrome.SecondaryText.Brush(this),
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Center, // :137 beside the 16-point glyph an HStack centres the clock on it
         };
         SwiftFont.System(SwiftFont.TextStyle.Subheadline).MonospacedDigit().Apply(label);
         Child = label;
