@@ -676,7 +676,7 @@ internal sealed class ProviderSettingsSection : Decorator
             installSlot.Track(() => { _ = model.Providers.Statuses; return model.Providers.Status(provider); }, status =>
             {
                 installSlot.Children.Clear();
-                if (provider.IsAPIKeyBased && !status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Get a key", () => Link("Get a " + provider.DisplayName + " key", provider.InstallURL), provider.DisplayName + " needs an API key. Nothing to install.")); } // :719-727
+                if (provider.IsAPIKeyBased && !status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Get a key", () => Link(provider.GetKeyLinkText, provider.InstallURL), provider.DisplayName + " needs an API key. Nothing to install.")); } // :719-727
                 if (provider.IsAPIKeyBased) return;
                 if (!status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Install", () => Link("Get " + provider.DisplayName, provider.InstallURL), provider.DisplayName + " was not found on your PATH.")); } // :738-745
                 else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => PlainControls.Button(new TextBlock { Text = "Login", Height = Chrome.RowButtonLabelHeight }, () => Workspace.OpenTerminal(provider.LoginCommand)).ChromeGlassCapsule(), "Click here to login again.")); } // :638-641,747-756
@@ -868,7 +868,7 @@ internal sealed class AboutSettingsPage : Decorator
         {
             new MadeByDroppyRow(SwiftURL.Create("https://getdroppy.app")!), new ChromeRowDivider(),
             new ChromeRow("Working indicators", () => new CreditLink("zeronsh/zeron", SwiftURL.Create("https://github.com/zeronsh/zeron")!), "Ported from Zeron by Wing, MIT License."), new ChromeRowDivider(),
-            new ChromeRow("Terminal", () => new Panel()), new ChromeRowDivider(), // :953-956. STOP #4: only CreditLink and component-dependent detail await OD-0012 H.
+            new ChromeRow("Terminal", () => new Panel(), "Marrow's own terminal, built on Windows ConPTY."), new ChromeRowDivider(), // :953-956. OD-0012 H, OD-0072: no repository link; the terminal is Marrow's own.
             new ChromeRow("Welcome tour", () => new CreditLink("rampatra/TourKit", SwiftURL.Create("https://github.com/rampatra/TourKit")!), "Ported from TourKit by Ram Patra, MIT License."), new ChromeRowDivider(), new LicensesRow(),
         } }));
         Child = new StackPanel { Spacing = Chrome.SectionSpacing, Children = { new AboutSoftwareUpdateSection(), card, credits } }; // :942-965 UPSTREAM DEFECT: empty update slot still reserves the gap.
@@ -884,7 +884,7 @@ internal sealed class AboutSettingsPage : Decorator
             new ChromeRow("Welcome tour", () => PlainControls.Button(new TextBlock { Text = "Show" }, () => Marrow.App.Views.Tour.Tour.Present(AppEnvironment.GetAppModel(this))).ChromeGlassCapsule(), "The slideshow from the first launch: Hydra, the effort slider, panels and themes."), new ChromeRowDivider(), new AboutUpdateCheckRow(), new ChromeRowDivider(),
             new TextBlock { Text = "A native home for your coding agents, built in C# with Avalonia.", Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(13)),
             new ChromeRowDivider(), // :996
-            new TextBlock { Text = "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; ", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(12)), // :997-1002, OD-0012 F1. STOP #4: only the trailing terminal name/licence fragment awaits its component.
+            new TextBlock { Text = "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", Foreground = Chrome.SecondaryText.Brush(this), Margin = new Thickness(16, 11, 10, 11), TextWrapping = TextWrapping.Wrap }.Font(SwiftFont.System(12)), // :997-1002, OD-0012 F1, H (OD-0072).
         } };
     }
 }

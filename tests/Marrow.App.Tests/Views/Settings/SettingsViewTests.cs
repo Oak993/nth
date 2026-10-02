@@ -696,10 +696,10 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     {
         var stack = Assert.IsType<StackPanel>(Assert.IsType<AboutSettingsPage>(view).Child); Assert.Equal(20, stack.Spacing); Assert.Equal(3, stack.Children.Count); Assert.IsType<AboutSoftwareUpdateSection>(stack.Children[0]);
         Assert.Contains("Marrow", Text(view)); Assert.Contains("A native home for your coding agents, built in C# with Avalonia.", Text(view));
-        var licence = Assert.Single(Nodes<TextBlock>(stack.Children[1]), text => text.Text == "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; "); // :996-1002, OD-0012 F1
+        var licence = Assert.Single(Nodes<TextBlock>(stack.Children[1]), text => text.Text == "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY."); // :996-1002, OD-0012 F1, H (OD-0072)
         Assert.Equal(12, licence.FontSize); Assert.Equal(new Thickness(16, 11, 10, 11), licence.Margin);
         var appRows = Assert.Single(Nodes<StackPanel>(stack.Children[1]), panel => panel.Children.Contains(licence)); Assert.IsType<ChromeRowDivider>(appRows.Children[appRows.Children.IndexOf(licence) - 1]);
-        var terminal = Row(stack.Children[2], "Terminal"); Assert.Empty(Nodes<CreditLink>(terminal)); // :953-956; unknown Windows component is not fabricated.
+        var terminal = Row(stack.Children[2], "Terminal"); Assert.Empty(Nodes<CreditLink>(terminal)); Assert.Contains("Marrow's own terminal, built on Windows ConPTY.", Text(terminal)); // :953-956; OD-0072: Marrow's own terminal, no repository link.
         var creditRows = Assert.Single(Nodes<StackPanel>(stack.Children[2]), panel => panel.Children.Contains(terminal)); Assert.IsType<ChromeRowDivider>(creditRows.Children[creditRows.Children.IndexOf(terminal) + 1]);
         Assert.Contains("Based on Droppy Code by Jordy Spruit (Droppy), https://getdroppycode.app", Text(view));
         Assert.Contains("The slideshow from the first launch: Hydra, the effort slider, panels and themes.", Text(view));

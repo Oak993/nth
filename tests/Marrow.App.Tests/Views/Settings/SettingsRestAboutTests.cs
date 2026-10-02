@@ -15,10 +15,7 @@ namespace Marrow.App.Tests.Views.Settings;
 [Collection("Headless")]
 public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsRestFixture(headless)
 {
-    // STOP opencode-SettingsView-rest #1
-    // SettingsView.swift:953-956,997-1002; OD-0012 H. TerminalHostView has no renderer or chosen component.
-    // PR-SETTINGS-238/248, PR-UPDATE-084/085, UI-SETTINGS-072, UI-UPDATE-024/029 need its name,
-    // author, licence and repository URL. Prefix, row title, order and unaffected credits remain tested.
+    // SettingsView.swift:953-956,997-1002; OD-0012 H, OD-0072: the terminal is Marrow's own, built on Windows ConPTY.
     // STOP opencode-SettingsView-rest #2
     // SettingsView.swift:1046-1056. PR-SETTINGS-249 needs packaging of LICENSE, THIRD_PARTY_NOTICES.md,
     // TRADEMARK.md. Marrow.App.csproj still includes only icon.png. No packaging changes belong to this job.
@@ -37,7 +34,7 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
             Assert.IsType<StackPanel>(rows.Children[0]); Assert.Equal("Welcome tour", Text(Assert.IsType<ChromeRow>(rows.Children[2])).First()); Assert.IsType<AboutUpdateCheckRow>(rows.Children[4]);
             foreach (var index in new[] { 1, 3, 5, 7 }) { var divider = Assert.IsType<ChromeRowDivider>(rows.Children[index]); Assert.Equal(new Thickness(16, 0, 0, 0), divider.Margin); }
             var description = Assert.IsType<TextBlock>(rows.Children[6]); Assert.Equal("A native home for your coding agents, built in C# with Avalonia.", description.Text); Font(description, 13); Assert.Equal(new Thickness(16, 11, 10, 11), description.Margin); Assert.Equal(TextWrapping.Wrap, description.TextWrapping);
-            var licence = Assert.IsType<TextBlock>(rows.Children[8]); Assert.StartsWith("Marrow is licensed under the GNU AGPL v3.0 with attribution terms; ", licence.Text, StringComparison.Ordinal);
+            var licence = Assert.IsType<TextBlock>(rows.Children[8]); Assert.Equal("Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY.", licence.Text);
         });
     }
 
@@ -95,6 +92,17 @@ public sealed class SettingsRestAboutTests(HeadlessSession headless) : SettingsR
             SwiftURL? opened = null; using var browser = Marrow.Services.Port.Workspace.Open.Override(u => { opened = u; return true; }); Click(w, grid, middle); Assert.Equal("https://getdroppy.app", opened?.AbsoluteString);
             w.MouseMove(new Point(1, 1)); Drain(w); Tick(h, 50); Assert.Equal(1 - 0.1 * Animation.EaseOut(0.1).Progress(0.05), trailing.Opacity, 5); Tick(h, 50); Assert.Equal(0.9, trailing.Opacity);
         }, height: 220);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-UPDATE-024")] // SettingsView.swift:953-956; OD-0012 H, OD-0072
+    public void Terminal_credit_row_names_the_terminal_as_Marrows_own_without_a_link()
+    {
+        With(() => new AboutSettingsPage(), (view, _, _, _) =>
+        {
+            var row = Assert.Single(Nodes<ChromeRow>(view), r => Text(r).Contains("Marrow's own terminal, built on Windows ConPTY."));
+            CheckRow(row, "Terminal", "Marrow's own terminal, built on Windows ConPTY."); Assert.Empty(Nodes<CreditLink>(row));
+        });
     }
 
     [Fact]

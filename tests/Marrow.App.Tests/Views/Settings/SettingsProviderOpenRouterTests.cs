@@ -99,7 +99,7 @@ public sealed class SettingsProviderOpenRouterTests(HeadlessSession headless)
         SwiftURL? opened = null;
         using var browser = Marrow.Services.Port.Workspace.Open.Override(url => { opened = url; return true; });
 
-        Click(Nodes<Button>(view).First(x => Text(x).Contains("Get a OpenRouter key")));
+        Click(Nodes<Button>(view).First(x => Text(x).Contains("Get an OpenRouter key")));
 
         Assert.Equal(OpenRouter.InstallURL, opened);
         Assert.Equal("https://openrouter.ai/keys", opened!.AbsoluteString);
