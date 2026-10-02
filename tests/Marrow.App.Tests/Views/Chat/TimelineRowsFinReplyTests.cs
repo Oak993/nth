@@ -283,12 +283,17 @@ public sealed class TimelineRowsFinReplyTests(HeadlessSession headless)
         WeakReference runtime = null!;
         IReadOnlyList<RowAction> menu = null!;
         h.Main.OnMain(() => { (runtime, menu) = MenuOverAShortLivedRuntime(h); });
-        for (var pass = 0; pass < 4; pass++)
+        // A new runtime's own start-up work may still sit on a shared background queue that another test keeps busy; that
+        // work holds the runtime only until it runs. So collect until the runtime is gone, for up to five seconds: a strong
+        // reference from the menu would keep it alive throughout.
+        var deadline = DateTime.UtcNow.AddSeconds(5);
+        for (var pass = 0; pass < 4 || (runtime.IsAlive && DateTime.UtcNow < deadline); pass++)
         {
             h.Main.OnMain(() => Avalonia.Threading.Dispatcher.UIThread.RunJobs());
             GC.Collect();
             GC.WaitForPendingFinalizers();
             GC.Collect();
+            if (pass >= 4 && runtime.IsAlive) Thread.Sleep(20);
         }
         h.Main.OnMain(() =>
         {
