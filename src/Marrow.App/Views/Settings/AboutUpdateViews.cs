@@ -1030,6 +1030,7 @@ internal sealed class AboutIdentityPill : Decorator
             MaxLines = 1,
             TextWrapping = TextWrapping.NoWrap,
             TextTrimming = TextTrimming.CharacterEllipsis, // :562 lineLimit(1) truncates the tail once the capsule is compressed
+            VerticalAlignment = VerticalAlignment.Center, // :553 HStack(spacing: 6) centres the 15-point text on the 20-point icon
         };
         SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Semibold).Apply(text);
         text.Foreground = Chrome.PrimaryText.Brush(text);

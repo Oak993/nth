@@ -991,7 +991,7 @@ internal sealed class ThemePickerButton : Decorator
         var state = new PresentedState(); var label = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Height = Chrome.CapsuleContentHeight, Margin = new Thickness(Chrome.CapsuleHorizontalPadding, 0) };
         void Update()
         {
-            var theme = selection.Value; label.Children.Clear(); var swatch = theme.Swatch(); swatch.Width = 14; swatch.Height = 14; label.Children.Add(swatch); label.Children.Add(new TextBlock { Text = theme.DisplayName(), MaxLines = 1 }.Font(SwiftFont.System(12.5, SwiftFont.Weight.Medium))); label.Children.Add(SwiftImage.SystemName("chevron.down").Font(SwiftFont.System(8, SwiftFont.Weight.Bold)).ForegroundStyle(Chrome.SecondaryText));
+            var theme = selection.Value; label.Children.Clear(); var swatch = theme.Swatch(); swatch.Width = 14; swatch.Height = 14; swatch.VerticalAlignment = VerticalAlignment.Center; /* :1172 HStack: each child on the centre line */ label.Children.Add(swatch); label.Children.Add(new TextBlock { Text = theme.DisplayName(), MaxLines = 1, VerticalAlignment = VerticalAlignment.Center }.Font(SwiftFont.System(12.5, SwiftFont.Weight.Medium))); var chevron = SwiftImage.SystemName("chevron.down").Font(SwiftFont.System(8, SwiftFont.Weight.Bold)).ForegroundStyle(Chrome.SecondaryText); chevron.VerticalAlignment = VerticalAlignment.Center; label.Children.Add(chevron);
         }
         var button = PlainControls.Button(label, () => state.IsPresented = !state.IsPresented);
         // :1185 .contentShape(Capsule(style: .continuous)): the hit-test shape covers the whole padded frame (not just painted content) and survives label replacement.

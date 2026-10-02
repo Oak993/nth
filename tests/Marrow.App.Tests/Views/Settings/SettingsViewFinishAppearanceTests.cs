@@ -79,6 +79,23 @@ public sealed class SettingsViewFinishAppearanceTests(HeadlessSession headless) 
         }, nativePopup: true, height: 1500);
     }
 
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-017")] // App/Views/Settings/SettingsView.swift:1172 HStack(spacing: 6), centre alignment by default
+    public void Theme_picker_capsule_puts_the_swatch_the_name_and_the_chevron_on_the_28_point_centre_line()
+    {
+        With(() => new AppearanceSettingsPage(), (view, model, h, w) =>
+        {
+            var picker = Assert.Single(Nodes<ThemePickerButton>(Row(view, "Theme")));
+            var stack = Assert.Single(Nodes<StackPanel>(picker), s => s.Height == 28);
+            // An HStack centres each child vertically; the stretched name drew in the top 16 points of the 28-point capsule.
+            foreach (Control child in new Control[] { Assert.Single(Nodes<ThemeSwatch>(picker)), Assert.Single(Nodes<TextBlock>(picker)), Assert.Single(Nodes<SwiftImage>(picker)) })
+            {
+                Assert.Equal(child.DesiredSize.Height, child.Bounds.Height, 0.5); // at its own height
+                Assert.Equal(14, TopLeft(child, stack).Y + child.Bounds.Height / 2, 0.5);
+            }
+        });
+    }
+
     private static double Scrim(double t) { const double stock = 0.18; var c = Math.Min(Math.Max(t, 0), 1); return c <= 0.5 ? stock * (c / 0.5) : stock + (1 - stock) * ((c - 0.5) / 0.5); } // Chrome.swift:WindowBackdrop.scrim(for:isDark: false)
 
     [Fact]

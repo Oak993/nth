@@ -82,4 +82,31 @@ public sealed class AboutIdentityIconTests(HeadlessSession headless)
             finally { window.Close(); }
         });
     });
+
+    [Fact]
+    [Trait("Req", "UI-UPDATE-001")] // AboutUpdateViews.swift:553 HStack(spacing: 6): the default alignment is .center
+    public void The_version_text_sits_on_the_centre_line_of_the_20_point_icon_beside_it() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var info = AppInfo.Running.Override(ReleaseFeed.Running("1.4.2"));
+        runtime.OnMain(() =>
+        {
+            var pill = new AboutIdentityPill();
+            var window = new Avalonia.Controls.Window { Content = pill, Width = 200, Height = 60 };
+            window.Show(); Dispatcher.UIThread.RunJobs(); window.UpdateLayout();
+            try
+            {
+                var row = Assert.IsType<StackPanel>(Assert.Single(pill.GetVisualDescendants().OfType<Border>(), b => b.Child is StackPanel).Child);
+                var icon = Assert.IsAssignableFrom<Control>(row.Children[0]);
+                var text = Assert.IsType<TextBlock>(row.Children[1]);
+                // The text (about 15 points) is shorter than the icon (20): an HStack puts it on the icon's centre line, at its own
+                // height; the StackPanel stretched it to 20 and drew it at the top.
+                Assert.Equal(text.DesiredSize.Height, text.Bounds.Height, 0.5);
+                Assert.Equal(icon.Bounds.Center.Y, text.Bounds.Center.Y, 0.5);
+            }
+            finally { window.Close(); }
+        });
+    });
 }
