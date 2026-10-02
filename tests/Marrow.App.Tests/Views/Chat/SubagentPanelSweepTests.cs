@@ -164,6 +164,7 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-HYDRA-230")] // App/Views/Chat/SubagentPanel.swift:271-297,314-326
+    [Trait("Req", "UI-HYDRA-067")] // App/Views/Chat/SubagentPanel.swift:314-326 the close mark: xmark, padded 12 top and 14 trailing, the two tooltips, confirm while running
     public void Head_details_switch_live_helpers_keep_transcripts_and_running_close_requires_confirmation()
     {
         headless.OnUiThread(() =>
@@ -202,6 +203,10 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
                 Assert.Single(Descendants<ThreadTimeline>(panel));
                 Assert.Single(Descendants<ComposerArea>(panel));
                 var close = Descendants<ChromeCircleButton>(panel).Single(button => Equals(ToolTip.GetTip(button), "Close this chat"));
+                // :315-322 ChromeCircleButton(symbol: "xmark") padded Chrome.chromeTopPadding (12) on top and
+                // Chrome.chromeHorizontalPadding (14) at the trailing edge.
+                Assert.Contains(Descendants<Marrow.UI.Port.SwiftImage>(close), image => image.SymbolName == "xmark");
+                Assert.Equal(new Thickness(0, 12, 14, 0), close.Margin);
                 typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Phase))!.SetValue(runtime, RuntimePhase.Running);
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal("Close this chat and stop its turn", ToolTip.GetTip(close));
