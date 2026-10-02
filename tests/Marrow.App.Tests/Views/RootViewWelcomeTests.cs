@@ -110,6 +110,23 @@ public sealed class RootViewWelcomeTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "UI-WIN-057")] // App/Views/RootView.swift:306 VStack(spacing: 14), centre alignment by default
+    [Trait("Req", "UI-WIN-058")] // App/Views/RootView.swift:306, :312-314
+    public void The_product_name_and_the_tagline_are_each_centred_on_the_page_like_the_icon()
+    {
+        OnWelcome(host =>
+        {
+            // A VStack centres each child at its own width: the name's and the tagline's text sit under the icon's centre,
+            // not left-aligned at the widest line's edge (the native gallery showed "Marrow" flush left under the tagline).
+            foreach (var text in new[] { RootViewRig.Text(host, "Marrow"), RootViewRig.Text(host, "A calm, native home for your coding agents.") })
+            {
+                Assert.Equal(text.DesiredSize.Width, text.Bounds.Width, 0.5); // at its own width
+                Assert.Equal(host.Bounds.Width / 2, RootViewRig.In(text, host).Center.X, 0.5);
+            }
+        }, width: 1320);
+    }
+
+    [Fact]
     [Trait("Req", "UI-WIN-058")] // App/Views/RootView.swift:312-314, OD-0012 F2
     public void The_tagline_is_the_title3_style_in_secondary_text_third_in_the_stack()
     {

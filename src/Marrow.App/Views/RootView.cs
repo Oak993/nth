@@ -893,6 +893,10 @@ public sealed class WelcomeView : Decorator
         SwiftFont.System(SwiftFont.TextStyle.Title3).Apply(tagline);
         tagline.Foreground = Chrome.SecondaryText.Brush(tagline);
 
+        // :306 a VStack centres each child at its own width; an Avalonia StackPanel stretches them, which left the name flush
+        // left under the tagline.
+        title.HorizontalAlignment = HorizontalAlignment.Center;
+        tagline.HorizontalAlignment = HorizontalAlignment.Center;
         var identity = new StackPanel { Orientation = Orientation.Vertical, Spacing = 14, HorizontalAlignment = HorizontalAlignment.Center };
         identity.Children.Add(icon);
         identity.Children.Add(title);
