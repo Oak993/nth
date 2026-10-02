@@ -673,3 +673,19 @@ Provenance for OD-0036 through OD-0043: owner answers in this session's chat (Cl
 
 - **Owner ruling, 2026-10-02 (chat, translated from Hindi/Urdu):** wherever anything scrolls (in the chat and anywhere else), the scrolling must be soft and "premium weighted", as it feels on the Mac: it must feel premium.
 - **Effect:** every scroll area (chat timeline, diff and terminal panels, Settings pages and sidebar, the thread sidebar, popovers, menus, panels, the command palette) uses one scrolling behaviour modelled on the Mac's as measured from the reference videos at full frame rate: eased, interpolated wheel steps, momentum with a natural decay for precision touchpads, a soft settle at the ends, animated keyboard and programmatic scrolls (e.g. scroll to bottom), and overlay scroll indicators as the Mac shows them; paced on the display's refresh with zero dropped frames (OD-0069, ED-237).
+
+## OD-0072 Answers to the pending questions (2026-10-02)
+
+Owner answers in chat, 2026-10-02, to the questions put with recommendations:
+
+- **Windows accent near-black/grey:** show every option on the canvas (the Mac's default blue when the accent is grey/black; keep the lifted grey; always the Mac's default blue); the owner chooses by look.
+- **Liquid at every effort level vs only at the top:** show both on the canvas; the owner chooses by look.
+- **Effort scale:** the position within each model's own effort list (a model's top effort is its full look, its lowest the calmest).
+- **Models run by harness providers (Command Code, Copilot, Cursor, OpenCode, Devin, Pi):** wear their MAKER's colour (as OD-0063 for OpenRouter); the provider's own colour remains for its own models and as the fallback.
+- **Settings window first open (the ~0.2 s plain tint before the blur):** hide it behind a premium open transition (e.g. a fade-in, or the window's elements arriving into place); variants on the canvas.
+- **Window corner wedge (unscrimmed blur in the 8 px rounded corner):** show both (filled with the scrim / left) on the canvas.
+- **App updates:** the owner ships new versions himself as installers built in development sessions and shared with others. The installer detects an existing installation: an older version is upgraded in place; the same version reports that the app is already up to date; a newer installed version makes an older installer refuse with a clear message ("A newer version of Marrow (x.y) is already installed."); otherwise it installs normally. The in-app update option becomes the place to manually update the provider tools (Codex, Claude Code and the other CLIs) rather than the app itself (designed on the canvas). Nothing is signed or published without the owner's word (OD-0058).
+- **Installed app name:** "Marrow" (Start menu and installer title). The install identity stays distinct from the owner's separate Electron app "Marrow" (ED-235's app id and folder), so neither can replace the other.
+- **About page licence line:** "Marrow is licensed under the GNU AGPL v3.0 with attribution terms; the terminal is Marrow's own, built on Windows ConPTY." (OD-0012 H settled.)
+- **Provider key link:** choose "a" or "an" by the name's first sound ("Get an OpenRouter key"), for every provider.
+- **Fast mode below a model's top effort:** a new, better animation (e.g. electricity coursing through the tube); 10-15 variants on a canvas for the owner to choose.
