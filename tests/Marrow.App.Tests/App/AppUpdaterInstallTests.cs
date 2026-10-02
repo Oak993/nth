@@ -366,6 +366,49 @@ public sealed class AppUpdaterInstallTests
         Assert.DoesNotContain(fake.Calls, c => c.StartsWith("LaunchDetachedInstaller(", StringComparison.Ordinal));
     }
 
+    // PR-UPDATE-051: Swift's spctl assessment (:337-340) throws "Gatekeeper did not accept the downloaded app. ..."
+    // and nothing is installed. PA-0014 collapses that gate into the Authenticode gate (PR-UPDATE-049) on Windows,
+    // so the single IUpdateInstallBoundary.Verify gate carries it: a staged app it refuses is never installed
+    // (no version read, no handoff) and the refusal's own text is what the user is shown, verbatim.
+    [Fact]
+    [Trait("Req", "PR-UPDATE-051")] // App/AppUpdater.swift:337-340 (collapsed into the signature gate, windows_path)
+    public async Task A_staged_app_the_trust_gate_refuses_is_never_installed_and_its_error_reaches_the_user()
+    {
+        using var runtime = new TestRuntime();
+        using var development = AppInfo.Running.Override(
+            AppInfo.FromAssembly(typeof(AppUpdaterInstallTests).Assembly, isDevelopment: false));
+        using var progress = UpdateInstallProgress.Running.Override(UpdateInstallProgressFixtures.NewProgress());
+        var presenter = new RecordingAlertPresenter();
+        using var alertSeam = AlertPresentation.Presenter.Override(presenter);
+        await using var server = new LoopbackHttpServer();
+        var fake = new FakeUpdateInstallBoundary
+        {
+            VerifyThrows = new UpdateInstallError("The downloaded app is not signed by Marrow. The certificate is not trusted."),
+        };
+        var updater = new AppUpdater(fake);
+        var reply = Respond(server, 200, [1, 2, 3]);
+        runtime.OnMain(() => updater.Install(MakeUpdate(server.Url("/artifact"))));
+        runtime.Loop.RunUntil(() => presenter.Shown.Count > 0, TimeSpan.FromSeconds(20));
+        await reply;
+
+        Assert.Equal(UpdateInstallProgress.Phase.Failed, Phase(runtime));
+        var alert = Assert.Single(presenter.Shown);
+        Assert.Equal("The downloaded app is not signed by Marrow. The certificate is not trusted.", alert.InformativeText);
+        // The gate ran on the staged copy, once, and nothing after it did: not even the version read.
+        Assert.Equal(["Stage(", "Verify("], fake.Calls.Select(c => c[..(c.IndexOf('(', StringComparison.Ordinal) + 1)]).ToArray());
+        Assert.Equal(fake.Calls[1], $"Verify({fake.StagedPathToReturn})");
+    }
+
+    [Fact]
+    [Trait("Req", "PR-UPDATE-051")] // App/AppUpdater.swift:337-340, a refusal by the gate surfaces from stage() unchanged
+    public async Task The_Stage_step_rethrows_the_trust_gates_refusal_without_reading_the_version()
+    {
+        var fake = new FakeUpdateInstallBoundary { VerifyThrows = new UpdateInstallError("gate said no") };
+        var error = await Assert.ThrowsAsync<UpdateInstallError>(() => new AppUpdater(fake).Stage("img", "1.3.0"));
+        Assert.Equal("gate said no", error.ErrorDescription);
+        Assert.DoesNotContain(fake.Calls, c => c.StartsWith("ReadVersion(", StringComparison.Ordinal));
+    }
+
     [Fact]
     [Trait("Req", "PR-UPDATE-050")] // App/AppUpdater.swift:332-336
     public async Task A_staged_version_equal_to_the_accepted_one_on_padded_components_proceeds_to_handoff()

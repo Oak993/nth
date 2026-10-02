@@ -131,7 +131,7 @@ public sealed class NewThreadPrompt : Decorator
     private Control MakeProjectChoices(AppModel model, Guid threadID, Action close)
     {
         var current = model.Thread(threadID)?.ProjectID;
-        return new PopoverMenu(() =>
+        var menu = new PopoverMenu(() =>
         {
             var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0, HorizontalAlignment = HorizontalAlignment.Stretch };
             stack.Children.Add(new PopoverSectionHeader("Projects")); // :60
@@ -151,6 +151,12 @@ public sealed class NewThreadPrompt : Decorator
             }, symbol: "plus"));
             return stack;
         });
+        // DEFECT FIX (UI-CHAT-046/047): every PopoverItem row dismisses the popover it sits in before its action runs
+        // (Popovers.swift:266, :271 `closePopoverBox?.close ?? dismiss()`); a SwiftUI .popover answers dismiss(), so here
+        // the row's close is the picker's own isChoosingProject = false. Without it the popover stayed open after
+        // choosing the current project (:75's guard) or cancelling the folder dialog (:69's guard).
+        Popovers.SetClosePopover(menu, close);
+        return menu;
     }
 
     // :74-80
