@@ -3,6 +3,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Text.RegularExpressions;
+using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Services.MCP;
 using Marrow.Services.Port;
@@ -775,5 +776,138 @@ public sealed class MCPProxyTests : IDisposable
 
         MCPKeychain.Delete(crossOriginId, "oauth");
         MCPKeychain.Delete(sameOriginId, "oauth");
+    }
+
+    // ---- PR-MCP-138: the connection map, and a proxy nothing ever shuts down ----
+
+    private static async Task<TcpClient> OpenClient(int port)
+    {
+        var client = new TcpClient();
+        await client.ConnectAsync(IPAddress.Loopback, port).WaitAsync(TimeSpan.FromSeconds(30));
+        return client;
+    }
+
+    /// Reads what the proxy sends until it closes the connection (every plain reply says Connection: close).
+    private static async Task<string> ReadToEnd(TcpClient client)
+    {
+        var all = new MemoryStream();
+        var buffer = new byte[8192];
+        var stream = client.GetStream();
+        while (true)
+        {
+            int n;
+            try { n = await stream.ReadAsync(buffer).AsTask().WaitAsync(TimeSpan.FromSeconds(30)); }
+            catch (IOException) { break; }
+            if (n <= 0) break;
+            all.Write(buffer, 0, n);
+        }
+        return Encoding.UTF8.GetString(all.ToArray());
+    }
+
+    [Trait("Req", "PR-MCP-138")] // DroppyCode/Services/MCP/MCPProxy.swift:175-179 accept stores the connection; :181-183 forget removes it; :205-208, :393-394, :408-409 every end of a connection forgets
+    [Fact]
+    public async Task An_accepted_connection_is_held_until_it_ends_and_every_way_of_ending_forgets_it()
+    {
+        using var isolated = new IsolatedMCPProxy();
+        var proxy = isolated.Proxy;
+        Assert.Equal(0, MCPProxyConnections.Open(proxy));
+
+        // Answered by the proxy itself (502 unknown server): held while the request head is incomplete, forgotten once answered.
+        using (var client = await OpenClient(isolated.Port))
+        {
+            await client.GetStream().WriteAsync("GET /mcp/none HTTP/1.1\r\n"u8.ToArray());
+            await MCPProxyConnections.WaitForOpen(proxy, 1);
+            await client.GetStream().WriteAsync("\r\n"u8.ToArray());
+            Assert.StartsWith("HTTP/1.1 502", await ReadToEnd(client), StringComparison.Ordinal);
+            await MCPProxyConnections.WaitForOpen(proxy, 0);
+        }
+
+        // The peer ends the stream without a request: forgotten when the stream ends (:205-208).
+        using (var client = await OpenClient(isolated.Port))
+        {
+            await MCPProxyConnections.WaitForOpen(proxy, 1);
+            client.Dispose();
+            await MCPProxyConnections.WaitForOpen(proxy, 0);
+        }
+
+        // Each connection is its own entry: two at once are two, and one ending leaves the other.
+        using (var first = await OpenClient(isolated.Port))
+        using (var second = await OpenClient(isolated.Port))
+        {
+            await MCPProxyConnections.WaitForOpen(proxy, 2);
+            first.Dispose();
+            await MCPProxyConnections.WaitForOpen(proxy, 1);
+            second.Dispose();
+            await MCPProxyConnections.WaitForOpen(proxy, 0);
+        }
+
+        // A relayed reply ends the connection too, on both framings: buffered with a Content-Length (:408-409) and an event stream (:393-394).
+        await using var upstream = new FakeUpstreamServer();
+        proxy.Register("plain", upstream.BaseUrl + "/p", new Dictionary<string, string>(), usesOAuth: false);
+        proxy.Register("stream", upstream.BaseUrl + "/s", new Dictionary<string, string>(), usesOAuth: false);
+        upstream.Handler = request => request.Path == "/s"
+            ? new FakeResponse(200, [("Content-Type", "text/event-stream")], [], SseChunks: ["data: x\n"])
+            : new FakeResponse(200, [("Content-Type", "text/plain")], "ok"u8.ToArray());
+        foreach (var id in new[] { "plain", "stream" })
+        {
+            using var client = await OpenClient(isolated.Port);
+            await client.GetStream().WriteAsync(Encoding.ASCII.GetBytes($"GET /mcp/{id} HTTP/1.1\r\n\r\n"));
+            Assert.StartsWith("HTTP/1.1 200", await ReadToEnd(client), StringComparison.Ordinal);
+            await MCPProxyConnections.WaitForOpen(proxy, 0);
+        }
+    }
+
+    [Trait("Req", "PR-MCP-138")] // DroppyCode/Services/MCP/MCPProxy.swift:139-151 stop(): cancels the listener and every open connection, clears the map and running
+    [Fact]
+    public async Task Stop_closes_the_listener_and_every_open_connection_and_lets_the_proxy_start_again()
+    {
+        using var isolated = new IsolatedMCPProxy();
+        var proxy = isolated.Proxy;
+        var port = isolated.Port;
+
+        // One connection the proxy holds open (an unfinished request head).
+        using var held = await OpenClient(port);
+        await held.GetStream().WriteAsync("GET /mcp/none HTTP/1.1\r\n"u8.ToArray());
+        await MCPProxyConnections.WaitForOpen(proxy, 1);
+
+        proxy.Stop();
+
+        // :148 every open connection is cancelled: the peer sees the stream end (or a reset), and the map is empty (:144).
+        var read = held.GetStream().ReadAsync(new byte[16]).AsTask().WaitAsync(TimeSpan.FromSeconds(30));
+        try { Assert.Equal(0, await read); } catch (IOException) { }
+        Assert.Equal(0, MCPProxyConnections.Open(proxy));
+        // :146 the listener is cancelled: nothing accepts on the port any more.
+        await Assert.ThrowsAsync<SocketException>(() => OpenClient(port));
+
+        // :145 running is cleared, so start() works again instead of returning at once (:86-90).
+        using (Logger.Sink.Override((_, _) => { })) proxy.Start();
+        using var again = await OpenClient(port);
+        Assert.True(again.Connected);
+    }
+
+    [Trait("Req", "PR-MCP-138")] // DroppyCode/Services/MCP/MCPProxy.swift:139 stop() has zero call sites: the proxy runs for the life of the app, started once by the store's initializer
+    [Fact]
+    public async Task The_shared_listener_keeps_accepting_after_the_store_connects_disables_disconnects_and_deletes_a_server()
+    {
+        using var harness = new MCPStoreHarness();
+        var store = harness.Runtime.OnMain(() => new MCPStore());
+        var custom = new MCPCustomServer(MCPCustomServer.MakeID("Proxy Lifetime"), "Proxy Lifetime", MCPCustomServer.Kind.Stdio)
+        {
+            Command = "marrow-proxy-lifetime-nonexistent-cmd-77c1",
+        };
+        harness.Runtime.OnMain(() => Assert.Null(store.SaveCustom(custom)));
+        var entry = harness.Runtime.OnMain(() => store.Entry(custom.Id)!);
+
+        // Every store flow that touches the proxy: connect (route list rewritten on export), switch off, on, disconnect, delete.
+        harness.Runtime.OnMain(() => store.Connect(entry));
+        harness.Runtime.OnMain(() => store.SetEnabled(false, entry));
+        harness.Runtime.OnMain(() => store.SetEnabled(true, entry));
+        harness.Runtime.OnMain(() => store.Disconnect(entry));
+        harness.Runtime.OnMain(() => store.DeleteCustom(custom));
+
+        // The listener never stopped: it still takes a connection and answers it.
+        var (status, _, body) = await SendRawAsync("GET /mcp/none HTTP/1.1\r\n\r\n");
+        Assert.Equal(502, status);
+        Assert.Contains("unknown server", Encoding.UTF8.GetString(body), StringComparison.Ordinal);
     }
 }
