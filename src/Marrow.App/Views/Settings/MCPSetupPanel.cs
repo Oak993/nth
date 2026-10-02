@@ -1,6 +1,6 @@
 using System;
+using System.Threading.Tasks;
 using Avalonia;
-using Avalonia.Animation;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Layout;
@@ -50,6 +50,7 @@ public sealed class MCPSetupPanel : FloatingGuidePanel
 
         var content = new MCPSetupPanelView(entry, guide, model, Close); // :29-31
         Present(content); // :32
+        content.ReportGeometry(); // :84-86 the first size is reported once the panel is up
     }
 
     // :26-28, :84-86 Open the guide page in the default browser.
@@ -67,6 +68,9 @@ public sealed class MCPSetupPanel : FloatingGuidePanel
         presentedEntryID = null;
         base.Close();
     }
+
+    // PORT-ONLY: whether the visible panel is showing this content (a view in another window is never fitted to it).
+    internal bool Shows(Control content) => panel?.IsVisible == true && ReferenceEquals(panel.Content, content);
 
     // :42-50 func fit(height: CGFloat)
     public void Fit(double height)
@@ -91,6 +95,7 @@ public sealed class MCPSetupPanelView : Decorator
     private readonly StackPanel body; // :67-144
     private bool wasConnectedState;
     private bool builtOnce;
+    private bool fitPending;
 
     // :56-59 let entry, let guide, let model, let onDone; :67-144 body
     public MCPSetupPanelView(MCPCatalogEntry entry, MCPSetupGuide guide, AppModel model, Action onDone)
@@ -110,6 +115,7 @@ public sealed class MCPSetupPanelView : Decorator
         UpdateBody();
         builtOnce = true;
         SizeChanged += (_, _) => MCPSetupPanel.Shared.Fit(Bounds.Height);
+        LayoutUpdated += (_, _) => FitToContent();
         this.Track(() => model.Mcp.State(entry.Id), _ => UpdateBody());
         this.Track(() => EnvironmentValues.GetAccessibilityReduceMotion(this), _ => UpdateBody());
     }
@@ -136,8 +142,35 @@ public sealed class MCPSetupPanelView : Decorator
         };
     }
 
-    // :67-144 body
+    // :67-144 body, then :84-86 `.onGeometryChange(for: CGFloat.self) { $0.size.height } action: { MCPSetupPanel.shared.fit(height: $0) }`:
+    // the panel follows the content as it grows (the status line, the success view). The hosting window has a fixed
+    // height, so the content's own height never changes the view's bounds: the wanted height is measured here, after
+    // the layout the change causes (a measure taken inside the change itself still reads the old content).
     private void UpdateBody()
+    {
+        BuildBody();
+        if (builtOnce) fitPending = true;
+    }
+
+    // Asks for the content's height to be reported to the panel after the next layout pass.
+    internal void ReportGeometry()
+    {
+        fitPending = true;
+        InvalidateMeasure();
+    }
+
+    // The wanted height is read once the layout the change caused has run (LayoutUpdated): a measure taken inside the
+    // change itself still reads the old content.
+    private void FitToContent()
+    {
+        // Only the panel that shows this view follows it, and a view not yet on screen keeps waiting for its first layout.
+        if (!fitPending || !MCPSetupPanel.Shared.Shows(this)) return;
+        fitPending = false;
+        Child!.Measure(new Size(400, double.PositiveInfinity));
+        MCPSetupPanel.Shared.Fit(Child.DesiredSize.Height);
+    }
+
+    private void BuildBody()
     {
         body.Children.Clear();
         body.Children.Add(Header());
@@ -176,14 +209,15 @@ public sealed class MCPSetupPanelView : Decorator
             },
         };
 
-        var openPage = new Button { Content = guide.PageLabel };
-        openPage.Click += (_, _) => OpenGuidePage(guide.PageURL);
+        // :134-138 Button(guide.pageLabel) { open the page }.buttonStyle(.glass)
+        var openPage = GlassButton(guide.PageLabel, () => OpenGuidePage(guide.PageURL));
         Grid.SetColumn(openPage, 0);
         buttons.Children.Add(openPage);
 
         if (state.IsConnecting)
         {
-            var checking = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            // A spinner and a label are not controls: a press on them drags the panel like the background (:77-80).
+            var checking = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, IsHitTestVisible = false };
             checking.Children.Add(new WorkingSpinner(cellSize: 3));
             checking.Children.Add(Label("Checking", SwiftFont.Subheadline, Chrome.SecondaryText));
             Grid.SetColumn(checking, 2);
@@ -191,13 +225,13 @@ public sealed class MCPSetupPanelView : Decorator
         }
         else
         {
-            var check = new Button { Content = "Check again" };
-            check.Click += (_, _) =>
+            // :147-153 Button("Check again") { checkedOnce = true; model.mcp.refresh(entry) }.buttonStyle(.glassProminent)
+            var check = GlassProminentButton("Check again", () =>
             {
                 checkedOnce = true;
                 model.Mcp.Refresh(entry);
                 UpdateBody();
-            };
+            });
             Grid.SetColumn(check, 2);
             buttons.Children.Add(check);
         }
@@ -230,7 +264,8 @@ public sealed class MCPSetupPanelView : Decorator
             },
         };
 
-        var icon = new MCPIcon(entry, 26) { Margin = new Thickness(0, 0, 10, 0) };
+        // :197 HStack(alignment: .top, spacing: 10): the icon sits at the top, not centred against the two lines.
+        var icon = new MCPIcon(entry, 26) { Margin = new Thickness(0, 0, 10, 0), VerticalAlignment = VerticalAlignment.Top, IsHitTestVisible = false };
         Grid.SetColumn(icon, 0);
         row.Children.Add(icon);
 
@@ -238,7 +273,8 @@ public sealed class MCPSetupPanelView : Decorator
         {
             Orientation = Orientation.Vertical,
             Spacing = 1,
-            Margin = new Thickness(0, 0, 10, 0),
+            // :197-215 spacing 10 on each side of Spacer(minLength: 8): at least 10 + 8 + 10 points before the close button.
+            Margin = new Thickness(0, 0, 18, 0),
         };
         texts.Children.Add(Label(entry.Name,
             SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold), Chrome.PrimaryText));
@@ -255,6 +291,7 @@ public sealed class MCPSetupPanelView : Decorator
             Background = Brushes.Transparent,
             BorderThickness = new Thickness(0),
             VerticalAlignment = VerticalAlignment.Top,
+            Margin = new Thickness(10, 0, 0, 0),
         };
         close.Click += (_, _) => onDone();
         Grid.SetColumn(close, 2);
@@ -286,6 +323,7 @@ public sealed class MCPSetupPanelView : Decorator
             Height = 18,
             Margin = new Thickness(0, 0, 8, 0),
             CornerRadius = new CornerRadius(9),
+            IsHitTestVisible = false, // :222-227 the circle is a shape, not a control: a press on it drags the panel
             Background = Chrome.Accent.Opacity(0.18).Brush(row),
             Child = numberLabel,
         };
@@ -302,17 +340,26 @@ public sealed class MCPSetupPanelView : Decorator
     private Control SuccessView(MCPConnectionState state)
     {
         var count = state is MCPConnectionState.Connected connected ? connected.ToolCount : 0;
+        // :240 VStack(spacing: 8), :253 .frame(maxWidth: .infinity, minHeight: 120, alignment: .center): a full-width
+        // block at least 120 tall with the stack centred in it.
         var success = new StackPanel
         {
             Orientation = Orientation.Vertical,
             Spacing = 8,
             HorizontalAlignment = HorizontalAlignment.Center,
             VerticalAlignment = VerticalAlignment.Center,
+            IsHitTestVisible = false,
+        };
+        var successFrame = new Grid
+        {
+            HorizontalAlignment = HorizontalAlignment.Stretch,
             MinHeight = 120,
+            Children = { success },
         };
         var glyph = SwiftImage.SystemName("checkmark.circle.fill")
             .Font(SwiftFont.System(34))
             .ForegroundStyle(Chrome.Success);
+        glyph.HorizontalAlignment = HorizontalAlignment.Center;
         glyph.RenderTransformOrigin = RelativePoint.Center;
         glyph.RenderTransform = new ScaleTransform(successPopped ? 1 : 0.5, successPopped ? 1 : 0.5);
         success.Children.Add(glyph);
@@ -320,37 +367,63 @@ public sealed class MCPSetupPanelView : Decorator
             count.ToString(System.Globalization.CultureInfo.InvariantCulture) + " tools", // U+00B7 MIDDLE DOT
             SwiftFont.System(SwiftFont.TextStyle.Callout, weight: SwiftFont.Weight.Medium), Chrome.PrimaryText));
 
-        if (!successPopped)
+        // :255-259 .onAppear: under reduce-motion the glyph is set straight to full size, otherwise it springs from 0.5 to 1
+        // with `.spring(duration: 0.5, bounce: 0.4)`, once. ENGINEERING DECISION: the frame seam and the shared spring,
+        // as the card's success view does (MCPSettingsPage.cs), so a test can drive the frames.
+        glyph.AttachedToVisualTree += (_, _) =>
         {
+            if (successPopped) return;
             successPopped = true;
             if (EnvironmentValues.GetAccessibilityReduceMotion(this))
             {
                 glyph.RenderTransform = new ScaleTransform(1, 1);
-            }
-            else
-            {
-                var animation = new Avalonia.Animation.Animation
-                {
-                    Duration = TimeSpan.FromSeconds(0.5),
-                    Easing = Marrow.UI.Port.Animation.Spring(duration: 0.5, bounce: 0.4).ToEasing(),
-                    Children =
-                    {
-                        new KeyFrame
-                        {
-                            Cue = new Cue(1),
-                            Setters =
-                            {
-                                new Setter(ScaleTransform.ScaleXProperty, 1d),
-                                new Setter(ScaleTransform.ScaleYProperty, 1d),
-                            },
-                        },
-                    },
-                };
-                _ = animation.RunAsync(glyph);
+                return;
             }
 
-        }
-        return success;
+            var start = SwiftClock.Now;
+            var spring = Marrow.UI.Port.Animation.Spring(duration: 0.5, bounce: 0.4);
+            var frames = FrameClock.Source.Current;
+            Action<TimeSpan>? frame = null;
+            frame = _ =>
+            {
+                var elapsed = (SwiftClock.Now - start).TotalSeconds;
+                var complete = elapsed >= spring.Duration; // ED-011: the shared spring's settling duration
+                var scale = complete ? 1 : 0.5 + 0.5 * spring.Progress(elapsed);
+                glyph.RenderTransform = new ScaleTransform(scale, scale);
+                if (!complete) frames.RequestFrame(frame!);
+            };
+            glyph.DetachedFromVisualTree += (_, _) => frames.CancelFrame(frame!);
+            frames.RequestFrame(frame);
+        };
+        return successFrame;
+    }
+
+    // :134-138 `.buttonStyle(.glass)` at the default control size: the regular interactive glass in a continuous capsule,
+    // the same recipe FollowUpEditor and MCPSettingsPage.ActionButton use (ENGINEERING DECISION; OD-0005 governs the material).
+    private static Control GlassButton(string title, Action action)
+    {
+        var framed = new Border
+        {
+            Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0),
+            Height = Chrome.CapsuleContentHeight,
+            Background = Brushes.Transparent,
+            Child = ButtonLabel(title),
+        }.Capsule(RoundedCornerStyle.Continuous);
+        SwiftGlass.SetEffect(framed, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive());
+        return PlainControls.Button(framed, action);
+    }
+
+    // :147-153 `.buttonStyle(.glassProminent)`: the tinted twin, the recipe WelcomeView.GlassProminentButton holds.
+    private static Control GlassProminentButton(string title, Action action) =>
+        WelcomeView.GlassProminentButton(ButtonLabel(title), Chrome.CapsuleContentHeight, action);
+
+    // A glass button's label: the body text style in primary text.
+    private static TextBlock ButtonLabel(string title)
+    {
+        var label = new TextBlock { Text = title, VerticalAlignment = VerticalAlignment.Center };
+        SwiftFont.Body.Apply(label);
+        label.Foreground = Chrome.PrimaryText.Brush(label);
+        return label;
     }
 
     // :26-28, :84-86 Open the guide page in the default browser.
@@ -370,6 +443,7 @@ public sealed class MCPSetupPanelView : Decorator
             Text = text,
             TextWrapping = TextWrapping.Wrap,
             HorizontalAlignment = HorizontalAlignment.Stretch,
+            IsHitTestVisible = false, // :77-80 the reason, steps and status line are not controls: a press drags the panel
         };
         font.Apply(label);
         label.Foreground = color.Brush(label);

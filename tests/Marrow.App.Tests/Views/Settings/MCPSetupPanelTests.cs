@@ -7,6 +7,7 @@ using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Chrome;
+using Marrow.UI.Port;
 using Marrow.App.Tests.Fixtures;
 
 namespace Marrow.App.Tests.Views.Settings;
@@ -242,6 +243,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the success glyph springs on the frame seam
             var model = harness.MakeModel();
             SetState(model, "gitlab", new MCPConnectionState.Connected(3));
             var done = 0;
@@ -268,6 +270,7 @@ public sealed class MCPSetupPanelTests(HeadlessSession headless)
         headless.OnUiThread(() =>
         {
             using var harness = new AppModelHarness();
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the success glyph springs on the frame seam
             var model = harness.MakeModel();
             var done = 0;
             Avalonia.Controls.Window window = null!;
