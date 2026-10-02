@@ -515,6 +515,64 @@ public sealed class ComposerViewTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-COMPOSER-009")] // App/Views/Composer/ComposerView.swift:32-34,84-85; App/Views/Diff/DiffInspector.swift:581-586,614-625
+    public void The_changes_popover_hangs_from_the_changes_tab_and_from_the_composer_area_while_the_queue_holds_the_slot()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var presenter = new RecordingPresenter();
+            using var presentation = Presentation.Presenter.Override(presenter);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var runtime = h.Runtime;
+            GiveStats(h, runtime);
+            var area = h.Main.OnMain(() => new ComposerArea(runtime, workingDirectory: null));
+            var window = h.Main.OnMain(() => Show(area, h.App, width: 900));
+            Pump(h, window);
+            static bool Within<T>(Control view) where T : class =>
+                Avalonia.VisualTree.VisualExtensions.GetSelfAndVisualAncestors(view).OfType<T>().Any();
+            Control Shown() => (Control)presenter.Calls.Last(call => call.Presented).Popup.PlacementTarget!;
+
+            // :84-85 the changes tab is in the slot: the popover hangs from it.
+            h.Main.OnMain(() => runtime.IsDiffVisible = true);
+            Pump(h, window);
+            h.Main.OnMain(() =>
+            {
+                Assert.Single(LogicalQuery.SelfAndDescendants<ThreadChangesTab>(area));
+                Assert.True(Within<ThreadChangesTab>(Shown()), "the popover hangs from the changes tab");
+                runtime.IsDiffVisible = false;
+            });
+            Pump(h, window);
+
+            // :77-81 a queued prompt takes the slot: the popover falls back to the composer area's own rect (:32-34).
+            h.Main.OnMain(() =>
+            {
+                runtime.RehearseTurn(null);
+                runtime.EnqueueFollowUp("queued prompt", []);
+            });
+            Pump(h, window);
+            h.Main.Advance(TimeSpan.FromSeconds(2)); // the changes tab's exit transition (.softAppear) runs out
+            h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(2)));
+            Pump(h, window);
+            h.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ThreadChangesTab>(area));
+                runtime.IsDiffVisible = true;
+            });
+            Pump(h, window);
+            h.Main.OnMain(() =>
+            {
+                var target = Shown();
+                Assert.False(Within<ThreadChangesTab>(target));
+                Assert.True(Within<ComposerArea>(target), "the fallback anchor is the composer area's own");
+                Assert.IsType<AttachmentAnchorCapture>(target);
+            });
+            Close(h, window);
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-COMPOSER-010")] // App/Views/Composer/ComposerView.swift:86-93
     public void Clicking_the_changes_tab_clears_focus_anchor_and_selection_and_then_makes_the_diff_visible()
     {
@@ -3532,6 +3590,8 @@ public sealed class ComposerViewTests(HeadlessSession headless)
 // close wirings and which anchor the popover hangs from are therefore not observable in a test.
 // Needed to proceed: a decision on how DiffPopoverCoordinator presents (the R-VIEW-9 seam), in its own unit.
 // Done so far: the sites are written; the arrival rule on appear and the 640 by 540 size are tested and pass.
+// Resolved for PR-COMPOSER-009 (2026-10-02): DiffPopoverCoordinator now presents through Presentation.Presenter (R-VIEW-9),
+// so the anchor it hangs from is observed with RecordingPresenter (The_changes_popover_hangs_from_the_changes_tab_...).
 //
 // STOP App.Views.Composer.ComposerView #4
 // Kind: historical dependency blocker, resolved; command-observer proof gaps resolved by notify2-proofs.
