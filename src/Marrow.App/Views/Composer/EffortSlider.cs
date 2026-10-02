@@ -480,6 +480,7 @@ public sealed class EffortSliderCard : Decorator
         titleButton.IsEnabled = onTitleTap is not null;
         titleButton.OnHover(hovering => titleFill.Set(hovering && onTitleTap is not null ? Chrome.Overlay(0.08) : SwiftColor.Clear, Chrome.Hover));
         ToolTip.SetTip(titleButton, onTitleTap is null ? "" : "Choose a model");
+        titleButton.HorizontalAlignment = HorizontalAlignment.Center; // :567 a VStack centres each child at its own width, so the hover plate fits the title
         centre.Children.Add(titleButton);
         var subtitle = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), HorizontalAlignment = HorizontalAlignment.Center };
         if (pair is not null)
@@ -507,6 +508,7 @@ public sealed class EffortSliderCard : Decorator
             pairCaption = caption;
             caption.Margin = new Thickness(0, -6, 0, 0); caption.TextTrimming = TextTrimming.CharacterEllipsis;
             var scaledCaption = TextScaling.Apply(caption, 0.9); // :648 (ED-214).
+            scaledCaption.HorizontalAlignment = HorizontalAlignment.Center; // :558 a VStack centres each child at its own width
             rows.Children.Add(scaledCaption);
             // :650, UI/Chrome/Chrome.swift:940-944,960: animate the modifier's layer properties
             // with its shared timing; the Bool modifier itself carries no interpolated animatable data.

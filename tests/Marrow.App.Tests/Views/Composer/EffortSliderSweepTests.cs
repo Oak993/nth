@@ -86,6 +86,34 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
+    [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:558 VStack(spacing: 16), :567 VStack(spacing: 2): both centre alignment
+    [Trait("Req", "UI-COMPOSER-037")] // App/Views/Composer/EffortSlider.swift:641-650 the pair's caption
+    public void The_pair_caption_and_the_title_button_are_each_centred_at_their_own_width()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var frames = FrameClock.Source.Override(new ManualFrameSource());
+            using var harness = new AppModelHarness(withRuntime: false);
+            var model = new AppModel();
+            var pair = new EffortPairLook(new HydraPair(ProviderKind.Codex) { WorkerEffort = "high" }, model.Providers, null);
+            var card = new EffortSliderCard("A model with a long name", ProviderKind.Codex, new ValueList<string>(["low", "high"]), "low", false,
+                new Binding<string?>(() => "low", _ => { }), new Binding<bool>(() => false, _ => { }), () => { }, pair, onTitleTap: () => { });
+            var window = Show(card);
+            // A VStack centres each child at its own width; the StackPanel stretched the caption across the column (its text then
+            // began at the left edge) and the title's hover plate across the model name's width.
+            var caption = Assert.Single(card.GetVisualDescendants().OfType<TextBlock>(), b => b.Text == "The lead's effort · heads run at high effort");
+            var titleButton = Assert.Single(card.GetVisualDescendants().OfType<Button>(),
+                button => button.GetVisualDescendants().OfType<TextBlock>().Any(text => text.Text == "Low"));
+            foreach (var child in new Control[] { caption, titleButton })
+            {
+                Assert.Equal(child.DesiredSize.Width, child.Bounds.Width, 0.5); // at its own width
+                Assert.Equal(card.Bounds.Width / 2, child.TranslatePoint(new Point(child.Bounds.Width / 2, 0), card)!.Value.X, 0.5);
+            }
+            window.Close();
+        });
+    }
+
+    [Fact]
     [Trait("Req", "PR-COMPOSER-122")] // App/Views/Composer/EffortSlider.swift:626-637
     public void Slider_binding_writes_effort_inside_the_point_two_second_snappy_transaction()
     {
