@@ -4821,7 +4821,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         {
             var working = (Control)Activator.CreateInstance(Private("HelperStubRow"), parent, new[] { helperA, helperB }, (Action)(() => { }))!;
             Hosted(model, working);
-            Assert.Single(LogicalQuery.SelfAndDescendants<MiniSpinner>(working)); // :1594-1596
+            var spinner = Assert.Single(LogicalQuery.SelfAndDescendants<MiniSpinner>(working)); // :1594-1596
+            // :1585 HStack { chevron; label; Spacer(minLength: 4); spinner }: the spinner ends the row, at the trailing padding
+            // (:1601 rowHorizontalPadding) less its own 4-point trailing pad, not in the middle of the spare width.
+            var right = spinner.TranslatePoint(new Avalonia.Point(spinner.Bounds.Width, 0), working)!.Value.X;
+            Assert.Equal(working.Bounds.Width - Chrome.RowHorizontalPadding - 4, right, 0.5);
             WindowOf(working).Close();
         });
 
