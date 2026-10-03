@@ -58,7 +58,8 @@ public sealed class ThreadTimelineMentionsTests(HeadlessSession headless)
             mount.Model.UpdateThread(older.Id, thread => thread with { CreatedAt = DateTimeOffset.UnixEpoch.AddSeconds(10) });
             mount.Model.UpdateThread(newer.Id, thread => thread with { CreatedAt = DateTimeOffset.UnixEpoch.AddSeconds(20) });
             mount.Model.Settings.HydraEnabled = false;
-            mount.SetEntries(new[] { User("prompt", Turn, "who did what"), Reply("answer", Turn, $"{hank} finished the check and {walter} is next, then {next}. See [the docs](https://example.com/docs)."), End("end", Turn) });
+            // The link's host is a private one (.invalid), so the icon fetch of a public host (a real request) is never started.
+            mount.SetEntries(new[] { User("prompt", Turn, "who did what"), Reply("answer", Turn, $"{hank} finished the check and {walter} is next, then {next}. See [the docs](https://thread-timeline-docs.invalid/docs)."), End("end", Turn) });
             mount.Settle();
             var (view, block) = Prose(mount);
             // :123-131 every head the chat ever sent out is drawn as that head, panel or not: a glyph before each name.
@@ -79,7 +80,7 @@ public sealed class ThreadTimelineMentionsTests(HeadlessSession headless)
                 // Every other link keeps the system's handling (:216 `.systemAction`): the chat selected stays as it was.
                 mount.Model.SelectedThreadID = null;
                 Press(mount, block, CharacterRect(block, "the docs").Center);
-                Assert.Null(mount.Model.SelectedThreadID); Assert.Equal(new[] { "https://example.com/docs" }, opened);
+                Assert.Null(mount.Model.SelectedThreadID); Assert.Equal(new[] { "https://thread-timeline-docs.invalid/docs" }, opened);
             }
             finally { ShellWorkspace.OpenWithDefaultApp = previous; InlineText.OpenUrl = previousHook; }
             // :120-127 with Hydra on, the whole roster after them: a name is drawn as its head from the first frame, before the spawn lands.
