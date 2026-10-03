@@ -342,6 +342,41 @@ public sealed class TourWindowControllerTests(HeadlessSession headless)
         });
     }
 
+    // The same, for pages that differ: the window is sized for the tallest page, and a short page's bottom panel still fills what is left, so its
+    // button stays 24 points above the card's bottom (TourView.swift:175-178) instead of riding up with the short text.
+    [Fact]
+    [Trait("Req", "PR-UPDATE-095")] // DroppyCode/App/Views/Tour/TourWindowController.swift:37-46; TourView.swift:149-181
+    public void A_page_shorter_than_the_tallest_still_pins_its_button_to_the_card_bottom()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = new AppModelHarness();
+            var frames = new ManualFrameSource();
+            using var frameSource = FrameClock.Source.Override(frames);
+            var longText = string.Join(" ", Enumerable.Repeat("A description long enough to wrap onto many lines of the card.", 8));
+            var pages = new[] { CreateTestPage("short", "Short", "One line."), CreateTestPage("tall", "Tall", longText) };
+            var window = h.Main.OnMain(() => TourWindowController.Shared.Present(pages, width: 660));
+            createdWindow = window;
+            var view = Assert.IsType<TourView>(window.Content);
+            try
+            {
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                var short_ = Assert.Single(view.BottomHost.Children);
+                short_.Measure(new Size(660, double.PositiveInfinity));
+                Assert.True(short_.DesiredSize.Height < window.Height - 413 - 20, "the short page must need clearly less than the tall page's panel");
+                Assert.Equal(window.Height - 413, view.BottomHost.Bounds.Height, 1);
+                var button = Assert.Single(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Button>(view.BottomHost));
+                Assert.Equal(window.Height - 24, button.TranslatePoint(new Point(0, button.Bounds.Height), window)!.Value.Y, 1);
+            }
+            finally
+            {
+                Cleanup(window);
+                TourWindowController.Shared.Close();
+            }
+        });
+    }
+
     // PR-UPDATE-095 "the tour card's height is measured across all pages before the window opens, so it never grows or shrinks between pages"
     // (TourWindowController.swift:37-46, :70-74), with the real eight pages: the window keeps one size from the first page to the last, and on every
     // page the card's bottom panel fills what the 413-point image leaves, so the 220 x 42 button sits 24 points above the card's bottom edge

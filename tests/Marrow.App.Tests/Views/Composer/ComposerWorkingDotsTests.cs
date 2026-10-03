@@ -82,6 +82,11 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
         Assert.Empty(Dots(control));
         Lay(control, 100, 100);
         var first = Dots(control)[0];
+        var count = Dots(control).Length;
+        control.InvalidateArrange();
+        control.Arrange(new Rect(0, 0, 0, 0)); // a zero-size bounds skips the layout: the dots it had stay (a layout at 0 x 0 would leave one)
+        Assert.Equal(count, Dots(control).Length);
+        Assert.Same(first, Dots(control)[0]);
         control.InvalidateArrange();
         control.Arrange(new Rect(0, 0, 100, 100)); // the same size again: the same dots, nothing rebuilt
         Assert.Same(first, Dots(control)[0]);
