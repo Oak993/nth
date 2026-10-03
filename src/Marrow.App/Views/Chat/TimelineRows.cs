@@ -434,7 +434,7 @@ public sealed class UserMessageRow : Decorator
             })));
         }
         // :161 .opacity(isHovering || isEditing ? 1 : 0). The Mac cuts here (2-chat-use.mov 23.415-24.187 s, catalogue
-        // hover.message-edit-pencil); OD-0076 rules every change transitioned, so the line fades in the Mac's own hover
+        // hover.message-edit-pencil); OD-0076 rules every change transitioned (ENGINEERING DECISION ED-NEW-parity-timelinerows), so the line fades in the Mac's own hover
         // language for a message's hover line (the reply row's :1381 easeOut 0.12), and reduce motion stills it.
         var opacity = new AnimatedOpacity(line, state.IsHovering || isEditing() ? 1 : 0);
         line.Track(() => state.IsHovering || isEditing(), shown => opacity.Set(shown ? 1 : 0,
@@ -2831,7 +2831,7 @@ public sealed class PlanCard : Decorator
     // turn's other rows arrive (PR-CHAT-113). The port builds a block's rows anew whenever the block changes, so the
     // identity's state is held per plan entry and place here, and every card built for them reads it. A card in another
     // place (the finished turn's steps, its folded answer: :2642, :2672) is another view in SwiftUI, a new @State with its
-    // own coordinator, as the running block's card going away closes its popover. ENGINEERING DECISION.
+    // own coordinator, as the running block's card going away closes its popover. ENGINEERING DECISION ED-NEW-parity-timelinerows.
     private sealed class Identity
     {
         public readonly ViewState State = new();

@@ -4658,3 +4658,16 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // (2026-10-03) withdrew the Req trait of two tests that claimed PR-CHAT-113 in full (they are Rule R-TEST-4 partial proofs
 // now), strengthened the assertions behind UI-CHAT-063/-064 (the room reserved beside the outcome is exactly 24) and the
 // pencil fade (the ease-out curve), and added PR-CHAT-080's Req trait to the pencil test that asserts the hover prefetch.
+// Correction, round 2 of the adversarial review (2026-10-03): round 1's withdrawal left three tests that still claimed PR-CHAT-113
+// in full, and req_verify counted the record as proven by them. They are Rule R-TEST-4 partial proofs now (the record's open-popover
+// result conflicts with the source, above): TimelineRowsPrRecordsTests.A_drafting_plan_renders_with_the_streaming_markdown_...,
+// the same file's A_plan_popover_dismissed_from_outside_... (it keeps its Req PR-CHAT-112), and the round 1 REVIEW test in
+// TimelineRowsParityReviewTests (trait only; its assertions are the reviewer's, untouched). No PR-CHAT-113 Req trait is left.
+// Round 2 fixes: the badgePopover pills (the Hydra report, heads and brief) and the message editor take the badge's and the row menu's
+// reading of onDisappear (an entry arriving no longer closes an open report or editor: PR-CHAT-143, PR-CHAT-080); a reply's table
+// cells are selectable with the I-beam and the selected-text colour (PR-CHAT-166); a coordinator a host keeps lets go of its window
+// and detail once its popover has closed (weak shownIn, ChatBadge.swift:119); the head popover's I-beam is asserted (it was
+// unproven: a mutant that removed it survived). Not claimed, UNRESOLVED: a drag across the cells of one table (the Mac's behaviour is
+// not in the reference video). Owed on the native app, recorded in ED-NEW-parity-timelinerows: an open report, editor and plan
+// popover surviving a real row arrival under the overlay presenter; the I-beam and the selection colour over table cells and the head
+// popover's lines; the memory of a closed secondary window after a plan popover was opened in it.
