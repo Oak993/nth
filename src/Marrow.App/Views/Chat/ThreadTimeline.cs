@@ -316,6 +316,10 @@ public sealed class ThreadTimeline : Decorator
             if (TopLevel.GetTopLevel(this) is Avalonia.Controls.Window window) { FrontMonitor.Shared.Current.Observe(window); tracking.Probe = this; }
         };
         this.Track(() => FrontMonitor.Shared.Current.Revision, _ => { if (FrontMonitor.Shared.Current.Concerns(TopLevel.GetTopLevel(this) as Avalonia.Controls.Window)) tracking.NoteReturnToFront(); });
+        // :609-615 `.onChange(of: tracking.checkRequest)`: the app hears that a scroll ended, and the timeline checks its own layout. A request is asked for by the return to the
+        // front (:616-623), by the blank watch and by the phase watch (TimelineScrollTracking); the first read is not a change.
+        int? seenCheck = null;
+        this.Track(() => tracking.CheckRequest, request => { if (seenCheck is { } previous && previous != request) { tracking.ReportActivity(runtime.ThreadID); RepairLayout(); } seenCheck = request; });
         // :59-67 layoutWidth is read by the body, which runs again when the reshape starts or ends, when the pane's width moves (onGeometryChange,
         // :450) and while the sidebar slides: the stepped width follows all of them, and the exact width lands when the drag ends (:454-457).
         this.Track(() => AppEnvironment.GetWindowLiveResize(this).IsReshaping, active => { RefreshLayoutWidth(); if (!active) SettleAfterResize(); else if (scrollFrame is not null) { scrollFrames?.CancelFrame(scrollFrame); scrollFrame = null; } });
@@ -571,6 +575,35 @@ public sealed class ThreadTimeline : Decorator
     private void ComposerGrew(bool liveResizeActive) { if (liveResizeActive || !(tracking.IsPinnedToBottom || tracking.DistanceFromBottom < 48)) return; tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; SnapEnd(); }
     // :713-720. Runtime is immutable for this port's mounted view; a different runtime receives a fresh view without a transition.
     private void ResetThread() { windowStartID = null; anchorsBottomOnGrowth = true; historyLoadPending = false; tracking.ClearVisible(); }
+    // :770-803. The check of a layout that may have changed shape unseen. The reader's place is ported whole: a scroll in progress puts it off, a viewport past the end of the
+    // conversation, or a reader pinned to the end and away from it, is sent to the end (unanimated), and a viewport on the conversation that shows no row of it is repaired in
+    // up to three steps a beat apart. The lazy stack's own repairs (:785 telling it where the viewport is, :787-788 remaking it, :881-887) have nothing to repair in the eager stack
+    // (PR-CHAT-056/057/167/168 windows_path), so those two steps only count; the third, pinning the reader to the end, is what a blank pane ends in. ED-NEW-parity-threadtimeline.
+    private void RepairLayout()
+    {
+        if (viewportHeight <= 0) return;
+        if (tracking.IsUserScrolling || tracking.IsCoasting || tracking.IsReaderScrolling) { tracking.RepairSkippedWhileScrolling = true; return; }
+        var distance = tracking.DistanceFromBottom;
+        if (distance < -1 || (tracking.IsPinnedToBottom && Math.Abs(distance) > 1))
+        {
+            SnapEnd();
+            // Rows on screen: the snap was all there was to do.
+            if (!tracking.ShowsNothing || tracking.BlankRepairs >= 3) return;
+            tracking.ArmViewportRefresh();
+        }
+        else if (tracking.ShowsNothing)
+        {
+            switch (tracking.BlankRepairs)
+            {
+                case 0: case 1: tracking.ArmViewportRefresh(); break;
+                case 2: tracking.IsPinnedToBottom = anchorsBottomOnGrowth = true; SnapEnd(); tracking.ArmViewportRefresh(); break;
+                default: return;
+            }
+        }
+        else return;
+        // Blank, and something was just done about it: checked again a beat from now.
+        tracking.BlankRepairs++; tracking.ArmBlankWatch();
+    }
     // :840-851
     private void SettleAfterResize() { if (tracking.IsUserScrolling || tracking.IsCoasting || tracking.IsReaderScrolling) { tracking.ArmViewportRefresh(); return; } if (tracking.IsPinnedToBottom) SnapEnd(); else tracking.ArmViewportRefresh(); tracking.ArmBlankWatch(); }
 
