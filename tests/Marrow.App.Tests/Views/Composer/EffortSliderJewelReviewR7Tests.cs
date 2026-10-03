@@ -29,6 +29,6 @@ public sealed class EffortSliderJewelReviewR7Tests
             .SelectMany(m => Traceability.Traits(m).Where(t => t.Name == "Req" && superseded.Contains(t.Value))
                 .Select(t => $"{m.DeclaringType!.Name}.{m.Name} ({t.Value})"))
             .ToList();
-        Assert.True(credited.Count == 0, "credited to a record whose 42 point height OD-0090 made 48: " + string.Join(", ", credited));
+        Assert.True(credited.Count == 0, "credited although OD-0090 made the 42 point height these records state 48: " + string.Join(", ", credited));
     }
 }
