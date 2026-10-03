@@ -1,6 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.App.Port;
 using Marrow.App.Runtime;
 using Marrow.App.Tests.Fixtures;
@@ -147,5 +148,52 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
             typeof(ChatView).GetField("paneSize", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.SetValue(view, size);
             h.Main.OnMain(Refresh); Drain(h);
             Assert.False(Inputs()!.Value.Minimap);
+        });
+
+    private static ScrollViewer Scroller(ChatView view) => LogicalQuery.SelfAndDescendants<ScrollViewer>(Timeline(view)).First();
+
+    private static Button? JumpButton(ChatView view) => LogicalQuery.SelfAndDescendants<JumpToLatestButton>(view).SingleOrDefault() is { } jump ? LogicalQuery.SelfAndDescendants<Button>(jump).FirstOrDefault() : null;
+
+    private static void Settle(AppModelHarness h, ManualFrameSource frames, Avalonia.Controls.Window window, int milliseconds)
+    {
+        for (var elapsed = 0; elapsed < milliseconds; elapsed += 50)
+        {
+            h.Main.OnMain(() => window.UpdateLayout()); h.Main.Advance(TimeSpan.FromMilliseconds(50)); frames.Advance(TimeSpan.FromMilliseconds(50)); Drain(h);
+        }
+    }
+
+    [Fact]
+    [Trait("Req", "UI-CHAT-006")] // ChatView.swift:1085-1104; ThreadTimeline.swift:402-409,673-677,689-712; the cousin's scroll-to-bottom button (map/CATALOGUE.md timeline.scroll-to-bottom-button)
+    public void The_jump_button_shows_once_the_end_is_out_of_sight_glides_to_the_end_when_pressed_and_goes_at_once_when_a_row_is_followed()
+        => WithChat((view, runtime, model, h, window, frames) =>
+        {
+            h.Main.OnMain(() => SetEntries(runtime, TimelineMount.Turns(8, sentences: 10).ToList())); Settle(h, frames, window, 2500);
+            var scroll = Scroller(view);
+            double Distance() => scroll.Extent.Height - scroll.Offset.Y - scroll.Viewport.Height;
+            Assert.True(Distance() < 2); Assert.Null(JumpButton(view));
+            // :402-409 the end sentinel is one point tall: while it is on screen (the reader is at the end, or within the 48 the timeline puts back) there is no button; scrolled well away, there is.
+            h.Main.OnMain(() => scroll.Offset = new Vector(0, scroll.Extent.Height - scroll.Viewport.Height - 150)); Settle(h, frames, window, 50);
+            var button = JumpButton(view); Assert.NotNull(button);
+            // It arrives scaling up from 0.6 with opacity and a 10 point rise, on the spring of response 0.38 and damping 0.78, and rests settled.
+            var jump = LogicalQuery.SelfAndDescendants<JumpToLatestButton>(view).Single(); var circle = LogicalQuery.SelfAndDescendants<ChromeCircleButton>(jump).Single();
+            Assert.True(circle.Opacity < 0.9); Assert.Equal("Jump to latest", ToolTip.GetTip(button));
+            Assert.Equal("arrow.down", LogicalQuery.SelfAndDescendants<SwiftImage>(circle).First().SymbolName);
+            Settle(h, frames, window, 100); Assert.InRange(circle.Opacity, 0.01, 0.999);
+            Settle(h, frames, window, 1500); Assert.Equal(1, circle.Opacity);
+            // Pressed: it glides to the end over a third of a second (the timeline's own smooth glide) and re-pins; the button leaves once the end is on screen.
+            h.Main.OnMain(() => scroll.Offset = new Vector(0, 100)); Settle(h, frames, window, 400);
+            var before = scroll.Offset.Y;
+            Field<TimelineScrollTracking>(Timeline(view), "tracking").IsPinnedToBottom = false;
+            h.Main.OnMain(() => JumpButton(view)!.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent))); Drain(h);
+            Assert.True(Field<TimelineScrollTracking>(Timeline(view), "tracking").IsPinnedToBottom && Distance() > 100, "re-pinned the moment it is pressed, before the glide has gone anywhere");
+            Settle(h, frames, window, 100); Assert.True(scroll.Offset.Y > before + 20 && Distance() > 100, "gliding: " + scroll.Offset.Y + " of " + (scroll.Extent.Height - scroll.Viewport.Height));
+            Settle(h, frames, window, 700); Assert.True(Distance() < 2); Assert.True(Field<TimelineScrollTracking>(Timeline(view), "tracking").IsPinnedToBottom);
+            Settle(h, frames, window, 800); Assert.Null(JumpButton(view));
+            // :689-712 a reader a little above the end (still following) has the button; a new row lands and brings them to it: the button goes with no animation at all.
+            h.Main.OnMain(() => scroll.Offset = new Vector(0, scroll.Extent.Height - scroll.Viewport.Height - 30)); Settle(h, frames, window, 1500);
+            Assert.NotNull(JumpButton(view));
+            h.Main.OnMain(() => SetEntries(runtime, runtime.Entries.Concat(TimelineMount.Turns(1, "new-", sentences: 4)).ToList())); Drain(h);
+            Assert.False(Field<TimelineScrollState>(view, "scrollState").ShowsJumpButton);
+            Assert.True(JumpButton(view) is null || JumpButton(view)!.GetVisualParent() is null, "removed at once, not faded");
         });
 }

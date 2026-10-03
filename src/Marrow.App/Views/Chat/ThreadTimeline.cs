@@ -435,7 +435,9 @@ public sealed class ThreadTimeline : Decorator
     {
         if (!ReferenceEquals(currentScroll, scroll) || !initialAnchorApplied) return;
         foreach (var pair in laidOutRows) tracking.SetVisible(pair.Key, VisibleFraction(pair.Value, scroll) >= 0.001);
-        if (drawnSentinel is { } end) SetEndVisible(VisibleFraction(end, scroll) >= 0.01);
+        // :404-409 the end sentinel reports when it crosses its threshold, not on every layout: a row landing under a reader who is following it has the
+        // button hidden (:710) and not shown again for the beat before the scroll that brings the end back.
+        if (drawnSentinel is { } end && VisibleFraction(end, scroll) >= 0.01 is var seen && endSeen != seen) { endSeen = seen; SetEndVisible(seen); }
         // The pill loads a page when it comes into view, not on every report while it stays there: the action of onScrollVisibilityChange is
         // called when the visibility crosses the threshold (a refused load, :258, is not retried either).
         var visible = drawnEarlier is { } pill && VisibleFraction(pill, scroll, pill.Margin.Top) >= 0.1; // the 20 points above the pill are inside the frame the modifier measures (:379-380)
@@ -443,6 +445,7 @@ public sealed class ThreadTimeline : Decorator
         if (appeared && !historyLoadPending) { LoadEarlier(drawnBlocks); MainActor.Post(() => redraw?.Invoke()); }
     }
     private bool earlierPillVisible;
+    private bool? endSeen;
     private bool initialAnchorApplied;
 
     // :402-409
