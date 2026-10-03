@@ -179,4 +179,115 @@ public sealed class TimelineRowsTimelineScenarioTests(HeadlessSession headless)
         Assert.Null(scene.Runtime.MessageEdit);
         Assert.Null(ShownEditor(scene.Presenter));
     });
+
+    // ---------------------------------------------------------------- PR-CHAT-125 and PR-CHAT-155
+
+    private static TimelineEntry ToolStep(string id, ToolCall.Kind kind, string title, Guid turn) =>
+        Entry(id, new TimelineItem.Content.Tool(new ToolCall { ToolCallKind = kind, Title = title, ToolCallStatus = ToolCall.Status.Completed }), turn);
+
+    private static T[] Mounted<T>(Control root) where T : class => root.GetVisualDescendants().OfType<T>().ToArray();
+
+    private static Button WithTip(Control root, string tip) => Mounted<Button>(root).Single(button => Equals(ToolTip.GetTip(button), tip));
+
+    private static double Top(Control control, Visual root) => control.TranslatePoint(default, root)!.Value.Y;
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    [Trait("Req", "PR-CHAT-125")] // ThreadTimeline.swift:325-331, :2091-2092, :2155, :2185-2188; TimelineRows.swift:1523-1536, :2499-2509; AppSettings.swift:128, :237-239, :719
+    public void Whatever_chronologicalTimeline_holds_a_running_turn_opens_collapsed_and_a_finished_turn_opens_folded(bool stored) =>
+        WithTimeline(false, model => model.Settings.ChronologicalTimeline = stored, scene =>
+        {
+            Assert.Equal(stored, scene.Model.Settings.ChronologicalTimeline); // the stored value is kept, never read by the rows
+            var done = Guid.NewGuid();
+            var finished = new List<TimelineEntry>
+            {
+                Entry("u0", new TimelineItem.Content.User(new UserMessage { Text = "First question" }), done),
+                ToolStep("t0a", ToolCall.Kind.Read, "Read a", done),
+                ToolStep("t0b", ToolCall.Kind.Read, "Read b", done),
+                ToolStep("t0c", ToolCall.Kind.Read, "Read c", done),
+                Entry("r0", new TimelineItem.Content.Assistant(new AssistantMessage { Text = "The finished answer." }), done),
+                Entry("e0", new TimelineItem.Content.TurnEnd(new TurnSummary { TurnID = done, Status = TurnStatus.Completed, Duration = 3, FilesChanged = 0, Additions = 0, Deletions = 0 }), done),
+            };
+            SetTurns(scene.Runtime, [new TurnRecord { Id = done, Index = 0, Status = TurnStatus.Completed }]);
+            SetEntries(scene.Runtime, finished);
+            Settle(scene.Window, scene.Frames);
+            scene.Runtime.RehearseTurn("Second question");
+            var running = scene.Runtime.Turns[^1].Id;
+            SetEntries(scene.Runtime, scene.Runtime.Entries.Concat(
+            [
+                ToolStep("t1a", ToolCall.Kind.Read, "Read one", running),
+                ToolStep("t1b", ToolCall.Kind.Read, "Read two", running),
+                ToolStep("t1c", ToolCall.Kind.Read, "Read three", running),
+            ]));
+            Settle(scene.Window, scene.Frames);
+
+            // :2499-2509 the finished turn opens folded on its answer: no steps, the chevron offers them.
+            var block = Assert.Single(Mounted<TurnFinishedBlock>(scene.View));
+            Assert.Empty(Mounted<ToolRow>(block));
+            Assert.Single(Mounted<FoldedAnswerView>(block));
+            WithTip(block, "Show this turn's steps");
+            // :2091-2092, :2155 the running card opens collapsed: no thinking rows, no work steps.
+            var card = Assert.Single(Mounted<WorkingIndicator>(scene.View));
+            Assert.Empty(Mounted<WorkSteps>(card));
+            Assert.Empty(Mounted<ToolRow>(card));
+            // Opened, it shows only the two latest work steps under the earlier-steps line (TimelineRows.swift:1523-1536).
+            Click(scene.Window, WithTip(card, "Show these steps"));
+            Settle(scene.Window, scene.Frames);
+            var steps = Assert.Single(Mounted<WorkSteps>(card));
+            Assert.Equal(2, Mounted<ToolRow>(steps).Length);
+            Assert.Contains(Mounted<TextBlock>(steps), text => text.Text == "1 earlier step");
+        });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-155")] // TimelineRows.swift:1564-1577, :2580-2584, :2652-2654, :2682-2686; ThreadTimeline.swift:1955-1958, :1985-1989
+    public void The_heads_a_turn_sent_out_stay_in_view_under_it_while_it_runs_and_folded_or_open_once_it_ends() => WithTimeline(false, null, scene =>
+    {
+        scene.Runtime.RehearseTurn("Send out the heads");
+        var turn = scene.Runtime.Turns[^1].Id;
+        SetEntries(scene.Runtime, scene.Runtime.Entries.Concat(
+        [
+            ToolStep("read", ToolCall.Kind.Read, "Read the brief", turn),
+            ToolStep("hank", ToolCall.Kind.Agent, "Hank: inspect the layout", turn),
+            ToolStep("walter", ToolCall.Kind.Agent, "Walter: check the tests", turn),
+            Entry("reply", new TimelineItem.Content.Assistant(new AssistantMessage { Text = "Both heads are out." }), turn),
+        ]));
+        Settle(scene.Window, scene.Frames);
+        string[] expected = ["Sent out Hank: inspect the layout", "Sent out Walter: check the tests"];
+        string[] Names(HydraHeadsList list) => Mounted<MiddleTruncatingTextBlock>(list).Select(text => text.FullText).ToArray();
+
+        // Running (ThreadTimeline.swift:1955-1958): the heads come after the turn's other rows and above the working line.
+        var runningBlock = Assert.Single(Mounted<TurnRunningBlock>(scene.View));
+        var heads = Assert.Single(Mounted<HydraHeadsList>(runningBlock));
+        Assert.Equal(expected, Names(heads));
+        var working = Assert.Single(Mounted<WorkingBlockView>(runningBlock));
+        Assert.True(Top(heads, scene.Window) + heads.Bounds.Height <= Top(working, scene.Window) + 0.5, "the heads sit above the working line");
+        Assert.Empty(Mounted<HydraHeadsList>(working));
+
+        // The turn ends and folds: the heads stay, under the answer, a plain list 8 apart with no header or chevron.
+        scene.Runtime.Rehearse(new ProviderEvent.TurnCompleted(TurnStatus.Completed, null));
+        Settle(scene.Window, scene.Frames);
+        var block = Assert.Single(Mounted<TurnFinishedBlock>(scene.View));
+        var folded = Assert.Single(Mounted<HydraHeadsList>(block));
+        Assert.Equal(expected, Names(folded));
+        Assert.Equal(8, Assert.IsType<StackPanel>(folded.Child).Spacing);
+        Assert.DoesNotContain(Mounted<SwiftImage>(folded), image => image.SymbolName == "chevron.right");
+        var answer = Assert.Single(Mounted<FoldedAnswerView>(block));
+        Assert.True(Top(folded, scene.Window) >= Top(answer, scene.Window) + answer.Bounds.Height, "the heads sit under the answer");
+
+        // Opened, the steps card holds the read but never the heads; the heads list is still under it (:2652-2654, :2682-2686).
+        Click(scene.Window, WithTip(block, "Show this turn's steps"));
+        Settle(scene.Window, scene.Frames);
+        var open = Assert.Single(Mounted<HydraHeadsList>(block));
+        var stepsCard = Mounted<Border>(block).Single(border => border.Padding == new Thickness(14));
+        Assert.Empty(Mounted<HydraHeadsList>(stepsCard));
+        Assert.DoesNotContain(Mounted<MiddleTruncatingTextBlock>(stepsCard), text => text.FullText.StartsWith("Sent out", StringComparison.Ordinal));
+        Assert.True(Top(open, scene.Window) >= Top(stepsCard, scene.Window) + stepsCard.Bounds.Height, "the heads sit under the steps");
+        Assert.Equal(expected, Names(open));
+
+        // Folded again, still there.
+        Click(scene.Window, WithTip(block, "Hide this turn's steps"));
+        Settle(scene.Window, scene.Frames);
+        Assert.Equal(expected, Names(Assert.Single(Mounted<HydraHeadsList>(block))));
+    });
 }
