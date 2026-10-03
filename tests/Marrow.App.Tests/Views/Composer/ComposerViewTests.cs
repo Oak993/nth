@@ -44,7 +44,7 @@ namespace Marrow.App.Tests.Views.Composer;
 // (ComposerView.swift:160) and the whole area can be attached and laid out.
 
 [Collection("Headless")]
-public sealed class ComposerViewTests(HeadlessSession headless)
+public sealed partial class ComposerViewTests(HeadlessSession headless)
 {
     private const string Plan = "Describe what you want to plan";
 
