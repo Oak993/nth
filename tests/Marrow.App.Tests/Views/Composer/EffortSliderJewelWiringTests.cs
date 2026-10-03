@@ -321,11 +321,13 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         Assert.Empty(rig.Slider.GetVisualDescendants().OfType<TrackEffect>()); // the bolt has faded out and gone
     });
     [Fact]
-    [Trait("Decision", "ED-252")] // ED-252: turning fast mode off drops the knob's signal at once (the fading bolt is not read) and the knob lets go through shape(), staying at least as lit as the bolt still drawn
-    public void Turning_fast_mode_off_drops_the_signal_at_once_and_the_knob_stays_as_lit_as_the_bolt_still_fading() => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-252")] // ED-252: under reduce motion, turning fast mode off drops the knob's signal at once (the fading bolt is not read) and the knob lets go through shape(), staying at least as lit as the bolt still drawn (the still moment at the bolt's opacity)
+    public void Under_reduce_motion_turning_fast_mode_off_drops_the_signal_at_once_and_the_knob_stays_as_lit_as_the_bolt_still_fading() => headless.OnUiThread(() =>
     {
         // under reduce motion the still moment is read, so what the bolt would give the knob is its opacity times the still
-        // moment's charge 1 and flare
+        // moment's charge 1 and flare. Without reduce motion "as lit as the bolt" does not hold: a strike inside the fade is
+        // drawn by the bolt and not read by the knob (A_strike_inside_the_fade_out_of_fast_mode_does_not_charge_or_flare_the_knob,
+        // as ED-252 decides), so the bolt can flare above the knob's falling light (review round 9: 0.3811 against 0.3183)
         using var rig = JewelFixtures.Rig(index: 1, fast: true, reduceMotion: true);
         for (var i = 0; i < 4; i++) rig.Frame();
         var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single();
@@ -392,8 +394,42 @@ public sealed class EffortSliderJewelWiringTests(HeadlessSession headless)
         effect.Opacity = 0.7; // the bolt not fully in (the signal, settled on the last frame's opacity, reads it at the next one)
         Assert.True(rig.Slider.Signal.Settled);
         Assert.True(rig.Slider.LightMoves);
+        effect.Opacity = 0.99; // nearly in: its next value is still not the one read
+        Assert.True(rig.Slider.Signal.Settled);
+        Assert.True(rig.Slider.LightMoves);
         effect.Opacity = 1;
         Assert.False(rig.Slider.LightMoves);
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // ED-252: under reduce motion the knob's loop runs while its light has somewhere to go; a pair's effect without fast mode draws no bolt (the signal reads none), so its 0.3 s fade in is not light on its way to the knob
+    public void Under_reduce_motion_a_pair_effect_fading_in_without_fast_mode_does_not_keep_the_knob_asking_for_frames() => headless.OnUiThread(() =>
+    {
+        var pair = new EffortPairBrand(new HydraPair(ProviderKind.Deepseek) { WorkerProvider = ProviderKind.Claude });
+        using var rig = JewelFixtures.Rig(index: 1, reduceMotion: true);
+        for (var i = 0; i < 4; i++) rig.Frame();
+        Assert.Equal(0, rig.Frames.Pending); // dark and still: no frames
+        Assert.Empty(rig.Slider.GetVisualDescendants().OfType<TrackEffect>());
+        var requests = new KnobFrameRequests(rig.Frames, rig.Slider); // the slider's own requests counted, every request passed on
+        using var counted = Marrow.UI.Port.FrameClock.Source.Override(requests);
+        rig.Slider.UpdateLook(false, "Title", pair); // a pair joins, fast mode off
+        var effect = rig.Slider.GetVisualDescendants().OfType<TrackEffect>().Single();
+        Assert.False(TrackEffect.IsFast(effect.Look));
+        Assert.Equal(0, effect.Opacity); // a new effect, fading in
+        Assert.Equal(1, requests.Count); // the look's change asks the knob for a frame
+        Assert.False(rig.Slider.LightMoves);
+        var fading = 0;
+        for (var i = 0; i < 60 && rig.Frames.Pending > 0; i++)
+        {
+            rig.Frame();
+            if (effect.Opacity >= 1) continue;
+            fading++;
+            Assert.False(rig.Slider.LightMoves, $"the pair's effect at {effect.Opacity}: no bolt, so no light on its way to the knob");
+        }
+        Assert.Equal(0, rig.Frames.Pending);
+        Assert.Equal(1, effect.Opacity);
+        Assert.True(fading >= 10, $"the premise: the effect faded in over {fading} frames");
+        Assert.True(requests.Count == 1, $"the knob asked for {requests.Count} frames while a pair's effect without a bolt faded in over {fading}: it draws the look's change and idles");
     });
 
     [Fact]

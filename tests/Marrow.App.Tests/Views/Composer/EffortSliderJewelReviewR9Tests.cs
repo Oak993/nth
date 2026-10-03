@@ -3,12 +3,13 @@ using Marrow.Testing;
 namespace Marrow.App.Tests.Views.Composer;
 
 // REVIEW (adversarial, unit jewel-knob, scoped review round 9 on cbf4b9c0e): each test states what the unit's tests must do
-// and fails on the head reviewed.
+// and failed on the head reviewed; each passes from the round 9 answer, its body unchanged, kept under a plain name (the
+// test it names is now EffortSliderJewelWiringTests.Under_reduce_motion_turning_fast_mode_off_drops_the_signal_at_once_and_the_knob_stays_as_lit_as_the_bolt_still_fading).
 public sealed class EffortSliderJewelReviewR9Tests
 {
     [Fact]
     [Trait("Rule", "R-TEST-1")] // a test's name says only what it proves
-    public void REVIEW_a_test_that_pins_the_knob_as_lit_as_the_fading_bolt_names_the_reduce_motion_it_holds_under()
+    public void A_test_that_pins_the_knob_as_lit_as_the_fading_bolt_names_the_reduce_motion_it_holds_under()
     {
         // ED-252 round 8, finding (5): turning fast mode off drops the knob's signal at once. The test that pins it,
         // EffortSliderJewelWiringTests.Turning_fast_mode_off_drops_the_signal_at_once_and_the_knob_stays_as_lit_as_the_bolt_still_fading,

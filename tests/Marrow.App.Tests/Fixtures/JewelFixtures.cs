@@ -195,3 +195,12 @@ public sealed class JewelRig(EffortSlider slider, ObservableIntBox box, Avalonia
 
     public void Dispose() { window.Close(); clock.Dispose(); source.Dispose(); }
 }
+
+/// <summary>Passes every frame request on to <paramref name="inner"/> and counts the slider's own (its loop's frame callback).</summary>
+public sealed class KnobFrameRequests(IFrameSource inner, EffortSlider slider) : IFrameSource
+{
+    public int Count { get; private set; }
+    public void RequestFrame(Action<TimeSpan> frame) { if (ReferenceEquals(frame.Target, slider)) Count++; inner.RequestFrame(frame); }
+    public void CancelFrame(Action<TimeSpan> frame) => inner.CancelFrame(frame);
+    public int Pending => inner.Pending;
+}

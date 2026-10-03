@@ -106,6 +106,8 @@ public sealed class EffortSliderJewelOpacityTests(HeadlessSession headless)
     public void The_knob_follows_the_fade_the_model_lists_switch_plays_on_the_slider() => headless.OnUiThread(() =>
     {
         using var rig = JewelFixtures.FadingRig();
+        var inserted = Marrow.Core.Port.SwiftClock.Now; // the rig inserts the slider under the fade and has not moved the clock since
+        var easeOut = Marrow.UI.Port.Animation.EaseOut(0.12);
         var view = rig.Slider.GetVisualDescendants().OfType<JewelKnobView>().Single();
         var inside = 0;
         for (var i = 0; i < 12; i++)
@@ -114,8 +116,12 @@ public sealed class EffortSliderJewelOpacityTests(HeadlessSession headless)
             var opacity = rig.Slider.Opacity;
             if (opacity is < 0.05 or > 0.95) continue; // the knob and what is under it are not told apart at the ends of the fade
             inside++;
+            // the opacity read is the fade's own for this frame (easeOut 0.12 at the time since the insertion), so the knob is
+            // read along the fade as it plays, and the reads of the frames before (which set the opacity and put it back) have
+            // not moved it
+            var played = easeOut.Progress((Marrow.Core.Port.SwiftClock.Now - inserted).TotalSeconds);
+            Assert.True(Math.Abs(opacity - played) < 1e-9, $"frame {i + 1}: the slider at {opacity}, the fade at {played}");
             FadeKnob(rig, o => rig.Slider.Opacity = o, view, [opacity]);
-            Assert.Equal(opacity, rig.Slider.Opacity); // read back: the fade's own value
         }
         Assert.True(inside >= 3, $"the fade was read on {inside} frames");
         for (var i = 0; i < 12; i++) rig.Frame();
