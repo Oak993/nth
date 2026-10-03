@@ -43,6 +43,7 @@ public sealed class MorphingTextBlockPaceTests(HeadlessSession headless)
     [InlineData("spring(0.32, 0.9)")] // Chrome.panelSlide, the usage count's (UsageViews.swift:235, :254-255)
     [InlineData("snappy(0.22)")] // the copy label's and MiddleTruncatingText's confirmation (HydraMergePopover.swift:190, Popovers.swift:263)
     [InlineData("linear(0.5)")]
+    [InlineData("easeOut(0.1)")] // shorter than the letters' pace (Chrome.hover's curve): the change must last until its letters have rolled
     public void A_changes_letters_roll_at_the_letters_own_pace_whatever_its_animation_while_its_kept_letters_ride_with_it(string name)
     {
         var animation = name switch
@@ -50,6 +51,7 @@ public sealed class MorphingTextBlockPaceTests(HeadlessSession headless)
             "smooth(0.3)" => Animation.Smooth(0.3),
             "spring(0.32, 0.9)" => Animation.Spring(response: 0.32, dampingFraction: 0.9),
             "snappy(0.22)" => Animation.Snappy(0.22),
+            "easeOut(0.1)" => Animation.EaseOut(0.1),
             _ => Animation.Linear(0.5),
         };
         foreach (var (from, to, narrowing) in new[] { ("Extra High", "Max", true), ("Max", "Extra High", false), ("High", "Extra High", false), ("Extra High", "High", true), ("12", "13", false) })
