@@ -136,7 +136,10 @@ public sealed class LinkHoverTests(HeadlessSession headless)
     // :7-11, :14 the modifier is handed the personas and targets of the body that ran last, so a head that joins the thread after the
     // paragraph was built is tracked from then on (InlineText, MarkdownView.swift:1159-1160 at B3, body runs again on a change of
     // hydraMentionPersonas or hydraMentionTargets, :1074-1075). The port attaches the hover once and reads the mentions it is to use
-    // when the pointer moves (ED-NEW-parity-timelinerows (9), review round 6).
+    // when the pointer moves (ED-NEW-parity-timelinerows (9), review round 6). The getters hand back what the host holds when they are
+    // called, and the head joining puts new objects there rather than changing the old ones, as MarkdownView.SetHydraMentionPersonas
+    // and SetHydraMentionTargets do (a new ValueList and ValueMap): a hover that called them once, when it was attached, keeps the
+    // empty ones and fails here (scoped check of review round 6, mutant H1).
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-144 (the head card of a mention that arrived after the hover was attached): DroppyCode/UI/Markdown/LinkHover.swift:7-14, :26-36; MarkdownView.swift:1074-1075
     public void A_hover_attached_before_a_head_joined_tracks_it_once_it_has() => headless.OnUiThread(() =>
@@ -149,8 +152,8 @@ public sealed class LinkHoverTests(HeadlessSession headless)
         var paragraph = new LinkParagraphView("Hank now", mentions: [persona], targets: targets);
         var view = (LinkTextView)paragraph.Child!;
         var window = Show(paragraph);
-        var personas = new List<HydraPersona>();
-        var held = new Dictionary<string, HydraMentionTarget>();
+        IReadOnlyList<HydraPersona> personas = [];
+        IReadOnlyDictionary<string, HydraMentionTarget> held = new Dictionary<string, HydraMentionTarget>();
         var state = LinkHover.Track(paragraph, () => view, () => personas, () => held);
         var rect = view.HeadMentionRect(new Point(2, 2)) is { } found ? found.Rect
             : throw new InvalidOperationException("expected a head mention near the start of the rendered text");
@@ -165,8 +168,12 @@ public sealed class LinkHoverTests(HeadlessSession headless)
         Assert.Equal(2, moves); // set up: the hover saw the pointer enter and move over the mention ...
         Assert.Null(state.HoveredHeadID); // ... and no head is known to it yet
 
-        personas.Add(persona);
-        held[persona.Name] = target; // the environment changed under the paragraph; nothing was attached again
+        var emptyPersonas = personas;
+        var emptyTargets = held;
+        personas = [persona]; // the environment changed under the paragraph: new objects, the old ones untouched; nothing was attached again
+        held = new Dictionary<string, HydraMentionTarget> { [persona.Name] = target };
+        Assert.Empty(emptyPersonas); // set up: what the hover was attached with is still empty
+        Assert.Empty(emptyTargets);
         window.MouseMove(new Point(point.X + 1, point.Y), Avalonia.Input.RawInputModifiers.None);
         Dispatcher.UIThread.RunJobs();
         Assert.Equal(target.ThreadID, state.HoveredHeadID);

@@ -12,7 +12,8 @@ namespace Marrow.UI.Tests.Markdown;
 // Covers InlineText.metrics (PR-THEME-151), InlineText.fetchLinkAssets (PR-THEME-148) and the constructor's
 // hint-less link decision (PR-THEME-186, new at B3). LinkParagraphView and StreamVeil's VeiledText(segments:)
 // have both landed since this note was first written, so the constructor now completes in either branch;
-// PR-THEME-144's hover wiring (now UI.Markdown.LinkHover, N9) is exercised by that unit's own tests.
+// PR-THEME-144's hover wiring (now UI.Markdown.LinkHover, N9) is exercised by that unit's own tests; the cases at the end hold
+// InlineText's environment (ED-NEW-parity-timelinerows (9)), the last of them the mentions its hover reads when the pointer moves.
 [Collection("Headless")]
 public sealed class InlineTextTests(HeadlessSession headless)
 {
@@ -264,6 +265,87 @@ public sealed class InlineTextTests(HeadlessSession headless)
         finally
         {
             window?.Close();
+            FaviconCacheSeed.Remove(host);
+        }
+    });
+
+    // The hover of a link paragraph is handed the personas and targets of the body that ran last (LinkHover.swift:7-14, InlineText's
+    // .modifier(LinkHoverModifier(...)) at MarkdownView.swift:1159-1160 at B3, from @Environment(\.hydraMentionPersonas) and
+    // (\.hydraMentionTargets), :1074-1075), so the pointer over the name of a head that joined after the paragraph was built shows that
+    // head's card (:26-31, HydraHeadHoverPopover.show). Since the port keeps the paragraph when they change (the test above), its hover,
+    // attached once, must read what the ancestor holds when the pointer moves, not the values the body built it with
+    // (ED-NEW-parity-timelinerows (9); scoped check of review round 6, mutant H2). The host sets new objects, as ThreadTimeline does
+    // (ThreadTimeline.cs:128-129). The card is presented through the recorder (R-VIEW-9) on the test's own clock, 250 ms after the
+    // move (HydraHeadHoverPopover.swift:22-37). No network: the host's icon is in the cache (R-TEST-10).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-144 (the head card of a head that joined after its link paragraph was built): DroppyCode/UI/Markdown/LinkHover.swift:7-14, :26-31; MarkdownView.swift:1074-1075, :1159-1160
+    public void The_pointer_over_the_name_of_a_head_that_joined_after_the_link_paragraph_was_built_shows_that_heads_card() => headless.OnUiThread(() =>
+    {
+        const string host = "mention-hover.com";
+        var icon = new Avalonia.Media.Imaging.WriteableBitmap(new Avalonia.PixelSize(4, 4), new Avalonia.Vector(96, 96),
+            Avalonia.Platform.PixelFormat.Bgra8888, Avalonia.Platform.AlphaFormat.Unpremul);
+        FaviconCacheSeed.Seed(host, icon);
+        var popover = HydraHeadHoverPopover.Instance; // the process-wide card (:6 static let shared)
+        popover.Hide(); // set up: no card, and no pending one, left by an earlier test's hover
+        using var runtime = new Marrow.Testing.TestRuntime();
+        var recorder = new PopoverRecorder();
+        using var seam = Presentation.Presenter.Override(recorder);
+        var persona = new Marrow.Core.Models.HydraPersona("Hank", "dragon-test-asset", 0xFF0000);
+        var target = new Marrow.Core.Models.HydraMentionTarget { ThreadID = Guid.NewGuid(), Task = "t", Status = Marrow.Core.Models.HydraHeadInfo.Status.Running };
+        Avalonia.Controls.Window? window = null;
+        try
+        {
+            // The name leads the text, so it lands at the paragraph's own origin whatever the font metrics.
+            var text = new InlineText("Hank joined, see [a link](https://mention-hover.com/x)", hasLinks: true);
+            var paragraph = Assert.IsType<LinkParagraphView>(text.Child);
+            var view = (LinkTextView)paragraph.Child!;
+            var block = (Avalonia.Controls.SelectableTextBlock)view.Child!;
+            var host_ = new Avalonia.Controls.Decorator { Child = text };
+            window = new Avalonia.Controls.Window { Content = host_, Width = 420, Height = 200 };
+            window.Show();
+            window.UpdateLayout();
+            // The pointer is moved through the window, so it reaches the paragraph only over the drawn words (hit testing).
+            void MoveTo(Avalonia.Visual relativeTo, Avalonia.Point point)
+            {
+                Avalonia.Headless.HeadlessWindowExtensions.MouseMove(window!, Avalonia.VisualExtensions.TranslatePoint(relativeTo, point, window!)!.Value,
+                    Avalonia.Input.RawInputModifiers.None);
+                Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+                runtime.RunUntilIdle(); // a card the move asked for starts its 250 ms wait on the test's clock (:22-23)
+            }
+            var moves = 0;
+            paragraph.PointerMoved += (_, _) => moves++;
+            var name = block.TextLayout.HitTestTextRange(0, 4).First(); // "Hank", plain prose for now
+            MoveTo(block, name.Center); // over the name while no head is known: no card
+            runtime.AdvanceMilliseconds(250);
+            Assert.Equal(1, moves); // set up: the paragraph saw the pointer
+            Assert.Null(popover.ShownThreadID);
+            Assert.Empty(recorder.Calls);
+
+            // The head joins: the ancestor is handed new personas and targets; the paragraph stays (the test above).
+            MarkdownView.SetHydraMentionPersonas(host_, new ValueList<Marrow.Core.Models.HydraPersona>([persona]));
+            MarkdownView.SetHydraMentionTargets(host_, new ValueMap<string, Marrow.Core.Models.HydraMentionTarget>(
+                new Dictionary<string, Marrow.Core.Models.HydraMentionTarget> { ["Hank"] = target }, SwiftStringComparer.Instance));
+            Assert.Same(paragraph, text.Child);
+            window.UpdateLayout();
+            var mention = view.HeadMentionRect(new Avalonia.Point(2, 2)) is { } found ? found.Rect
+                : throw new InvalidOperationException("expected the head's name near the start of the drawn text");
+
+            MoveTo(paragraph, mention.Center); // over the head's name
+            runtime.AdvanceMilliseconds(250);
+
+            Assert.Equal(2, moves);
+            Assert.Equal(target.ThreadID, popover.ShownThreadID);
+            var (popup, presented) = Assert.Single(recorder.Calls);
+            Assert.True(presented);
+            Assert.Same(paragraph, popup.PlacementTarget); // shown from the paragraph, at the name (:31)
+            Assert.Equal(mention, popup.PlacementRect);
+            var card = Assert.Single(Avalonia.LogicalTree.LogicalExtensions.GetLogicalDescendants(popup.Child!).OfType<HydraHeadHoverCard>());
+            Assert.Equal("Hank", card.Persona.Name);
+            Assert.Equal(target.ThreadID, card.Target.ThreadID);
+        }
+        finally
+        {
+            window?.Close(); // its hover ends and hides the card (LinkHover.swift:41-43), through the recorder still installed
             FaviconCacheSeed.Remove(host);
         }
     });
