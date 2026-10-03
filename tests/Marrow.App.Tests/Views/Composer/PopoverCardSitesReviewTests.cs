@@ -105,4 +105,73 @@ public sealed class PopoverCardSitesReviewTests(HeadlessSession headless)
         }
         finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
     });
+
+    // DiffInspector.swift:599-636: a click on another turn's Review button while the diff popover shows opens it again on
+    // that button (DiffPopoverCoordinator.Reopen: HidePopover, then Show). Through the real presenter the popup is still
+    // open at that moment (it shrinks into its tip for 0.17 s, PopoverAppear.Dismiss), so the card on screen stays the one
+    // hung for the first button (Avalonia 12.1.2 hosts a Popup's child once, at Popup.Open), and that card keeps the anchor
+    // it was hung with (PopoverHost.Wrap reads PlacementTarget once into PopoverCard.Anchor). Avalonia moves the popup above
+    // the Review button; the card aims its tip at the first button, which lies wholly above it, so the tip turns to the
+    // card's top edge, pointing away from the button the popover now hangs from. NSPopover.show(relativeTo:of:
+    // preferredEdge:) aims its arrow at the view it is shown from.
+    [Fact]
+    [Trait("Req", "PR-GIT-137")] // DiffInspector.swift:599-636, with OD-0095's card
+    public void REVIEW_The_diff_popover_reopened_on_another_Review_button_points_its_tip_at_that_button() => headless.OnUiThread(() =>
+    {
+        using var store = new AppModelHarness();
+        var project = AppModelSamples.Project("Diff", store.NewFolder("diff"));
+        var thread = AppModelSamples.Thread(project);
+        store.WriteLibrary([project], [thread]);
+        AppModelHarness.WriteDocument(thread.Id);
+        var app = store.MakeModel();
+        store.Main.OnMain(() =>
+        {
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var presenter = new ReviewOverlayPresenter(Presentation.Presenter.Current);
+            using var seam = Presentation.Presenter.Override(presenter);
+            var runtime = new ThreadRuntime(thread.Id, app);
+            var chrome = new Border { Width = 80, Height = 24, Background = Brushes.Transparent };
+            var review = new Border { Width = 80, Height = 24, Background = Brushes.Transparent };
+            Canvas.SetLeft(chrome, 40);
+            Canvas.SetTop(chrome, 20);
+            Canvas.SetLeft(review, 600);
+            Canvas.SetTop(review, 760);
+            var window = new Avalonia.Controls.Window { Width = 1400, Height = 900, Content = new Canvas { Children = { chrome, review } } };
+            SettingsProviderPopupLayers.Install(window);
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            var coordinator = new Marrow.App.Views.Diff.DiffPopoverCoordinator();
+            try
+            {
+                coordinator.SetAnchor(chrome);
+                coordinator.Sync(false, runtime);
+                runtime.IsDiffVisible = true;
+                coordinator.Sync(true, runtime); // shown from the chrome's button
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                var popup = Assert.Single(presenter.Popups);
+                Assert.True(popup.IsOpen);
+                runtime.ShowDiff(review, Guid.NewGuid()); // the Review button of a turn further down
+                coordinator.Reopen(runtime);
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+                Dispatcher.UIThread.RunJobs();
+                Assert.Same(review, popup.PlacementTarget);
+                var card = Assert.Single(Avalonia.VisualTree.VisualExtensions.GetVisualDescendants(window).OfType<PopoverCard>()); // the card on screen
+                var tip = card.TranslatePoint(card.TipPoint, window)!.Value;
+                var middle = review.TranslatePoint(new Point(40, 12), window)!.Value;
+                Assert.True(card.TipEdge == PopoverTipEdge.Bottom && Math.Abs(tip.X - middle.X) < 0.5,
+                    $"the tip is on the card's {card.TipEdge} edge at ({tip.X:F1}, {tip.Y:F1}); the Review button the popover is shown from has its middle at ({middle.X:F1}, {middle.Y:F1}), below the card");
+            }
+            finally
+            {
+                coordinator.Close();
+                foreach (var shown in presenter.Popups) shown.IsOpen = false;
+                window.Close();
+                Dispatcher.UIThread.RunJobs();
+            }
+        });
+        GC.KeepAlive(app);
+    });
 }

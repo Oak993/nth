@@ -6,6 +6,7 @@ using Avalonia.Media;
 using Avalonia.Media.Imaging;
 using Avalonia.Styling;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using Marrow.Core.Port;
 using Marrow.Testing;
 using Marrow.UI.Port;
@@ -237,34 +238,83 @@ public sealed class EffortTitleFidelityReviewTests(HeadlessSession headless)
     };
 
     // OD-0094: the drift is "cheap (a shader or brush transform on the frame clock, no per-frame allocation, frames only
-    // while the title is visible)". The unit re-records the label every frame (InvalidateVisual, its outline drawn again
-    // with a moved brush) instead of moving a brush's transform: measured against the same label held still.
+    // while the title is visible)".
+    // RULING (final review, round 1, 2026-10-03) on what this test measures. Its first form (the label against the same
+    // label held still, everything on this thread counted) charged the drift with two costs that are not the drift's:
+    // (1) the renderer's frame, which the headless platform runs on the test thread (ForceRenderTimerTick ->
+    // ServerCompositor.Render; on Windows the render thread's): about 4.6 KB a frame for ANY changed pixel, the same for a
+    // stock TextBlock whose gradient moves and about 4.2 KB for a Border changing colour; (2) Avalonia's dispatch and
+    // commit of a changed brush on the UI thread (MediaContext, Compositor.Commit, GradientBrush.SerializeChanges builds an
+    // ImmutableGradientStop per stop per commit): about 2.2 KB a frame, which a brush transform on the frame clock (the
+    // ruling's own example) pays as well. The round-2 cost test held the renderer still instead, and then Avalonia
+    // throttles every commit after the first (MediaContext.CommitCompositorsWithThrottling: a batch the renderer never takes
+    // stays pending), so it leaves out the commit the app pays every frame. Measured right: the renderer ticks every
+    // frame (so every commit happens, as in the app), only its own tick is left out of the UI thread's count, and the
+    // drift is set against stock Avalonia making the same visible change, a TextBlock with the same text and gradient whose
+    // two ends the test moves each frame. The drift may add at most 256 B a frame to that floor on the UI thread (measured
+    // over 600 frames on 2026-10-03: drifting 2.25-2.32 KB, the floor 2.21-2.29 KB), cost the renderer no more than the
+    // floor does (4.57-4.65 KB against 4.58-4.82 KB), and never draw the label again while its colours move.
     [Fact]
     [Trait("Req", "PR-COMPOSER-111")] // as ruled by OD-0094
     public void REVIEW_The_drift_allocates_nothing_frame_by_frame() => headless.OnUiThread(() =>
     {
+        const int Frames = 600;
         var frames = new ManualFrameSource();
         using var source = FrameClock.Source.Override(frames);
         var clock = new ManualTimeProvider();
         using var time = SwiftClock.Provider.Override(clock);
-        long PerFrame(double period)
+        (long Ui, long Renderer) PerFrame(Control content, Action? each, Action? measuring = null)
         {
-            var label = Title("Extra High", Pair());
-            label.DriftPeriod = period;
-            var window = new Window { Width = 300, Height = 60, Background = Brushes.Black, Content = label };
+            var window = new Window { Width = 300, Height = 60, Background = Brushes.Black, Content = content };
             window.Show();
             try
             {
-                Pump(frames, clock, 30); // warm
-                var before = GC.GetAllocatedBytesForCurrentThread();
-                Pump(frames, clock, 120);
-                return (GC.GetAllocatedBytesForCurrentThread() - before) / 120;
+                long ui = 0, renderer = 0;
+                void Step(bool count)
+                {
+                    var a = GC.GetAllocatedBytesForCurrentThread();
+                    each?.Invoke();
+                    clock.Advance(TimeSpan.FromMilliseconds(16));
+                    frames.Advance(TimeSpan.FromMilliseconds(16));
+                    Dispatcher.UIThread.RunJobs();
+                    var b = GC.GetAllocatedBytesForCurrentThread();
+                    Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick(); // the renderer's frame (the render thread's on Windows)
+                    var c = GC.GetAllocatedBytesForCurrentThread();
+                    Dispatcher.UIThread.RunJobs();
+                    var d = GC.GetAllocatedBytesForCurrentThread();
+                    if (count) { ui += b - a + (d - c); renderer += c - b; }
+                }
+                for (var i = 0; i < 30; i++) Step(false);
+                measuring?.Invoke();
+                for (var i = 0; i < Frames; i++) Step(true);
+                return (ui / Frames, renderer / Frames);
             }
             finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
         }
-        var still = PerFrame(0);
-        var drifting = PerFrame(7);
-        Assert.True(drifting - still <= 256, $"the drift allocates {drifting - still} bytes a frame ({drifting} drifting, {still} still)");
+        CountedMorphingTextBlock Drifting() => new() { Text = "Extra High", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = Pair(), MaxLines = 1, DriftPeriod = 7 };
+        (long Ui, long Renderer) Floor()
+        {
+            var brush = Pair();
+            var moved = 0;
+            var stock = new TextBlock { Text = "Extra High", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = brush, MaxLines = 1 };
+            return PerFrame(stock, () =>
+            {
+                moved = (moved + 1) % 160;
+                brush.StartPoint = new RelativePoint(moved, 0, RelativeUnit.Absolute);
+                brush.EndPoint = new RelativePoint(moved + 80, 0, RelativeUnit.Absolute);
+            });
+        }
+        PerFrame(Drifting(), null); // warm both paths
+        Floor();
+        var title = Drifting();
+        var drawn = -1;
+        var phase = 0.0;
+        var drift = PerFrame(title, null, () => { drawn = title.Renders; phase = title.DriftPhase; });
+        var floor = Floor();
+        Assert.True(title.DriftPhase != phase, "the colours did not move");
+        Assert.True(drawn == title.Renders, $"the label was drawn {title.Renders - drawn} times again over {Frames} frames of drift");
+        Assert.True(drift.Ui - floor.Ui <= 256, $"the drift allocates {drift.Ui - floor.Ui} bytes a frame on the UI thread beyond stock Avalonia moving the same gradient ({drift.Ui} against {floor.Ui})");
+        Assert.True(drift.Renderer - floor.Renderer <= 512, $"the drift costs the renderer {drift.Renderer - floor.Renderer} bytes a frame beyond stock Avalonia moving the same gradient ({drift.Renderer} against {floor.Renderer})");
     });
 
     // Owner bar "zero stutter" (and OD-0094's "cheap" for the colours passing along the letters): a gradient title's
@@ -298,5 +348,55 @@ public sealed class EffortTitleFidelityReviewTests(HeadlessSession headless)
         var plain = PerFrame(Brushes.White);
         var gradient = PerFrame(Pair());
         Assert.True(gradient <= 2 * plain, $"a gradient change allocates {gradient} bytes a frame, a plain one {plain}");
+    });
+
+    // OD-0095: "a small tip centred on the anchor". A site that shows its Popup again while it is still open (the presenter
+    // keeps a closing popover open for the 0.17 s it shrinks into its tip, PopoverAppear.Dismiss; AttachmentPreviewPanel
+    // re-shows in place; DiffPopoverCoordinator.Reopen hides and shows at once) sets its new content first and its new
+    // anchor after: SetFixedContent, then PlacementTarget, then SetPresented (AttachmentPreviewPanel.cs:91-95,
+    // DiffInspector.cs:1072-1079, HydraHeadHoverPopover.cs:120-128, ChatBadge.cs:245-258). Avalonia 12.1.2 hosts a Popup's
+    // child once, when it opens (Popup.Open: popupHost.SetChild(Child); ChildChanged only re-parents it logically), so the
+    // card on screen stays the first one (that the new content is never shown is older than this unit), and Avalonia moves
+    // the popup to the new anchor (Popup.OnPropertyChanged, PlacementTarget). The card on screen aims its tip at the anchor
+    // it was hung with (PopoverHost.Wrap reads PlacementTarget once into PopoverCard.Anchor), not at the one the popup now
+    // hangs from. NSPopover.show(relativeTo:of:preferredEdge:) aims the arrow at the view it is shown from.
+    [Fact]
+    [Trait("Decision", "ED-238")] // OD-0095
+    public void REVIEW_A_popover_shown_again_from_another_anchor_aims_its_tip_at_that_anchor() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var first = new Border { Width = 20, Height = 20 };
+        var second = new Border { Width = 20, Height = 20 };
+        Canvas.SetLeft(first, 40);
+        Canvas.SetTop(first, 220);
+        Canvas.SetLeft(second, 300);
+        Canvas.SetTop(second, 220);
+        var window = HeadlessPopupHost.OverlayWindow(new Canvas { Children = { first, second } });
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var popup = new Popup { PlacementTarget = first, Placement = PlacementMode.Top, ShouldUseOverlayLayer = true, Child = new Border { Width = 120, Height = 60 } };
+        try
+        {
+            Presentation.Presenter.Current.SetPresented(popup, true);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            // The site's show while it is still shown: its new content, then its new anchor, then presented.
+            popup.Child = new Border { Width = 120, Height = 60 };
+            popup.PlacementTarget = second;
+            Presentation.Presenter.Current.SetPresented(popup, true);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            var card = Assert.Single(window.GetVisualDescendants().OfType<PopoverCard>()); // the card on screen
+            var tip = card.TranslatePoint(card.TipPoint, window)!.Value;
+            var middle = second.TranslatePoint(new Point(10, 10), window)!.Value;
+            var old = first.TranslatePoint(new Point(10, 10), window)!.Value;
+            Assert.True(Math.Abs(tip.X - middle.X) < 0.5, $"the tip at x {tip.X:F1}; the anchor it is shown from has its middle at {middle.X:F1}, the one it was shown from before at {old.X:F1}");
+        }
+        finally
+        {
+            popup.IsOpen = false;
+            window.Close();
+        }
     });
 }
