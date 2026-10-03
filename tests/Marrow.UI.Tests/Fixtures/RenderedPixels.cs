@@ -31,6 +31,15 @@ public sealed class RenderedPixels
         return new RenderedPixels(data, buffer.RowBytes, buffer.Size.Width, buffer.Size.Height);
     }
 
+    /// <summary>A rectangle of the frame.</summary>
+    public RenderedPixels Crop(int x, int y, int width, int height)
+    {
+        var data = new byte[width * 4 * height];
+        for (var row = 0; row < height; row++)
+            Array.Copy(bytes, (y + row) * rowBytes + x * 4, data, row * width * 4, width * 4);
+        return new RenderedPixels(data, width * 4, width, height);
+    }
+
     /// <summary>(red, green, blue) at a pixel (Rgba8888 on the headless surface).</summary>
     public (int Red, int Green, int Blue) At(int x, int y)
     {

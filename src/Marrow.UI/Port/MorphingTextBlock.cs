@@ -29,12 +29,19 @@
 // spread over 55 % of the change's duration (0.14 s for the slider's snappy 0.2), new letters starting 15 % of it
 // (0.04 s) late, scaling about each letter's centre.
 // Side by side with the video in study\effort-title-2026-10-03\sbs_*.png.
-// The blur is drawn as seventeen offset copies (Avalonia's DrawingContext has no per-draw blur); a gradient-filled
-// letter is drawn as its outline geometry so its brush can be pinned to that box.
+// While a change runs every letter is drawn as its own outline (so no neighbour is drawn with it and a gradient can be
+// pinned to that box); the blur is seventeen offset copies (Avalonia's DrawingContext has no per-draw blur).
+// DEVIATION OD-0094 (owner ruling 2026-10-03): with DriftPeriod set (the effort title: 7 s), a gradient's colours also
+// drift at rest, mirrored so the loop never jumps, on one phase shared with the change's own drawing (a change takes it
+// over and hands it back without a jump); still under reduce motion; frames only while the label is shown. ENGINEERING
+// DECISION, the period: 7 s per mirrored loop moves the colours one text width in 3.5 s, about 20 pt/s on "Max" to 30
+// on "Extra High": slow beside the track's own sheen (EffortSlider.swift:1208, a 2.8 s sweep) so the title stays calm
+// and never races the slider under it, yet visibly alive within a glance of a few seconds.
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.TextFormatting;
+using Avalonia.VisualTree;
 using Marrow.Core.Port;
 
 namespace Marrow.UI.Port;
@@ -63,6 +70,31 @@ public class MorphingTextBlock : TextBlock
     /// while the narrowing label's leading edge is still on its way), so they are drawn that far from the moving edge.
     /// </summary>
     public double GrowthAnchor { get; set; }
+
+    /// <summary>
+    /// OD-0094 (owner ruling, a deviation from EffortSlider.swift:543-555's static gradient): the seconds a gradient
+    /// title's colours take to drift once round their loop at rest; 0 (the default) keeps them still, as the source.
+    /// The gradient is mirrored (reflected past its ends), so the loop never jumps; the colours move from the leading
+    /// edge to the trailing one by twice the text's width per period. A single colour never drifts.
+    /// </summary>
+    public double DriftPeriod
+    {
+        get => driftPeriod;
+        set { driftPeriod = value; Adopt(); }
+    }
+
+    private double driftPeriod;
+    private double driftSeconds;
+    private ContinuousInstant? driftLast;
+    private IFrameSource? driftFrames;
+    private Action<TimeSpan>? driftCallback;
+    private bool drifting;
+
+    /// <summary>Where the drift is in its loop, 0 to 1: one phase at rest and through a change.</summary>
+    internal double DriftPhase => driftPeriod > 0 ? driftSeconds / driftPeriod % 1 : 0;
+
+    // How far the mirrored gradient has moved along a text of this width.
+    private double DriftOffset(double width) => DriftPhase * 2 * width;
 
     /// <summary>Whether a change is still animating.</summary>
     public bool IsMorphing => morph is not null;
@@ -149,7 +181,96 @@ public class MorphingTextBlock : TextBlock
     protected override void OnDetachedFromVisualTree(VisualTreeAttachmentEventArgs e)
     {
         Stop();
+        foreach (var ancestor in watched) ancestor.PropertyChanged -= OnAncestorChanged;
+        watched.Clear();
+        attached = false;
+        UpdateDrift();
         base.OnDetachedFromVisualTree(e);
+    }
+
+    protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
+    {
+        base.OnAttachedToVisualTree(e);
+        // Shown or hidden with its ancestors (the slider page under the model list): watched so the drift can stop.
+        foreach (var ancestor in this.GetVisualAncestors())
+        {
+            ancestor.PropertyChanged += OnAncestorChanged;
+            watched.Add(ancestor);
+        }
+        attached = true;
+        UpdateDrift();
+    }
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == ForegroundProperty) Adopt();
+        else if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty || change.Property == IsVisibleProperty) UpdateDrift();
+    }
+
+    private readonly List<Visual> watched = [];
+    private bool attached;
+
+    // Shown: in a window, and neither it nor any ancestor hidden (read here, not from the effective visibility, which
+    // the ancestors' own change has not yet passed down when it is reported).
+    private bool Shown() => attached && IsVisible && watched.All(ancestor => ancestor.IsVisible);
+
+    private void OnAncestorChanged(object? sender, AvaloniaPropertyChangedEventArgs change)
+    {
+        if (change.Property == IsVisibleProperty) UpdateDrift();
+    }
+
+    // A new colour for the title: the drift's own brush (its stops copied once, reflected past their ends so the moving
+    // window never meets an edge) is rebuilt; every frame then only moves its two ends.
+    private void Adopt()
+    {
+        driftBrush = null;
+        UpdateDrift();
+    }
+
+    private LinearGradientBrush? driftBrush;
+
+    // The title's gradient through the box, its ends moved by the drift; one brush kept and moved, frame after frame.
+    private LinearGradientBrush Drifted(ILinearGradientBrush gradient, Rect box)
+    {
+        if (driftBrush is null)
+        {
+            var stops = new GradientStops();
+            foreach (var stop in gradient.GradientStops) stops.Add(new GradientStop(stop.Color, stop.Offset));
+            driftBrush = new LinearGradientBrush { GradientStops = stops, SpreadMethod = GradientSpreadMethod.Reflect, Opacity = gradient.Opacity };
+        }
+        var along = new Vector(DriftOffset(box.Width), 0);
+        // In the layout's own space (the caller draws it moved by origin).
+        driftBrush.StartPoint = new RelativePoint(gradient.StartPoint.ToPixels(box) + along - (Vector)box.Position, RelativeUnit.Absolute);
+        driftBrush.EndPoint = new RelativePoint(gradient.EndPoint.ToPixels(box) + along - (Vector)box.Position, RelativeUnit.Absolute);
+        return driftBrush;
+    }
+
+    // Frames only while there is a gradient to move, the title is shown, and motion is not reduced.
+    private void UpdateDrift()
+    {
+        var active = driftPeriod > 0 && Foreground is ILinearGradientBrush && Shown() && !EnvironmentValues.GetAccessibilityReduceMotion(this);
+        if (active == drifting) return;
+        drifting = active;
+        if (active)
+        {
+            driftLast = null;
+            driftFrames = FrameClock.Source.Current;
+            driftCallback ??= OnDriftFrame;
+            driftFrames.RequestFrame(driftCallback);
+        }
+        else if (driftCallback is not null) driftFrames?.CancelFrame(driftCallback);
+    }
+
+    private void OnDriftFrame(TimeSpan _)
+    {
+        if (!drifting) return;
+        var now = SwiftClock.Now;
+        // A long gap (a stalled frame) moves it on by at most a tenth of a second, never a lurch.
+        if (driftLast is { } last) driftSeconds = (driftSeconds + Math.Min(0.1, Math.Max(0, (now - last).TotalSeconds))) % driftPeriod;
+        driftLast = now;
+        InvalidateVisual();
+        driftFrames!.RequestFrame(driftCallback!);
     }
 
     private static double Elapsed(Morph state) => (SwiftClock.Now - state.Start).TotalSeconds;
@@ -174,6 +295,15 @@ public class MorphingTextBlock : TextBlock
     {
         if (morph is not { } state || TextLayout is not { } layout)
         {
+            if (driftPeriod > 0 && Foreground is ILinearGradientBrush gradient && TextLayout is { } still && Outline(still) is { } outline)
+            {
+                // At rest a drifting gradient is drawn through the same box and phase as during a change (OD-0094).
+                var box = new Rect(origin, new Size(still.WidthIncludingTrailingWhitespace, Math.Max(still.Height, Bounds.Height - origin.Y)));
+                var brush = Drifted(gradient, box);
+                using (context.PushTransform(Matrix.CreateTranslation(origin.X, origin.Y)))
+                    context.DrawGeometry(brush, null, outline);
+                return;
+            }
             base.RenderTextLayout(context, origin);
             return;
         }
@@ -252,24 +382,66 @@ public class MorphingTextBlock : TextBlock
         var centre = rect.Center;
         var transform = Matrix.CreateTranslation(-centre.X, -centre.Y) * Matrix.CreateScale(glyph.Scale, glyph.Scale)
             * Matrix.CreateTranslation(centre.X + drawX - rect.X, centre.Y + glyph.Rise * FontSize) * Matrix.CreateTranslation(origin.X, origin.Y);
-        var clip = rect.Inflate(new Thickness(2, 4));
+        // The letter's own outline, placed as the line places it (so kerning stays): nothing of its neighbours is drawn
+        // with it. Each line carries its own brush: the old line the old colour, the live one the new colour.
+        if (brush is null || !LetterOutlines(source).TryGetValue(glyph.SourceIndex, out var letter)) return;
         using (context.PushTransform(transform))
-        using (context.PushClip(clip))
         {
-            if (brush is ILinearGradientBrush gradient && transform.TryInvert(out var inverse) && Outline(source) is { } outline)
+            if (brush is ILinearGradientBrush gradient && transform.TryInvert(out var inverse))
                 DrawBlurred(context, glyph.Opacity, glyph.Blur, (dx, dy) =>
                 {
                     var shift = Matrix.CreateTranslation(dx, dy);
                     using (context.PushTransform(shift))
-                        context.DrawGeometry(Pinned(gradient, frame, shift.Invert() * inverse), null, outline);
+                        context.DrawGeometry(Pinned(gradient, frame, shift.Invert() * inverse), null, letter);
                 });
             else
-                DrawBlurred(context, glyph.Opacity, glyph.Blur, (dx, dy) => source.Draw(context, new Point(dx, dy)));
+                DrawBlurred(context, glyph.Opacity, glyph.Blur, (dx, dy) =>
+                {
+                    using (context.PushTransform(Matrix.CreateTranslation(dx, dy)))
+                        context.DrawGeometry(brush, null, letter);
+                });
         }
     }
 
-    // The whole line is drawn under a clip to one glyph, so kerning stays as it was. Each line carries its own brush: the
-    // old line the old colour, the live one the new colour.
+    private readonly System.Runtime.CompilerServices.ConditionalWeakTable<TextLayout, Dictionary<int, Geometry>> letterOutlines = new();
+
+    // Each letter's outline by its character index, in the layout's own coordinates, as TextLayout.Draw places them.
+    private Dictionary<int, Geometry> LetterOutlines(TextLayout layout)
+    {
+        if (letterOutlines.TryGetValue(layout, out var known)) return known;
+        var letters = new Dictionary<int, Geometry>();
+        double top = 0;
+        foreach (var line in layout.TextLines)
+        {
+            var x = line.Start;
+            foreach (var run in line.TextRuns)
+            {
+                if (run is ShapedTextRun shaped)
+                {
+                    var buffer = shaped.ShapedBuffer;
+                    var baseline = shaped.GlyphRun.BaselineOrigin.Y;
+                    var at = x;
+                    for (var i = 0; i < buffer.Length; i++)
+                    {
+                        var info = buffer[i];
+                        var single = new GlyphRun(buffer.GlyphTypeface, buffer.FontRenderingEmSize, shaped.Text,
+                            new[] { new GlyphInfo(info.GlyphIndex, info.GlyphCluster, info.GlyphAdvance, info.GlyphOffset) }, new Point(0, baseline));
+                        if (single.BuildGeometry() is { } outline && !letters.ContainsKey(info.GlyphCluster))
+                        {
+                            outline.Transform = new MatrixTransform(Matrix.CreateTranslation(at, top + line.Baseline - baseline));
+                            letters[info.GlyphCluster] = outline;
+                        }
+                        at += info.GlyphAdvance;
+                    }
+                }
+                if (run is DrawableTextRun drawable) x += drawable.Size.Width;
+            }
+            top += line.Height;
+        }
+        letterOutlines.AddOrUpdate(layout, letters);
+        return letters;
+    }
+
     private static void DrawBlurred(DrawingContext context, double opacity, double blur, Action<double, double> draw)
     {
         void Draw(double dx, double dy, double alpha)
@@ -294,9 +466,12 @@ public class MorphingTextBlock : TextBlock
 
     // A gradient whose ends sit where they would on the label's frame, given in the letter's own (transformed) space:
     // the letter moves through the colours instead of carrying its own.
-    private static LinearGradientBrush Pinned(ILinearGradientBrush gradient, Rect frame, Matrix toLetter)
+    private LinearGradientBrush Pinned(ILinearGradientBrush gradient, Rect frame, Matrix toLetter)
     {
-        Point At(RelativePoint point) => toLetter.Transform(point.ToPixels(frame));
+        // The drift moves the colours along the same box at rest and here: one phase, so a change takes it over and
+        // hands it back without a jump (OD-0094).
+        var along = new Vector(DriftOffset(frame.Width), 0);
+        Point At(RelativePoint point) => toLetter.Transform(point.ToPixels(frame) + along);
         var stops = new GradientStops();
         foreach (var stop in gradient.GradientStops) stops.Add(new GradientStop(stop.Color, stop.Offset));
         return new LinearGradientBrush
@@ -304,7 +479,7 @@ public class MorphingTextBlock : TextBlock
             StartPoint = new RelativePoint(At(gradient.StartPoint), RelativeUnit.Absolute),
             EndPoint = new RelativePoint(At(gradient.EndPoint), RelativeUnit.Absolute),
             GradientStops = stops,
-            SpreadMethod = gradient.SpreadMethod,
+            SpreadMethod = driftPeriod > 0 ? GradientSpreadMethod.Reflect : gradient.SpreadMethod,
             Opacity = gradient.Opacity,
         };
     }

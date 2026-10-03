@@ -117,4 +117,58 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
         }
         finally { window.Close(); }
     });
+
+    // OD-0094: the card's gradient title (here a pair's lead-to-heads colours) drifts at rest; a single-colour title
+    // (a plain effort) stays as it is.
+    [Theory]
+    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    [InlineData(true)]
+    [InlineData(false)]
+    public void A_gradient_title_drifts_at_rest_and_a_single_colour_one_does_not(bool pair) => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new Marrow.Testing.ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        using var harness = new AppModelHarness(withRuntime: false);
+        var look = pair ? new EffortPairLook(new HydraPair(ProviderKind.Codex), new AppModel().Providers, null) : null;
+        var effort = new ObservableStringBox { Value = "high" };
+        var card = new EffortSliderCard("Lead", pair ? ProviderKind.Codex : ProviderKind.Claude, new ValueList<string>(["low", "medium", "high", "max"]), "medium", false,
+            effort.AsBinding(), Binding<bool>.Constant(false), () => { }, look, onTitleTap: () => { });
+        var window = new Avalonia.Controls.Window { Width = 330, Height = 160, Content = card, Background = Avalonia.Media.Brushes.Black, RequestedThemeVariant = Avalonia.Styling.ThemeVariant.Dark };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try
+        {
+            var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
+            Assert.Equal(pair, title.Foreground is Avalonia.Media.ILinearGradientBrush);
+            byte[] Title()
+            {
+                window.UpdateLayout();
+                var box = new Avalonia.Rect(title.TranslatePoint(new Avalonia.Point(0, 0), window)!.Value, title.Bounds.Size);
+                using var frame = window.CaptureRenderedFrame() ?? throw new Xunit.Sdk.XunitException("no rendered frame");
+                using var pixels = frame.Lock();
+                var row = new byte[pixels.RowBytes];
+                var result = new List<byte>();
+                for (var y = (int)box.Top; y < (int)box.Bottom; y++)
+                {
+                    System.Runtime.InteropServices.Marshal.Copy(pixels.Address + y * pixels.RowBytes, row, 0, pixels.RowBytes);
+                    for (var x = (int)box.Left; x < (int)box.Right; x++) result.AddRange([row[x * 4], row[x * 4 + 1], row[x * 4 + 2]]);
+                }
+                return result.ToArray();
+            }
+            var start = Title();
+            for (var ms = 0; ms < 1000; ms += 20)
+            {
+                clock.Advance(TimeSpan.FromMilliseconds(20));
+                frames.Advance(TimeSpan.FromMilliseconds(20));
+                Dispatcher.UIThread.RunJobs();
+            }
+            var later = Title();
+            var moved = start.Zip(later, (a, b) => Math.Abs(a - b)).Max();
+            if (pair) Assert.True(moved > 20, $"the pair's colours drift along the title: {moved}");
+            else Assert.True(moved <= 1, $"a single colour stays: {moved}");
+        }
+        finally { window.Close(); }
+    });
 }

@@ -501,7 +501,9 @@ public sealed class EffortSliderCard : Decorator
         var centre = new StackPanel { Spacing = 2, Margin = new Thickness(44, 0), HorizontalAlignment = HorizontalAlignment.Center };
         // :573-574 Text(verbatim: title).font(.system(.title2, weight: .medium)).contentTransition(.numericText())
         // :566-567 the title row is centred in the card's VStack: new letters appear where they settle (GrowthAnchor).
-        var title = new MorphingTextBlock { Text = "", MaxLines = 1, VerticalAlignment = VerticalAlignment.Center, GrowthAnchor = 0.5 };
+        // DEVIATION OD-0094 (owner ruling): a gradient title (a pair, the brand at maximum, maximum with fast mode's gold)
+        // drifts along its letters at rest, once round its mirrored loop in 7 s; a single colour stays (MorphingTextBlock).
+        var title = new MorphingTextBlock { Text = "", MaxLines = 1, VerticalAlignment = VerticalAlignment.Center, GrowthAnchor = 0.5, DriftPeriod = 7 };
         SwiftFont.System(SwiftFont.TextStyle.Title2, weight: SwiftFont.Weight.Medium).Apply(title);
         title.Foreground = Chrome.PrimaryText.Brush(title);
         var titleRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, Children = { title } };
