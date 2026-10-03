@@ -64,9 +64,9 @@ using Marrow.UI.Sound;
 // Make and MakeContextMenu in full (:2193-2312); ThreadGhostBadge in full (:2083-2109; it was still MARROW_STUB, but
 // Glide and ArchiveWithGenie need a real badge to carry, not a stub); SidebarHelperRow.TitleWeight, TitleOpacity,
 // TrailingPadding, BackgroundFill, HeadGlyph and BuildTrailingOverlay (:1361-1384) as directly testable static pieces
-// of that row's body. renamePopover (:239-252) stays MARROW_STUB: STOP #6 (SidebarViewTests.cs), RenameThreadPopover's
-// `.textFieldStyle(.roundedBorder)` and `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)` have no Windows
-// chrome or governing decision yet.
+// of that row's body. renamePopover (:239-252) and RenameThreadPopover were built later (2026-10-01); what STOP #6
+// (SidebarViewTests.cs) still holds open is only the Windows chrome of `.textFieldStyle(.roundedBorder)`,
+// `.buttonStyle(.bordered)`/`.borderedProminent` and presentedChrome's capsule border shape (Popovers.swift:10).
 // Part 5 of 8 adds: HelperStubRow in full (:1552-1618), reusing HelperConnector.Dash (now internal) and
 // HelperConnectorShape as :1583 reuses HelperConnector.style directly; HeadCardsRow.Usable, PerRow, RowGap, Chunk,
 // Capped, Visible, CardRows and ChevronTooltip (:1450-1461, :1442-1443, :1526, :1545-1547) as directly testable
@@ -96,8 +96,8 @@ using Marrow.UI.Sound;
 // Done so far: ProjectRow (PR-SIDEBAR-130, PR-SIDEBAR-133, UI-SIDEBAR-014/-015/-016) and SidebarThreadRow
 // (PR-SIDEBAR-098 through PR-SIDEBAR-103's live-menu half) are proven; SidebarHelperRow and HeadCardsRow are not.
 // Window sweep assembles SidebarThreadRow, ThreadRow, the three helper dispatch arms and FrameHolder.Note.
-// Still unwritten: rename presentation (STOP #6) and the SidebarHelperRow/HeadCardsRow right-click menu attachment
-// (STOP #7, narrowed). Job SB (ROUND3.md) closed the empty-needle search match (STOP #1), ProjectRow's and
+// Rename presentation and the SidebarHelperRow/HeadCardsRow right-click menus have since been written (STOP #6 now
+// holds only the controls' chrome; STOP #7 is closed). Job SB (ROUND3.md) closed the empty-needle search match (STOP #1), ProjectRow's and
 // SidebarThreadRow's own live context menus (STOP #7 narrowed, STOP #8 in SidebarViewTests.cs closed). Row state,
 // frame reports and glides are now live.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record
@@ -790,9 +790,9 @@ public sealed class SidebarView : Decorator
 
     // :870-897 threadRow(_:projectName:projectIcon:hasHelpers:isDragged:), the popovers around SidebarThreadRow (parts 3
     // and 4).
-    // STOP opencode-App.Views.Sidebar.SidebarView #5: SidebarThreadRow's own constructor (and this ThreadRow
-    // wiring) is still unassembled; needs a follow-up unit. Names PR-SIDEBAR-134, PR-SIDEBAR-135, UI-SIDEBAR-017
-    // and the end-to-end half of UI-SIDEBAR-060.
+    // CLOSED STOP opencode-App.Views.Sidebar.SidebarView #5: SidebarThreadRow's own constructor and this ThreadRow
+    // wiring are assembled (Window sweep) and driven by the mounted row tests (PR-SIDEBAR-134, UI-SIDEBAR-017,
+    // UI-SIDEBAR-060); PR-SIDEBAR-135's capture comparison stays open under STOP #9 (SidebarViewTests.cs).
     private Control ThreadRow(ChatThread thread, string? projectName, ProjectIcon? projectIcon, bool hasHelpers, bool isDragged = false) =>
         // :874 archivePopover(for:on: renamePopover(for:on: deletePopover(for:on: SidebarThreadRow(...))))
         ArchivePopover(thread, RenamePopover(thread, DeletePopover(thread, new SidebarThreadRow(thread, projectName, projectIcon, menuRequests,

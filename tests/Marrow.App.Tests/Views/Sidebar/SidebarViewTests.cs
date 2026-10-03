@@ -144,10 +144,14 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //    DECISION above SidebarView.cs Contains (:1339): an empty needle answers true (SE-0357). Proven by
 //    Return_with_an_empty_query_selects_the_first_thread_of_the_first_project. Non-empty Return and no-result
 //    remain proven by Return_selects_the_first_thread_of_the_first_search_result and Return_with_no_result_changes_nothing.
-// #2 PR-SIDEBAR-019: surviving rows' positional slide needs a UI/Port layout-animation foundation plus an ED;
-//    site ListPassNow/ApplyList (SidebarView.cs:460-484; entering/leaving fades ride panelSlide, stayers jump).
-// #3 PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030: `.roundedBorder`/`.bordered`/`.borderedProminent`
-//    chrome needs an ED/owner ruling; sites RenamePopover (:239) and RenameThreadPopover (:995).
+// #2 PR-SIDEBAR-019: CLOSED (STOP #3 above; parity pass 2026-10-03 adds the mounted entering/leaving proof and the
+//    capture comparison: the rows below a deleted thread in 2-chat-use.mov 154.43-154.79 s follow panelSlide's
+//    spring(0.32, 0.9) to an rms of 0.020 of the travel, against 0.038-0.146 for the other curves tried; evidence
+//    E:\Droppy\work\parity\evidence\SidebarView\slide_fit.py and slide_fit.txt).
+// #3 PR-SIDEBAR-091, UI-SIDEBAR-028, UI-SIDEBAR-029, UI-SIDEBAR-030: the popover is built and its text and behaviour
+//    are proven, but `.roundedBorder`/`.bordered`/`.borderedProminent` and presentedChrome's `.buttonBorderShape(.capsule)`
+//    (Popovers.swift:10) still have no Windows chrome or decision (SystemButtons.cs draws a radius-6 rectangle and
+//    reads no capsule flag); sites SidebarView.cs RenamePopover and RenameThreadPopover.
 // #4 PR-SIDEBAR-130, PR-SIDEBAR-133: CLOSED (Job SB, ROUND3.md item 2) - see the CLOSED STOP #4 block above
 //    SidebarView.cs ProjectRow's own header, and its own constructor's ContextMenu.Opening wiring (:1886-1899).
 //    Proven by A_real_right_click_opens_the_project_rows_context_menu_rebuilt_fresh_on_every_open and
@@ -161,6 +165,54 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //    (SidebarView.cs :2899-2911). PR-SIDEBAR-098 through PR-SIDEBAR-103's live-menu half is proven by the same
 //    closure. UI-SIDEBAR-060's pointer/slide/lift-pieces/release are proven at the seam level by the five trait
 //    tests; the constructor/ThreadRow wiring assembly this entry originally named is no longer outstanding.
+
+//
+// PARITY PASS 2026-10-03 (unit/parity-sidebarview). Captures: E:\Droppy\work\parity\evidence\SidebarView\ (never in
+// git): sbs_162*.png, z_*.png (the whole sidebar beside 2-chat-use.mov 162 s, rendered by SidebarCaptureTests),
+// delete-note-sbs.png (152.6 s), slide_fit.py/.txt (154.43-154.79 s). What the captures settle and what stays open:
+// - Geometry beside the video: row pitch, 28 pt rows, 24 pt stub, 20 pt icon slot, 46 pt title inset, the footer rows,
+//   the head card's 9 columns at 248 pt, the delete note's line breaks and the panelSlide slide all match. Every text
+//   line box is about 2 pt shorter than the Mac's (SF Pro vs Inter, OD-0009/ED-059: e.g. the callout note's line pitch
+//   14.3 vs 16.5, so each 12 pt header sits 2-3 pt higher): UNRESOLVED, a font-metric question, not a sidebar one.
+// - SF Symbols draw narrower than their Lucide stand-ins (OD-0010): the stub's 8 pt chevron box is 10 pt wide where
+//   the Mac's glyph is about 5.5 pt, so "4 heads" sits 2.5 pt further right; the Settled header's 10 pt chevron the
+//   same (+3 pt). UNRESOLVED, a symbol-width question for the icon table, not a sidebar one.
+// Still open per record (each is otherwise proven by the tests that carry its trait):
+// - PR-SIDEBAR-013, UI-SIDEBAR-043, UI-UPDATE-010: the update dot appears and disappears by a cut. UI-UPDATE-010 says
+//   it "disappears immediately"; OD-0076 says nothing changes by a cut; no ruling settles the conflict. No frame of the
+//   video shows the dot (the feed is empty by OD-0012 I1), so PR-SIDEBAR-013's capture clause is UNRESOLVED.
+// - PR-SIDEBAR-055: proven on a mounted release (On_a_real_release_the_row_and_everything_riding_it_spring_home...);
+//   its capture clause is UNRESOLVED: no reorder drag appears in either video.
+// - PR-SIDEBAR-127: the unmapped-symbol placeholder has no decision (the record's open_question); no project layout
+//   appears in the videos (capture UNRESOLVED); the glyph swap is a cut (OD-0076).
+// - PR-SIDEBAR-129, UI-SIDEBAR-008: the 0.55 dim is a cut (the Mac snaps; OD-0076 asks for a transition in the Mac's
+//   motion language, which no decision has fixed for this site); PR-SIDEBAR-129's capture is UNRESOLVED (no inactive
+//   project in the videos). UI-SIDEBAR-008 also: SidebarRow (Chrome.cs) swaps its accessory (count <-> buttons) by a
+//   cut where Chrome.swift:735-737 flips the hover inside withAnimation(Chrome.hover) (a Swift-backed crossfade, as
+//   the thread and helper rows now do); not done in this pass.
+// - PR-SIDEBAR-135: STOP #9 below (the reopen glide's two faces against a pinned capture).
+// - UI-SIDEBAR-001: "pressing it drags the window" has no hit-test proof; UI-SIDEBAR-005: the real scroll wiring
+//   (ScrollGestureEvent/Offset) that arms the freeze is untested; UI-SIDEBAR-006: the gap's mounted transition needs
+//   the project-removal reactivity STOP #11 names.
+// - UI-SIDEBAR-015/-016: the native submenu opening and the absence of a reserved check column cannot be observed on
+//   a headless Avalonia MenuItem.
+// - UI-SIDEBAR-017/-018/-019/-021/-022/-023/-024: per-clause gaps the parity audit listed (the face's paddings and
+//   minimum heights, the Settled accessibility value, the pin's 0.9 scale, MiniSpinner cellSize 2.4, the dot's offset,
+//   the project line's fonts and spacing, monospaced digits on the time label, the failed dot in ActivityStatus, the
+//   fold chevron's symbols, the title-width glide on hover). UI-SIDEBAR-020: the settle pop (:1909 spring 0.3/0.45) is
+//   a cut: SettleCheck is rebuilt with its 1.35 scale fixed.
+// - UI-SIDEBAR-026/-027: dismissal by click-away/Escape and the Closed -> carryOutConfirmedDeletion hookup cannot run
+//   headless (STOP #12); UI-SIDEBAR-028/-029/-030/PR-SIDEBAR-091: STOP #6 (the controls' chrome);
+//   UI-SIDEBAR-031/-032: `.controlSize(.small)`'s metrics are unverified.
+// - UI-SIDEBAR-035: "click anywhere, including the connector stub" is UNRESOLVED: :1583 strokes a bare shape with no
+//   content shape, so whether SwiftUI hit-tests the stub's empty column is not settled by the source; the port's
+//   column is hit only on its dots.
+// - UI-SIDEBAR-036: the head-set change's panelSlide (:1541) and the snappy curve between its endpoints are unproven.
+// - UI-SIDEBAR-037: the outcome badge's 3 pt overhang position and the hover scale easing back are unproven.
+// - UI-SIDEBAR-044: the Windows dialog's prompt/message/folder flags (OpenPanel.cs) need an IFileOpenDialog fake.
+// - UI-SIDEBAR-060: `.shadow(radius: 10)` is passed as BoxShadow.Blur 10; SwiftUI's radius-to-blur mapping has no
+//   decision (the same literal in FollowUpQueueTab.cs and ModelsSettingsPage.cs); the pointer style and the
+//   neighbours' slide are proven only through DragChanged/DragEnded, not a real press-drag.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -3621,9 +3673,11 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // `.textFieldStyle(.roundedBorder)` and for `.buttonStyle(.bordered)`/`.buttonStyle(.borderedProminent)`.
     // The ellipsis popover's Rename action currently silently does nothing: it cannot present the missing
     // rename form. This no-op is part of STOP #6, not a completed rename path.
-    // Done so far: nothing implemented at RenameThreadPopover or SidebarView.RenamePopover; both stay MARROW_STUB.
-    // liveRenameTarget (PR-SIDEBAR-093, the ellipsis path's live-thread lookup, :882-887) does not depend on this
-    // site and is proven below. Nothing is claimed for UI-SIDEBAR-028, -029 or -030, and no test names them.
+    // Done so far (updated 2026-10-03): RenameThreadPopover and SidebarView.RenamePopover were built on 2026-10-01 and
+    // their strings, pre-fill, disabled rule, Return and the model rename are proven in the PR-SIDEBAR-091 section
+    // below, so the "silently does nothing" sentence above no longer holds. What stays open is only the chrome named
+    // under Needed (and presentedChrome's capsule shape, Popovers.swift:10); PR-SIDEBAR-091, UI-SIDEBAR-028, -029 and
+    // -030 are not certified.
 
     private static object? SetProp(object target, string name, object? value)
     {
@@ -7702,7 +7756,8 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     // PR-SIDEBAR-019: the ED-218 foundation has landed; this caller proof must go red before wiring it.
-    // The record's pinned capture comparison is still STOP #10, so this test has no Req trait.
+    // The capture comparison STOP #10 asked for is in the header ledger (#2, 2026-10-03); this ED proof keeps its
+    // Decision trait.
     [Theory]
     [Trait("Decision", "ED-218")] // App/Views/Sidebar/SidebarView.swift:117-119; pinned capture remains STOP
     [InlineData(false)]
@@ -7965,6 +8020,10 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // round trip PR-SIDEBAR-126 depends on). Needs tracing ListPassNow/ThreadPlacements/HelpersByParent's actual
     // reads against Swift's :317-325,1064-1076 dependency set before a fix or a firm STOP is written; not
     // resolved in this pass.
+    // UPDATE (parity pass 2026-10-03): UI-SIDEBAR-059's mounted fades are proven through threads instead
+    // (Mounted_rows_fade_in_after_the_delay_leave_on_the_short_fade_and_a_settled_row_fades_in_on_the_lists_panelSlide:
+    // insertion after 0.12 s on easeIn 0.18, removal on easeOut 0.06, a settled row on the list's panelSlide). The
+    // project-removal question above is still unexamined; it bears on UI-SIDEBAR-006's mounted gap transition only.
 
     [Fact]
     [Trait("Req", "UI-SIDEBAR-026")] // App/Views/Sidebar/SidebarView.swift:965-983; UI/Chrome/Popovers.swift:102-157
@@ -10005,6 +10064,104 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             });
         }
         finally { harness.Main.OnMain(() => { WindowOf(card).Close(); WindowOf(stub).Close(); }); }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // windows_path: Reveal in File Explorer (OD-0008 B1) opens File Explorer at the project path (:1179-1182, :1211)
+    public void Reveal_in_File_Explorer_from_either_menu_opens_File_Explorer_at_the_projects_path() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var model = Model(harness, [project], []);
+        var revealed = new List<string>();
+        var previous = ShellWorkspace.RevealInFileExplorer;
+        ShellWorkspace.RevealInFileExplorer = revealed.Add; // the shell seam: no real Explorer window in a test
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                ProjectRowActions(model, project, isActive: true).Single(a => a.Title == "Reveal in File Explorer").Action();
+                ProjectRowContextMenuActions(project, true, false, model).Single(a => a.Title == "Reveal in File Explorer").Action();
+                Assert.Equal([project.Path, project.Path], revealed);
+            });
+        }
+        finally { ShellWorkspace.RevealInFileExplorer = previous; }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-040")] // SidebarView.swift:2384-2389 the count: .fixedSize() and .contentTransition(.identity)
+    public void The_settled_headers_count_keeps_its_full_width_when_squeezed_and_changes_its_digits_in_place() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var harness = new AppModelHarness();
+        var model = harness.MakeModel();
+        harness.Main.OnMain(() =>
+        {
+            var header = new SettledHeader(1234, isFirst: false);
+            var host = new Border { Width = 60, Child = header }; // narrower than chevron + "Settled" + count
+            AppEnvironment.SetAppModel(host, model);
+            var window = new AvaloniaWindow { Content = host, Width = 200, Height = 80 };
+            window.Show();
+            try
+            {
+                window.UpdateLayout();
+                var count = LogicalQuery.SelfAndDescendants<TextBlock>(header).Single(t => t.Text == "1234");
+                var natural = new TextBlock { Text = "1234", FontSize = count.FontSize, FontWeight = count.FontWeight, FontFamily = count.FontFamily, FontFeatures = count.FontFeatures };
+                natural.Measure(Size.Infinity);
+                Assert.Equal(natural.DesiredSize.Width, count.Bounds.Width, 1.0); // .fixedSize(): its own full width (unrounded in the baseline row), never cut or wrapped
+                Assert.Single(count.TextLayout.TextLines);
+                Transaction.WithAnimation(Chrome.PanelSlide, () => header.Update(1235, isFirst: false)); // even inside an animation
+                Assert.Same(count, LogicalQuery.SelfAndDescendants<TextBlock>(header).Single(t => t.Text == "1235")); // :2388 .identity: the same text, its digits swapped at once
+                Assert.Equal(0.8, count.Opacity); // no fade on the digits
+            }
+            finally { window.Close(); }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-058")] // SidebarView.swift:705-708 the search list's project row keeps its ellipsis, and it works
+    public void In_search_results_the_inert_project_rows_ellipsis_still_opens_its_actions() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var presented = Presentation.Presenter.Override(new RecordingPresenter());
+        using var harness = new AppModelHarness();
+        var alpha = NewProject(harness, "Alpha");
+        var fix = NewThread(alpha, "Fix one", 0);
+        var model = Model(harness, [alpha], [fix]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        void Settle(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        try
+        {
+            harness.Main.OnMain(() => { view = Attached(model); window = WindowOf(view); });
+            Settle(1600);
+            harness.Main.OnMain(() => SearchBox(view).Text = "fix");
+            Settle(1600);
+            Control projectRow = null!;
+            harness.Main.OnMain(() =>
+            {
+                projectRow = ListPanel(view).Children[0];
+                Assert.Equal("ProjectRow", projectRow.GetType().Name);
+                window.MouseMove(projectRow.TranslatePoint(new Point(10, 10), window)!.Value);
+            });
+            Settle(300);
+            harness.Main.OnMain(() => PointerClick(LogicalQuery.SelfAndDescendants<Button>(projectRow).Single(b => ToolTip.GetTip(b) as string == "More")));
+            harness.Main.OnMain(() =>
+            {
+                var popup = LogicalQuery.SelfAndDescendants<Popup>(projectRow).Single(p => p.Child is not null);
+                var titles = LogicalQuery.SelfAndDescendants<PopoverItem>(popup.Child!)
+                    .Select(i => AutomationProperties.GetName(LogicalQuery.SelfAndDescendants<Button>(i).Single())).ToList();
+                Assert.Equal("New thread", titles[0]); // :1207 the project's own actions, as outside a search
+                Assert.Contains("Remove project", titles);
+                Assert.DoesNotContain("Start new chats on", titles); // the popover never offers the pair submenu
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
     });
 }
 
