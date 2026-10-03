@@ -131,4 +131,14 @@ public sealed class ComposerLightClockTests
         capped.Advance(5, false, 12, true, 3.69, false, false, 22);
         Assert.Equal(0.05 / 3.69 * 360, capped.BeamAngle, 9);
     }
+
+    [Fact]
+    [Trait("Decision", "ED-251")] // logic.js beamRows(): the Auto values the sliders show (E.autoDur, E.autoBr, E.autoSat, E.autoCb, E.autoBb, the glow scale) whatever is set
+    public void Auto_values_ignore_what_is_set()
+    {
+        var b = BorderBeamOptions.Default.WithType(BeamType.PulseOutside) with { Duration = 9, Brightness = 2, Saturation = 0.3, CoreBlur = 12, BloomBlur = 40, GlowX = 3, GlowY = 3, GlowSize = 1.3 };
+        var auto = BorderBeamResolved.AutoValues(b, false, 820, 52, 22);
+        Assert.Equal((2.3, 1.7, 0.6, 7.8, 19.5, 2.343, 0.371), (auto.Duration, auto.Brightness, auto.Saturation, auto.CoreBlur, auto.BloomBlur, auto.GlowX, auto.GlowY));
+        Assert.Equal(3.692552685682387, BorderBeamResolved.AutoValues(BorderBeamOptions.Default with { Duration = 5 }, true, 820, 52, 22).Duration, 12);
+    }
 }

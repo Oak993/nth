@@ -42,4 +42,16 @@ public sealed record BorderBeamResolved(
             b.Boost, b.Spike,
             b.Duration ?? auto, auto);
     }
+
+    /// <summary>
+    /// The values the playground's sliders show on Auto for these options on a composer w x h (their Auto toggles): the
+    /// duration, the brightness, the saturation, Pulse Outside's core and bloom blurs and glow scale.
+    /// </summary>
+    public static (double Duration, double Brightness, double Saturation, double CoreBlur, double BloomBlur, double GlowX, double GlowY) AutoValues(
+        BorderBeamOptions b, bool appDark, double w, double h, double defaultRadius)
+    {
+        var auto = For(b with { Duration = null, Brightness = null, Saturation = null, CoreBlur = null, BloomBlur = null, GlowX = null, GlowY = null },
+            ComposerLightPhase.Rest, appDark, w, h, defaultRadius);
+        return (auto.Duration, auto.Brightness, auto.Saturation, auto.CoreBlur, auto.BloomBlur, auto.GlowX, auto.GlowY);
+    }
 }
