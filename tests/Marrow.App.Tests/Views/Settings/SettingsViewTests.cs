@@ -183,7 +183,7 @@ public sealed class SettingsViewTests(HeadlessSession headless)
     public void Sign_in_and_reveal_keep_the_source_glass_capsule_wrappers_without_invoking_blocked_actions()
     {
         WithView(() => new SourceControlSettingsPage(), (view, _, _) => Assert.Single(Button(Row(view, "Worktrees"), "Reveal").GetVisualDescendants().OfType<Border>(), border => border.Height == 22 && SwiftGlass.GetEffect(border) is not null)); // Reveal is the accent glass pill itself (ED-NEW-settingsview)
-        WithView(() => new ProviderSettingsSection(ProviderKind.Commandcode, Binding<bool>.Constant(true)), (view, _, _) => { var row = Row(view, "Sign in"); Assert.Equal(16, Nodes<TextBlock>(row).Single(text => text.Text == "Login").Height); Assert.Single(Nodes<Border>(row), border => !border.IsHitTestVisible); }, model => Seed(model, ProviderKind.Commandcode, new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/command-code"), ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }));
+        WithView(() => new ProviderSettingsSection(ProviderKind.Commandcode, Binding<bool>.Constant(true)), (view, _, _) => { var row = Row(view, "Sign in"); var login = Button(row, "Login"); Assert.Equal(16, Nodes<TextBlock>(row).Single(text => text.Text == "Login").Height); Assert.Single(login.GetVisualDescendants().OfType<Border>(), border => border.Height == 22 && SwiftGlass.GetEffect(border) is not null); /* the regular accent glass pill (ED-NEW-settingsview), as Reveal */ }, model => Seed(model, ProviderKind.Commandcode, new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/command-code"), ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() }));
     }
 
     [Fact]

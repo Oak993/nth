@@ -198,9 +198,9 @@ public sealed class SettingsProviderProofsTests(HeadlessSession headless)
     private static Button GlassLink(ChromeRow row, string label)
     {
         var button = Assert.Single(Nodes<Button>(row)); var text = Assert.Single(Nodes<TextBlock>(button)); Assert.Equal(label, text.Text); Assert.Equal(16, text.Height); // :724,743,754
-        var glass = Assert.Single(Nodes<Control>(row), x => SwiftGlass.GetEffect(x) is not null); var effect = SwiftGlass.GetEffect(glass)!;
-        Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style); Assert.True(effect.IsInteractive); Assert.Equal(0.3, effect.TintOpacity);
-        Assert.Equal(button.FontFamily, text.FontFamily); Assert.Equal(button.FontSize, text.FontSize); // Chrome.swift:126-131 / ED-180
+        var glass = Assert.Single(button.GetVisualDescendants().OfType<Control>(), x => SwiftGlass.GetEffect(x) is not null); var effect = SwiftGlass.GetEffect(glass)!; // the regular accent glass pill (ED-NEW-settingsview), its surface in the button's template
+        Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind); Assert.Equal(RoundedCornerStyle.Continuous, effect.Shape.Style); Assert.True(effect.IsInteractive); Assert.Equal(Chrome.Accent, effect.TintColor); Assert.Equal(1, effect.TintOpacity); Assert.Equal(SwiftGlass.GlassButtonRegularHeight, glass.Bounds.Height, 3);
+        Assert.Equal(SwiftGlass.GlassButtonRegularFontSize, text.FontSize); Assert.Equal(Colors.White, Assert.IsAssignableFrom<ISolidColorBrush>(text.Foreground).Color); // the label is the pill's white 13 point
         return button;
     }
     // Tests-first reflection: minimal endpoint boundary, default identity; HTTP and parsing stay production.

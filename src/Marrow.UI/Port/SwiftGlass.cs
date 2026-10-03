@@ -153,6 +153,10 @@ public static class SwiftGlass
             }.Capsule(RoundedCornerStyle.Continuous);
             surface.Background = Chrome.Chrome.Accent.Brush(surface);
             SetEffect(surface, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Tint(Chrome.Chrome.Accent, 1).Interactive());
+            // ENGINEERING DECISION (ED-NEW-settingsview, UNVERIFIED: no reference frame shows a disabled glass button): a disabled one (.disabled, SettingsView.swift:1134)
+            // is dimmed to 40 %, the dim every port control takes when disabled, easing over Chrome.hover (OD-0076).
+            var dim = new AnimatedScalar(surface, source.IsEffectivelyEnabled ? 1 : 0.4, value => surface.Opacity = value);
+            source.PropertyChanged += (_, e) => { if (e.Property == Avalonia.Input.InputElement.IsEffectivelyEnabledProperty) dim.Set(source.IsEffectivelyEnabled ? 1 : 0.4, Chrome.Chrome.Hover); };
             return surface;
         });
     }

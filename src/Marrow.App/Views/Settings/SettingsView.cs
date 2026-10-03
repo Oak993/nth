@@ -761,7 +761,7 @@ internal sealed class ProviderSettingsSection : Decorator
                 if (provider.IsAPIKeyBased && !status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Get a key", () => Link(provider.GetKeyLinkText, provider.InstallURL), provider.DisplayName + " needs an API key. Nothing to install.")); } // :719-727
                 if (provider.IsAPIKeyBased) return;
                 if (!status.IsInstalled) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Install", () => Link("Get " + provider.DisplayName, provider.InstallURL), provider.DisplayName + " was not found on your PATH.")); } // :738-745
-                else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => PlainControls.Button(new TextBlock { Text = "Login", Height = Chrome.RowButtonLabelHeight }, () => Workspace.OpenTerminal(provider.LoginCommand)).ChromeGlassCapsule(), "Click here to login again.")); } // :638-641,747-756
+                else if (status.ProviderStatusAuth is not ProviderStatus.Auth.SignedIn && !status.IsChecking) { installSlot.Children.Add(new ChromeRowDivider()); installSlot.Children.Add(new ChromeRow("Sign in", () => SettingsGlassButtons.Text("Login", () => Workspace.OpenTerminal(provider.LoginCommand), labelHeight: Chrome.RowButtonLabelHeight), "Click here to login again.")); } // :638-641,747-756
             });
         });
     }
@@ -780,7 +780,7 @@ internal sealed class ProviderSettingsSection : Decorator
     }
 
     // :722-726,741-745
-    private static Control Link(string title, SwiftURL url) => PlainControls.Button(new TextBlock { Text = title, Height = Chrome.RowButtonLabelHeight }, () => Marrow.Services.Port.Workspace.Open.Current(url)).ChromeGlassCapsule();
+    private static Control Link(string title, SwiftURL url) => SettingsGlassButtons.Text(title, () => Marrow.Services.Port.Workspace.Open.Current(url), labelHeight: Chrome.RowButtonLabelHeight); // .buttonStyle(.glass)
 }
 
 /// <summary>:826-872 <c>private struct SourceControlSettingsPage: View</c>.</summary>
@@ -829,9 +829,10 @@ internal sealed class SourceControlSettingsPage : Decorator
 /// <c>.buttonStyle(.glass).controlSize(.small)</c> (Show, :986): an accent capsule with a white label (SwiftGlass.StyleAccentGlassButton).</summary>
 internal static class SettingsGlassButtons
 {
-    public static Button Text(string title, Action action, bool small = false)
+    public static Button Text(string title, Action action, bool small = false, double? labelHeight = null)
     {
-        var button = PlainControls.Button(new TextBlock { Text = title }, action);
+        var label = new TextBlock { Text = title }; if (labelHeight is { } height) label.Height = height; // :727,745,753 .frame(height: Chrome.rowButtonLabelHeight)
+        var button = PlainControls.Button(label, action);
         SwiftGlass.StyleAccentGlassButton(button, small);
         return button;
     }
@@ -988,9 +989,11 @@ internal sealed class LicensesRow : Decorator
     private static string Text(string of) => texts.Value[of]; // :1055
     private static string Read(string resource)
     {
-        try { return File.ReadAllText(Path.Combine(AppContext.BaseDirectory, resource == "LICENSE" ? resource : resource + ".md")); }
+        // :1052 `try? String(contentsOf: url, encoding: .utf8)`: a file that is not valid UTF-8 throws there and takes the sentence, as a missing one does.
+        try { return File.ReadAllText(Path.Combine(AppContext.BaseDirectory, resource == "LICENSE" ? resource : resource + ".md"), new System.Text.UTF8Encoding(false, throwOnInvalidBytes: true)); }
         catch (IOException) { return $"The {resource} file is missing from this copy of the app."; }
         catch (UnauthorizedAccessException) { return $"The {resource} file is missing from this copy of the app."; }
+        catch (System.Text.DecoderFallbackException) { return $"The {resource} file is missing from this copy of the app."; }
     }
 }
 
@@ -1027,7 +1030,7 @@ internal sealed class ProjectMarksRow : Decorator
     public ProjectMarksRow()
     {
         var presented = new MarksState();
-        var button = PlainControls.Button(new TextBlock { Text = "Edit" }, () => presented.IsPresented = true); // :1131-1133
+        var button = SettingsGlassButtons.Text("Edit", () => presented.IsPresented = true, small: true); // :1131-1133 .buttonStyle(.glass).controlSize(.small)
         ToolTip.SetTip(button, "Choose a mark for each project"); // :1135
         this.Track(() => AppEnvironment.GetAppModel(this).Projects.Count, count => button.IsEnabled = count > 0); // :1134
         var popup = PlainControls.Popover(button, new Binding<bool>(() => presented.IsPresented, value => presented.IsPresented = value), () =>
@@ -1042,9 +1045,8 @@ internal sealed class ProjectMarksRow : Decorator
             }
             return list;
         });
-        // :1132 .buttonStyle(.glass): DEFECT FIX (UI-SETTINGS-016), the Edit button had no glass capsule at all; the same recipe as Reveal and the other
-        // .glass buttons of this file. The .controlSize(.small) padding stays an OS-defined metric no record gives (UNVERIFIED, OD-0001).
-        Child = new Panel { Children = { button.ChromeGlassCapsule(), popup } }; // :1136
+        // :1132 .buttonStyle(.glass).controlSize(.small): the accent glass pill the Show buttons are (S 41.4, the Marks Edit: about 40 x 20), not a neutral capsule.
+        Child = new Panel { Children = { button, popup } }; // :1136
     }
 
     // :1128

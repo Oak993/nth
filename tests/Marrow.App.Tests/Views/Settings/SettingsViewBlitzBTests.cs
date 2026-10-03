@@ -13,6 +13,7 @@ using Marrow.App.Views.Settings;
 using Marrow.Core.Models;
 using Marrow.Core.Port;
 using Marrow.Core.Support;
+using Marrow.Services.Providers;
 using Marrow.UI.Chrome;
 using Marrow.UI.Port;
 
@@ -286,6 +287,97 @@ public sealed class SettingsViewBlitzBTests(HeadlessSession headless) : Settings
             Click(w, toggleCodex); Assert.Equal(new[] { "claude", "claude", "grok" }, model.Settings.DisabledProviders); // switching on: every "codex" entry gone, the others kept
             Click(w, toggleCodex); Assert.Equal(new[] { "claude", "claude", "grok", "codex" }, model.Settings.DisabledProviders); // switching off: one appended
         }, before: h => h.Defaults.Set("disabledProviders", new List<object> { "claude", "codex", "claude", "codex", "grok" }));
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-060, UI-UPDATE-031 and UI-UPDATE-032 (the popover's contents, its last place in the Credits card, its dismissal, the unreadable-file sentence); the geometry, selection and shipped texts are asserted by Licences_are_read_once_and_the_three_markdown_blocks_use_fixed_popover_geometry and The_three_licence_documents_ship_beside_the_executable_upstream_first_and_the_popover_shows_them
+    [Trait("Req", "UI-SETTINGS-060")] // SettingsView.swift:1007-1057
+    [Trait("Req", "UI-UPDATE-031")] // SettingsView.swift:1018-1023
+    [Trait("Req", "UI-UPDATE-032")] // SettingsView.swift:1012-1056
+    public void Licences_row_closes_the_credits_card_and_its_popover_titles_bodies_and_dismissal_are_the_source_s()
+    {
+        With(() => new AboutSettingsPage(), (view, model, h, w) =>
+        {
+            var row = Assert.Single(Nodes<LicensesRow>(view)); var chromeRow = Assert.Single(Nodes<ChromeRow>(row));
+            CheckRow(chromeRow, "Licenses", "AGPL-3.0 with attribution terms, and the notices for what the app builds on."); // title 13, detail 11, the exact words
+            var credits = Assert.IsType<StackPanel>(row.Parent); Assert.Same(row, credits.Children[^1]); // the last entry of the Credits card
+            Assert.IsType<ChromeRowDivider>(credits.Children[^2]); Assert.Equal("Welcome tour", Text(Assert.IsType<ChromeRow>(credits.Children[^3])).First()); Assert.Equal(9, credits.Children.Count); // Droppy's row, the three attribution rows and the licences row, with their dividers
+            var show = Assert.Single(Nodes<Button>(row)); Assert.True(show.IsEnabled); Assert.Equal("Show", Text(show).Single()); // always enabled
+            var popup = Assert.Single(Nodes<Popup>(row)); Assert.False(popup.IsOpen);
+            Click(w, show); Assert.True(popup.IsOpen); Assert.Equal(PlacementMode.Bottom, popup.Placement); Assert.Same(show, popup.PlacementTarget); // arrowEdge .bottom
+            var content = PopoverHost.Content(popup)!; var scroll = Assert.Single(Nodes<ScrollViewer>(content), s => s.Width == 480); Assert.Equal(440, scroll.Height);
+            var blocks = Assert.Single(Nodes<StackPanel>(content), x => x.Spacing == 18 && x.Children.Count == 3);
+            foreach (var (block, title) in blocks.Children.Zip(new[] { "Marrow", "Third-party notices", "Trademarks" }))
+            {
+                var inner = Assert.IsType<StackPanel>(block); Assert.Equal(8, inner.Spacing); var heading = Assert.IsType<TextBlock>(inner.Children[0]); Assert.Equal(title, heading.Text); Font(heading, 13, FontWeight.SemiBold);
+                var markdown = Assert.IsType<Marrow.UI.Markdown.MarkdownView>(inner.Children[1]); Assert.Equal(12, Marrow.UI.Markdown.MarkdownView.GetMarkdownPointSize(markdown)); Assert.True(Marrow.UI.Markdown.MarkdownView.GetMarkdownBlockSelection(markdown));
+                // the bodies take Chrome.secondaryText: the markdown's inherited text colour and the colour the prose actually draws in
+                Ink(markdown, Avalonia.Controls.Documents.TextElement.GetForeground(markdown), Chrome.SecondaryText);
+                var prose = Nodes<TextBlock>(markdown).Where(t => !string.IsNullOrWhiteSpace(t.Text) && t.Inlines is not { Count: > 0 }).ToArray();
+                if (prose.Length > 0) Assert.Contains(prose, t => t.Foreground is ISolidColorBrush brush && brush.Color == Chrome.SecondaryText.Resolve(t.ActualThemeVariant));
+            }
+            // click outside: dismisses (light dismiss on a real popup)
+            w.MouseMove(new Point(3, 3)); w.MouseDown(new Point(3, 3), MouseButton.Left); w.MouseUp(new Point(3, 3), MouseButton.Left); Drain(w); Assert.False(popup.IsOpen);
+        }, nativePopup: true);
+    }
+
+    [Fact]
+    [Trait("Req", "UI-SETTINGS-060")] // SettingsView.swift:1046-1056: `try? String(contentsOf: url, encoding: .utf8)` takes the sentence for a file it cannot read
+    [Trait("Rule", "R-TEST-4")] // the unreadable-file clause of UI-SETTINGS-060 and UI-UPDATE-032; the other clauses are asserted by the tests above
+    public void A_licence_file_that_is_not_valid_UTF_8_shows_the_sentence_and_the_texts_are_read_once()
+    {
+        var bad = System.IO.Path.Combine(AppContext.BaseDirectory, "blitz-bad-utf8.md");
+        System.IO.File.WriteAllBytes(bad, [0x23, 0x20, 0x52, 0xFF, 0xFE, 0x20, 0x62, 0x61, 0x64]);
+        try
+        {
+            var read = typeof(LicensesRow).GetMethod("Read", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+            Assert.Equal("The blitz-bad-utf8 file is missing from this copy of the app.", read.Invoke(null, ["blitz-bad-utf8"]));
+            var good = System.IO.Path.Combine(AppContext.BaseDirectory, "blitz-good-utf8.md"); System.IO.File.WriteAllText(good, "# Fine é中");
+            try { Assert.Equal("# Fine é中", read.Invoke(null, ["blitz-good-utf8"])); } finally { System.IO.File.Delete(good); }
+        }
+        finally { System.IO.File.Delete(bad); }
+        // read once: the cache holds one string per document and answers every later call with it
+        var text = typeof(LicensesRow).GetMethod("Text", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!;
+        foreach (var resource in new[] { "LICENSE", "THIRD_PARTY_NOTICES", "TRADEMARK" }) Assert.Same(text.Invoke(null, [resource]), text.Invoke(null, [resource]));
+    }
+
+    private static (Border Surface, TextBlock Label, GlassEffect Effect) Pill(Button button)
+    {
+        var surface = Assert.Single(button.GetVisualDescendants().OfType<Border>(), border => SwiftGlass.GetEffect(border) is not null);
+        return (surface, Assert.Single(button.GetVisualDescendants().OfType<TextBlock>()), SwiftGlass.GetEffect(surface)!);
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-016: the pill's look (the small accent glass of ED-NEW-settingsview) and its dim; no reference frame shows a disabled glass button (UNVERIFIED dim), and the hover lift and press growth of the catalogue are not drawn
+    [Trait("Req", "UI-SETTINGS-016")] // SettingsView.swift:1125-1155
+    public void Marks_edit_is_the_small_accent_glass_pill_with_a_white_11_point_label_dimmed_while_it_is_disabled()
+    {
+        With(() => new GeneralSettingsPage(), (view, model, h, w) =>
+        {
+            var marks = Assert.Single(Nodes<ProjectMarksRow>(view)); var edit = Assert.Single(Nodes<Button>(marks)); var (surface, label, effect) = Pill(edit);
+            Assert.Equal(20, surface.Bounds.Height, 3); Assert.Equal(SwiftGlass.GlassButtonSmallHeight, surface.Height); Assert.Equal(new Thickness(10.5, 0), surface.Padding); // .controlSize(.small): 20 high, 10.5 either side (S 41.4: about 40 x 20)
+            Assert.Equal("Edit", label.Text); Assert.Equal(11, label.FontSize); Assert.Equal(Colors.White, Assert.IsAssignableFrom<ISolidColorBrush>(label.Foreground).Color); Assert.InRange(surface.Bounds.Width - (label.Bounds.Width + 21), -1.0, 1.0);
+            Assert.Equal(Chrome.Accent, effect.TintColor); Assert.Equal(1, effect.TintOpacity); Assert.True(effect.IsInteractive); Assert.Equal(GlassShapeKind.Capsule, effect.Shape.Kind);
+            Assert.Equal(Chrome.Accent.Resolve(surface.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(surface.Background).Color); // an accent capsule, not the neutral one
+            Assert.False(edit.IsEnabled); Tick(h, 200); Assert.Equal(0.4, surface.Opacity); // no projects: disabled, and it reads as disabled
+            model.AddProject(SwiftURL.FileURLWithPath("/" + h.NewFolder("One").Replace('\\', '/'))); Drain(w); Assert.True(edit.IsEnabled); Tick(h, 50); Assert.InRange(surface.Opacity, 0.401, 0.999); Tick(h, 100); Assert.Equal(1, surface.Opacity);
+        });
+    }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // UI-SETTINGS-051: the pills' look and the link texts; the gates, the 16 point label clamp and the browser and terminal callbacks are asserted by Every_CLI_install_and_login_row_has_literal_text_glass_gates_and_real_terminal_callback and Provider_login_calls_the_workspace_boundary_with_the_literal_command; the hover lift and press growth of the catalogue are not drawn
+    [Trait("Req", "UI-SETTINGS-051")] // SettingsView.swift:719-757; Components.swift:117-133; OD-0072
+    public void Install_get_key_and_login_pills_are_the_regular_accent_glass_pill_with_the_texts_of_the_source()
+    {
+        foreach (var (provider, rowTitle, text) in new[] { (ProviderKind.Codex, "Install", "Get Codex"), (ProviderKind.Meta, "Get a key", "Get a Meta key"), (ProviderKind.OpenRouter, "Get a key", "Get an OpenRouter key"), (ProviderKind.Commandcode, "Sign in", "Login") })
+            With(() => new ProviderSettingsSection(provider, Binding<bool>.Constant(true)), (view, model, h, w) =>
+            {
+                var row = Row(view, rowTitle); var button = Assert.Single(Nodes<Button>(row)); var (surface, label, effect) = Pill(button);
+                Assert.Equal(text, label.Text); Assert.Equal(Chrome.RowButtonLabelHeight, label.Height); // .frame(height: Chrome.rowButtonLabelHeight)
+                Assert.Equal(22, surface.Bounds.Height, 3); Assert.Equal(new Thickness(13, 0), surface.Padding); Assert.Equal(13, label.FontSize); Assert.Equal(Colors.White, Assert.IsAssignableFrom<ISolidColorBrush>(label.Foreground).Color); // .buttonStyle(.glass): 22 high, 13 either side, white 13 point (S 166.5-180.5 and S 199.5)
+                Assert.InRange(surface.Bounds.Width - (label.Bounds.Width + 26), -1.0, 1.0); Assert.Equal(Chrome.Accent, effect.TintColor); Assert.Equal(1, effect.TintOpacity); Assert.True(effect.IsInteractive);
+                Assert.True(button.IsEffectivelyEnabled); Assert.Equal(1, surface.Opacity);
+            }, model => Seed(model, provider, provider == ProviderKind.Commandcode ? new ProviderStatus { Executable = SwiftURL.FileURLWithPath("/fixture/command-code"), ProviderStatusAuth = new ProviderStatus.Auth.SignedOut() } : new ProviderStatus()));
     }
 
     private static Control Opened(Popup popup) { Open(popup); return PopoverHost.Content(popup)!; }

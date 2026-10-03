@@ -424,10 +424,8 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         var list = Opened(popup); Assert.Equal(400, list.Width); var rows = Nodes<ChromeRow>(list); Assert.Equal(model.Projects.Select(p => p.Name), rows.Select(r => Text(r).First())); Assert.Equal(model.Projects.Select(p => p.Path), rows.Select(r => Text(r)[1])); Assert.Single(Nodes<ChromeRowDivider>(list)); Assert.Equal(2, Nodes<ProjectIconButton>(list).Length);
     });
 
-    // STOP opencode-proofs-settings-core #3
-    // UI-SETTINGS-016: Swift SettingsView.swift:1130-1154 .controlSize(.small) glass Edit has OS-defined font,
-    // padding and material. No native small glass-button parity mapping exists in ED/PA. Await that shared control;
-    // tests above prove the project rows/anchor but intentionally do not invent a point size for the native font.
+    // Resolved STOP opencode-proofs-settings-core #3 (UI-SETTINGS-016): the small .glass Edit is the accent glass pill measured in the reference runtime
+    // (ED-NEW-settingsview (2): 20 high, white 11 point label, 10.5 either side); SettingsViewBlitzBTests.Marks_edit_is_the_small_accent_glass_pill_... asserts it.
 
     // Resolved STOP opencode-proofs-settings-core #5 (UI-SETTINGS-003, UI-SETTINGS-012):
     // UI-SETTINGS-003's "system focus ring is left on" is answered by the reference runtime: the main sidebar's "Search threads" field is the same
@@ -457,10 +455,8 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         Click(Button(menu, "Nord")); Sync(); Assert.Equal(AppTheme.Nord, model.Settings.Theme); Assert.Contains("Dark · Frost", Text(Row(view, "Theme")));
     });
 
-    // STOP opencode-proofs-settings-core #4
-    // UI-SETTINGS-018: SettingsView.swift:535-537 controlSize(.small), inherited root Chrome.accent tint.
-    // This bare Avalonia Slider has no production template, so no thumb/track exists to receive real pointer drag
-    // in the headless host or paint its accent. Await shared small-slider template/style (not invented OS metrics).
+    // Resolved STOP opencode-proofs-settings-core #4 (UI-SETTINGS-018): the Slider has a production template (PortControlThemes.SliderTheme: a 4 pt track, the
+    // 18 x 14 knob, the accent fill); the drag is proved with a real pointer by SettingsViewFinishAppearanceTests and SettingsViewBlitzBTests.
     [Fact]
     [Trait("Rule", "R-TEST-2")] // Partial proof only; see precise STOP.
     public void Transparency_pins_source_row_glyphs_threshold_reset_geometry_and_live_value_binding() => WithView(() => new AppearanceSettingsPage(), (view, model, h) =>
