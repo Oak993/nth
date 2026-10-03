@@ -150,6 +150,69 @@ public sealed class ChatViewParityUsageTests(HeadlessSession headless)
         });
     }
 
+    // PR-USAGE-074 (ChatView.swift:541-545,574-577): the panel's frame, surface included, glides to the content height; a surface that is swapped in
+    // while it glides (the thread's provider changed: another conversation inside the same placed panel) joins the frame where it is, not at its end.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:541-545,574-577; ED-NEW-parity-chatview (4)
+    public void A_usage_panel_replaced_in_the_middle_of_its_glide_takes_the_size_the_glide_has_reached()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            h.Main.Loop.Run(() => Marrow.Core.Support.LoginEnvironment.Load(), AppModelHarness.Bound);
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            using var cursor = DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+            var frames = new ManualFrameSource();
+            using var clock = FrameClock.Source.Override(frames);
+            h.WriteLibrary([new Project("Project", h.NewFolder("project"))], []);
+            var model = h.MakeModel();
+            h.PrepareBootstrap(model);
+            AvaloniaWindow window = null!;
+            ChatView view = null!;
+            Guid threadID = default;
+            h.Main.OnMain(() =>
+            {
+                model.Settings.HydraEnabled = false;
+                model.Settings.UsagePanelDock = PanelDockCorner.TopLeading;
+                model.Settings.UsagePanelHeight = 500;
+                model.Settings.ShowsUsagePanel = true;
+                threadID = model.NewThread(model.Projects[0])!.Id;
+                view = new ChatView(model.Runtime(threadID));
+                window = new AvaloniaWindow { Content = view, Width = 1400, Height = 900 };
+                AppEnvironment.SetAppModel(window, model);
+                AppEnvironment.SetWindowLiveResize(window, new WindowLiveResize(window));
+                ChatHeadlessFixtures.Track(window);
+                window.Show();
+            });
+            try
+            {
+                Drain(h, window);
+                h.Main.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.Zero); Drain(h, window);
+                var panel = Assert.Single(LogicalQuery.SelfAndDescendants<UsageFloatingPanel>(view));
+                var stored = panel.Bounds.Height;
+                Assert.Equal(500, stored, 1);
+                h.Main.OnMain(() =>
+                {
+                    var resizer = (PanelResize)typeof(ChatView).GetMethod("CurrentResizer", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!
+                        .Invoke(view, [new FloatingPanelID.Usage()])!;
+                    resizer.OnReset(); // the grip's double-click.
+                });
+                Drain(h, window);
+                h.Main.AdvanceMilliseconds(90); frames.Advance(TimeSpan.Zero); Drain(h, window);
+                var mid = panel.Bounds.Height;
+                Assert.InRange(mid, 150, stored - 20); // on its way down.
+                h.Main.OnMain(() => model.UpdateThread(threadID, thread => thread with { Provider = thread.Provider == ProviderKind.Codex ? ProviderKind.Claude : ProviderKind.Codex }));
+                Drain(h, window);
+                var replaced = Assert.Single(LogicalQuery.SelfAndDescendants<UsageFloatingPanel>(view));
+                Assert.NotSame(panel, replaced); // another provider's panel in the same placed panel...
+                Assert.Equal(mid, replaced.Bounds.Height, 1); // ...takes the frame where the glide is.
+                h.Main.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.Zero); Drain(h, window);
+                Assert.True(replaced.Bounds.Height < stored - 50);
+            }
+            finally { h.Main.OnMain(() => { window.Close(); model.Terminals.TerminateAll(); }); Drain(h, window); }
+        });
+    }
+
     [Fact]
     [Trait("Req", "PR-USAGE-070")] // AppSettings.swift:175,787 the corner is stored for the app, unreadable values read as bottom leading
     public void The_usage_corner_survives_a_restart_and_an_unreadable_value_falls_back_to_bottom_leading()
