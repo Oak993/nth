@@ -87,6 +87,22 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
         Assert.Empty(c.Find<DotFieldSweep>());
     });
 
+    // UI-HYDRA-026 colour clause: the wave is tinted with the FINISHING head's own persona (Hydra.swift:232-233 the table), not the roster's first
+    // (the fallback of :75 `?? HydraRoster.persona(at: 0)`): head index 1 is Walter, 3D8BFF, where index 0 is Hank, FF8A3D.
+    [Fact]
+    [Trait("Req", "UI-HYDRA-026")] // App/Views/Chat/HydraPanel.swift:74-76 DotFieldSweep(tint: NSColor((head.hydra?.persona ?? HydraRoster.persona(at: 0)).color))
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-HYDRA-026: the colour clause; the geometry, the 2.0 s, the fade and the replay are asserted by the tests carrying it above
+    public void The_finish_wave_takes_the_finishing_heads_own_persona_colour() => Run(c =>
+    {
+        c.Select(c.Second); c.Tick(1); c.Tick(Chrome.PanelSlide.Duration);
+        c.Status(c.Second, HydraHeadInfo.Status.Completed);
+        var sweep = Assert.Single(c.Find<DotFieldSweep>());
+        var field = Assert.IsType<DotFieldControl>(sweep.Child);
+        field.Measure(new Size(40, 24)); field.Arrange(new Rect(0, 0, 40, 24));
+        var firstDot = Assert.IsType<Ellipse>(Assert.IsType<Canvas>(field.Layer).Children[0]);
+        Assert.Equal(Color.FromRgb(0x3D, 0x8B, 0xFF), Assert.IsAssignableFrom<ISolidColorBrush>(firstDot.Fill).Color); // Walter, not Hank
+    });
+
     [Fact]
     [Trait("Req", "PR-HYDRA-168")] // App/Views/Chat/HydraPanel.swift:50-68,79-82
     public void Selection_reacts_and_crossfades_but_another_heads_finish_does_not_create_a_hold() => Run(c =>
@@ -180,7 +196,8 @@ public sealed class HydraPanelFollowupTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-HYDRA-019")] // App/Views/Chat/HydraPanel.swift:278-282
+    [Trait("Req", "PR-HYDRA-174")] // App/Views/Chat/HydraPanel.swift:278-282 (this test was tagged UI-HYDRA-019, the stage capsule; :278-282 is the Clear finished heads item)
+    [Trait("Rule", "R-TEST-4")] // partial proof of PR-HYDRA-174: the clear action's animation
     public void Clear_finished_heads_performs_its_real_model_mutation_inside_panel_slide() => Run(c =>
     {
         c.Status(c.First,HydraHeadInfo.Status.Completed);

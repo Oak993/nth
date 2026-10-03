@@ -214,6 +214,9 @@ public sealed class SubagentPanelSweepTests(HeadlessSession headless)
                 Dispatcher.UIThread.RunJobs();
                 Assert.Equal(0, closed);
                 Assert.True(Assert.Single(presenter.Calls).Presented);
+                var confirmation = presenter.Calls.Single().Popup; // :323 arrowEdge: .bottom: the confirmation opens below the close mark
+                Assert.Equal(Avalonia.Controls.PlacementMode.Bottom, confirmation.Placement);
+                Assert.Same(close, confirmation.PlacementTarget);
                 typeof(ThreadRuntime).GetProperty(nameof(ThreadRuntime.Phase))!.SetValue(runtime, RuntimePhase.Idle);
                 Dispatcher.UIThread.RunJobs();
                 Descendants<Button>(close).Single().RaiseEvent(new RoutedEventArgs(Button.ClickEvent));

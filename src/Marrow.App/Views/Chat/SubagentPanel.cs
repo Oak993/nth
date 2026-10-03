@@ -421,7 +421,8 @@ public sealed class SubagentPanel : Decorator
                 var confirmation = new ClosePanelPopover(thread.Title, close);
                 Popovers.SetClosePopover(confirmation, () => closeState.IsConfirmingClose = false);
                 return confirmation;
-            });
+            },
+            PlacementMode.Bottom); // :323 .popover(isPresented: $isConfirmingClose, arrowEdge: .bottom)
         Grid.SetColumn(closePopover, 2);
         strip.Children.Add(closePopover);
 

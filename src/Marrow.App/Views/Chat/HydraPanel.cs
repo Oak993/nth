@@ -259,15 +259,14 @@ public sealed class HydraPanel : Decorator
             // :150-152 The head's own clock, so the strip itself is still drawn once.
             capsule.Children.Add(new HydraElapsedTime(info.StartedAt, info.FinishedAt, info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running));
 
-            // :154-158 horizontal 12, content height 28, then vertical 2, fixed size, chromeGlassCapsule.
+            // :154-158 horizontal 12, content height 28, then vertical 2, fixed size, chromeGlassCapsule (the same surface the
+            // heads button wears: a continuous capsule of glass, flat on a glass panel, a shade brighter under the pointer).
             var capsuleBorder = new Border
             {
                 Child = capsule,
                 Padding = new Thickness(Chrome.CapsuleHorizontalPadding, Chrome.CapsuleVerticalPadding),
                 Height = Chrome.CapsuleHeight,
-                CornerRadius = new CornerRadius(Chrome.CapsuleHeight / 2),
-                Background = Chrome.GlassTint.Opacity(0.22).Brush(this)
-            };
+            }.ChromeGlassCapsule();
 
             // :159-163 The name is a label, not a control, so it drags the panel too: it is where the hand
             // goes when there is little room beside it.
