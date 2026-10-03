@@ -53,11 +53,17 @@ public sealed class ComposerWorkingDotsAccentTests(HeadlessSession headless)
             Render(window);
             var field = dots.GetVisualDescendants().OfType<DotFieldControl>().Single();
             Assert.Equal(Color.Parse("#E298C6"), FrameColor(field)); // Orchid, dark: the pick, not the Windows accent
+            // A later pick eases there over 0.32 s on the render server (SPEC 6.4, ED-253 round 4: ComposerWorkingDotsEaseTests);
+            // the colour it comes to rest in.
             AccentChoice.Current = "teal";
+            Render(window);
+            runtime.Advance(TimeSpan.FromSeconds(0.4));
             Render(window);
             Assert.Equal(AccentPalette.Pick("teal")!.Resolve(ThemeVariant.Dark), FrameColor(field));
             ThemeManager.Current = AppTheme.Dracula;
             AccentChoice.Current = "windows"; // the theme's own
+            Render(window);
+            runtime.Advance(TimeSpan.FromSeconds(0.4));
             Render(window);
             Assert.Equal(Color.Parse("#BD93F9"), FrameColor(field));
         }
