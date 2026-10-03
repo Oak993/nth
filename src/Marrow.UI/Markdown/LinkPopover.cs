@@ -72,7 +72,7 @@ public sealed class LinkPopover
         {
             Close(); // :31
             mergeTarget?.Merge(r); // :32
-        });
+        }, of);
         Popovers.SetClosePopoverBox(content, closeBox); // :34 .environment(\.closePopoverBox, closeBox)
         // :35 NSHostingView(rootView: content).intrinsicContentSize: the size of a hosted view, so measured in a window, where
         // the rows' button templates are in effect (detached, the rows measured 12 pt tall instead of 64).
@@ -155,9 +155,14 @@ internal sealed class LinkPopoverContent : Decorator
 
     private readonly ViewState state = new();
 
+    // The view the popover opened from: the real presenter hosts this content in a popup's own root, so the pasteboard is taken from
+    // the window the link is in (the port's other menus do the same, TimelineRows.CopyMessageText).
+    private readonly Control? anchor;
+
     // :69-71 let url, let request, let merge; :75-107 body
-    public LinkPopoverContent(SwiftURL url, MergeRequestLink? request, Action<MergeRequestLink> merge)
+    public LinkPopoverContent(SwiftURL url, MergeRequestLink? request, Action<MergeRequestLink> merge, Control? anchor = null)
     {
+        this.anchor = anchor;
         Child = Build(url, request, merge, state.Favicon);
         this.Track(() => state.Favicon, favicon => Child = Build(url, request, merge, favicon)); // :73, :81 re-render on favicon
 
@@ -208,9 +213,18 @@ internal sealed class LinkPopoverContent : Decorator
     // :92-93 NSPasteboard.general.clearContents(); NSPasteboard.general.setString(url.absoluteString, forType: .string).
     // NSPasteboard has no Avalonia port type; TopLevel.Clipboard is the platform's own equivalent (precedent:
     // MarkdownView.cs's CopyButton, ComposerTextView.cs).
-    private void CopyLink(SwiftURL url)
+    private async void CopyLink(SwiftURL url)
     {
-        var clipboard = TopLevel.GetTopLevel(this)?.Clipboard;
-        _ = clipboard?.SetTextAsync(url.AbsoluteString);
+        var clipboard = (anchor is null ? null : TopLevel.GetTopLevel(anchor)?.Clipboard) ?? TopLevel.GetTopLevel(this)?.Clipboard;
+        if (clipboard is null) return;
+        try
+        {
+            await clipboard.ClearAsync(); // :92 clearContents()
+            await clipboard.SetTextAsync(url.AbsoluteString); // :93 setString(url.absoluteString, forType: .string)
+        }
+        catch (Exception)
+        {
+            // a clipboard another process holds open: nothing to copy to, as a pasteboard write that fails is silent
+        }
     }
 }
