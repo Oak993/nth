@@ -38,7 +38,10 @@ public sealed class ThreadTimelineMentionsTests(HeadlessSession headless)
 
     private static (LinkTextView View, ParagraphTextPresenter Block) Prose(TimelineMount mount)
     {
-        var view = LogicalQuery.SelfAndDescendants<LinkTextView>(mount.View).Single(); return (view, Assert.IsType<ParagraphTextPresenter>(view.Child));
+        var views = LogicalQuery.SelfAndDescendants<LinkTextView>(mount.View).ToList();
+        Assert.True(views.Count == 1, $"{views.Count} link text views; blocks [{string.Join(", ", mount.Blocks().Select(block => block.Id + ":" + block.Block.GetType().Name))}]; "
+            + string.Join(", ", LogicalQuery.SelfAndDescendants<Control>(mount.View).GroupBy(control => control.GetType().Name).Select(group => group.Key + "x" + group.Count())));
+        var view = views[0]; return (view, Assert.IsType<ParagraphTextPresenter>(view.Child));
     }
 
     // One object-replacement character per drawn glyph.

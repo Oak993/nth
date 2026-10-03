@@ -138,9 +138,27 @@ internal static class ThreadTimelineRig
             using var frameScope = FrameClock.Source.Override(frames);
             var (store, model, runtime) = TimelineRowsFinTeam.Make(heads);
             using var owned = store;
+            AwaitHistory(store, runtime);
             using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
             Mount(store, model, runtime, frames, check, width, height, true, height);
         });
+
+    /// <summary>
+    /// A runtime made on a stored thread reads its history from disk on a pool thread and takes it in through the main loop, which the
+    /// harness's manual time cannot hurry: wait for that in real time, so a machine under load never leaves the loading mark (ThreadTimeline.swift:134-135)
+    /// where the rows of a test belong.
+    /// </summary>
+    internal static void AwaitHistory(AppModelHarness store, ThreadRuntime runtime)
+    {
+        var waited = System.Diagnostics.Stopwatch.StartNew();
+        while (runtime.IsLoadingHistory)
+        {
+            Assert.True(waited.Elapsed < AppModelHarness.Bound, "the thread's history was not taken in");
+            store.Main.RunUntilIdle();
+            Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+            if (runtime.IsLoadingHistory) System.Threading.Thread.Sleep(5);
+        }
+    }
 
     private static void Mount(AppModelHarness store, AppModel model, ThreadRuntime runtime, ManualFrameSource frames, Action<TimelineMount> check, double width, double height, bool showsMinimap, double columnHeight)
     {

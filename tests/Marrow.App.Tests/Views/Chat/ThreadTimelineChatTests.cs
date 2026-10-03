@@ -61,6 +61,7 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
                     window.Show();
                     window.UpdateLayout();
                 });
+                ThreadTimelineRig.AwaitHistory(h, runtime);
                 Drain(h);
                 check(view, runtime, model, h, window!, frames);
             }
