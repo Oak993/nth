@@ -207,12 +207,42 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - UI-SIDEBAR-035: "click anywhere, including the connector stub" is UNRESOLVED: :1583 strokes a bare shape with no
 //   content shape, so whether SwiftUI hit-tests the stub's empty column is not settled by the source; the port's
 //   column is hit only on its dots.
-// - UI-SIDEBAR-036: the head-set change's panelSlide (:1541) and the snappy curve between its endpoints are unproven.
+// - UI-SIDEBAR-036: the snappy curve between the card's two heights, and panelSlide on the connector and card heights
+//   when the head set changes (:1541), are unproven; the surviving glyphs of a card whose heads change or reorder jump
+//   to their new places where the Mac glides them (OD-0076 asks for the glide; not done in this pass). What is proven:
+//   the glyphs that join or leave fade (UI-SIDEBAR-038, below) and the card keeps its own state under new heads.
 // - UI-SIDEBAR-037: the outcome badge's 3 pt overhang position and the hover scale easing back are unproven.
 // - UI-SIDEBAR-044: the Windows dialog's prompt/message/folder flags (OpenPanel.cs) need an IFileOpenDialog fake.
 // - UI-SIDEBAR-060: `.shadow(radius: 10)` is passed as BoxShadow.Blur 10; SwiftUI's radius-to-blur mapping has no
 //   decision (the same literal in FollowUpQueueTab.cs and ModelsSettingsPage.cs); the pointer style and the
 //   neighbours' slide are proven only through DragChanged/DragEnded, not a real press-drag.
+//
+// REVIEW PASS 1 (2026-10-03, adversarial; the tests named REVIEW_ are the reviewer's, kept as written). What it refuted and
+// what was done, each against the Swift:
+// - UI-SIDEBAR-033, PR-SIDEBAR-126, UI-SIDEBAR-058: SidebarHelperRow (SidebarView.swift:1375-1386) and SidebarRow
+//   (Chrome.swift:731-737) put .overlay before .onHover, so the hover covers the row and its ellipsis; the port hovered the
+//   button alone and lost the ellipsis the moment the pointer rested on it. Both rows hover their overlay host now (as
+//   SidebarThreadRow does). REVIEW_A_helper_rows_ellipsis_stays..., REVIEW_A_project_rows_ellipsis_and_plus_stay....
+// - PR-SIDEBAR-095 (the archive popover's Delete label, :927): SwiftColor.Red was the light member of systemRed
+//   in both appearances; it is the documented light/dark pair now (ED-092, ED-104; Light #FF383C, Dark #FF4245, the macOS
+//   27 UI Kit's System colours, the same edition as ED-104's Yellow). AppTheme's FrameworkRed is a different decision and
+//   stays: PR-THEME-031's windows_path fixes one red for the system-hue themes and keeps it constant.
+// - UI-SIDEBAR-038: the head card's glyphs past twelve join and leave on SwiftUI's default .opacity transition under the
+//   chevron's snappy toggle (2-chat-use.mov 5.33-5.40 s); the port refilled the rows whole. REVIEW_The_head_cards_chevron_
+//   fades_the_glyphs_past_twelve_in_and_out_on_its_snappy_toggle and the proofs beside it. A leaving glyph fades on a layer
+//   over the card (it takes no room, so the chevron does not wait for it); the Mac's glide of the surviving glyphs to their
+//   new places is not done (above, UI-SIDEBAR-036).
+// - PR-SIDEBAR-005: Return_with_no_result_changes_nothing started with nothing selected, so a Return that cleared the
+//   selection passed it (mutant PR005-noresult-clears); Return_with_no_result_leaves_the_current_selection_as_it_was.
+// - PR-SIDEBAR-130, UI-SIDEBAR-014 (OD-0008 A9, OD-0012 E2): the Remove project question's popup lifecycle was never run
+//   (the recording presenter raises neither Opened nor Closed): the tests below raise them. Dismissing removes nothing; the
+//   red action closes the question and removes only once its popup is gone, on the main actor's next turn. The question
+//   lives in the ProjectRow control, which the list rebuilt whenever its item's value changed (a new thread in the project
+//   dropped an open question): the list hands a surviving project row its new snapshot and count in place now
+//   (UpdateItemView), as SwiftUI keeps the row's @State under its ForEach id; the head card likewise (its showsAllHeads).
+//   NOT done, and not claimed: SidebarThreadRow, SidebarHelperRow, HelperStubRow and the headers still take a new value by a
+//   rebuild where they stand (UpdateItemView), so their own @State (a hover, an open popover) may not survive a change of
+//   their record; it is the same gap, UNRESOLVED here (not read through for those rows), and no test covers it.
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -589,6 +619,40 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 box.Text = "nothing matches this";
                 Press(box, Key.Enter);
                 Assert.Null(model.SelectedThreadID);
+            });
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-005")] // App/Views/Sidebar/SidebarView.swift:86-90 `if let first = ... { selectedThreadID = first.id }`: no result, no assignment
+    // REVIEW (pass 1, mutant PR005-noresult-clears): the test above starts with nothing selected, so a Return that clears
+    // the selection on no result passed it. Here a selection stands (not the first thread, so selecting the first thread
+    // of the list would show too) and a Return with no result must leave exactly that.
+    public void Return_with_no_result_leaves_the_current_selection_as_it_was()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var harness = new AppModelHarness();
+            var alpha = NewProject(harness, "Alpha");
+            var beta = NewProject(harness, "Beta");
+            var older = NewThread(alpha, "Fix the build", 1);
+            var newer = NewThread(alpha, "Fix the docs", 2);
+            var other = NewThread(beta, "Fix the tests", 3);
+            var model = Model(harness, [alpha, beta], [older, newer, other]);
+            harness.Main.OnMain(() =>
+            {
+                var view = Detached(model);
+                model.SelectedThreadID = other.Id; // not the first thread the list would offer (newer)
+                var box = SearchBox(view);
+                box.Text = "nothing matches this";
+                Press(box, Key.Enter);
+                Assert.Equal(other.Id, model.SelectedThreadID);
+                box.Text = "docs"; // a result: Return selects its first thread
+                Press(box, Key.Enter);
+                Assert.Equal(newer.Id, model.SelectedThreadID);
+                box.Text = "still nothing here"; // no result again: the selection the last Return made stands
+                Press(box, Key.Enter);
+                Assert.Equal(newer.Id, model.SelectedThreadID);
             });
         });
     }
@@ -4018,9 +4082,18 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             var thread = AppModelSamples.Thread(project) with { Title = "Fix the bug" };
             var popover = ShownArchivePopover(thread, (Action)(() => { }), (Action)(() => { }), (Action)(() => { }));
             var delete = LogicalQuery.SelfAndDescendants<TextBlock>(popover).Single(t => t.Text == "Delete");
-            Assert.Equal(Color.FromRgb(255, 59, 48), ((ISolidColorBrush)delete.Foreground!).Color); // systemRed (the theme's own framework red, AppTheme.cs FrameworkRed)
+            var window = WindowOf(popover);
+            // ED-092/ED-104 (REVIEW pass 1): Color.red is the documented light/dark pair, not its light member alone; the
+            // label follows the appearance (macOS 27 UI Kit "System colours": Red Light #FF383C, Dark #FF4245).
+            window.RequestedThemeVariant = ThemeVariant.Light;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Color.FromRgb(255, 56, 60), ((ISolidColorBrush)delete.Foreground!).Color); // systemRed, Default (light)
             Assert.NotEqual(Chrome.Danger.Resolve(delete.ActualThemeVariant), ((ISolidColorBrush)delete.Foreground!).Color); // not Nord's BF616A
-            WindowOf(popover).Close();
+            window.RequestedThemeVariant = ThemeVariant.Dark;
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(Color.FromRgb(255, 66, 69), ((ISolidColorBrush)delete.Foreground!).Color); // systemRed, Default (dark): the lighter member
+            Assert.NotEqual(Chrome.Danger.Resolve(delete.ActualThemeVariant), ((ISolidColorBrush)delete.Foreground!).Color);
+            window.Close();
         }
         finally { ThemeManager.Current = saved; }
     });
@@ -10259,6 +10332,605 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             });
         }
         finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // ---- REVIEW (pass 1, round 1, adversarial): the head card's chevron fades the glyphs past twelve ----
+    //
+    // SidebarView.swift:1466-1513 the glyphs are `ForEach(row, id: \.id)` inside `ForEach(rows, id: \.first?.id)`, and
+    // :1515-1516 toggles showsAllHeads inside withAnimation(.snappy(duration: 0.18)): the heads past the first twelve
+    // join (and leave) on SwiftUI's default .opacity transition under that snappy animation, while the clipped card
+    // grows (:1521, :1535). 2-chat-use.mov 5.33-5.40 s (CATALOGUE sidebar.activity-grid-expand; frames extracted to
+    // E:\Droppy\work\parity\evidence\SidebarView\review\grid\zoom345.png): in the first frames of the expansion the new
+    // glyphs, including the six that join the second row, are drawn faint and reach full strength over the next frames,
+    // while the first twelve stay whole. The port's Rebuild cleared and refilled every row, so the new glyphs were whole
+    // at once (and the leaving ones gone at once).
+
+    private static double ShownOpacityWithin(Control control, Control root) =>
+        control.GetSelfAndVisualAncestors().OfType<Visual>().TakeWhile(v => !ReferenceEquals(v, root)).Aggregate(1d, (o, v) => o * v.Opacity);
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // SidebarView.swift:1466-1516: the toggle's snappy animation carries the glyphs' default opacity transition
+    public void REVIEW_The_head_cards_chevron_fades_the_glyphs_past_twelve_in_and_out_on_its_snappy_toggle() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 15).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Glyphs() => LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        Button ChevronOf() => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(12, Glyphs().Count); // :1443 prefix(12)
+                Click(ChevronOf()); // :1515-1516 withAnimation(.snappy(duration: 0.18))
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3); // about 48 ms into the 0.18 s snappy curve
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(15, glyphs.Count);
+                Assert.Equal(1d, ShownOpacityWithin(glyphs[0], card)); // one of the first twelve: whole throughout
+                Assert.InRange(ShownOpacityWithin(glyphs[^1], card), 0.02, 0.98); // a joining glyph: still fading in
+            });
+            Frames(30);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(1d, ShownOpacityWithin(Glyphs()[^1], card));
+                Click(ChevronOf()); // and back to twelve
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(15, glyphs.Count); // the three leaving glyphs are still on their way out
+                Assert.InRange(ShownOpacityWithin(glyphs[^1], card), 0.02, 0.98);
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // Every claim the record makes about the toggle's motion, each against a different way to get it wrong: the glyphs that
+    // stay never fade (a rebuild that fades everything), the joiners start faint and the leavers end gone (the full curve,
+    // not one frame), a leaver fades where it stood and the chevron does not wait for it (a leaver that holds its slot
+    // makes the chevron jump when it is gone), and a rebuild that changes no membership (a selection) fades nothing.
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // SidebarView.swift:1466-1516, :1535: the glyphs' default opacity transition under the toggle's snappy animation
+    public void The_head_cards_leaving_glyphs_fade_where_they_stood_without_holding_the_chevron_and_the_stayers_never_fade() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 15).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Glyphs() => LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        Button ChevronOf() => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        static void Near(double expected, double actual, string what) => Assert.True(Math.Abs(expected - actual) < 0.5, $"{what}: expected {expected}, was {actual}");
+        Rect lastGlyphWhenExpanded = default;
+        double collapsedChevronTop = 0;
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                collapsedChevronTop = Frame(ChevronOf(), card).Y; // under the second row of twelve
+                Assert.True(collapsedChevronTop > 40, "the head card has not been laid out");
+                Click(ChevronOf());
+            });
+            harness.Main.OnMain(() => { });
+            Frames(40); // the 0.18 s toggle has run its course
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(15, glyphs.Count);
+                Assert.All(glyphs, g => Assert.Equal(1d, ShownOpacityWithin(g, card))); // all whole once it has ended
+                lastGlyphWhenExpanded = Frame(glyphs[^1], card); // alone on the third row
+                Assert.True(Frame(ChevronOf(), card).Y > collapsedChevronTop); // the chevron sits below that third row
+                Click(ChevronOf()); // back to twelve
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(15, glyphs.Count); // the leaving three are still drawn, fading
+                for (var i = 0; i < 12; i++) Assert.Equal(1d, ShownOpacityWithin(glyphs[i], card)); // the twelve that stay never fade
+                var leaving = glyphs.Skip(12).ToList();
+                Assert.All(leaving, g => Assert.InRange(ShownOpacityWithin(g, card), 0.02, 0.98));
+                // A leaver fades where it stood: the last one is drawn at the place it had on the third row ...
+                Near(lastGlyphWhenExpanded.X, Frame(leaving[^1], card).X, "leaver x");
+                Near(lastGlyphWhenExpanded.Y, Frame(leaving[^1], card).Y, "leaver y");
+                // ... and holds no room: the chevron is already where the collapsed card puts it, not held down until
+                // the leaving row is gone, to jump at the end.
+                Near(collapsedChevronTop, Frame(ChevronOf(), card).Y, "chevron y");
+                Assert.Contains(leaving[^1].GetVisualAncestors().OfType<Canvas>(), c => !c.IsHitTestVisible); // never a target while it goes
+            });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(12, Glyphs().Count); // gone, the ghost layer empty
+                Near(collapsedChevronTop, Frame(ChevronOf(), card).Y, "chevron y");
+                // A rebuild that changes no membership (the selection moves) fades nothing, in or out.
+                model.SelectedThreadID = heads[3].Id;
+            });
+            harness.Main.OnMain(() => { });
+            Frames(2);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(12, glyphs.Count);
+                Assert.All(glyphs, g => Assert.Equal(1d, ShownOpacityWithin(g, card)));
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // The card the list keeps is the card it had (SidebarView.swift:470-472 ForEach id "heads-<uuid>"; :1434-1437 @State): a
+    // head that joins, or whose record changes, is handed to it as new headSnapshots, and what the user chose (every head
+    // showing) and what is hovered stay. A head that joins fades in under :1541's panelSlide (the head ids changed, the
+    // row count did not).
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // :1434-1437, :1541
+    [Trait("Req", "UI-SIDEBAR-036")] // :1541 .animation(Chrome.panelSlide, value: heads.map(\.id))
+    public void A_head_card_handed_new_heads_keeps_every_head_showing_and_fades_a_joining_head_in_on_panel_slide() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var heads = Enumerable.Range(0, 13).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var joining = HeadHelper(project, parent.Id, 99, -1); // the oldest: the card's last glyph, so no other glyph changes place
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        AvaloniaWindow window = null!;
+        Control card = null!;
+        List<Button> Glyphs() => LogicalQuery.SelfAndDescendants<Button>(card).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        Button ChevronOf() => LogicalQuery.SelfAndDescendants<Button>(card)
+            .Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName?.StartsWith("chevron", StringComparison.Ordinal) == true));
+        string ChevronSymbol() => LogicalQuery.SelfAndDescendants<SwiftImage>(ChevronOf()).First(i => i.SymbolName is not null).SymbolName!;
+        void Frames(int count) { for (var i = 0; i < count; i++) { harness.Main.Advance(TimeSpan.FromMilliseconds(16)); manual.Advance(TimeSpan.FromMilliseconds(16)); } }
+        harness.Main.OnMain(() =>
+        {
+            var requests = Activator.CreateInstance(Private("SidebarMenuRequests"))!;
+            card = (Control)Activator.CreateInstance(Private("HeadCardsRow"), parent, heads, requests, (Action)(() => { }))!;
+            card.VerticalAlignment = VerticalAlignment.Top;
+            window = WindowOf(Hosted(model, card));
+            window.UpdateLayout();
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(12, Glyphs().Count); // :1443 prefix(12)
+                Click(ChevronOf()); // every head shows
+            });
+            harness.Main.OnMain(() => { });
+            Frames(40);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                Assert.Equal(13, Glyphs().Count);
+                Assert.Equal("chevron.up", ChevronSymbol());
+                CallOn(card, "Update", heads.Append(joining).ToList()); // :1430 the list's next pass: one head more
+            });
+            harness.Main.OnMain(() => { });
+            Frames(3); // about 48 ms into panelSlide
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(14, glyphs.Count);
+                Assert.Equal("chevron.up", ChevronSymbol()); // still every head: the card's own state survived the new heads
+                Assert.Equal(1d, ShownOpacityWithin(glyphs[0], card));
+                Assert.Equal(1d, ShownOpacityWithin(glyphs[12], card)); // the last of the thirteen already there
+                Assert.InRange(ShownOpacityWithin(glyphs[13], card), 0.02, 0.98); // the one that joined, still coming in
+            });
+            Frames(60);
+            harness.Main.OnMain(() =>
+            {
+                window.UpdateLayout();
+                var glyphs = Glyphs();
+                Assert.Equal(14, glyphs.Count);
+                Assert.All(glyphs, g => Assert.Equal(1d, ShownOpacityWithin(g, card)));
+                Assert.Equal("chevron.up", ChevronSymbol());
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-038")] // :470-472, :1434-1437: the list keeps the card whose head changed, with its @State
+    public void The_real_list_keeps_an_expanded_head_card_when_one_of_its_heads_changes() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0) with { ExpandsHelpers = true };
+        var heads = Enumerable.Range(0, 14).Select(i => HeadHelper(project, parent.Id, i, i + 1)).ToList();
+        var model = Model(harness, [project], heads.Prepend(parent).ToList());
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        StackPanel list = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Control CardNow() => LogicalQuery.SelfAndDescendants<Control>(list).Single(c => c.GetType() == Private("HeadCardsRow"));
+        List<Button> Glyphs(Control from) => LogicalQuery.SelfAndDescendants<Button>(from).Where(b => LogicalQuery.SelfAndDescendants<HydraGlyph>(b).Any()).ToList();
+        Control card = null!;
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.HydraAutoHidesIdleHeads = false;
+            view = Attached(model);
+            window = WindowOf(view);
+            list = ListPanel(view);
+        });
+        try
+        {
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                card = CardNow();
+                Assert.Equal(12, Glyphs(card).Count);
+                Click(LogicalQuery.SelfAndDescendants<Button>(card).Single(b => LogicalQuery.SelfAndDescendants<SwiftImage>(b).Any(i => i.SymbolName == "chevron.down")));
+            });
+            Tick(600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(14, Glyphs(card).Count); // every head showing
+                model.UpdateThread(heads[3].Id, t => t with { Title = "Renamed head" }); // one head's thread changes
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(card, CardNow()); // the card the list had, not one built where it stood
+                Assert.Equal(14, Glyphs(card).Count); // and every head still showing
+                Assert.Contains(LogicalQuery.SelfAndDescendants<SwiftImage>(card), i => i.SymbolName == "chevron.up");
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // ---- REVIEW (pass 1, round 1, adversarial): the Remove project question outlives a re-render of its row ----
+    //
+    // OD-0008 A9 / OD-0012 E2 put the question on the project row "in the style of the thread delete question"
+    // (SidebarView.swift:217-237): that question's state lives in the list (pendingDeletionID) and survives every
+    // re-render of the row it hangs on, and a SwiftUI row's own @State survives a new value under the same ForEach id
+    // ("project-<uuid>", :524). The port kept IsRemovalPresented in the ProjectRow control, and the list rebuilt that
+    // control whenever its item's value changed (UpdateItemView updated only gaps and the Settled header), so a new
+    // thread in the project (its count changes, :522-524) while the question was up dropped the question.
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // OD-0008 A9, OD-0012 E2: Remove project asks first; the question stays until answered or dismissed
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void REVIEW_The_Remove_project_question_stays_up_when_the_projects_count_changes_under_it() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        StackPanel list = null!; // taken once: a popup's content, once built, brings a ScrollViewer of its own into the view's logical tree
+        Control ProjectRowNow() => list.Children.Single(c => c.GetType() == Private("ProjectRow"));
+        bool Asking(Control row) => LogicalQuery.SelfAndDescendants<Popup>(row).Any(p => recorder.Calls.LastOrDefault(c => c.Popup == p) is { Presented: true } call
+            && p.Child?.GetType() == Private("RemoveProjectPopover"));
+        harness.Main.OnMain(() =>
+        {
+            Assert.True(model.Settings.ConfirmBeforeDeleting);
+            view = Attached(model);
+            window = WindowOf(view);
+            list = ListPanel(view);
+        });
+        try
+        {
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                var row = ProjectRowNow();
+                PointerRightClick(row);
+                ContextMenuOf(row).Items.Cast<Control>().Single(i => i is MenuItem && MenuItemTitle(i) == "Remove project")
+                    .RaiseEvent(new RoutedEventArgs(MenuItem.ClickEvent));
+            });
+            Tick(16);
+            harness.Main.OnMain(() => Assert.True(Asking(ProjectRowNow()))); // the question is up
+            harness.Main.OnMain(() => model.NewThread(project)); // a new thread in the project: its count goes from 1 to 2
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.NotNull(model.Project(project.Id)); // nothing answered
+                Assert.True(Asking(ProjectRowNow())); // still asking on the project's row
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // The row a surviving project keeps is the row it had: its question, its open ellipsis menu and the count it draws are
+    // all one state, and the count it draws is the new one (:1127-1132, :521-523).
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-026")] // SidebarView.swift:521-523, :1127-1132: the collapsed project's count
+    [Trait("Req", "UI-SIDEBAR-009")]
+    [Trait("Req", "PR-SIDEBAR-126")] // :333-334 the row under its ForEach id takes its new snapshot and count
+    public void A_surviving_project_row_draws_its_new_count_in_place_and_keeps_its_open_ellipsis_menu() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var presented = Presentation.Presenter.Override(new RecordingPresenter());
+        var project = NewProject(harness, "Alpha") with { IsExpanded = false };
+        var first = NewThread(project, "First", 0);
+        var second = NewThread(project, "Second", 1);
+        var third = NewThread(project, "Third", 2);
+        var model = Model(harness, [project], [first, second, third]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        StackPanel list = null!; // taken once: a popup's content, once built, brings a ScrollViewer of its own into the view's logical tree
+        Control ProjectRowNow() => list.Children.Single(c => c.GetType() == Private("ProjectRow"));
+        Control row = null!;
+        harness.Main.OnMain(() =>
+        {
+            view = Attached(model);
+            window = WindowOf(view);
+            list = ListPanel(view);
+        });
+        try
+        {
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                row = ProjectRowNow();
+                Assert.Contains("3", Texts(row)); // :1127-1132 the collapsed project's count
+                model.Delete(third.Id); // the count goes from 3 to 2 and the project stays collapsed
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(row, ProjectRowNow()); // the same row, not a new one built where it stood
+                Assert.Contains("2", Texts(row));
+                Assert.DoesNotContain("3", Texts(row));
+                window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // hovered: the ellipsis and plus take the count's place
+            });
+            Tick(300);
+            Button more = null!;
+            harness.Main.OnMain(() =>
+            {
+                more = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+                PointerClick(more); // :391 the ellipsis menu opens: isMenuPresented
+                Assert.True((bool)Get(Field(row, "state")!, "IsMenuPresented")!);
+            });
+            Tick(16); // the accessory is drawn again for the open menu (:1116 hovering || isMenuPresented)
+            harness.Main.OnMain(() =>
+            {
+                more = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More"); // the one the open menu hangs on
+                model.Delete(second.Id); // the count goes from 2 to 1 under the open menu
+            });
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Same(row, ProjectRowNow());
+                Assert.True((bool)Get(Field(row, "state")!, "IsMenuPresented")!); // still open
+                Assert.Same(more, LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More")); // its anchor not rebuilt under it
+                window.MouseMove(new Point(1, 1)); // the pointer leaves the row; the menu is still open
+            });
+            Tick(300);
+            harness.Main.OnMain(() => Click(more)); // closes the menu: isMenuPresented false
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Contains("1", Texts(row)); // the count the open menu held back is drawn now
+                Assert.DoesNotContain("2", Texts(row));
+            });
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    // The question's life in the popup (OD-0008 A9, OD-0012 E2, the thread delete question's own: confirmDeletion and
+    // carryOutConfirmedDeletion, SidebarView.swift:256-306): the popup's own Opened and Closed run here, which the
+    // recording presenter never raises. Dismissing removes nothing; the red action closes the question and removes the
+    // project only on the next main-actor turn after the popup is gone; never in the click that confirms.
+
+    private static void RaisePopup(Popup popup, string name)
+    {
+        var field = typeof(Popup).GetField(name, BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Public)
+            ?? throw new InvalidOperationException("Popup." + name + " backing field not found");
+        ((Delegate?)field.GetValue(popup))?.DynamicInvoke(popup, EventArgs.Empty);
+    }
+
+    // Both menus' Remove project call the row's RequestRemoval (the context menu's own click is proven above); the
+    // lifecycle tests ask through it directly, so no menu popup stays open beside the question under test.
+    private static void AskToRemove(Control row, Project project) => CallOn(row, "RequestRemoval", project);
+
+    private static Button RemoveAction(Popup popup) =>
+        LogicalQuery.SelfAndDescendants<Button>(popup.Child!).Single(b => AutomationProperties.GetName(b) == "Remove project");
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // OD-0008 A9: a dismissal of the question removes nothing
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void Dismissing_the_Remove_project_question_through_its_popup_removes_nothing_and_closes_it() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        Popup popup = null!;
+        bool Presented() => (bool)Get(Field(row, "state")!, "IsRemovalPresented")!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 1));
+        harness.Main.OnMain(() => AskToRemove(row, project)); // the row is mounted and settled first: the question's presentation follows the ask by a turn
+        harness.Main.OnMain(() =>
+        {
+            popup = RemovalPopup(row);
+            Assert.True(Presented());
+            Assert.True(recorder.Calls.Last(c => c.Popup == popup).Presented);
+            RaisePopup(popup, "Opened"); // :229 .onAppear: on screen
+            RaisePopup(popup, "Closed"); // :231-232 .onDisappear, by a click away or Escape: the popup's own Closed
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.False(Presented(), "the question is still presented after its popup closed");
+            Assert.False(recorder.Calls.Last(c => c.Popup == popup).Presented, "the presenter was not told the question is down");
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.NotNull(model.Project(project.Id)); // and nothing was removed, however many turns later
+            Assert.NotNull(model.Thread(thread.Id));
+            AskToRemove(row, project); // asking again works, and the dismissal left no half-confirmed removal behind
+        });
+        harness.Main.OnMain(() =>
+        {
+            popup = RemovalPopup(row);
+            RaisePopup(popup, "Opened");
+            RaisePopup(popup, "Closed");
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.NotNull(model.Project(project.Id));
+            Assert.NotNull(model.Thread(thread.Id));
+            WindowOf(row).Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // OD-0008 A9 via PR-SIDEBAR-131: the red action removes after the question's popup is gone
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void The_Remove_project_red_action_closes_the_question_and_removes_once_its_popup_is_gone() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var recorder = new RecordingPresenter();
+        using var presented = Presentation.Presenter.Override(recorder);
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        Popup popup = null!;
+        bool Presented() => (bool)Get(Field(row, "state")!, "IsRemovalPresented")!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 1));
+        harness.Main.OnMain(() => AskToRemove(row, project));
+        harness.Main.OnMain(() =>
+        {
+            popup = RemovalPopup(row);
+            RaisePopup(popup, "Opened"); // :229 .onAppear: the popup is on screen
+            Click(RemoveAction(popup)); // the red action: PopoverItem closes its popover and runs the action on the next turn (Popovers.swift:271-273)
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            // :256-263 confirmDeletion closed the question ...
+            Assert.False(Presented(), "the question is still presented after the red action");
+            Assert.False(recorder.Calls.Last(c => c.Popup == popup).Presented, "the presenter was not told to close the question");
+            // ... and, the popup still being on screen (removing the project removes this row, popup included), waits.
+            Assert.NotNull(model.Project(project.Id));
+            Assert.NotNull(model.Thread(thread.Id));
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.NotNull(model.Project(project.Id)); // still waiting, however many turns it is
+            Assert.NotNull(model.Thread(thread.Id));
+            RaisePopup(popup, "Closed"); // :231-232 .onDisappear -> carryOutConfirmedDeletion
+            Assert.NotNull(model.Project(project.Id)); // on the main actor's next turn (:295-306), not inside Closed
+            Assert.NotNull(model.Thread(thread.Id));
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Null(model.Project(project.Id));
+            Assert.Null(model.Thread(thread.Id));
+            WindowOf(row).Close();
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-130")] // :256-263, :295-306 confirmDeletion with no popup on screen: carryOutConfirmedDeletion on the next main-actor turn
+    [Trait("Req", "UI-SIDEBAR-014")]
+    public void Confirming_the_Remove_project_question_with_no_popup_on_screen_removes_on_the_next_turn_not_in_the_call() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        using var presented = Presentation.Presenter.Override(new RecordingPresenter());
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        harness.Main.OnMain(() => row = ShownProjectRow(model, project, 1));
+        harness.Main.OnMain(() => AskToRemove(row, project));
+        harness.Main.OnMain(() =>
+        {
+            RemovalPopup(row); // asked, and never shown (Opened never raised): there is no popup to wait for
+            CallOn(row, "ConfirmRemoval"); // the red action's own action, which PopoverItem runs on a turn of its own
+            Assert.False((bool)Get(Field(row, "state")!, "IsRemovalPresented")!);
+            Assert.NotNull(model.Project(project.Id)); // not synchronously in the confirmation
+            Assert.NotNull(model.Thread(thread.Id));
+        });
+        harness.Main.OnMain(() => { });
+        harness.Main.OnMain(() =>
+        {
+            Assert.Null(model.Project(project.Id)); // the next main-actor turn
+            Assert.Null(model.Thread(thread.Id));
+            WindowOf(row).Close();
+        });
     });
 }
 

@@ -1118,9 +1118,11 @@ namespace Marrow.UI.Chrome
             {
                 Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(isSelected, hovering), Transaction.Current)); // :729
             });
-            button.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :735-737
-
             var overlay = new Panel { Children = { button } };
+            // :731-737 `.overlay(alignment: .trailing) { accessory }` comes BEFORE `.onHover`, so the hover region is the
+            // button together with its overlaid accessory: the pointer resting on the ellipsis or the plus is still on the
+            // row and keeps them (the hover is on the host, as SidebarThreadRow's overlays host carries its own).
+            overlay.OnHover(hovering => Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering)); // :735-737
             button.Track(() => state.IsHovering, hovering =>
             {
                 var built = accessory(hovering); // :732-733

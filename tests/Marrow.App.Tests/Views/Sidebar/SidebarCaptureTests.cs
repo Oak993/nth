@@ -33,11 +33,9 @@ public sealed class SidebarCaptureTests(HeadlessSession headless)
     private static ChatThread ThreadAt(Project project, string title, DateTimeOffset at) =>
         AppModelSamples.Thread(project) with { Title = title, CreatedAt = at, UpdatedAt = at };
 
-    internal sealed record Scene(AvaloniaWindow Window, SidebarView View, AppModel Model);
-
     // The reference window's content starts at screen y 29 (its top rim) and its bottom edge is at y 1356, so the
     // sidebar column is 1327 pt tall; the band is 268 pt wide (CATALOGUE static.main-window-light-vs-dark).
-    internal static void WithReferenceScene(AppModelHarness harness, ManualFrameSource frames, Action<Scene> body)
+    internal static void WithReferenceScene(AppModelHarness harness, ManualFrameSource frames, Action<SidebarReferenceScene> body)
     {
         using var zone = SwiftFormatters.CurrentTimeZone.Override(TimeZoneInfo.Utc);
         using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
@@ -59,7 +57,7 @@ public sealed class SidebarCaptureTests(HeadlessSession headless)
             var settled = ThreadAt(project, "hi", Now.AddDays(-6)) with { IsSettled = true };
             harness.WriteLibrary([project], [lead, .. heads, friday, draft, older, settled]);
             var model = harness.MakeModel();
-            Scene scene = null!;
+            SidebarReferenceScene scene = null!;
             harness.Main.OnMain(() =>
             {
                 model.Settings.SidebarActivityView = true;
@@ -73,7 +71,7 @@ public sealed class SidebarCaptureTests(HeadlessSession headless)
                 var window = new AvaloniaWindow { Content = host, Width = 268, Height = 1327, RequestedThemeVariant = ThemeVariant.Dark };
                 window.Show();
                 window.UpdateLayout();
-                scene = new Scene(window, view, model);
+                scene = new SidebarReferenceScene(window, view, model);
             });
             try
             {
@@ -103,7 +101,7 @@ public sealed class SidebarCaptureTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-1")] // capture rig only; the record proofs cite the numbers it produced
+    [Trait("Rule", "R-TEST-1")] // capture rig only; the proofs of the ledger entries cite the numbers it produced
     public void The_reference_scene_renders_and_can_be_saved_for_the_side_by_side() => headless.OnUiThread(() =>
     {
         using var harness = new AppModelHarness();

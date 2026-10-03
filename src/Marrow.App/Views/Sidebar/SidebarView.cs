@@ -531,7 +531,13 @@ public sealed class SidebarView : Decorator
             if (index > 0) // :706-708
                 entries.Add(new ListEntry(group + ":gap", Chrome.GroupGap, null, () => new Border { Height = Chrome.GroupGap }, null));
             entries.Add(new ListEntry(group + ":project", (result.Project, result.Count), null, // :709
-                () => new ProjectRow(result.Project, result.Count, togglesExpansion: false), null));
+                () => new ProjectRow(result.Project, result.Count, togglesExpansion: false),
+                (control, value) => // :709 the same row under the same ForEach id takes its new snapshot and count in place
+                {
+                    if (control is not ProjectRow projectRow || value is not ValueTuple<Project, long> pair) return false;
+                    projectRow.Update(pair.Item1, pair.Item2);
+                    return true;
+                }));
             foreach (var thread in result.Threads) // :711 ForEach(result.threads, id: \.sidebarItemID)
             {
                 var hasHelpers = !thread.IsSettled && helpers.TryGetValue(thread.Id, out var own) && own.Count > 0; // :712
@@ -681,6 +687,16 @@ public sealed class SidebarView : Decorator
         if (item.SidebarItemKind is SidebarItem.Kind.SettledHeader header && control is SettledHeader settled)
         {
             settled.Update(header.Count, header.IsFirst); // :337-338, :2364-2366: one view whose count and isFirst change under it
+            return true;
+        }
+        if (item.SidebarItemKind is SidebarItem.Kind.Project project && control is ProjectRow projectRow)
+        {
+            projectRow.Update(project.Value, project.Count); // :333-334, :1081-1089: one view whose snapshot and count change under it
+            return true;
+        }
+        if (item.SidebarItemKind is SidebarItem.Kind.HeadCards cards && control is Decorator { Child: HeadCardsRow card })
+        {
+            card.Update(cards.Heads); // :368-371, :1430: one view whose headSnapshots change under it (the card rides its parent inside the Decorator)
             return true;
         }
         if (item.SidebarItemKind is not SidebarItem.Kind.Gap gap || control is not Border border) return false;
@@ -1887,6 +1903,12 @@ internal sealed class ProjectRow : Decorator
 
     private readonly ViewState state = new();
 
+    private Action<Project, long>? update;
+
+    /// <summary>One row whose inputs change under it: the list hands a surviving project row its new snapshot and count
+    /// (:1081, :1088), and the row keeps its own state.</summary>
+    internal void Update(Project snapshot, long count) => update?.Invoke(snapshot, count);
+
     /// <param name="snapshot">:1081 <c>let snapshot: Project</c>.</param>
     /// <param name="count">:1088 <c>let count: Int</c>.</param>
     /// <param name="togglesExpansion">:1089 <c>var togglesExpansion = true</c>.</param>
@@ -1905,6 +1927,7 @@ internal sealed class ProjectRow : Decorator
     public ProjectRow(Project snapshot, long count, bool togglesExpansion = true)
     {
         var current = snapshot; // :1085, refreshed by the Track below
+        var shownCount = count; // :1088, refreshed by Update
         var isMenuPresented = new Binding<bool>(() => state.IsMenuPresented, value => state.IsMenuPresented = value);
         SidebarIconBadge? iconBadge = null;
         Control BuildIconGlyph() => // :1108-1112, re-read fresh wherever this is invoked, matching Swift's computed `project.icon`
@@ -1921,9 +1944,9 @@ internal sealed class ProjectRow : Decorator
                 cluster.Children.Add(plus);
                 return cluster;
             }
-            if (!current.IsExpanded && count > 0) // :1127
+            if (!current.IsExpanded && shownCount > 0) // :1127
             {
-                var text = new TextBlock { Text = count.ToString(CultureInfo.InvariantCulture) }; // :1128
+                var text = new TextBlock { Text = shownCount.ToString(CultureInfo.InvariantCulture) }; // :1128
                 SwiftFont.Subheadline.MonospacedDigit().Apply(text); // :1129
                 text.Foreground = Chrome.SecondaryText.Brush(text); // :1130
                 // SidebarRow (UI/Chrome/Chrome.cs) sets `built.Margin` itself, unconditionally, once accessory()
@@ -1973,20 +1996,33 @@ internal sealed class ProjectRow : Decorator
         // over the row left the ellipsis+plus cluster on screen indefinitely. Swift's `body` re-evaluates in full
         // on any @State write, so any write to `isMenuPresented` alone must refresh this same accessory; there is
         // no external hook to re-invoke SidebarRow's own hover Track, so this reaches into the already-built
-        // overlay the same way SidebarRow's own Track does (Chrome.cs:1119-1128), using the button's own
+        // overlay the same way SidebarRow's own Track does (Chrome.cs:1119-1128), using the overlay host's own
         // Avalonia-tracked IsPointerOver as this row's outside view of `state.IsHovering` (both are driven by the
-        // same PointerEntered/PointerExited pair, UI/Port/PlainControls.cs OnHover).
-        row.Track(() => state.IsMenuPresented, _ =>
+        // same PointerEntered/PointerExited pair on that host, UI/Port/PlainControls.cs OnHover; the host carries the
+        // hover because Chrome.swift:731-737 puts .overlay before .onHover).
+        void RefreshAccessory()
         {
             if (row.Child is not Panel overlay || overlay.Children.Count == 0) return;
-            var hovering = overlay.Children[0] is InputElement button && button.IsPointerOver;
+            var hovering = overlay.IsPointerOver; // the hover region is the overlay host (button and accessory), Chrome.cs SidebarRow :731-737
             var built = BuildAccessory(hovering); // :732-733/:1122
             built.Margin = new Thickness(0, 0, 6, 0); // :734, matching SidebarRow's own treatment of the built accessory
             built.HorizontalAlignment = HorizontalAlignment.Right;
             built.VerticalAlignment = VerticalAlignment.Center;
             if (overlay.Children.Count > 1) overlay.Children.RemoveAt(overlay.Children.Count - 1);
             overlay.Children.Add(built);
-        });
+        }
+        row.Track(() => state.IsMenuPresented, _ => RefreshAccessory());
+        // :1081-1089 `snapshot`, `count` and `togglesExpansion` are plain inputs of a struct the list re-evaluates with each
+        // pass; SwiftUI keeps the row it already has under the same ForEach id ("project-<uuid>", :524) and hands it the
+        // new inputs, so its @State (isMenuPresented, the hover, and the port's own removal question) survives them
+        // (UpdateItemView). The accessory is the one part that reads them, :1127-1131; it is drawn again unless the
+        // ellipsis popover is open, whose anchor is part of it.
+        update = (newSnapshot, newCount) =>
+        {
+            shownCount = newCount; // :1088
+            current = Model.Project(newSnapshot.Id) ?? newSnapshot; // :1085
+            if (!state.IsMenuPresented) RefreshAccessory();
+        };
         // :1138-1161 .contextMenu: SwiftUI re-evaluates this closure's captures (project, isActive, hasOverride,
         // pairsSnapshot) fresh every time the menu opens, not once at construction. ENGINEERING DECISION (closes
         // STOP #7/#4 for ProjectRow only; SidebarHelperRow's and HeadCardsRow's own .contextMenu sites are unchanged
@@ -2318,7 +2354,10 @@ internal sealed class SidebarHelperRow : Decorator
         var overlayHost = new Panel { Children = { button } };
         Control? overlayControl = null;
 
-        button.OnHover(hovering => // :1401-1404
+        // :1375-1404 `.overlay(alignment: .trailing) { ... }` comes BEFORE `.onHover`, so the hover region is the button
+        // together with its overlaid status or ellipsis: the pointer resting on the ellipsis is still on the row and keeps
+        // it (the hover is on the overlay host, as SidebarThreadRow's overlays host carries its own, :1816).
+        overlayHost.OnHover(hovering => // :1401-1404
         {
             Transaction.WithAnimation(Chrome.Hover, () => state.IsHovering = hovering);
             if (hovering) Model.WarmDocuments([current.Id]); // :1404
@@ -2459,11 +2498,22 @@ internal sealed class HeadCardsRow : Decorator
         private double width;
         private Guid? hoveredID;
         private bool showsAllHeads;
+        private IReadOnlyList<ChatThread> heads = [];
 
         public double Width { get => Read(width); set => Set(ref width, value); }
         public Guid? HoveredID { get => Read(hoveredID); set => Set(ref hoveredID, value); }
         public bool ShowsAllHeads { get => Read(showsAllHeads); set => Set(ref showsAllHeads, value); }
+
+        // :1430 `let headSnapshots`, an input of the struct the list hands a new value with each pass (Update), not @State.
+        public IReadOnlyList<ChatThread> Heads { get => Read(heads); set => Set(ref heads, value); }
     }
+
+    private Action<IReadOnlyList<ChatThread>>? update;
+
+    /// <summary>:1430 the list hands a surviving card its new <c>headSnapshots</c>; SwiftUI keeps the card it already has
+    /// under the same ForEach id ("heads-&lt;uuid&gt;", :470-472), so its @State (the width, the hovered glyph and
+    /// whether every head shows) survives them.</summary>
+    internal void Update(IReadOnlyList<ChatThread> headSnapshots) => update?.Invoke(headSnapshots);
 
     // PORT-ONLY: animates a ScaleTransform's uniform scale along a Chrome.hover-style transaction, the same
     // frame-tick technique PlainControls.AnimatedColor already uses for a colour (UI/Port/PlainControls.cs:186), here
@@ -2569,7 +2619,8 @@ internal sealed class HeadCardsRow : Decorator
     // (ContextMenu.Opening, as the other rows' menus are) for the head the glyph was last built for.
     public HeadCardsRow(ChatThread parentSnapshot, IReadOnlyList<ChatThread> headSnapshots, SidebarMenuRequests menuRequests, Action onFold)
     {
-        var state = new ViewState();
+        var state = new ViewState { Heads = headSnapshots };
+        update = heads => state.Heads = heads;
         var connector = new HelperConnector(true, onFold) { Width = ThreadRowMetrics.ConnectorWidth }; // :1433-1437, endsHere: true, .frame(width: connectorWidth, ...)
         var connectorHeight = new AnimatedDouble(v => connector.Height = v); // :1439, :1541
         long? previousCardRows = null; // :1535 .animation(.snappy(duration: 0.18), value: cardRows)
@@ -2586,14 +2637,36 @@ internal sealed class HeadCardsRow : Decorator
         card.Background = Chrome.Overlay(0.04).Brush(card); // :1520
         card.ClipToBounds = true; // :1521 .clipShape: while the card grows its lower rows show only as its edge reaches them
         // (2-chat-use.mov 5.33-5.53 s, CATALOGUE sidebar.activity-grid-expand)
-        var cardHeightAnimated = new AnimatedDouble(v => card.Height = v); // :1518, :1535
+        // PORT-ONLY (ENGINEERING DECISION, UI-SIDEBAR-038 review, 2-chat-use.mov 5.33-5.40 s CATALOGUE sidebar.activity-grid-expand):
+        // a view that leaves under SwiftUI's default .opacity transition no longer takes part in the layout the others
+        // settle into, it fades where it stood while the card clips it. A control Avalonia keeps in its panel until it has
+        // faded would hold its slot, and a whole leaving row would hold the chevron down and let it jump up at the end.
+        // So a leaving glyph (or chevron) is lifted out of its row onto this canvas, at the place it was drawn, and fades
+        // there; the layer sits over the card, the same size and clipped to the same rounded shape, and takes no input.
+        var ghosts = new Canvas { IsHitTestVisible = false };
+        var ghostLayer = new Border // the card's own area (:1516 padding, :1517-1518 frame, :1521 clipShape)
+        {
+            Padding = new Thickness(ThreadRowMetrics.HeadCardPadding),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Top,
+            IsHitTestVisible = false,
+            ClipToBounds = true,
+            Child = ghosts,
+        }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
+        var cardHeightAnimated = new AnimatedDouble(v => { card.Height = v; ghostLayer.Height = v; }); // :1518, :1535
 
         var outer = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") }; // :1440 HStack(spacing: 0)
         Grid.SetColumn(connector, 0);
         Grid.SetColumn(card, 1);
+        Grid.SetColumn(ghostLayer, 1);
         outer.Children.Add(connector);
         outer.Children.Add(card);
+        outer.Children.Add(ghostLayer);
         outer.SizeChanged += (_, e) => state.Width = e.NewSize.Width; // :1544 onGeometryChange(width)
+
+        // The glyphs the last build drew, by their row's id and their own (:1466-1467), and its chevron (:1514).
+        var drawnGlyphs = new Dictionary<(Guid Row, Guid Head), Control>();
+        Control? drawnChevron = null;
 
         void Rebuild(ValueList<ChatThread> heads, double width, bool showsAllHeads, bool isHidden)
         {
@@ -2618,8 +2691,35 @@ internal sealed class HeadCardsRow : Decorator
             var cardRowsChanged = previousCardRows is not null && previousCardRows.Value != cardRows;
             connectorHeight.Set(cardHeight, headIDsChanged ? Chrome.PanelSlide : Transaction.Current); // :1439, :1541
             cardHeightAnimated.Set(cardHeight, cardRowsChanged ? Animation.Snappy(duration: 0.18) : Transaction.Current); // :1518, :1535
+            var firstBuild = previousHeadIDs is null;
             previousHeadIDs = headIDs;
             previousCardRows = cardRows;
+
+            // :1466-1467 ForEach(rows, id: \.first?.id) { ForEach(row, id: \.id) { glyph } } and :1514 `if capped { chevron }`:
+            // a view that joins or leaves a parent that is already on screen runs SwiftUI's default .opacity transition under
+            // the animation in force for the change (REVIEW, UI-SIDEBAR-038, 2-chat-use.mov 5.33-5.40 s: the glyphs past
+            // twelve fade in on the chevron's snappy toggle and out again). A glyph's identity is its row's id and its own,
+            // so one that moves to another row on a reflow leaves one and joins the other. That animation is the innermost
+            // `.animation` whose value changed over the glyphs, :1535 snappy for a change of cardRows, then :1541 panelSlide
+            // for a change of the head ids, otherwise the transaction the change came in (the chevron's own withAnimation,
+            // :1515-1516); none at all when the change carries none, and none for the first build.
+            var membership = firstBuild ? null
+                : cardRowsChanged ? Animation.Snappy(duration: 0.18)
+                : headIDsChanged ? Chrome.PanelSlide
+                : Transaction.Current;
+            var drawn = new HashSet<(Guid Row, Guid Head)>();
+            foreach (var line in chunked)
+                foreach (var head in line)
+                    if (head.Hydra is not null) drawn.Add((line[0].Id, head.Id)); // :1471
+            if (membership is not null)
+            {
+                foreach (var glyph in drawnGlyphs.Where(pair => !drawn.Contains(pair.Key)).Select(pair => pair.Value).ToList()) Leave(glyph, membership);
+                if (!capped && drawnChevron is { } leavingChevron) Leave(leavingChevron, membership);
+            }
+            var previous = drawnGlyphs;
+            drawnGlyphs = [];
+            var chevronJoins = membership is not null && capped && drawnChevron is null;
+            drawnChevron = null;
 
             rows.Children.Clear();
             foreach (var line in chunked)
@@ -2683,7 +2783,10 @@ internal sealed class HeadCardsRow : Decorator
                     };
                     button.ContextMenu = headMenu;
                     AutomationProperties.SetName(button, $"{info.Persona.Name}, {info.Task}"); // :1499
-                    lineHost.Children.Add(button);
+                    var glyphKey = (line[0].Id, headID);
+                    drawnGlyphs[glyphKey] = button;
+                    if (membership is not null && !previous.ContainsKey(glyphKey)) Join(lineHost, button, membership);
+                    else lineHost.Children.Add(button);
                 }
                 rows.Children.Add(lineHost);
             }
@@ -2707,13 +2810,32 @@ internal sealed class HeadCardsRow : Decorator
                     Transaction.WithAnimation(Animation.Snappy(duration: 0.18), () => state.ShowsAllHeads = !state.ShowsAllHeads));
                 ToolTip.SetTip(chevronButton, ChevronTooltip(showsAllHeads, heads.Count)); // :1526
                 chevronButton.HorizontalAlignment = HorizontalAlignment.Left; // :1465 VStack(alignment: .leading): the 14 pt button sits at the leading edge
-                rows.Children.Add(chevronButton);
+                drawnChevron = chevronButton;
+                if (chevronJoins && membership is not null) Join(rows, chevronButton, membership); // :1514 the chevron joins as `capped` turns true
+                else rows.Children.Add(chevronButton);
             }
             Opacity = isHidden ? 0 : 1; // :1543
         }
 
+        // The animation's own transition: SwiftUI's default .opacity, with no .transition modifier on any of these views.
+        // The animation is the one in force for the change (Rebuild's `membership`), whatever transaction is current here.
+        static void Join(Panel host, Control child, Animation animation) =>
+            Transaction.WithAnimation(animation, () => SwiftTransition.Insert(host, host.Children.Count, child));
+
+        // A leaving glyph or chevron is lifted out of its row onto the ghost layer where it was drawn and fades there.
+        void Leave(Control child, Animation animation)
+        {
+            var container = SwiftTransition.Container(child);
+            if (container.GetVisualParent() is not Panel host || child.TranslatePoint(default, ghosts) is not { } at) return; // not laid out: it just goes
+            host.Children.Remove(container);
+            Canvas.SetLeft(container, at.X);
+            Canvas.SetTop(container, at.Y);
+            SwiftTransition.Place(ghosts, ghosts.Children.Count, child);
+            Transaction.WithAnimation(animation, () => SwiftTransition.Remove(ghosts, child));
+        }
+
         outer.Track(() => (
-            SidebarView.OrderedHeads(headSnapshots.Select(head => Model.Thread(head.Id) ?? head).ToList()), // :1441
+            SidebarView.OrderedHeads(state.Heads.Select(head => Model.Thread(head.Id) ?? head).ToList()), // :1441
             state.Width,
             state.ShowsAllHeads,
             RowGlideAnimator.Shared.Current.IsHiding(parentSnapshot.Id), // :1543
