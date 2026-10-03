@@ -840,6 +840,37 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
             finally { Close(window); }
         });
     });
+    // ---------------------------------------------------------------- UI-CHAT-057 (the states)
+
+    // :1781-1782 MCPGlyph(entry:, size: 18, isRunning: call.status == .running, status: call.status): "running, completed, failed and
+    // declined are carried on the glyph": the breathing ring while it runs, the failed cross or the declined hand in a badge on its
+    // corner, and nothing extra once it completed. The glyph itself is MCPGlyphTests'.
+    [Theory]
+    [InlineData(ToolCall.Status.Running, true, null)]
+    [InlineData(ToolCall.Status.Completed, false, null)]
+    [InlineData(ToolCall.Status.Failed, false, "xmark")]
+    [InlineData(ToolCall.Status.Declined, false, "hand.raised.slash")]
+    [Trait("Req", "UI-CHAT-057")] // TimelineRows.swift:1781-1782 the call's status is carried on the MCP glyph
+    public void An_MCP_badge_row_carries_the_calls_status_on_its_glyph(ToolCall.Status status, bool ring, string? badge) => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        h.Main.OnMain(() =>
+        {
+            var row = ToolRowFor(h, Call(ToolCall.Kind.Mcp, "Context7 · resolve-library-id", status));
+            var window = Show(new StackPanel { Width = 600, Children = { row } });
+            try
+            {
+                var glyph = Assert.Single(Mounted<MCPGlyph>(row));
+                Assert.Equal(18, glyph.Bounds.Width);
+                Assert.Equal(ring, Mounted<HydraBreathRingView>(glyph).Any());
+                var symbols = Mounted<SwiftImage>(glyph).Select(image => image.SymbolName).OfType<string>().ToArray();
+                if (badge is null) Assert.Empty(symbols); else Assert.Equal([badge], symbols);
+                Assert.Equal("Context7: resolve-library-id", Assert.Single(Mounted<MiddleTruncatingTextBlock>(row)).FullText);
+            }
+            finally { Close(window); }
+        });
+    });
 }
 
 // STOP App.Views.Chat.TimelineRows #12 (unit blitz-timelinerows-cd, 2026-10-04; OD-0098: where a record asks for a comparison with
