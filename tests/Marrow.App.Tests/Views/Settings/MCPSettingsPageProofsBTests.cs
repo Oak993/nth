@@ -98,7 +98,7 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
         Assert.Equal(new CornerRadius(9), surface.CornerRadius);
         Assert.Equal(RoundedCornerStyle.Continuous, SwiftShapes.GetCornerStyle(surface));
         ColorIs(surface, surface.Background, Chrome.PrimaryText.Opacity(0.06));
-        Assert.Equal(args ? new Thickness(6, 4) : new Thickness(10, 7), field.Padding);
+        Assert.Equal(args ? new Thickness(11, 4) : new Thickness(10, 7), field.Padding); // OD-0032: the source's 6 plus the TextEditor's own 5
         Assert.Null(field.FocusAdorner); Assert.Equal(default, field.BorderThickness);
         Assert.Equal(name ? 15 : 12, field.FontSize);
         Assert.Equal(name ? FontWeight.SemiBold : FontWeight.Normal, field.FontWeight);
@@ -547,9 +547,9 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
         await Task.Yield();
         // STOP opencode-proofs-mcp-b #2: UI-MCP-051. Shared GlassPickerButton's F.GlassMaterial
         // is deferred under ED-180. Geometry/state proofs exist; complete shared style cannot be claimed.
-        // STOP opencode-proofs-mcp-b #3: UI-MCP-047 UI-MCP-064. Shared presented-chrome background,
-        // native popover/light-dismiss capture cannot be verified with RecordingPresenter. The approved
-        // R-VIEW-9 seam records requests only; it supplies no IPopupImpl/backdrop or Escape/outside hit path.
+        // STOP opencode-proofs-mcp-b #3: UI-MCP-047 UI-MCP-064. The shared presented-chrome background belongs to the Popovers unit. RecordingPresenter has
+        // no popup; the editor through the REAL presenter (overlay host: shown, Close, press outside) is MCPCustomEditorRealPresenterTests and the info
+        // popover's hover onto the popover is MCPSettingsPageInfoLinksTests. Still open: Escape (see ED-NEW-mcpsettingspage (5)) and the native popup window.
         var editor = new MCPCustomEditor(null); var w = Show(editor, model);
         try
         {
@@ -576,9 +576,8 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
     public void Optional_and_docs_links_have_accent_styles_and_source_presence_conditions() => Ui(async (model, _, _) =>
     {
         await Task.Yield();
-        // STOP opencode-proofs-mcp-b #4: UI-MCP-068 UI-MCP-069. Missing recording desktop ILauncher
-        // for the docs destination and key-page browser launch (MCPKeyPanel.OpenURL uses MainWindow.Launcher).
-        // Headless controls can prove link style/presence; invoking a real default browser is not a test.
+        // (Former STOP #4, UI-MCP-068 UI-MCP-069: CLOSED. MCPSettingsPageInfoLinksTests records both links' destinations through MCPSetupLauncherScope;
+        // no browser is ever opened. This test keeps the style and presence subset.)
         var entry = Entry() with { DocsURL = "https://example.invalid/docs", Fields = new[] { new MCPField("key", "API Key", "", IsRequired: false) } };
         var info = new MCPInfoPopover(entry); var w = Show(info, model);
         try
