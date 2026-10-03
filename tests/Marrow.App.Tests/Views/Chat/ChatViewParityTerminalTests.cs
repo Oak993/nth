@@ -214,6 +214,25 @@ public sealed class ChatViewParityTerminalTests(HeadlessSession headless)
             Assert.Equal(gap, resting - PanelBottom(), 1);
         });
 
+    // PR-TERM-001: the scene reads the settled size only while a push runs; once the drawer is open its row is the layout, and the drawer's own height
+    // (dragged, or set) moves the pane and the scene with it again, frame by frame.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:241-249,276-279; ED-NEW-parity-chatview (3)
+    public void Once_the_push_has_settled_a_change_of_the_drawers_height_reaches_the_scene()
+        => WithColumn(PanelDockCorner.BottomLeading, (h, view, runtime, composer, panel, window, frames) =>
+        {
+            var model = AppEnvironment.GetAppModel(window);
+            h.Main.OnMain(() => runtime.IsTerminalVisible = true);
+            Drain(h, window);
+            Advance(h, window, frames, 1);
+            var before = Field<Size>(view, "paneSize");
+            var height = model.Settings.TerminalHeight;
+            var taller = height + 60;
+            h.Main.OnMain(() => model.Settings.TerminalHeight = taller);
+            Drain(h, window);
+            Assert.Equal(before.Height - 60, Field<Size>(view, "paneSize").Height, 1);
+        });
+
     // PR-TERM-001, the drawer opening: a top-docked panel keeps its place through the push (it hangs from the pane's top edge, which does not
     // move), while the chat box rises.
     [Fact]
