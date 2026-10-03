@@ -90,6 +90,9 @@ public sealed class JewelOrb
         return (dev * scale, dpr * scale);
     }
 
+    /// <summary>True when a knob <paramref name="px"/> CSS px wide at <paramref name="dpr"/> renders at 2x.</summary>
+    public static bool Supersampled(double px, double dpr) => Math.Max(2, (int)Math.Floor(px * Math.Min(3, Math.Max(1, dpr)) + 0.5)) < 128;
+
     private static double Smooth(double x) { var c = Math.Clamp(x, 0, 1); return c * c * (3 - 2 * c); }
     private static double Lin(double v) => v <= 0.04045 ? v / 12.92 : Math.Pow((v + 0.055) / 1.055, 2.4);
     private static double Srgb(double v) => v <= 0.0031308 ? v * 12.92 : 1.055 * Math.Pow(v, 1 / 2.4) - 0.055;
@@ -135,6 +138,7 @@ public sealed class JewelOrb
         var ballRad = (1 - 1.5 / size) / (1 + cd * 0.11) / (1 + Math.Max(0.01, 1.5 / size));
         u[16] = (float)Activation; u[17] = (float)(reduceMotion ? flare * 0.6 : flare); u[18] = (float)(double.IsFinite(exitAngle) ? exitAngle : Math.PI); u[19] = 2f / size;
         u[20] = (float)ballRad; u[21] = dark ? 1 : 0; u[22] = (float)perPx;
+        u[109] = (float)cd;
         u[24] = States.Tint.Red / 255f; u[25] = States.Tint.Green / 255f; u[26] = States.Tint.Blue / 255f;
     }
 }
@@ -145,7 +149,8 @@ public sealed class JewelOrb
 /// shellMidAlpha; [3] shellEdgeAlpha, exposure, glassOpacity, contourDeform; [4] activation, flare, exit angle, a device px
 /// in uv; [5] ball radius, dark, render px per CSS px, ring opacity; [6] the flare's tint; [7..18] the twelve colours;
 /// [19] the knob's centre on the track, the track's width and height; [20] the pane; [21] the empty tube; [22..26] the fill
-/// along its length. A last slot the program does not read: [27] the lift (the deeper shadow's opacity).
+/// along its length. A last slot the program does not read: [27] the lift (the deeper shadow's opacity), the contour's
+/// largest deform (for <see cref="Resize"/>), and the supersample the frame was made for (2: a 2x render, 1: none).
 /// </summary>
 public sealed class JewelUniforms
 {
@@ -159,6 +164,17 @@ public sealed class JewelUniforms
 
     /// <summary>The deeper shadow's opacity (how far the knob has lifted).</summary>
     public float Lift { get => Values[108]; set => Values[108] = value; }
+
+    /// <summary>
+    /// The same frame for another render size (the CPU renderer draws the knob at 1x, without the 2x supersample, so its cost
+    /// stays bounded): the size, a device pixel in uv, the ball's radius and the render pixels per CSS pixel follow it.
+    /// </summary>
+    public static void Resize(float[] u, int size, double perPx)
+    {
+        var cd = u[109];
+        u[0] = size; u[1] = size; u[19] = 2f / size; u[22] = (float)perPx;
+        u[20] = (float)((1 - 1.5 / size) / (1 + cd * 0.11) / (1 + Math.Max(0.01, 1.5 / size)));
+    }
 
     public float Phase => Values[2];
     public (float Zoom, float Warp, float RidgeAmt, float Sharp) Fold => (Values[4], Values[5], Values[6], Values[7]);
@@ -439,6 +455,13 @@ internal sealed class JewelKnobRenderer
 {
     [ThreadStatic] private static Dictionary<(nint Context, int Size), JewelKnobRenderer>? pool;
 
+    /// <summary>Tests and evidence frames: the CPU renderer draws the GPU's 2x supersample too (off in the app).</summary>
+    internal static bool SupersampleOnCpu { get; set; }
+
+    /// <summary>The 1x size of a frame made for a 2x render (null when it was already at 1x).</summary>
+    internal static (int Size, double PerPx)? CpuSize(float[] values) =>
+        values[110] == 2 ? ((int)values[0] / 2, values[22] / 2.0) : null;
+
     private readonly SKSurface surface;
     private readonly SKPaint program = new();
     private readonly SKPaint blit = new() { IsAntialias = false };
@@ -595,6 +618,13 @@ internal sealed class JewelKnobOperation(Rect bounds, Rect box, float[] values) 
             ?? throw new InvalidOperationException("The Jewel knob needs the Skia renderer (ISkiaSharpApiLeaseFeature).");
         using var lease = feature.Lease();
         var size = (int)values[0];
+        // the CPU renderer (no GPU context): the knob at 1x, not 2x (a 48 px knob's program costs 4x less; OD-0090's bounded
+        // per-frame cost on the software fallback); the GPU draws the page's 2x supersample
+        if (lease.GrContext is null && !JewelKnobRenderer.SupersampleOnCpu && JewelKnobRenderer.CpuSize(values) is { } cpu)
+        {
+            JewelUniforms.Resize(values, cpu.Size, cpu.PerPx);
+            size = cpu.Size;
+        }
         JewelKnobRenderer.For(lease.GrContext, size).Draw(lease.SkCanvas, values,
             new SKRect((float)box.Left, (float)box.Top, (float)box.Right, (float)box.Bottom), (float)lease.CurrentOpacity);
     }

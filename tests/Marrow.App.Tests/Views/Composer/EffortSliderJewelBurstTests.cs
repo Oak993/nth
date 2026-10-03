@@ -105,8 +105,55 @@ public sealed class EffortSliderJewelBurstTests(HeadlessSession headless)
                 if (b.Red + b.Green + b.Blue < a.Red + a.Green + a.Blue - 20) darker++;
             }
         Assert.True(darker > 10, $"the neutral ring shows on the silver liquid ({darker} px)");
+        // just outside the white arc, inside the neutral one (0.7 px wider each side): the liquid under rgba(20,22,30, .5 al)
+        using var fine = new SKBitmap(new SKImageInfo(240, 136, SKColorType.Rgba8888, SKAlphaType.Premul));
+        using (var canvas = new SKCanvas(fine))
+        {
+            canvas.Clear(new SKColor(0xE7, 0xE9, 0xF1));
+            canvas.Scale(4);
+            BubbleBursts.DrawRings(canvas, [burst], 0.85, 1.05, 1);
+        }
+        var mid = ring.Start + (ring.Span - ring.Gap) / 2;
+        var at = ring.Radius + ring.Width / 2 + 0.45;
+        var px = fine.GetPixel((int)Math.Floor((30 + at * Math.Cos(mid)) * 4), (int)Math.Floor((17 + at * Math.Sin(mid)) * 4));
+        var alpha = Math.Floor(ring.Alpha * 0.5 * 1000 + 0.5) / 1000;
+        Assert.Equal(0xE7 * (1 - alpha) + 20 * alpha, px.Red, 4.0);
+        Assert.Equal(0xF1 * (1 - alpha) + 30 * alpha, px.Blue, 4.0);
         Assert.Null(BubbleBursts.Ring(burst, 0.85, 1 + BubbleBursts.Life + 1e-9)); // 0.19 s and it is gone
     }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // contact(): a popped bubble's rise ends there, it is not drawn again until its next rise
+    public void A_popped_bubble_is_gone_from_the_liquid() => headless.OnUiThread(() =>
+    {
+        var spec = LiquidSpec.For(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude));
+        var lanes = new BubbleLanes(11, 298, 34);
+        const double t = 4.2;
+        var (lane, now) = Enumerable.Range(0, lanes.Count).Select(i => (i, lanes.At(i, t))).First(p => p.Item2 is { } n && LiquidTrack.BubbleAt(n.Rise, 34, n.Progress).Opacity > 0.4);
+        var (centre, radius, _) = LiquidTrack.BubbleAt(now!.Value.Rise, 34, now.Value.Progress);
+        SKBitmap Draw(IReadOnlyCollection<(int, int)>? popped)
+        {
+            using var bitmap = new RenderTargetBitmap(new PixelSize(298, 34));
+            using (var context = bitmap.CreateDrawingContext())
+                LiquidTrack.Draw(context, new Size(298, 34), 298, t, spec, LiquidTrack.GradientFor(spec, 298, Avalonia.Styling.ThemeVariant.Dark), lanes, false,
+                    Avalonia.Styling.ThemeVariant.Dark, LiquidFlow.At(t, true), null, 0, null, popped);
+            using var stream = new MemoryStream(); bitmap.Save(stream, new PngBitmapEncoderOptions()); stream.Position = 0;
+            return SKBitmap.Decode(stream);
+        }
+        using var whole = Draw(null);
+        using var popped = Draw([(lane, now.Value.K)]);
+        using var other = Draw([(lane, now.Value.K + 1)]); // its next rise popped: this one still shows
+        int differ = 0, same = 0;
+        for (var y = (int)(centre.Y - radius); y <= (int)(centre.Y + radius); y++)
+            for (var x = (int)(centre.X - radius); x <= (int)(centre.X + radius); x++)
+            {
+                if (x < 0 || y < 0 || x >= 298 || y >= 34) continue;
+                if (whole.GetPixel(x, y) != popped.GetPixel(x, y)) differ++;
+                if (whole.GetPixel(x, y) == other.GetPixel(x, y)) same++;
+            }
+        Assert.True(differ > 0, $"bubble {lane} at {centre} is gone when popped");
+        Assert.True(same > 0 && differ > 0);
+    });
 
     [Fact]
     [Trait("Decision", "ED-252")] // strike-engine.js orbGeo: the exit is the first vertex at or past the knob's radius less half a pixel

@@ -964,8 +964,10 @@ public sealed class EffortSlider : Decorator
         else Signal.Read(null, 0, 0, time);
         LayoutTrack();
         var dark = ActualThemeVariant != ThemeVariant.Light;
-        var (size, perPx) = JewelOrb.RenderSize(ThumbSize, TopLevel.GetTopLevel(this)?.RenderScaling ?? 1);
+        var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+        var (size, perPx) = JewelOrb.RenderSize(ThumbSize, scaling);
         Orb.Frame(time, Signal.Charge * Material.FxCharge, Signal.Flare * Material.FxFlare, Signal.ExitAngle, reduce, size, perPx, dark, Uniforms);
+        Uniforms.Values[110] = JewelOrb.Supersampled(ThumbSize, scaling) ? 2 : 1;
         var along = FillColours();
         // the ring refracts the page's locked scene colours (jewel-knob.html --scenePane and --sceneEmpty)
         Uniforms.SetPage(ThumbSize, 0.26, shownX, Bounds.Width, TrackHeight,
