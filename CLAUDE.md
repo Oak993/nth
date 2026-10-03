@@ -21,7 +21,7 @@ authority and override this file. This file is the short index, not a substitute
 - Port workspace: `E:\Droppy\port`, branch `port/windows-exact-parity`. Record: `porting/baseline.json`.
 - Product identity on Windows: "Marrow"; install and data identity "Marrow Code"
   (`%LOCALAPPDATA%\Marrow Code`), so it never touches the owner's separate Electron app "Marrow".
-- Owner rulings in force: `porting/owner_decisions.md` (OD-0001 to OD-0011) and every `deviation` field
+- Owner rulings in force: every entry in `porting/owner_decisions.md` and every `deviation` field
   in the spec. They are the only permitted differences from the source.
 
 ## The rules that do not bend
@@ -83,10 +83,8 @@ from a reader report that carries findings. A hash-and-set script does not count
 
 ## Current gate
 
-See `porting/STATE.md` and `E:\Droppy\HANDOFF.md` section 7h. At B3 (AM-0003, 2026-09-26) Gate A is re-opened for the
-B2 to B3 delta: 346 files carried over byte-identical, 84 changed and 11 added files UNREAD until an evidence-bearing
-report is accepted by `ledger_apply.mjs`; Gate B is re-earned for every record citing a changed file. Implementation runs unit by unit (one
-Swift file per unit) under `porting/IMPLEMENTING.md`: tests first, adversarial review, then code.
+See `porting/STATE.md` (its top checkpoint is current). Implementation runs unit by unit under
+`porting/IMPLEMENTING.md`: tests first, adversarial review, then code.
 
 ## Implementation runs (how a unit agent is set up)
 
