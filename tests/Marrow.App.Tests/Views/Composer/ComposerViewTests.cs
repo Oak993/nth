@@ -2321,6 +2321,63 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         });
     }
 
+    // REVIEW (defects-priority, round 4). PR-COMPOSER-050's clause "Activating it reloads with force, ignoring the ten-minute freshness window" was proven only by
+    // a test tagged UI-COMPOSER-022 (B3_retry_enters_a_new_command_load_even_when_the_cached_commands_are_fresh): the mutant "Retry loads without force" survived every
+    // test tagged PR-COMPOSER-050, because the failing-retry tests above hold no fresh list, so a load that is not forced runs for them too. This one holds a list that
+    // is fresh and counts the launches of the CLI, the side effect the record names ("A forced reload launches the provider CLI to list commands").
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-050")] // App/Views/Composer/ComposerView.swift:247 PopoverItem("Retry loading commands") { Task { await loadCommands(force: true) } }; Services/Providers/ProviderRegistry.swift:840-845 (force asks again whatever the list's age)
+    [Trait("Req", "UI-COMPOSER-022")] // App/Views/Composer/ComposerView.swift:247
+    public void Activating_Retry_loading_commands_launches_the_CLI_to_list_again_although_the_commands_are_still_within_their_ten_minutes()
+    {
+        headless.OnUiThread(() =>
+        {
+            System.Threading.Tasks.Task.Run(() => Marrow.Core.Support.LoginEnvironment.Load()).GetAwaiter().GetResult();
+            using var h = new ThreadRuntimePart12Harness(ProviderKind.Claude);
+            Loaded(h, h.Runtime);
+            // The stand-in's recording is taken under its folder lock (see A_failing_retry_replaces_the_note_with_the_new_description).
+            var script = ProviderProbeStandIns.CopyFor("composer-retry-forces").SetExitCode(1).WaitForRelease();
+            script.Release();
+            var directory = h.Store.NewFolder("retry-forces");
+            var key = ProviderRegistry.CommandKey(ProviderKind.Claude, directory);
+            h.Main.OnMain(() =>
+            {
+                h.App.Settings.SetBinaryPath(script.ExecutablePath, ProviderKind.Claude);
+                SkipCatalogHandshake(h);
+                h.App.Providers.UpdateCommands(new ValueList<SlashCommand>([new() { Name = "cached", Detail = "Cached command" }]), ProviderKind.Claude, directory); // fetched just now
+            });
+            var view = Pill(h, h.Runtime, directory);
+
+            // The list is fresh: a load that is not forced is skipped, nothing is launched (ProviderRegistry.swift:845).
+            h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound);
+            Assert.Empty(script.CommandListings());
+            Assert.Empty(h.App.Providers.CommandErrors);
+
+            // A forced load that fails puts its error beside the fresh list: the state in which the Retry row shows. That is the first launch.
+            h.Main.Loop.Run(() => view.LoadCommands(force: true), AppModelHarness.Bound);
+            Assert.Single(script.CommandListings());
+            Assert.Equal("Claude's command discovery did not finish. Try again.", h.App.Providers.CommandErrors[key]);
+            h.Main.Loop.Run(() => view.LoadCommands(), AppModelHarness.Bound); // still fresh: skipped again, so only force gets past the window
+            Assert.Single(script.CommandListings());
+
+            h.Main.OnMain(() => Type(view, "/"));
+            Until(h, null, () => view.Suggestions.IsVisible);
+            var menu = h.Main.OnMain(() => view.SuggestionMenu());
+            Assert.Equal("Claude's command discovery did not finish. Try again.", Assert.IsType<TextBlock>(One<PopoverNote>(menu).Child).Text);
+            var retry = One<Button>(One<PopoverItem>(menu));
+            Assert.Equal("Retry loading commands", Avalonia.Automation.AutomationProperties.GetName(retry));
+            Assert.Single(script.CommandListings()); // opening the panel did not list again: the list is fresh
+
+            // Activating Retry lists again: a second launch, although the list is still within its ten minutes.
+            var loads = InFlightCommandLoads(h);
+            h.Main.OnMain(() => Click(retry));
+            h.Main.Loop.RunUntil(() => { Drain(); return script.CommandListings().Count == 2 && loads.Count == 0; }, TimeSpan.FromSeconds(30));
+            Assert.Equal(2, script.CommandListings().Count);
+            Assert.Equal("Claude's command discovery did not finish. Try again.", h.App.Providers.CommandErrors[key]); // the retry failed in the same way: the note is the new load's
+            Assert.Equal("cached", h.App.Providers.Commands[key][0].Name); // the list it did not replace stays
+        });
+    }
+
     [Fact]
     [Trait("Req", "PR-COMPOSER-051")] // App/Views/Composer/ComposerView.swift:264-273; Services/Providers/ProviderRegistry.swift:762-784 (a second caller awaits the first task), ED-033 (one key for two spellings of a folder)
     public void Two_composers_on_one_provider_and_folder_launch_the_CLI_once_and_two_spellings_of_the_folder_share_the_entry()

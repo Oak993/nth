@@ -276,6 +276,14 @@ public sealed class MarkdownVeils
     private readonly Dictionary<string, TextPlace> text = new(StringComparer.Ordinal);
     private readonly Dictionary<string, LinkTextVeil> links = new(StringComparer.Ordinal);
 
+    // PORT-ONLY (UI-THEME-047, OD-0076). The block places of the markdown views this keeps identity for, and when each arrived: null for a block that was on screen
+    // when its tree first attached (the baseline, StreamVeil.swift:18-19), else the time a flush opened it. SwiftUI inserts a block that a flush opens
+    // (MarkdownView.swift:86-97, `ForEach(..., id: \.offset)` with `.transition(softAppear)`), and the insertion runs on through the flushes after it; the port builds the
+    // whole tree again for every flush, so the arrival is kept here and each new tree continues it (MarkdownView.VeiledBlocks).
+    private readonly Dictionary<string, DateTimeOffset?> arrivals = new(StringComparer.Ordinal);
+    // The paths of the markdown views whose tree has been built before: a block that appears under one of them is an insertion, under any other the baseline.
+    private readonly HashSet<string> builtTrees = new(StringComparer.Ordinal);
+
     /// <summary>The scope of the whole tree; the builders extend it place by place.</summary>
     public MarkdownVeilScope Root => new(this, "");
 
@@ -300,6 +308,8 @@ public sealed class MarkdownVeils
     {
         foreach (var place in text.Values) place.Veil.Reset();
         foreach (var veil in links.Values) veil.Reset();
+        arrivals.Clear(); // what is on screen when the row comes back is the baseline again: nothing arrives
+        builtTrees.Clear();
     }
 
     /// <summary>
@@ -321,6 +331,9 @@ public sealed class MarkdownVeils
             links[place].Reset();
             links.Remove(place);
         }
+
+        foreach (var place in arrivals.Keys.Where(place => IsUnder(place, path)).ToList()) arrivals.Remove(place);
+        builtTrees.RemoveWhere(tree => IsUnder(tree, path));
     }
 
     // The root's path is "", the child named n of a place p is p + "/" + n: a place is under a path when it is that path or goes on with a "/".
@@ -356,11 +369,58 @@ public sealed class MarkdownVeils
             if (IsUnder(place, path) && veil.IsFading(at)) Consider(veil.SettlesAt);
         }
 
+        // A block that arrived by its insertion is still on its way in until the soft appear has run (Chrome.swift:958-961).
+        foreach (var (place, arrived) in arrivals)
+        {
+            if (IsUnder(place, path) && arrived is { } started && started + ArrivalLength > at) Consider(started + ArrivalLength);
+        }
+
         return latest;
+    }
+
+    /// <summary>PORT-ONLY (UI-THEME-047). How long a block takes to arrive: the soft appear every block comes in with (MarkdownView.swift:92, Chrome.swift:949-961).</summary>
+    internal static TimeSpan ArrivalLength { get; } = TimeSpan.FromSeconds(Animation.SoftAppear.Duration);
+
+    /// <summary>PORT-ONLY (UI-THEME-047). Whether the markdown view at <paramref name="path"/> has had its tree built before: its next new block is an insertion.</summary>
+    internal bool TreeKnown(string path) => builtTrees.Contains(path);
+
+    /// <summary>
+    /// PORT-ONLY (UI-THEME-047). Whether the block at <paramref name="place"/> arrives now, and how far into its arrival it is: null when it is not arriving (it was
+    /// on screen when its tree attached, or it has arrived already), else the time since a flush opened it (zero the first time it is asked, so the soft appear
+    /// starts from nothing, and later the same arrival carried on by the next tree that is built for the next flush).
+    /// </summary>
+    internal TimeSpan? Arrival(string place, bool treeKnown)
+    {
+        if (arrivals.TryGetValue(place, out var started))
+        {
+            if (started is not { } at) return null;
+            var elapsed = SwiftDate.Now - at;
+            return elapsed < ArrivalLength ? elapsed < TimeSpan.Zero ? TimeSpan.Zero : elapsed : null;
+        }
+
+        arrivals[place] = treeKnown ? SwiftDate.Now : null;
+        return treeKnown ? TimeSpan.Zero : null;
+    }
+
+    /// <summary>
+    /// PORT-ONLY (UI-THEME-047). The tree of the markdown view at <paramref name="path"/> was built with <paramref name="blocks"/> blocks: it is known from now on, and
+    /// a block that is gone (the parser re-deriving the reply shorter) arrives afresh if it comes back, as a view that left a ForEach and returned would.
+    /// </summary>
+    internal void TreeBuilt(string path, int blocks)
+    {
+        builtTrees.Add(path);
+        var prefix = path + "/b";
+        foreach (var place in arrivals.Keys.Where(place => place.StartsWith(prefix, StringComparison.Ordinal)).ToList())
+        {
+            if (int.TryParse(place.AsSpan(prefix.Length), out var index) && index >= blocks) arrivals.Remove(place);
+        }
     }
 
     /// <summary>PORT-ONLY, observed by the tests: how many places hold a veil (each with its owner view).</summary>
     public int Places => text.Count + links.Count;
+
+    /// <summary>PORT-ONLY, observed by the tests: how many block places hold a record of their arrival, and how many trees are known to have been built before.</summary>
+    public int Arrivals => arrivals.Count + builtTrees.Count;
 
     /// <summary>PORT-ONLY, observed by the tests: whether any place still keeps a copy of its text or a chunk in flight.</summary>
     public bool HoldsText => text.Values.Any(place => !place.Veil.IsEmpty) || links.Values.Any(veil => !veil.IsEmpty);
@@ -396,6 +456,15 @@ public sealed class MarkdownVeilScope
 
     /// <summary>See <see cref="MarkdownVeils.FadingUntil(string, DateTimeOffset)"/>.</summary>
     internal DateTimeOffset? FadingUntil(DateTimeOffset at) => store.FadingUntil(path, at);
+
+    /// <summary>See <see cref="MarkdownVeils.TreeKnown(string)"/>.</summary>
+    internal bool TreeKnown => store.TreeKnown(path);
+
+    /// <summary>See <see cref="MarkdownVeils.Arrival(string, bool)"/>.</summary>
+    internal TimeSpan? Arrival(bool treeKnown) => store.Arrival(path, treeKnown);
+
+    /// <summary>See <see cref="MarkdownVeils.TreeBuilt(string, int)"/>.</summary>
+    internal void TreeBuilt(int blocks) => store.TreeBuilt(path, blocks);
 
     internal LinkTextVeil Link() => store.Link(path);
 }
@@ -453,7 +522,11 @@ public sealed class VeiledText : Decorator
     // Avalonia TextBlock does not unless asked: without Wrap a long message ran on one line and clipped at the bubble's
     // edge (the user bubble, MarkdownView.swift:1129-1133, and every link-free inline paragraph). The code block hosts
     // this in a horizontal ScrollView with fixedSize (:1223-1229), where the width offered is unbounded, so it stays on its lines.
-    private readonly TextBlock textBlock = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+    // A SelectableTextBlock, not a TextBlock (PR-THEME-126, UI-UPDATE-032, UI-SETTINGS-060): every place that draws a VeiledText in the Swift wears
+    // `.modifier(MarkdownBlockSelection())`, which is `.textSelection(.enabled)` (MarkdownView.swift:318, :1131, :1229, :854-861; the licences
+    // popover's documents also :1033), and an Avalonia TextBlock cannot be selected or copied. The selection highlight is the system's selection colour,
+    // as ParagraphTextPresenter paints it (SelectableTextBlock's own brush is null with no Fluent theme loaded).
+    private readonly SelectableTextBlock textBlock = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
     private readonly bool hasSegments;
     private bool isRedrawing;
     private bool wasFading;
@@ -490,6 +563,7 @@ public sealed class VeiledText : Decorator
     // StreamVeil.swift:273-279.
     private void Build()
     {
+        MarkdownSelection.Painted(textBlock); // the highlight is made when the text is on screen
         Child = textBlock;
         PropertyChanged += OnEnvironmentChanged;
         this.Track(

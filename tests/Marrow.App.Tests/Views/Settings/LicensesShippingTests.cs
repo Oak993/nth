@@ -179,9 +179,9 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
     }, nativePopup: true);
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1027-1033 (VStack(spacing: 8): the title at .system(.body, weight: .semibold) over the document in Chrome.secondaryText at 12 pt, text selection enabled)
-    [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1027-1033
-    public void Each_block_is_a_13_point_semibold_title_8_points_above_its_document_in_the_secondary_colour_with_selectable_text() => With(() => new LicensesRow(), (view, _, _, window) =>
+    [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1027-1032 (VStack(spacing: 8): the title at .system(.body, weight: .semibold) over the document in Chrome.secondaryText at 12 pt); that the text selects and copies is LicensesSelectionTests
+    [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1027-1032
+    public void Each_block_is_a_13_point_semibold_title_8_points_above_its_document_in_the_secondary_colour() => With(() => new LicensesRow(), (view, _, _, window) =>
     {
         var presenter = new RecordingPresenter(); using var presentation = Presentation.Presenter.Override(presenter);
         Click(window, Nodes<Button>(view).Single(button => Text(button).Contains("Show")));
@@ -199,7 +199,6 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
             var body = Assert.IsType<MarkdownView>(block.Children[1]);
             Assert.Equal(12, MarkdownView.GetMarkdownPointSize(body)); // :1031 .environment(\.markdownPointSize, 12)
             Ink(body, Avalonia.Controls.Documents.TextElement.GetForeground(body), Marrow.UI.Chrome.Chrome.SecondaryText); // :1032 .foregroundStyle(Chrome.secondaryText)
-            Assert.True(MarkdownView.GetMarkdownBlockSelection(body)); // :1033 .textSelection(.enabled)
         }
     });
 

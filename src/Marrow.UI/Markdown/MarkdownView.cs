@@ -94,14 +94,15 @@ public sealed class MarkdownView : Decorator
         var stable = parse.Stable;
         var proseRuns = GetMarkdownProseRuns(this); // :71 @Environment(\.markdownProseRuns)
         Control? root = null;
-        if (!isStreaming && proseRuns && veils is { HoldsText: true })
+        if (!isStreaming && proseRuns && veils is { HoldsText: true } or { TreeKnown: true })
         {
             // PORT-ONLY, owner-ruled (OD-0076, UI-THEME-047): the reply has just stopped streaming on screen. The Swift draws it as prose runs at once
             // (:71-83), a different view, so the words still dissolving jump to the full colour and words that arrive with the completion
             // (ThreadRuntime.swift:3248-3265) never dissolve: a cut, and "a token that popped in whole read as a glitch" (StreamVeil.swift:4-8). The
             // reply is drawn as its veiled blocks a little longer instead, at the same places, still veiled so the last batch registers as a chunk;
             // the paragraphs feed their veils as they are built (the inherited \.markdownVeiled reaches them here), so whether anything dissolves
-            // is known now. When nothing does (and no link paragraph, which feeds its veil only once it is in the tree, may still take a last
+            // is known now. A block that the last batch OPENS arrives with the soft appear all the same (MarkdownView.swift:92), so it is on its way in for as long
+            // as that takes. When nothing does (and no link paragraph, which feeds its veil only once it is in the tree, may still take a last
             // batch), the prose runs are drawn at once, as before.
             var veiled = VeiledBlocks(blocks, stable, isStreaming: false, veils);
             StreamVeil.SetMarkdownVeiled(veiled, true);
@@ -157,18 +158,42 @@ public sealed class MarkdownView : Decorator
     private static StackPanel VeiledBlocks(IReadOnlyList<MarkdownBlock> blocks, int stable, bool isStreaming, MarkdownVeilScope? veils)
     {
         var last = blocks.Count - 1;
+        var known = veils?.TreeKnown ?? false; // PORT-ONLY (UI-THEME-047): a tree that has been built before, so a block that is new in it is an insertion
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 12 }; // :86
         for (var index = 0; index < blocks.Count; index++) // :87
         {
             var block = blocks[index];
-            var view = new MarkdownBlockView(block, settled: index < stable, veils: veils?.Child("b" + index)); // :88
+            var place = veils?.Child("b" + index);
+            var view = new MarkdownBlockView(block, settled: index < stable, veils: place); // :88
             SetMarkdownStreaming(view, isStreaming && index == last); // :89-91
-            view.Transition(Transition(block)); // :92
-            stack.Children.Add(view);
+            if (place?.Arrival(known) is { } elapsed)
+            {
+                // PORT-ONLY (UI-THEME-047, OD-0076): a block a flush opens is an insertion in the Swift's ForEach (:87, id: \.offset), and :92's soft appear runs on
+                // it (opacity and a 4 point offset, 0.32 s); it runs on through the flushes after, which each build the tree again, from where it was.
+                view.Transition(Arrival(block));
+                SwiftTransition.Insert(stack, stack.Children.Count, view, elapsed);
+            }
+            else
+            {
+                view.Transition(Transition(block)); // :92
+                stack.Children.Add(view);
+            }
         }
+        veils?.TreeBuilt(blocks.Count);
         stack.HorizontalAlignment = HorizontalAlignment.Stretch; // :97 frame(maxWidth: .infinity, alignment: .leading)
         return stack;
     }
+
+    // PORT-ONLY (UI-THEME-047). :51-56's transition as a block ARRIVES, which the soft appear of Chrome.swift:949-955 does: opacity 0 -> 1 with a 4 point offset -> 0
+    // over Animation.softAppear. Chrome.SoftAppear's modifier carries a Bool alone, which the transition mechanics apply at its identity at once (SwiftAnimation.cs
+    // Gather, the reason ThreadTimeline.RowTransition and HydraPanel give), so the insertion is decomposed into the modifier's layer effects (Chrome.swift:940-944).
+    // The removal half is :51-56's own.
+    private static SwiftTransition Arrival(MarkdownBlock @for) =>
+        SwiftTransition.Asymmetric(
+            insertion: SwiftTransition.Opacity.Combined(SwiftTransition.Offset(y: 4)).Animation(Animation.SoftAppear),
+            removal: @for is MarkdownBlock.Code { Language: { } language } && IsDelegationInfo(SwiftString.Lowercased(language))
+                ? SwiftTransition.Identity
+                : SwiftTransition.Opacity.Animation(Animation.EaseOut(duration: 0.12)));
 
     // PORT-ONLY (OD-0076, UI-THEME-047): the places of a reply that stopped streaming while words were still dissolving (or with a link paragraph that may
     // take a last batch once it is in the tree), the finished reply's blocks, and the shared veil clock watched until they settle.
@@ -564,6 +589,17 @@ public sealed class MarkdownView : Decorator
 
     public static void SetMarkdownBlockSelection(Control control, bool value) => control.SetValue(MarkdownBlockSelectionProperty, value);
 
+    // PORT-ONLY (PR-THEME-126, UI-UPDATE-032): SwiftUI's own `.textSelection(.enabled)` as an environment value an ANCESTOR of the markdown view sets (the licences popover's
+    // documents, SettingsView.swift:1033). SwiftUI applies it to every Text below, which includes the caption of a code block (MarkdownView.swift:1286-1289), a Text that
+    // MarkdownView's own MarkdownBlockSelection (:1131, :1229, :1308) does not cover; in a chat message nothing above the view sets it and the caption is not selectable.
+    public static readonly AttachedProperty<bool> TextSelectionEnabledProperty =
+        AvaloniaProperty.RegisterAttached<Control, bool>(
+            "TextSelectionEnabled", typeof(MarkdownView), false, inherits: true);
+
+    public static bool GetTextSelectionEnabled(Control control) => control.GetValue(TextSelectionEnabledProperty);
+
+    public static void SetTextSelectionEnabled(Control control, bool value) => control.SetValue(TextSelectionEnabledProperty, value);
+
     // :883-886 var markdownProseRuns: Bool
     public static readonly AttachedProperty<bool> MarkdownProseRunsProperty =
         AvaloniaProperty.RegisterAttached<Control, bool>(
@@ -646,7 +682,7 @@ public sealed class MarkdownBlockView : Decorator
                 if (!streaming && listDepth == 0 && MentionsTarget(text)) return new InlineText(text, hasLinks: true, veils: veils); // :314
                 if (listDepth == 0 && MentionSegments(text) is { } segments) // :315-319
                 {
-                    var veiled = new VeiledText(segments, veils); // .modifier(MarkdownBlockSelection()) is identity (:1010-1012)
+                    var veiled = new VeiledText(segments, veils); // .modifier(MarkdownBlockSelection()) (:318): VeiledText draws a SelectableTextBlock, see MarkdownBlockSelection.Body
                     veiled.HorizontalAlignment = HorizontalAlignment.Stretch; // :318 frame(maxWidth: .infinity, alignment: .leading)
                     return veiled;
                 }
@@ -1401,10 +1437,25 @@ public sealed record MarkdownBlockSelection
     // :892-898 func body(content: Content) -> some View. PR-THEME-126: the environment's value is always true
     // (dead_code.md entry 30: markdownBlockSelection has no writer, so the else branch -- .textSelection(.disabled)
     // -- is dead and, per ED-061, is not implemented). Avalonia has no per-subtree "enable text selection"
-    // modifier the way SwiftUI's `.textSelection` is: the content this wraps (InlineText, VeiledText, the code
-    // and table text) renders its own selectable text directly, so the modifier's one live effect is already
-    // true of its content, and this is the identity transform.
+    // modifier the way SwiftUI's `.textSelection` is, so this is the identity transform and the selection is the
+    // content's own: VeiledText (which InlineText's paragraphs and headings, the mention paragraphs and the code
+    // lines draw through) and the table's cells draw their words in a SelectableTextBlock painted with the
+    // system's selection colour. That is proven by dragging and copying in VeiledTextSelectionTests; before
+    // the defects-priority review this comment said the content "renders its own selectable text" while it drew a
+    // plain TextBlock, which cannot be selected.
     public Control Body(Control content) => content;
+}
+
+/// <summary>PORT-ONLY (PR-THEME-126). The selection highlight of the selectable text a markdown view draws (VeiledText, a table cell, a code block's caption): the system's
+/// selection colour, as ParagraphTextPresenter paints it (SelectableTextBlock's own brush is null with no Fluent theme loaded). It follows the system accent, which needs a running
+/// application, so it is made when the text is on screen, the only time a selection is seen (a view built outside an application, in a unit test of the control tree, has none).</summary>
+internal static class MarkdownSelection
+{
+    public static T Painted<T>(T text) where T : SelectableTextBlock
+    {
+        text.AttachedToVisualTree += (_, _) => text.SelectionBrush ??= SwiftColor.SelectedTextBackgroundColor.Brush(text);
+        return text;
+    }
 }
 
 /// <summary>:901-1099 <c>@MainActor enum FaviconCache</c>.</summary>
@@ -1883,7 +1934,24 @@ public sealed class CodeBlock : Decorator
         Child = background;
     }
 
-    private static void Rebuild(StackPanel stack, string? language, string code, BlockHover hover, ViewState state, MarkdownVeilScope? veils)
+    // PORT-ONLY (TextSelectionEnabledProperty): the caption of the header as it is now, so a change of the inherited value (it arrives once the block has a parent) reaches it.
+    private SelectableTextBlock? caption;
+
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (change.Property == MarkdownView.TextSelectionEnabledProperty && caption is { } text) SetCaptionSelectable(text, MarkdownView.GetTextSelectionEnabled(this));
+    }
+
+    // Selectable only where an ancestor enables text selection; otherwise nothing of a plain caption: no pointer, no focus, no selection left over from when it was.
+    private static void SetCaptionSelectable(SelectableTextBlock text, bool enabled)
+    {
+        text.IsHitTestVisible = enabled;
+        text.Focusable = enabled;
+        if (!enabled) text.ClearSelection();
+    }
+
+    private void Rebuild(StackPanel stack, string? language, string code, BlockHover hover, ViewState state, MarkdownVeilScope? veils)
     {
         stack.Children.Clear();
         var newlines = Encoding.UTF8.GetBytes(code).Count(b => b == 0x0A); // :1281 code.utf8.count { $0 == 0x0A }
@@ -1892,7 +1960,11 @@ public sealed class CodeBlock : Decorator
         var visible = truncated ? Head(code, CollapsedLineLimit) : code; // :1283
 
         var header = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*,Auto") }; // :1286 HStack { ... Spacer() ... }
-        var langText = new TextBlock { Text = language ?? "code" }; // :1287 Text(language ?? "code")
+        // :1287 Text(language ?? "code"). A SelectableTextBlock that selects only where an ancestor of the markdown view enables text selection (TextSelectionEnabledProperty:
+        // the licences popover's documents, SettingsView.swift:1033, whose environment reaches this Text); everywhere else it is the plain caption it is in a chat message.
+        var langText = MarkdownSelection.Painted(new SelectableTextBlock { Text = language ?? "code" });
+        SetCaptionSelectable(langText, MarkdownView.GetTextSelectionEnabled(this));
+        caption = langText;
         ChatFont.Chat(SwiftFont.TextStyle.Caption).Apply(langText); // :1288
         langText.Foreground = Chrome.Chrome.SecondaryText.Brush(langText); // :1289
         Grid.SetColumn(langText, 0);
@@ -1994,7 +2066,7 @@ public sealed class TableBlock : Decorator
         for (var row = 0; row <= cells.Count; row++) grid.RowDefinitions.Add(new RowDefinition(GridLength.Auto));
         for (var column = 0; column < head.Count; column++) // :1364-1368 GridRow (header)
         {
-            var text = new TextBlock { Text = head[column].PlainText, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, cells.Count > 0 ? 8 : 0) }; // :1292 verticalSpacing 8 sits only between rows
+            var text = Selectable(new SelectableTextBlock { Text = head[column].PlainText, FontWeight = FontWeight.SemiBold, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, cells.Count > 0 ? 8 : 0) }); // :1292 verticalSpacing 8 sits only between rows
             Grid.SetRow(text, 0);
             Grid.SetColumn(text, column);
             grid.Children.Add(text);
@@ -2004,7 +2076,7 @@ public sealed class TableBlock : Decorator
             for (var column = 0; column < head.Count; column++)
             {
                 var value = column < cells[row].Count ? cells[row][column].PlainText : ""; // :1373
-                var text = new TextBlock { Text = value, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, row == cells.Count - 1 ? 0 : 8) };
+                var text = Selectable(new SelectableTextBlock { Text = value, Margin = new Thickness(0, 0, column == head.Count - 1 ? 0 : 18, row == cells.Count - 1 ? 0 : 8) });
                 text.Foreground = SwiftColor.LabelColor.Opacity(0.9).Brush(text); // :1374 .foregroundStyle(.primary.opacity(0.9))
                 Grid.SetRow(text, row + 1);
                 Grid.SetColumn(text, column);
@@ -2020,6 +2092,10 @@ public sealed class TableBlock : Decorator
             host.Children.Add(button);
         }
     }
+
+    // B3 :1308 `.modifier(MarkdownBlockSelection())` on the grid (PR-THEME-126): each cell is a SelectableTextBlock (a plain TextBlock cannot be selected or
+    // copied) painted with the system's selection colour, as VeiledText's and ParagraphTextPresenter's are.
+    private static SelectableTextBlock Selectable(SelectableTextBlock cell) => MarkdownSelection.Painted(cell);
 
     // Shared with CopyButton/CodeBlock's "Show all"/"Show less" links (:1305-1311, :1387-1391): a caption-sized,
     // accent-coloured plain-text button, the same ENGINEERING DECISION AttachmentPreview.LinkButton already

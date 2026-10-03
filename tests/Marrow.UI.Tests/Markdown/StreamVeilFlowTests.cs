@@ -52,6 +52,8 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
     {
         foreach (var name in new[] { "link", "deadline" })
             typeof(VeilClock).GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(VeilClock.Shared, null);
+        // The time of the clock's last tick belongs to the test that ticked it (see MarkdownBlockArrivalTests.FreshVeilClock).
+        typeof(VeilClock).GetField("now", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(VeilClock.Shared, DateTimeOffset.MinValue);
     }
 
     private static void Tick(TestRuntime runtime, ManualFrameSource frames, double milliseconds)

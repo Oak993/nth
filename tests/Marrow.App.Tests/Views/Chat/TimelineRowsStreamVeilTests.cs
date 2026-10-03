@@ -50,6 +50,9 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
     {
         foreach (var name in new[] { "link", "deadline" })
             typeof(VeilClock).GetField(name, System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(VeilClock.Shared, null);
+        // The time of the clock's last tick belongs to the test that ticked it: every test's manual time starts again at the same instant, and a tick that lands on the
+        // very instant a previous test left (a tick is an assignment, which tells nobody when the value is equal) would tell no paragraph and no closing view.
+        typeof(VeilClock).GetField("now", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)!.SetValue(VeilClock.Shared, DateTimeOffset.MinValue);
     }
 
     private static void Tick(ThreadRuntimePart12Harness h, ManualFrameSource frames, Avalonia.Controls.Window window, double milliseconds)
@@ -612,6 +615,129 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
             Tick(h, frames, window, 1000);
             Assert.Empty(Runs(Narration()));
             Assert.Equal("now the build runs", ProseText(Narration()));
+            Assert.Equal(0, frames.Pending);
+        }
+        finally
+        {
+            h.Main.OnMain(() => Close(window));
+        }
+    });
+
+    // The blocks of a reply: the children of the veiled blocks' stack of the row's MarkdownView.
+    private static Control[] Blocks(MarkdownView view) => Assert.IsType<StackPanel>(view.Child).Children.ToArray();
+
+    private static double Progress(double milliseconds) => Animation.SoftAppear.Progress(milliseconds / 1000);
+
+    // MarkdownView.swift:86-97, :92 (a block that a flush opens is an insertion, with the soft appear: Chrome.swift:949-961); StreamVeil.swift:51-55 (a veil's first call adopts the
+    // text, so a block that is new is not a chunk: what dissolves it in is its arrival); OD-0076 (owner ruling, 2026-10-02: nothing on screen changes by a cut). Round 4 of the
+    // review of UI-THEME-047: a batch that opened a block put it on screen whole, mid-stream and at the end of the stream (MarkdownBlockArrivalTests is the same through the host
+    // path of the rows; these are the real rows).
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // MarkdownView.swift:86-97, :92; Chrome.swift:937-961; StreamVeil.swift:51-55; OD-0076
+    public void A_batch_that_opens_a_new_block_dissolves_it_in_through_the_real_row_mid_stream_and_at_the_end_of_the_stream() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        FreshVeilClock();
+        TimelineEntry entry = null!;
+        AssistantMessageRow row = null!;
+        Avalonia.Controls.Window window = null!;
+        h.Main.OnMain(() =>
+        {
+            entry = Streaming("Hello");
+            row = new AssistantMessageRow(entry, null, h.Runtime);
+            window = Show(row);
+        });
+        MarkdownView Reply() => Assert.Single(row.GetVisualDescendants().OfType<MarkdownView>());
+        try
+        {
+            // What is on screen when the row attaches is the baseline.
+            Assert.Equal(1, Assert.Single(Blocks(Reply())).Opacity);
+            Assert.Equal(0, frames.Pending);
+
+            // Mid-stream: a flush that opens a second block. It arrives at nothing and 4 points low and dissolves in, frame by frame; the first block stays whole.
+            h.Main.OnMain(() => { Flush(entry, "Hello there\n\nWorld begins"); Settle(window); });
+            var blocks = Blocks(Reply());
+            Assert.Equal(2, blocks.Length);
+            Assert.Equal(1, blocks[0].Opacity);
+            Assert.Equal(0, blocks[1].Opacity, 0.001);
+            Assert.Equal(4, Assert.IsType<Avalonia.Media.TranslateTransform>(blocks[1].RenderTransform).Y, 0.001);
+            for (var at = 20; at <= 200; at += 20)
+            {
+                Tick(h, frames, window, 20);
+                Assert.Equal(Progress(at), Blocks(Reply())[1].Opacity, 0.01);
+            }
+
+            // The next flush builds the reply's tree again: the block carries on from where it was (0.2 s in), it neither starts again nor finishes at once.
+            h.Main.OnMain(() => { Flush(entry, "Hello there\n\nWorld begins now"); Settle(window); });
+            Assert.Equal(Progress(200), Blocks(Reply())[1].Opacity, 0.01);
+            Tick(h, frames, window, 100);
+            Assert.Equal(Progress(300), Blocks(Reply())[1].Opacity, 0.01);
+            Tick(h, frames, window, 600); // everything has settled: a quiet beat
+            Assert.All(Blocks(Reply()), block => Assert.Equal(1, block.Opacity));
+            Assert.Equal(0, frames.Pending);
+
+            // At the end of the stream: the last batch opens a third block and ends the reply in one change (ThreadRuntime.swift:3248-3265). The reply is not drawn as prose
+            // runs until that block has arrived.
+            h.Main.OnMain(() => { Flush(entry, "Hello there\n\nWorld begins now\n\nThe end", streaming: false); Settle(window); });
+            Assert.Empty(row.GetVisualDescendants().OfType<ProseRunView>());
+            var atEnd = Blocks(Reply());
+            Assert.Equal(3, atEnd.Length);
+            Assert.Equal(1, atEnd[1].Opacity);
+            Assert.Equal(0, atEnd[2].Opacity, 0.001);
+            Tick(h, frames, window, 100);
+            Assert.Equal(Progress(100), Blocks(Reply())[2].Opacity, 0.01);
+            Assert.Empty(row.GetVisualDescendants().OfType<ProseRunView>());
+
+            Tick(h, frames, window, 400);
+            Assert.Contains("The end", Assert.Single(row.GetVisualDescendants().OfType<ParagraphTextPresenter>()).Text.String, StringComparison.Ordinal);
+            Assert.Equal(0, row.Veils.Places);
+            Assert.Equal(0, row.Veils.Arrivals);
+            Assert.False(row.Veils.HoldsText);
+            Assert.Equal(0, frames.Pending);
+        }
+        finally
+        {
+            h.Main.OnMain(() => Close(window));
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // TimelineRows.swift:1546-1553 (the narration is a MarkdownView of the streaming entry); MarkdownView.swift:86-97, :92; OD-0076
+    public void A_batch_that_opens_a_new_block_of_the_narration_dissolves_it_in() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        FreshVeilClock();
+        TimelineEntry said = null!;
+        WorkSteps steps = null!;
+        Avalonia.Controls.Window window = null!;
+        h.Main.OnMain(() =>
+        {
+            said = Streaming("now the build");
+            steps = new WorkSteps(new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "Read a")), said, ToolEntry(Call(ToolCall.Kind.Command, "make"))]), h.Runtime, Binding<bool>.Constant(true));
+            window = Show(steps);
+        });
+        MarkdownView Narration() => Assert.Single(Mounted<MarkdownView>(steps));
+        try
+        {
+            Assert.Equal(1, Assert.Single(Blocks(Narration())).Opacity);
+            h.Main.OnMain(() => { Flush(said, "now the build\n\nthen the tests"); Settle(window); });
+            var blocks = Blocks(Narration());
+            Assert.Equal(2, blocks.Length);
+            Assert.Equal(1, blocks[0].Opacity);
+            Assert.Equal(0, blocks[1].Opacity, 0.001);
+            Tick(h, frames, window, 100);
+            Assert.Equal(Progress(100), Blocks(Narration())[1].Opacity, 0.01);
+
+            h.Main.OnMain(() => { Flush(said, "now the build\n\nthen the tests", streaming: false); Settle(window); });
+            Assert.Equal(Progress(100), Blocks(Narration())[1].Opacity, 0.01); // the end of the stream does not cut it short
+            Tick(h, frames, window, 1000);
+            var prose = ProseText(Narration());
+            Assert.Contains("now the build", prose, StringComparison.Ordinal);
+            Assert.Contains("then the tests", prose, StringComparison.Ordinal);
             Assert.Equal(0, frames.Pending);
         }
         finally

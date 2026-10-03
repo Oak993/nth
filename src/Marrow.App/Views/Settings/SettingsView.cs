@@ -921,7 +921,7 @@ internal sealed class LicensesRow : Decorator
             var stack = new StackPanel { Spacing = 18, Margin = new Thickness(18) };
             foreach (var file in files)
             {
-                var markdown = new MarkdownView(Text(file.Resource)); MarkdownView.SetMarkdownPointSize(markdown, 12); Avalonia.Controls.Documents.TextElement.SetForeground(markdown, Chrome.SecondaryText.Brush(this));
+                var markdown = new MarkdownView(Text(file.Resource)); MarkdownView.SetMarkdownPointSize(markdown, 12); Avalonia.Controls.Documents.TextElement.SetForeground(markdown, Chrome.SecondaryText.Brush(this)); MarkdownView.SetTextSelectionEnabled(markdown, true); /* :1033 .textSelection(.enabled): the environment reaches every Text of the document, a code block's caption included */
                 stack.Children.Add(new StackPanel { Spacing = 8, Children = { new TextBlock { Text = file.Title }.Font(SwiftFont.System(13, SwiftFont.Weight.Semibold)), markdown } });
             }
             return new ScrollViewer { Width = 480, Height = 440, Content = stack, HorizontalContentAlignment = HorizontalAlignment.Left }.PresentedChrome(); // :1043

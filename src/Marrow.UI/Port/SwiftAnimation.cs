@@ -105,7 +105,10 @@ public sealed record SwiftTransition
         return child;
     }
 
-    public static void Insert(Panel panel, int index, Control child)
+    // `elapsed` is PORT-ONLY (UI-THEME-047): how far into its arrival the child already is. SwiftUI keeps a view's insertion running while the
+    // rest of the tree updates around it; a tree that is built again for every flush (a streaming reply's markdown) puts a new view in the place of the one
+    // whose arrival is part way, which then carries on from here instead of starting again or finishing at once. Zero is an insertion that starts now.
+    public static void Insert(Panel panel, int index, Control child, TimeSpan elapsed = default)
     {
         // A view with no `.transition(_:)` uses SwiftUI's default `.opacity`: documented SwiftUI behaviour, UNVERIFIED
         // under OD-0001 as ED-092 records for the other documented defaults.
@@ -127,8 +130,13 @@ public sealed record SwiftTransition
             state.Present(child, 1, inserting: true);
             return;
         }
-        state.Present(child, 0, inserting: true);
-        state.Run(animation, (p, _) => state.Present(child, p, inserting: true));
+        if (elapsed > TimeSpan.Zero && elapsed.Ticks + TimeSpan.TicksPerMillisecond >= SwiftTask.Seconds(animation.Duration).Ticks)
+        {
+            state.Present(child, 1, inserting: true); // ED-117 (2): complete 1 ms early at most
+            return;
+        }
+        state.Present(child, elapsed > TimeSpan.Zero ? animation.Progress(elapsed.TotalSeconds) : 0, inserting: true);
+        state.Run(animation, (p, _) => state.Present(child, p, inserting: true), elapsed);
     }
 
     /// <summary>
@@ -391,11 +399,11 @@ public sealed record SwiftTransition
             callback = null;
         }
 
-        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply)
+        public void Run(Marrow.UI.Port.Animation animation, Action<double, bool> apply, TimeSpan elapsed = default)
         {
             Stop();
             source = FrameClock.Source.Current;
-            var start = SwiftClock.Now;
+            var start = SwiftClock.Now - elapsed;
             Action<TimeSpan>? frame = null;
             frame = _ =>
             {
