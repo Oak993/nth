@@ -401,7 +401,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     [Trait("Req", "PR-COMPOSER-106")] // App/Views/Composer/EffortSlider.swift:59-103
     [Trait("Req", "PR-COMPOSER-107")] // App/Views/Composer/EffortSlider.swift:82-103,142-149
     [Trait("Req", "PR-COMPOSER-108")] // App/Views/Composer/EffortSlider.swift:108-117
-    [Trait("Req", "UI-COMPOSER-012")] // App/Views/Composer/EffortSlider.swift:59-123
+    [Trait("Rule", "R-TEST-4")] // partial: UI-COMPOSER-012 (blocked: its text says the popover hangs below the chip, the source and the video put it above; see ED-NEW-effortslider (6)); this test proves one part of it // App/Views/Composer/EffortSlider.swift:59-123
     [InlineData(false)]
     [InlineData(true)]
     public void Chip_keeps_full_help_in_compact_mode_and_locks_only_the_full_chip(bool compact)
@@ -689,7 +689,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-COMPOSER-118")] // App/Views/Composer/EffortSlider.swift:558,653-655
-    [Trait("Req", "UI-COMPOSER-030")] // App/Views/Composer/EffortSlider.swift:558-655
+    [Trait("Rule", "R-TEST-4")] // partial: UI-COMPOSER-030 (blocked: placement and popover chrome need a real window; see ED-NEW-effortslider (6)); this test proves the card geometry // App/Views/Composer/EffortSlider.swift:558-655
     [Trait("Req", "PR-COMPOSER-114")] // App/Views/Composer/EffortSlider.swift:601-617
     [Trait("Req", "UI-COMPOSER-032")] // App/Views/Composer/EffortSlider.swift:601-617
     public void Card_has_source_padding_spacing_and_model_subtitle()
