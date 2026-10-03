@@ -24,10 +24,11 @@ namespace Marrow.App.Tests.Views.Composer;
 [Collection("Headless")]
 public sealed class EffortSliderModelListTests(HeadlessSession headless)
 {
-    private sealed class Env : IDisposable
+    internal sealed class Env : IDisposable
     {
         private readonly List<IDisposable> owned = [];
         public required AppModel Model;
+        public required AppModelHarness Harness;
         public required ChatThread Thread;
         public ManualTimeProvider Time = new();
         public ManualFrameSource Frames = new();
@@ -52,7 +53,7 @@ public sealed class EffortSliderModelListTests(HeadlessSession headless)
         }
     }
 
-    private static Env Make(Func<ChatThread>? thread = null, Action<AppModel>? configure = null, params (ProviderKind Provider, ModelOption[] Models)[] catalogues)
+    internal static Env Make(Func<ChatThread>? thread = null, Action<AppModel>? configure = null, params (ProviderKind Provider, ModelOption[] Models)[] catalogues)
     {
         var owned = new List<IDisposable>();
         var time = new ManualTimeProvider(); var frames = new ManualFrameSource();
@@ -67,20 +68,20 @@ public sealed class EffortSliderModelListTests(HeadlessSession headless)
             if (!provider.IsAPIKeyBased) model.Settings.SetBinaryPath(Path.Combine(harness.Scratch, "missing.exe"), provider);
         foreach (var (provider, models) in catalogues) HydraCookbookResolveFixture.SetModels(model.Providers, provider, models);
         configure?.Invoke(model);
-        var env = new Env { Model = model, Thread = chat, Time = time, Frames = frames };
+        var env = new Env { Model = model, Harness = harness, Thread = chat, Time = time, Frames = frames };
         foreach (var value in owned) env.Own(value);
         return env;
     }
 
-    private static ModelOption Option(string id, string name, bool efforts = true, bool fast = false) =>
+    internal static ModelOption Option(string id, string name, bool efforts = true, bool fast = false) =>
         new(id, name, efforts: efforts ? new ValueList<string>(["low", "medium", "high"]) : null, defaultEffort: efforts ? "medium" : null, fastTier: fast ? "fast" : null);
 
-    private static ModelPin Pin(ProviderKind provider, string id) => new(provider, id);
+    internal static ModelPin Pin(ProviderKind provider, string id) => new(provider, id);
 
-    private static Button ButtonWithTip(Control root, string tip) =>
+    internal static Button ButtonWithTip(Control root, string tip) =>
         root.GetVisualDescendants().OfType<Button>().Single(button => Equals(ToolTip.GetTip(button), tip));
 
-    private static void Click(Avalonia.Controls.Window window, Control control)
+    internal static void Click(Avalonia.Controls.Window window, Control control)
     {
         AvaloniaHeadlessPlatform.ForceRenderTimerTick(); // pointer hit testing consumes the rendered scene, not just layout
         var point = control.TranslatePoint(new Point(control.Bounds.Width / 2, control.Bounds.Height / 2), window)!.Value;
@@ -90,16 +91,16 @@ public sealed class EffortSliderModelListTests(HeadlessSession headless)
         Dispatcher.UIThread.RunJobs();
     }
 
-    private static string Name(Control row) => row.GetVisualDescendants().OfType<TextBlock>().First().Text!;
-    private static string? Detail(Control row) => row.GetVisualDescendants().OfType<TextBlock>().Skip(1).FirstOrDefault()?.Text;
-    private static double Tick(Control row) => row.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "checkmark").Opacity;
-    private static Button RowButton(Control row) => row.GetVisualDescendants().OfType<Button>().Single();
-    private static ModelListRow[] Models(Control root) => root.GetVisualDescendants().OfType<ModelListRow>().ToArray();
-    private static HydraPairListRow[] Pairs(Control root) => root.GetVisualDescendants().OfType<HydraPairListRow>().ToArray();
-    private static ModelListRow ModelRow(Control root, string name) => Models(root).Single(row => Name(row) == name);
+    internal static string Name(Control row) => row.GetVisualDescendants().OfType<TextBlock>().First().Text!;
+    internal static string? Detail(Control row) => row.GetVisualDescendants().OfType<TextBlock>().Skip(1).FirstOrDefault()?.Text;
+    internal static double Tick(Control row) => row.GetVisualDescendants().OfType<SwiftImage>().Single(image => image.SymbolName == "checkmark").Opacity;
+    internal static Button RowButton(Control row) => row.GetVisualDescendants().OfType<Button>().Single();
+    internal static ModelListRow[] Models(Control root) => root.GetVisualDescendants().OfType<ModelListRow>().ToArray();
+    internal static HydraPairListRow[] Pairs(Control root) => root.GetVisualDescendants().OfType<HydraPairListRow>().ToArray();
+    internal static ModelListRow ModelRow(Control root, string name) => Models(root).Single(row => Name(row) == name);
 
     /// <summary>The panel with its list open: the title is tapped and the 0.12 s cross-fade has run.</summary>
-    private static ModelEffortPanel OpenPanelList(Env env, bool hasHistory, out Avalonia.Controls.Window window, Action? dismissed = null)
+    internal static ModelEffortPanel OpenPanelList(Env env, bool hasHistory, out Avalonia.Controls.Window window, Action? dismissed = null)
     {
         var panel = new ModelEffortPanel(env.Thread.Id, hasHistory);
         if (dismissed is not null) Popovers.SetClosePopover(panel, dismissed);
@@ -108,7 +109,7 @@ public sealed class EffortSliderModelListTests(HeadlessSession headless)
         return panel;
     }
 
-    private static void OpenList(Env env, ModelEffortPanel panel)
+    internal static void OpenList(Env env, ModelEffortPanel panel)
     {
         var card = Assert.Single(panel.GetVisualDescendants().OfType<EffortSliderCard>());
         ButtonWithTip(card, "Choose a model").RaiseEvent(new RoutedEventArgs(Button.ClickEvent)); Dispatcher.UIThread.RunJobs();
@@ -116,7 +117,7 @@ public sealed class EffortSliderModelListTests(HeadlessSession headless)
         Assert.Single(panel.GetVisualDescendants().OfType<ModelList>());
     }
 
-    private static ChatThread Thread(ProviderKind provider, string? model, bool hydra = false, Guid? pair = null) =>
+    internal static ChatThread Thread(ProviderKind provider, string? model, bool hydra = false, Guid? pair = null) =>
         new(Guid.NewGuid(), provider, model, "medium", RuntimeMode.Supervised) { HydraEnabled = hydra, HydraPairID = pair };
 
     // ---- PR-COMPOSER-144: the lock once there is history -------------------------------------------------------------------
