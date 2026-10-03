@@ -56,7 +56,7 @@ public sealed class HydraProgressBar : Decorator
     private double width;
     private int? hoveredIndex;
     private DateTimeOffset drawDate = SwiftDate.Now;
-    private readonly MotionState motion = new();
+    private readonly MotionState motion;
     private WorkItem? riseTask;
     private long taskEventCount = -1;
     private bool attached;
@@ -66,11 +66,11 @@ public sealed class HydraProgressBar : Decorator
     private bool cardShown;
     private double? cardTargetX;
 
-    private sealed class MotionState : MainActorModel
+    private sealed class MotionState(HydraHeadInfo.Status status) : MainActorModel
     {
         private bool rising;
         private bool settled;
-        private HydraHeadInfo.Status status;
+        private HydraHeadInfo.Status status = status; // seeded, not set: a bar may be made before it reaches the main actor's tree
         public bool Rising { get => Read(rising); set => Set(ref rising, value); }
         public bool Settled { get => Read(settled); set => Set(ref settled, value); }
         public HydraHeadInfo.Status Status { get => Read(status); set => Set(ref status, value); }
@@ -114,7 +114,7 @@ public sealed class HydraProgressBar : Decorator
         this.runtime = runtime;
         this.startedAt = startedAt;
         this.finishedAt = finishedAt;
-        this.status = status;
+        motion = new MotionState(status); // the bar's status (:23), observed by its clock's schedule
         this.tint = tint;
         suppliedEntries = entries;
 

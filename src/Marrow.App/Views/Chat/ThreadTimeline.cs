@@ -1425,12 +1425,12 @@ public sealed class WorkingIndicator : Decorator
     private DateTimeOffset? finishedAtValue;
     // :2189 `.task(id: FrontMonitor.shared.isVisible && isRunning)`: whether the line runs is part of the task's id, so it is observed (a line that stops running ends its
     // clock's task, one that runs again starts it).
-    private sealed class LineState : MainActorModel
+    private sealed class LineState(bool running) : MainActorModel
     {
-        private bool running;
+        private bool running = running;
         public bool Running { get => Read(running); set => Set(ref running, value); }
     }
-    private readonly LineState lineState = new();
+    private readonly LineState lineState;
     /// <summary>How many times the line's one-second clock has woken (:2192-2195), for the tests of its task's id.</summary>
     internal int Ticks { get; private set; }
     // :2083 private static let change = Animation.smooth(duration: 0.3)
@@ -1469,7 +1469,7 @@ public sealed class WorkingIndicator : Decorator
     {
         startedAtValue = startedAt; finishedAtValue = finishedAt;
         var isExpanded = chronological; var showsAllSteps = chronological; var now = SwiftDate.Now;
-        var canExpand = thinkingSteps.Count != 0 || liveWork.Count != 0; var running = finishedAt is null; lineState.Running = running;
+        var canExpand = thinkingSteps.Count != 0 || liveWork.Count != 0; var running = finishedAt is null; lineState = new LineState(running); // seeded, not set: the view may be made before it reaches the main actor's tree
         var shell = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = SwiftColor.Quaternary.Opacity(0.32).Brush(this), HorizontalAlignment = HorizontalAlignment.Left }; Child = shell; // :2178-2181 the fill is the card's own width: the stack it backs hugs what it holds, it is not the row's width
         var column = new StackPanel(); shell.Child = column; // :2106 VStack(spacing: rowSpacing): the opened body brings that space with it, so it grows and folds with the body
         // The line's own parts live across renders, as SwiftUI keeps the views of a body that runs again: the label and its time go on ticking, the
