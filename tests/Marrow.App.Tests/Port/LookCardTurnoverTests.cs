@@ -39,6 +39,17 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
         return (bytes, buffer.Size.Width, buffer.Size.Height, buffer.RowBytes);
     }
 
+    // ED-253 (round 4): the frame before a change, drawn whole. A frame drawn by dirty regions can keep a few pixels that
+    // an earlier drawing left outside them (31 opaque pixels at the end of a Models page line, x 649-651, seen only when
+    // other test classes had run first in the process); the change redraws the whole window, which then "jumps" there. The
+    // frame before is the window's current state drawn fresh, as the end is compared with a fresh drawing below.
+    private static (byte[] Pixels, int Width, int Height, int Stride) Fresh(HostWindow window)
+    {
+        foreach (var visual in window.GetVisualDescendants()) visual.InvalidateVisual();
+        Drain(window);
+        return Capture(window);
+    }
+
     private static int At((byte[] Pixels, int Width, int Height, int Stride) frame, int x, int y, int channel) =>
         frame.Pixels[y * frame.Stride + x * 4 + channel];
 
@@ -72,6 +83,27 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
 
     private static double Ease(int k) => CssCurve.At(CssCurve.Ease, k * 1000.0 / 60, 320);
 
+    // R-TEST-5 (ED-253, round 4): these frames are proved against the process-wide theme and accent, which an AppSettings init
+    // in a parallel collection assigns (AppSettings.swift:728) and posts from its own thread; the collection never runs in
+    // parallel with another, so no other test turns the window while it is proved (it did in the full App run).
+    [Fact]
+    [Trait("Rule", "R-TEST-5")]
+    [Trait("Decision", "ED-253")]
+    public void These_tests_run_in_a_collection_that_never_runs_in_parallel_with_another()
+    {
+        var collection = typeof(LookCardTurnoverTests).GetCustomAttributesData()
+            .SingleOrDefault(attribute => attribute.AttributeType == typeof(CollectionAttribute))?
+            .ConstructorArguments[0].Value as string;
+        Assert.Equal("Headless", collection);
+        var definition = typeof(LookCardTurnoverTests).Assembly.GetTypes()
+            .SelectMany(type => type.GetCustomAttributesData())
+            .Single(attribute => attribute.AttributeType == typeof(CollectionDefinitionAttribute)
+                && Equals(attribute.ConstructorArguments[0].Value, collection));
+        Assert.Contains(definition.NamedArguments, argument =>
+            argument.MemberName == nameof(CollectionDefinitionAttribute.DisableParallelization)
+            && Equals(argument.TypedValue.Value, true));
+    }
+
     private static Rect Box(Control control, Visual to) => new(control.TranslatePoint(default, to)!.Value, control.Bounds.Size);
 
     // ED-253: and on a page scrolled under the pane's top veil (PaneTopVeil, Chrome.swift:579-628), whose gradients turn over
@@ -100,7 +132,7 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
             Assert.Equal(3, captions.Length);
             // Moving by design (SPEC 6.6, 6.7): the control's pill and labels, and the two crossfading detail lines.
             var moving = new[] { Box(card.Segments, window).Inflate(3), Box(card.ThemeDetail, window).Inflate(2), Box(card.AccentDetail, window).Inflate(2) };
-            var pre = Capture(window);
+            var pre = Fresh(window);
             var titleFrom = ((ISolidColorBrush)title.Foreground!).Color;
 
             Click(window, card.Segments.Buttons[dark ? 1 : 2]); // scenario 08: Light on a dark window (light board: Dark)
@@ -330,6 +362,7 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
             pre = next;
             if (same) break;
         }
+        pre = Fresh(window);
         change();
         Drain(window);
         var frames = new List<(byte[] Pixels, int Width, int Height, int Stride)> { Capture(window) };
