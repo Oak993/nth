@@ -407,11 +407,11 @@ public sealed class HydraPairListRow : Decorator
         // :386 HStack(spacing:10), :400 Spacer(minLength:12): preserve the gap on EACH side of the spacer.
         var row = new Grid { ColumnDefinitions = new ColumnDefinitions("18,10,*,10,12,10,Auto") };
         row.Children.Add(new HydraFusedPairIcon(pair.Provider, pair.HeadsProvider, 16, false) { Width = 18 }); // :387-388
-        var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children =
-        {
-            EffortView.Text(title, SwiftFont.System(14), Chrome.PrimaryText),
-            EffortView.Text(detail, SwiftFont.Callout, Chrome.SecondaryText),
-        } }; Grid.SetColumn(texts, 2); row.Children.Add(texts); // :389-399
+        var titleText = EffortView.Text(title, SwiftFont.System(14), Chrome.PrimaryText);
+        var detailText = EffortView.Text(detail, SwiftFont.Callout, Chrome.SecondaryText);
+        foreach (var line in new[] { titleText, detailText }) { line.TextTrimming = TextTrimming.CharacterEllipsis; line.TextWrapping = TextWrapping.NoWrap; } // :393, :397 .lineLimit(1): the default truncation mode is the tail
+        var texts = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center, Children = { titleText, detailText } };
+        Grid.SetColumn(texts, 2); row.Children.Add(texts); // :389-399
         var check = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.PrimaryText);
         check.Opacity = isSelected ? 1 : 0; Grid.SetColumn(check, 6); row.Children.Add(check); // :401-405
         Child = EffortView.Row(row, rowHeight, isEnabled, action); // :407-419
@@ -431,7 +431,12 @@ public sealed class ModelListRow : Decorator
     // :433-476 body
     public ModelListRow(ModelCatalog.Entry entry, string? detail, bool showsIcon, double rowHeight, bool isSelected, bool isEnabled, Action action)
     {
-        var row = new Grid { ColumnDefinitions = new ColumnDefinitions(showsIcon ? "18,10,*,12,Auto,10,Auto" : "*,12,Auto,10,Auto") };
+        // :435 HStack(spacing: 10): SwiftUI puts the spacing between EVERY two neighbours, the :451 Spacer(minLength: 12) included
+        // (the pair row above does the same), so the text column is followed by 10 + 12 + 10 before the bolt (a model with a fast
+        // tier) or the checkmark, and the checkmark 10 after the bolt. The columns follow the children that are there: no icon, no
+        // icon column; no bolt, no bolt column and no gap for it.
+        var fast = entry.Option.SupportsFast;
+        var row = new Grid { ColumnDefinitions = new ColumnDefinitions((showsIcon ? "18,10," : "") + "*,10,12," + (fast ? "10,Auto," : "") + "10,Auto") };
         var column = 0;
         if (showsIcon)
         {
@@ -445,14 +450,16 @@ public sealed class ModelListRow : Decorator
         if (detail is not null) texts.Children.Add(EffortView.Text(detail, SwiftFont.Callout, Chrome.SecondaryText)); // :445-449
         Grid.SetColumn(texts, column);
         row.Children.Add(texts);
-        if (entry.Option.SupportsFast)
+        column += 3; // the text column, its 10, the spacer's 12
+        if (fast)
         {
             var bolt = SwiftImage.SystemName("bolt").Font(SwiftFont.System(SwiftFont.TextStyle.Footnote)).ForegroundStyle(Chrome.SecondaryText);
-            Grid.SetColumn(bolt, column + 2); row.Children.Add(bolt); // :452-455
+            Grid.SetColumn(bolt, column + 1); row.Children.Add(bolt); // :452-455
+            column += 2;
         }
         var check = SwiftImage.SystemName("checkmark").Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.PrimaryText);
         check.Opacity = isSelected ? 1 : 0; // :456-460
-        Grid.SetColumn(check, column + 4); row.Children.Add(check);
+        Grid.SetColumn(check, column + 1); row.Children.Add(check);
         Child = EffortView.Row(row, rowHeight, isEnabled, action); // :462-475
     }
 }
