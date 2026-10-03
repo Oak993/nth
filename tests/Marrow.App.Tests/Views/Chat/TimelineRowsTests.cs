@@ -748,7 +748,9 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 {
                     var detail = new ToolDetailView(Call(kind, path) with { Detail = "image detail" }, h.Project.Path);
                     Assert.Single(LogicalQuery.SelfAndDescendants<ToolImagePreview>(detail));
-                    Assert.Equal(new[] { typeof(ToolImagePreview), typeof(SelectableTextBlock) }, Assert.IsType<StackPanel>(detail.Child).Children.Select(child => child.GetType()));
+                    // The detail text is the SelectableTextBlock whose line limit also cuts at a hard line break (ED-NEW-parity-timelinerows (7)).
+                    Assert.Equal(new[] { typeof(ToolImagePreview), typeof(LineLimitedSelectableText) }, Assert.IsType<StackPanel>(detail.Child).Children.Select(child => child.GetType()));
+                    Assert.IsAssignableFrom<SelectableTextBlock>(Assert.IsType<StackPanel>(detail.Child).Children[1]);
                 }
             });
         });

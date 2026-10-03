@@ -2582,6 +2582,53 @@ public sealed class ToolStatusIcon : Decorator
     }
 }
 
+/// <summary>
+/// PORT-ONLY (ED-NEW-parity-timelinerows (7)). A selectable text whose line limit (<see cref="TextBlock.MaxLines"/>) ends its last
+/// line in its <see cref="TextBlock.TextTrimming"/> ellipsis whenever more text follows, as a SwiftUI Text cut by <c>.lineLimit</c>
+/// shows (<c>truncationMode</c> .tail, the default): the tool detail's <c>.lineLimit(12)</c>, TimelineRows.swift:2125. Avalonia
+/// 12.1.2's TextLayout collapses the last line only when the cut falls inside a wrapped line (TextLineBreak.IsSplit); a cut at a hard
+/// line break (a multi-line command, a heredoc) kept the twelfth line whole with no ellipsis, so the reader could not tell the text
+/// goes on. Here the layout's last line is collapsed in that case too: its words and the ellipsis when both fit the width, else the
+/// line cut short to fit with its ellipsis, as Avalonia cuts a wrapped line. The text, its selection and copying keep every line.
+/// </summary>
+internal sealed class LineLimitedSelectableText : SelectableTextBlock
+{
+    // The same style key as any SelectableTextBlock, so a control theme that styles one styles this one.
+    protected override Type StyleKeyOverride => typeof(SelectableTextBlock);
+
+    protected override Avalonia.Media.TextFormatting.TextLayout CreateTextLayout(string? text)
+    {
+        var layout = base.CreateTextLayout(text);
+        if (MaxLines <= 0 || TextTrimming == TextTrimming.None || text is null) return layout;
+        // TextLayout.TextLines is the layout's own array of lines (Avalonia 12.1.2), so the cut line can be put in its place.
+        if (layout.TextLines is not Avalonia.Media.TextFormatting.TextLine[] lines || lines.Length != MaxLines) return layout;
+        var last = lines[^1];
+        if (last.HasCollapsed || last.FirstTextSourceIndex + last.Length >= text.Length) return layout; // already cut, or nothing follows
+        var runProperties = new Avalonia.Media.TextFormatting.GenericTextRunProperties(
+            new Typeface(FontFamily, FontStyle, FontWeight, FontStretch), FontSize, TextDecorations, Foreground);
+        var trimming = TextTrimming.CreateCollapsingProperties(new TextCollapsingCreateInfo(layout.MaxWidth, runProperties, FlowDirection));
+        lines[^1] = last.Collapse(new EllipsisAfterBreak(trimming));
+        return layout;
+    }
+
+    // The trimming's own ellipsis, cut into a line too wide for it; a line with room for it keeps all its characters (its line break
+    // aside) and takes the ellipsis after them.
+    private sealed class EllipsisAfterBreak(Avalonia.Media.TextFormatting.TextCollapsingProperties trimming)
+        : Avalonia.Media.TextFormatting.TextCollapsingProperties
+    {
+        public override double Width => trimming.Width;
+
+        public override Avalonia.Media.TextFormatting.TextRun Symbol => trimming.Symbol;
+
+        public override FlowDirection FlowDirection => trimming.FlowDirection;
+
+        public override Avalonia.Media.TextFormatting.TextRun[]? Collapse(Avalonia.Media.TextFormatting.TextLine textLine) =>
+            trimming.Collapse(textLine)
+            ?? CreateCollapsedRuns(textLine, textLine.Length - textLine.NewLineLength,
+                Avalonia.Media.TextFormatting.TextFormatter.CreateSymbol(Symbol, FlowDirection));
+    }
+}
+
 /// <summary>:2094-2167 <c>private struct ToolDetailView: View</c>.</summary>
 public sealed class ToolDetailView : Decorator
 {
@@ -2609,9 +2656,10 @@ public sealed class ToolDetailView : Decorator
         if (call.Detail is { Length: > 0 } detail) // :2120-2126
         {
             // :2121 a Text with no fixedSize wraps at the width the row offers; :2124 .textSelection(.enabled).
-            var text = TimelineRows.SelectableText(wraps: true);
+            var text = VeiledText.SelectableText(new LineLimitedSelectableText(), wraps: true);
             // :2125 .lineLimit(12) counts the wrapped lines; a Text it cuts ends its last line in an ellipsis (SwiftUI's
-            // truncationMode .tail, the default; RequestCards.cs:111 takes a lineLimit the same way; ED-NEW-parity-timelinerows (7)).
+            // truncationMode .tail, the default; RequestCards.cs:111 takes a lineLimit the same way), wherever the cut falls, at a
+            // hard line break too (ED-NEW-parity-timelinerows (7); LineLimitedSelectableText).
             text.Text = detail; text.MaxLines = 12; text.TextTrimming = TextTrimming.CharacterEllipsis;
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2122
             text.Foreground = Chrome.SecondaryText.Brush(text); // :2123

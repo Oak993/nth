@@ -196,6 +196,54 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
         });
     });
 
+    // Review round 5: ED-NEW-parity-timelinerows (7) ends a detail cut by its .lineLimit(12) (:2125) in an ellipsis wherever the cut
+    // falls, at a hard line break too (a multi-line command, a heredoc), so the reader can tell the text goes on. The twelfth line keeps
+    // all its words when they and the ellipsis fit the row, and loses its last characters to the ellipsis when they do not (a twelfth
+    // line as wide as the row). A detail of exactly twelve lines is not cut and shows no ellipsis, and neither does a line above the cut.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-NEW-parity-timelinerows (7): TimelineRows.swift:2120-2126
+    public void A_detail_cut_at_a_hard_line_break_ends_its_twelfth_line_in_an_ellipsis_and_one_of_exactly_twelve_lines_is_not_cut() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        runtime.OnMain(() =>
+        {
+            var wide = string.Concat(Enumerable.Repeat("w", 400));
+            var cases = new[]
+            {
+                (Text: Lines(13), Cut: true),
+                (Text: Lines(12), Cut: false),
+                (Text: Lines(11) + "\n" + wide + "\nline 13", Cut: true),
+            };
+            var views = cases.Select(@case => new ToolDetailView(Call(ToolCall.Kind.Command, "run") with { Detail = @case.Text })).ToArray();
+            var panel = new StackPanel { Width = 500 };
+            foreach (var view in views) panel.Children.Add(view);
+            var window = Show(panel);
+            try
+            {
+                for (var index = 0; index < cases.Length; index++)
+                {
+                    var detail = Assert.Single(Mounted<SelectableTextBlock>(views[index]));
+                    var lines = detail.TextLayout.TextLines;
+                    Assert.Equal(12, lines.Count);
+                    Assert.All(lines.SkipLast(1), line => Assert.False(line.HasCollapsed));
+                    Assert.Equal(cases[index].Cut, lines[^1].HasCollapsed);
+                    Assert.Equal(cases[index].Text, detail.Text); // a display limit only: the text and its selection keep every line
+                    Assert.True(detail.TextLayout.Width <= 500 + 0.5, $"case {index}: the detail is {detail.TextLayout.Width:0} points wide in a 500-point row");
+                }
+                // The thirteen-line detail: "line 12" whole, then the ellipsis (its runs: the line's characters and one ellipsis run).
+                var cut = Assert.Single(Mounted<SelectableTextBlock>(views[0])).TextLayout.TextLines[^1];
+                var shown = string.Concat(cut.TextRuns.Select(run => run.Text.ToString()));
+                Assert.StartsWith("line 12", shown, StringComparison.Ordinal);
+                Assert.NotEqual("line 12", shown.TrimEnd('\n', '\r'));
+                Assert.True(cut.Width <= 500 + 0.5);
+                // The wide twelfth line: cut short to fit the row with its ellipsis.
+                var wideCut = Assert.Single(Mounted<SelectableTextBlock>(views[2])).TextLayout.TextLines[^1];
+                Assert.True(wideCut.Width <= 500 + 0.5, $"the cut wide line is {wideCut.Width:0} points wide in a 500-point row");
+            }
+            finally { Close(window); }
+        });
+    });
+
     [Fact]
     [Trait("Req", "UI-CHAT-028")] // TimelineRows.swift:2127-2140 the per-file diff block
     public void Each_edit_with_a_diff_is_one_ten_point_plate_with_a_padded_path_above_numberless_diff_lines() => headless.OnUiThread(() =>
@@ -274,7 +322,8 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                         // :2117-2119 the preview is the first thing in the detail, above the detail text.
                         var rows = Column(view).Children;
                         var preview = Assert.IsType<ToolImagePreview>(rows[0]);
-                        Assert.IsType<SelectableTextBlock>(rows[1]);
+                        // The detail text: a SelectableTextBlock whose line limit also cuts at a hard line break (ED-NEW-parity-timelinerows (7)).
+                        Assert.IsAssignableFrom<SelectableTextBlock>(Assert.IsType<LineLimitedSelectableText>(rows[1]));
                         Assert.Equal(480, preview.Bounds.Width, 0.5); // as wide as the row
                         Assert.Equal(20, Top(rows[1], window) - (Top(preview, window) + preview.Bounds.Height), 0.5);
                         // :408-421 the box: at most 420 tall, a 10-point rounded plate of .quaternary at 0.45, clipped.

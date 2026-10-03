@@ -307,9 +307,13 @@ public sealed class VeiledText : Decorator
     /// SelectableTextBlock with the I-beam over it and the system's selected-text colour, the one recipe the veiled text, a
     /// table's cells (MarkdownView.swift:1287-1308) and the timeline's own selectable lines (TimelineRows.swift:1900, :1922,
     /// :1982, :1989, :2000, :2124, :2152, :2394) share (PR-CHAT-166; ED-NEW-parity-timelinerows (5)).</summary>
-    public static SelectableTextBlock SelectableText(bool wraps)
+    public static SelectableTextBlock SelectableText(bool wraps) => SelectableText(new SelectableTextBlock(), wraps);
+
+    /// <summary>The same recipe on a text block the caller made: a SelectableTextBlock subclass that lays its text out its own way
+    /// (TimelineRows' tool detail, whose line limit also cuts at a hard line break; ED-NEW-parity-timelinerows (7)).</summary>
+    public static T SelectableText<T>(T block, bool wraps) where T : SelectableTextBlock
     {
-        var block = new SelectableTextBlock { Cursor = TextCursor };
+        block.Cursor = TextCursor;
         if (wraps) block.TextWrapping = Avalonia.Media.TextWrapping.Wrap;
         // Resolved once the text is in a window (the system accent needs the running application).
         block.AttachedToVisualTree += (_, _) => block.SelectionBrush ??= SwiftColor.SelectedTextBackgroundColor.Brush(block);
