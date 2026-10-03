@@ -121,7 +121,7 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-NEW-parity-threadtimeline (3)): TimelineRows.swift:408-415 ForEach(finished, id: \.index) { FinishedHeadPill(head: head) }, :441 @State isShowingReport: a head whose record changed under its index is the same pill with the new value
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-NEW-parity-threadtimeline (3)): TimelineRows.swift:408-415 ForEach(finished, id: \.index) { FinishedHeadPill(head: head) }, :441 @State isShowingReport: a head that changed under its index is the same pill with the new value
     public void A_finished_heads_pill_stays_the_same_view_when_its_head_changes_and_says_what_became_of_it() => ThreadTimelineRig.RunWithTeam(headless, mount =>
     {
         var s = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
@@ -139,6 +139,22 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
         Assert.Contains(" failed", string.Concat(LogicalQuery.SelfAndDescendants<TextBlock>(pills[0]).SelectMany(text => text.Inlines ?? []).OfType<Avalonia.Controls.Documents.Run>().Select(run => run.Text)), StringComparison.Ordinal);
     }, new[] { FinishedHead(1, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_001_000)), FinishedHead(2, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_100)),
         FinishedHead(3, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_400)), FinishedHead(4, DateTimeOffset.FromUnixTimeSeconds(1_800_000_000), DateTimeOffset.FromUnixTimeSeconds(1_800_000_200)) });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-HYDRAMERGE-031 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:1902-1905 (the block keeps its id from the merge's first stage to its outcome note, so the one branch keeps the row's identity and the pill morphs rather than being swapped)
+    public void The_merge_pill_is_one_view_from_the_merges_first_stage_to_its_outcome_note() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        var entries = new List<TimelineEntry> { User("p1", TurnA), Reply("a1", TurnA), End("e1", TurnA) };
+        mount.SetEntries(entries); mount.Settle();
+        mount.Runtime.HydraMergeNoteID = "note-1"; mount.Runtime.IsHydraMerging = true; mount.Advance(400);
+        var merging = mount.Blocks().Single(block => block.Block is DisplayBlock.Merging); Assert.Equal("note-1", merging.Id);
+        var pill = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMergeRow>(merging.Row));
+        // The merge ends: its outcome note is in the thread under the id the block had.
+        entries.Add(Entry("note-1", new TimelineItem.Content.User(new UserMessage { Text = "Hydra merged the heads", HydraHeads = new ValueList<long>([]) })));
+        mount.SetEntries(entries); mount.Runtime.IsHydraMerging = false; mount.Advance(800);
+        var outcome = mount.Blocks().Single(block => block.Id == "note-1");
+        Assert.IsType<DisplayBlock.Group>(outcome.Block); Assert.Same(merging.Row, outcome.Row); Assert.Same(pill, Assert.Single(LogicalQuery.SelfAndDescendants<HydraMergeRow>(outcome.Row)));
+    });
 
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 and UI-CHAT-043 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:2261-2274 (WorkingBlockView hands WorkingIndicator its startedAt and finishedAt), :2075-2092,2107-2119 (@State isExpanded, which no change of a `let` disturbs)
