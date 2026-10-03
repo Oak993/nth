@@ -2321,7 +2321,7 @@ public sealed class ComposerViewTests(HeadlessSession headless)
         });
     }
 
-    // REVIEW (defects-priority, round 4). PR-COMPOSER-050's clause "Activating it reloads with force, ignoring the ten-minute freshness window" was proven only by
+    // REVIEW (defects-priority, round 3). PR-COMPOSER-050's clause "Activating it reloads with force, ignoring the ten-minute freshness window" was proven only by
     // a test tagged UI-COMPOSER-022 (B3_retry_enters_a_new_command_load_even_when_the_cached_commands_are_fresh): the mutant "Retry loads without force" survived every
     // test tagged PR-COMPOSER-050, because the failing-retry tests above hold no fresh list, so a load that is not forced runs for them too. This one holds a list that
     // is fresh and counts the launches of the CLI, the side effect the record names ("A forced reload launches the provider CLI to list commands").

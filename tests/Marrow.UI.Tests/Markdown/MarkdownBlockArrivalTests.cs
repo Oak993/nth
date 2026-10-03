@@ -17,7 +17,7 @@ namespace Marrow.UI.Tests.Markdown;
 // 51-55 (the first call of a veil adopts its text as the baseline without fading it, so the words of a block that is new are not a veil's chunk: what dissolves them in is the
 // block's own arrival); OD-0076 (owner ruling, 2026-10-02: nothing on screen changes by a cut).
 //
-// UI-THEME-047, round 4 of the review. The first batch of a block that a flush OPENS appeared whole, in the mid of a stream and at its end: the veil registers only appends to a
+// UI-THEME-047, round 3 of the review. The first batch of a block that a flush OPENS appeared whole, in the mid of a stream and at its end: the veil registers only appends to a
 // place that holds text, and the port builds a reply's markdown again for every flush, so a new block's views were never inserted (SwiftTransition.Insert was never called) and
 // the arrival of the Swift never ran. Only the block's arrival is under test here; what a flush appends to a block that is already there is StreamVeilFlowTests. Frame by frame
 // on the manual frame and time sources.

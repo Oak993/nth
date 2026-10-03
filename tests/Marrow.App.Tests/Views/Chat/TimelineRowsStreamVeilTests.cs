@@ -629,7 +629,7 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
     private static double Progress(double milliseconds) => Animation.SoftAppear.Progress(milliseconds / 1000);
 
     // MarkdownView.swift:86-97, :92 (a block that a flush opens is an insertion, with the soft appear: Chrome.swift:949-961); StreamVeil.swift:51-55 (a veil's first call adopts the
-    // text, so a block that is new is not a chunk: what dissolves it in is its arrival); OD-0076 (owner ruling, 2026-10-02: nothing on screen changes by a cut). Round 4 of the
+    // text, so a block that is new is not a chunk: what dissolves it in is its arrival); OD-0076 (owner ruling, 2026-10-02: nothing on screen changes by a cut). Round 3 of the
     // review of UI-THEME-047: a batch that opened a block put it on screen whole, mid-stream and at the end of the stream (MarkdownBlockArrivalTests is the same through the host
     // path of the rows; these are the real rows).
     [Fact]
