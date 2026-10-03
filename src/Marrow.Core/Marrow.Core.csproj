@@ -6,4 +6,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- ED-251 (OD-0089): border-beam 1.4.1's tables (MIT, Jakub Antalik), read out of its published dist/index.es.js. -->
+    <EmbeddedResource Include="Models\ComposerLights\border-beam-tables.json" LogicalName="Marrow.Core.BorderBeamTables.json" />
+  </ItemGroup>
+
 </Project>
