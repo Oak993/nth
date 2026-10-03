@@ -45,6 +45,24 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Decision", "ED-252")] // the chip calls WhenIdle as it is made, before it is in a window: it warms once it is in one, after its first frame
+    public void A_host_given_before_it_is_in_a_window_warms_once_it_is() => headless.OnUiThread(() =>
+    {
+        var host = new Border { Width = 40, Height = 20 };
+        GpuWarmup.WhenIdle(host);
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = host };
+        window.Show();
+        try
+        {
+            Assert.Null(ElementComposition.GetElementChildVisual(host)); // nothing at the attach
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();             // the first frame
+            Dispatcher.UIThread.RunJobs();                               // then idle
+            Assert.IsType<CompositionCustomVisual>(ElementComposition.GetElementChildVisual(host));
+        }
+        finally { window.Close(); }
+    });
+
+    [Fact]
     [Trait("Decision", "ED-252")] // the composer's model chip schedules it (it is what opens the effort popover)
     public void The_model_chip_schedules_the_warm_up() => headless.OnUiThread(() =>
     {
@@ -410,33 +428,30 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Decision", "ED-252")] // while it waits for quiet frames the idle fallback leaves the UI thread free: no pass of the dispatcher runs on
-    public void The_idle_warm_up_leaves_the_dispatcher_free_between_its_checks() => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-252")] // a new scaling warms again, in quiet frames like the fallback (also after WarmAsync: no screen is showing then)
+    public void A_scaling_change_warms_again_in_quiet_frames_only() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var bound = FrameClock.Source.Override(frames);
         var cap = GpuWarmup.IdleCap;
-        GpuWarmup.IdleCap = TimeSpan.FromSeconds(3);
-        var host = new Border { Width = 40, Height = 20 };
-        var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = host };
+        GpuWarmup.IdleCap = TimeSpan.FromSeconds(60);
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100 };
         window.Show();
         try
         {
-            frames.RequestFrame(_ => { }); // animating: it keeps checking frame after frame
-            GpuWarmup.WhenIdle(host);
+            var task = GpuWarmup.WarmAsync(window);
+            FramesFor(TimeSpan.FromSeconds(10), () => task.IsCompleted);
+            Assert.True(task.IsCompletedSuccessfully);
+            frames.RequestFrame(_ => { }); // animating
             var asked = GpuWarmup.StepsAsked;
-            var longest = TimeSpan.Zero;
-            var since = DateTime.UtcNow;
-            while (DateTime.UtcNow - since < TimeSpan.FromSeconds(1.5))
-            {
-                AvaloniaHeadlessPlatform.ForceRenderTimerTick();
-                var pass = System.Diagnostics.Stopwatch.StartNew();
-                Dispatcher.UIThread.RunJobs();
-                if (pass.Elapsed > longest) longest = pass.Elapsed;
-                Thread.Sleep(10);
-            }
-            Assert.Equal(asked, GpuWarmup.StepsAsked); // still waiting (animating, the cap not reached)
-            Assert.True(longest < TimeSpan.FromMilliseconds(250), $"one pass of the dispatcher's jobs took {longest.TotalMilliseconds:F0} ms");
+            // the platform's report of a new scaling (headless windows do not change theirs): TopLevel raises ScalingChanged
+            var report = (Action<double>)typeof(Avalonia.Platform.ITopLevelImpl).GetProperty("ScalingChanged")!.GetValue(window.PlatformImpl)!;
+            report(1.5);
+            FramesFor(TimeSpan.FromMilliseconds(600), () => false);
+            Assert.True(asked == GpuWarmup.StepsAsked, $"{GpuWarmup.StepsAsked - asked} steps asked at once while animating");
+            frames.Advance(TimeSpan.FromMilliseconds(16)); // quiet
+            FramesFor(TimeSpan.FromSeconds(10), () => GpuWarmup.StepsAsked > asked);
+            Assert.True(GpuWarmup.StepsAsked > asked, "no warm-up for the new scaling");
         }
         finally { GpuWarmup.IdleCap = cap; window.Close(); }
     });
@@ -571,6 +586,7 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
         using var source = FrameClock.Source.Override(frames);
         var field = new DotFieldControl(new SwiftColor(1), true, false);
         var window = new Avalonia.Controls.Window { Width = 32, Height = 24, Content = field };
+        var registered = GpuWarmup.ActivityCount;
         window.Show();
         try
         {
@@ -579,9 +595,11 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
             AvaloniaHeadlessPlatform.ForceRenderTimerTick();
             Dispatcher.UIThread.RunJobs();
             Assert.True(GpuWarmup.Animating(frames), "precondition: the dots count while they move");
+            Assert.Equal(registered + 1, GpuWarmup.ActivityCount);
             window.Content = null;
             Dispatcher.UIThread.RunJobs();
             Assert.False(GpuWarmup.Animating(frames), "the removed dots still hold the warm-up back");
+            Assert.Equal(registered, GpuWarmup.ActivityCount); // nothing kept: the static list would hold every dot field ever shown
             window.Content = field;
             for (var k = 0; k < 20 && !GpuWarmup.Animating(frames); k++) // the compositor's frames: the dots start again on the render server
             {
@@ -590,8 +608,10 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
                 Dispatcher.UIThread.RunJobs();
             }
             Assert.True(GpuWarmup.Animating(frames), "the dots back in the window are not seen");
+            Assert.Equal(registered + 1, GpuWarmup.ActivityCount);
         }
         finally { window.Content = null; window.Close(); Dispatcher.UIThread.RunJobs(); }
+        Assert.Equal(registered, GpuWarmup.ActivityCount);
     });
 
     // a cache folder of its own, with the cache's private entry points (ANGLE's callbacks) at hand

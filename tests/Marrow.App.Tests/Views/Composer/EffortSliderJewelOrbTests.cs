@@ -192,6 +192,120 @@ public sealed class EffortSliderJewelOrbTests
     }
 
     [Fact]
+    [Trait("Decision", "ED-252")] // the four-program split: each noise current is kept to about a millionth through its half-float surface (a part exact in a half float and the rest)
+    public void The_noise_currents_come_through_their_half_float_surface_to_a_millionth()
+    {
+        var block = CurrentsFrame();
+        var reference = Pixels(Whole(), block, SKColorType.RgbaF32);
+        var kept = Pixels(JewelKnobShader.Noise, block, SKColorType.RgbaF16); // the knob's own currents surface
+        double low = 0, cross = 0, plain = 0;
+        var inside = 0;
+        for (var i = 0; i < 96 * 96; i++)
+        {
+            if (reference[i * 4 + 3] != 1) continue; // outside the ball
+            inside++;
+            low = Math.Max(low, Math.Abs(kept[i * 4] + (kept[i * 4 + 1] - 0.5) / 512.0 - reference[i * 4]));
+            cross = Math.Max(cross, Math.Abs(kept[i * 4 + 2] + (kept[i * 4 + 3] - 0.5) / 512.0 - reference[i * 4 + 1]));
+            plain = Math.Max(plain, Math.Abs((float)(Half)reference[i * 4] - reference[i * 4]));
+        }
+        Assert.True(inside > 6000, $"the ball covers {inside} pixels");
+        Assert.True(plain > 2e-5, $"precondition: one half float is off by {plain:E2} at most");
+        var line = $"the currents come back off by {low:E2} (low) and {cross:E2} (cross) at most over {inside} pixels; one half float: {plain:E2}";
+        File.WriteAllText(Path.Combine(Path.GetTempPath(), "jewel-currents.txt"), line);
+        Assert.True(low < 2e-6 && cross < 2e-6, line);
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // the fluid program adds each current's two halves back: its samples are those of the currents unsplit
+    public void The_fluid_reads_the_currents_back_whole()
+    {
+        var block = CurrentsFrame();
+        using var exact = Surface(Whole(), block, SKColorType.RgbaF32);                  // the currents, full floats
+        using var split = Surface(JewelKnobShader.Noise, block, SKColorType.RgbaF16);    // as the knob keeps them
+        using var halves = SKSurface.Create(new SKImageInfo(96, 96, SKColorType.RgbaF16, SKAlphaType.Premul))!;
+        using (var image = exact.Snapshot()) halves.Canvas.DrawImage(image, 0, 0);      // each current as one half float
+        // the fluid over the currents as they are read: the real program over the split pair, a variant reading one value
+        // each over the full floats (the reference) and over the single half floats (what a lost half would give)
+        var source = JewelKnobShader.FluidSource;
+        var read = source.IndexOf("half4 currents = noise.eval(coord);", StringComparison.Ordinal);
+        Assert.True(read > 0);
+        var from = source.IndexOf(';', read) + 1;
+        var to = source.IndexOf(';', source.IndexOf(';', from) + 1) + 1; // the two statements that add the halves back
+        using var direct = SKRuntimeEffect.CreateShader(source[..from] + " float lowX = float(currents.r); float crsX = float(currents.g);" + source[to..], out var errors)
+            ?? throw new InvalidOperationException(errors);
+        var real = Fluid(JewelKnobShader.Fluid, block, split);
+        var whole = Fluid(direct, block, exact);
+        var single = Fluid(direct, block, halves);
+        double off = 0, lost = 0;
+        for (var i = 0; i < real.Length; i++)
+        {
+            off = Math.Max(off, Math.Abs(real[i] - whole[i]));
+            lost = Math.Max(lost, Math.Abs(single[i] - whole[i]));
+        }
+        var line = $"the fluid over the kept currents is off by {off:E2} at most; over single half floats {lost:E2}";
+        File.WriteAllText(Path.Combine(Path.GetTempPath(), "jewel-fluid-currents.txt"), line);
+        Assert.True(lost > 1e-4, "precondition: " + line);
+        Assert.True(off < lost / 20, line);
+    }
+
+    // a charged frame of Claude's knob at 96 px, the middle dispersion sample
+    private static float[] CurrentsFrame()
+    {
+        var orb = new JewelOrb(JewelMaterial.For(EffortBrand.Claude));
+        var u = new JewelUniforms();
+        for (var i = 0; i <= 50; i++) orb.Frame(i / 60.0, i < 30 ? 0 : 0.58, 0, Math.PI * 0.9, false, 96, 2, true, u);
+        var block = u.Values[..(JewelUniforms.ShaderBytes / sizeof(float))];
+        block[79] = 0;
+        return block;
+    }
+
+    // the noise program cut short: its two currents returned unsplit (into a full-float surface)
+    private static SKRuntimeEffect Whole()
+    {
+        var source = JewelKnobShader.NoiseSource;
+        var at = source.IndexOf("float2 crs = lqFbm(", StringComparison.Ordinal);
+        Assert.True(at > 0);
+        return SKRuntimeEffect.CreateShader(source[..(source.IndexOf(';', at) + 1)] + " return half4(low.x, crs.x, 0.0, 1.0); }", out var errors)
+            ?? throw new InvalidOperationException(errors);
+    }
+
+    private static SKSurface Surface(SKRuntimeEffect effect, float[] block, SKColorType type, SKSurface? child = null)
+    {
+        var uniforms = new SKRuntimeEffectUniforms(effect) { ["u"] = block };
+        var children = new SKRuntimeEffectChildren(effect);
+        using var image = child?.Snapshot();
+        using var sampled = image?.ToShader(SKShaderTileMode.Clamp, SKShaderTileMode.Clamp, new SKSamplingOptions(SKFilterMode.Nearest));
+        if (sampled is not null) children["noise"] = sampled;
+        using var shader = effect.ToShader(uniforms, children);
+        var surface = SKSurface.Create(new SKImageInfo(96, 96, type, SKAlphaType.Premul))!;
+        using var paint = new SKPaint { Shader = shader, BlendMode = SKBlendMode.Src };
+        surface.Canvas.Clear(SKColors.Transparent);
+        surface.Canvas.DrawRect(new SKRect(0, 0, 96, 96), paint);
+        return surface;
+    }
+
+    private static float[] Pixels(SKRuntimeEffect effect, float[] block, SKColorType type)
+    {
+        using var surface = Surface(effect, block, type);
+        return Read(surface);
+    }
+
+    private static float[] Fluid(SKRuntimeEffect effect, float[] block, SKSurface currents)
+    {
+        using var surface = Surface(effect, block, SKColorType.RgbaF32, currents);
+        return Read(surface);
+    }
+
+    private static float[] Read(SKSurface surface)
+    {
+        var pixels = new float[96 * 96 * 4];
+        var handle = System.Runtime.InteropServices.GCHandle.Alloc(pixels, System.Runtime.InteropServices.GCHandleType.Pinned);
+        try { Assert.True(surface.ReadPixels(new SKImageInfo(96, 96, SKColorType.RgbaF32, SKAlphaType.Premul), handle.AddrOfPinnedObject(), 96 * 16, 0, 0)); }
+        finally { handle.Free(); }
+        return pixels;
+    }
+
+    [Fact]
     [Trait("Decision", "ED-252")] // OD-0090: the orb is SkSL runtime effects (no WebGL); ED-233 and the lead's ~50 ms a compile: four programs, each over the last's output at the same pixels
     public void The_knob_programs_are_valid_sksl_with_one_uniform_block()
     {

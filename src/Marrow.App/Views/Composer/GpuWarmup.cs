@@ -86,6 +86,9 @@ public static class GpuWarmup
         public void Dispose() { lock (activities) activities.Remove(this); }
     }
 
+    /// <summary>Registrations not yet disposed (tests).</summary>
+    internal static int ActivityCount { get { lock (activities) return activities.Count; } }
+
     /// <summary>True when something on screen animates: a frame-clock request is waiting (on <paramref name="frames"/>, the
     /// frame clock's source by default), or a registered activity runs.</summary>
     internal static bool Animating(IFrameSource? frames = null)
