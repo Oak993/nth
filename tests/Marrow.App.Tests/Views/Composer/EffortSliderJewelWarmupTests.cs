@@ -1008,6 +1008,54 @@ public sealed class EffortSliderJewelWarmupTests(HeadlessSession headless)
         Assert.Equal(GpuWarmup.DoneKept + 9, GpuWarmup.Done.Last().Milliseconds);
     }
 
+    [Fact]
+    [Trait("Decision", "ED-252")] // the idle fallback reads Avalonia's clock: the app's window at rest, a thread open, leaves it without subscribers (else every warm-up waits for its cap)
+    public void The_apps_window_at_rest_with_a_thread_open_holds_nothing_on_avalonias_clock() => headless.OnUiThread(() =>
+    {
+        // the chat's Hydra button opens its intro popover on first appearance (HydraButton.swift:93); a headless window has
+        // no popup platform, so popovers are recorded (as RootViewDropRoutingTests does)
+        using var popovers = Presentation.Presenter.Override(new RecordingPresenter());
+        using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+        using var harness = new AppModelHarness(withRuntime: false); // the real clock: the views' transitions end in time
+        var frames = new ManualFrameSource();
+        using var bound = FrameClock.Source.Override(frames);
+        using var cursor = Marrow.UI.Chrome.DragHandleView.CursorPlatform.Override(new ChatNoCursor());
+        var model = new AppModel();
+        model.NewThread(model.AddProject(new Project("Project", harness.NewFolder("project")).Url)); // selects it (AppModel.swift:623)
+        var host = new Border();
+        AppEnvironment.SetAppModel(host, model);
+        host.Child = new Marrow.App.Views.RootView();
+        var window = new Avalonia.Controls.Window { Width = 1000, Height = 720, Content = host };
+        AppEnvironment.SetWindowLiveResize(host, new Marrow.App.Window.WindowLiveResize(window));
+        window.Show();
+        try
+        {
+            var chip = Assert.Single(LogicalQuery.SelfAndDescendants<ModelEffortButton>(window));
+            Assert.True(GpuWarmup.IsScheduled(chip), "precondition: the composer's model chip has its idle warm-up");
+            // the window's first frames, and any animation or transition they start, run out (the frame clock stepped with
+            // the render timer)
+            FramesFor(TimeSpan.FromSeconds(2), () => { frames.Advance(TimeSpan.FromMilliseconds(16)); return false; });
+            var subscribers = GpuWarmup.AvaloniaClockSubscribers();
+            Assert.NotNull(subscribers);
+            Assert.True(subscribers!.Count == 0, $"{subscribers.Count} subscribers hold Avalonia's clock with the window at rest: the warm-up never sees a quiet frame");
+            Assert.True(frames.Pending == 0, $"{frames.Pending} frame-clock requests still wait with the window at rest: {Requesters(frames)}");
+            Assert.False(GpuWarmup.Animating(frames), "the window at rest counts as animating");
+        }
+        finally { window.Hide(); window.Content = null; Dispatcher.UIThread.RunJobs(); }
+    });
+
+    // who waits on a manual frame source (its requests' callbacks, by method and owner): a failure names what animates
+    private static string Requesters(ManualFrameSource frames)
+    {
+        var waiting = (System.Collections.IEnumerable)typeof(ManualFrameSource)
+            .GetField("waiting", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(frames)!;
+        return string.Join("; ", waiting.Cast<object>().Select(request =>
+        {
+            var frame = (Delegate)request.GetType().GetProperty("Frame")!.GetValue(request)!;
+            return frame.Method.DeclaringType?.FullName + "." + frame.Method.Name + " (" + frame.Target?.GetType().FullName + ")";
+        }));
+    }
+
     // frames (or none) about every 10 ms until done or the time is up, the dispatcher's jobs run between
     private static void Pump(TimeSpan span, Func<bool> done, bool render)
     {
