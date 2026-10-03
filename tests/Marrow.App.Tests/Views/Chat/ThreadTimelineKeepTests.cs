@@ -125,6 +125,79 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
         Assert.NotNull(LogicalQuery.SelfAndDescendants<Button>(now.Row).SingleOrDefault(button => ToolTip.GetTip(button) as string == "Hide this turn's steps"));
     });
 
+    private static string[] Answers(Control row) =>
+        LogicalQuery.SelfAndDescendants<FoldedAnswerView>(row).SelectMany(answer => LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(answer)).Select(view => view.Text).ToArray();
+
+    // The steps the opened card's work groups hold (TimelineRows.swift:1446 `let entries`), in order, of the views on show (a card on its way out is not counted).
+    private static string[] StepIDs(Control row) => LogicalQuery.SelfAndDescendants<WorkGroup>(row).Where(group => Shown(group, row) > 0.5).SelectMany(group =>
+    {
+        var state = typeof(WorkGroup).GetField("state", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.GetValue(group)!;
+        return (ValueList<TimelineEntry>)state.GetType().GetProperty("Entries")!.GetValue(state)!;
+    }).Select(entry => entry.Id).ToArray();
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-104 (ED-NEW-parity-threadtimeline (3)): TimelineRows.swift:2589-2591 the body derives the turn from the entries it is handed (:2703-2706 its cache keyed on them), :2631-2680 the answer folded and the steps opened: other entries under the block's id change what it shows, and the fold stays
+    public void A_finished_turn_handed_other_entries_under_its_id_shows_them_folded_and_opened_and_keeps_its_fold() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        var entries = new List<TimelineEntry> { User("p1", TurnA, "question"), Reply("said", TurnA, "I will run it"), ToolEntry("run", TurnA), Reply("final", TurnA, "Done."), EndWith("e1", TurnA, 2, 0) };
+        mount.SetEntries(entries); mount.Settle();
+        var folded = mount.Blocks().Single(block => block.Block is DisplayBlock.Turn);
+        Assert.Equal(["Done."], Answers(folded.Row));
+        // The turn's final reply lands again as another entry (a retried answer): the folded block says the new one.
+        entries[3] = Reply("final-b", TurnA, "Done, and checked twice."); mount.SetEntries(entries); mount.Advance(400);
+        var now = mount.Blocks().Single(block => block.Id == folded.Id); Assert.Same(folded.Row, now.Row);
+        Assert.Equal(["Done, and checked twice."], Answers(now.Row));
+        // Opened, a step that joins the turn is in its steps card, and the card stays open.
+        LogicalQuery.SelfAndDescendants<Button>(now.Row).Single(button => ToolTip.GetTip(button) as string == "Show this turn's steps").RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); mount.Advance(600);
+        Assert.Equal(["run"], StepIDs(now.Row));
+        entries.Insert(3, ToolEntry("check", TurnA)); mount.SetEntries(entries); mount.Advance(400);
+        Assert.Same(folded.Row, mount.Blocks().Single(block => block.Id == folded.Id).Row);
+        Assert.Equal(["run", "check"], StepIDs(now.Row));
+        Assert.NotNull(LogicalQuery.SelfAndDescendants<Button>(now.Row).SingleOrDefault(button => ToolTip.GetTip(button) as string == "Hide this turn's steps"));
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-035 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:167-172 (no turn is rewindable while one runs), :1980-1984 the turn's ForEach hands each TurnRow its context (:2012-2014 `let context`), TimelineRows.swift:131 the pencil: a turn left without its end marker is a turn block with no summary, and its message loses and regains the pencil as a later turn starts and ends
+    public void An_interrupted_turns_message_loses_its_pencil_while_a_later_turn_runs_and_gets_it_back_when_that_turn_ends() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        Inputs(mount, "Project", true);
+        SetTurns(mount, new TurnRecord { Id = TurnA, Index = 0, Status = TurnStatus.Interrupted });
+        var entries = new List<TimelineEntry> { User("p1", TurnA, "first question"), Reply("partial", TurnA, "I was about to") }; // no end marker: the app stopped mid-turn
+        mount.SetEntries(entries); mount.Settle();
+        var interrupted = mount.Blocks().Single(block => block.Block is DisplayBlock.Turn { Summary: null });
+        Assert.IsType<TurnRunningBlock>(((Decorator)interrupted.Row).Child);
+        var user = Assert.Single(LogicalQuery.SelfAndDescendants<UserMessageRow>(interrupted.Row));
+        Assert.True(Offers(user, "Edit message"));
+        // The reader sends the next message: while it runs no turn may be rewound.
+        SetTurns(mount, new TurnRecord { Id = TurnA, Index = 0, Status = TurnStatus.Interrupted }, new TurnRecord { Id = TurnB, Index = 1 });
+        entries.Add(User("p2", TurnB, "next question")); mount.SetEntries(entries); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Advance(600);
+        Assert.Same(interrupted.Row, mount.Blocks().Single(block => block.Id == interrupted.Id).Row);
+        Assert.Same(user, Assert.Single(LogicalQuery.SelfAndDescendants<UserMessageRow>(interrupted.Row)));
+        Assert.False(Offers(user, "Edit message"), "the interrupted turn's message offers to edit while another turn runs");
+        // That turn ends: the interrupted one may be rewound again.
+        entries.Add(Reply("r2", TurnB, "answer")); entries.Add(End("e2", TurnB)); mount.SetEntries(entries); mount.SetPhase(RuntimePhase.Idle); mount.Advance(600);
+        Assert.Same(user, Assert.Single(LogicalQuery.SelfAndDescendants<UserMessageRow>(interrupted.Row)));
+        Assert.True(Offers(user, "Edit message"));
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-121 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:1902-1935 DisplayBlockView's `.working(_, liveWork)` branch (WorkingBlockView, :2261-2274, its WorkingIndicator's @State): a working block handed another value under its id is the same line with the new work
+    public void A_working_block_handed_other_work_under_its_id_is_the_same_line_showing_it() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Settle(); // a turn running with nothing in the thread yet: the working block alone (:1600-1602)
+        var block = mount.Blocks().Single(); var view = Assert.IsType<DisplayBlockView>(block.Row);
+        Assert.IsType<DisplayBlock.Working>(block.Block);
+        var line = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(view)); var host = Assert.Single(LogicalQuery.SelfAndDescendants<WorkingBlockView>(view));
+        Assert.Equal("", ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(line).First())); // nothing to open
+        // The timeline's build hands a working block no work today (:1600-1602 `liveWork: []`), so the value it holds cannot change under its id from the thread: the pass of the
+        // body that would hand it one is made here, the way ThreadTimeline.Draw hands any block whose id stood (DisplayBlockView.TryUpdate).
+        var work = new ValueList<TimelineEntry>([ToolEntry("listing")]);
+        Assert.True(view.TryUpdate(new DisplayBlock.Working(null, work), new RowContext(null, false, false)), "a working block under the same id is the same view");
+        mount.Advance(400);
+        Assert.Same(host, Assert.Single(LogicalQuery.SelfAndDescendants<WorkingBlockView>(view))); Assert.Same(line, Assert.Single(LogicalQuery.SelfAndDescendants<WorkingIndicator>(view)));
+        Assert.Equal("Show these steps", ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(line).First())); // its live work, something to open
+    });
+
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-155 (ED-NEW-parity-threadtimeline (3)): ThreadTimeline.swift:2039-2071 TimelineGroupView, TimelineRows.swift:1572 ForEach(entries): a group of a run with no turn that grows under its id is the same row
     public void A_work_group_that_grows_under_its_id_is_the_same_row_and_the_same_group_with_its_steps_following() => ThreadTimelineRig.Run(headless, mount =>
