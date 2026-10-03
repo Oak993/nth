@@ -117,8 +117,12 @@ public static class SwiftShapes
 
     // ---- The outline as data ---------------------------------------------------------------------------------------
 
-    /// <summary>How far outside its bounds a clip path reaches along the straight sides, so the clip never cuts what the shape draws there.</summary>
-    internal const double ClipSlack = 2;
+    /// <summary>
+    /// How far outside its bounds a clip path reaches along the straight sides: far enough that it never cuts what the shape or a child draws
+    /// there (SwiftUI's `.background(shape)` does not clip its content: the effort title's letters leaving past the chevron are drawn), so
+    /// the clip removes only the four corner slivers.
+    /// </summary>
+    internal const double ClipSlack = 4096;
 
     /// <summary>
     /// The closed path of a rounded rectangle, as data. Per corner (ENGINEERING DECISION, SPEC.md 4.2, backed by the
@@ -132,7 +136,7 @@ public static class SwiftShapes
 
     // The clip variant of the outline: the same corners, but every straight side and every corner that is not Apple's is
     // pushed ClipSlack outside, so the clip cuts only along the continuous curves (the Border's own fill, with its own
-    // anti-aliased edge, stays what draws every straight side).
+    // anti-aliased edge, stays what draws every straight side, and a child that draws beyond a side is not clipped).
     internal static ShapeOutline ClipOutline(Rect rect, CornerRadius radii) => Build(rect, radii, RoundedCornerStyle.Continuous, ClipSlack);
 
     // Whether a corner's run-in fits: the corner and its neighbour on each side it shares need E r each along that side (the top side

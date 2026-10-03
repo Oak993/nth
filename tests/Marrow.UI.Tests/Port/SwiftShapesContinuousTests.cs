@@ -321,7 +321,7 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         var clip = Assert.IsAssignableFrom<Geometry>(border.Clip);
         Assert.False(clip.FillContains(new Point(22.6, 0.40)));
         Assert.True(clip.FillContains(new Point(22.6, 0.75)));
-        Assert.True(clip.FillContains(new Point(200, -1.5))); // the straight sides are left to the Border's own fill: the clip reaches 2 pt past them
+        Assert.True(clip.FillContains(new Point(200, -1.5))); // the straight sides are left to the Border's own fill: the clip reaches far past them (ClipSlack)
         Assert.False(clip.FillContains(new Point(1, 1)));
         window.Close();
     });
@@ -391,6 +391,30 @@ public sealed class SwiftShapesContinuousTests(HeadlessSession headless)
         Assert.NotNull(site.Clip);
         Assert.Same(site.Clip, SwiftShapes.ClipGeometry(new Rect(0, 0, 400, 300), new CornerRadius(26)));
         second.Close();
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-181")]
+    public void A_child_that_draws_beyond_a_side_of_a_continuous_Border_is_not_clipped_only_the_corner_slivers_are() => headless.OnUiThread(() =>
+    {
+        // SwiftUI's `.background(shape)` does not clip its content (the effort title's letters leaving past the chevron are drawn,
+        // EffortTitleMorphTests); a Border cut to Apple's corner must not either, except in the four corners.
+        var overflow = new Border { Width = 260, Height = 40, Background = Brushes.Red, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Center };
+        var corner = new Border { Width = 60, Height = 60, Background = Brushes.Blue, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top };
+        var border = new Border { Width = 200, Height = 140, Background = Brushes.White, HorizontalAlignment = HorizontalAlignment.Left, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(20), Child = new Panel { Children = { overflow, corner } } }
+            .RoundedRectangle(26, RoundedCornerStyle.Continuous);
+        var window = new Window { Width = 300, Height = 200, Background = Brushes.Black, Content = new Panel { Children = { border } } };
+        window.Show();
+        Settle();
+        Assert.NotNull(border.Clip);
+        Assert.Equal(new Rect(20, 20, 200, 140), border.Bounds);
+        var pixels = RenderedPixels.Capture(window);
+        // 30 pt past the right edge at mid-height the red child is drawn: the clip does not cut beside a side.
+        Assert.Equal((255, 0, 0), pixels.At(20 + 200 + 30, 20 + 70));
+        // In the top-left corner the sliver outside Apple's curve (the vertex pixel) is cut, 14 pt in along the diagonal the blue child is drawn.
+        Assert.Equal((0, 0, 0), pixels.At(20 + 1, 20 + 1));
+        Assert.Equal((0, 0, 255), pixels.At(20 + 14, 20 + 14));
+        window.Close();
     });
 
     [Fact]

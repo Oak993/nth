@@ -260,7 +260,7 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
     public void A_named_theme_washes_the_window_with_its_surface_easing_in() => Open(AppTheme.Dark, (rig, window, card, model) =>
     {
         var backdrop = Nodes<SettingsView>((Control)window.Content!).Single().RiseBackdrop;
-        var tint = (Border)((Panel)backdrop.Child!).Children[1];
+        var tint = (SwiftShapeBorder)((Panel)backdrop.Child!).Children[1]; // ED-181: the backdrop's layers are SwiftShapeBorders
         var from = ((ISolidColorBrush)tint.Background!).Color;
         Assert.Equal(AppTheme.Dark.Spec().Surface.Opacity(0.12).Resolve(ThemeVariant.Dark), from);
         var to = SwiftColor.Hex("282A36").Opacity(0.12).Resolve(ThemeVariant.Dark); // Dracula's surface
