@@ -212,6 +212,30 @@ public sealed class AboutUpdateViewsCrossfadeTests(HeadlessSession headless)
         });
     });
 
+    [Fact]
+    [Trait("Req", "UI-UPDATE-005")] // :671 the face change eases; a rebuild of the face that looks the same (a check ends meanwhile) must not jump the running swap to its end
+    [Trait("Rule", "R-TEST-4")] // partial: only that a swap in flight is not cut by a same-looking rebuild
+    public void A_rebuild_that_looks_the_same_does_not_cut_a_swap_that_is_running() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime(); using var stage = new Stage(runtime);
+        AboutVersionPill pill = null!;
+        runtime.OnMain(() =>
+        {
+            pill = new AboutVersionPill(); stage.Window = Show(pill);
+            Set(stage.Checker, nameof(UpdateChecker.Update), AboutUpdateViewsProofLifecycleTests.Release());
+        });
+        runtime.OnMain(() =>
+        {
+            Dispatcher.UIThread.RunJobs(); stage.Step(45);
+            Set(stage.Checker, nameof(UpdateChecker.LastCheckedAt), SwiftDate.Now); Dispatcher.UIThread.RunJobs(); // still the ready face, rebuilt while the swap runs
+            stage.Step(16);
+            Assert.InRange(Shown(pill, "Update & restart"), 0.0, 0.5); // not at once at full opacity
+            Assert.True(Shown(pill, "Not checked yet") > 0.3); // the standing is still on its way out
+            stage.Step(300);
+            Assert.Single(pill.GetVisualDescendants().OfType<Button>()); Assert.Equal(1, Shown(pill, "Update & restart"));
+        });
+    });
+
     // ---- T3: the pill and the install slider ----
 
     [Theory]
