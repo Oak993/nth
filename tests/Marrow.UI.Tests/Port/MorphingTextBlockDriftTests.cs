@@ -160,6 +160,38 @@ public sealed class MorphingTextBlockDriftTests(HeadlessSession headless)
     // The window's left 15 %: the kept "202" of the label at its left.
     private static RenderedPixels Left(RenderedPixels pixels) => pixels.Crop(0, 0, (int)(pixels.Width * 0.15), pixels.Height);
 
+    // A stalled frame (the window behind another, the machine busy) moves the colours on by at most a tenth of a second
+    // when frames come again: the drift never lurches.
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
+    public void A_stalled_frame_moves_the_drift_on_by_a_tenth_of_a_second_at_most() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        var label = new MorphingTextBlock { Text = "HHHH", FontSize = 30, Foreground = RedToBlue(), DriftPeriod = Period };
+        var window = new Window { Width = 400, Height = 80, Content = label };
+        window.Show();
+        try
+        {
+            void Frame(int milliseconds)
+            {
+                clock.Advance(TimeSpan.FromMilliseconds(milliseconds));
+                frames.Advance(TimeSpan.FromMilliseconds(milliseconds));
+                Dispatcher.UIThread.RunJobs();
+            }
+            for (var i = 0; i < 10; i++) Frame(20);
+            var before = label.DriftPhase;
+            Frame(2000); // one frame two seconds late
+            Assert.Equal(0.1 / Period, label.DriftPhase - before, 6);
+            var after = label.DriftPhase;
+            Frame(20); // and on at its pace again
+            Assert.Equal(0.02 / Period, label.DriftPhase - after, 6);
+        }
+        finally { window.Close(); }
+    });
+
     [Fact]
     [Trait("Req", "PR-COMPOSER-111")] // the title (EffortSlider.swift:573-583) as ruled by OD-0094
     public void The_drift_asks_for_frames_only_while_the_title_is_shown() => headless.OnUiThread(() => Run((label, window, step) =>
