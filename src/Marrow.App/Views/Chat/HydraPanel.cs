@@ -58,6 +58,7 @@ public sealed class HydraPanel : Decorator
     private ChatThread? selectedHead;
     private Control? stage;
     private Control? name;
+    private StageCapsule? capsule;
     private Control? popButton;
     private Guid? popId;
     private Border? wave;
@@ -162,8 +163,20 @@ public sealed class HydraPanel : Decorator
             else if (stage is HydraHeadTranscript transcript && selected is not null && selectedHead != selected)
                 transcript.Update(selected);
             if (selectedHead != selected)
-                Replace(nameHost, ref name, Caption(selected,onDrag,onDragEnd), CapsuleAppear,
-                    animate && selectedHead?.Id != selected?.Id);
+            {
+                // :136-165 `if let selected, let info = selected.hydra { HStack ... .transition(.softAppear) }` carries no .id: a
+                // head change from one head to another keeps the SAME capsule view and its contents change under :199
+                // `.animation(liveResize.isActive ? nil : Chrome.panelSlide, value: selected?.id)`. Only a capsule that was
+                // not there (no head on stage, or a head with no record) arrives by the soft appear, and one that goes leaves by it.
+                var headChanged = selectedHead?.Id != selected?.Id;
+                if (capsule is not null && selected?.Hydra is not null)
+                    capsule.Update(selected, animate && headChanged && !reduceMotion ? Transaction.Current : null);
+                else
+                {
+                    capsule = selected?.Hydra is not null ? new StageCapsule(this, selected, onDrag, onDragEnd) : null;
+                    Replace(nameHost, ref name, capsule?.Root, CapsuleAppear, animate && headChanged);
+                }
+            }
             var nextPopId = !isPoppedOut && popOut is not null && heads.Count>1 ? selected?.Id : null;
             if (popId != nextPopId)
             {
@@ -223,60 +236,126 @@ public sealed class HydraPanel : Decorator
         public StageHold? Hold { get => Read(hold); set => Set(ref hold,value); }
     }
 
-    // :132-164 The selected head's name capsule.
-    private Control? Caption(ChatThread? selected, Action<Size> onDrag, Action onDragEnd)
+    // :132-164 The selected head's name capsule: the contents of its HStack (the glyph, the name, the provider's mark, the status
+    // word and the clock) for the head on stage, drawn into the given panel.
+    private void FillCapsule(StackPanel content, ChatThread selected)
     {
-        if (selected?.Hydra is { } info)
+        var info = selected.Hydra!;
+        content.Children.Clear();
+        // :132-135 The head's stored record, not its live one: the strip sits over a streaming chat
+        // and shows only the name and the state.
+        content.Children.Add(new HydraGlyph(info.Persona, 16, info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running, info.HydraHeadInfoStatus));
+        content.Children.Add(new HydraNameText(info.Persona, 12.5, SwiftFont.Weight.Medium, Chrome.PrimaryText.Opacity(0.92)));
+        // :141-145 The provider's mark, so the strip says whose model is at work on stage.
+        var providerIcon = new ProviderIcon { Provider = selected.Provider, Size = 12 };
+        providerIcon.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, Chrome.SecondaryText.Brush(providerIcon)); // :144 .foregroundStyle(Chrome.secondaryText)
+        ToolTip.SetTip(providerIcon,
+            WindowManager.Shared.Model.Providers.Model(selected.Model, selected.Provider)?.ShortName
+            ?? selected.Provider.DisplayName);
+        content.Children.Add(providerIcon);
+        // :146-149 Text(verbatim: HydraStatusText.short(info)).font(.system(.callout)); ED-059: callout
+        // is 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52), in Inter (OD-0009).
+        var status = new TextBlock
         {
-            // :132-135 The head's stored record, not its live one: the strip sits over a streaming chat
-            // and shows only the name and the state.
-            var capsule = new StackPanel
+            Text = HydraStatusText.Short(info),
+            Foreground = Chrome.SecondaryText.Brush(this),
+            TextWrapping = TextWrapping.NoWrap,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(status);
+        content.Children.Add(status);
+        // :150-152 The head's own clock, so the strip itself is still drawn once.
+        content.Children.Add(new HydraElapsedTime(info.StartedAt, info.FinishedAt, info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running));
+    }
+
+    /// <summary>
+    /// :136-165 the stage capsule as ONE view for as long as a head with a record is on stage (the source's `if let` has no .id): the glass shell, its
+    /// padding and the drag handle stay, and a head change takes the contents in place under the panel slide (:199). ENGINEERING DECISION (OD-0076:
+    /// content that swaps crossfades, a container whose content changes width eases to it): the contents dip out over the first half of the motion on its
+    /// ease-in, the new head's come in over the second on its ease-out, and the capsule's width glides from the old width to the new one over the second half, once the new contents' width is known,
+    /// as the working line's clock does (HydraElapsedTime.Update). With no animation (a live resize, the same head's record changing, reduce motion) it is at once.
+    /// </summary>
+    private sealed class StageCapsule
+    {
+        private readonly HydraPanel owner;
+        private readonly StackPanel content;
+        private readonly Border padded;
+        private IFrameSource? source;
+        private Action<TimeSpan>? pending;
+
+        public Grid Root { get; }
+
+        public StageCapsule(HydraPanel owner, ChatThread selected, Action<Size> onDrag, Action onDragEnd)
+        {
+            this.owner = owner;
+            content = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
                 Spacing = 6,
-                VerticalAlignment = VerticalAlignment.Center
+                VerticalAlignment = VerticalAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Left
             };
-            capsule.Children.Add(new HydraGlyph(info.Persona, 16, info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running, info.HydraHeadInfoStatus));
-            capsule.Children.Add(new HydraNameText(info.Persona, 12.5, SwiftFont.Weight.Medium, Chrome.PrimaryText.Opacity(0.92)));
-            // :141-145 The provider's mark, so the strip says whose model is at work on stage.
-            var providerIcon = new ProviderIcon { Provider = selected.Provider, Size = 12 };
-            providerIcon.SetValue(Avalonia.Controls.Documents.TextElement.ForegroundProperty, Chrome.SecondaryText.Brush(providerIcon)); // :144 .foregroundStyle(Chrome.secondaryText)
-            ToolTip.SetTip(providerIcon,
-                WindowManager.Shared.Model.Providers.Model(selected.Model, selected.Provider)?.ShortName
-                ?? selected.Provider.DisplayName);
-            capsule.Children.Add(providerIcon);
-            // :146-149 Text(verbatim: HydraStatusText.short(info)).font(.system(.callout)); ED-059: callout
-            // is 12 points (B1:DroppyCode/UI/Common/ChatZoom.swift:52), in Inter (OD-0009).
-            var status = new TextBlock
-            {
-                Text = HydraStatusText.Short(info),
-                Foreground = Chrome.SecondaryText.Brush(this),
-                TextWrapping = TextWrapping.NoWrap,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            SwiftFont.System(SwiftFont.TextStyle.Callout).Apply(status);
-            capsule.Children.Add(status);
-            // :150-152 The head's own clock, so the strip itself is still drawn once.
-            capsule.Children.Add(new HydraElapsedTime(info.StartedAt, info.FinishedAt, info.HydraHeadInfoStatus == HydraHeadInfo.Status.Running));
-
+            owner.FillCapsule(content, selected);
             // :154-158 horizontal 12, content height 28, then vertical 2, fixed size, chromeGlassCapsule (the same surface the
             // heads button wears: a continuous capsule of glass, flat on a glass panel, a shade brighter under the pointer).
-            var capsuleBorder = new Border
+            padded = new Border
             {
-                Child = capsule,
+                Child = content,
                 Padding = new Thickness(Chrome.CapsuleHorizontalPadding, Chrome.CapsuleVerticalPadding),
                 Height = Chrome.CapsuleHeight,
-            }.ChromeGlassCapsule();
-
+            };
             // :159-163 The name is a label, not a control, so it drags the panel too: it is where the hand
             // goes when there is little room beside it.
-            var stage = new Grid();
-            stage.Children.Add(capsuleBorder);
-            stage.Children.Add(new PanelDragHandle(onDrag, onDragEnd));
-            return stage;
+            Root = new Grid();
+            Root.Children.Add(padded.ChromeGlassCapsule());
+            Root.Children.Add(new PanelDragHandle(onDrag, onDragEnd));
         }
 
-        return null;
+        public void Update(ChatThread selected, Animation? change)
+        {
+            Stop();
+            if (change is null || change.Duration <= 0 || TopLevel.GetTopLevel(padded) is null)
+            {
+                owner.FillCapsule(content, selected);
+                content.Opacity = 1;
+                padded.Width = double.NaN;
+                return;
+            }
+            var from = padded.Bounds.Width;
+            var to = from;
+            var fromOpacity = content.Opacity;
+            var half = change.Duration / 2;
+            var frames = FrameClock.Source.Current;
+            var since = SwiftClock.Now;
+            var swapped = false;
+            Action<TimeSpan>? frame = null;
+            frame = _ =>
+            {
+                var elapsed = (SwiftClock.Now - since).TotalSeconds;
+                var done = elapsed + 0.001 >= change.Duration || TopLevel.GetTopLevel(padded) is null; // ED-117 (2); a capsule that left the tree finishes at once
+                var at = done ? change.Duration : elapsed;
+                if (at >= half && !swapped)
+                {
+                    swapped = true;
+                    owner.FillCapsule(content, selected);
+                    content.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity)); // the new contents, as they will be drawn (the clock has its words once attached)
+                    to = content.DesiredSize.Width + 2 * Chrome.CapsuleHorizontalPadding;
+                }
+                content.Opacity = done ? 1 : at < half ? fromOpacity * (1 - Animation.EaseIn(half).Progress(at)) : Animation.EaseOut(half).Progress(at - half);
+                padded.Width = done ? double.NaN : at < half ? from : from + (to - from) * Animation.EaseOut(half).Progress(at - half);
+                if (done) { pending = null; return; }
+                frames.RequestFrame(frame!);
+            };
+            source = frames;
+            pending = frame;
+            frames.RequestFrame(frame);
+        }
+
+        private void Stop()
+        {
+            if (pending is { } frame) source?.CancelFrame(frame);
+            pending = null;
+        }
     }
 
     private Control Strip(

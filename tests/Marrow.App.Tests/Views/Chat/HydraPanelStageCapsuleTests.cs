@@ -150,23 +150,70 @@ public sealed class HydraPanelStageCapsuleTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-HYDRA-019")] // HydraPanel.swift:164: a head change brings the next capsule in soft (opacity and a four-point rise); a window live resize does it at once
-    [Trait("Rule", "R-TEST-4")] // partial proof of UI-HYDRA-019: the head-change state as the ledger entry words it (the Swift keeps one capsule view across a head change, UNVERIFIED without a Mac)
-    public void A_head_change_brings_the_capsule_in_soft_and_a_live_resize_does_it_at_once() => Run(c =>
+    [Trait("Req", "UI-HYDRA-019")] // HydraPanel.swift:136-165 (no .id: one capsule view), :199 (.animation(liveResize.isActive ? nil : Chrome.panelSlide, value: selected?.id)): a head change keeps the one capsule and its contents change on the panel slide; a live resize does it at once
+    [Trait("Rule", "R-TEST-4")] // partial proof of UI-HYDRA-019: the head-change state (the dip, the swap and the width glide are ENGINEERING DECISIONS under OD-0076, ED-NEW-tail)
+    public void A_head_change_keeps_the_one_capsule_and_changes_its_contents_on_the_panel_slide_and_a_live_resize_does_it_at_once() => Run(c =>
     {
-        c.Select(c.Second);
-        var next = CapsulesOf(c).Last().Stage; // the old capsule is still there, fading out
-        Assert.Equal(0, next.Opacity);
-        c.Tick(0.05);
-        Assert.Equal(Animation.SoftAppear.Progress(0.05), next.Opacity, 6);
-        c.Tick(Animation.SoftAppear.Duration);
-        Assert.Equal(1, next.Opacity);
-        Assert.Single(CapsulesOf(c));
+        var before = CapsuleOf(c);
+        var firstWidth = before.Padded.Bounds.Width;
+        var motion = Chrome.PanelSlide;
+        var half = motion.Duration / 2;
+        Assert.Equal(c.First.Hydra!.Persona, Assert.IsType<HydraGlyph>(before.Content.Children[0]).Persona);
 
-        c.Resize(true);
+        c.Select(c.Second);
+
+        // The same capsule view throughout, never a second one and never faded as a whole: its stage, glass and drag handle stand.
+        var kept = CapsuleOf(c);
+        Assert.Same(before.Stage, kept.Stage);
+        Assert.Same(before.Content, kept.Content);
+        Assert.Equal(1, kept.Stage.Opacity);
+        Assert.Equal(1, kept.Content.Opacity);
+        Assert.Equal(c.First.Hydra!.Persona, Assert.IsType<HydraGlyph>(kept.Content.Children[0]).Persona); // the old head's words still on show as it begins
+
+        // The first half of the panel slide: the old contents fade out on its ease-in, and nothing of the new head has come yet.
+        c.Tick(half / 2);
+        kept = CapsuleOf(c);
+        Assert.Same(before.Stage, kept.Stage);
+        Assert.Equal(1 - Animation.EaseIn(half).Progress(half / 2), kept.Content.Opacity, 6);
+        Assert.Equal(c.First.Hydra!.Persona, Assert.IsType<HydraGlyph>(kept.Content.Children[0]).Persona);
+        Assert.Equal(1, kept.Stage.Opacity);
+
+        // The second half: the new head's contents come in on its ease-out, and the glass has eased to the width they need.
+        c.Tick(half);
+        kept = CapsuleOf(c);
+        Assert.Same(before.Stage, kept.Stage);
+        Assert.Equal(c.Second.Hydra!.Persona, Assert.IsType<HydraGlyph>(kept.Content.Children[0]).Persona);
+        Assert.Equal(Animation.EaseOut(half).Progress(half / 2), kept.Content.Opacity, 6);
+        Assert.Equal(1, kept.Stage.Opacity);
+
+        c.Tick(motion.Duration);
+        kept = CapsuleOf(c);
+        Assert.Same(before.Stage, kept.Stage);
+        Assert.Equal(1, kept.Content.Opacity);
+        Assert.True(double.IsNaN(kept.Padded.Width)); // the glide is over: the capsule sizes to its contents again
+        Assert.Equal(Chrome.CapsuleHeight, kept.Padded.Bounds.Height);
+        var secondWidth = kept.Padded.Bounds.Width;
+        Assert.Equal(c.Second.Hydra!.Persona, Assert.IsType<HydraGlyph>(kept.Content.Children[0]).Persona);
+        Assert.NotEqual(firstWidth, secondWidth); // the two heads' names differ in width, so the glide below has somewhere to go
+
+        // The width glides over the second half of the motion from the old head's width to the new one's, never past either.
         c.Select(c.First);
-        Assert.Equal(1, CapsulesOf(c).Last().Stage.Opacity); // no fade during a live resize
-        Assert.Single(CapsulesOf(c));
+        c.Tick(half * 1.5);
+        var middle = CapsuleOf(c).Padded.Bounds.Width;
+        Assert.InRange(middle, Math.Min(firstWidth, secondWidth), Math.Max(firstWidth, secondWidth));
+        Assert.NotEqual(secondWidth, middle);
+        Assert.NotEqual(firstWidth, middle);
+        c.Tick(motion.Duration);
+        Assert.Equal(firstWidth, CapsuleOf(c).Padded.Bounds.Width);
+
+        // A live window resize does it at once (:199 `liveResize.isActive ? nil : ...`): the next head's contents are there with no motion.
+        c.Resize(true);
+        c.Select(c.Second);
+        var resized = CapsuleOf(c);
+        Assert.Same(before.Stage, resized.Stage);
+        Assert.Equal(1, resized.Content.Opacity);
+        Assert.Equal(c.Second.Hydra!.Persona, Assert.IsType<HydraGlyph>(resized.Content.Children[0]).Persona);
+        Assert.Equal(secondWidth, resized.Padded.Bounds.Width);
         c.Resize(false);
     });
 }
