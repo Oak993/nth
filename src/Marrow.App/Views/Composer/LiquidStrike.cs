@@ -17,26 +17,71 @@ namespace Marrow.App.Views.Composer;
 // so the same moment always draws the same.
 
 /// <summary>A strike's three colours: the halo and glow-out, the inner stroke and glow-out core, and the light pools.
-/// The core is always white. The same on dark and light (only what the screen blend sits on differs).</summary>
-public readonly record struct StrikeTint(SKColor Outer, SKColor Inner, SKColor Wash)
+/// The core is always white. The same on dark and light (only what the screen blend sits on differs). OD-0090 (the owner,
+/// 2026-10-03: "ensure the lightning strikes contrast with each different model's colour palette and bubbles too"):
+/// <paramref name="Ink"/> (0 to 1), how pale the liquid is (jewel-knob.html inkOf): the bubbles on a pale liquid take the
+/// pale-liquid bubble look by it; 0 on every dark and mid liquid, where the locked look is untouched. (The owner rejected the
+/// deep rim under the bolt the same page first drew; the bolt's own treatment for pale liquids is still being designed.)</summary>
+public readonly record struct StrikeTint(SKColor Outer, SKColor Inner, SKColor Wash, double Ink = 0)
 {
     public static StrikeTint Claude { get; } = new(new SKColor(255, 146, 100), new SKColor(255, 222, 204), new SKColor(255, 168, 126));
     public static StrikeTint DeepSeek { get; } = new(new SKColor(116, 142, 255), new SKColor(224, 231, 255), new SKColor(146, 168, 255));
     public static StrikeTint Gemini { get; } = new(new SKColor(190, 160, 255), new SKColor(242, 234, 255), new SKColor(206, 184, 246));
 
-    /// <summary>The canvas's TINT table: Claude, DeepSeek and Gemini (Antigravity's colours); any other brand takes Claude's
-    /// (<c>TINT[brand] || TINT.claude</c>). UNRESOLVED (ED-248): the other brands' own tints await the owner.</summary>
-    public static StrikeTint For(EffortBrand brand) => brand switch
+    /// <summary>The canvas's TINT table: Claude, DeepSeek and Gemini (Antigravity's colours). DEVIATION OD-0090 (the locked
+    /// Jewel knob page, knob-variants.js strikeTint): every other brand's tint is derived from its own liquid (this settles
+    /// ED-248's open question, where they took Claude's), so the lightning, the liquid and the knob wear one maker.</summary>
+    public static StrikeTint For(EffortBrand brand)
     {
-        EffortBrand.Deepseek => DeepSeek,
-        EffortBrand.Antigravity => Gemini,
-        _ => Claude,
-    };
+        var i = (int)brand;
+        if (tints[i] is { } kept) return kept;
+        return (tints[i] = Of(JewelLiquid.Of(brand))).Value;
+    }
+
+    private static readonly StrikeTint?[] tints = new StrikeTint?[Enum.GetValues<EffortBrand>().Length];
+
+    /// <summary>
+    /// knob-variants.js strikeTint(liquid): the locked board's three tints kept as they are; any other maker's from its
+    /// stops: the halo at OKLCH (0.78, max(1.05 C, 0.02)), the inner stroke at (0.95, 0.25 C), the pools at (0.82, 0.8 C),
+    /// all at the hue 0.8 of the way to the light stop.
+    /// </summary>
+    public static StrikeTint Of(JewelLiquid q)
+    {
+        var ink = InkOf(q);
+        switch (q.Maker)
+        {
+            case "Claude": return Claude with { Ink = ink };
+            case "DeepSeek": return DeepSeek with { Ink = ink };
+            case "Gemini": return Gemini with { Ink = ink };
+        }
+        double h = q.HueAt(0.8), c = q.C;
+        return new StrikeTint(JewelColor.HexOf(0.78, Math.Max(c * 1.05, 0.02), h), JewelColor.HexOf(0.95, c * 0.25, h), JewelColor.HexOf(0.82, c * 0.8, h), ink);
+    }
+
+    /// <summary>
+    /// jewel-knob.html inkOf(liquid).ink: how much contrast help the liquid needs, from white's WCAG contrast against its
+    /// light stop: none at 2.9:1 or more, full at 1.9:1 or less.
+    /// </summary>
+    public static double InkOf(JewelLiquid q)
+    {
+        static double Lin(byte v) { var c = v / 255.0; return c <= 0.04045 ? c / 12.92 : Math.Pow((c + 0.055) / 1.055, 2.4); }
+        var lum = 0.2126 * Lin(q.Light.Red) + 0.7152 * Lin(q.Light.Green) + 0.0722 * Lin(q.Light.Blue);
+        return Math.Min(1, Math.Max(0, (2.9 - 1.05 / (lum + 0.05)) / 1.0));
+    }
+
+    /// <summary>knob-variants.js mixTint: two tints mixed channel by channel, each rounded (a model change's 0.6 s crossfade).</summary>
+    public static StrikeTint Mix(StrikeTint a, StrikeTint b, double u)
+    {
+        static byte C(byte x, byte y, double u) => (byte)Math.Floor(x + (y - x) * u + 0.5);
+        static SKColor M(SKColor x, SKColor y, double u) => new(C(x.Red, y.Red, u), C(x.Green, y.Green, u), C(x.Blue, y.Blue, u));
+        return new StrikeTint(M(a.Outer, b.Outer, u), M(a.Inner, b.Inner, u), M(a.Wash, b.Wash, u), a.Ink + (b.Ink - a.Ink) * u); // mixTint2's ink
+    }
 }
 
 /// <summary>
-/// Where a strike runs: the liquid's size (px), the knob's centre <paramref name="Knob"/> (x, px) and its radius. The
-/// channel runs from the knob's centre to the cap end at 0.32 h; <see cref="K"/> scales every width and length.
+/// Where a strike runs: the liquid's size (px), where the bolt leaves the knob <paramref name="Knob"/> (x, px: the engine's
+/// g.ex; on the slider the page's exAt, 2 px before the knob's centre on a quarter pixel) and the knob's radius. The
+/// channel runs from there to the cap end at 0.32 h; <see cref="K"/> scales every width and length.
 /// </summary>
 public sealed record StrikeGeometry(double Width, double Height, double Knob, double KnobRadius)
 {
@@ -49,7 +94,8 @@ public sealed record StrikeGeometry(double Width, double Height, double Knob, do
     public double CapEnd => Height * 0.32;
 }
 
-public enum StrikeOpKind { Stroke, Wash }
+/// <summary>A stroke, a light pool, or (OD-0078) a burst's glints: discs filled as one path.</summary>
+public enum StrikeOpKind { Stroke, Wash, Disc }
 
 /// <summary>
 /// One drawing step: a stroke of a polyline (x, y pairs) at a width in a colour at an alpha (the canvas's rgba, rounded
@@ -76,6 +122,9 @@ public sealed class StrikeOp
     public static StrikeOp Stroke(double[] points, double width, SKColor color, double alpha) => new(StrikeOpKind.Stroke, points, width, color, alpha, 0, 0, 0, 0);
 
     public static StrikeOp Wash(double x, double y, double rx, double ry, double alpha, SKColor color) => new(StrikeOpKind.Wash, [], 0, color, alpha, x, y, rx, ry);
+
+    /// <summary>OD-0078: a burst's glints, discs (x, y, r triples) filled once as one path in a colour at an alpha.</summary>
+    public static StrikeOp Discs(double[] discs, SKColor color, double alpha) => new(StrikeOpKind.Disc, discs, 0, color, alpha, 0, 0, 0, 0);
 }
 
 /// <summary>The canvas's strike maths (strikeAt, hash, vn, fbm, the pulses, the leader's steps, the spark's timing).</summary>
@@ -233,6 +282,14 @@ public static class Strike
                 stroke.ColorF = new SKColorF(op.Color.Red / 255f, op.Color.Green / 255f, op.Color.Blue / 255f, (float)op.Alpha);
                 canvas.DrawPath(path, stroke);
             }
+            else if (op.Kind == StrikeOpKind.Disc)
+            {
+                fill.Shader = null;
+                fill.ColorF = new SKColorF(op.Color.Red / 255f, op.Color.Green / 255f, op.Color.Blue / 255f, (float)op.Alpha);
+                path.Rewind();
+                for (var i = 0; i + 2 < op.Points.Length; i += 3) path.AddCircle((float)op.Points[i], (float)op.Points[i + 1], (float)op.Points[i + 2]);
+                canvas.DrawPath(path, fill); // non-zero fill: where glints overlap, once
+            }
             else
             {
                 var c = op.Color;
@@ -271,7 +328,7 @@ public sealed class StrikeChannels(int seed)
         geometry = g; mains.Clear(); branches.Clear(); traces.Clear();
     }
 
-    /// <summary>Strike k's channel: from the knob's centre to the cap end at a height of its own (hash(k, S+1)), seed S*37 + k,
+    /// <summary>Strike k's channel: from the knob (g.ex) to the cap end at a height of its own (hash(k, S+1)), seed S*37 + k,
     /// amplitude 0.34 h.</summary>
     public double[] Main(StrikeGeometry g, int k)
     {

@@ -123,6 +123,7 @@ public sealed class DotFieldControl : Canvas
     private Color? blendFrom;
     private ContinuousInstant blendStart;
     private IPlatformSettings? platformSettings;
+    private IDisposable? warmupActivity;
 
     public DotFieldControl(SwiftColor color, bool animated, bool sweeps)
     {
@@ -143,6 +144,7 @@ public sealed class DotFieldControl : Canvas
         AttachedToVisualTree += (_, _) =>
         {
             InstallAnimation();
+            warmupActivity ??= GpuWarmup.AddActivity(IsAnimatingOnCompositor);
             Marrow.UI.Theme.ThemeManager.DidChange += OnThemeChanged;
             platformSettings = Application.Current?.PlatformSettings;
             if (platformSettings is not null) platformSettings.ColorValuesChanged += OnColorValuesChanged;
@@ -153,6 +155,8 @@ public sealed class DotFieldControl : Canvas
             if (platformSettings is not null) platformSettings.ColorValuesChanged -= OnColorValuesChanged;
             platformSettings = null;
             RemoveComposition();
+            warmupActivity?.Dispose();
+            warmupActivity = null;
         };
         ActualThemeVariantChanged += (_, _) => OnAppearanceChanged();
     }
@@ -279,6 +283,10 @@ public sealed class DotFieldControl : Canvas
         compositionVisual.SendHandlerMessage(DotFieldCompositionFrame.Create(laidOutSize, drawn, blendFrom, blendStart,
             animated, sweeps, SwiftClock.Provider.Current, sweepStart, now));
     }
+
+    // PORT-ONLY (ED-252): the dots move on the render server, where the frame clock cannot see them; while attached they
+    // tell GpuWarmup's idle fallback when they move, so it compiles the effort knob's programs in other frames.
+    private bool IsAnimatingOnCompositor() => compositionHandler?.IsAnimating == true;
 
     private void RemoveComposition()
     {

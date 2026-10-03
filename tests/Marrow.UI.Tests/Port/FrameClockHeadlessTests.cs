@@ -65,6 +65,29 @@ public sealed class FrameClockHeadlessTests(HeadlessSession headless)
         window.Close();
     });
 
+    // ED-252 (the knob's GPU warm-up, GpuWarmup.Animating): production's frame source says how many frame requests wait,
+    // through the interface the warm-up reads; a withdrawn request, or one answered, no longer counts.
+    [Fact]
+    [Trait("Decision", "ED-252")]
+    public void The_Avalonia_frame_source_counts_the_frame_requests_waiting() => headless.OnUiThread(() =>
+    {
+        var window = Show(new Border());
+        IFrameSource frames = new AvaloniaFrameSource(window);
+        Assert.Equal(0, frames.Pending);
+        var called = 0;
+        Action<TimeSpan> first = _ => called++, second = _ => called++;
+        frames.RequestFrame(first);
+        frames.RequestFrame(second);
+        Assert.Equal(2, frames.Pending);
+        frames.CancelFrame(first);
+        Assert.Equal(1, frames.Pending);
+        AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+        Dispatcher.UIThread.RunJobs();
+        Assert.Equal(1, called); // the withdrawn one does nothing with its frame
+        Assert.Equal(0, frames.Pending);
+        window.Close();
+    });
+
     // The value is the port's parked choice for unverified SwiftUI and Core Animation behaviour (O-34).
     [Fact]
     [Trait("Rule", "R-VIEW-10")]

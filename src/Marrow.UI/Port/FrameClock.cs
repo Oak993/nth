@@ -22,12 +22,21 @@ public interface IFrameSource
     /// none. A view that leaves the tree and an invalidated display link leave no request behind.
     /// </summary>
     void CancelFrame(Action<TimeSpan> frame);
+
+    /// <summary>
+    /// The frame requests waiting for the next frame: while any wait, something is animating (ED-252: the knob's GPU
+    /// warm-up compiles only in frames where nothing does). A source that cannot tell answers 0.
+    /// </summary>
+    int Pending => 0;
 }
 
 /// <summary>PORT-ONLY. The production frame source: <c>TopLevel.RequestAnimationFrame</c>, its frame time passed on.</summary>
 public sealed class AvaloniaFrameSource(TopLevel topLevel) : IFrameSource
 {
     private readonly List<Request> waiting = [];
+
+    /// <summary>The requests waiting for the next frame.</summary>
+    public int Pending => waiting.Count;
 
     private sealed class Request(Action<TimeSpan> frame)
     {

@@ -13,6 +13,9 @@ public sealed class CountingFrameSource(IFrameSource inner) : IFrameSource
     private double last = double.NaN;
     private readonly List<double> stamps = [];
 
+    /// <summary>The wrapped source's waiting requests (ED-252's warm-up reads it to see whether anything animates).</summary>
+    public int Pending => inner.Pending;
+
     /// <summary>When each frame was delivered, in milliseconds on the high-resolution clock.</summary>
     public IReadOnlyList<double> Stamps => stamps;
 

@@ -105,6 +105,7 @@ public sealed class ModelEffortButton : Decorator
             Presentation.Presenter.Current.SetPresented(popup, presented);
         });
         button.Focusable = false; popup.PlacementTarget = button; // :115,120
+        GpuWarmup.WhenIdle(this); // OD-0090 / ED-252: the effort knob's programs primed before this chip can open the popover
         button.Chip(); // :114 inactive until the popover opens.
         frame.SizeChanged += (_, _) => { if (lockedWidth is null) naturalWidth = frame.Bounds.Width; }; // :109-112
         popup.Closed += (_, _) => { presented = false; button.Chip(); lockedWidth = null; frame.Width = double.NaN; popup.Child = null; }; // :114,116-117
@@ -202,6 +203,7 @@ public sealed class ModelEffortPanel : Decorator
     private readonly Panel pages = new();
     private bool? displayedModels;
     private (ProviderKind Provider, string? Model, HydraPair? Pair, ModelOption? Option)? sliderKey;
+    private EffortBrand? shownBrand; // OD-0090: the maker the last slider wore, so a model change crossfades from it
     /// <param name="threadID">:156 <c>let threadID: UUID</c>.</param>
     /// <param name="hasHistory">:157 <c>let hasHistory: Bool</c>.</param>
     // :161-189 body
@@ -254,6 +256,9 @@ public sealed class ModelEffortPanel : Decorator
         var option = model.Providers.Model(thread.Model, thread.Provider);
         var pair = model.HydraIsOn(thread) ? model.HydraPair(thread) : null;
         var pairLook = pair is null ? null : new EffortPairLook(pair, model.Providers, model.HydraLaunch(thread)?.WorkerEffort);
+        var brand = EffortBrand.Create(thread.Provider);
+        var fadeFrom = shownBrand is { } shown && shown != brand ? shown : (EffortBrand?)null;
+        shownBrand = brand;
         return new EffortSliderCard(option?.ShortName ?? thread.Model ?? thread.Provider.DisplayName, thread.Provider,
             option?.Efforts ?? ValueList<string>.Empty, option?.DefaultEffort, option?.SupportsFast ?? false,
             new Binding<string?>(() => model.Thread(thread.Id)?.Effort, effort => { model.UpdateThread(thread.Id, current => current with { Effort = effort }); Remember(thread.Id); }),
@@ -262,7 +267,7 @@ public sealed class ModelEffortPanel : Decorator
             {
                 var leadEffort = pair?.OrchestratorEffort is { } effort && option?.Efforts.Contains(effort) == true ? effort : null;
                 model.UpdateThread(thread.Id, current => current with { Effort = leadEffort, FastMode = false }); Remember(thread.Id);
-            }, pairLook, () => state.ShowsModels = true);
+            }, pairLook, () => state.ShowsModels = true, fadeFrom);
     }
 
     // :235-239
@@ -484,7 +489,8 @@ public sealed class EffortSliderCard : Decorator
         Binding<bool> fastMode,
         Action onReset,
         EffortPairLook? pair = null,
-        Action? onTitleTap = null)
+        Action? onTitleTap = null,
+        EffortBrand? fadeFrom = null)
     {
         // :521-539 computed properties are read again for every binding change.
         int ResolvedIndex()
@@ -602,7 +608,7 @@ public sealed class EffortSliderCard : Decorator
                 existing.UpdateLook(fast, title.Text!, pair?.Brand);
             else sliderSlot.Children.Add(new EffortSlider(efforts.Count,
                 new Binding<int>(ResolvedIndex, chosen => Transaction.WithAnimation(Animation.Snappy(0.2), () => effort.Value = efforts[chosen])),
-                title.Text!, fast, brand, pair?.Brand));
+                title.Text!, fast, brand, pair?.Brand, fadeFrom)); // OD-0090: a model change crossfades from the last maker's colours
         });
     }
 }
@@ -727,8 +733,16 @@ public sealed class EffortSlider : Decorator
     // :712 static let trackHeight: CGFloat = 34
     public const double TrackHeight = 34;
 
-    // :713 static let thumbSize: CGFloat = 42
-    public const double ThumbSize = 42;
+    // :713 static let thumbSize: CGFloat = 42. DEVIATION OD-0090 (locked, 2026-10-03): the knob's diameter is 1.4 times the
+    // track's height (1.4 x 34 = 47.6, 48 px), so it stands proud of the track above and below and sits flush with its end
+    // at either extreme; the control's height is the knob's.
+    public const double ThumbSize = 48;
+
+    /// <summary>:793 .scaleEffect(1.06) while dragging; OD-0090: the pressed knob lifts to 1.06x where it is.</summary>
+    public const double Lift = 1.06;
+
+    /// <summary>OD-0090 (jewel-knob.html FADE): a model change crossfades the knob, the liquid and the lightning, s.</summary>
+    public const double ColourFade = 0.6;
 
     /// <param name="count">:715 <c>let count: Int</c>.</param>
     /// <param name="index">:716 <c>@Binding var index: Int</c>.</param>
@@ -737,36 +751,73 @@ public sealed class EffortSlider : Decorator
     /// <param name="fastMode">:719 <c>var fastMode = false</c>.</param>
     /// <param name="brand">:721 <c>var brand: EffortBrand = .purple</c>.</param>
     /// <param name="pair">:724 <c>var pair: EffortPairBrand? = nil</c>.</param>
+    /// <param name="fadeFrom">OD-0090: the maker shown before a model change; the knob, the liquid and the lightning
+    /// crossfade from its colours to <paramref name="brand"/>'s over 0.6 s.</param>
     // :740-831 body
     private readonly Binding<int> index;
     private readonly int count;
     private readonly EffortBrand brand;
     private bool fastMode;
     private EffortPairBrand? pair;
-    private double? dragX;
-    private double? animatedX;
-    private double? dragSpring; // :806 the spring that carries the first drag change from the resting x to the pointer
-    private double dragFromX;
-    private double drawnX;
     private SwiftColor?[] stopTargets = [];
-    private SwiftColor? glowTarget;
-    private double knobScale = 1;
     private readonly Canvas canvas = new();
     private readonly Border track = new() { Height = TrackHeight };
     private readonly Border fill = new() { Name = "EffortFill", Height = TrackHeight };
     private readonly Panel effects = new();
-    private readonly Panel knob = new() { Width = ThumbSize, Height = ThumbSize };
-    private readonly Ellipse glow = new();
-    private readonly Ellipse lens = new();
+    private readonly Panel knob = new() { Width = ThumbSize, Height = ThumbSize, RenderTransformOrigin = RelativePoint.Center };
+    private readonly JewelKnobView orbView;
     private TrackLook? drawnLook;
+    private ThemeVariant? drawnTheme;
+    private (double X, double Width, double Scale, TrackLook Look, ThemeVariant Theme)? laidOut;
     private TrackEffect? currentEffect;
     private readonly System.Collections.Generic.HashSet<TrackEffect> outgoingEffects = [];
     private readonly System.Collections.Generic.List<Ellipse> stops = [];
 
-    public EffortSlider(int count, Binding<int> index, string accessibilityTitle, bool fastMode = false, EffortBrand brand = EffortBrand.Purple, EffortPairBrand? pair = null)
+    // OD-0090, jewel-knob.html makeSlider/stepSlider: the knob's centre is the target (the pointer while held, else the
+    // stop) plus a spring's offset that decays to nothing; its scale springs to 1.06 while held and back to 1.
+    private bool held;
+    private double finger, grab, shownX;
+    private bool placed;
+    private KnobSpring offset, scale = new(1);
+    private double response = 0.32, damping = 0.78;
+
+    // the frame loop (springs, the gem's flow, the lightning's signal, a colour fade)
+    private readonly Action<TimeSpan> frameTick;
+    private IFrameSource? frameSource;
+    private bool frameRequested, attached;
+    private ContinuousInstant? lastFrame;
+    private readonly KnobFrameGate gate = new();
+    private readonly ContinuousInstant born = SwiftClock.Now;
+
+    // the knob's material, and a fade between two
+    private readonly JewelMaterial material;
+    private JewelMaterial? fadeFromMaterial;
+    private readonly EffortBrand? fadeFrom;
+    private readonly DateTimeOffset fadeStart = SwiftDate.Now;
+    private JewelMaterial? recolored;
+    private SKColor[]? fillColours;
+    private (TrackLook Look, ThemeVariant Theme)? fillFor;
+    private readonly ScaleTransform knobScale = new(1, 1);
+    internal readonly JewelOrb Orb;
+    internal readonly KnobSignal Signal = new();
+    internal readonly JewelUniforms Uniforms = new();
+
+    public EffortSlider(int count, Binding<int> index, string accessibilityTitle, bool fastMode = false, EffortBrand brand = EffortBrand.Purple, EffortPairBrand? pair = null,
+        EffortBrand? fadeFrom = null)
     {
         this.count = count; this.index = index; this.brand = brand; this.fastMode = fastMode; this.pair = pair;
+        material = JewelMaterial.For(brand);
+        this.fadeFrom = fadeFrom is { } from && from != brand ? from : null;
+        if (this.fadeFrom is { } origin) fadeFromMaterial = JewelMaterial.For(origin);
+        Orb = new JewelOrb(fadeFromMaterial ?? material);
+        Material = fadeFromMaterial ?? material;
+        knob.RenderTransform = knobScale;
+        orbView = new JewelKnobView(this) { Width = ThumbSize, Height = ThumbSize };
+        frameTick = OnFrame;
         Height = ThumbSize;
+        // OD-0090: the knob and the fill move by fractions of a pixel (springs), so they are laid out unrounded: a rounded
+        // layout would step them a whole pixel at a time and put the bolt's start up to a pixel off where the page puts it
+        foreach (var part in new Layoutable[] { canvas, track, fill, effects, knob, orbView }) part.UseLayoutRounding = false;
         track.Capsule(RoundedCornerStyle.Continuous); fill.Capsule(RoundedCornerStyle.Continuous);
         fill.Child = effects; fill.ClipToBounds = true;
         canvas.Children.Add(track); canvas.Children.Add(fill);
@@ -774,7 +825,8 @@ public sealed class EffortSlider : Decorator
         {
             var dot = new Ellipse { Width = 5, Height = 5 }; stops.Add(dot); canvas.Children.Add(dot); // :767-774
         }
-        knob.Children.Add(glow); knob.Children.Add(lens); canvas.Children.Add(knob); // :780-792
+        // DEVIATION OD-0090: the source's Liquid Glass lens over a blurred glow (:777-792) is the Jewel orb
+        knob.Children.Add(orbView); canvas.Children.Add(knob);
         Child = canvas;
         AutomationProperties.SetName(this, pair is null ? "Reasoning effort" : "The lead's reasoning effort");
         AutomationProperties.SetItemStatus(this, accessibilityTitle);
@@ -782,92 +834,270 @@ public sealed class EffortSlider : Decorator
         PointerPressed += (_, e) =>
         {
             if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
-            e.Pointer.Capture(this); Drag(e.GetPosition(this).X); e.Handled = true;
+            e.Pointer.Capture(this); Press(e.GetPosition(this).X); e.Handled = true;
         };
-        PointerMoved += (_, e) => { if (dragX is not null) Drag(e.GetPosition(this).X); };
+        PointerMoved += (_, e) => { if (held) Move(e.GetPosition(this).X); };
         PointerReleased += (_, e) =>
         {
-            if (dragX is null) return;
-            var fromX = drawnX; var fromScale = knobScale;
-            dragX = null; dragSpring = null;
-            var step = count > 1 ? (Bounds.Width - ThumbSize) / (count - 1) : 0;
-            var toX = ThumbSize / 2 + index.Value * step;
-            animatedX = fromX;
-            EffortView.Animate(knob, Animation.Spring(response: 0.32, dampingFraction: 0.78), progress =>
-            {
-                animatedX = progress == 1 ? null : fromX + (toX - fromX) * progress;
-                knobScale = fromScale + (1 - fromScale) * progress;
-                LayoutTrack();
-            }); // :817
-            e.Pointer.Capture(null); e.Handled = true;
+            if (!held) return;
+            Release(); e.Pointer.Capture(null); e.Handled = true;
         };
-        PointerCaptureLost += (_, _) => { if (dragX is not null) { dragX = null; dragSpring = null; LayoutTrack(); } };
-        SizeChanged += (_, _) => LayoutTrack();
-        ActualThemeVariantChanged += (_, _) => LayoutTrack();
+        PointerCaptureLost += (_, _) => Release(); // jewel-knob.html: lostpointercapture lets go as a release does
+        SizeChanged += (_, _) => { if (!held && offset.AtRest(0)) shownX = StopX(index.Value); LayoutTrack(); };
+        ActualThemeVariantChanged += (_, _) => { LayoutTrack(); RequestFrame(); };
+        AttachedToVisualTree += (_, _) =>
+        {
+            attached = true; lastFrame = null;
+            if (TopLevel.GetTopLevel(this) is Avalonia.Controls.Window window) FrontMonitor.Shared.Current.Observe(window); // as TrackEffect: paused while hidden
+            RequestFrame();
+        };
         DetachedFromVisualTree += (_, _) =>
         {
+            attached = false;
+            if (frameRequested) { frameSource?.CancelFrame(frameTick); frameRequested = false; }
             // :765 removal views end with the view lifetime. Animate stops detached playbacks, so finish
             // their removal here; a retained slider shown again starts with its current effect fully visible.
             foreach (var outgoing in outgoingEffects.ToArray()) effects.Children.Remove(outgoing);
             outgoingEffects.Clear();
             if (currentEffect is not null) currentEffect.Opacity = 1;
         };
+        PropertyChanged += (_, change) => { if (change.Property == EnvironmentValues.AccessibilityReduceMotionProperty) RequestFrame(); };
+        this.Track(() => FrontMonitor.Shared.Current.IsVisible, visible => { if (visible) RequestFrame(); });
         this.Track(() => index.Value, _ => IndexChanged());
     }
 
-    // :799, :822-830 a step that changes the look (an accessibility step, a reset) runs inside .smooth(duration: 0.3),
-    // so the knob and the fill's width glide with the colours instead of jumping; a drag positions them itself.
+    /// <summary>The knob's centre as shown (x, px from the slider's left).</summary>
+    internal double KnobX => shownX;
+
+    /// <summary>The knob's scale as shown (1, lifting to 1.06 while held).</summary>
+    internal double KnobScale => scale.P;
+
+    /// <summary>The deeper shadow's opacity: how far the knob has lifted, 0 to 1.</summary>
+    internal double LiftAmount => Math.Clamp((scale.P - 1) / (Lift - 1), 0, 1);
+
+    /// <summary>True while the knob is held.</summary>
+    internal bool IsHeld => held;
+
+    /// <summary>The knob's colours this frame (a crossfade's mix while one runs).</summary>
+    internal JewelMaterial Material { get; private set; } = null!;
+
+    private double Inset => ThumbSize / 2;
+    private double Step => count > 1 ? (Bounds.Width - ThumbSize) / (count - 1) : 0;
+
+    /// <summary>:746-748 stop centres sit a knob radius in from each end.</summary>
+    private double StopX(int stop) => Inset + stop * Step;
+
+    private double ClampX(double x) => Math.Min(Bounds.Width - Inset, Math.Max(Inset, x));
+
+    // :833-836 nearestStop, here of the knob's centre (OD-0090: the grip's offset is kept, so the stop follows the knob)
+    private int Nearest(double x) => count > 1 && Step > 0 ? Math.Clamp((int)Math.Floor((ClampX(x) - Inset) / Step + 0.5), 0, count - 1) : 0;
+
+    private void SetIndex(int nearest)
+    {
+        if (nearest == index.Value) return;
+        index.Value = nearest;
+        Haptics.Perform(HapticPattern.Alignment); // PR-COMPOSER-125 windows_path: silent Windows no-op, no substitute cue.
+    }
+
+    // OD-0090: pressed on the knob, it lifts where it is and keeps the grip's offset; pressed on the track, it springs to
+    // the pointer (:806 spring(response: 0.22, dampingFraction: 0.8)). Either way the shown x does not move at the press.
+    private void Press(double px)
+    {
+        Place();
+        var onKnob = Math.Abs(px - shownX) <= ThumbSize / 2;
+        grab = onKnob ? px - shownX : 0;
+        held = true;
+        finger = ClampX(px - grab);
+        offset.P = shownX - finger;
+        response = 0.22; damping = 0.8;
+        SetIndex(Nearest(finger));
+        LayoutTrack(); RequestFrame();
+    }
+
+    // :808 later changes follow the pointer; the effort changes as the knob passes the midpoint between two stops
+    private void Move(double px)
+    {
+        finger = ClampX(px - grab);
+        SetIndex(Nearest(finger));
+        RequestFrame();
+    }
+
+    // :817 on release the knob springs onto its stop and back to 1x (spring(response: 0.32, dampingFraction: 0.78))
+    private void Release()
+    {
+        if (!held) return;
+        held = false;
+        offset.P = shownX - StopX(index.Value);
+        response = 0.32; damping = 0.78;
+        RequestFrame();
+    }
+
+    private void Place()
+    {
+        if (placed || Bounds.Width < ThumbSize) return;
+        placed = true; shownX = StopX(index.Value);
+    }
+
+    // :822-830 an index change from outside a drag (an accessibility step, a reset): the knob springs to its new stop from
+    // where it is (jewel-knob.html: the keyboard's step, spring(response: 0.2, dampingFraction: 1)), never a jump (OD-0076)
     private void IndexChanged()
     {
-        var width = Bounds.Width;
-        if (dragX is not null || drawnLook is null || width < ThumbSize || Equals(drawnLook, Look))
+        if (!held && placed && Bounds.Width >= ThumbSize)
         {
-            LayoutTrack();
-            return;
+            offset.P = shownX - StopX(index.Value);
+            response = 0.2; damping = 1;
+            RequestFrame();
         }
-        const double inset = ThumbSize / 2;
-        var step = count > 1 ? (width - inset * 2) / (count - 1) : 0;
-        var fromX = drawnX;
-        var toX = Math.Clamp(inset + index.Value * step, inset, width - inset);
-        animatedX = fromX;
-        EffortView.Animate(knob, Animation.Smooth(0.3), progress =>
-        {
-            animatedX = progress >= 1 ? null : fromX + (toX - fromX) * progress;
-            LayoutTrack();
-        });
+        LayoutTrack();
     }
 
     // :729-738, :822-830. A range peer exposes the increment/decrement step to Windows accessibility clients.
     internal void UpdateLook(bool fast, string title, EffortPairBrand? pairBrand)
     {
         fastMode = fast; pair = pairBrand;
-        AutomationProperties.SetItemStatus(this, title); LayoutTrack();
+        AutomationProperties.SetItemStatus(this, title); LayoutTrack(); RequestFrame();
     }
 
-    private TrackLook Look => new(count > 1 && index.Value == count - 1
-        ? fastMode ? TrackLook.Kind.Fusion : TrackLook.Kind.Supercharged
-        : fastMode ? TrackLook.Kind.Fast : TrackLook.Kind.Plain, brand, pair);
-
-    // :802-818, :833-836
-    private void Drag(double x)
+    // the look, made again only when what it reads changes (a frame reads it several times: no new record a frame, ED-252)
+    private TrackLook Look
     {
-        if (dragX is null)
+        get
         {
-            dragX = x; animatedX = null;
-            dragFromX = drawnX; dragSpring = 0; // :806 dragX is assigned inside the spring: the knob glides to the pointer
-            var fromScale = knobScale;
-            EffortView.Animate(knob, Animation.Spring(response: 0.22, dampingFraction: 0.8), progress =>
-            {
-                knobScale = fromScale + (1.06 - fromScale) * progress;
-                if (dragSpring is not null) dragSpring = progress >= 1 ? null : progress;
-                LayoutTrack();
-            });
+            var kind = count > 1 && index.Value == count - 1
+                ? fastMode ? TrackLook.Kind.Fusion : TrackLook.Kind.Supercharged
+                : fastMode ? TrackLook.Kind.Fast : TrackLook.Kind.Plain;
+            if (cachedLook is { } kept && kept.TrackLookKind == kind && ReferenceEquals(kept.Pair, pair)) return kept;
+            return cachedLook = new TrackLook(kind, brand, pair);
         }
-        else { dragX = x; dragSpring = null; } // :808 later changes assign directly
-        var step = count > 1 ? (Bounds.Width - ThumbSize) / (count - 1) : 0;
-        var nearest = count > 1 && step > 0 ? Math.Clamp((int)Math.Round((x - ThumbSize / 2) / step, MidpointRounding.AwayFromZero), 0, count - 1) : 0;
-        if (nearest != index.Value) { index.Value = nearest; Haptics.Perform(HapticPattern.Alignment); } // PR-COMPOSER-125 windows_path: silent Windows no-op, no substitute cue.
+    }
+
+    private TrackLook? cachedLook;
+
+    private bool ReduceMotion => EnvironmentValues.GetAccessibilityReduceMotion(this);
+
+    private void RequestFrame()
+    {
+        if (frameRequested || !attached) return;
+        frameRequested = true;
+        if (lastFrame is null) lastFrame = SwiftClock.Now; // a loop starting (or waking) counts its first step from the request, never from an idle gap
+        frameSource = FrameClock.Source.Current;
+        frameSource.RequestFrame(frameTick);
+    }
+
+    // jewel-knob.html tick(): the colour fade, the springs, the lightning's signal, the orb
+    private void OnFrame(TimeSpan _)
+    {
+        frameRequested = false;
+        if (!attached) return;
+        var now = SwiftClock.Now;
+        // jewel-knob.html:867-871: drawn only on the refreshes the page's frame gate passes (KnobFrameGate: evenly paced,
+        // about 60 a second on any display); the tube keeps its own 1/60 s timeline (ED-232)
+        if (!gate.Draw((now - born).TotalMilliseconds)) { RequestFrame(); return; }
+        // jewel-knob.html:813 tick(): the springs move by the time since the last drawn frame, at most 50 ms (after a stall
+        // the knob goes on from where it was)
+        var dt = lastFrame is { } previous ? Math.Min(MaxStep, Math.Max(0, (now - previous).TotalSeconds)) : 0;
+        lastFrame = now;
+        Advance(dt, (now - born).TotalSeconds);
+        var visible = FrontMonitor.Shared.Current.IsVisible;
+        var springing = held || !offset.AtRest(0) || !scale.AtRest(1);
+        // the gem flows while shown; under reduce motion it is still, so frames run only while something moves (the
+        // springs, a fade, the light on its way to the bolt's: coming up with a fast effect's own fade and the flare's two
+        // stages, or letting go after fast mode); the springs and a fade always run to their end
+        if (springing || fadeFromMaterial is not null || visible && (!ReduceMotion || LightMoves)) RequestFrame();
+        else lastFrame = null; // idle until something asks again
+    }
+
+    /// <summary>jewel-knob.html:813: a drawn frame moves the knob's springs by at most this, s.</summary>
+    internal const double MaxStep = 0.05;
+
+    /// <summary>
+    /// The knob's light still has somewhere to go: the shaped signal has not reached the bolt's, or the fast effect the
+    /// signal reads is still fading in (its opacity scales the signal, so its next value is not the one read). Under reduce
+    /// motion the knob's loop runs while this holds, so the knob comes to the strike's still moment and then idles.
+    /// </summary>
+    internal bool LightMoves => !Signal.Settled || currentEffect is { } fast && TrackEffect.IsFast(fast.Look) && fast.Opacity < 1;
+
+    /// <summary>One frame: <paramref name="dt"/> s since the last, <paramref name="time"/> s since the slider was made.</summary>
+    internal void Advance(double dt, double time)
+    {
+        Place();
+        if (placed)
+        {
+            var target = held ? finger : StopX(index.Value);
+            offset.Step(0, dt, response, damping);
+            scale.Step(held ? Lift : 1, dt, held ? 0.22 : 0.32, held ? 0.8 : 0.78);
+            shownX = Math.Min(Bounds.Width - Inset + 3, Math.Max(Inset - 3, target + offset.P));
+        }
+        // the colours: a model change's crossfade, smoothstep over 0.6 s (0.2 s under reduce motion)
+        var reduce = ReduceMotion;
+        if (fadeFromMaterial is { } from)
+        {
+            var u = Math.Clamp((SwiftDate.Now - fadeStart).TotalSeconds / (reduce ? 0.2 : ColourFade), 0, 1);
+            u = u * u * (3 - 2 * u);
+            Material = JewelMaterial.Mix(from, material, u);
+            if (u >= 1) fadeFromMaterial = null;
+            // the effects' liquid and tint fade with it; under reduce motion their own timelines are paused, so draw them
+            foreach (var child in effects.Children) if (child is TrackEffect fading) fading.Redraw();
+        }
+        else Material = material;
+        if (!ReferenceEquals(recolored, Material)) { Orb.Recolor(Material); recolored = Material; }
         LayoutTrack();
+        // the lightning's signal, read where the tube draws it: the current fast effect's own clock, scaled by its opacity,
+        // and the bolt leaving where the tube draws it this frame, from the fill's width LayoutTrack has just set (the
+        // effect's own bounds follow at the next layout pass; jewel-knob.html:808-822 tick(): stepSlider sets tl.exAt,
+        // then drawAll draws the bolt from it and signal() reads it, on the same frame)
+        var effect = currentEffect is { } current && TrackEffect.IsFast(current.Look) ? current : null;
+        if (effect is not null)
+        {
+            var strikeTime = reduce ? Strike.StillTime(effect.StrikeSeed) : effect.TimeAt(SwiftDate.Now);
+            var drawn = double.IsNaN(fill.Width) ? effect.Bounds.Size : new Size(fill.Width, TrackHeight);
+            Signal.Read(effect.StrikeGeometryFor(drawn), effect.StrikeSeed, strikeTime, time, effect.Opacity);
+        }
+        else Signal.Read(null, 0, 0, time);
+        var dark = ActualThemeVariant != ThemeVariant.Light;
+        var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
+        var (size, perPx) = JewelOrb.RenderSize(ThumbSize, scaling);
+        Orb.Frame(time, Signal.Charge * Material.FxCharge, Signal.Flare * Material.FxFlare, Signal.ExitAngle, reduce, size, perPx, dark, Uniforms);
+        Uniforms.Values[110] = JewelOrb.Supersampled(ThumbSize, scaling) ? 2 : 1;
+        var along = FillColours();
+        // the ring refracts the page's locked scene colours (jewel-knob.html --scenePane and --sceneEmpty)
+        Uniforms.SetPage(ThumbSize, 0.26, shownX, Bounds.Width, TrackHeight,
+            dark ? new SKColor(0x14, 0x1d, 0x27) : new SKColor(0xe6, 0xeb, 0xf1), dark ? new SKColor(0x11, 0x18, 0x20) : new SKColor(0xd1, 0xd8, 0xde), along);
+        Uniforms.Lift = (float)LiftAmount;
+        orbView.InvalidateVisual();
+    }
+
+    // the fill's colours along its length (5 samples), as the ring refracts them: the liquid's stops, or the plain fill;
+    // made again only when the look or the theme changes
+    private SKColor[] FillColours()
+    {
+        var look = Look;
+        var theme = ActualThemeVariant;
+        if (fillColours is { } kept && fillFor is { } key && Equals(key.Look, look) && key.Theme == theme) return kept;
+        var into = new SKColor[5];
+        fillFor = (look, theme); fillColours = into;
+        if (TrackEffect.IsLiquid(look))
+        {
+            var stops = LiquidSpec.For(look).Stops();
+            for (var i = 0; i < into.Length; i++)
+            {
+                var at = i / (double)(into.Length - 1);
+                var k = 1;
+                while (k < stops.Count - 1 && at > stops[k].At) k++;
+                var (a, b) = (stops[Math.Max(0, k - 1)], stops[Math.Min(stops.Count - 1, k)]);
+                var f = b.At > a.At ? Math.Clamp((at - a.At) / (b.At - a.At), 0, 1) : 0;
+                var mixed = LiquidTrack.FromOKLab(Lerp(LiquidTrack.ToOKLab(a.Color.Resolve(theme)), LiquidTrack.ToOKLab(b.Color.Resolve(theme)), f));
+                into[i] = mixed;
+            }
+        }
+        else
+        {
+            var c = (Chrome.Accent.Resolve(theme));
+            for (var i = 0; i < into.Length; i++) into[i] = new SKColor(c.R, c.G, c.B);
+        }
+        return into;
+        static (double, double, double) Lerp((double L, double A, double B) a, (double L, double A, double B) b, double f) =>
+            (a.L + (b.L - a.L) * f, a.A + (b.A - a.A) * f, a.B + (b.B - a.B) * f);
     }
 
     // :740-799
@@ -875,15 +1105,18 @@ public sealed class EffortSlider : Decorator
     {
         var width = Bounds.Width;
         if (width < ThumbSize) return;
+        Place();
         const double inset = ThumbSize / 2;
-        var step = count > 1 ? (width - inset * 2) / (count - 1) : 0;
-        var dragged = dragX is { } pointer ? (dragSpring is { } eased ? dragFromX + (pointer - dragFromX) * eased : pointer) : (double?)null;
-        var x = Math.Clamp(dragged ?? animatedX ?? inset + index.Value * step, inset, width - inset);
-        drawnX = x;
+        var step = Step;
+        var x = shownX;
         var look = Look;
-        track.Width = width; track.Background = Chrome.Overlay(0.1).Brush(track);
+        var key = (x, width, scale.P, look, ActualThemeVariant);
+        if (laidOut is { } laid && laid == key) return;
+        laidOut = key;
+        track.Width = width;
+        if (drawnLook is null || drawnTheme != ActualThemeVariant) { track.Background = Chrome.Overlay(0.1).Brush(track); drawnTheme = ActualThemeVariant; }
         Canvas.SetTop(track, (ThumbSize - TrackHeight) / 2);
-        fill.Width = x + inset;
+        fill.Width = Math.Max(0, x + inset); // OD-0090: the fill runs to the knob's far edge (:756 x + inset)
         if (drawnLook is null) fill.Background = EffortView.Fill(look, ActualThemeVariant);
         else if (!Equals(drawnLook, look)) EffortView.AnimateBrush(fill, () => fill.Background, brush => fill.Background = brush, EffortView.Fill(look, ActualThemeVariant), Animation.Smooth(0.3));
         Canvas.SetTop(fill, (ThumbSize - TrackHeight) / 2);
@@ -903,18 +1136,7 @@ public sealed class EffortSlider : Decorator
             }
             Canvas.SetLeft(dot, stopX - 2.5); Canvas.SetTop(dot, ThumbSize / 2 - 2.5);
         }
-        if (!Equals(glowTarget, look.Glow))
-        {
-            glowTarget = look.Glow;
-            if (lookChanged) EffortView.AnimateBrush(glow, () => glow.Fill, brush => glow.Fill = brush, look.Glow.Brush(glow), Animation.Smooth(0.3));
-            else glow.Fill = look.Glow.Brush(glow);
-        }
-        glow.Effect = CometPainter.GaussianBlur(look.TrackLookKind == TrackLook.Kind.Plain ? 4 : 8);
-        glow.RenderTransform = new TranslateTransform(0, 1);
-        lens.Fill = Brushes.Transparent; // :785 fill(.clear); the material/tint is retained below per ED-180.
-        lens.Stroke = SwiftColor.Black.Opacity(look.IsLightFill ? 0.14 : 0).Brush(lens); lens.StrokeThickness = 1;
-        SwiftGlass.SetEffect(lens, GlassEffect.Regular(GlassShape.Circle).Tint(SwiftColor.White, look.IsLightFill ? 0.55 : 0.32).Interactive()); // MARROW_DEFERRED ED-180
-        knob.RenderTransform = new ScaleTransform(knobScale, knobScale);
+        knobScale.ScaleX = knobScale.ScaleY = scale.P; // about its centre: it lifts where it is (OD-0090)
         Canvas.SetLeft(knob, x - inset);
         if (drawnLook?.EffectIdentity != look.EffectIdentity && !Equals(drawnLook?.EffectIdentity, look.EffectIdentity))
         {
@@ -932,7 +1154,8 @@ public sealed class EffortSlider : Decorator
             {
                 if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null)
                 {
-                    var first = new TrackEffect(look) { Opacity = 1 };
+                    var first = NewEffect(look);
+                    first.Opacity = 1;
                     effects.Children.Add(first);
                     currentEffect = first;
                 }
@@ -941,7 +1164,8 @@ public sealed class EffortSlider : Decorator
             {
                 if (look.TrackLookKind != TrackLook.Kind.Plain || look.Pair is not null)
                 {
-                    var fresh = new TrackEffect(look) { Opacity = 0 };
+                    var fresh = NewEffect(look);
+                    fresh.Opacity = 0;
                     effects.Children.Add(fresh);
                     currentEffect = fresh;
                     EffortView.Animate(fresh, Animation.Smooth(0.3), progress => fresh.Opacity = Math.Clamp(progress, 0, 1));
@@ -964,6 +1188,16 @@ public sealed class EffortSlider : Decorator
         drawnLook = look;
     }
 
+    // OD-0090: an effect made while a model change's colours fade starts in the old maker's liquid and lightning
+    private TrackEffect NewEffect(TrackLook look)
+    {
+        var effect = new TrackEffect(look);
+        // (0.2 s under reduce motion, as the knob: the still effect is drawn again each frame of the fade by the slider)
+        if (fadeFrom is { } from && fadeFromMaterial is not null)
+            effect.FadeFrom(LiquidSpec.For(look with { Brand = from }), StrikeTint.For(from), fadeStart, ColourFade);
+        return effect;
+    }
+
     protected override AutomationPeer OnCreateAutomationPeer() => new EffortPeer(this);
     private sealed class EffortPeer(EffortSlider owner) : ControlAutomationPeer(owner), IRangeValueProvider
     {
@@ -975,6 +1209,53 @@ public sealed class EffortSlider : Decorator
         public double LargeChange => 1;
         public double Value => owner.index.Value;
         public void SetValue(double value) => owner.index.Value = Math.Clamp((int)Math.Round(value, MidpointRounding.AwayFromZero), 0, Math.Max(0, owner.count - 1));
+    }
+}
+
+/// <summary>
+/// DEVIATION OD-0090: the effort knob as the locked page draws it (jewel-knob.html .kw): its shadow and, as it lifts, a
+/// deeper one; the Jewel orb; the tube refracted at its rim; the rim highlight and the glass fringe. One custom draw a frame.
+/// </summary>
+public sealed class JewelKnobView : Control
+{
+    private readonly EffortSlider owner;
+
+    internal JewelKnobView(EffortSlider owner)
+    {
+        this.owner = owner;
+        giveBack = op => { lock (free) if (free.Count < 4) free.Push(op); };
+        IsHitTestVisible = false;
+        AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw);
+    }
+
+    /// <summary>How far the knob's shadows reach past its box, px.</summary>
+    internal const double ShadowReach = 40;
+
+    // the knob's operations, kept and reused once Avalonia gives them back (ED-252: no new object a frame)
+    private readonly Stack<JewelKnobOperation> free = new();
+    private readonly Action<JewelKnobOperation> giveBack;
+
+    /// <summary>The knob's state on the CPU renderer (render thread).</summary>
+    internal JewelCpuKnob Cpu { get; } = new();
+
+    /// <summary>How many operations the view has made (tests: a few, reused).</summary>
+    internal int OperationsMade { get; private set; }
+
+    /// <summary>How many times the view has recorded its drawing (diagnostics).</summary>
+    internal int Recorded { get; private set; }
+
+    public override void Render(DrawingContext context)
+    {
+        base.Render(context);
+        Recorded++;
+        var values = owner.Uniforms.Values;
+        if (values[0] <= 0) return;
+        JewelKnobOperation? op;
+        lock (free) free.TryPop(out op);
+        var bounds = new Rect(Bounds.Size).Inflate(ShadowReach);
+        if (op is null) { op = new JewelKnobOperation(bounds, new Rect(Bounds.Size), (float[])values.Clone(), Cpu, giveBack); OperationsMade++; }
+        else op.Reuse(bounds, new Rect(Bounds.Size), values);
+        context.Custom(op);
     }
 }
 
@@ -1378,6 +1659,7 @@ public sealed class TrackEffect : Decorator
         canvas = new EffectCanvas(this);
         Child = canvas;
         IsHitTestVisible = false; AutomationProperties.SetAccessibilityView(this, AccessibilityView.Raw); // :1070-1071
+        UseLayoutRounding = false; canvas.UseLayoutRounding = false; // OD-0090: it ends where the knob's far edge is, to the fraction
         AttachedToVisualTree += (_, _) => { if (TopLevel.GetTopLevel(this) is Avalonia.Controls.Window window) FrontMonitor.Shared.Current.Observe(window); };
         this.TimelineView(() => new AnimationTimelineSchedule(
             1.0 / 60, // :1049 (30 for a solo supercharged track); DEVIATION OD-0051: that track is now liquid and runs at 60
@@ -1392,6 +1674,60 @@ public sealed class TrackEffect : Decorator
     // :1024-1026 pair kind changes preserve this view's clock and trait cache.
     internal void SetLook(TrackLook value) { look = value; canvas.InvalidateVisual(); }
 
+    /// <summary>Draws again now (a colour fade while its own timeline is paused under reduce motion).</summary>
+    internal void Redraw() => canvas.InvalidateVisual();
+
+    /// <summary>The look this effect draws.</summary>
+    internal TrackLook Look => look;
+
+    /// <summary>This effect's clock at <paramref name="date"/>, s (the Strike's time: the knob reads its lightning on it).</summary>
+    internal double TimeAt(DateTimeOffset date) => (date - startedAt).TotalSeconds;
+
+    private (LiquidSpec Spec, StrikeTint Tint, DateTimeOffset Start, double Duration)? fade;
+    private SkiaSharp.SKColor[] fadeGradient = [];
+    private (LiquidSpec Spec, int Pixels, ThemeVariant Theme)? fadeGradientFor;
+
+    /// <summary>
+    /// OD-0090 (jewel-knob.html recolour/stepFade): a model change crossfades the liquid and the lightning's tint from the
+    /// previous maker's (<paramref name="spec"/>, <paramref name="tint"/>) over <paramref name="duration"/> s from
+    /// <paramref name="start"/>, smoothstep; the page fades the incoming liquid layer's opacity over the outgoing one.
+    /// </summary>
+    internal void FadeFrom(LiquidSpec spec, StrikeTint tint, DateTimeOffset start, double duration) => fade = (spec, tint, start, duration);
+
+    /// <summary>How far a colour fade has gone at this effect's <paramref name="time"/> (1: none, or done).</summary>
+    internal double FadeAt(double time)
+    {
+        if (fade is not { } f) return 1;
+        // under reduce motion 0.2 s, as the knob's (read here: the effect may be made before it is in the tree)
+        var duration = EnvironmentValues.GetAccessibilityReduceMotion(this) ? 0.2 : f.Duration;
+        var u = Math.Clamp((startedAt.AddSeconds(time) - f.Start).TotalSeconds / duration, 0, 1);
+        return u * u * (3 - 2 * u);
+    }
+
+    // the liquid and the tint this frame: during a fade, the outgoing maker's gradient under the incoming one at the fade's
+    // opacity (a new row each frame of the fade: the drawing reads it on the render thread), and the tints mixed
+    internal (SkiaSharp.SKColor[] Gradient, StrikeTint Tint) Colours(LiquidSpec spec, double width, ThemeVariant theme, double time)
+    {
+        var gradient = Gradient(spec, width, theme);
+        var tint = StrikeTint.For(look.Brand);
+        var u = FadeAt(time);
+        if (fade is not { } f) return (gradient, tint);
+        if (u >= 1) { fade = null; return (gradient, tint); }
+        if (fadeGradientFor is not { } key || key.Pixels != gradient.Length || key.Theme != theme || !key.Spec.Equals(f.Spec))
+        {
+            fadeGradientFor = (f.Spec, gradient.Length, theme);
+            fadeGradient = LiquidTrack.GradientFor(f.Spec, gradient.Length, theme);
+        }
+        var mixed = new SkiaSharp.SKColor[gradient.Length];
+        for (var i = 0; i < mixed.Length; i++)
+        {
+            SkiaSharp.SKColor a = fadeGradient[i], b = gradient[i];
+            static byte C(byte x, byte y, double u) => (byte)Math.Clamp(Math.Round(x + (y - x) * u), 0, 255);
+            mixed[i] = new SkiaSharp.SKColor(C(a.Red, b.Red, u), C(a.Green, b.Green, u), C(a.Blue, b.Blue, u), C(a.Alpha, b.Alpha, u));
+        }
+        return (mixed, StrikeTint.Mix(f.Tint, tint, u));
+    }
+
     /// <summary>OD-0051: maximum effort and every pair draw the liquid tube; OD-0073: so does fast mode at every effort.</summary>
     internal static bool IsLiquid(TrackLook look) => look.Pair is not null || look.TrackLookKind != TrackLook.Kind.Plain;
 
@@ -1404,12 +1740,27 @@ public sealed class TrackEffect : Decorator
     /// <summary>This track's Strike seed (the board's seed * 97 + 13 over the track's own number).</summary>
     internal int StrikeSeed => unchecked(bubbleSeed * 97 + 13);
 
-    /// <summary>The knob's centre, in from the liquid's end, and its radius (the slider's knob: 42 px, centred on the fill's
-    /// end less 21). The Strike channel leaves the knob's centre; its sparks start inside the knob.</summary>
+    /// <summary>The knob's centre, in from the liquid's end, and its radius (the slider's knob: 48 px since OD-0090, centred on
+    /// the fill's end less 24). The Strike channel leaves the knob where the page's does; its sparks start inside the knob.</summary>
     internal double KnobInset { get; set; } = EffortSlider.ThumbSize / 2;
     internal double KnobRadius { get; set; } = EffortSlider.ThumbSize / 2;
 
-    internal StrikeGeometry StrikeGeometryFor(Size size) => new(size.Width, size.Height, size.Width - KnobInset, KnobRadius);
+    /// <summary>
+    /// Where the bolt leaves for a knob centred at <paramref name="knob"/> (jewel-knob.html:593 stepSlider, tl.exAt =
+    /// Math.round((x - 2) * 4) / 4, read by drawTile as g.ex, :335): 2 px before the centre, on a quarter pixel (JavaScript's
+    /// Math.round: halves up).
+    /// </summary>
+    internal static double ExitAt(double knob) => Math.Floor((knob - 2) * 4 + 0.5) / 4;
+
+    internal StrikeGeometry StrikeGeometryFor(Size size)
+    {
+        // kept while the size and the knob hold (a frame asks for it several times: no new record a frame, ED-252)
+        var exit = ExitAt(size.Width - KnobInset);
+        if (geometry is { } kept && kept.Width == size.Width && kept.Height == size.Height && kept.Knob == exit && kept.KnobRadius == KnobRadius) return kept;
+        return geometry = new StrikeGeometry(size.Width, size.Height, exit, KnobRadius);
+    }
+
+    private StrikeGeometry? geometry;
 
     /// <summary>
     /// The whole track's width (the slider sets it; the effect itself spans only the filled part). The liquid's currents,
@@ -1418,6 +1769,9 @@ public sealed class TrackEffect : Decorator
     internal double TrackWidth { get; set; }
 
     private BubbleLanes? bubbles;
+
+    /// <summary>OD-0078: this track's bursts (fast mode), with lanes of their own.</summary>
+    internal BubbleBursts Bursts { get; } = new();
     private readonly int bubbleSeed = System.Threading.Interlocked.Increment(ref bubbleSeeds);
     private static int bubbleSeeds;
 
@@ -1465,13 +1819,33 @@ public sealed class TrackEffect : Decorator
             // bubbles), one frame of the lightning 35 ms into strike 1
             var still = fast && EnvironmentValues.GetAccessibilityReduceMotion(owner);
             IReadOnlyList<StrikeOp>? strike = null;
+            // the fade runs on the wall clock (a reduce-motion still has a frozen time)
+            var (gradient, tint) = owner.Colours(spec, size.Width, ActualThemeVariant, owner.TimeAt(SwiftDate.Now));
+            IReadOnlyList<BubbleBurst>? rings = null;
+            IReadOnlyCollection<(int, int)>? popped = null;
             if (fast)
             {
                 owner.strikes ??= new StrikeChannels(owner.StrikeSeed);
-                strike = owner.strikes.Scene(owner.StrikeGeometryFor(size), still ? Strike.StillTime(owner.StrikeSeed) : time, StrikeTint.For(look.Brand));
+                var geometry = owner.StrikeGeometryFor(size);
+                var scene = owner.strikes.Scene(geometry, still ? Strike.StillTime(owner.StrikeSeed) : time, tint);
+                strike = scene;
+                if (!still)
+                {
+                    // OD-0078: every bubble the strike touches bursts on the spot (contacts between frames, in time order)
+                    owner.Bursts.Process(owner.strikes, geometry, owner.StrikeSeed, owner.bubbleSeed, track, time);
+                    if (owner.Bursts.Recent.Count > 0)
+                    {
+                        var lit = new List<StrikeOp>(scene);
+                        owner.Bursts.Light(lit, geometry, tint, time);
+                        strike = lit;
+                        rings = owner.Bursts.Recent.ToArray();
+                    }
+                    popped = owner.Bursts.Dead();
+                }
             }
-            LiquidTrack.Draw(context, size, track, still ? 0 : time, spec, owner.Gradient(spec, size.Width, ActualThemeVariant),
-                still ? null : owner.Bubbles(track, size.Height), darkBubbles, ActualThemeVariant, still ? default(LiquidFlow) : owner.pace.At(time, fast), strike);
+            LiquidTrack.Draw(context, size, track, still ? 0 : time, spec, gradient,
+                still ? null : owner.Bubbles(track, size.Height), darkBubbles, ActualThemeVariant, still ? default(LiquidFlow) : owner.pace.At(time, fast), strike,
+                fast ? tint.Ink : 0, rings, popped); // OD-0090: in fast mode the bubbles on a pale liquid take the pale-liquid look by its ink
         }
     }
 }

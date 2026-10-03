@@ -26,7 +26,7 @@ namespace Marrow.App.Tests.Views.Composer;
 public sealed class EffortSliderSweepTests(HeadlessSession headless)
 {
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:802-818
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:802-818 (a part of PR-COMPOSER-123 and PR-COMPOSER-125, whose knob OD-0090 replaced: 48 px, the page's springs)
     public void Releasing_a_drag_springs_from_the_drag_position_to_the_nearest_stop()
     {
         headless.OnUiThread(() =>
@@ -39,7 +39,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var slider = new EffortSlider(3, new Binding<int>(() => chosen, value => chosen = value), "Low");
             var window = Show(slider);
             var origin = slider.TranslatePoint(default, window)!.Value;
-            var knob = Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == 42 && p.Height == 42);
+            var knob = Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == 48 && p.Height == 48); // OD-0090: the knob is 48, not :713's 42
             window.MouseDown(new Point(origin.X + 100, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
             Assert.Equal(1, Assert.IsType<ScaleTransform>(knob.RenderTransform).ScaleX); // spring begins at the resting size
             time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
@@ -47,8 +47,8 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var draggedLeft = Canvas.GetLeft(knob);
             window.MouseUp(new Point(origin.X + 100, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
             Assert.Equal(draggedLeft, Canvas.GetLeft(knob)); // not a jump to the snapped centre
-            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
-            Assert.Equal(144, Canvas.GetLeft(knob)); // width330, inset21, selected1 => centre165 minus21
+            OneSecondOfFrames(time, frames);
+            Assert.Equal(141, Canvas.GetLeft(knob)); // width330, inset24 (OD-0090), selected1 => centre165 minus24
             Assert.Equal(1, Assert.IsType<ScaleTransform>(knob.RenderTransform).ScaleX);
             window.Close();
         });
@@ -611,6 +611,14 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
         return window;
     }
 
+    // A second of a 60 Hz display's frames. OD-0090's locked page moves the knob's springs by at most 50 ms a frame
+    // (jewel-knob.html:813 tick()), so one frame a second long is a stall, after which the knob goes on from where it was.
+    private static void OneSecondOfFrames(ManualTimeProvider time, ManualFrameSource frames)
+    {
+        var frame = TimeSpan.FromTicks(TimeSpan.TicksPerSecond / 60);
+        for (var i = 0; i < 60; i++) { time.Advance(frame); frames.Advance(frame); Dispatcher.UIThread.RunJobs(); }
+    }
+
     private static EffortSliderCard Card(string[] levels, string? chosen, string? defaultLevel, Action? titleTap = null, Action? reset = null) =>
         new("Test model", null, new ValueList<string>(levels), defaultLevel, false,
             new Binding<string?>(() => chosen, value => chosen = value),
@@ -633,8 +641,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-117")] // App/Views/Composer/EffortSlider.swift:620-624
-    [Trait("Req", "UI-COMPOSER-036")] // App/Views/Composer/EffortSlider.swift:620-624
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:620-624 .frame(height: EffortSlider.thumbSize) (PR-COMPOSER-117 and UI-COMPOSER-036, whose 42 point height OD-0090 made the 48 px knob's)
     public void Empty_levels_show_standard_and_the_single_level_note()
     {
         headless.OnUiThread(() =>
@@ -644,7 +651,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var texts = window.GetVisualDescendants().OfType<TextBlock>().ToArray();
             Assert.Contains(texts, text => text.Text == "Standard");
             var note = Assert.Single(texts, text => text.Text == "This model has one reasoning level.");
-            Assert.Equal(42, note.Height);
+            Assert.Equal(48, note.Height); // OD-0090: the thumb size the note takes is the 48 px knob
             Assert.Equal(12, note.FontSize);
             Assert.Empty(window.GetVisualDescendants().OfType<EffortSlider>());
             window.Close();
@@ -703,9 +710,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:712-713,740-799
-    [Trait("Req", "PR-COMPOSER-125")] // App/Views/Composer/EffortSlider.swift:802-818,833-836 (windows_path silently drops haptics)
-    [Trait("Req", "UI-COMPOSER-035")] // App/Views/Composer/EffortSlider.swift:740-831
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:712-713,740-799, :802-818,833-836, :740-831 (parts of PR-COMPOSER-123, PR-COMPOSER-125 and UI-COMPOSER-035, whose 42 point knob OD-0090 replaced)
     public void Drag_clamps_and_snaps_to_each_stop_and_preserves_track_and_knob_sizes()
     {
         headless.OnUiThread(() =>
@@ -714,7 +719,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var selected = 0;
             var slider = new EffortSlider(3, new Binding<int>(() => selected, value => selected = value), "Low");
             var window = Show(slider);
-            Assert.Equal(42, slider.Height);
+            Assert.Equal(48, slider.Height); // OD-0090: the control is as tall as the 48 px knob
             var bounds = new Rect(slider.TranslatePoint(default, window)!.Value, slider.Bounds.Size);
             window.MouseDown(new Point(bounds.X + 21, bounds.Center.Y), MouseButton.Left, RawInputModifiers.None);
             window.MouseMove(new Point(bounds.X + bounds.Width / 2, bounds.Center.Y), RawInputModifiers.None);
@@ -730,7 +735,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-126")] // App/Views/Composer/EffortSlider.swift:822-830
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:820 .frame(height: Self.thumbSize), :822-830 (PR-COMPOSER-126, whose 42 point height OD-0090 made the 48 px knob's)
     public void Accessibility_adjustments_clamp_at_the_extremes()
     {
         headless.OnUiThread(() =>
@@ -739,6 +744,7 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             var selected = 0;
             var slider = new EffortSlider(3, new Binding<int>(() => selected, value => selected = value), "Medium");
             var window = Show(slider);
+            Assert.Equal(48, slider.Height); // OD-0090: the control reserves the 48 px knob's height
             Assert.Equal("Reasoning effort", AutomationProperties.GetName(slider));
             var provider = Assert.IsAssignableFrom<IRangeValueProvider>(ControlAutomationPeer.CreatePeerForElement(slider));
             Assert.Equal(0, provider.Minimum);
@@ -1180,12 +1186,12 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
         var box = new ObservableIntBox { Value = index };
         var slider = new EffortSlider(3, box.AsBinding(), "Title", fast, brand);
         var window = Show(slider);
-        var knob = Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == 42 && p.Height == 42);
+        var knob = Assert.Single(slider.GetVisualDescendants().OfType<Panel>(), p => p.Width == 48 && p.Height == 48); // OD-0090: 48, not :713's 42
         return (slider, box, knob, window);
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:802-810 the first drag change assigns dragX inside withAnimation(.spring(response: 0.22, dampingFraction: 0.8))
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:802-810 the first drag change assigns dragX inside withAnimation(.spring(response: 0.22, dampingFraction: 0.8)) (a part of PR-COMPOSER-125; OD-0090's knob)
     public void The_first_contact_springs_the_knob_from_its_resting_stop_to_the_pointer()
     {
         headless.OnUiThread(() =>
@@ -1201,16 +1207,16 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             window.MouseDown(new Point(origin.X + 200, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
             Assert.Equal(0, Canvas.GetLeft(knob)); // no jump to the pointer
             time.Advance(TimeSpan.FromMilliseconds(60)); frames.Advance(TimeSpan.FromMilliseconds(60)); Dispatcher.UIThread.RunJobs();
-            Assert.InRange(Canvas.GetLeft(knob), 1, 178);
-            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
-            Assert.Equal(179, Canvas.GetLeft(knob)); // pointer 200 minus the 21 point lens radius
+            Assert.InRange(Canvas.GetLeft(knob), 1, 175);
+            OneSecondOfFrames(time, frames);
+            Assert.Equal(176, Canvas.GetLeft(knob), 9); // pointer 200 minus the knob's 24 px radius (OD-0090)
             window.MouseUp(new Point(origin.X + 200, origin.Y + 21), MouseButton.Left, RawInputModifiers.None);
             window.Close();
         });
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-123")] // App/Views/Composer/EffortSlider.swift:793 .scaleEffect(dragX == nil ? 1 : 1.06): SwiftUI scales about the centre
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:793 .scaleEffect(dragX == nil ? 1 : 1.06): SwiftUI scales about the centre (a part of PR-COMPOSER-123; OD-0090's knob)
     public void The_dragged_knob_scales_about_its_centre()
     {
         headless.OnUiThread(() =>
@@ -1223,8 +1229,8 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:763-799 .animation(.smooth(duration: 0.3), value: look) covers the stops and the knob glow
-    public void A_look_change_crossfades_the_stop_dots_and_the_knob_glow_too()
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:763-799 .animation(.smooth(duration: 0.3), value: look) covers the stops (part of PR-COMPOSER-127, not its mapping); the knob's glow (:780-784) is gone with the lens (OD-0090)
+    public void A_look_change_crossfades_the_stop_dots_and_the_knob_has_no_glow()
     {
         headless.OnUiThread(() =>
         {
@@ -1234,27 +1240,23 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             using var clock = SwiftClock.Provider.Override(time);
             var (slider, _, _, window) = OpenSlider(2, fast: false, brand: EffortBrand.Silver);
             var stop = slider.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().First(e => e.Width == 5);
-            var glow = slider.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>().First(e => e.Effect is not null);
+            // OD-0090: the source's blurred glow disc under the lens (:780-784) is gone with the lens: the Jewel knob has no glow
+            Assert.DoesNotContain(slider.GetVisualDescendants().OfType<Avalonia.Controls.Shapes.Ellipse>(), e => e.Effect is not null);
             var stopBefore = ((ISolidColorBrush)stop.Fill!).Color;
-            var glowBefore = ((ISolidColorBrush)glow.Fill!).Color;
 
             slider.UpdateLook(true, "High", null); // silver maximum, then fast mode on: supercharged becomes fusion
             Assert.Equal(stopBefore, ((ISolidColorBrush)stop.Fill!).Color); // the crossfade starts from the old colours
-            Assert.Equal(glowBefore, ((ISolidColorBrush)glow.Fill!).Color);
             time.Advance(TimeSpan.FromMilliseconds(120)); frames.Advance(TimeSpan.FromMilliseconds(120)); Dispatcher.UIThread.RunJobs();
             var stopMid = ((ISolidColorBrush)stop.Fill!).Color;
-            var glowMid = ((ISolidColorBrush)glow.Fill!).Color;
             Assert.NotEqual(stopBefore, stopMid);
-            Assert.NotEqual(glowBefore, glowMid);
             time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
             Assert.NotEqual(stopMid, ((ISolidColorBrush)stop.Fill!).Color);
-            Assert.NotEqual(glowMid, ((ISolidColorBrush)glow.Fill!).Color);
             window.Close();
         });
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-116")] // App/Views/Composer/EffortSlider.swift:799,822-830 an adjustable-action step changes the look inside .smooth(0.3): the knob and fill glide
+    [Trait("Decision", "ED-252")] // App/Views/Composer/EffortSlider.swift:799,822-830 an adjustable-action step changes the look; OD-0090/OD-0076: the knob springs to the stop, no jump
     public void An_accessibility_step_that_changes_the_look_glides_the_knob()
     {
         headless.OnUiThread(() =>
@@ -1270,9 +1272,9 @@ public sealed class EffortSliderSweepTests(HeadlessSession headless)
             Dispatcher.UIThread.RunJobs(); // the tracked index change reaches the slider
             Assert.Equal(0, Canvas.GetLeft(knob)); // not a jump to the last stop
             time.Advance(TimeSpan.FromMilliseconds(100)); frames.Advance(TimeSpan.FromMilliseconds(100)); Dispatcher.UIThread.RunJobs();
-            Assert.InRange(Canvas.GetLeft(knob), 1, 287);
-            time.Advance(TimeSpan.FromSeconds(1)); frames.Advance(TimeSpan.FromSeconds(1)); Dispatcher.UIThread.RunJobs();
-            Assert.Equal(288, Canvas.GetLeft(knob)); // width 330: inset 21, step 144, stop 2 centre 309 minus 21
+            Assert.InRange(Canvas.GetLeft(knob), 1, 281);
+            OneSecondOfFrames(time, frames);
+            Assert.Equal(282, Canvas.GetLeft(knob), 9); // width 330: inset 24 (OD-0090), step 141, stop 2 centre 306 minus 24
             window.Close();
         });
     }

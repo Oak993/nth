@@ -156,13 +156,25 @@ public static class StrikeFixtures
 
     /// <summary>The liquid of <paramref name="spec"/> with the given lightning (or none), at a device scale.</summary>
     public static SKBitmap Liquid(LiquidSpec spec, Size size, double track, double time, LiquidFlow flow, IReadOnlyList<StrikeOp>? strike, int scale = 2,
-        BubbleLanes? bubbles = null, ThemeVariant? theme = null)
+        BubbleLanes? bubbles = null, ThemeVariant? theme = null, IReadOnlyList<BubbleBurst>? rings = null, IReadOnlyCollection<(int, int)>? popped = null)
     {
         var appearance = theme ?? ThemeVariant.Light;
         using var bitmap = new RenderTargetBitmap(new PixelSize((int)Math.Ceiling(size.Width * scale), (int)Math.Ceiling(size.Height * scale)), new Vector(96 * scale, 96 * scale));
         using (var context = bitmap.CreateDrawingContext())
-            LiquidTrack.Draw(context, size, track, time, spec, LiquidTrack.GradientFor(spec, (int)Math.Ceiling(size.Width * scale), appearance), bubbles, false, appearance, flow, strike);
+            LiquidTrack.Draw(context, size, track, time, spec, LiquidTrack.GradientFor(spec, (int)Math.Ceiling(size.Width * scale), appearance), bubbles, false, appearance, flow, strike, 0, rings, popped);
         return Decode(bitmap);
+    }
+
+    /// <summary>OD-0078: what a fast track at <paramref name="time"/> adds for its bursts (a fresh track replays the last 6 s):
+    /// the scene with the bursts' light, the rings showing and the popped rises.</summary>
+    public static (IReadOnlyList<StrikeOp> Ops, IReadOnlyList<BubbleBurst> Rings, IReadOnlyCollection<(int, int)> Popped) WithBursts(IReadOnlyList<StrikeOp> ops,
+        StrikeGeometry geometry, int strikeSeed, int bubbleSeed, double track, double time, StrikeTint tint)
+    {
+        var bursts = new BubbleBursts();
+        bursts.Process(new StrikeChannels(strikeSeed), geometry, strikeSeed, bubbleSeed, track, time);
+        var lit = new List<StrikeOp>(ops);
+        bursts.Light(lit, geometry, tint, time);
+        return (lit, bursts.Recent.ToArray(), bursts.Dead());
     }
 
     /// <summary>

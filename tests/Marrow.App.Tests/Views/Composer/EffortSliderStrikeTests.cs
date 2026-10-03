@@ -251,13 +251,14 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
     private static double[][] Points(IReadOnlyList<StrikeOp> ops) => ops.Select(o => o.Kind == StrikeOpKind.Stroke ? o.Points : new[] { o.X, o.Y, o.Rx, o.Ry, o.Alpha }).ToArray();
 
     [Fact]
-    [Trait("Decision", "ED-248")] // TINT: claude / deepseek / gemini, identical on dark and light; unknown brands use claude; the core is white
+    [Trait("Decision", "ED-248")] // TINT: claude / deepseek / gemini, identical on dark and light; the core is white. DEVIATION OD-0090: the other brands no longer take claude's, they derive their own (EffortSliderJewelMaterialTests)
     public void Each_brand_strikes_in_its_canvas_tint_in_both_appearances()
     {
-        Assert.Equal(new StrikeTint(new SKColor(255, 146, 100), new SKColor(255, 222, 204), new SKColor(255, 168, 126)), StrikeTint.For(EffortBrand.Claude));
-        Assert.Equal(new StrikeTint(new SKColor(116, 142, 255), new SKColor(224, 231, 255), new SKColor(146, 168, 255)), StrikeTint.For(EffortBrand.Deepseek));
-        Assert.Equal(new StrikeTint(new SKColor(190, 160, 255), new SKColor(242, 234, 255), new SKColor(206, 184, 246)), StrikeTint.For(EffortBrand.Antigravity));
-        Assert.Equal(StrikeTint.Claude, StrikeTint.For(EffortBrand.Cursor));
+        static (SKColor, SKColor, SKColor) Colours(StrikeTint t) => (t.Outer, t.Inner, t.Wash);
+        Assert.Equal((new SKColor(255, 146, 100), new SKColor(255, 222, 204), new SKColor(255, 168, 126)), Colours(StrikeTint.For(EffortBrand.Claude)));
+        Assert.Equal((new SKColor(116, 142, 255), new SKColor(224, 231, 255), new SKColor(146, 168, 255)), Colours(StrikeTint.For(EffortBrand.Deepseek)));
+        Assert.Equal((new SKColor(190, 160, 255), new SKColor(242, 234, 255), new SKColor(206, 184, 246)), Colours(StrikeTint.For(EffortBrand.Antigravity)));
+        Assert.NotEqual(Colours(StrikeTint.Claude), Colours(StrikeTint.For(EffortBrand.Cursor)));
         var ops = new StrikeChannels(13).Scene(PortTrack, Strike.StrikeAt(1, 13) + 0.01, StrikeTint.Claude);
         Assert.Contains(ops, o => o.Kind == StrikeOpKind.Stroke && o.Color == SKColors.White);
     }
@@ -370,7 +371,9 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
         Assert.Equal(0.9 * 34 * 1.2, wash.Rx, 9);
         using var drawn = Frame(effect, quiet);
         var spec = LiquidSpec.For(new TrackLook(TrackLook.Kind.Fast, EffortBrand.Claude));
-        using var bare = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, quiet, LiquidFlow.At(quiet, true), null, 1, effect.Bubbles(260, 34));
+        // OD-0078 (required with OD-0090): the bubbles the last strikes touched have burst and are gone until their next rise
+        var (_, _, popped) = StrikeFixtures.WithBursts(ops, effect.StrikeGeometryFor(new Size(260, 34)), seed, effect.Bubbles(260, 34).Seed, 260, quiet, StrikeTint.Claude);
+        using var bare = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, quiet, LiquidFlow.At(quiet, true), null, 1, effect.Bubbles(260, 34), null, null, popped);
         Assert.True(MaxDelta(drawn, bare, 0, (int)(239 - wash.Rx) - 1, 3, 31) <= 1);                 // left of the pool: the liquid alone
         Assert.True(MaxDelta(drawn, bare, 225, 250, 12, 22) >= 5);                                   // at the knob: the pool
     });
@@ -402,12 +405,16 @@ public sealed class EffortSliderStrikeTests(HeadlessSession headless)
         var t = Strike.StrikeAt(2, effect.StrikeSeed) + 0.01;
         using var drawn = Frame(effect, t);
         var geometry = effect.StrikeGeometryFor(new Size(260, 34));
-        Assert.Equal(new StrikeGeometry(260, 34, 260 - EffortSlider.ThumbSize / 2, EffortSlider.ThumbSize / 2), geometry); // the knob's centre and radius
+        // the knob's radius, and where the bolt leaves: OD-0090's page puts it 2 px before the knob's centre (236), on a
+        // quarter pixel (jewel-knob.html:593 tl.exAt = Math.round((x - 2) * 4) / 4: 234)
+        Assert.Equal(new StrikeGeometry(260, 34, 234, EffortSlider.ThumbSize / 2), geometry);
         var ops = new StrikeChannels(effect.StrikeSeed).Scene(geometry, t, StrikeTint.DeepSeek);
         var spec = LiquidSpec.For(look);
-        using var expected = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, t, LiquidFlow.At(t, true), ops, 1, effect.Bubbles(260, 34));
+        // OD-0078 (required with OD-0090): the bubbles the strikes touched have burst
+        var (lit, rings, popped) = StrikeFixtures.WithBursts(ops, geometry, effect.StrikeSeed, effect.Bubbles(260, 34).Seed, 260, t, StrikeTint.DeepSeek);
+        using var expected = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, t, LiquidFlow.At(t, true), lit, 1, effect.Bubbles(260, 34), null, rings, popped);
         Assert.True(MaxDelta(drawn, expected, 0, 260, 0, 34) <= 1, "the track draws the scene of its own seed in the lead's tint");
-        using var bare = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, t, LiquidFlow.At(t, true), null, 1, effect.Bubbles(260, 34));
+        using var bare = StrikeFixtures.Liquid(spec, new Size(260, 34), 260, t, LiquidFlow.At(t, true), null, 1, effect.Bubbles(260, 34), null, null, popped);
         Assert.True(MaxDelta(drawn, bare, 150, 238, 4, 30) > 60, "the strike shows");
     });
 
