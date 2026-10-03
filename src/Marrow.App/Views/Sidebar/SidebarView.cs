@@ -730,11 +730,47 @@ public sealed class SidebarView : Decorator
         ReportsHeightAndRides(new HelperStubRow(stub.Parent, stub.Helpers, () => Fold(stub.Parent.Id)), item.Id, stub.Parent.Id);
 
     // :347-375 Height reports stay in the non-observable table; every dependent rides the same live parent drag.
+    // The riders' .offset (:1629) reads the same `drag` the row's own .offset (:760) does, so a change made inside
+    // withAnimation (dragEnded's spring, :805-809; a swap's slide, :767) moves them along that animation together with
+    // the row, and at once when there is none, exactly as Lifted moves the row (PR-SIDEBAR-055, PR-SIDEBAR-056).
     private Control ReportsHeightAndRides(Control content, string itemID, Guid? parentID)
     {
-        var host = new Decorator { Child = content };
+        var translate = new TranslateTransform();
+        var host = new Decorator { Child = content, RenderTransform = translate };
         host.SizeChanged += (_, e) => rowHeights.Note(itemID, e.NewSize.Height);
-        host.Track(() => state.Drag, drag => new RidesWithDraggedParent(parentID, drag).Body(host));
+        double target = 0;
+        IFrameSource? frames = null;
+        Action<TimeSpan>? pending = null;
+        host.Track(() => state.Drag, drag =>
+        {
+            var rides = new RidesWithDraggedParent(parentID, drag);
+            host.ZIndex = rides.ZIndex; // :1630
+            var to = rides.Offset; // :1629
+            if (to == target) return;
+            target = to;
+            if (pending is { } running) frames?.CancelFrame(running);
+            pending = null;
+            if (Transaction.Current is not { } animation)
+            {
+                translate.Y = to;
+                return;
+            }
+            var from = translate.Y;
+            var start = SwiftClock.Now;
+            var source = FrameClock.Source.Current;
+            Action<TimeSpan>? tick = null;
+            tick = _ =>
+            {
+                var seconds = (SwiftClock.Now - start).TotalSeconds;
+                var complete = seconds >= animation.Duration;
+                translate.Y = complete ? to : from + (to - from) * animation.Progress(seconds);
+                if (complete) pending = null;
+                else source.RequestFrame(tick!);
+            };
+            frames = source;
+            pending = tick;
+            source.RequestFrame(tick);
+        });
         return host;
     }
 
@@ -2863,11 +2899,16 @@ internal sealed record RidesWithDraggedParent(Guid? ParentID, RowDrag<Guid> Drag
     // move together.
     public Control Body(Control content)
     {
-        var rides = ParentID is not null && Drag.Id == ParentID; // :1627
-        content.RenderTransform = new TranslateTransform(0, rides ? Drag.VisualOffset : 0); // :1629 .offset(y:)
-        content.ZIndex = rides ? 1 : 0; // :1630 .zIndex()
+        content.RenderTransform = new TranslateTransform(0, Offset); // :1629 .offset(y:)
+        content.ZIndex = ZIndex; // :1630 .zIndex()
         return content;
     }
+
+    private bool Rides => ParentID is not null && Drag.Id == ParentID; // :1627
+
+    public double Offset => Rides ? Drag.VisualOffset : 0; // :1629
+
+    public int ZIndex => Rides ? 1 : 0; // :1630
 }
 
 /// <summary>:1636-1660 <c>private struct HelperConnector: View</c>: the dotted connector beside a helper's row.

@@ -7343,6 +7343,66 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     [Trait("Req", "UI-SIDEBAR-035")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Trait("Req", "UI-SIDEBAR-036")] // App/Views/Sidebar/SidebarView.swift:101-148,1622-1632; precise caller citations below
     [Fact]
+    [Trait("Req", "PR-SIDEBAR-055")] // SidebarView.swift:803-807 dragEnded: withAnimation(.spring(response: 0.32, dampingFraction: 0.8)) { drag = RowDrag() }
+    [Trait("Req", "UI-SIDEBAR-060")] // "release springs the offset home on response 0.32 damping 0.8"
+    [Trait("Req", "PR-SIDEBAR-056")] // :1622-1632 the riders' offset reads the same drag, so it springs home with the row
+    public void On_a_real_release_the_row_and_everything_riding_it_spring_home_together_from_where_the_pointer_let_go() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0) with { ExpandsHelpers = true };
+        var first = NewThread(project, "First helper", 1) with { ParentThreadID = parent.Id };
+        var head = HeadHelper(project, parent.Id, 0, 3);
+        var model = Model(harness, [project], [parent, first, head]);
+        SidebarView view = null!;
+        AvaloniaWindow window = null!;
+        Point start = default;
+        void Tick(int milliseconds)
+        {
+            harness.Main.AdvanceMilliseconds(milliseconds);
+            harness.Main.OnMain(() => { frames.Advance(TimeSpan.FromMilliseconds(milliseconds)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        double OffsetOf(Control dependent) =>
+            ((TranslateTransform)dependent.GetVisualAncestors().OfType<Control>().First(c => c.RenderTransform is TranslateTransform).RenderTransform!).Y;
+        IEnumerable<Control> Moving() => LogicalQuery.SelfAndDescendants<Control>(view)
+            .Where(c => c.GetType() == Private("SidebarThreadRow") || c.GetType() == Private("SidebarHelperRow") || c.GetType() == Private("HeadCardsRow"));
+        harness.Main.OnMain(() =>
+        {
+            model.Settings.HydraAutoHidesIdleHeads = false;
+            view = Attached(model);
+            window = WindowOf(view);
+            var row = LogicalQuery.SelfAndDescendants<Control>(view).Single(c => c.GetType() == Private("SidebarThreadRow"));
+            start = row.TranslatePoint(new Point(12, 12), window)!.Value;
+            window.MouseDown(start, MouseButton.Left);
+            window.MouseMove(start + new Vector(0, 3), RawInputModifiers.LeftMouseButton);
+            window.MouseMove(start + new Vector(0, 17), RawInputModifiers.LeftMouseButton);
+        });
+        try
+        {
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(parent.Id, Drag(view).Id);
+                Assert.Equal(3, Moving().Count());
+                foreach (var moving in Moving()) Assert.Equal(17, OffsetOf(moving), 3);
+                window.MouseUp(start + new Vector(0, 17), MouseButton.Left); // :803-807
+            });
+            Tick(90);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Null(Drag(view).Id); // drag reset at once; only the offset travels
+                var expected = 17 * (1 - Animation.Spring(response: 0.32, dampingFraction: 0.8).Progress(0.09));
+                Assert.InRange(expected, 1, 16); // the fixture really samples mid-flight
+                foreach (var moving in Moving()) Assert.Equal(expected, OffsetOf(moving), 1); // the row and its riders together
+            });
+            Tick(1600);
+            harness.Main.OnMain(() => { foreach (var moving in Moving()) Assert.Equal(0, OffsetOf(moving), 3); });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-SIDEBAR-056")] // App/Views/Sidebar/SidebarView.swift:347-375,1622-1633
     [Trait("Req", "UI-SIDEBAR-033")] // App/Views/Sidebar/SidebarView.swift:1622-1633: a helper rides with its dragged parent at the same offset and zIndex 1
     [Trait("Req", "UI-SIDEBAR-060")] // App/Views/Sidebar/SidebarView.swift:128-137,1838-1849
