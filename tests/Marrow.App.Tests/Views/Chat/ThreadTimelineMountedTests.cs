@@ -418,6 +418,24 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-046 and PR-CHAT-045 (the page the pill loads on appearing, and the 250 ms beat after it; the pill's crossing of its threshold is not told apart from polling here: a load in flight refuses another until its growth is measured); ThreadTimeline.swift:258,380-382,599-603
+    public void A_pill_that_stays_in_view_loads_one_page_and_nothing_more_while_it_is_there() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.Settle();
+        // A pane tall enough that the pill never leaves it: 60 one-line messages, the newest three first (the pill is in view on that first frame).
+        var entries = Enumerable.Range(0, 60).Select(i => User("u" + i, null, "message " + i)).ToList();
+        mount.SetEntries(entries); mount.Settle();
+        // One page came in by itself when the pill appeared (57 - 24 = 33 hidden), and the 250 ms beat found nothing more to take (it keeps the newest 24, which are in already).
+        Assert.Equal(27, mount.Blocks().Length); Assert.Equal("Show 33 earlier messages", PillText(mount));
+        var pill = EarlierPill(mount); Assert.True(pill.TranslatePoint(default, mount.Scroll)!.Value.Y + pill.Bounds.Height < mount.Scroll.Viewport.Height, "the pill is in view");
+        // It stays in view, so nothing more is loaded, however long the reader looks at it.
+        mount.Advance(5000); Assert.Equal(27, mount.Blocks().Length); Assert.Equal("Show 33 earlier messages", PillText(mount));
+        // The page landed without making the content taller than the pane, so its growth was never measured and no further load is taken (a load is refused while one is pending, :258).
+        pill.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); mount.Advance(500);
+        Assert.Equal(27, mount.Blocks().Length);
+    }, height: 2600);
+
+    [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-046: a pill that is on screen when it appears loads its page at once (ThreadTimeline.swift:380-382), without any scroll
     public void A_short_conversation_growing_past_its_first_window_loads_the_earlier_blocks_by_itself() => ThreadTimelineRig.Run(headless, mount =>
     {
