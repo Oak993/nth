@@ -295,7 +295,7 @@ public sealed class ChatView : Decorator
     // (PushTerminal), so the measured size passes through every value between (and layout rounding makes each a fraction off the
     // last); the scene reads the size the push is heading for, the column less the drawer's row when it opens.
     private Size SettledPaneSize() => push is { } heading
-        ? new Size(pane.Bounds.Width, columnHeight - (heading.Showing ? heading.Height : 0))
+        ? new Size(pane.Bounds.Width, Math.Max(0, columnHeight - (heading.Showing ? heading.Height : 0)))
         : pane.Bounds.Size;
 
     private void NotePaneSize(Size size) // :241-249

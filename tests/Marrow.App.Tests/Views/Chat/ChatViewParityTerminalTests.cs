@@ -233,6 +233,24 @@ public sealed class ChatViewParityTerminalTests(HeadlessSession headless)
             Assert.Equal(before.Height - 60, Field<Size>(view, "paneSize").Height, 1);
         });
 
+    // PR-TERM-001: a drawer taller than the column leaves the pane no room; the size the scene is told is zero, never below it.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:241-249,276-279; ED-NEW-parity-chatview (3)
+    public void A_drawer_taller_than_the_column_never_gives_the_scene_a_negative_pane()
+        => WithColumn(PanelDockCorner.TopLeading, (h, view, runtime, composer, panel, window, frames) =>
+        {
+            h.Main.OnMain(() => window.Height = 180);
+            Drain(h, window);
+            h.Main.OnMain(() => runtime.IsTerminalVisible = true);
+            Drain(h, window);
+            var passed = 0.0;
+            foreach (var at in new[] { 0.0, 0.05, 0.15, 0.5 })
+            {
+                Advance(h, window, frames, at - passed); passed = at;
+                Assert.True(Field<Size>(view, "paneSize").Height >= 0, $"at {at:0.00} s the scene was told {Field<Size>(view, "paneSize").Height}");
+            }
+        });
+
     // PR-TERM-001, the drawer opening: a top-docked panel keeps its place through the push (it hangs from the pane's top edge, which does not
     // move), while the chat box rises.
     [Fact]
