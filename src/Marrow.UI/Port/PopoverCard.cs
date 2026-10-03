@@ -126,6 +126,10 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     /// <summary>The control the popover hangs from: the tip turns to face it and points at its middle.</summary>
     public Control? Anchor { get; set; }
 
+    /// <summary>The rect in the anchor's own coordinates the popover was shown relative to (NSPopover.show(relativeTo:of:),
+    /// a Popup's PlacementRect), read after every layout; null: the whole anchor.</summary>
+    public Func<Rect?>? AnchorRect { get; set; }
+
     private bool Vertical => TipEdge is PopoverTipEdge.Top or PopoverTipEdge.Bottom;
 
     private static double Reach => TipHeight + TipGap;
@@ -355,9 +359,10 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
         if (!parent.IsAttachedToVisualTree() || !anchor.IsAttachedToVisualTree()) return;
         // From the parents, so a grow-in's scale (a render transform on the card) does not move what is measured.
         var cardOrigin = parent.PointToScreen(Bounds.Position);
-        var anchorOrigin = anchor.PointToScreen(default);
+        var within = AnchorRect?.Invoke() ?? new Rect(anchor.Bounds.Size); // the rect it was shown relative to, or the anchor
+        var anchorOrigin = anchor.PointToScreen(within.Position);
         var card = new Rect(cardOrigin.X / top.RenderScaling, cardOrigin.Y / top.RenderScaling, Bounds.Width, Bounds.Height);
-        var target = new Rect(anchorOrigin.X / anchorTop.RenderScaling, anchorOrigin.Y / anchorTop.RenderScaling, anchor.Bounds.Width, anchor.Bounds.Height);
+        var target = new Rect(anchorOrigin.X / anchorTop.RenderScaling, anchorOrigin.Y / anchorTop.RenderScaling, within.Width, within.Height);
         var (edge, offset) = Aim(card, target, TipEdge);
         if (edge != TipEdge) TipEdge = edge;
         if (TipOffset is not { } current || Math.Abs(current - offset) > 0.01) TipOffset = offset;

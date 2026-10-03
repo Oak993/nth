@@ -417,6 +417,45 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         Assert.True(Enumerable.Range(0, image.Width).All(x => image.GetPixel(x, lastRow).Alpha <= 3), "the shadow is cut by the popup's edge under the tip");
     });
 
+    // NSPopover.show(relativeTo: rect, of: view, ...) points its arrow at the rect, not at the view's middle: the composer's
+    // suggestions at the caret (ComposerTextView.swift:81), a link's words (LinkPopover.swift:39). A popup given a
+    // PlacementRect hangs its tip over that rect's middle.
+    [Fact]
+    [Trait("Decision", "ED-238")] // OD-0095
+    public void A_popover_shown_relative_to_a_rect_points_at_the_rect() => headless.OnUiThread(() =>
+    {
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var anchor = new Border { Width = 300, Height = 60, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Bottom, Margin = new Thickness(0, 0, 0, 20) };
+        var window = HeadlessPopupHost.OverlayWindow(anchor);
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        var caret = new Rect(220, 10, 2, 18); // near the anchor's right end
+        var popup = new Popup
+        {
+            PlacementTarget = anchor, Placement = PlacementMode.AnchorAndGravity, PlacementAnchor = Avalonia.Controls.Primitives.PopupPositioning.PopupAnchor.Top,
+            PlacementGravity = Avalonia.Controls.Primitives.PopupPositioning.PopupGravity.Top, PlacementRect = caret, ShouldUseOverlayLayer = true,
+            Child = new Border { Width = 200, Height = 60 },
+        };
+        try
+        {
+            Presentation.Presenter.Current.SetPresented(popup, true);
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            Dispatcher.UIThread.RunJobs();
+            var card = Assert.IsType<PopoverCard>(popup.Child);
+            Assert.Equal(PopoverTipEdge.Bottom, card.TipEdge);
+            var tip = card.TranslatePoint(card.TipPoint, window)!.Value;
+            var target = anchor.TranslatePoint(caret.Center, window)!.Value;
+            Assert.True(Math.Abs(tip.X - target.X) < 0.5, $"the tip at {tip.X}, the caret's middle at {target.X} (the anchor's at {anchor.TranslatePoint(new Point(150, 0), window)!.Value.X})");
+            Assert.InRange(target.Y - caret.Height / 2 - tip.Y, 0, 2); // its point just over the caret's top
+        }
+        finally
+        {
+            popup.IsOpen = false;
+            window.Close();
+        }
+    });
+
     // A card pushed over its anchor (a popup slid back on screen with no room on either side) keeps the edge it has: it
     // turns only once its body is wholly on the other side. Turning by the centres, the card's shadow room and tip room
     // moved with each turn, the centres crossed again, and the layout never settled ("Infinite layout loop detected",

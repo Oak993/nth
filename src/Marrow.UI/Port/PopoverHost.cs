@@ -139,7 +139,7 @@ public static class PopoverHost
         if (popup.Child is null or PopoverCard || Facing(popup) is not { } edge) return;
         var content = popup.Child;
         popup.Child = null;
-        var card = new PopoverCard { Child = content, TipEdge = edge, Anchor = popup.PlacementTarget, ShadowRoom = true };
+        var card = new PopoverCard { Child = content, TipEdge = edge, Anchor = popup.PlacementTarget, AnchorRect = () => popup.PlacementRect, ShadowRoom = true };
         card.Bind(PopoverCard.BackgroundProperty, new DynamicResourceExtension(FillKey));
         card.Bind(PopoverCard.BorderBrushProperty, new DynamicResourceExtension(BorderKey));
         popup.Child = card;
