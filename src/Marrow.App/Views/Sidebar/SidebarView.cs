@@ -2340,7 +2340,7 @@ internal sealed class SidebarHelperRow : Decorator
         };
         overlayHost.ContextMenu = contextMenu;
 
-        bool? selectedBefore = null;
+        bool? selectedBefore = null, actionsBefore = null;
         overlayHost.Track(() =>
         {
             var thread = Model.Thread(snapshot.Id) ?? snapshot; // :1324-1325
@@ -2374,10 +2374,19 @@ internal sealed class SidebarHelperRow : Decorator
             fill.Set(Chrome.Overlay(BackgroundFill(isSelected, state.IsHovering)),
                 selectedBefore is { } before && before != isSelected ? Chrome.Hover : Transaction.Current);
             selectedBefore = isSelected;
-            if (overlayControl is { } previous) overlayHost.Children.Remove(previous);
+            // :1375-1384 the Group's two branches swap when showsActions flips inside withAnimation(Chrome.hover) (:1386),
+            // so they crossfade on SwiftUI's default .opacity transition; any other rebuild replaces in place.
+            var crossfade = actionsBefore is { } wasShowing && wasShowing != showsActions && Transaction.Current is not null;
+            actionsBefore = showsActions;
+            if (overlayControl is { } previous)
+            {
+                if (crossfade) SwiftTransition.Remove(overlayHost, previous);
+                else overlayHost.Children.Remove(SwiftTransition.Container(previous));
+            }
             var actionsButton = new RowActionsButton(ThreadActions.Make(Model, thread, onRename, onDelete), isMenuPresented); // :1375-1376
             overlayControl = BuildTrailingOverlay(showsActions, thread, actionsButton); // :1375-1384
-            overlayHost.Children.Add(overlayControl);
+            if (crossfade) SwiftTransition.Insert(overlayHost, overlayHost.Children.Count, overlayControl);
+            else overlayHost.Children.Add(overlayControl);
             Opacity = isHidden ? 0 : 1; // :1409, on this SidebarHelperRow itself (the whole HStack)
         });
 

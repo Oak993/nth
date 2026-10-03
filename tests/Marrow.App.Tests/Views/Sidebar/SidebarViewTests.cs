@@ -6300,7 +6300,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         harness.Main.OnMain(() => window.MouseMove(selectButton.TranslatePoint(new Point(10, 10), window)!.Value)); // :1401-1404 .onHover, pumps the posted Track update on return
         harness.Main.OnMain(() =>
         {
-            Assert.IsType<RowActionsButton>(overlayHost.Children[1]); // :1376 showsActions -> the ellipsis
+            Assert.IsType<RowActionsButton>(overlayHost.Children[^1]); // :1376 showsActions -> the ellipsis, joining over the outgoing status (crossfade, :1386)
             window.Close();
         });
     });
@@ -8538,6 +8538,56 @@ public sealed class SidebarViewTests(HeadlessSession headless)
             harness.Main.OnMain(() => Assert.Equal(0d, Alpha()));
         }
         finally { harness.Main.OnMain(() => WindowOf(row).Close()); }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-SIDEBAR-033")] // SidebarView.swift:1375-1386 the ellipsis/status Group swaps inside withAnimation(Chrome.hover)
+    public void Hovering_a_helper_row_crossfades_its_status_out_and_its_ellipsis_in_on_chrome_hover() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var parent = NewThread(project, "Parent", 0);
+        var helper = NewThread(project, "Helper", 1) with { ParentThreadID = parent.Id };
+        var model = Model(harness, [project], [parent, helper]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => manual.Advance(TimeSpan.FromMilliseconds(ms)));
+        }
+        static double ShownOpacity(Control control) =>
+            control.GetSelfAndVisualAncestors().OfType<Visual>().TakeWhile(v => v.GetType() != Private("SidebarHelperRow")).Aggregate(1d, (o, v) => o * v.Opacity);
+        harness.Main.OnMain(() =>
+        {
+            row = ShownHelperRow(model, helper, Activator.CreateInstance(Private("SidebarMenuRequests"))!);
+            window = WindowOf(row);
+        });
+        try
+        {
+            ActivityStatus status = null!;
+            harness.Main.OnMain(() =>
+            {
+                status = LogicalQuery.SelfAndDescendants<ActivityStatus>(row).Single(); // :1379 the idle branch
+                window.MouseMove(row.TranslatePoint(new Point(100, 12), window)!.Value);
+            });
+            Tick(50); // half of Chrome.hover's easeOut 0.1 s
+            harness.Main.OnMain(() =>
+            {
+                Assert.InRange(ShownOpacity(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single()), 0.05, 0.95); // fading in
+                Assert.Same(status, LogicalQuery.SelfAndDescendants<ActivityStatus>(row).Single());
+                Assert.InRange(ShownOpacity(status), 0.05, 0.95); // fading out
+            });
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Empty(LogicalQuery.SelfAndDescendants<ActivityStatus>(row));
+                Assert.Equal(1d, ShownOpacity(LogicalQuery.SelfAndDescendants<RowActionsButton>(row).Single()));
+            });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
     });
 
     private static object? DocumentPrefetchTake(Guid id) => DocumentPrefetch.Shared.Take(id);
