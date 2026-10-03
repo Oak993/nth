@@ -99,7 +99,7 @@ public sealed class WindowsToastTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-189")] // App/AppModel+HydraMerge.swift:919-929 (notification side effect only; the coordinator clauses are in the HydraMerge tests)
+    [Trait("Rule", "R-TEST-4")] // PR-CHAT-189's notification side effect only (App/AppModel+HydraMerge.swift:919-929); the coordinator clauses are in the HydraMerge tests
     public void Attention_turn_finish_Hydra_note_and_usage_limit_share_AppModel_Notify() => headless.OnUiThread(() =>
     {
         using var h = new AppModelHarness();

@@ -291,7 +291,7 @@ public sealed class AppModelHydraMergeTests
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-189")] // AppModel+HydraMerge.swift:902-906 (B3): recordHydraSettlement's `guard
+    [Trait("Rule", "R-TEST-4")] // PR-CHAT-189's skip-while-unmerged clause only (the other clauses are in AppModelHydraMergeCoordinatorTests): AppModel+HydraMerge.swift:902-906 (B3): recordHydraSettlement's `guard
     // hydraUnmergedFileCount(of: leadID) == 0 else { return }` -- while the lead still has a file a project
     // claims that has not gone out yet, no settled record and no note are written at all.
     public void Record_settlement_is_skipped_entirely_while_the_lead_still_has_unmerged_files()
@@ -337,7 +337,7 @@ public sealed class AppModelHydraMergeTests
     }
 
     [Fact]
-    [Trait("Req", "PR-CHAT-189")] // AppModel+HydraMerge.swift:148-160 (B3): a legacy held entry
+    [Trait("Rule", "R-TEST-4")] // PR-CHAT-189's legacy-held-last clause only (the not-last case is in AppModelHydraMergeCoordinatorTests): AppModel+HydraMerge.swift:148-160 (B3): a legacy held entry
     // saved is still read as the last record for the settlement check -- when nothing is left to send and no
     // file lies outside every project, that legacy `held` last record turns the "nothing to send" branch into
     // a settled one.

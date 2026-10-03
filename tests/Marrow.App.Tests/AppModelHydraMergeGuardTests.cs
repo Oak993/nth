@@ -253,4 +253,34 @@ public sealed class AppModelHydraMergeGuardTests
         Assert.Single(f.Runtime(first).HydraMerges);
         Assert.Single(f.Runtime(second).HydraMerges);
     }
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // PR-HYDRAMERGE-010 failure case 1 only: the project is read by the second guard alone (App/AppModel+HydraMerge.swift:98), never by the pre-guard (:80-82).
+    // Mutant killed: the pre-guard also requiring the lead's project (the job would then return at once and never queue).
+    public void A_lead_whose_project_is_gone_still_queues_behind_a_running_merge_and_returns_silently_after_the_wait()
+    {
+        using var f = new HydraMergeProofFixture();
+        var p = f.AddProject("Project");
+        var lead = f.AddLead(p, "Lead", ["a.txt"]);
+        var busy = f.AddLead(p, "Busy", []);
+        f.Start(lead, busy);
+        var runtime = f.Runtime(lead);
+        Task wait = null!;
+        f.H.Main.OnMain(() =>
+        {
+            f.Model.UpdateThread(lead.Id, t => t with { ProjectID = Guid.NewGuid() });
+            f.Runtime(busy).IsHydraMerging = true;
+            wait = f.Model.AutoMergeHydraWork(lead.Id);
+        });
+        Assert.True(runtime.IsHydraMergeQueued); // the pre-guard does not read the project (:80-82)
+        Assert.False(wait.IsCompleted);
+        f.H.Main.OnMain(() => f.Runtime(busy).IsHydraMerging = false);
+        f.H.Main.AdvanceMilliseconds(400);
+        Assert.True(wait.IsCompletedSuccessfully);
+        Assert.False(runtime.IsHydraMergeQueued);
+        Assert.False(runtime.IsHydraMerging); // the second guard turned it away (:98)
+        Assert.Empty(runtime.HydraMerges);
+        Assert.Empty(f.Notes(lead));
+        Assert.False(runtime.Turns.Single().HydraMerged);
+    }
 }
