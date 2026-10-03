@@ -132,9 +132,16 @@ public sealed class CommandPalette : Decorator
         textField.VerticalAlignment = VerticalAlignment.Center;
         queryField = textField;
 
-        var searchRow = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 }; // :43 HStack(spacing: 10)
+        // :43 HStack(spacing: 10). ENGINEERING DECISION: a two-column Grid ("Auto,*"), the ChromeRow convention for a
+        // flexible child (see CommandPaletteRow), not a horizontal StackPanel: a StackPanel never stretches a main-axis
+        // child, so the text box stayed as wide as its placeholder and a long query grew it past the 600-point panel
+        // instead of scrolling inside it. A SwiftUI TextField fills the room the magnifier leaves.
+        var searchRow = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*") };
         searchRow.Children.Add(magnifier);
         searchRow.Children.Add(textField);
+        Grid.SetColumn(magnifier, 0);
+        Grid.SetColumn(textField, 1);
+        textField.Margin = new Thickness(10, 0, 0, 0); // :43 spacing: 10
         magnifier.VerticalAlignment = VerticalAlignment.Center;
         searchRow.Margin = new Thickness(18, 15, 18, 15); // :64-65
 
@@ -171,7 +178,9 @@ public sealed class CommandPalette : Decorator
         content.Children.Add(searchRow);
         content.Children.Add(resultsSlot);
 
-        var panel = new Border { Child = content, Width = 600 }; // :96 .frame(width: 600)
+        // :96 .frame(width: 600). The transparent fill makes the panel's blank bands (the 18-point side insets and 15-point top
+        // inset of the search row, the gaps and insets around the rows) take a press, so only the scrim dismisses (UI-WIN-029).
+        var panel = new Border { Child = content, Width = 600, Background = Brushes.Transparent };
         SwiftGlass.SetEffect(panel, GlassEffect.Regular(GlassShape.RoundedRectangle(24, RoundedCornerStyle.Continuous))); // :97
         panel.HorizontalAlignment = HorizontalAlignment.Center; // :34 ZStack(alignment: .top)
         panel.VerticalAlignment = VerticalAlignment.Top;
