@@ -12,14 +12,21 @@ using Marrow.UI.Port;
 namespace Marrow.App.Tests.Views.Composer;
 
 // EffortSlider.swift:573-574 Text(verbatim: title).contentTransition(.numericText()); :631 the slider writes the effort
-// inside withAnimation(.snappy(duration: 0.2)). The morph itself is MorphingTextBlockTests'.
+// inside withAnimation(.snappy(duration: 0.2)); :582-583 the title's HStack animates on smooth(0.3) when maximum or fast
+// mode changes. The morph itself is MorphingTextBlockTests'.
 [Collection("Headless")]
 public sealed class EffortTitleMorphTests(HeadlessSession headless)
 {
+    // CORRECTED in ED-238 final review round 5 (for the lead's confirmation at merge): as written before this unit (base
+    // f3a9ca739) it was named "..._and_changes_at_once_outside_one" and asserted that Max -> Low with no transaction "simply
+    // changes" (IsMorphing false). SOURCE FACT, EffortSlider.swift:582: `.animation(.smooth(duration: 0.3), value:
+    // isMaxEffort)` animates a change out of maximum whatever the transaction around it (onReset, :219-224, writes the effort
+    // with none), and the reference video's chevron follows smooth(0.3) leaving maximum (REVIEW a7c682bf6, chevron_fit.out);
+    // OD-0076 (owner ruling) transitions every other change too. The last step now asserts the morph; nothing else changed.
     [Fact]
     [Trait("Req", "PR-COMPOSER-111")]
     [Trait("Req", "UI-COMPOSER-031")]
-    public void The_title_morphs_when_the_effort_changes_inside_an_animation_and_changes_at_once_outside_one() => headless.OnUiThread(() =>
+    public void The_title_morphs_when_the_effort_changes_inside_an_animation_and_outside_one() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var effort = new ObservableStringBox { Value = "high" };
@@ -42,7 +49,117 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
             effort.Value = "low";
             Dispatcher.UIThread.RunJobs();
             Assert.Equal("Low", title.Text);
-            Assert.False(title.IsMorphing); // no transaction: the text simply changes
+            Assert.True(title.IsMorphing); // no transaction, but leaving maximum: :582 animates it on smooth(0.3)
+        }
+        finally { window.Close(); }
+    });
+
+    // The title's width, as a share of its way from the old text's width to the new one's, <paramref name="ms"/> after a change
+    // made by <paramref name="change"/> (the chevron rides the label's frame, so this is its way too).
+    private static double WidthWay(Avalonia.Controls.Window window, MorphingTextBlock title, ManualFrameSource frames, Marrow.Testing.ManualTimeProvider clock, Action change, int ms)
+    {
+        window.UpdateLayout();
+        var from = title.Bounds.Width;
+        change();
+        Dispatcher.UIThread.RunJobs();
+        double at = 0;
+        for (var t = 1; t <= 700; t++)
+        {
+            clock.Advance(TimeSpan.FromMilliseconds(1));
+            frames.Advance(TimeSpan.FromMilliseconds(1));
+            Dispatcher.UIThread.RunJobs();
+            window.UpdateLayout();
+            if (t == ms) at = title.Bounds.Width;
+        }
+        var to = title.Bounds.Width;
+        Assert.False(title.IsMorphing);
+        Assert.True(Math.Abs(to - from) > 5, $"the title's width does not change: {from:F1} -> {to:F1}");
+        return (at - from) / (to - from);
+    }
+
+    // SOURCE FACT, EffortSlider.swift:579-583: the title's HStack (the text, so its width and the chevron after it) carries
+    // `.animation(.smooth(duration: 0.3), value: isMaxEffort)` and `.animation(.smooth(duration: 0.3), value: isFast)`; the
+    // slider writes the effort inside withAnimation(.snappy(duration: 0.2)) (:631), onReset with no animation (:219-224,
+    // the effort and fastMode = false). So a change into or out of maximum, or one that turns fast mode on or off with the
+    // effort, runs on smooth(0.3) whatever comes around it, and any other runs on the slider's snappy(0.2). SOURCE FACT, the
+    // reference video (chevron_fit.out, REVIEW a7c682bf6): High -> Extra High follows snappy(0.2), Extra High -> Max and
+    // Max -> Extra High smooth(0.3). 40 ms in, snappy(0.2) has made 0.39 of its way and smooth(0.3) 0.21.
+    [Fact]
+    [Trait("Decision", "ED-238")] // ED-238 final round 5: :582-583 at PR-COMPOSER-111 / UI-COMPOSER-031's title
+    public void The_title_runs_on_smooth_0_3_when_maximum_or_fast_mode_changes_and_on_the_sliders_snappy_otherwise() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new Marrow.Testing.ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        var effort = new ObservableStringBox { Value = "high" };
+        var fast = new ObservableBoolBox { Value = false };
+        var card = new EffortSliderCard("Sonnet", ProviderKind.Claude, new ValueList<string>(["low", "medium", "high", "xhigh", "max"]), "medium", true,
+            effort.AsBinding(), fast.AsBinding(), () => { }, onTitleTap: () => { });
+        var window = new Avalonia.Controls.Window { Width = 360, Height = 200, Content = card };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try
+        {
+            var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
+            var snappy = Animation.Snappy(duration: 0.2).Progress(0.04);
+            var smooth = Animation.Smooth(duration: 0.3).Progress(0.04);
+            void Slider(string value) => Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => effort.Value = value);
+            var steps = new (string Name, Action Change, double Expected)[]
+            {
+                ("High -> Extra High in the slider's snappy(0.2)", () => Slider("xhigh"), snappy),
+                ("Extra High -> Max in the slider's snappy(0.2), into maximum", () => Slider("max"), smooth),
+                ("Max -> Extra High in the slider's snappy(0.2), out of maximum", () => Slider("xhigh"), smooth),
+                ("Extra High -> Medium in the slider's snappy(0.2)", () => Slider("medium"), snappy),
+                ("Medium -> High with fast mode turned on, in snappy(0.2)", () => Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => { effort.Value = "high"; fast.Value = true; }), smooth),
+                ("High -> Max with no animation, into maximum", () => effort.Value = "max", smooth),
+            };
+            var seen = new List<string>();
+            foreach (var (name, change, expected) in steps)
+            {
+                var way = WidthWay(window, title, frames, clock, change, 40);
+                seen.Add($"{name}: {way:F2} (expected {expected:F2})");
+                Assert.True(Math.Abs(way - expected) <= 0.06, $"the title does not run on the source's curve 40 ms in: {string.Join("; ", seen)}");
+            }
+        }
+        finally { window.Close(); }
+    });
+
+    // DEVIATION OD-0076 (owner ruling 2026-10-02, "every change is transitioned, never cut"): where the Mac changes the title
+    // with no animation (Reset from an effort that is neither maximum nor fast, EffortSlider.swift:219-224; :582-583 not
+    // triggered), the port still morphs it, in the title's own motion (:582's smooth(0.3)); OD-0076's "the system's
+    // reduce-motion setting stills them" cuts that added transition. A change out of maximum stays on smooth(0.3) under reduce
+    // motion as on the Mac (:582 is not a reduce-motion choice).
+    [Fact]
+    [Trait("Decision", "ED-238")] // ED-238 final round 5: OD-0076 at PR-COMPOSER-111 / UI-COMPOSER-031's title
+    public void An_effort_change_with_no_animation_morphs_on_smooth_0_3_and_reduce_motion_cuts_it_unless_maximum_changes() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new Marrow.Testing.ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        var effort = new ObservableStringBox { Value = "high" };
+        var card = new EffortSliderCard("Sonnet", ProviderKind.Claude, new ValueList<string>(["low", "medium", "high", "xhigh", "max"]), "medium", false,
+            effort.AsBinding(), Binding<bool>.Constant(false), () => { }, onTitleTap: () => { });
+        var window = new Avalonia.Controls.Window { Width = 360, Height = 200, Content = card };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        try
+        {
+            var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
+            var smooth = Animation.Smooth(duration: 0.3).Progress(0.04);
+            var way = WidthWay(window, title, frames, clock, () => effort.Value = "medium", 40); // as Reset writes it
+            Assert.True(Math.Abs(way - smooth) <= 0.06, $"High -> Medium with no animation is not morphed on smooth(0.3): {way:F2} of its way 40 ms in (smooth {smooth:F2})");
+
+            EnvironmentValues.SetAccessibilityReduceMotion(window, true);
+            Dispatcher.UIThread.RunJobs();
+            effort.Value = "xhigh";
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal("Extra High", title.Text);
+            Assert.False(title.IsMorphing, "with reduce motion an effort change the Mac does not animate is still morphed");
+
+            way = WidthWay(window, title, frames, clock, () => effort.Value = "max", 40);
+            Assert.True(Math.Abs(way - smooth) <= 0.06, $"with reduce motion, Extra High -> Max (into maximum, :582) is not on smooth(0.3): {way:F2} of its way 40 ms in");
         }
         finally { window.Close(); }
     });

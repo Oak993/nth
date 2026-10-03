@@ -397,7 +397,10 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         var host = new Border { Child = card }; // the popup's top-level, clear
         host.Measure(Size.Infinity);
         host.Arrange(new Rect(host.DesiredSize));
-        var margin = PopoverCard.ShadowReach + PopoverCard.ShadowDrop;
+        // The room: the decided reach (10 pt) and drop (1 pt) of ED-238 round 2 (5), literal, not PopoverCard's own constants
+        // (final review round 5: bounded by ShadowReach + ShadowDrop, a 6 pt reach, mutant R5-P4, cut the shadow on a line at
+        // about 13 levels and passed).
+        const double margin = 10 + 1;
         Assert.Equal(new Thickness(margin, margin, margin, 0), card.Margin);
         Assert.Equal(new Size(202 + 2 * margin, 102 + PopoverCard.TipHeight + PopoverCard.TipGap + margin), host.DesiredSize);
         using var bitmap = new RenderTargetBitmap(new PixelSize((int)host.Bounds.Width, (int)host.Bounds.Height));
@@ -416,6 +419,12 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         Assert.InRange(left[3], 26, 42); // 3.5 pt out, decided 34
         for (var i = 1; i < left.Count; i++) Assert.True(left[i] <= left[i - 1], $"falls off: {string.Join(",", left)}");
         Assert.True(left[^1] <= 2, $"gone by its reach: {left[^1]}");
+        // Out to the room's edge it falls off as the decided curve does, a point at a time (the pixel d points out spans d - 1
+        // to d from the outline), never stopping on a line short of its reach: no step larger than the decided curve's over
+        // that point, 3 levels for rounding.
+        double Decided(double distance) => 0.22 * 255 * Math.Exp(-distance * distance / (2 * 3.5 * 3.5));
+        for (var i = 1; i < left.Count; i++)
+            Assert.True(left[i - 1] - left[i] <= Decided(i - 0.5) - Decided(i + 0.5) + 3, $"the shadow stops on a line {i} pt out: {string.Join(",", left)} (decided {string.Join(",", Enumerable.Range(0, left.Count).Select(d => Decided(d + 0.5).ToString("F1", System.Globalization.CultureInfo.InvariantCulture)))})");
         // Above the card the same (the drop makes it a little fainter), and beside the tip's side as beside the card.
         Assert.InRange(Alpha(100, -2), left[1] - 25, left[1] + 5);
         var tip = card.TipPoint;

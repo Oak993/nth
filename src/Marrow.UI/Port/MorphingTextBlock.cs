@@ -57,6 +57,7 @@ public class MorphingTextBlock : TextBlock
     internal const double Travel = 0.4; // of the font size: how far below its place a letter starts, and how far up one leaves
     internal const double SpreadShare = 0.55; // the letters' turns, first to last, as a share of the change's duration
     internal const double ArrivalShare = 0.15; // how long, as a share of the duration, the first new letter waits
+    internal static readonly Animation LetterPace = Animation.Snappy(0.2);
 
     // WIDENING: the kept letters run ahead of the label's frame (video, High -> Extra High at 34.84 s, every frame: the gap
     // between the kept "High" and the chevron goes 9, 1, 3, 4, 6, 7, then back to 9; "High" makes a third of its way before
