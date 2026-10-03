@@ -28,7 +28,7 @@ public sealed class MorphingTextBlockNarrowingTests(HeadlessSession headless)
     }
 
     [Theory]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // the kept letters' fitted clocks (MorphingTextBlock.KeptLead, NarrowingKeptLead)
     [InlineData(0.02)]
     [InlineData(0.04)]
     [InlineData(0.06)]
@@ -41,7 +41,7 @@ public sealed class MorphingTextBlockNarrowingTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // 2-chat-use.mov 35.77-35.96 s, the narrowing fitted in MorphingTextBlock.NarrowingKeptLead
     public void The_kept_letters_of_a_narrowing_that_takes_over_an_unfinished_change_stay_near_the_chevron_as_in_the_video() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();

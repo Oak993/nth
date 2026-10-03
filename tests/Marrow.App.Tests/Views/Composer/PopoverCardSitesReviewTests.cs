@@ -183,8 +183,8 @@ public sealed class PopoverCardSitesReviewTests(HeadlessSession headless)
     // aimed at the old point's rect no longer. Through the real presenter the new menu is on screen and the tip points at the
     // new point (NSPopover.show(relativeTo:of:preferredEdge:) aims its arrow at the rect it is shown from).
     [Fact]
-    [Trait("Req", "PR-CHAT-087")] // MessagePopoverMenu.swift:9-16, with OD-0095's card
-    public void REVIEW_A_second_right_click_while_the_message_menu_shows_shows_the_new_menu_with_its_tip_at_the_new_point() => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-238")] // OD-0095's card at MessagePopoverMenu.swift:9-16 (PR-CHAT-087's arrow at the point)
+    public void A_second_right_click_while_the_message_menu_shows_shows_the_new_menu_with_its_tip_at_the_new_point() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
         using var frameScope = FrameClock.Source.Override(frames);

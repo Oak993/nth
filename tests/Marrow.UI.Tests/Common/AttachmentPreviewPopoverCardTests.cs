@@ -22,8 +22,8 @@ public sealed class AttachmentPreviewPopoverCardTests(HeadlessSession headless)
     private static Attachment Sample(string name) => new() { Name = name, Path = "Z:\\does-not-exist\\" + name, MimeType = "text/plain" };
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-069")] // AttachmentPreviewPanel.swift:64-70, :99-107, with OD-0095's card
-    public void REVIEW_A_preview_swapped_to_another_thumbnail_shows_that_preview_with_its_tip_on_that_thumbnail() => headless.OnUiThread(() =>
+    [Trait("Decision", "ED-238")] // OD-0095's card at AttachmentPreviewPanel.swift:64-70, :99-107 (PR-COMPOSER-069's swap)
+    public void A_preview_swapped_to_another_thumbnail_shows_that_preview_with_its_tip_on_that_thumbnail() => headless.OnUiThread(() =>
     {
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var first = new Border { Width = 60, Height = 60, Background = Avalonia.Media.Brushes.Gray };

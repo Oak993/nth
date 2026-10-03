@@ -42,7 +42,7 @@ public sealed class MorphingTextBlockLayersTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-COMPOSER-111")]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111's morph (EffortSlider.swift:574): no layer on a whole letter
     public void A_whole_kept_letter_is_drawn_with_no_opacity_layer_at_a_changes_start_and_end() => headless.OnUiThread(() =>
     {
         var frames = new ManualFrameSource();
