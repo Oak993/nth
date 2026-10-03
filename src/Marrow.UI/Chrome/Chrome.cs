@@ -315,7 +315,7 @@ namespace Marrow.UI.Chrome
             var wash = new Rectangle();
             wash.Fill = SwiftColor.Dynamic(light: SwiftColor.White.Opacity(0.3), dark: SwiftColor.Black.Opacity(0.22)).Brush(wash); // :195
             var tint = new Rectangle();
-            // ED-251 (OD-0088): Chrome.glassTint read whenever it is drawn (ThemeManager.LiveSurface), so the wash follows the theme.
+            // ED-254 (OD-0088): Chrome.glassTint read whenever it is drawn (ThemeManager.LiveSurface), so the wash follows the theme.
             tint.Fill = SwiftColor.Dynamic(light: ThemeManager.LiveSurface.Opacity(0.16), dark: ThemeManager.LiveSurface.Opacity(0.22)).Brush(tint); // :196
             return new Panel { Children = { wash, tint, content } }; // :194 .background { ... }
         }
@@ -343,7 +343,7 @@ namespace Marrow.UI.Chrome
             this.opacity = opacity;
             this.wallpaper = wallpaper;
             var tint = Shape();
-            tint.Background = ThemeManager.LiveSurface.Opacity(0.12).Brush(tint); // :263-265, Chrome.glassTint as drawn now (ED-251)
+            tint.Background = ThemeManager.LiveSurface.Opacity(0.12).Brush(tint); // :263-265, Chrome.glassTint as drawn now (ED-254)
             // :266-271 The hairline sits on the glass as well as on the solid fill; strokeBorder is an inner stroke,
             // which is how an Avalonia Border draws its border.
             var hairline = Shape();
@@ -354,7 +354,7 @@ namespace Marrow.UI.Chrome
             Draw();
         }
 
-        // ED-251 (OD-0088, OD-0076): the scrim's strength follows the appearance (:258, 0.26 dark, 0.18 light); in a tree
+        // ED-254 (OD-0088, OD-0076): the scrim's strength follows the appearance (:258, 0.26 dark, 0.18 light); in a tree
         // that turns over (AppearanceTurn, the Settings window) it eases there with the window's colours instead of
         // changing in one frame.
         private Action stopTurn = static () => { };

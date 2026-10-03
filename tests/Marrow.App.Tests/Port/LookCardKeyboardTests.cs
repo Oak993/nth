@@ -174,10 +174,10 @@ public sealed class LookCardKeyboardTests(HeadlessSession headless) : LookCardFi
         Assert.Same(card.Segments.Buttons[3], Focused(w));
     });
 
-    // ED-251: Tab never leaves the menu hanging open. From a row it closes the menu and focus returns to segment 4 (the next
+    // ED-254: Tab never leaves the menu hanging open. From a row it closes the menu and focus returns to segment 4 (the next
     // Tab goes on from there to the Accent group); with focus outside the menu (opened by pointer) it closes it and Tab moves on.
     [Fact]
-    [Trait("Decision", "ED-251")]
+    [Trait("Decision", "ED-254")]
     public void Tab_closes_the_open_menu_and_from_a_row_returns_focus_to_segment_4() => Card((card, model, h, w) =>
     {
         Assert.True(card.Segments.Buttons[3].Focus(NavigationMethod.Tab));

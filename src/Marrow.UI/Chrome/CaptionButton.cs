@@ -94,13 +94,13 @@ public sealed class CaptionButton : Control
         drawnDark = PlainControls.IsDark(ActualThemeVariant);
     }
 
-    // ED-251 (OD-0088, OD-0076): in a window that turns over (AppearanceTurn, the Settings window) the glyph and ring
+    // ED-254 (OD-0088, OD-0076): in a window that turns over (AppearanceTurn, the Settings window) the glyph and ring
     // colours ease 0.32 s from the old appearance's to the new one's with the window, 1 standing for dark and 0 for light.
     private bool drawnDark;
     private double? turn;
     private Action stopTurn = static () => { };
 
-    /// <summary>ED-251: how dark the colours are drawn now, 0 (light) to 1 (dark), while the appearance turns over.</summary>
+    /// <summary>ED-254: how dark the colours are drawn now, 0 (light) to 1 (dark), while the appearance turns over.</summary>
     public double Darkness => turn ?? (PlainControls.IsDark(ActualThemeVariant) ? 1 : 0);
 
     private void OnAppearance()

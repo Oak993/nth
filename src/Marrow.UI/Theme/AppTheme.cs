@@ -295,7 +295,7 @@ public static class ThemeManager
     public static ThemeSpec Spec { get; private set; } = AppTheme.System.Spec();
 
     /// <summary>
-    /// PORT-ONLY (OD-0088, ED-251): Chrome.glassTint (Chrome.swift:96, the spec's surface) whenever it is resolved, so the
+    /// PORT-ONLY (OD-0088, ED-254): Chrome.glassTint (Chrome.swift:96, the spec's surface) whenever it is resolved, so the
     /// window's and the sheet's wash made from it follow a later theme, easing over 0.32 s as the accent does (SPEC 6.5).
     /// </summary>
     internal static SwiftColor LiveSurface { get; } = SwiftColor.Live(() => Spec.Surface);

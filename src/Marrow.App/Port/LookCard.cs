@@ -36,7 +36,7 @@ namespace Marrow.App.Port;
 // menu however it was opened (9.4); each segment is its own tab stop with no arrow keys, as the board (9.5); the Windows
 // accent is lifted app-wide (9.6, ED-250); System's detail reads "System · <accent>" (9.7); a swatch's release eases back
 // to the hover scale in 0.12 s as the board's frames measure it (scenario 20), not the 0.08 s of SPEC 6.9's text.
-// ED-251 (amends ED-250): the segments are SPEC 2.3's table (the board's label widths + 22, + 11 for the chevron), the
+// ED-254 (amends ED-250): the segments are SPEC 2.3's table (the board's label widths + 22, + 11 for the chevron), the
 // labels drawn in the port's type (Inter, OD-0009) and centred with the chevron, at least 6 clear of each end; the rows
 // keep the board's 28 between text and control, so the Accent detail has the board's column (156 here) and every line of
 // SPEC 4.3 fits whole; the window turns over with the appearance (AppearanceTurn, SPEC 6.5).

@@ -205,10 +205,10 @@ public sealed class LookCardMotionTests(HeadlessSession headless) : LookCardFixt
         Assert.True(Largest(turn.Seen) <= 0.19, $"largest crossfade step {Largest(turn.Seen):F3}"); // SPEC 6.10: .19
     });
 
-    // ED-251: segment 4 narrowing from "More themes" (106) to "Dracula" (75) moves the control's left edge on the width's curve
+    // ED-254: segment 4 narrowing from "More themes" (106) to "Dracula" (75) moves the control's left edge on the width's curve
     // (.3 s ez) to its very last frame, its right edge fixed; no whole-pixel settle at the end (the layout is not rounded).
     [Fact]
-    [Trait("Decision", "ED-251")]
+    [Trait("Decision", "ED-254")]
     public void A_segment_width_change_glides_the_controls_left_edge_on_its_curve_and_its_right_edge_stays() => Card((card, model, h, w) =>
     {
         Rect Drawn() => In(card.Segments.Track, card); // the track: the control as it is drawn

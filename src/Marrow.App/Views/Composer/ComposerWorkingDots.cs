@@ -327,7 +327,7 @@ public sealed class DotFieldControl : Canvas
 
     public void OnAppearanceChanged()
     {
-        // :118-122 viewDidChangeEffectiveAppearance re-resolves the dynamic accent; inside a tree that turns over (ED-251) it
+        // :118-122 viewDidChangeEffectiveAppearance re-resolves the dynamic accent; inside a tree that turns over (ED-254) it
         // eases, as SwiftColor's brushes there do.
         UpdateBrushes(ease: AppearanceTurn.Eases(this));
     }

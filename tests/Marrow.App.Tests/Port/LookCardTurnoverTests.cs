@@ -19,7 +19,7 @@ using HostWindow = Avalonia.Controls.Window;
 
 namespace Marrow.App.Tests.Port;
 
-// OD-0088, OD-0076 (ED-251): the Settings window turns over when the Theme control changes the appearance, as the locked
+// OD-0088, OD-0076 (ED-254): the Settings window turns over when the Theme control changes the appearance, as the locked
 // board's scenarios 08 and 09 do (SPEC 6.5): every window colour eases 0.32 s, CSS ease, and nothing changes in the click's own
 // frame. Proved on the real Settings window (WindowManager, the manual frame clock), from its rendered frames at 60 Hz: the
 // click frame is the frame before it, no part of the window takes more than half of its change in one frame (but the Theme
@@ -113,7 +113,7 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
     [InlineData("light", 0)]
     [InlineData("dark", 60)]
     [InlineData("light", 60)]
-    [Trait("Decision", "ED-251")]
+    [Trait("Decision", "ED-254")]
     [Trait("Decision", "ED-253")]
     public void The_theme_control_turns_the_whole_settings_window_over_in_point_32_seconds_and_nothing_cuts(string appearance, double scrolled) =>
         Open(appearance == "dark" ? AppTheme.Dark : AppTheme.Light, (rig, window, card, model) =>
@@ -240,7 +240,7 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
         });
 
     [Fact]
-    [Trait("Decision", "ED-251")]
+    [Trait("Decision", "ED-254")]
     public void Under_reduce_motion_the_window_takes_the_new_appearance_at_once() => Open(AppTheme.Dark, (rig, window, card, model) =>
     {
         Click(window, card.Segments.Buttons[1]);
@@ -253,10 +253,10 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
         Assert.All(window.GetVisualDescendants().OfType<CaptionButton>(), c => Assert.Equal(0, c.Darkness));
     }, reduceMotion: true);
 
-    // ED-251: the window's wash is Chrome.glassTint as it is now (the source's WindowBackdrop :263-265, 12 %), so a named theme
+    // ED-254: the window's wash is Chrome.glassTint as it is now (the source's WindowBackdrop :263-265, 12 %), so a named theme
     // washes the window with its surface, easing 0.32 s from the last theme's.
     [Fact]
-    [Trait("Decision", "ED-251")]
+    [Trait("Decision", "ED-254")]
     public void A_named_theme_washes_the_window_with_its_surface_easing_in() => Open(AppTheme.Dark, (rig, window, card, model) =>
     {
         var backdrop = Nodes<SettingsView>((Control)window.Content!).Single().RiseBackdrop;

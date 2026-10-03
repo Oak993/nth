@@ -18,7 +18,7 @@ namespace Marrow.App.Tests.Port;
 
 // OD-0088 (ED-250): the Look card's place, layout, words, colours, states and the setting it writes, to
 // E:/Droppy/work/design/accent-build/SPEC.md sections 1 to 5. Expected numbers are the spec's (the segment widths its 2.3 table,
-// ED-251); the label boxes are measured in the port's own type.
+// ED-254); the label boxes are measured in the port's own type.
 [Collection("Headless")]
 public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(headless)
 {
@@ -117,7 +117,7 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
 
     [Theory]
     [MemberData(nameof(BoardSegments))]
-    [Trait("Decision", "ED-251")]
+    [Trait("Decision", "ED-254")]
     public void Under_a_named_theme_the_control_is_the_boards_and_the_label_and_chevron_sit_inside_their_segment(AppTheme theme, double boardLabel) => Card((card, _, h, w) =>
     {
         var segments = card.Segments;
@@ -147,7 +147,7 @@ public sealed class LookCardTests(HeadlessSession headless) : LookCardFixture(he
     // OD-0069: a detail line is never cut. Every theme, every pick, and every hover (each swatch and More) shows words that fit
     // their column whole, measured as the text is laid out; the column is the board's (155, here 156).
     [Fact]
-    [Trait("Decision", "ED-251")]
+    [Trait("Decision", "ED-254")]
     public void Every_detail_line_fits_its_column_whole_for_every_theme_pick_and_hover() => Card((card, model, h, w) =>
     {
         var cut = new List<string>();

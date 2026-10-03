@@ -5,7 +5,7 @@ using Marrow.Core.Port;
 
 namespace Marrow.UI.Port;
 
-// PORT-ONLY (OD-0088, OD-0076, ED-251): the Settings window turns over when the theme's appearance changes. The locked
+// PORT-ONLY (OD-0088, OD-0076, ED-254): the Settings window turns over when the theme's appearance changes. The locked
 // board (accent-d3-locked.dc.html, SPEC 6.5, scenarios 08 and 09) eases every window colour over 0.32 s, CSS `ease`, per
 // channel in sRGB premultiplied with alpha; the port's appearance is an Avalonia theme variant, which changes in one
 // frame. A tree marked here eases instead: each SwiftColor brush inside it (SwiftColor.Brush) runs from the colour it
