@@ -84,7 +84,10 @@ public sealed class ModelEffortButton : Decorator
         var presented = false;
         double? naturalWidth = null;
         double? lockedWidth = null;
-        var popup = new Popup { Placement = PlacementMode.Bottom, IsLightDismissEnabled = true };
+        // :120 .popover(isPresented:arrowEdge: .bottom): the reference runtime opens it ABOVE the chip, its arrow on the
+        // card's bottom edge (2-chat-use.mov 33.74-33.94 s; the main window's other arrowEdge .bottom menus open above
+        // with room below, 19.28 s, 21.73 s). Without room above, the positioner flips it below (FlipY, the default).
+        var popup = new Popup { Placement = PlacementMode.Top, IsLightDismissEnabled = true };
         Button button = null!;
         button = PlainControls.Button(frame, () =>
         {
