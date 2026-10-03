@@ -426,16 +426,19 @@ public sealed class VeiledText : Decorator
         if (e.Property == StreamVeil.MarkdownVeiledProperty)
             Redraw();
         else if (e.Property == MarkdownView.MarkdownDimmedProperty)
-            // PORT-ONLY (UI-THEME-047): a change of \.markdownDimmed says nothing about whether the reply is still arriving. A block that is dimmed on
-            // its own (a quote's blocks, MarkdownView.swift:364) gets the value while it is still outside the markdown view that sets \.markdownVeiled
-            // (:84, :100), so the veiled value read here is the default; taking it for the reply's answer made the settled branch forget a kept
-            // veil's text before every flush, and a quoted paragraph never faded.
+            // PORT-ONLY (UI-THEME-047): a change of \.markdownDimmed says nothing about whether the reply is still arriving, so it only repaints:
+            // it neither feeds the veil nor makes it forget. (1) A block that is dimmed on its own (a quote's blocks, MarkdownView.swift:364) gets
+            // the value while it is still outside the markdown view that sets \.markdownVeiled (:84, :100), so the veiled value read then is the
+            // default; taking it for the reply's answer made the settled branch forget a kept veil's text before every flush, and a quoted paragraph
+            // never faded. (2) A view the thinking steps replace is told it is no longer dimmed as it leaves its panel; feeding the veil its old text
+            // then re-adopted that text after the veil was forgotten for a row that had left the screen, so what arrived while it was away dissolved
+            // instead of being the baseline.
             Redraw(environmentKnown: false);
     }
 
     // StreamVeil.swift:273-279. `environmentKnown` is PORT-ONLY: the first draw runs in the constructor, before this control has a parent, so
     // \.markdownVeiled still reads its default (false) and says nothing about the reply; that draw only paints (a veil kept from the last flush
-    // may still be dissolving) and never forgets what the veil holds. The environment arrives with the property change that follows.
+    // may still be dissolving) and never feeds the veil or forgets what it holds. The environment arrives with the property change that follows.
     private void Redraw(bool environmentKnown = true)
     {
         if (isRedrawing) return;
@@ -445,7 +448,8 @@ public sealed class VeiledText : Decorator
         try
         {
             var at = SwiftDate.Now;
-            var fading = veil.Step(() => source.Characters, StreamVeil.GetMarkdownVeiled(this), at);
+            var veiled = environmentKnown && StreamVeil.GetMarkdownVeiled(this);
+            var fading = veil.Step(() => source.Characters, veiled, at);
             wasFading = fading;
             StyledText result;
             if (fading)
@@ -455,7 +459,7 @@ public sealed class VeiledText : Decorator
             }
             else
             {
-                if (environmentKnown && !StreamVeil.GetMarkdownVeiled(this)) veil.Reset();
+                if (environmentKnown && !veiled) veil.Reset();
                 result = SettledText();
             }
 

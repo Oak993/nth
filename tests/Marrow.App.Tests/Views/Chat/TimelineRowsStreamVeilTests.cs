@@ -271,4 +271,118 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
         Tick(h, frames, window, 1000);
         h.Main.OnMain(() => Close(window));
     });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:18-19 (a row scrolled back into view adopts what is on screen); TimelineRows.swift:1546-1553
+    public void The_narration_that_scrolls_away_and_back_adopts_what_it_shows_instead_of_fading_it_all_in() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        FreshVeilClock();
+        TimelineEntry said = null!;
+        WorkSteps steps = null!;
+        StackPanel panel = null!;
+        Avalonia.Controls.Window window = null!;
+        h.Main.OnMain(() =>
+        {
+            said = Streaming("now the build");
+            steps = new WorkSteps(new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "Read a")), said, ToolEntry(Call(ToolCall.Kind.Command, "make"))]), h.Runtime, Binding<bool>.Constant(true));
+            panel = new StackPanel();
+            panel.Children.Add(steps);
+            window = Show(panel);
+            Flush(said, "now the build runs");
+            Settle(window);
+        });
+        Tick(h, frames, window, 600); // "now the build runs" has settled
+        var settled = Runs(Assert.Single(Mounted<MarkdownView>(steps)))[0].Opacity;
+
+        // The steps leave the screen while the narration goes on streaming, and come back.
+        h.Main.OnMain(() =>
+        {
+            panel.Children.Remove(steps);
+            Settle(window);
+            Flush(said, "now the build runs fine");
+            Settle(window);
+            panel.Children.Add(steps);
+            Settle(window);
+        });
+        var back = Runs(Assert.Single(Mounted<MarkdownView>(steps)));
+        Assert.Equal("now the build runs fine", Assert.Single(back).Text); // not even the word that arrived while it was away dissolves
+        Assert.Equal(settled, back[0].Opacity, 0.001);
+
+        h.Main.OnMain(() => { Flush(said, "now the build runs fine today"); Settle(window); });
+        var more = Runs(Assert.Single(Mounted<MarkdownView>(steps)));
+        Assert.Equal(["now the build runs fine", " today"], more.Select(run => run.Text));
+        Assert.Equal(0, more[1].Opacity, 0.001);
+        Tick(h, frames, window, 1000);
+        Assert.Equal(0, frames.Pending);
+        h.Main.OnMain(() => Close(window));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:18-19; ThreadTimeline.swift:2156-2168 (the thinking steps leave the hierarchy when there are none, and their @State with them)
+    public void The_thinking_steps_that_drain_while_the_work_stays_open_adopt_what_they_show_when_they_return() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        FreshVeilClock();
+        WorkingIndicator indicator = null!;
+        Avalonia.Controls.Window window = null!;
+        var work = new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "Read a"))]);
+        void Steps(string? text) => indicator.UpdateValues(text is null ? new ValueList<ThinkingStep>([]) : new ValueList<ThinkingStep>([new ThinkingStep(text, true)]), work, new([]), false);
+        h.Main.OnMain(() =>
+        {
+            indicator = new WorkingIndicator(h.Runtime, SwiftDate.Now, 1, new ValueList<ThinkingStep>([new ThinkingStep("Hmm", true)]), work, new([]), false, chronological: true);
+            window = Show(indicator);
+        });
+        h.Main.OnMain(() => { Steps("Hmm let me see"); Settle(window); });
+        Assert.Equal(["Hmm", " let me see"], Runs(Assert.Single(Mounted<MarkdownView>(indicator))).Select(run => run.Text));
+        Tick(h, frames, window, 1000);
+
+        h.Main.OnMain(() => { Steps(null); Settle(window); }); // the reasoning ends; the work stays open
+        Tick(h, frames, window, 1000); // the leaving steps are gone
+        Assert.Empty(Mounted<MarkdownView>(indicator));
+        h.Main.OnMain(() => { Steps("Hmm let me see what"); Settle(window); }); // a new step arrives
+        var again = Runs(Assert.Single(Mounted<MarkdownView>(indicator)));
+        Assert.Equal("Hmm let me see what", Assert.Single(again).Text); // the baseline: nothing of it dissolves
+        Tick(h, frames, window, 1000);
+        h.Main.OnMain(() => Close(window));
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:18-19 (what is on screen when a veil attaches is the baseline)
+    public void The_thinking_indicator_that_scrolls_away_and_back_adopts_what_it_shows_instead_of_fading_it_all_in() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        FreshVeilClock();
+        WorkingIndicator indicator = null!;
+        StackPanel panel = null!;
+        Avalonia.Controls.Window window = null!;
+        h.Main.OnMain(() =>
+        {
+            indicator = new WorkingIndicator(h.Runtime, SwiftDate.Now, 1, new ValueList<ThinkingStep>([new ThinkingStep("Hmm", true)]), new([]), new([]), false, chronological: true);
+            panel = new StackPanel();
+            panel.Children.Add(indicator);
+            window = Show(panel);
+            indicator.UpdateValues(new ValueList<ThinkingStep>([new ThinkingStep("Hmm let me see", true)]), new([]), new([]), false);
+            Settle(window);
+        });
+        Tick(h, frames, window, 1000); // "Hmm let me see" has settled
+        h.Main.OnMain(() =>
+        {
+            panel.Children.Remove(indicator);
+            Settle(window);
+            indicator.UpdateValues(new ValueList<ThinkingStep>([new ThinkingStep("Hmm let me see what", true)]), new([]), new([]), false); // the reasoning goes on while it is away
+            Settle(window);
+            panel.Children.Add(indicator);
+            Settle(window);
+        });
+        Assert.Equal("Hmm let me see what", Assert.Single(Runs(Assert.Single(Mounted<MarkdownView>(indicator)))).Text);
+        Tick(h, frames, window, 1000);
+        h.Main.OnMain(() => Close(window));
+    });
 }
