@@ -232,31 +232,50 @@ public class MorphingTextBlock : TextBlock
         if (change.Property == IsVisibleProperty) UpdateDrift();
     }
 
-    // A new colour for the title: the drift's own brush (its stops copied once, reflected past their ends so the moving
-    // window never meets an edge) is rebuilt; every frame then only moves its two ends.
+    // A new colour for the title: the drift's own brushes (their stops copied once, reflected past their ends so the
+    // moving window never meets an edge) are rebuilt.
     private void Adopt()
     {
         driftBrushes.Clear();
         UpdateDrift();
     }
 
-    private readonly List<LinearGradientBrush> driftBrushes = [];
+    // One mutable brush per run of the line at rest: the drift moves the colours by moving these brushes' two ends, frame
+    // after frame, and nothing else. The compositor carries a brush's own change to what it already draws (a brush is a
+    // composition resource the drawn label observes), so the label is not drawn again (OD-0094: cheap, no per-frame
+    // allocation beyond the two changes' notices; a TranslateTransform on the brush would be the natural carrier, but
+    // Avalonia 12.1.2 does not send a mutable transform's change to the compositor: TranslateTransform.OnPropertyChanged
+    // only raises Changed, read in the decompiled Avalonia.Base, so its drift stood still on screen).
+    private readonly List<(LinearGradientBrush Brush, Point Start, Point End)> driftBrushes = [];
+    private double driftWidth;
 
-    // The title's gradient through the box, its ends moved by the drift, in the space of the line's run number
-    // <paramref name="index"/> (drawn moved by origin, then by its place); one brush per run kept and moved.
+    // The title's gradient through the box, in the space of the line's run number <paramref name="index"/> (drawn moved
+    // by origin, then by its place), its ends moved by the drift.
     private LinearGradientBrush Drifted(ILinearGradientBrush gradient, Rect box, Point origin, Matrix place, int index)
     {
         while (driftBrushes.Count <= index)
         {
             var stops = new GradientStops();
             foreach (var stop in gradient.GradientStops) stops.Add(new GradientStop(stop.Color, stop.Offset));
-            driftBrushes.Add(new LinearGradientBrush { GradientStops = stops, SpreadMethod = GradientSpreadMethod.Reflect, Opacity = gradient.Opacity });
+            driftBrushes.Add((new LinearGradientBrush { GradientStops = stops, SpreadMethod = GradientSpreadMethod.Reflect, Opacity = gradient.Opacity }, default, default));
         }
-        var brush = driftBrushes[index];
-        var along = new Vector(DriftOffset(box.Width), 0) - (Vector)origin - new Vector(place.M31, place.M32);
-        brush.StartPoint = new RelativePoint(gradient.StartPoint.ToPixels(box) + along, RelativeUnit.Absolute);
-        brush.EndPoint = new RelativePoint(gradient.EndPoint.ToPixels(box) + along, RelativeUnit.Absolute);
+        var into = -(Vector)origin - new Vector(place.M31, place.M32);
+        var brush = driftBrushes[index].Brush;
+        driftBrushes[index] = (brush, gradient.StartPoint.ToPixels(box) + into, gradient.EndPoint.ToPixels(box) + into);
+        driftWidth = box.Width;
+        MoveDrift();
         return brush;
+    }
+
+    // Every rest brush's ends to the drift's place now.
+    private void MoveDrift()
+    {
+        var along = new Vector(DriftOffset(driftWidth), 0);
+        foreach (var (brush, start, end) in driftBrushes)
+        {
+            brush.StartPoint = new RelativePoint(start + along, RelativeUnit.Absolute);
+            brush.EndPoint = new RelativePoint(end + along, RelativeUnit.Absolute);
+        }
     }
 
     // Frames only while there is a gradient to move, the title is shown, and motion is not reduced.
@@ -282,7 +301,9 @@ public class MorphingTextBlock : TextBlock
         // A long gap (a stalled frame) moves it on by at most a tenth of a second, never a lurch.
         if (driftLast is { } last) driftSeconds = (driftSeconds + Math.Min(0.1, Math.Max(0, (now - last).TotalSeconds))) % driftPeriod;
         driftLast = now;
-        InvalidateVisual();
+        // At rest only the brushes' translations move; a change draws every frame anyway and reads the phase itself.
+        if (morph is null) MoveDrift();
+        else InvalidateVisual();
         driftFrames!.RequestFrame(driftCallback!);
     }
 

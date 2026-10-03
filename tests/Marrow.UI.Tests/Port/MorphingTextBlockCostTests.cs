@@ -70,6 +70,90 @@ public sealed class MorphingTextBlockCostTests(HeadlessSession headless)
         Assert.True(gradient.PerFrame - plain.PerFrame <= 24 * 1024, $"a gradient change allocates {gradient.PerFrame} bytes a frame, a plain one {plain.PerFrame}");
     });
 
+    private sealed class CountedTitle : MorphingTextBlock
+    {
+        public int Renders { get; private set; }
+
+        protected override void RenderTextLayout(DrawingContext context, Point origin)
+        {
+            Renders++;
+            base.RenderTextLayout(context, origin);
+        }
+    }
+
+    // OD-0094: the drift is "cheap (a shader or brush transform on the frame clock, no per-frame allocation, frames only
+    // while the title is visible)". At rest the label is drawn once; each frame only moves its brushes' two ends, which the
+    // compositor carries to what it already draws. Measured three ways: (1) the label is never drawn again while the
+    // colours move; (2) the UI thread's own work per frame, renderer held still, is the two ends' change notices; (3) with
+    // the headless renderer drawing on this thread, a drifting title costs what any changed pixel costs the renderer (a
+    // Border whose brush changes colour each frame): about 6.6 KB a frame here, all of it the renderer's frame (measured
+    // 2026-10-03: the drift's own work 64 B a frame; with the renderer 6.9 KB against 6.6 KB for the border).
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-111")] // as ruled by OD-0094
+    public void The_drift_moves_the_brushes_and_never_draws_the_label_again() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        void Step(bool render, Action? each)
+        {
+            each?.Invoke();
+            clock.Advance(TimeSpan.FromMilliseconds(16));
+            frames.Advance(TimeSpan.FromMilliseconds(16));
+            Dispatcher.UIThread.RunJobs();
+            if (render) Avalonia.Headless.AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+        }
+        long PerFrame(Control content, bool render, Action? each = null)
+        {
+            var window = new Window { Width = 300, Height = 60, Background = Brushes.Black, Content = content };
+            window.Show();
+            try
+            {
+                for (var i = 0; i < 30; i++) Step(render, each);
+                var before = GC.GetAllocatedBytesForCurrentThread();
+                for (var i = 0; i < 120; i++) Step(render, each);
+                return (GC.GetAllocatedBytesForCurrentThread() - before) / 120;
+            }
+            finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+        }
+        CountedTitle Title(double period) => new() { Text = "Extra High", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = Pair(), DriftPeriod = period };
+
+        // (1) Drawn once, then only its brushes move: the label is not drawn again, frame after frame.
+        var counted = Title(7);
+        var window = new Window { Width = 300, Height = 60, Background = Brushes.Black, Content = counted };
+        window.Show();
+        try
+        {
+            for (var i = 0; i < 5; i++) Step(true, null);
+            var drawn = counted.Renders;
+            var start = RenderedPixels.Capture(window);
+            for (var i = 0; i < 60; i++) Step(true, null);
+            Assert.True(counted.DriftPhase > 0.1, $"phase {counted.DriftPhase}");
+            Assert.Equal(drawn, counted.Renders);
+            var moved = RenderedPixels.Capture(window);
+            var most = 0;
+            for (var y = 0; y < start.Height; y++)
+                for (var x = 0; x < start.Width; x++)
+                    most = Math.Max(most, Math.Abs(start.At(x, y).Red - moved.At(x, y).Red));
+            Assert.True(most > 20, $"the colours moved on screen without the label being drawn again ({most} levels)");
+        }
+        finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+
+        // (2) The UI thread's own work, the renderer held still: the two ends' change notices, no more.
+        var stillAlone = PerFrame(Title(0), render: false);
+        var driftAlone = PerFrame(Title(7), render: false);
+        Assert.True(driftAlone - stillAlone <= 256, $"the drift's own work allocates {driftAlone - stillAlone} bytes a frame ({driftAlone} drifting, {stillAlone} still)");
+
+        // (3) With the renderer drawing here: what any changed pixel costs it, no more.
+        var solid = new SolidColorBrush(Colors.Red);
+        var n = 0;
+        var anyChange = PerFrame(new Border { Width = 50, Height = 20, Background = solid }, render: true, () => solid.Color = n++ % 2 == 0 ? Colors.Red : Colors.Blue);
+        var drifting = PerFrame(Title(7), render: true);
+        Assert.True(drifting - anyChange <= 1024, $"a drifting title costs {drifting} bytes a frame with the renderer; a border changing colour {anyChange}");
+    });
+
     // Every letter's brush shares its colour's one copy of the stops.
     [Fact]
     [Trait("Req", "PR-COMPOSER-111")]
