@@ -334,6 +334,7 @@ internal sealed class SmallSwitch : Control
     private readonly Binding<bool> isOn;
     private bool pressed;
     private readonly AnimatedScalar position, tint, widen;
+    private IBrush? offBrush, onBrush;
 
     public SmallSwitch(Binding<bool> isOn)
     {
@@ -403,7 +404,10 @@ internal sealed class SmallSwitch : Control
         base.Render(context);
         var track = new Rect(0, 0, TrackWidth, TrackHeight);
         // at rest the track is the theme's own brush, so it follows an appearance change; between the two it is the mixed colour
-        IBrush trackBrush = tint.Value == 1 ? Chrome.AccentNSColor.Brush(this) : tint.Value == 0 ? Chrome.Overlay(0.10).Brush(this) : new SolidColorBrush(TrackNow());
+        // (one brush each for the life of the switch, so an appearance change eases them where the window turns over, ED-254)
+        offBrush ??= Chrome.Overlay(0.10).Brush(this); onBrush ??= Chrome.AccentNSColor.Brush(this);
+        IBrush trackBrush = tint.Value == 1 ? onBrush : tint.Value == 0 ? offBrush
+            : new SolidColorBrush(SwiftColor.PremultipliedMix(((ISolidColorBrush)offBrush).Color, ((ISolidColorBrush)onBrush).Color, tint.Value));
         context.DrawRectangle(trackBrush, null, track, TrackHeight / 2, TrackHeight / 2);
         var knob = KnobNow();
         // Pressed, the knob turns into the Mac's glass lens (CATALOGUE settings.switch-toggle): the port's held-knob look, the one the
