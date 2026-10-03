@@ -332,6 +332,19 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
             mount.Host.Child = null; mount.Advance(500);
             Assert.Null(mount.Field<string?>("windowStartID")); // the window never moved: the newest three are all it ever held
         });
+        // :605 at the beat a blank watch is armed: a pane that shows no row of the thread asks for a check 300 ms after the beat (the watch the first pass armed, 300 ms after
+        // the thread opened, is replaced by it). A watch is stood down by the first row that comes on screen (:1100-1105), so the pane is made blank (no height) to see it.
+        ThreadTimelineRig.Run(headless, mount =>
+        {
+            mount.Settle();
+            mount.Host.Height = 0; mount.Advance(50);
+            var tracking = mount.Field<TimelineScrollTracking>("tracking"); var checks = tracking.CheckRequest;
+            mount.SetEntries(Turns(60, sentences: 14).ToList());
+            mount.Advance(350); Assert.Equal(checks, tracking.CheckRequest); // not the opening's watch: the beat replaced it
+            Assert.NotNull(mount.Field<string?>("windowStartID")); // (the beat has run)
+            mount.Advance(150); Assert.Equal(checks, tracking.CheckRequest);
+            mount.Advance(100); Assert.True(tracking.CheckRequest > checks, "the watch armed at the beat found the pane blank and asked for a check");
+        });
         ThreadTimelineRig.Run(headless, OpensPagesAndDropsBack);
     }
 
@@ -347,7 +360,9 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         Assert.Equal("Show 57 earlier messages", PillText(mount));
         // :599 the 250 ms beat: not a moment before.
         mount.Advance(249); Assert.Equal(3, mount.Blocks().Length);
-        mount.Advance(1); mount.Advance(100);
+        mount.Advance(1);
+        Assert.True(mount.Field<TimelineScrollTracking>("tracking").IsArriving, "the end is held as the window loads"); // :601 tracking.holdEnd(for: 1.0)
+        mount.Advance(100);
         // :603 the window's start is the block 24 from the end of the list; :81 anchored by identity; every block in it is built (:384-391).
         Assert.Equal(BlockID(entries, 36), mount.Field<string?>("windowStartID"));
         Assert.Equal(24, mount.Blocks().Length);
