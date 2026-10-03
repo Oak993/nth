@@ -2410,7 +2410,7 @@
       "cancellation": "n/a",
       "windows_path": "Same parsing rules.",
       "verification_method": "unit test over the merged note, the merge-failed note and a note with no body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2461,7 +2461,7 @@
       "cancellation": "n/a",
       "windows_path": "Same three-way condition and the same fallback.",
       "verification_method": "interaction test over a merged note and a merge-failed note",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2803,7 +2803,7 @@
       "cancellation": "The task is not cancelled on disappearance; the state simply resets.",
       "windows_path": "Same 1100 ms and the same substring test.",
       "verification_method": "interaction test over a merged and a failed outcome",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2829,7 +2829,7 @@
       "cancellation": "n/a",
       "windows_path": "Keep the two controls as siblings and keep both exact tooltips.",
       "verification_method": "interaction test clicking title, track and link",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -4271,7 +4271,8 @@
       ],
       "notes": "This follows from the sources and is reproduced, not fixed. A porter who normalizes the prefix would change which notes get the rich card.",
       "b2_change": "B2 adds the unprefixed hold note (AppModel+HydraMerge.swift:840) and settlement note (:832). The stray note \"Hydra left ... outside every project.\" (B1 :136, B2 :179) was already unprefixed at B1.",
-      "b3_note": "1.7.0 no longer posts the unprefixed hold note (B2 AppModel+HydraMerge.swift:840); the literal-title notes are the two stray notes and the settlement note."
+      "b3_note": "1.7.0 no longer posts the unprefixed hold note (B2 AppModel+HydraMerge.swift:840); the literal-title notes are the two stray notes and the settlement note.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-HYDRAMERGE-032",

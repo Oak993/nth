@@ -82,7 +82,8 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:364-383"
       ],
       "notes": "The number is the index of the window's first block, the count of blocks above the window, with no thousands separator. The literal text is Show, a space, the number, a space, then earlier messages. The leading glyph is chevron.up.",
-      "b2_change": "B1 ThreadTimeline.swift:334 `.font(.chat(.callout, zoom: zoom))` -> B2 :370 `.font(.chat(.callout))`; the number went from B1 :159 `max(0, blocks.count - visibleCount)` to B2 :161-162 `windowStartIndex(in: blocks)`. Colours are unchanged; moved from B1 :328-347 to B2 :364-383."
+      "b2_change": "B1 ThreadTimeline.swift:334 `.font(.chat(.callout, zoom: zoom))` -> B2 :370 `.font(.chat(.callout))`; the number went from B1 :159 `max(0, blocks.count - visibleCount)` to B2 :161-162 `windowStartIndex(in: blocks)`. Colours are unchanged; moved from B1 :328-347 to B2 :364-383.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -1109,7 +1110,8 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2157-2168",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2278"
       ],
-      "notes": "Reasoning is never a row of its own anywhere in the timeline; it exists only behind this chevron."
+      "notes": "Reasoning is never a row of its own anywhere in the timeline; it exists only behind this chevron.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -1502,7 +1504,8 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:665-672",
         "DroppyCode/App/Views/Composer/QuestionTab.swift:5"
       ],
-      "notes": "Only the badge's placement, id scheme and scroll behavior belong to the chat area; its internals are specified with the composer."
+      "notes": "Only the badge's placement, id scheme and scroll behavior belong to the chat area; its internals are specified with the composer.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -1569,7 +1572,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1837-1840"
       ],
       "notes": "Capital D, no surrounding punctuation.",
-      "b2_change": "B1 TimelineRows.swift:1849 `.font(.chat(.caption, zoom: zoom))` -> B2 :1839 `.font(.chat(.caption))`. Moved from B1 :1847-1850 to B2 :1837-1840."
+      "b2_change": "B1 TimelineRows.swift:1849 `.font(.chat(.caption, zoom: zoom))` -> B2 :1839 `.font(.chat(.caption))`. Moved from B1 :1847-1850 to B2 :1837-1840.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -1591,7 +1595,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1833-1836"
       ],
       "notes": "Lowercase exit, a single space, then the integer. No parentheses and no word code.",
-      "b2_change": "B1 TimelineRows.swift:1845 `.font(.chat(.caption, zoom: zoom).monospacedDigit())` -> B2 :1835 `.font(.chat(.caption).monospacedDigit())`. Moved from B1 :1843-1846 to B2 :1833-1836."
+      "b2_change": "B1 TimelineRows.swift:1845 `.font(.chat(.caption, zoom: zoom).monospacedDigit())` -> B2 :1835 `.font(.chat(.caption).monospacedDigit())`. Moved from B1 :1843-1846 to B2 :1833-1836.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -1708,7 +1713,8 @@
         "DroppyCode/App/Views/Chat/HydraProgressBar.swift:504"
       ],
       "notes": "Do not hard-code it as the label for the earlier-segment mode; it is what falls out when there are no tools and the segment is not running.",
-      "b2_change": "The label moved from B1 ThreadTimeline.swift:2076 to B2 :2092 and is drawn by HydraWorkingTitle (B2 :2111), whose font was respelled as a text style of the same macOS size: B1 HydraProgressBar.swift:504 `.font(.system(size: 13, weight: .medium))` -> B2 :504 `.font(.system(.body, weight: .medium))`."
+      "b2_change": "The label moved from B1 ThreadTimeline.swift:2076 to B2 :2092 and is drawn by HydraWorkingTitle (B2 :2111), whose font was respelled as a text style of the same macOS size: B1 HydraProgressBar.swift:504 `.font(.system(size: 13, weight: .medium))` -> B2 :504 `.font(.system(.body, weight: .medium))`.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "CHAT",
@@ -2373,7 +2379,7 @@
         "no efforts: the effort text is omitted"
       ],
       "interactions": [
-        "click opens the effort card popover above the chip (reference runtime, 2-chat-use.mov 33.74-33.94 s)"
+        "click opens the effort card popover below the chip"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EffortSlider.swift:59-138"
@@ -2789,7 +2795,7 @@
         "cross-fades to the model list over 0.12 s ease-out"
       ],
       "interactions": [
-        "hangs above the model chip, its arrow pointing down at it (reference runtime, 2-chat-use.mov 33.74-33.94 s)"
+        "hangs below the model chip"
       ],
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EffortSlider.swift:153-228",
@@ -8067,7 +8073,8 @@
       ],
       "notes": "This follows from the sources and is reproduced, not fixed. A porter who normalizes the prefix would change which notes get the rich card.",
       "b2_change": "B2 adds the unprefixed hold note (AppModel+HydraMerge.swift:840) and settlement note (:832). The stray note \"Hydra left ... outside every project.\" (B1 :136, B2 :179) was already unprefixed at B1.",
-      "b3_note": "1.7.0 no longer posts the unprefixed hold note (B2 AppModel+HydraMerge.swift:840); the literal-title notes are the two stray notes and the settlement note."
+      "b3_note": "1.7.0 no longer posts the unprefixed hold note (B2 AppModel+HydraMerge.swift:840); the literal-title notes are the two stray notes and the settlement note.",
+      "status": "IMPLEMENTED"
     },
     {
       "area": "HYDRAMERGE",

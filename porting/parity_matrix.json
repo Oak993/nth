@@ -7,9 +7,9 @@
   "counts": {
     "total": 3992,
     "by_status": {
-      "IMPLEMENTED": 3665,
+      "IMPLEMENTED": 3695,
       "RETIRED": 15,
-      "SPECIFIED": 284,
+      "SPECIFIED": 254,
       "NOT_APPLICABLE_WITH_EVIDENCE": 22,
       "DISCOVERED": 6
     },
@@ -526,7 +526,7 @@
       "cancellation": "not cancellable",
       "windows_path": "contentTopInset must be computed from its three parts, not hard-coded to 72, because it shares the number with veilHeight by coincidence and the extract warns against folding them.",
       "verification_method": "capture comparison at several window widths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -547,7 +547,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A flex column with a leading flexible spacer and a min-height equal to the measured viewport height.",
       "verification_method": "capture comparison with a one-message thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -638,7 +638,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both side effects are required (port_impacts.md 136); a port that only swaps the view leaves a stale veil and a stale jump button.",
       "verification_method": "interaction test: scroll a thread, revert it to empty, assert veil and jump button cleared",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -659,7 +659,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both conditions, in this order.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -814,7 +814,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce all three guards, including the rows-contain-no-head guard, or the same heads appear twice.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -836,7 +836,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both id literals exactly; they are the identity the list animates across.",
       "verification_method": "unit plus interaction test across a turn boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -923,7 +923,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same classification, used for both the rail and the active-tick resolution.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1067,7 +1067,7 @@
       "cancellation": "The task is keyed on the thread id and is cancelled on a thread switch; the cancellation check runs immediately after the sleep.",
       "windows_path": "Same three constants, the 96-block limit and the same 250 ms handoff. The window is anchored on its oldest block's id, not on a count. The window must grow above the viewport with the bottom held, never below it. Lay the rows out in a non-virtualizing panel, bounded by the window.",
       "verification_method": "interaction test on a long fixture thread measuring first-paint block count, and a followed run growing past 96 blocks asserting the window drops back to the newest 24",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1093,7 +1093,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the string verbatim including the space before earlier and the lowercase m. The visibility threshold is a fraction of the pill's own area, not a pixel distance.",
       "verification_method": "interaction test plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1803,7 +1803,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the path control points verbatim; the tail is not a generic speech-bubble pointer. The tint is the window's view tint, which follows the theme accent.",
       "verification_method": "capture comparison at several text lengths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2109,7 +2109,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The scan is a simple line-prefix test on three backticks; it does not understand indented fences, tildes or info strings. Reproduce it as written rather than using a markdown parser.",
       "verification_method": "unit over lastCodeBlock plus an interaction test for the quote path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2486,7 +2486,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the clear-on-tool rule exactly; predicting the answer from the last tool call lets narration escape the card until another call arrives to take it back.",
       "verification_method": "unit over fixture turns including a turn ending on a failed tool",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2509,7 +2509,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not write state during render; Windows UI frameworks have the same re-entrancy hazard.",
       "verification_method": "unit counting derivations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2782,7 +2782,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two padding sets and the fixed-versus-hugging width are the whole difference between the two forms. The open and close animations are deliberately the same token; do not give the close a different curve.",
       "verification_method": "capture comparison with the setting on and off, plus an interaction test asserting the same animation token in both directions and the reveal-box follow on open only",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2880,7 +2880,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two distinct reveal entry points, not one (port_impacts.md 252 and 284): action applies the three-way guard, follow does not and also pins.",
       "verification_method": "interaction test with the reader scrolled up",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2927,7 +2927,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Wire all five; port_impacts.md 282 records that earlier notes listed only two.",
       "verification_method": "interaction test over each of the five",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2977,7 +2977,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pass chronological false from the timeline exactly as the source does; do not wire the stored setting to the rows. Storage of the key itself belongs to the settings area.",
       "verification_method": "interaction test with the setting stored as true and as false, asserting in both cases that a running turn's card opens collapsed with no steps shown, that opening it with more than two work steps shows only the two latest and the earlier-steps line, and that a finished turn opens folded",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3255,7 +3255,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows equivalents are WM_ACTIVATEAPP and per-window visibility. The window-identity guard is essential; without it every tooltip jolts the conversation.",
       "verification_method": "interaction test opening a tooltip over the chat and asserting no scroll",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3439,7 +3439,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the link as a sibling control, not nested in the button; the nesting bug is platform-specific but the layout is what the capture shows. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over leadingURL plus an interaction test that the pill still opens its popover",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3708,7 +3708,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The exclusion must be applied in both the group builder and the expanded-steps filter.",
       "verification_method": "interaction test folding a turn that sent out heads",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3734,7 +3734,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The oldest-first iteration is load-bearing: a reused name must point at the newest head.",
       "verification_method": "interaction test clicking a head's name in a reply",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3827,7 +3827,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows needs an equivalent memoization boundary; without it every keystroke in the title field re-renders the conversation.",
       "verification_method": "unit counting timeline renders when the title changes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3972,7 +3972,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One behavior only (port_impacts.md 248): a text surface that always takes its own hit test, a pointing-hand cursor over links and an I-beam over prose, never passing prose clicks through to a whole-reply selection layer. Per-block selection is always on.",
       "verification_method": "interaction test dragging across a reply and across a code block",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -7302,7 +7302,7 @@
       "title": "The chip's popover is 330 points wide and cross-fades between the slider and the model list in 0.12 seconds",
       "source_evidence": [
         "DroppyCode/App/Views/Composer/EffortSlider.swift:161-188 ModelEffortPanel - Group { showsModels ? ModelList : slider }.frame(width: 330).animation(.easeOut(duration: 0.12), value: showsModels); both branches carry .transition(.opacity)",
-        "DroppyCode/App/Views/Composer/EffortSlider.swift:120-123 .popover(isPresented:arrowEdge: .bottom) wrapped in .presentedChrome(); the reference runtime opens it above the chip, its arrow on the card's bottom edge pointing down at the chip (work/reference-video/2-chat-use.mov 33.74-33.94 s, every frame; study effort-title-2026-10-03/popover_open_sheet.png)"
+        "DroppyCode/App/Views/Composer/EffortSlider.swift:120-123 the popover hangs below the chip and is wrapped in .presentedChrome()"
       ],
       "preconditions": "The chip was clicked.",
       "action": "The user taps the slider's title, or the list's back chevron.",
@@ -13192,7 +13192,7 @@
       "cancellation": "The popover's Cancel closes it and runs nothing.",
       "windows_path": "Direct port, including that this path never offers to keep the files.",
       "verification_method": "interaction test on the card",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -13976,7 +13976,7 @@
       "cancellation": "The parse task is keyed on the turn and cancelled when the row goes away.",
       "windows_path": "Direct port of both title forms.",
       "verification_method": "interaction test at one and several files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -14001,7 +14001,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port of the twelve-file cut and both overflow forms.",
       "verification_method": "interaction test at twelve, thirteen and twenty files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -23029,7 +23029,7 @@
       "cancellation": "n/a",
       "windows_path": "Same parsing rules.",
       "verification_method": "unit test over the merged note, the merge-failed note and a note with no body",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -23082,7 +23082,7 @@
       "cancellation": "n/a",
       "windows_path": "Same three-way condition and the same fallback.",
       "verification_method": "interaction test over a merged note and a merge-failed note",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -23438,7 +23438,7 @@
       "cancellation": "The task is not cancelled on disappearance; the state simply resets.",
       "windows_path": "Same 1100 ms and the same substring test.",
       "verification_method": "interaction test over a merged and a failed outcome",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -23465,7 +23465,7 @@
       "cancellation": "n/a",
       "windows_path": "Keep the two controls as siblings and keep both exact tooltips.",
       "verification_method": "interaction test clicking title, track and link",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,

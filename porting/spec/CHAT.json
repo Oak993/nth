@@ -468,7 +468,7 @@
       "cancellation": "not cancellable",
       "windows_path": "contentTopInset must be computed from its three parts, not hard-coded to 72, because it shares the number with veilHeight by coincidence and the extract warns against folding them.",
       "verification_method": "capture comparison at several window widths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -488,7 +488,7 @@
       "cancellation": "not cancellable",
       "windows_path": "A flex column with a leading flexible spacer and a min-height equal to the measured viewport height.",
       "verification_method": "capture comparison with a one-message thread",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -575,7 +575,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both side effects are required (port_impacts.md 136); a port that only swaps the view leaves a stale veil and a stale jump button.",
       "verification_method": "interaction test: scroll a thread, revert it to empty, assert veil and jump button cleared",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -595,7 +595,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both conditions, in this order.",
       "verification_method": "interaction test",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -743,7 +743,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce all three guards, including the rows-contain-no-head guard, or the same heads appear twice.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -764,7 +764,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Both id literals exactly; they are the identity the list animates across.",
       "verification_method": "unit plus interaction test across a turn boundary",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -847,7 +847,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Same classification, used for both the rail and the active-tick resolution.",
       "verification_method": "unit",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -985,7 +985,7 @@
       "cancellation": "The task is keyed on the thread id and is cancelled on a thread switch; the cancellation check runs immediately after the sleep.",
       "windows_path": "Same three constants, the 96-block limit and the same 250 ms handoff. The window is anchored on its oldest block's id, not on a count. The window must grow above the viewport with the bottom held, never below it. Lay the rows out in a non-virtualizing panel, bounded by the window.",
       "verification_method": "interaction test on a long fixture thread measuring first-paint block count, and a followed run growing past 96 blocks asserting the window drops back to the newest 24",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1010,7 +1010,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the string verbatim including the space before earlier and the lowercase m. The visibility threshold is a fraction of the pill's own area, not a pixel distance.",
       "verification_method": "interaction test plus capture comparison",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -1689,7 +1689,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the path control points verbatim; the tail is not a generic speech-bubble pointer. The tint is the window's view tint, which follows the theme accent.",
       "verification_method": "capture comparison at several text lengths",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -1983,7 +1983,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The scan is a simple line-prefix test on three backticks; it does not understand indented fences, tildes or info strings. Reproduce it as written rather than using a markdown parser.",
       "verification_method": "unit over lastCodeBlock plus an interaction test for the quote path",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2344,7 +2344,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Reproduce the clear-on-tool rule exactly; predicting the answer from the last tool call lets narration escape the card until another call arrives to take it back.",
       "verification_method": "unit over fixture turns including a turn ending on a failed tool",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2366,7 +2366,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Do not write state during render; Windows UI frameworks have the same re-entrancy hazard.",
       "verification_method": "unit counting derivations",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2628,7 +2628,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The two padding sets and the fixed-versus-hugging width are the whole difference between the two forms. The open and close animations are deliberately the same token; do not give the close a different curve.",
       "verification_method": "capture comparison with the setting on and off, plus an interaction test asserting the same animation token in both directions and the reveal-box follow on open only",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2722,7 +2722,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Two distinct reveal entry points, not one (port_impacts.md 252 and 284): action applies the three-way guard, follow does not and also pins.",
       "verification_method": "interaction test with the reader scrolled up",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -2767,7 +2767,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Wire all five; port_impacts.md 282 records that earlier notes listed only two.",
       "verification_method": "interaction test over each of the five",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -2815,7 +2815,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Pass chronological false from the timeline exactly as the source does; do not wire the stored setting to the rows. Storage of the key itself belongs to the settings area.",
       "verification_method": "interaction test with the setting stored as true and as false, asserting in both cases that a running turn's card opens collapsed with no steps shown, that opening it with more than two work steps shows only the two latest and the earlier-steps line, and that a finished turn opens folded",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3081,7 +3081,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows equivalents are WM_ACTIVATEAPP and per-window visibility. The window-identity guard is essential; without it every tooltip jolts the conversation.",
       "verification_method": "interaction test opening a tooltip over the chat and asserting no scroll",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3258,7 +3258,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Keep the link as a sibling control, not nested in the button; the nesting bug is platform-specific but the layout is what the capture shows. Chrome.secondaryText is Chrome.primaryText at opacity 0.7 (ED-062, DroppyCode/UI/Chrome/Chrome.swift:79).",
       "verification_method": "unit over leadingURL plus an interaction test that the pill still opens its popover",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null,
@@ -3516,7 +3516,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The exclusion must be applied in both the group builder and the expanded-steps filter.",
       "verification_method": "interaction test folding a turn that sent out heads",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3541,7 +3541,7 @@
       "cancellation": "not cancellable",
       "windows_path": "The oldest-first iteration is load-bearing: a reused name must point at the newest head.",
       "verification_method": "interaction test clicking a head's name in a reply",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3630,7 +3630,7 @@
       "cancellation": "not cancellable",
       "windows_path": "Windows needs an equivalent memoization boundary; without it every keystroke in the title field re-renders the conversation.",
       "verification_method": "unit counting timeline renders when the title changes",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -3769,7 +3769,7 @@
       "cancellation": "not cancellable",
       "windows_path": "One behavior only (port_impacts.md 248): a text surface that always takes its own hit test, a pointing-hand cursor over links and an I-beam over prose, never passing prose clicks through to a whole-reply selection layer. Per-block selection is always on.",
       "verification_method": "interaction test dragging across a reply and across a code block",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4491,7 +4491,8 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:364-383"
       ],
       "notes": "The number is the index of the window's first block, the count of blocks above the window, with no thousands separator. The literal text is Show, a space, the number, a space, then earlier messages. The leading glyph is chevron.up.",
-      "b2_change": "B1 ThreadTimeline.swift:334 `.font(.chat(.callout, zoom: zoom))` -> B2 :370 `.font(.chat(.callout))`; the number went from B1 :159 `max(0, blocks.count - visibleCount)` to B2 :161-162 `windowStartIndex(in: blocks)`. Colours are unchanged; moved from B1 :328-347 to B2 :364-383."
+      "b2_change": "B1 ThreadTimeline.swift:334 `.font(.chat(.callout, zoom: zoom))` -> B2 :370 `.font(.chat(.callout))`; the number went from B1 :159 `max(0, blocks.count - visibleCount)` to B2 :161-162 `windowStartIndex(in: blocks)`. Colours are unchanged; moved from B1 :328-347 to B2 :364-383.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-003",
@@ -5476,7 +5477,8 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2157-2168",
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:2278"
       ],
-      "notes": "Reasoning is never a row of its own anywhere in the timeline; it exists only behind this chevron."
+      "notes": "Reasoning is never a row of its own anywhere in the timeline; it exists only behind this chevron.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-045",
@@ -5853,7 +5855,8 @@
         "DroppyCode/App/Views/Chat/ThreadTimeline.swift:665-672",
         "DroppyCode/App/Views/Composer/QuestionTab.swift:5"
       ],
-      "notes": "Only the badge's placement, id scheme and scroll behavior belong to the chat area; its internals are specified with the composer."
+      "notes": "Only the badge's placement, id scheme and scroll behavior belong to the chat area; its internals are specified with the composer.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-061",
@@ -5917,7 +5920,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1837-1840"
       ],
       "notes": "Capital D, no surrounding punctuation.",
-      "b2_change": "B1 TimelineRows.swift:1849 `.font(.chat(.caption, zoom: zoom))` -> B2 :1839 `.font(.chat(.caption))`. Moved from B1 :1847-1850 to B2 :1837-1840."
+      "b2_change": "B1 TimelineRows.swift:1849 `.font(.chat(.caption, zoom: zoom))` -> B2 :1839 `.font(.chat(.caption))`. Moved from B1 :1847-1850 to B2 :1837-1840.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-064",
@@ -5938,7 +5942,8 @@
         "DroppyCode/App/Views/Chat/TimelineRows.swift:1833-1836"
       ],
       "notes": "Lowercase exit, a single space, then the integer. No parentheses and no word code.",
-      "b2_change": "B1 TimelineRows.swift:1845 `.font(.chat(.caption, zoom: zoom).monospacedDigit())` -> B2 :1835 `.font(.chat(.caption).monospacedDigit())`. Moved from B1 :1843-1846 to B2 :1833-1836."
+      "b2_change": "B1 TimelineRows.swift:1845 `.font(.chat(.caption, zoom: zoom).monospacedDigit())` -> B2 :1835 `.font(.chat(.caption).monospacedDigit())`. Moved from B1 :1843-1846 to B2 :1833-1836.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-065",
@@ -6050,7 +6055,8 @@
         "DroppyCode/App/Views/Chat/HydraProgressBar.swift:504"
       ],
       "notes": "Do not hard-code it as the label for the earlier-segment mode; it is what falls out when there are no tools and the segment is not running.",
-      "b2_change": "The label moved from B1 ThreadTimeline.swift:2076 to B2 :2092 and is drawn by HydraWorkingTitle (B2 :2111), whose font was respelled as a text style of the same macOS size: B1 HydraProgressBar.swift:504 `.font(.system(size: 13, weight: .medium))` -> B2 :504 `.font(.system(.body, weight: .medium))`."
+      "b2_change": "The label moved from B1 ThreadTimeline.swift:2076 to B2 :2092 and is drawn by HydraWorkingTitle (B2 :2111), whose font was respelled as a text style of the same macOS size: B1 HydraProgressBar.swift:504 `.font(.system(size: 13, weight: .medium))` -> B2 :504 `.font(.system(.body, weight: .medium))`.",
+      "status": "IMPLEMENTED"
     },
     {
       "id": "UI-CHAT-070",

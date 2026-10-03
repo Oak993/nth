@@ -3305,7 +3305,7 @@
       "cancellation": "The popover's Cancel closes it and runs nothing.",
       "windows_path": "Direct port, including that this path never offers to keep the files.",
       "verification_method": "interaction test on the card",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4060,7 +4060,7 @@
       "cancellation": "The parse task is keyed on the turn and cancelled when the row goes away.",
       "windows_path": "Direct port of both title forms.",
       "verification_method": "interaction test at one and several files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
@@ -4084,7 +4084,7 @@
       "cancellation": "not applicable",
       "windows_path": "Direct port of the twelve-file cut and both overflow forms.",
       "verification_method": "interaction test at twelve, thirteen and twenty files",
-      "status": "SPECIFIED",
+      "status": "IMPLEMENTED",
       "upstream_defect": null,
       "blocked_by": null,
       "depends_on_unknown": null
