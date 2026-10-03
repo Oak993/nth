@@ -294,7 +294,11 @@ public sealed class VeiledText : Decorator
     // Avalonia TextBlock does not unless asked: without Wrap a long message ran on one line and clipped at the bubble's
     // edge (the user bubble, MarkdownView.swift:1129-1133, and every link-free inline paragraph). The code block hosts
     // this in a horizontal ScrollView with fixedSize (:1223-1229), where the width offered is unbounded, so it stays on its lines.
-    private readonly TextBlock textBlock = new() { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
+    // MarkdownView.swift:318, :1131, :1229: every VeiledText (a prose block, a link-free inline paragraph such as the user's
+    // bubble, a code block's text) sits under MarkdownBlockSelection, whose live branch is .textSelection(.enabled)
+    // (:890-899; the environment value has no writer, dead_code.md 30): its text is selectable in its own block, so it is
+    // drawn by a SelectableTextBlock, with the system's selected-text colour as ParagraphTextPresenter uses (PR-CHAT-166).
+    private readonly TextBlock textBlock = new SelectableTextBlock { TextWrapping = Avalonia.Media.TextWrapping.Wrap };
     private readonly bool hasSegments;
     private bool isRedrawing;
     private bool wasFading;
@@ -327,6 +331,8 @@ public sealed class VeiledText : Decorator
     // StreamVeil.swift:273-279.
     private void Build()
     {
+        // Resolved once the text is in a window (the system accent needs the running application).
+        textBlock.AttachedToVisualTree += (_, _) => ((SelectableTextBlock)textBlock).SelectionBrush ??= SwiftColor.SelectedTextBackgroundColor.Brush(textBlock);
         Child = textBlock;
         PropertyChanged += OnEnvironmentChanged;
         this.Track(

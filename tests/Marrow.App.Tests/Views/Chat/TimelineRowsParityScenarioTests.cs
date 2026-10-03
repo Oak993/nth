@@ -348,6 +348,61 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
         finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
     });
 
+    // ---------------------------------------------------------------- PR-CHAT-166
+
+    private static void Drag(AvaloniaWindow window, Control fromControl, Point from, Control toControl, Point to)
+    {
+        var start = fromControl.TranslatePoint(from, window) ?? throw new InvalidOperationException("not mounted");
+        var end = toControl.TranslatePoint(to, window) ?? throw new InvalidOperationException("not mounted");
+        window.MouseMove(start, RawInputModifiers.None);
+        window.MouseDown(start, MouseButton.Left, RawInputModifiers.None);
+        window.MouseMove(new Point((start.X + end.X) / 2, (start.Y + end.Y) / 2), RawInputModifiers.LeftMouseButton);
+        window.MouseMove(end, RawInputModifiers.LeftMouseButton);
+        window.MouseUp(end, MouseButton.Left, RawInputModifiers.None);
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
+    }
+
+    // :123 the bubble, and every block of a reply (MarkdownView.swift:318, :1131, :1229, :1308 MarkdownBlockSelection on the
+    // prose, the inline text, the code and the table), carry .textSelection(.enabled) of their own: a drag selects inside
+    // the block it starts in and never runs on into the next block, and there is no whole-reply selection layer
+    // (whole-reply copying is the row menu's Copy message and Copy as markdown, PR-CHAT-089).
+    [Fact]
+    [Trait("Req", "PR-CHAT-166")] // TimelineRows.swift:123, :1364; MarkdownView.swift:318, :1131, :1229
+    public void A_drag_selects_inside_the_block_it_starts_in_across_a_reply_its_code_block_and_a_bubble() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        AvaloniaWindow window = null!;
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var reply = new AssistantMessageRow(Reply("First words of the answer.\n\nSecond paragraph of the answer.\n\n```\nlet code = 1\n```"), null, h.Runtime);
+                var bubble = new UserMessageRow(UserEntry("plain words in a bubble", Guid.NewGuid()), h.Runtime, canRevert: false);
+                window = Show(new StackPanel { Spacing = 40, Children = { reply, bubble } });
+                Settle(window);
+                var prose = Assert.Single(reply.GetVisualDescendants().OfType<ParagraphTextPresenter>()); // one prose run, both paragraphs
+                var code = Assert.Single(Assert.Single(reply.GetVisualDescendants().OfType<CodeBlock>()).GetVisualDescendants().OfType<SelectableTextBlock>());
+                var words = Assert.Single(bubble.GetVisualDescendants().OfType<SelectableTextBlock>());
+
+                // Across the reply: from the first paragraph down into the code block. The selection stays in the prose.
+                Drag(window, prose, new Point(1, 6), code, new Point(code.Bounds.Width - 1, code.Bounds.Height / 2));
+                Assert.StartsWith("First words", prose.SelectedText, StringComparison.Ordinal);
+                Assert.True(string.IsNullOrEmpty(code.SelectedText), "the drag ran on into the code block");
+                Assert.True(string.IsNullOrEmpty(words.SelectedText));
+
+                // Across the code block: its own text, and nothing in the prose run above it.
+                Drag(window, code, new Point(1, code.Bounds.Height / 2), code, new Point(code.Bounds.Width - 1, code.Bounds.Height / 2));
+                Assert.Equal("let code = 1", code.SelectedText);
+
+                // The sent bubble selects inside itself too (:123).
+                Drag(window, words, new Point(1, words.Bounds.Height / 2), words, new Point(words.Bounds.Width - 1, words.Bounds.Height / 2));
+                Assert.Equal("plain words in a bubble", words.SelectedText);
+            });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => Close(window)); }
+    });
+
     // ---------------------------------------------------------------- helpers
 
     private static Control Unwrap(Control content)
