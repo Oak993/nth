@@ -50,13 +50,18 @@ public sealed class ModelChipTextCrossfadeTests(HeadlessSession headless)
         try
         {
             Assert.Single(Labels("High"));
+            var started = clock.GetUtcNow();
             Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => model.UpdateThread(thread.Id, current => current with { Effort = "max" }));
             Dispatcher.UIThread.RunJobs();
-            Step(50);
-            var leaving = Assert.Single(Labels("High"));
-            var arriving = Assert.Single(Labels("Max"));
-            Assert.InRange(arriving.Opacity, 0.3, 0.8);                       // video: 0.66 at 49 ms
-            Assert.Equal(1 - arriving.Opacity, leaving.Opacity, 3);           // the old one fades as the new one comes
+            // The video's weights, each within 0.06 (round 1 accepted 0.3-0.8 at 49 ms and trailed the video by a frame).
+            foreach (var (ms, weight) in new[] { (27, 0.37), (49, 0.66), (69, 0.80), (90, 0.90) })
+            {
+                Step(ms - (int)Math.Round((clock.GetUtcNow() - started).TotalMilliseconds));
+                var leaving = Assert.Single(Labels("High"));
+                var arriving = Assert.Single(Labels("Max"));
+                Assert.True(Math.Abs(arriving.Opacity - weight) <= 0.06, $"at {ms} ms the new text's weight is {arriving.Opacity:F2}; the video's {weight}");
+                Assert.Equal(1 - arriving.Opacity, leaving.Opacity, 3);       // the old one fades as the new one comes
+            }
             Step(400);
             Assert.Empty(Labels("High"));
             Assert.Equal(1, Assert.Single(Labels("Max")).Opacity);

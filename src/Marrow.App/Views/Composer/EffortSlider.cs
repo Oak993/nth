@@ -164,10 +164,15 @@ public sealed class ModelEffortButton : Decorator
     // cross-fades the old text into the new one in place, SwiftUI's default for a Text without a content transition.
     // Reference runtime, 2-chat-use.mov 34.84-34.97 s: the chip's "Sonnet High" fades under "S... Extra High", the new
     // text's weight 0.37, 0.66, 0.80, 0.90, 0.96 at 27, 49, 69, 90 and 112 ms. The old text keeps its laid-out width (so
-    // its own truncation) and takes no room: it sits in a sizeless layer over its cell until it has faded.
+    // its own truncation) and takes no room: it sits in a sizeless layer over its cell until it has faded. ENGINEERING
+    // DECISION, fitted to those five frames (worst 0.02): the fade runs the change's own curve 13 ms ahead (on the curve
+    // alone it trailed the video by about a frame: 0.22 and 0.50 at 27 and 49 ms).
+    internal const double FadeLead = 0.013;
+
     private static void CrossFade(Grid frame, TextBlock? old, TextBlock fresh, int column)
     {
-        if (Transaction.Current is not { } animation || old is null || old.Text == fresh.Text || old.Bounds.Width <= 0) return;
+        if (Transaction.Current is not { } change || old is null || old.Text == fresh.Text || old.Bounds.Width <= 0) return;
+        var animation = change.Delay(-FadeLead); // ahead: at the change's moment already FadeLead into the curve
         var width = old.Bounds.Width;
         var height = old.Bounds.Height;
         old.Width = width;
