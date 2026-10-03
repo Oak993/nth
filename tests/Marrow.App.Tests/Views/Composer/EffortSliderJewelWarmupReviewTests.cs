@@ -146,4 +146,112 @@ public sealed class EffortSliderJewelWarmupReviewTests(HeadlessSession headless)
             Directory.Delete(root, recursive: true);
         }
     }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // the idle fallback that gave up on a window not drawn (minimised) warms once it is drawn again
+    public void REVIEW_an_idle_warm_up_that_gave_up_on_an_undrawn_window_warms_once_it_is_drawn_again() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var bound = FrameClock.Source.Override(frames);
+        var (cap, timeout) = (GpuWarmup.IdleCap, GpuWarmup.StepTimeout);
+        GpuWarmup.IdleCap = TimeSpan.FromMilliseconds(300);
+        GpuWarmup.StepTimeout = TimeSpan.FromMilliseconds(300);
+        var host = new Border { Width = 40, Height = 20 };
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100, Content = host };
+        window.Show();
+        try
+        {
+            GpuWarmup.WhenIdle(host);
+            var asked = GpuWarmup.StepsAsked;
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick(); // the window's first frame: the fallback starts
+            Dispatcher.UIThread.RunJobs();
+            Pump(TimeSpan.FromSeconds(3), () => false, render: false); // then no frame: past the cap and the step's timeout
+            Assert.True(GpuWarmup.StepsAsked == asked + 1, $"precondition: one forced step asked and never drawn ({GpuWarmup.StepsAsked - asked} asked)");
+            // the window is drawn again (restored); Steps returned at the timeout ("a later call warms") but nothing calls
+            // again for the chip: the popover's first open compiles the four programs in one frame (220 ms measured, or
+            // about 30 ms of binary loads on a warm cache), on every launch that started minimised
+            Pump(TimeSpan.FromSeconds(5), () => GpuWarmup.StepsAsked > asked + 1, render: true);
+            Assert.True(GpuWarmup.StepsAsked > asked + 1, "the warm-up never resumed once the window was drawn again");
+        }
+        finally { (GpuWarmup.IdleCap, GpuWarmup.StepTimeout) = (cap, timeout); window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // WarmAsync "completes when every program is compiled and cached": giving up is not success
+    public void REVIEW_warm_async_does_not_report_success_when_its_step_was_never_drawn() => headless.OnUiThread(() =>
+    {
+        var timeout = GpuWarmup.StepTimeout;
+        GpuWarmup.StepTimeout = TimeSpan.FromMilliseconds(300);
+        var window = new Avalonia.Controls.Window { Width = 200, Height = 100 };
+        window.Show();
+        try
+        {
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            var asked = GpuWarmup.StepsAsked;
+            var task = GpuWarmup.WarmAsync(window);
+            Pump(TimeSpan.FromSeconds(5), () => task.IsCompleted, render: false); // the window not drawn (minimised, hidden)
+            Assert.True(task.IsCompleted, "precondition: bounded by the step's timeout");
+            Assert.True(GpuWarmup.StepsAsked == asked + 1, "precondition: the first step asked, never answered");
+            // OD-0096's "Getting ready" screen awaits this and would move on as if prepared, with nothing compiled
+            Assert.False(task.IsCompletedSuccessfully, "WarmAsync completed successfully although its step was never drawn");
+        }
+        finally { GpuWarmup.StepTimeout = timeout; window.Close(); }
+    });
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // where the cache is cleaned: a completed warm-up leaves no other build's programs behind
+    public void REVIEW_a_completed_warm_up_removes_the_program_folders_of_other_builds()
+    {
+        var root = Path.Combine(Path.GetTempPath(), "jewel-clean-review-" + Guid.NewGuid().ToString("N"));
+        var stale = Path.Combine(root, "aaaaaaaaaaaaaaaaaaaaaaaa");
+        var current = Path.Combine(root, "bbbbbbbbbbbbbbbbbbbbbbbb");
+        GpuProgramCache.FolderOverride = root;
+        try
+        {
+            foreach (var (folder, build) in new[] { (stale, "an earlier build"), (current, GpuProgramCache.Build) })
+            {
+                Directory.CreateDirectory(folder);
+                File.WriteAllText(Path.Combine(folder, "key.txt"), "ANGLE (Review GPU)\nOpenGL ES 3.0.0\n" + build + "\n");
+                File.WriteAllBytes(Path.Combine(folder, "a.bin"), [1, 2, 3]);
+            }
+            GpuProgramCache.MarkWarm(current); // "a warm-up completed" (Steps calls it with the folder in use)
+            Assert.True(Directory.Exists(current));
+            // every app update (a new build) and every driver update adds a folder of program binaries under
+            // %LOCALAPPDATA%\Marrow Code\Cache\GPU Programs; nothing ever removes one
+            Assert.False(Directory.Exists(stale), "an earlier build's programs are kept for good");
+        }
+        finally
+        {
+            GpuProgramCache.FolderOverride = null;
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Decision", "ED-252")] // IDisposable: a second Dispose does nothing (it must not remove another registration)
+    public void REVIEW_disposing_an_activity_twice_leaves_an_equal_registration_in_place() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var bound = FrameClock.Source.Override(frames);
+        Func<bool> spinning = () => true; // two views registering the same method group get equal delegates
+        var first = GpuWarmup.AddActivity(spinning);
+        using var second = GpuWarmup.AddActivity(spinning);
+        first.Dispose();
+        first.Dispose(); // Activity.Dispose removes "an equal delegate" each time: the second registration goes
+        Assert.True(GpuWarmup.Animating(frames), "the second registration was removed by the first's second Dispose");
+    });
+
+    // frames (or none) about every 10 ms until done or the time is up, the dispatcher's jobs run between
+    private static void Pump(TimeSpan span, Func<bool> done, bool render)
+    {
+        var since = DateTime.UtcNow;
+        while (!done() && DateTime.UtcNow - since < span)
+        {
+            if (render) AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            Thread.Sleep(10);
+            Dispatcher.UIThread.RunJobs();
+        }
+    }
 }
