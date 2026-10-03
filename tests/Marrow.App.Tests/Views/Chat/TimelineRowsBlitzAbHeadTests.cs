@@ -375,4 +375,145 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
             }
         }
     });
+
+    // ---- PR-CHAT-153: a tool call that sent out a head ----
+
+    // How many pixels of the area are the colour (within the distance), the evidence of a disc of it.
+    private static int Pixels(BlitzAbFrame frame, Rect area, Color colour, int within = 40)
+    {
+        var count = 0;
+        for (var x = (int)Math.Floor(area.Left); x < (int)Math.Ceiling(area.Right); x++)
+            for (var y = (int)Math.Floor(area.Top); y < (int)Math.Ceiling(area.Bottom); y++)
+                if (BlitzAbFrame.Distance(frame.At(x, y), colour) <= within) count++;
+        return count;
+    }
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-153")] // TimelineRows.swift:1766-1820, :1723-1755, HydraGlyph.swift:38-66; OD-0098: running, sent and failed drawn as the head's badge in both themes
+    public void A_call_that_sent_out_a_head_is_drawn_as_the_heads_badge_running_sent_and_failed_never_as_a_spinner_in_both_themes() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        foreach (var (theme, backdrop) in Themes)
+        {
+            var fill = BlitzAbFrame.Over(SwiftColor.Quaternary.Opacity(0.32).Resolve(theme), backdrop); // :1819 .quaternary.opacity(0.32)
+            Assert.True(BlitzAbFrame.Distance(fill, backdrop) > 15, "the badge's fill is visible against the backdrop");
+            var cases = new (string Title, ToolCall.Status Status, string Words, bool Running, Color? Disc)[]
+            {
+                ("Pip: the merge popover", ToolCall.Status.Running, "Sending out Pip: the merge popover", true, null),
+                ("Pip: the merge popover", ToolCall.Status.Completed, "Sent out Pip: the merge popover", false, ChromeTokens.Success.Resolve(theme)),
+                ("Pip: the merge popover", ToolCall.Status.Failed, "Could not send out Pip: the merge popover", false, ChromeTokens.Danger.Resolve(theme)),
+                ("Subagent", ToolCall.Status.Completed, "Sent out a head", false, ChromeTokens.Success.Resolve(theme)),
+                ("Refactor: the store", ToolCall.Status.Running, "Sending out a head: Refactor: the store", true, null),
+            };
+            h.Main.OnMain(() =>
+            {
+                var column = new StackPanel { Spacing = 14 };
+                var rows = cases.Select(item => new ToolRow(ToolEntry(Call(ToolCall.Kind.Agent, item.Title, item.Status)), h.Runtime)).ToList();
+                foreach (var row in rows) column.Children.Add(row);
+                BlitzAbRender.Render(new Border { Padding = new Thickness(24), Child = column }, theme, backdrop, 560, 280, (window, frame) =>
+                {
+                    for (var i = 0; i < cases.Length; i++)
+                    {
+                        var (title, status, words, running, disc) = cases[i];
+                        var row = rows[i];
+                        var because = $"{theme}: {words}";
+                        // :1788-1793 the words, in one run after the glyph; :1792 callout medium in the primary ink at 0.9 for a badge.
+                        Assert.Empty(Mounted<ToolStatusIcon>(row)); // never a spinner and a tool name (:1768-1770)
+                        Assert.Empty(Mounted<ProgressBar>(row));
+                        var label = Assert.Single(Mounted<MiddleTruncatingTextBlock>(row));
+                        Assert.Equal(words, label.FullText);
+                        // :1812-1819 the badge: the pill's insets and the quaternary at 0.32 in a pill-radius shape, starting where the row does.
+                        var pill = PillOf(row);
+                        var box = BlitzAbRender.BoxIn(pill, window);
+                        Assert.Equal(24, box.Left, 0.5);
+                        Assert.True(BlitzAbFrame.Distance(frame.At((int)box.Left + 5, (int)(box.Top + box.Height / 2)), fill) <= 6, $"{because}: the badge's fill");
+                        Assert.True(BlitzAbFrame.Distance(frame.At((int)box.Right + 4, (int)(box.Top + box.Height / 2)), backdrop) <= 6, $"{because}: the badge ends where it measures");
+                        var glyph = Assert.Single(Mounted<HydraGlyph>(row));
+                        Assert.Equal(18, glyph.Size);
+                        Assert.Equal(running, glyph.IsRunning);
+                        var glyphBox = BlitzAbRender.BoxIn(glyph, window);
+                        Assert.Equal(box.Left + 12, glyphBox.Left, 0.5);
+                        var textBox = BlitzAbRender.BoxIn(label, window);
+                        Assert.Equal(glyphBox.Right + 8, textBox.Left, 0.5); // :1783 spacing 8 in a badge
+                        Assert.InRange(Peak(frame, textBox, fill, ChromeTokens.PrimaryText.Opacity(0.9).Resolve(theme)), 0.88, 1.05);
+                        // HydraGlyph.swift:43-66 the outcome rides the glyph's bottom-right corner as a disc 9 across: green when sent, red when it never went; nothing while it goes.
+                        var corner = new Rect(glyphBox.Right - 6, glyphBox.Bottom - 6, 12, 12);
+                        foreach (var colour in new[] { ChromeTokens.Success.Resolve(theme), ChromeTokens.Danger.Resolve(theme) })
+                        {
+                            var found = Pixels(frame, corner, colour);
+                            if (disc is { } wanted && wanted == colour) Assert.True(found >= 12, $"{because}: {found} pixels of the outcome's disc {colour} at the glyph's corner");
+                            else Assert.True(found <= 2, $"{because}: {found} pixels of {colour} at the glyph's corner, none was due");
+                        }
+                    }
+                });
+            });
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-153")] // TimelineRows.swift:1766-1793: once the head's thread is linked the badge wears that head's glyph and its own status, the words name the head
+    public void A_call_whose_head_is_linked_wears_that_heads_glyph_and_outcome_in_the_badge_in_both_themes() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        var (store, app, runtime) = TeamHarness(Head(3, HydraHeadInfo.Status.Running), Head(4, HydraHeadInfo.Status.Completed), Head(5, HydraHeadInfo.Status.Failed));
+        using (store)
+        {
+            foreach (var (theme, backdrop) in Themes)
+            {
+                store.Main.OnMain(() =>
+                {
+                    var heads = app.Threads.Where(thread => thread.IsHydraHead).OrderBy(thread => thread.Hydra!.Index).Select(thread => thread.Id).ToList();
+                    app.UpdateThread(heads[0], thread => thread with { Hydra = thread.Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running } }); // the app's start-up left the unfinished head stopped; it is at work again
+                    var cases = new (ToolCall.Status Status, string Words, string Persona, Color? Disc)[]
+                    {
+                        (ToolCall.Status.Running, "Sending out Otto: Tidy the popover", "Otto", null),
+                        (ToolCall.Status.Completed, "Sent out Nova: Tidy the popover", "Nova", ChromeTokens.Success.Resolve(theme)),
+                        (ToolCall.Status.Completed, "Sent out Remy: Tidy the popover", "Remy", ChromeTokens.Danger.Resolve(theme)),
+                        (ToolCall.Status.Running, "Sending out Nova: Tidy the popover", "Nova", ChromeTokens.Success.Resolve(theme)), // the call still goes but the head is done: no ring, its outcome
+                    };
+                    var headFor = new[] { 0, 1, 2, 1 };
+                    var column = new StackPanel { Spacing = 14 };
+                    var rows = new List<ToolRow>();
+                    for (var i = 0; i < cases.Length; i++)
+                    {
+                        var entry = ToolEntry(Call(ToolCall.Kind.Agent, "Tidy the popover", cases[i].Status));
+                        runtime.RehearseHydraHead(entry.Id, heads[headFor[i]]);
+                        var row = new ToolRow(entry, runtime);
+                        rows.Add(row); column.Children.Add(row);
+                    }
+                    var host = new Border { Padding = new Thickness(24), Child = column };
+                    AppEnvironment.SetAppModel(host, app);
+                    BlitzAbRender.Render(host, theme, backdrop, 560, 200, (window, frame) =>
+                    {
+                        var fill = BlitzAbFrame.Over(SwiftColor.Quaternary.Opacity(0.32).Resolve(theme), backdrop);
+                        for (var i = 0; i < cases.Length; i++)
+                        {
+                            var (_, words, persona, disc) = cases[i];
+                            var because = $"{theme}: {words}";
+                            var row = rows[i];
+                            Assert.Equal(words, Assert.Single(Mounted<MiddleTruncatingTextBlock>(row)).FullText);
+                            var glyph = Assert.Single(Mounted<HydraGlyph>(row));
+                            Assert.Equal(persona, glyph.Persona.Name);
+                            Assert.True((i == 0) == glyph.IsRunning, $"{because}: running {glyph.IsRunning}; the heads are " + string.Join(", ", app.Threads.Where(thread => thread.IsHydraHead).Select(thread => thread.Hydra!.Index + ":" + thread.Hydra.HydraHeadInfoStatus))); // :1779 a ring only while both the call and the head are at work
+                            var box = BlitzAbRender.BoxIn(PillOf(row), window);
+                            Assert.True(BlitzAbFrame.Distance(frame.At((int)box.Left + 5, (int)(box.Top + box.Height / 2)), fill) <= 6, $"{because}: the badge's fill");
+                            var glyphBox = BlitzAbRender.BoxIn(glyph, window);
+                            var corner = new Rect(glyphBox.Right - 6, glyphBox.Bottom - 6, 12, 12);
+                            foreach (var colour in new[] { ChromeTokens.Success.Resolve(theme), ChromeTokens.Danger.Resolve(theme) })
+                            {
+                                var found = Pixels(frame, corner, colour);
+                                if (disc is { } wanted && wanted == colour) Assert.True(found >= 12, $"{because}: {found} pixels of the head's outcome {colour} at the glyph's corner");
+                                else Assert.True(found <= 2, $"{because}: {found} pixels of {colour} at the glyph's corner, none was due");
+                            }
+                        }
+                    });
+                });
+            }
+        }
+    });
 }
