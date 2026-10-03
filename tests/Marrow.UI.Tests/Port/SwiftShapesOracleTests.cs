@@ -1,4 +1,3 @@
-using System.Text.Json;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Headless;
@@ -23,28 +22,9 @@ namespace Marrow.UI.Tests.Port;
 [Collection("Headless")]
 public sealed class SwiftShapesOracleTests(HeadlessSession headless)
 {
-    private sealed record Element(string Name, double W, double H, double SourceRadius, string Corner, bool Capsule,
-        IReadOnlyDictionary<string, double> Rms, Point[] Points)
-    {
-        public double Radius => Capsule ? H / 2 : SourceRadius;
-        public bool IsEnd => Corner is "left" or "right";
-    }
-
-    private static readonly Lazy<IReadOnlyList<Element>> Elements = new(() =>
-    {
-        var dir = new DirectoryInfo(AppContext.BaseDirectory);
-        while (dir is not null && !File.Exists(Path.Combine(dir.FullName, "Marrow.sln"))) dir = dir.Parent;
-        using var json = JsonDocument.Parse(File.ReadAllText(Path.Combine(dir!.FullName, "tests", "Marrow.UI.Tests", "Port", "ContinuousCornerOracle.json")));
-        return json.RootElement.EnumerateArray().Select(e => new Element(
-            e.GetProperty("name").GetString()!, e.GetProperty("w").GetDouble(), e.GetProperty("h").GetDouble(),
-            e.GetProperty("sourceRadius").GetDouble(), e.GetProperty("corner").GetString()!, e.GetProperty("capsule").GetBoolean(),
-            e.GetProperty("rms").EnumerateObject().ToDictionary(p => p.Name, p => p.Value.GetDouble()),
-            e.GetProperty("points").EnumerateArray().Select(p => new Point(p[0].GetDouble(), p[1].GetDouble())).ToArray())).ToList();
-    });
-
-    private static IEnumerable<Element> Normal => Elements.Value.Where(e => !e.IsEnd && e.SourceRadius >= 20); // r 22-26: windows and Hydra's card
-    private static IEnumerable<Element> Rings => Elements.Value.Where(e => !e.IsEnd && e.SourceRadius < 20); // r 9
-    private static IEnumerable<Element> Ends => Elements.Value.Where(e => e.IsEnd); // composer and capsule ends
+    private static IEnumerable<OracleElement> Normal => OracleData.Elements.Where(e => !e.IsEnd && e.SourceRadius >= 20); // r 22-26: windows and Hydra's card
+    private static IEnumerable<OracleElement> Rings => OracleData.Elements.Where(e => !e.IsEnd && e.SourceRadius < 20); // r 9
+    private static IEnumerable<OracleElement> Ends => OracleData.Elements.Where(e => e.IsEnd); // composer and capsule ends
 
     // ---- the fit ------------------------------------------------------------------------------------------------------
 
@@ -106,7 +86,7 @@ public sealed class SwiftShapesOracleTests(HeadlessSession headless)
     private static double Distance(Point a, Point b) => Math.Sqrt((a.X - b.X) * (a.X - b.X) + (a.Y - b.Y) * (a.Y - b.Y));
 
     /// <summary>The part of the model path the measured points reach (the spec's model_poly): the top-left corner and the straight runs beside it, or a whole end.</summary>
-    private static List<Point> Model(Element e, RoundedCornerStyle style)
+    private static List<Point> Model(OracleElement e, RoundedCornerStyle style)
     {
         var outline = SwiftShapes.Outline(new Rect(0, 0, e.W, e.H), new CornerRadius(e.Radius), style);
         var path = Polyline(outline);
@@ -175,7 +155,7 @@ public sealed class SwiftShapesOracleTests(HeadlessSession headless)
         return (Math.Sqrt(best.Cost), best.Shift);
     }
 
-    private static double RmsOf(Element e, RoundedCornerStyle style) => Fit(e.Points, Model(e, style)).Rms;
+    private static double RmsOf(OracleElement e, RoundedCornerStyle style) => Fit(e.Points, Model(e, style)).Rms;
 
     // ---- 5.2-1 the measured edges of the normal regime ---------------------------------------------------------------
 
@@ -237,7 +217,7 @@ public sealed class SwiftShapesOracleTests(HeadlessSession headless)
     private const double RayStart = 181, RayEnd = 269, RayStep = 0.5; // degrees in the top-left frame, as the spec's rays
 
     /// <summary>The residual of a circular-arc fit (translation free) of <paramref name="points"/>, in units of r, signed by the side of the arc.</summary>
-    private static double[] CircleSignature(Element e, Point[] points)
+    private static double[] CircleSignature(OracleElement e, Point[] points)
     {
         var poly = Model(e, RoundedCornerStyle.Circular);
         var (_, shift) = Fit(points, poly);
@@ -253,7 +233,7 @@ public sealed class SwiftShapesOracleTests(HeadlessSession headless)
     }
 
     /// <summary>The model's boundary sampled on the measured rays (the spec's synthetic_points): from (2.2 r, 2.2 r), where each ray leaves the path.</summary>
-    private static Point[] OnTheRays(Element e, RoundedCornerStyle style)
+    private static Point[] OnTheRays(OracleElement e, RoundedCornerStyle style)
     {
         var poly = Model(e, style);
         var c = new Point(2.2 * e.SourceRadius, 2.2 * e.SourceRadius);
@@ -382,6 +362,7 @@ public sealed class SwiftShapesOracleTests(HeadlessSession headless)
     {
         // The reference is the analytic path drawn alone, in one pass, by the same rasteriser (a Path control filled white): it carries
         // the measurement's own bias along slanted edges (the 50 % crossing of box-filtered coverage), which the difference removes.
+        // The shape drawn through SwiftShapeBorder draws the same geometry, so it must equal the reference (one anti-aliasing pass).
         var analytic = new Avalonia.Controls.Shapes.Path
         {
             Data = SwiftShapes.RoundedRectangleGeometry(new Rect(0, 0, ShapeW, ShapeH), ShapeR, RoundedCornerStyle.Continuous),
@@ -392,7 +373,21 @@ public sealed class SwiftShapesOracleTests(HeadlessSession headless)
         var reference = RenderedCrossings(Render(analytic));
 
         var shape = new SwiftShapeBorder { Width = ShapeW, Height = ShapeH, Background = Brushes.White }.RoundedRectangle(ShapeR, RoundedCornerStyle.Continuous);
-        var (rms, max) = Difference(RenderedCrossings(Render(shape)), reference);
+        var rendered = RenderedCrossings(Render(shape));
+        var (rms, max) = Difference(rendered, reference);
+        // And against the analytic path itself (the 50 % crossing of box-filtered coverage along a slanted edge sits a little inside it: the
+        // measurement's own bias, which the reference render above carries too): the spec's 0.10 px rms and 0.25 px at worst.
+        var path = Polyline(SwiftShapes.Outline(new Rect(0, 0, ShapeW, ShapeH), new CornerRadius(ShapeR), RoundedCornerStyle.Continuous), 0.1);
+        var analyticCrossings = new List<double>();
+        for (var corner = 0; corner < 4; corner++)
+        {
+            var seen = ToTopLeft(path, ShapeW, ShapeH, corner);
+            for (var deg = RayStart; deg <= RayEnd; deg += 1.0)
+                analyticCrossings.Add(RayCrossing(seen, new Point(2.2 * ShapeR, 2.2 * ShapeR), (Math.Cos(deg * Math.PI / 180), Math.Sin(deg * Math.PI / 180))));
+        }
+        var (analyticRms, analyticMax) = Difference(rendered, analyticCrossings.ToArray());
+        Assert.True(analyticRms <= 0.10, $"the shape's edge is {analyticRms:F3} px rms from the analytic path");
+        Assert.True(analyticMax <= 0.25, $"the shape's edge is {analyticMax:F3} px at worst from the analytic path");
         Assert.True(rms <= 0.10, $"the shape's edge is {rms:F3} px rms from the analytic path's");
         Assert.True(max <= 0.25, $"the shape's edge is {max:F3} px at worst from the analytic path's");
 
@@ -401,6 +396,13 @@ public sealed class SwiftShapesOracleTests(HeadlessSession headless)
         var (circleRms, circleMax) = Difference(RenderedCrossings(Render(circle)), reference);
         Assert.True(circleMax > 0.30, $"the circle is only {circleMax:F3} px from the analytic path");
         Assert.True(rms < 0.6 * circleRms, $"the shape ({rms:F3}) is no nearer the analytic path than the circle ({circleRms:F3})");
+
+        // A plain Border with `.continuous` corners is cut by Visual.Clip (ContinuousClip): its fill and the clip both anti-alias the edge, so
+        // it lands between the circle and the exact shape (ED-NEW-corners: measured 0.105 px rms against the circle's 0.135, SwiftShapeBorder 0).
+        var border = new Border { Width = ShapeW, Height = ShapeH, Background = Brushes.White }.RoundedRectangle(ShapeR, RoundedCornerStyle.Continuous);
+        var (borderRms, _) = Difference(RenderedCrossings(Render(border)), reference);
+        Assert.NotNull(border.Clip);
+        Assert.True(borderRms < circleRms, $"the clipped Border ({borderRms:F3}) is no nearer the analytic path than the circle ({circleRms:F3})");
     });
 
     /// <summary>The path of the whole shape as seen from <paramref name="corner"/> (mirrored into the top-left frame).</summary>

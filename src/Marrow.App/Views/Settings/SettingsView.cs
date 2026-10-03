@@ -138,7 +138,7 @@ public sealed class SettingsView : Decorator
     private readonly StackPanel rows = new() { Spacing = 1, Margin = new Thickness(Chrome.ListInset, 12, Chrome.ListInset, 8) }; // :147,179-181
     private readonly Control sidebar;
     private readonly Border detail = new();
-    private readonly Border frame;
+    private readonly SwiftShapeBorder frame;
     private Control? pageStack;
     private SettingsPage? builtPage;
     private readonly SidebarSearchField search;
@@ -179,7 +179,7 @@ public sealed class SettingsView : Decorator
         detail.Margin = new Thickness(0, Chrome.SheetInset, Chrome.SheetInset, Chrome.SheetInset); // :114-115
         var grid = new Grid { ColumnDefinitions = new ColumnDefinitions("212,*") }; Grid.SetColumn(detail, 1); grid.Children.Add(sidebar); grid.Children.Add(detail);
         backdrop = new WindowBackdrop(0); // :118
-        frame = new Border { Child = new Panel { Children = { backdrop, new WindowChromeProbe(), grid } } }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous); frame.ClipToBounds = true; // :119-120
+        frame = new SwiftShapeBorder { Child = new Panel { Children = { backdrop, new WindowChromeProbe(), grid } } }.RoundedRectangle(Chrome.WindowCornerRadius, RoundedCornerStyle.Continuous); frame.ClipToBounds = true; // :119-120 `.clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))` (ED-181)
         Child = frame;
         this.Track(() => AppEnvironment.GetAppModel(this).Settings.BackdropOpacity, value => backdrop.Update(value, null));
         this.Track(() => SettingsNavigation.Shared.RequestedPage, requested => // :123-127

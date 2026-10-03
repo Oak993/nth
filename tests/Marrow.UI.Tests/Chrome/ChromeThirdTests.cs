@@ -78,20 +78,20 @@ public sealed class ChromeThirdTests(HeadlessSession headless)
         new(new PixelSize(8, 4), new Vector(96, 96), PixelFormat.Bgra8888, AlphaFormat.Premul);
 
     // Every Border of the backdrop, in drawing order (the visual tree walked depth first, earlier siblings first).
-    private static List<Border> Layers(WindowBackdrop backdrop) => VisualQuery.Descendants<Border>(backdrop).ToList();
+    private static List<SwiftShapeBorder> Layers(WindowBackdrop backdrop) => VisualQuery.Descendants<SwiftShapeBorder>(backdrop).ToList(); // ED-181: the backdrop's layers are SwiftShapeBorders
 
-    private static List<Border> Filled(WindowBackdrop backdrop) => Layers(backdrop).Where(b => b.Background is not null).ToList();
+    private static List<SwiftShapeBorder> Filled(WindowBackdrop backdrop) => Layers(backdrop).Where(b => b.Background is not null).ToList();
 
-    private static void AssertWholeShape(Border layer, WindowBackdrop backdrop)
+    private static void AssertWholeShape(SwiftShapeBorder layer, WindowBackdrop backdrop)
     {
         Assert.Equal(new Rect(backdrop.Bounds.Size), BoundsIn(layer, backdrop));
         Assert.Equal(new CornerRadius(26), layer.CornerRadius); // :218 RoundedRectangle(cornerRadius: Chrome.windowCornerRadius)
     }
 
-    private static Border Tint(WindowBackdrop backdrop, ThemeVariant theme) =>
+    private static SwiftShapeBorder Tint(WindowBackdrop backdrop, ThemeVariant theme) =>
         Assert.Single(Filled(backdrop), b => Same(ThemeManager.Spec.Surface.Opacity(0.12).Resolve(theme), Effective(b.Background)) && b.Opacity == 1);
 
-    private static Border Hairline(WindowBackdrop backdrop) =>
+    private static SwiftShapeBorder Hairline(WindowBackdrop backdrop) =>
         Assert.Single(Layers(backdrop), b => b.BorderThickness != default);
 
     private static T WithTheme<T>(AppTheme theme, Func<T> body)
@@ -249,7 +249,7 @@ public sealed class ChromeThirdTests(HeadlessSession headless)
             var fills = Filled(backdrop);
             Assert.Same(Tint(backdrop, theme), Assert.Single(fills)); // the tint is the only fill
             var image = Assert.Single(VisualQuery.Descendants<Image>(backdrop));
-            var clip = Assert.IsType<Border>(image.GetVisualParent());
+            var clip = Assert.IsType<SwiftShapeBorder>(image.GetVisualParent());
             AssertWholeShape(clip, backdrop);
             Assert.True(clip.ClipToBounds);
             window.Close();

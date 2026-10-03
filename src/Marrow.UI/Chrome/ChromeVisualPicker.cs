@@ -119,7 +119,7 @@ public sealed class ChromeVisualTile : Decorator
     private readonly Action action;
     private readonly ViewState state = new();
     private Border? stageBack;
-    private Border? paddedStage;
+    private SwiftShapeBorder? paddedStage;
     private TextBlock? captionBlock;
 
     /// <summary>
@@ -191,12 +191,12 @@ public sealed class ChromeVisualTile : Decorator
     private Control CreateStage()
     {
         // Create a border for the background and ring
+        // :92 .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous)), :93 the same shape's fill (ED-181).
         stageBack = new Border
         {
             Width = width,
             Height = ChromeVisualTileMetrics.Height,
-            CornerRadius = new CornerRadius(ChromeVisualTileMetrics.CornerRadius),
-        };
+        }.RoundedRectangle(ChromeVisualTileMetrics.CornerRadius, RoundedCornerStyle.Continuous);
 
         // Apply the background fill: Chrome.overlay(isHovering || isSelected ? 0.10 : 0.06)
         UpdateStageBrush();
@@ -206,13 +206,15 @@ public sealed class ChromeVisualTile : Decorator
         WatchContent();
 
         // Wrap in a border to add the ring overlay
-        paddedStage = new Border
+        // :96-102 RoundedRectangle(cornerRadius: 6 + 3, style: .continuous).strokeBorder(accent, lineWidth: 2): the shape
+        // strokes inside its own edge, so the ring's outer edge is the continuous shape of radius 9 (ED-181; the reference
+        // video's ring fits r 9.0, SPEC.md 2.3).
+        paddedStage = new SwiftShapeBorder
         {
             Child = stageBack,
             Padding = new Thickness(ChromeVisualTileMetrics.RingInset - ChromeVisualTileMetrics.RingWidth),
             BorderThickness = new Thickness(ChromeVisualTileMetrics.RingWidth),
-            CornerRadius = new CornerRadius(ChromeVisualTileMetrics.CornerRadius + ChromeVisualTileMetrics.RingInset), // ChromeVisualPicker.swift:98-101 ring radius 6 + 3.
-        };
+        }.RoundedRectangle(ChromeVisualTileMetrics.CornerRadius + ChromeVisualTileMetrics.RingInset, RoundedCornerStyle.Continuous);
 
         UpdateRing();
 

@@ -29,7 +29,7 @@ public sealed class ChromeVisualPickerReviewTests(HeadlessSession headless)
         tile.VerticalAlignment = VerticalAlignment.Top;
         w.Show(); Dispatcher.UIThread.RunJobs();
         var inner = tile.GetVisualDescendants().OfType<Border>().Single(b => b.Child == symbol);
-        var ring = Assert.IsType<Border>(inner.Parent);
+        var ring = Assert.IsType<SwiftShapeBorder>(inner.Parent); // ED-181: the ring is `.strokeBorder` of a continuous rounded rectangle
         Assert.Equal(new Size(76,48), inner.DesiredSize);
         Assert.Equal(new Size(82,54), ring.DesiredSize);
         Assert.Equal(new CornerRadius(9), ring.CornerRadius);

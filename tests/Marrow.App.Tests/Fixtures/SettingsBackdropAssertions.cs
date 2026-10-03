@@ -15,9 +15,9 @@ public static class SettingsBackdropAssertions
         var group = Assert.IsType<Panel>(root.Children[0]);
         var material = Assert.IsType<Panel>(Assert.Single(group.Children));
         Assert.Equal(2, material.Children.Count);
-        var glass = Assert.IsType<Border>(material.Children[0]);
+        var glass = Assert.IsType<SwiftShapeBorder>(material.Children[0]);
         Assert.Equal(GlassEffect.Regular(GlassShape.RoundedRectangle(26, RoundedCornerStyle.Continuous)), SwiftGlass.GetEffect(glass));
-        var scrim = Assert.IsType<Border>(material.Children[1]);
+        var scrim = Assert.IsType<SwiftShapeBorder>(material.Children[1]);
         Assert.Equal(expected, scrim.Opacity, 8);
     }
 
@@ -25,7 +25,7 @@ public static class SettingsBackdropAssertions
     {
         var root = Assert.IsType<Panel>(backdrop.Child);
         var group = Assert.IsType<Panel>(root.Children[0]);
-        var solid = Assert.IsType<Border>(Assert.Single(group.Children));
+        var solid = Assert.IsType<SwiftShapeBorder>(Assert.Single(group.Children));
         Assert.Null(SwiftGlass.GetEffect(solid));
         Assert.Equal(expected, Assert.IsAssignableFrom<ISolidColorBrush>(solid.Background).Color);
     }

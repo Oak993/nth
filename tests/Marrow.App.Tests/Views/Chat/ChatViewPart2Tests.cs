@@ -330,8 +330,15 @@ public sealed class ChatViewPart2Tests(HeadlessSession headless)
                 var editor = Show(new ScriptsEditor(model, project.Id, () => { }));
 
                 var commandField = LogicalQuery.SelfAndDescendants<TextBox>(editor).Single(t => t.PlaceholderText == "Command");
-                var frame = LogicalQuery.SelfAndDescendants<Border>(editor).Single(b => b.Child == commandField);
-                Assert.NotNull(frame.BorderBrush); // :1687-1689 danger outline while blank
+                // :1686-1691 `.overlay { if incomplete { RoundedRectangle(cornerRadius: 6, style: .continuous).strokeBorder(Chrome.danger.opacity(0.65), lineWidth: 1) } }`:
+                // the outline is a shape beside the field in a Panel (an overlay, no layout contribution), not a border around it.
+                var frame = LogicalQuery.SelfAndDescendants<SwiftShapeBorder>(editor).Single(b => b.Parent is Panel p && p.Children.Contains(commandField));
+                Assert.Null(frame.Child);
+                Assert.False(frame.IsHitTestVisible);
+                Assert.Equal(new Thickness(1), frame.BorderThickness);
+                Assert.Equal(new CornerRadius(6), frame.CornerRadius);
+                Assert.Equal(RoundedCornerStyle.Continuous, frame.CornerStyle);
+                Assert.Equal(Chrome.Danger.Opacity(0.65).Resolve(frame.ActualThemeVariant), Assert.IsAssignableFrom<ISolidColorBrush>(frame.BorderBrush).Color); // :1687-1689 danger at 0.65 while blank
                 Assert.False(editor.SaveButton.IsEnabled); // :1711,1717
                 Assert.Equal("Every script needs a command.", ToolTip.GetTip(editor.SaveButton)); // :1718
 
