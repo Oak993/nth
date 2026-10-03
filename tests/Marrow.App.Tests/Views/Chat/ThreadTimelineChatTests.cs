@@ -196,4 +196,30 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
             Assert.False(Field<TimelineScrollState>(view, "scrollState").ShowsJumpButton);
             Assert.True(JumpButton(view) is null || JumpButton(view)!.GetVisualParent() is null, "removed at once, not faded");
         });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-159 (the timeline's half: every measured frame hands its travel to the chrome, which maps it from 10 to 44 points, quantized to 0.04, and draws nothing at rest); ThreadTimeline.swift:488,1376; Chrome.swift:568-579,585-624. The veil's gradients are the Chrome unit's, and the capture comparison is not made here.
+    public void Scrolling_the_timeline_drives_the_veil_from_ten_to_forty_four_points_of_travel_in_quarter_hundredths_and_nothing_at_rest()
+        => WithChat((view, runtime, model, h, window, frames) =>
+        {
+            h.Main.OnMain(() => SetEntries(runtime, TimelineMount.Turns(8, sentences: 10).ToList())); Settle(h, frames, window, 2500);
+            var scroll = Scroller(view); var chrome = Field<ChromeScrollModel>(view, "scrollChrome"); var veil = Assert.Single(LogicalQuery.SelfAndDescendants<PaneTopVeil>(view));
+            var layer = Assert.IsType<Panel>(veil.Child);
+            // At the end of a long thread the content has gone under the chrome row: the veil is drawn in full.
+            Assert.Equal(1, chrome.Progress); Assert.Equal(1, layer.Opacity); Assert.Equal(2, layer.Children.Count);
+            var seen = new SortedSet<double>();
+            for (var offset = 0; offset <= 60; offset++)
+            {
+                h.Main.OnMain(() => scroll.Offset = new Vector(0, offset)); Settle(h, frames, window, 50);
+                Assert.Equal(Math.Round(Math.Clamp((offset - 10) / 34.0, 0, 1) / 0.04, MidpointRounding.AwayFromZero) * 0.04, chrome.Progress, 6); // .rounded(): halves go up
+                seen.Add(chrome.Progress);
+                Assert.Equal(0.08 + 0.92 * chrome.Progress, layer.Opacity, 6);
+                Assert.Equal(chrome.Progress > 0 ? 2 : 0, layer.Children.Count);
+            }
+            // The travel is mapped from 10 points (nothing yet) to 44 (all of it), and written at most 26 times over the whole range.
+            Assert.True(seen.Count <= 26, $"{seen.Count} distinct values");
+            Assert.Contains(0.0, seen); Assert.Contains(1.0, seen);
+            h.Main.OnMain(() => scroll.Offset = new Vector(0, 0)); Settle(h, frames, window, 200);
+            Assert.Equal(0, chrome.Progress); Assert.Empty(layer.Children);
+        });
 }
