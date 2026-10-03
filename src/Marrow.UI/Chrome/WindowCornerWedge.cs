@@ -45,7 +45,10 @@ public sealed class WindowCornerWedge : Control
 
     /// <summary>The alpha of the scrim the wedge is filled with in the given theme: the one <see cref="WindowBackdrop"/> draws over its glass
     /// (Chrome.swift:211-215), or the whole fill when the window is solid (:220-224, :249-250).</summary>
-    public double Alpha(bool isDark) => WindowBackdrop.IsSolid(opacity) ? 1 : WindowBackdrop.Scrim(opacity, isDark);
+    public double Alpha(bool isDark) => Alpha(opacity, isDark);
+
+    /// <summary><see cref="Alpha(bool)"/> for a window whose backdrop is at <paramref name="opacity"/>.</summary>
+    public static double Alpha(double opacity, bool isDark) => WindowBackdrop.IsSolid(opacity) ? 1 : WindowBackdrop.Scrim(opacity, isDark);
 
     /// <summary>The wedge of a window of this size: its rectangle minus the 26 point continuous rounded rectangle its content is clipped to.</summary>
     public static Geometry WedgeGeometry(Size size)
@@ -65,10 +68,19 @@ public sealed class WindowCornerWedge : Control
     public override void Render(DrawingContext context)
     {
         base.Render(context);
-        if (Bounds.Width <= 0 || Bounds.Height <= 0) return;
-        var isDark = PlainControls.IsDark(ActualThemeVariant);
+        Paint(context, Bounds.Size, opacity, ActualThemeVariant);
+    }
+
+    /// <summary>
+    /// Draws the wedge of a window of <paramref name="size"/> whose backdrop is at <paramref name="opacity"/> in the given theme. The layer's own drawing, for a
+    /// view that is itself the window's whole content and so paints the wedge under what it holds (the guide panels, <c>FloatingGuidePanelView</c>).
+    /// </summary>
+    public static void Paint(DrawingContext context, Size size, double opacity, Avalonia.Styling.ThemeVariant theme)
+    {
+        if (size.Width <= 0 || size.Height <= 0) return;
+        var isDark = PlainControls.IsDark(theme);
         // Chrome.swift:256-257 `isDark ? Color.black : Color.white`, the colour WindowBackdrop's scrim is filled with.
-        var color = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Resolve(ActualThemeVariant);
-        context.DrawGeometry(new SolidColorBrush(color, Alpha(isDark)), null, WedgeGeometry(Bounds.Size));
+        var color = SwiftColor.Dynamic(light: SwiftColor.White, dark: SwiftColor.Black).Resolve(theme);
+        context.DrawGeometry(new SolidColorBrush(color, Alpha(opacity, isDark)), null, WedgeGeometry(size));
     }
 }
