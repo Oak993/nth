@@ -194,11 +194,17 @@ public sealed class ThreadTimelineKeepTests(HeadlessSession headless)
         mount.Runtime.HydraMergeNoteID = "note-1"; mount.Runtime.IsHydraMerging = true; mount.Advance(400);
         var merging = mount.Blocks().Single(block => block.Block is DisplayBlock.Merging); Assert.Equal("note-1", merging.Id);
         var pill = Assert.Single(LogicalQuery.SelfAndDescendants<HydraMergeRow>(merging.Row));
+        // The words on show (the slot's still copy, drawn at no opacity, only sizes it: TimelineRows.swift:973-990).
+        string[] Showing() => LogicalQuery.SelfAndDescendants<TextBlock>(pill).Where(text => Shown(text, pill) > 0.5).Select(text => text.Text ?? "").ToArray();
+        Assert.Contains("Merging…", Showing()); // :1044-1094 the merging state: the stage's words (none named yet)
         // The merge ends: its outcome note is in the thread under the id the block had.
         entries.Add(Entry("note-1", new TimelineItem.Content.User(new UserMessage { Text = "Hydra merged the heads", HydraHeads = new ValueList<long>([]) })));
         mount.SetEntries(entries); mount.Runtime.IsHydraMerging = false; mount.Advance(800);
         var outcome = mount.Blocks().Single(block => block.Id == "note-1");
         Assert.IsType<DisplayBlock.Group>(outcome.Block); Assert.Same(merging.Row, outcome.Row); Assert.Same(pill, Assert.Single(LogicalQuery.SelfAndDescendants<HydraMergeRow>(outcome.Row)));
+        // The one pill was handed the outcome and shows it (:1099-1137 the note's title), the merging state gone from it (:1018-1027 the contents crossfade).
+        Assert.Contains("Hydra merged the heads", Showing());
+        Assert.DoesNotContain("Merging…", Showing());
     });
 
     [Fact]
