@@ -105,13 +105,14 @@ internal static class BlitzAbRender
     }
 
     // The same window, left open for the caller to drive and capture again (close it with Shut).
-    internal static AvaloniaWindow Open(Control content, ThemeVariant theme, Color backdrop, double width, double height)
+    internal static AvaloniaWindow Open(Control content, ThemeVariant theme, Color backdrop, double width, double height, Action<AvaloniaWindow>? beforeShow = null)
     {
         var window = new AvaloniaWindow
         {
             Width = width, Height = height, RequestedThemeVariant = theme,
             Background = new SolidColorBrush(backdrop), Content = content,
         };
+        beforeShow?.Invoke(window);
         window.Show();
         return window;
     }
