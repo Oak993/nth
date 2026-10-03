@@ -64,13 +64,13 @@ public sealed class LinkParagraphView : Decorator
         onHost?.Invoke(view);
     }
 
-    // :10-18 the inputs. Only the revision is handed in again in place (Update); a host with new text builds a new paragraph.
+    // :10-18 the inputs. All but the source are handed in again in place (Update); a host with new text builds a new paragraph.
     private readonly string source;
-    private readonly double pointSize;
-    private readonly bool dimmed;
-    private readonly bool streaming;
-    private readonly IReadOnlyList<HydraPersona> mentions;
-    private readonly IReadOnlyDictionary<string, HydraMentionTarget> targets;
+    private double pointSize;
+    private bool dimmed;
+    private bool streaming;
+    private IReadOnlyList<HydraPersona> mentions;
+    private IReadOnlyDictionary<string, HydraMentionTarget> targets;
     private readonly LinkTextView view;
     private readonly Coordinator coordinator = new(); // :67-69 context.coordinator
 
@@ -81,9 +81,26 @@ public sealed class LinkParagraphView : Decorator
     /// MarkdownView.swift:1077 at B3, handed in at :1114 and bumped by fetchLinkAssets at :1163): SwiftUI calls
     /// updateNSView (:36-58), which builds the string again when the revision moved, so an icon that reached the cache
     /// after the paragraph was drawn now stands in front of its link (:134-150).</summary>
-    public void Update(int revision)
+    public void Update(int revision) => Update(pointSize, dimmed, streaming, revision, mentions, targets);
+
+    /// <summary>The host's body ran again with new values for the same paragraph (InlineText, MarkdownView.swift:1114 at B3: an
+    /// environment value its body reads changed, :1071-1075, or its favicon revision moved): SwiftUI hands the representable its
+    /// new inputs and calls updateNSView (:36-58), which builds the string again only when one differs from the coordinator's
+    /// last (:43-46), so a paragraph drawn at the 13-point default is drawn again at the point size its host sets.</summary>
+    public void Update(
+        double pointSize,
+        bool dimmed,
+        bool streaming,
+        int revision,
+        IReadOnlyList<HydraPersona> mentions,
+        IReadOnlyDictionary<string, HydraMentionTarget> targets)
     {
+        this.pointSize = pointSize;
+        this.dimmed = dimmed;
+        this.streaming = streaming;
         Revision = revision;
+        this.mentions = mentions;
+        this.targets = targets;
         UpdateNSView();
     }
 

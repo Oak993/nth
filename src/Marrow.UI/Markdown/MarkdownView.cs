@@ -1629,60 +1629,126 @@ public sealed class InlineText : Decorator
         Source = source;
         HasLinks = hasLinks;
         HugsContent = hugsContent;
+        Body();
+        // body reads faviconRevision (B3 :1092-1093, :1114): a bump runs it again, and SwiftUI hands the paragraph its new revision
+        // (LinkParagraphView.updateNSView, LinkParagraphView.swift:36-58), which draws the text again with the icon.
+        this.Track(() => state.FaviconRevision, _ => Body());
+    }
 
-        var pointSize = MarkdownView.GetMarkdownPointSize(this); // :1108
-        var dimmed = MarkdownView.GetMarkdownDimmed(this); // :1109
-        var streaming = MarkdownView.GetMarkdownStreaming(this); // :1110
-        var personas = MarkdownView.GetHydraMentionPersonas(this); // :1111
-        var targets = MarkdownView.GetHydraMentionTargets(this); // :1112
+    // The inputs body last ran with, and what it built from them. The link branch's paragraph is a representable: SwiftUI keeps it while
+    // the branch stays (the same view in the same place) and hands it its new values (updateNSView, LinkParagraphView.swift:36-58).
+    private bool hasBody;
+    private double lastPointSize;
+    private bool lastDimmed;
+    private bool lastStreaming;
+    private int lastRevision;
+    private ValueList<HydraPersona> lastPersonas = ValueList<HydraPersona>.Empty;
+    private ValueMap<string, HydraMentionTarget> lastTargets = ValueMap<string, HydraMentionTarget>.Empty;
+    private LinkParagraphView? linkView;
+    private string? linkHostKey;
+    private ValueList<HydraPersona> linkPersonas = ValueList<HydraPersona>.Empty;
+    private ValueMap<string, HydraMentionTarget> linkTargets = ValueMap<string, HydraMentionTarget>.Empty;
+    private bool builtVeiledStreaming;
 
-        var scaled = SwiftNumber.Rounded(pointSize * 2) / 2; // :1130
+    // B3 :1071-1075 @Environment(\.markdownPointSize), (\.markdownDimmed), (\.markdownStreaming), (\.hydraMentionPersonas) and
+    // (\.hydraMentionTargets): SwiftUI runs body again whenever one of them changes. A port host often sets one on a control it has
+    // already built (HydraReportPopover's markdownPointSize 12, TimelineRows.swift:631; the narration's 12 and dimmed, :1551-1552;
+    // MarkdownView's streaming flag on its last block, MarkdownView.swift:89-91), and an inherited value reaches this view only once
+    // its ancestors hold it, so a change of any of them runs body again here (review round 5 of TimelineRows: a report paragraph with a
+    // link was drawn at the 13-point default instead of the report's 12).
+    protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change)
+    {
+        base.OnPropertyChanged(change);
+        if (!hasBody) return;
+        if (change.Property == MarkdownView.MarkdownPointSizeProperty || change.Property == MarkdownView.MarkdownDimmedProperty
+            || change.Property == MarkdownView.MarkdownStreamingProperty || change.Property == MarkdownView.HydraMentionPersonasProperty
+            || change.Property == MarkdownView.HydraMentionTargetsProperty)
+            Body();
+    }
+
+    // :1127-1208 body (B3 :1091-1136).
+    private void Body()
+    {
+        var source = Source;
+        var hugsContent = HugsContent;
+        var pointSize = MarkdownView.GetMarkdownPointSize(this); // :1108 (B3 :1071)
+        var dimmed = MarkdownView.GetMarkdownDimmed(this); // :1109 (B3 :1072)
+        var streaming = MarkdownView.GetMarkdownStreaming(this); // :1110 (B3 :1073)
+        var personas = MarkdownView.GetHydraMentionPersonas(this); // :1111 (B3 :1074)
+        var targets = MarkdownView.GetHydraMentionTargets(this); // :1112 (B3 :1075)
+        var revision = state.FaviconRevision; // B3 :1092-1093 `let _ = faviconRevision`
+        if (hasBody && pointSize == lastPointSize && dimmed == lastDimmed && streaming == lastStreaming && revision == lastRevision
+            && personas.Equals(lastPersonas) && targets.Equals(lastTargets))
+            return; // nothing body reads has changed
+        hasBody = true;
+        lastPointSize = pointSize;
+        lastDimmed = dimmed;
+        lastStreaming = streaming;
+        lastRevision = revision;
+        lastPersonas = personas;
+        lastTargets = targets;
+
+        var scaled = SwiftNumber.Rounded(pointSize * 2) / 2; // :1130 (B3 :1094)
         // B3 :1095-1096: local file links have no host, but still need the native link opener, so a hint-less
         // call site (a heading, or the user's own message bubble) checks ContainsLinks itself rather than
         // whether any host was found (PR-THEME-186).
-        var hasLinkText = hasLinks ?? RichLink.ContainsLinks(source, streaming);
+        var hasLinkText = HasLinks ?? RichLink.ContainsLinks(source, streaming);
         Control child;
         if (hasLinkText) // :1134-1191
         {
             var metrics = Metrics(scaled); // :1141 the baseline numbers (PR-THEME-151), measured once per size
             _ = metrics; // consumed by the alignment-guide wiring once LinkParagraphView exists (:1156-1157)
+            // :1189-1191 .task(id: hostKey): stable hosts and video ids key the work (PR-THEME-148), so a
+            // streamed token with no new link leaves it alone.
+            var hostKey = RichLink.LinkAssetKey(source, streaming);
+            // The same paragraph while the branch, the task's id and the hover's mentions stay: its new values go to updateNSView.
+            // A new task id or new mentions build the paragraph again, with its own task and hover.
+            if (linkView is { } kept && hostKey == linkHostKey && ReferenceEquals(Child, kept)
+                && personas.Equals(linkPersonas) && targets.Equals(linkTargets))
+            {
+                kept.Update(scaled, dimmed, streaming, revision, personas, targets); // B3 :1114
+                return;
+            }
             LinkTextView? hostTextView = null;
-            var linkView = new LinkParagraphView( // :1148
+            var paragraph = new LinkParagraphView( // :1148
                 source,
                 pointSize: scaled,
                 dimmed: dimmed,
                 streaming: streaming,
-                revision: state.FaviconRevision, // B3 :1114 revision: faviconRevision
+                revision: revision, // B3 :1114 revision: faviconRevision
                 mentions: personas,
                 targets: targets,
                 onOpenHead: url => OpenUrl?.Invoke(url), // :1148 { url in openURL(url) }
                 onHost: view => hostTextView = view); // :1148 { [weak linkBox] view in linkBox?.value = view }
-            linkView.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1149
+            paragraph.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1149
             // :1159-1188 the continuous hover: pushes/pops the pointing hand over a link, shows/hides the head
             // hover card over a mention, only on change (PR-THEME-144). B3 :1159-1160 moves this into the shared
             // UI.Markdown.LinkHover (N9), also used identically by ProseRunView.swift:27-59.
-            LinkHover.Attach(linkView, () => hostTextView, personas, targets);
-            // :1189-1191 .task(id: hostKey): stable hosts and video ids key the work (PR-THEME-148), so a
-            // streamed token with no new link leaves it alone.
-            var hostKey = RichLink.LinkAssetKey(source, streaming);
+            LinkHover.Attach(paragraph, () => hostTextView, personas, targets);
             if (hostKey.Length > 0)
             {
                 // B3 :1123-1125 `[source, streaming, revision = $faviconRevision]`: the task bumps the view's own state (:1163).
                 var viewTask = new ViewTask<string>(hostKey, async _ =>
                     await FetchLinkAssets(source, streaming, new Binding<int>(() => state.FaviconRevision, v => state.FaviconRevision = v)));
-                linkView.AttachedToVisualTree += (_, _) => viewTask.Appear();
-                linkView.DetachedFromVisualTree += (_, _) => viewTask.Disappear();
+                paragraph.AttachedToVisualTree += (_, _) => viewTask.Appear();
+                paragraph.DetachedFromVisualTree += (_, _) => viewTask.Disappear();
             }
-            // body reads faviconRevision (B3 :1092-1093, :1114): a bump runs it again, and SwiftUI hands the paragraph its new revision
-            // (LinkParagraphView.updateNSView, LinkParagraphView.swift:36-58), which draws the text again with the icon.
-            this.Track(() => state.FaviconRevision, linkView.Update);
-            child = linkView;
+            linkView = paragraph;
+            linkHostKey = hostKey;
+            linkPersonas = personas;
+            linkTargets = targets;
+            child = paragraph;
         }
         else // :1193-1198
         {
+            // The veiled text reads only the streaming flag of these (:1203); another change leaves it as it is.
+            if (linkView is null && Child is not null && streaming == builtVeiledStreaming) return;
             var veiled = new VeiledText(RichLink.PrettyAttributed(source, streaming)); // :1203
             var selected = new MarkdownBlockSelection().Body(veiled); // :1204 .modifier(MarkdownBlockSelection())
             selected.HorizontalAlignment = hugsContent ? HorizontalAlignment.Left : HorizontalAlignment.Stretch; // :1206
+            linkView = null;
+            linkHostKey = null;
+            builtVeiledStreaming = streaming;
             child = selected;
         }
         Child = child;
