@@ -61,7 +61,7 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
     private static string Missing(string resource) => $"The {resource} file is missing from this copy of the app.";
 
     // Not PR-SETTINGS-249: its windows_path ships the three "with the installer", and no packed or installed folder is checked here
-    // (STOP App.Views.Settings.SettingsView #5, reopened for that clause; ED-NEW-defects-priority).
+    // (STOP App.Views.Settings.SettingsView #5, reopened for that clause; ED-259).
     [Fact]
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1007-1057
     [Trait("Req", "UI-UPDATE-032")] // App/Views/Settings/SettingsView.swift:1012-1056
@@ -84,7 +84,7 @@ public sealed class LicensesShippingTests(HeadlessSession headless) : SettingsRe
     }
 
     // Not PR-SETTINGS-249: the publish folder is what the installer packs (scripts/package-windows.ps1), but no pack was built or installed
-    // (STOP App.Views.Settings.SettingsView #5, reopened for the installer clause; ED-NEW-defects-priority).
+    // (STOP App.Views.Settings.SettingsView #5, reopened for the installer clause; ED-259).
     [Fact]
     [Trait("Req", "UI-SETTINGS-060")] // App/Views/Settings/SettingsView.swift:1049 (read from the bundle: here the folder beside the executable)
     public void The_project_publishes_the_three_documents_to_the_root_of_the_publish_folder_beside_the_executable()
