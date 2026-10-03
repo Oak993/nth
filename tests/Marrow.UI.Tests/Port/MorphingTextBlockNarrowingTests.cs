@@ -173,9 +173,13 @@ public sealed class MorphingTextBlockNarrowingTests(HeadlessSession headless)
                 Dispatcher.UIThread.RunJobs();
                 window.UpdateLayout();
             }
-            label.SetText("Extra High", Animation.Snappy(0.2));
+            // The video's event on the source's curves (ED-238 final round 5): Max -> Extra High leaves maximum, so it runs on
+            // smooth(0.3) (EffortSlider.swift:582; the chevron's fit, from 35.623 s), and Extra High -> High takes it over 130 ms
+            // in, at 35.753 s, on the slider's snappy(0.2). As first written (round 1) both ran on snappy(0.2), the first from
+            // 35.635 s and taken over 118 ms in.
+            label.SetText("Extra High", Animation.Smooth(0.3));
             Dispatcher.UIThread.RunJobs();
-            for (var ms = 0; ms < 118; ms += 2) Advance(2); // the drag turns round with the first change at 60 % of its way
+            for (var ms = 0; ms < 130; ms += 2) Advance(2); // the drag turns round with the first change at 72 % of its way
             label.SetText("High", Animation.Snappy(0.2));
             Dispatcher.UIThread.RunJobs();
             var series = new List<(int Ms, int Chevron, int Gap)>();

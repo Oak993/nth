@@ -92,8 +92,15 @@ public class MorphingTextBlock : TextBlock
     // frames by sweeping the kept letters' clock against the video (study effort-title-2026-10-03, sweep_*): 10 ms behind
     // the frame on its own curve, not drawn out (-0.010, 1: 6, 5, 3, 3, 3, 2, 2, 2, 1, 1 px short; the widening's 0.023 and 1.22
     // leave the gap 3 to 0 px wider than settled, the lock-step holds it at 0, and 0.0 with 1.2 keeps it 5 px short through
-    // most of the chevron's way).
-    internal const double NarrowingKeptLead = -0.010;
+    // most of the chevron's way). REFITTED in final review round 5 on the source's curves (the round 1 sweep ran Max -> Extra
+    // High on snappy(0.2) from 35.635 s and taken over 118 ms in; it runs on smooth(0.3) from 35.623 s, taken over 130 ms in:
+    // LETTERS' PACE): 5 ms behind the frame. At the video's frames 54, 69, 90, 112, 134, 154, 175, 190 and 212 ms after the
+    // takeover (shortfalls 2, 5, 3, 1, 1, 2, 2, 2, 0 px), -0.005 is short by 6, 5, 2, 1, 1, 1, 1, 1, 1 (rms 1.53 px; 0.79 without
+    // the first frame); -0.010 leaves the kept "High" too faint to show at 54 ms and 6, 4, 2, 2, 1, 1, 1, 1 short after (rms
+    // 1.0 without that frame), and misses the late bound of MorphingTextBlockNarrowingTests by a pixel; 0.0 (the lock-step)
+    // 4, 3, 2, 0, 1, 1, 1, 1, 1 (rms 1.25; 1.12 without the first) no longer follows the frame (work/claude-verify/
+    // resume-2026-10-03/effort-fix-r7.sweep.txt, probe on the label's own rendering).
+    internal const double NarrowingKeptLead = -0.005;
     internal const double NarrowingKeptStretch = 1;
 
     // TAKEOVER (final review, round 2: the leaving letters of a change that takes over an unfinished one were frozen as they
