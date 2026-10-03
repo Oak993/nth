@@ -118,6 +118,13 @@ public sealed class TimelineRowsFinHeadStepsTests(HeadlessSession headless)
                 Face(report, 12, FontWeight.Normal, ".chat(.callout)");
                 Paints(report.Foreground, ChromeTokens.PrimaryText, report, "report");
                 Near("nHeadSteps:2", 8, Top(report, window) - (Top(TextNamed(body, "Report"), window) + TextNamed(body, "Report").Bounds.Height));
+                // :1900-1901, :1922, :1978-1983, :1984-1990, :1999-2000 .textSelection(.enabled): the pointer is an I-beam over each of the
+                // five selectable lines (PR-CHAT-166 windows_path; a SelectableTextBlock has no cursor of its own with no control theme).
+                foreach (var selectable in new[] { task, reply, brief, notice, report })
+                {
+                    Hover(window, selectable);
+                    Assert.Equal("Ibeam", selectable.Cursor?.ToString());
+                }
             }
             finally { Close(window); }
         });

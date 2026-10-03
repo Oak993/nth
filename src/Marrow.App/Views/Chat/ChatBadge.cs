@@ -241,7 +241,9 @@ public sealed class BadgePopoverCoordinator
 {
     private readonly Popup popover = new(); // :118
     private Rect? anchorRect; // :119
-    private Avalonia.Controls.Window? shownIn; // :121
+    // :121 private weak var shownIn: NSWindow?: weak, so a coordinator the host keeps (PlanCard's identity outlives the badge,
+    // TimelineRows.cs) never keeps a closed window alive. ENGINEERING DECISION ED-NEW-parity-timelinerows (the source's weak).
+    private WeakReference<Avalonia.Controls.Window>? shownInWindow;
     private Rect shownRect; // :122
     private bool isShown;
     private bool closeCallbackPending;
@@ -305,9 +307,10 @@ public sealed class BadgePopoverCoordinator
         if (size.Width <= 0 || size.Height <= 0) size = new Size(460, 320); // :146
         popover.SetFixedContent(content, size); // :147 measured once and frozen
 
-        shownIn = anchor.View as Avalonia.Controls.Window
+        var window = anchor.View as Avalonia.Controls.Window
             ?? TopLevel.GetTopLevel(anchor.View) as Avalonia.Controls.Window; // :148
-        var origin = shownIn is { } window
+        shownInWindow = window is null ? null : new WeakReference<Avalonia.Controls.Window>(window);
+        var origin = window is not null
             ? anchor.View.TranslatePoint(anchor.Rect.TopLeft, window) ?? anchor.Rect.TopLeft
             : anchor.Rect.TopLeft;
         shownRect = new Rect(origin, anchor.Rect.Size); // :149 window coordinates for outside-click tests
@@ -333,10 +336,19 @@ public sealed class BadgePopoverCoordinator
         Presentation.Presenter.Current.SetPresented(popover, false); // :159 popover.performClose(nil)
     }
 
+    private Avalonia.Controls.Window? ShownIn =>
+        shownInWindow is not null && shownInWindow.TryGetTarget(out var window) ? window : null;
+
     // :162-167. Swift: popoverDidClose(_:), nonisolated.
     public void PopoverDidClose()
     {
         StopMonitors(); // :164
+        // A closed NSPopover lets go of its content view controller and its positioning view; the Popup keeps its Child and
+        // its PlacementTarget until told otherwise, and a coordinator a host keeps for longer than the badge (PlanCard's
+        // identity, as long as the thread keeps the entry) would hold the window and the frozen detail tree. ENGINEERING
+        // DECISION ED-NEW-parity-timelinerows. The next Show sets both again.
+        popover.PlacementTarget = null;
+        popover.Child = null;
         if (isShown)
         {
             isShown = false;
@@ -353,7 +365,7 @@ public sealed class BadgePopoverCoordinator
     // :169-187
     private void StartMonitors()
     {
-        if (shownIn is not { } window) return;
+        if (ShownIn is not { } window) return;
         window.AddHandler(InputElement.KeyDownEvent, OnWindowKeyDown, RoutingStrategies.Tunnel, handledEventsToo: true); // :171-179
         window.AddHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed, RoutingStrategies.Tunnel, handledEventsToo: true); // :182-186
 
@@ -364,7 +376,7 @@ public sealed class BadgePopoverCoordinator
     // :189-194
     private void OnWindowPointerPressed(object? sender, PointerPressedEventArgs e)
     {
-        if (!isShown || shownIn is not { } window) return;
+        if (!isShown || ShownIn is not { } window) return;
         var kind = e.GetCurrentPoint(window).Properties.PointerUpdateKind;
         if (kind is not (PointerUpdateKind.LeftButtonPressed or PointerUpdateKind.RightButtonPressed)) return; // :182 .leftMouseDown, .rightMouseDown
         if (shownRect.Contains(e.GetPosition(window))) return; // :191 a click inside the badge's recorded rect passes through
@@ -390,7 +402,7 @@ public sealed class BadgePopoverCoordinator
     // :196-199
     private void StopMonitors()
     {
-        if (shownIn is { } window)
+        if (ShownIn is { } window)
         {
             window.RemoveHandler(InputElement.KeyDownEvent, OnWindowKeyDown);
             window.RemoveHandler(InputElement.PointerPressedEvent, OnWindowPointerPressed);

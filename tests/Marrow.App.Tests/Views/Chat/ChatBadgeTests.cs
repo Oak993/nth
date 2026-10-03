@@ -524,4 +524,126 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
             window.Close();
         });
     }
+
+    // ChatBadge.swift:93-111 badgePopover(isPresented:detail:), the modifier the Hydra report, heads and brief pills use
+    // (TimelineRows.swift:293, :470, :583): its own `.onDisappear { coordinator.close() }` (:109) is the badge's (:75), so a
+    // view that is only moved (ThreadTimeline.Draw takes each kept row out of its stack and puts it into a new one in one
+    // pass) keeps its open popover, and one that has left the tree for good closes it.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ChatBadge.swift:93-111, :109; PR-CHAT-143's pill (the timeline half is TimelineRowsParityReview2Tests); ED-NEW-parity-timelinerows
+    public void A_badgePopover_pill_that_is_moved_keeps_its_open_popover_and_one_that_has_left_the_tree_closes_it()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var presenter = new RecordingPresenter();
+            using var presenterScope = Presentation.Presenter.Override(presenter);
+            var flag = new PresentedFlag();
+            var pill = new Button { Content = "Report" }.BadgePopover(new Binding<bool>(() => flag.Value, value => flag.Value = value),
+                () => new Border { Width = 100, Height = 50 });
+            var before = new StackPanel { Children = { pill } };
+            var after = new StackPanel();
+            var window = new AvaloniaWindow { Content = new StackPanel { Children = { before, after } }, Width = 400, Height = 300 };
+            window.Show();
+            Dispatcher.UIThread.RunJobs();
+            AvaloniaHeadlessPlatform.ForceRenderTimerTick();
+            Dispatcher.UIThread.RunJobs();
+            _ = AppCurrentEvent.CurrentWindow;
+            window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
+
+            runtime.OnMain(() => flag.Value = true); // the reader opens the report
+            Dispatcher.UIThread.RunJobs();
+            var popup = Assert.Single(presenter.Calls, call => call.Presented).Popup;
+            var content = popup.Child;
+            Assert.NotNull(content);
+
+            // Taken out of one stack and put into another in the same pass: the pill never disappeared.
+            before.Children.Remove(pill);
+            after.Children.Add(pill);
+            window.UpdateLayout();
+            runtime.RunUntilIdle();
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(presenter.Calls.Last(call => ReferenceEquals(call.Popup, popup)).Presented, "the open popover closed when its pill was only moved");
+            Assert.Single(presenter.Calls, call => call.Presented); // and was not shown a second time
+            Assert.Same(content, popup.Child);
+            Assert.True(flag.Value);
+
+            // Out of the tree for good: the popover goes with the pill.
+            after.Children.Remove(pill);
+            Dispatcher.UIThread.RunJobs();
+            Assert.False(presenter.Calls.Last(call => ReferenceEquals(call.Popup, popup)).Presented);
+            window.Close();
+        });
+    }
+
+    // The popover stays whole while it closes (the closing animation draws it) and lets go only once it has closed; the next opening
+    // sets both again.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ChatBadge.swift:156-167; ED-NEW-parity-timelinerows
+    public void A_popover_keeps_its_content_while_it_closes_lets_go_when_it_has_closed_and_opens_again()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var presenter = new RecordingPresenter();
+            using var presenterScope = Presentation.Presenter.Override(presenter);
+            var window = new AvaloniaWindow { Content = new Border(), Width = 400, Height = 300 };
+            window.Show();
+            _ = AppCurrentEvent.CurrentWindow;
+            window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
+            var coordinator = new BadgePopoverCoordinator();
+            coordinator.SetAnchor(new Rect(10, 20, 30, 40));
+            coordinator.Show(new Border { Width = 100, Height = 50 });
+            var popup = Assert.Single(presenter.Calls).Popup;
+            Assert.NotNull(popup.PlacementTarget);
+            Assert.NotNull(popup.Child);
+
+            coordinator.Close(); // performClose: the popover is going, not gone
+            Assert.NotNull(popup.PlacementTarget);
+            Assert.NotNull(popup.Child);
+            coordinator.PopoverDidClose();
+            Assert.Null(popup.PlacementTarget);
+            Assert.Null(popup.Child);
+
+            coordinator.Show(new Border { Width = 120, Height = 60 });
+            Assert.True(coordinator.IsShown);
+            Assert.NotNull(popup.PlacementTarget);
+            Assert.Equal(120, Assert.IsType<Border>(popup.Child).Width);
+            coordinator.Close();
+            window.Close();
+        });
+    }
+
+    // :119 `private weak var shownIn`: a coordinator a host keeps for longer than the badge (PlanCard's identity lives as long as the
+    // thread keeps the plan's entry) must not keep the window it was shown in alive. A closed headless window cannot be observed
+    // going (the platform keeps some of them reachable, measured 2026-10-03), so the held references are read instead: no field of the
+    // coordinator is a window while the popover is open and none after it has closed.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ChatBadge.swift:119; ED-NEW-parity-timelinerows
+    public void A_coordinator_holds_the_window_it_was_shown_in_only_weakly()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var runtime = new TestRuntime();
+            var presenter = new RecordingPresenter();
+            using var presenterScope = Presentation.Presenter.Override(presenter);
+            var window = new AvaloniaWindow { Content = new Border(), Width = 400, Height = 300 };
+            window.Show();
+            _ = AppCurrentEvent.CurrentWindow;
+            window.KeyPress(Key.F13, RawInputModifiers.None, PhysicalKey.F13, null);
+            var coordinator = new BadgePopoverCoordinator();
+            coordinator.SetAnchor(new Rect(10, 20, 30, 40));
+            coordinator.Show(new Border { Width = 100, Height = 50 });
+            Assert.True(coordinator.IsShown);
+
+            IEnumerable<object?> Held() => typeof(BadgePopoverCoordinator)
+                .GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Public)
+                .Select(field => field.GetValue(coordinator));
+            Assert.DoesNotContain(Held(), held => held is TopLevel);
+            coordinator.Close();
+            coordinator.PopoverDidClose();
+            Assert.DoesNotContain(Held(), held => held is TopLevel);
+            window.Close();
+        });
+    }
 }

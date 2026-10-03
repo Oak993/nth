@@ -142,7 +142,7 @@ public sealed class TimelineRowsParityReviewTests(HeadlessSession headless)
     // deltas keep the popover (ChatBadge.Update), but the first other row of the running turn rebuilds the turn's block and
     // with it a new PlanCard, and the open popover goes (the same block-identity gap the pass recorded for PR-CHAT-149).
     [Fact]
-    [Trait("Req", "PR-CHAT-113")] // TimelineRows.swift:2257-2316, :2287; ChatBadge.swift:20, :67-75; ThreadTimeline.swift:388-391
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11, trait only; the assertions are the reviewer's): the open popover survives the turn's other rows, not the record's finished-prose switch of an open one; TimelineRows.swift:2257-2316, :2287; ChatBadge.swift:20, :67-75; ThreadTimeline.swift:388-391
     public void REVIEW_An_open_plan_popover_stays_open_on_the_real_timeline_while_the_turn_keeps_streaming() => WithTimeline(scene =>
     {
         _ = AppCurrentEvent.CurrentWindow; // the badge's window anchor reads the current event's window

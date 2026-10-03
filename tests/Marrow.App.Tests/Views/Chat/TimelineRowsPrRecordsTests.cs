@@ -1246,7 +1246,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-113")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11): freshly built cards switch with the state (:2287); the record's open-popover result conflicts with the source (setFixedContent, ChatBadge.swift:138-147)
     public void A_drafting_plan_renders_with_the_streaming_markdown_and_it_switches_the_moment_the_state_leaves_drafting() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -4536,7 +4536,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         ((MulticastDelegate?)typeof(Avalonia.Controls.Primitives.Popup).GetField("Closed", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(popup))?.DynamicInvoke(popup, EventArgs.Empty);
 
     [Fact]
-    [Trait("Req", "PR-CHAT-113")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-113 (STOP #11): reopening after a dismissal; the record's open-popover result conflicts with the source (setFixedContent, ChatBadge.swift:138-147)
     [Trait("Req", "PR-CHAT-112")]
     public void A_plan_popover_dismissed_from_outside_can_be_opened_again_and_its_two_buttons_sit_8_apart_the_first_one_prominent() => headless.OnUiThread(() =>
     {
