@@ -977,15 +977,19 @@ public sealed class EffortSlider : Decorator
         }
         else Material = material;
         if (!ReferenceEquals(recolored, Material)) { Orb.Recolor(Material); recolored = Material; }
-        // the lightning's signal, read where the tube draws it: the current fast effect's own clock, scaled by its opacity
+        LayoutTrack();
+        // the lightning's signal, read where the tube draws it: the current fast effect's own clock, scaled by its opacity,
+        // and the bolt leaving where the tube draws it this frame, from the fill's width LayoutTrack has just set (the
+        // effect's own bounds follow at the next layout pass; jewel-knob.html:808-822 tick(): stepSlider sets tl.exAt,
+        // then drawAll draws the bolt from it and signal() reads it, on the same frame)
         var effect = currentEffect is { } current && TrackEffect.IsFast(current.Look) ? current : null;
         if (effect is not null)
         {
             var strikeTime = reduce ? Strike.StillTime(effect.StrikeSeed) : effect.TimeAt(SwiftDate.Now);
-            Signal.Read(effect.StrikeGeometryFor(effect.Bounds.Size), effect.StrikeSeed, strikeTime, time, effect.Opacity);
+            var drawn = double.IsNaN(fill.Width) ? effect.Bounds.Size : new Size(fill.Width, TrackHeight);
+            Signal.Read(effect.StrikeGeometryFor(drawn), effect.StrikeSeed, strikeTime, time, effect.Opacity);
         }
         else Signal.Read(null, 0, 0, time);
-        LayoutTrack();
         var dark = ActualThemeVariant != ThemeVariant.Light;
         var scaling = TopLevel.GetTopLevel(this)?.RenderScaling ?? 1;
         var (size, perPx) = JewelOrb.RenderSize(ThumbSize, scaling);
