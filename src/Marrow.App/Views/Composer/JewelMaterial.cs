@@ -8,8 +8,9 @@ namespace Marrow.App.Views.Composer;
 // is that computation, function for function:
 //   hexLab / labLin / hexOf (OKLCH to sRGB, chroma lowered at constant lightness and hue until inside the gamut), lch,
 //   wrap, mixHex (in OKLab) -> JewelColor;
-//   liquidOf (the liquid's stops in OKLCH, its hue and chroma along the tube, near-neutral and many-hued liquids) ->
-//   JewelLiquid;
+//   liquidOf (the liquid's stops in OKLCH, its hue along the tube and its chroma, near-neutral and many-hued liquids) ->
+//   JewelLiquid (its chromaAt is left out: only the tone and pearl recipes read it, knob-variants.js:128-136 and :194,
+//   and the port builds neither);
 //   the jewel() recipe (V2 Jewel: a darker, richer core, a vivid body and a bright inner fire; the folds calmed at knob
 //   sizes), material() and mixMaterial() -> JewelMaterial;
 //   strikeTint() / mixTint() (the lightning's tint: the locked board's three, every other maker's from its stops) ->
@@ -129,7 +130,7 @@ public static class JewelColor
     }
 }
 
-/// <summary>liquidOf: a maker's liquid as the materials read it (its stops in OKLCH, its hue and chroma along the tube).</summary>
+/// <summary>liquidOf: a maker's liquid as the materials read it (its stops in OKLCH, its hue along the tube, its chroma).</summary>
 public sealed class JewelLiquid
 {
     private readonly (double L, double C, double H) deep, mid, light, highlight;
@@ -181,13 +182,6 @@ public sealed class JewelLiquid
         if (Achro) return hueNeutral;
         double a = u < 0.5 ? deep.H : mid.H, b = u < 0.5 ? mid.H : light.H, k = u < 0.5 ? u * 2 : (u - 0.5) * 2;
         return a + JewelColor.Wrap(b - a) * k;
-    }
-
-    /// <summary>The chroma at u, at least 0.012 (neutral) or 0.02.</summary>
-    public double ChromaAt(double u)
-    {
-        var c = u < 0.5 ? deep.C + (mid.C - deep.C) * u * 2 : mid.C + (light.C - mid.C) * (u - 0.5) * 2;
-        return Math.Max(Achro ? 0.012 : 0.02, c);
     }
 }
 
