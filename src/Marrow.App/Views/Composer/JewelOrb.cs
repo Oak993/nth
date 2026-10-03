@@ -552,8 +552,10 @@ internal sealed class JewelKnobRenderer
     private readonly SKPaint blit = new() { IsAntialias = false };
     // jewel-knob.html: --knobShadow 0 2px 6px, and the lift's 0 7px 18px and 0 2px 5px (CSS blur radius b: sigma b / 2)
     private readonly SKPaint shadow = new() { IsAntialias = true, MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 3) };
-    private readonly SKPaint liftFar = new() { IsAntialias = true, MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 9) };
-    private readonly SKPaint liftNear = new() { IsAntialias = true, MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 2.5f) };
+    // (rgba(0,0,0,.34) and .2, drawn as a group at the lift's opacity: liftGroup)
+    private readonly SKPaint liftFar = new() { IsAntialias = true, MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 9), Color = new SKColor(0, 0, 0, (byte)Math.Round(0.34 * 255)) };
+    private readonly SKPaint liftNear = new() { IsAntialias = true, MaskFilter = SKMaskFilter.CreateBlur(SKBlurStyle.Normal, 2.5f), Color = new SKColor(0, 0, 0, (byte)Math.Round(0.2 * 255)) };
+    private readonly SKPaint liftGroup = new();
     private readonly SKPath circle = new();
     private SKRect circleFor;
     private readonly nint block = Marshal.AllocHGlobal(JewelUniforms.ShaderBytes); // the uniforms' native copy, kept
@@ -584,7 +586,7 @@ internal sealed class JewelKnobRenderer
         return renderer;
     }
 
-    private void Dispose() { foreach (var made in surfaces) made?.Dispose(); surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); circle.Dispose(); Marshal.FreeHGlobal(block); }
+    private void Dispose() { foreach (var made in surfaces) made?.Dispose(); surface.Dispose(); program.Dispose(); blit.Dispose(); shadow.Dispose(); liftFar.Dispose(); liftNear.Dispose(); liftGroup.Dispose(); circle.Dispose(); Marshal.FreeHGlobal(block); }
 
     /// <summary>
     /// GpuWarmup's steps (render thread): 0 the noise program, 1 the fluid, 2 the orb, 3 the page with the
@@ -668,10 +670,13 @@ internal sealed class JewelKnobRenderer
         canvas.DrawCircle(cx, cy + 2, r, shadow);
         if (lift > 0)
         {
-            liftNear.Color = new SKColor(0, 0, 0, (byte)Math.Round(0.2 * 255 * lift * opacity));
+            // s.lift's opacity is the element's (jewel-knob.html:118, stepSlider :597): its two shadows composite together,
+            // then the group at the lift's opacity, as CSS draws an element with opacity
+            liftGroup.Color = new SKColor(0, 0, 0, (byte)Math.Round(255 * lift * opacity));
+            canvas.SaveLayer(SKRect.Inflate(box, (float)JewelKnobView.ShadowReach, (float)JewelKnobView.ShadowReach), liftGroup);
             canvas.DrawCircle(cx, cy + 2, r, liftNear);
-            liftFar.Color = new SKColor(0, 0, 0, (byte)Math.Round(0.34 * 255 * lift * opacity));
             canvas.DrawCircle(cx, cy + 7, r, liftFar);
+            canvas.Restore();
         }
         canvas.Restore();
     }
