@@ -1729,7 +1729,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
         row.GetVisualDescendants().OfType<Control>().Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-080 (STOP #11): TimelineRows.swift:130-161
     public void A_revertable_message_shows_a_pencil_only_on_hover_and_a_locked_one_shows_none() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -1762,7 +1762,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-080 (STOP #11): TimelineRows.swift:132-135, :148-155
     public void The_pencil_opens_the_edit_on_the_runtime_through_the_editor_popover_and_a_second_tap_closes_it() => headless.OnUiThread(() =>
     {
         using var h = Harness();
@@ -4430,7 +4430,7 @@ public sealed class TimelineRowsPrRecordsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-080 (STOP #11): TimelineRows.swift:87, :161
     public void A_message_being_edited_keeps_its_hover_line_up_with_no_pointer_over_it() => headless.OnUiThread(() =>
     {
         using var h = Harness();

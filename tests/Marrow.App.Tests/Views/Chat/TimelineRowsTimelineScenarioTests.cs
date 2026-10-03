@@ -127,7 +127,7 @@ public sealed class TimelineRowsTimelineScenarioTests(HeadlessSession headless)
     // ---------------------------------------------------------------- PR-CHAT-080
 
     [Fact]
-    [Trait("Req", "PR-CHAT-080")] // TimelineRows.swift:84-87, :130-161, :197-198, :208-212; ThreadRuntime messageEdit
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-080 (STOP #11): TimelineRows.swift:84-87, :130-161, :197-198, :208-212; ThreadRuntime messageEdit
     public void The_message_editor_stays_open_when_its_row_scrolls_away_and_back_and_reopens_when_the_thread_comes_back() => WithTimeline(true, null, scene =>
     {
         var (entries, turns) = FinishedTurns(12);

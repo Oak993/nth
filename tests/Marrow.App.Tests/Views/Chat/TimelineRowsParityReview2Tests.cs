@@ -149,7 +149,7 @@ public sealed class TimelineRowsParityReview2Tests(HeadlessSession headless)
     // isSending, MessageEditor.swift:26-29) stay as they are. The port's UserMessageRow closes the editor on every
     // DetachedFromVisualTree (TimelineRows.cs, ":198"), and its anchor capture then builds a new MessageEditor on re-attach.
     [Fact]
-    [Trait("Req", "PR-CHAT-080")] // TimelineRows.swift:84-87, :148-155, :197-198; MessageEditor.swift:26-29; ThreadTimeline.swift:384-391
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-080 (STOP #11; the recording presenter's half): TimelineRows.swift:84-87, :148-155, :197-198; MessageEditor.swift:26-29; ThreadTimeline.swift:384-391
     public void REVIEW_An_open_message_editor_stays_open_with_its_own_state_while_an_entry_arrives_below_it() => WithTimeline(true, scene =>
     {
         var turns = new List<TurnRecord>();

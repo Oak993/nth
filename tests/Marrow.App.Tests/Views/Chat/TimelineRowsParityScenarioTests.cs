@@ -294,7 +294,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     // goes in one frame, catalogue hover.message-edit-pencil). OD-0076 rules that nothing cuts: the line fades in the Mac's
     // hover language, the reply row's own hover line (:1381 easeOut 0.12), and reduce motion stills it.
     [Fact]
-    [Trait("Req", "PR-CHAT-080")] // TimelineRows.swift:158-161
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-080 (STOP #11): TimelineRows.swift:158-161; OD-0076
     public void The_pencil_line_fades_in_and_out_over_the_hover_curve_and_reduce_motion_stills_it() => headless.OnUiThread(() =>
     {
         using var h = Harness();

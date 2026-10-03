@@ -1285,7 +1285,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
         LogicalQuery.SelfAndDescendants<Control>(row).Single(control => control.Height == TimelineMetrics.HoverLineHeight && double.IsNaN(control.Width));
 
     [Fact]
-    // PR-CHAT-080 full proof: TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:130-142, :158-161
+    // Partial proof PR-CHAT-080 (STOP #11; the other parts are in TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests);App/Views/Chat/TimelineRows.swift:130-142, :158-161
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void A_revertable_message_keeps_a_22_point_hover_line_with_a_22_point_pencil_that_shows_only_on_hover()
     {
@@ -1308,7 +1308,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // PR-CHAT-080 full proof: TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:131, :158-161
+    // Partial proof PR-CHAT-080 (STOP #11; the other parts are in TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests);App/Views/Chat/TimelineRows.swift:131, :158-161
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Hovering_the_row_shows_the_line_and_a_message_that_cannot_revert_has_no_pencil()
     {
@@ -1344,7 +1344,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // PR-CHAT-080 full proof: TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:87, :132-134, :141
+    // Partial proof PR-CHAT-080 (STOP #11; the other parts are in TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests);App/Views/Chat/TimelineRows.swift:87, :132-134, :141
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void The_pencil_opens_the_edit_on_the_runtime_and_a_second_tap_closes_it()
     {
@@ -1400,7 +1400,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
     }
 
     [Fact]
-    // PR-CHAT-080 full proof: TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests; this source-derived test is part of it; App/Views/Chat/TimelineRows.swift:143-147
+    // Partial proof PR-CHAT-080 (STOP #11; the other parts are in TimelineRowsTimelineScenarioTests, TimelineRowsParityScenarioTests and TimelineRowsPrRecordsTests);App/Views/Chat/TimelineRows.swift:143-147
     [Trait("Rule", "R-TEST-4")] // Source-derived assertions are partial evidence, not a full Req claim.
     public void Settling_the_pointer_on_the_pencil_starts_the_revert_preview()
     {
@@ -4606,10 +4606,11 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // Swift: App/Views/Chat/TimelineRows.swift:1-2859; exact member ranges remain beside each partial-proof test.
 // Proven and removed from this note on 2026-10-03 (mounted scenarios, captures and mutations in TimelineRowsParityScenarioTests,
 // TimelineRowsTimelineScenarioTests and TimelineRowsCaptureTests, or the earlier Req tests re-verified by mutation):
-// PR-CHAT-077, -080, -089, -105, -106, -123, -125, -144, -155, -166; PR-GIT-122, -151, -152;
+// PR-CHAT-077, -089, -105, -106, -123, -125, -144, -155, -166; PR-GIT-122, -151, -152;
 // PR-HYDRAMERGE-088, -090, -104, -105. (PR-CHAT-113 was listed here and is back below after the adversarial review of
-// 2026-10-03: a record/source conflict.)
-// Records: PR-CHAT-020; PR-CHAT-078; PR-CHAT-079; PR-CHAT-082; PR-CHAT-088.
+// 2026-10-03: a record/source conflict. PR-CHAT-080 was listed here and is back below after round 3 of that review: blocked
+// on ThreadTimeline.Draw.)
+// Records: PR-CHAT-020; PR-CHAT-078; PR-CHAT-079; PR-CHAT-080; PR-CHAT-082; PR-CHAT-088.
 // Records: PR-CHAT-092; PR-CHAT-094; PR-CHAT-098; PR-CHAT-099; PR-CHAT-100.
 // Records: PR-CHAT-101; PR-CHAT-102; PR-CHAT-104; PR-CHAT-108; PR-CHAT-109.
 // Records: PR-CHAT-110; PR-CHAT-111; PR-CHAT-112; PR-CHAT-113; PR-CHAT-114; PR-CHAT-115.
@@ -4645,14 +4646,34 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // only moved to another stack, as ThreadTimeline.Draw does on every change, keeps its menu); the GC release asked for cannot
 // be observed headless: Avalonia 12.1.2 keeps any element that took a pointer press reachable after it leaves the tree (a
 // bare Border the same way), so the record's unit stays unproven by GC.
-// Observed (measured, not inferred), outside this unit (ThreadTimeline.Draw), not a clause of PR-CHAT-087/-089: a real Avalonia Popup closes itself in
-// the Remove call that takes its placement target out of the tree (probed 2026-10-03 with the overlay presenter, the row's
-// handler disabled too), and the right-click menu's target is the row. ThreadTimeline.Draw takes every kept row out of its
-// stack and puts it into a new one on each change of the thread, so on the real timeline an open reply menu still closes
-// when another row arrives, although the row's own handler no longer closes it (TimelineRowsParityReviewTests holds the
-// recording presenter's half). Badge popovers hang from the window, so the plan popover is not affected (the overlay-presenter
-// tests of TimelineRowsParityScenarioTests). Needed: ThreadTimeline.Draw keeping its kept rows in place, as the eager VStack
-// does (ThreadTimeline.swift:384-391); a change to the ThreadTimeline unit's draw and scroll anchoring, not made here.
+// Observed (measured, not inferred), outside this unit (ThreadTimeline.Draw): a real Avalonia Popup closes itself in the Remove
+// call that takes its placement target out of the tree (probed 2026-10-03 with the overlay presenter, the row's handler disabled
+// too), and ThreadTimeline.Draw takes every kept row out of its stack and puts it into a new one on each change of the thread.
+// So on the real timeline every popover whose placement target is a view inside a row closes when another row arrives, whatever
+// the row's own handler does (the handlers' deferred reading of onDisappear, ED-NEW-parity-timelinerows (1), covers only their
+// own close). Corrected by round 3 of the adversarial review (2026-10-03), which found the list too short: the message editor
+// (PromptEditorPopover, target the AttachmentAnchorCapture behind the pencil, :148-155), the row menu (MessagePopoverMenu, target
+// the row's content, MessagePopoverMenu.swift:6-18), the attachment previews of AttachmentStrip and ToolRow
+// (AttachmentPreviewCoordinator, target the strip, a thumbnail or the tool row's label), the tool row's head-steps popover
+// (:1864-1867, on the row's content), the merge outcome's report (on its title, :1111-1120) and the turn-end card's files
+// popover and revert confirmation (on the files label and the revert disc, :2742-2766, :2777). Badge popovers (ChatBadge and
+// the badgePopover modifier: the plan, the Hydra report, heads and brief pills) hang from the window and are not affected (the
+// overlay-presenter tests of TimelineRowsParityScenarioTests; the reviewer's probe of a Hydra note's report). Needed:
+// ThreadTimeline.Draw keeping its kept rows in place, as the eager VStack does (ThreadTimeline.swift:384-391): the ThreadTimeline
+// unit's change, made on its own branch (unit/parity-threadtimeline a48fd1ae9, "a pass diffs the stack of rows instead of
+// rebuilding it") and not here.
+// PR-CHAT-080 (round 3 of the adversarial review, 2026-10-03): BLOCKED on that change. The record's cancellation clause ("The
+// editor closes when the row disappears") and its windows_path ("must leave the editor open exactly where it was") fail on the
+// real Popup: an entry arriving below an open editor (a row that never disappeared) closes it once, and the anchor capture opens
+// it again on a new MessageEditor whose @State (restoresFiles, error, isSending, MessageEditor.swift:26-29) starts over.
+// TimelineRowsParityReview3Tests.REVIEW_An_open_message_editor_popover_stays_open_... (the overlay presenter, a real window)
+// fails on this branch alone, twice ("closed 1 time(s)"), and is kept unchanged as the regression guard of the ThreadTimeline fix.
+// Measured 2026-10-03: on the combined tree of this branch and unit/parity-threadtimeline (38dc11052; git merge-tree, which
+// conflicts only in porting/engineering_decisions.md), applied to this worktree for the run and removed after, it passes alone
+// twice, and the TimelineRows, ChatBadge, MessagePopoverMenu and ThreadTimeline tests pass (748). Every Req PR-CHAT-080 trait
+// (seven tests: TimelineRowsFinUserRowTests, TimelineRowsParityReview2Tests' REVIEW test, TimelineRowsParityScenarioTests,
+// three in TimelineRowsPrRecordsTests, TimelineRowsTimelineScenarioTests) is a Rule R-TEST-4 partial proof now; the record
+// can be claimed again once the ThreadTimeline change is merged and the REVIEW test passes on the integration branch.
 // No production defect is inferred from a missing proof. No tests, assertions, source-derived expectations,
 // Rule/Decision/Oracle traits, or passing fully proven Req traits were removed. Round 1 of the adversarial review
 // (2026-10-03) withdrew the Req trait of two tests that claimed PR-CHAT-113 in full (they are Rule R-TEST-4 partial proofs
@@ -4668,6 +4689,11 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // cells are selectable with the I-beam and the selected-text colour (PR-CHAT-166); a coordinator a host keeps lets go of its window
 // and detail once its popover has closed (weak shownIn, ChatBadge.swift:119); the head popover's I-beam is asserted (it was
 // unproven: a mutant that removed it survived). Not claimed, UNRESOLVED: a drag across the cells of one table (the Mac's behaviour is
-// not in the reference video). Owed on the native app, recorded in ED-NEW-parity-timelinerows: an open report, editor and plan
-// popover surviving a real row arrival under the overlay presenter; the I-beam and the selection colour over table cells and the head
-// popover's lines; the memory of a closed secondary window after a plan popover was opened in it.
+// not in the reference video). Owed on the native app, recorded in ED-NEW-parity-timelinerows: an open report and plan popover
+// surviving a real row arrival; the I-beam and the selection colour over table cells and the head popover's lines; the memory of a
+// closed secondary window after a plan popover was opened in it. (Round 3 removed "the editor" from this list: its survival under
+// the overlay presenter runs headless and fails, above.)
+// Round 3 fixes (2026-10-03): a selection in a notice's message, a tool's detail and output and the head popover's five lines is
+// drawn in the system's selected-text colour (they took only the I-beam of ED-NEW-parity-timelinerows (5)'s recipe; now they are
+// made by it, VeiledText.SelectableText through TimelineRows.SelectableText); PR-CHAT-080 is back in this note (above); the B2
+// citations of MarkdownBlockSelection are re-pointed to B3 (MarkdownView.swift:854-863, the live branch :858).

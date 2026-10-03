@@ -239,6 +239,9 @@ public sealed class UserMessageRow : Decorator
         // stack and puts it into a new one inside one synchronous pass, and an entry that arrives while the editor is open
         // must not close it (its @State, MessageEditor.swift:26-29, would be built anew). The same reading of onDisappear
         // as BadgePopoverCoordinator.Disappear and the row menu (PR-CHAT-080). ENGINEERING DECISION ED-NEW-parity-timelinerows.
+        // This covers the row's own close only: the editor's real Popup hangs from the AttachmentAnchorCapture inside this row and
+        // closes itself in the very Remove call that takes the row out of its stack, and the anchor capture opens it again on a new
+        // MessageEditor, until ThreadTimeline.Draw keeps its kept rows in place (ThreadTimeline.swift:384-391; STOP #11).
         DetachedFromVisualTree += (_, _) => Avalonia.Threading.Dispatcher.UIThread.Post(() =>
         {
             if (!Avalonia.VisualTree.VisualExtensions.IsAttachedToVisualTree(this)) editor.Close();

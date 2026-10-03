@@ -218,7 +218,7 @@ public sealed class TimelineRowsFinUserRowTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "UI-CHAT-010")] // TimelineRows.swift:130-161, :179-183
     [Trait("Req", "UI-GIT-049")] // TimelineRows.swift:130-156
-    [Trait("Req", "PR-CHAT-080")] // TimelineRows.swift:130-161 (the pencil and its hover line), :132-135 (toggles the editor), :145-147 (hover prefetch), :179-183 (the reserved room)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-080 (STOP #11): TimelineRows.swift:130-161 (the pencil and its hover line), :132-135 (toggles the editor), :145-147 (hover prefetch), :179-183 (the reserved room)
     public void The_pencil_lives_on_a_reserved_hover_line_that_shows_on_hover_and_never_moves_the_message() => headless.OnUiThread(() =>
     {
         using var h = Harness();
