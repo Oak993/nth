@@ -304,6 +304,27 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 and PR-CHAT-117 (the chevron goes with nothing left to open: ThreadTimeline.swift:2128-2135 `.transition(.opacity)`, :2183 `.animation(Self.change, value: canExpand)`; OD-0076: every change is transitioned; ED-NEW-parity-threadtimeline (3))
+    public void The_chevron_fades_out_where_it_stood_when_nothing_is_left_to_open_and_the_time_glides_back_over_the_same_motion() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(new[] { User("prompt", Turn, "hello"), ToolEntry("tool-0", Turn) }); mount.SetTurnStartedAt(SwiftDate.Now); mount.SetPhase(RuntimePhase.Running); mount.Settle();
+        var line = Line(mount); var header = Header(line); var time = header.Children[1];
+        var chevron = Assert.Single(LogicalQuery.SelfAndDescendants<SwiftImage>(line), image => image.SymbolName == "chevron.right"); Assert.Equal(1, chevron.Opacity); Assert.Equal(3, header.Children.Count);
+        var stood = chevron.TranslatePoint(default, header)!.Value.X; var timeShift = Assert.IsType<Avalonia.Media.TranslateTransform>(time.RenderTransform);
+        // The tool call is done and nothing is left on the line to open.
+        mount.SetEntries(new[] { User("prompt", Turn, "hello") }); mount.Advance(80);
+        Assert.Equal("", ToolTip.GetTip(Chevron(line))); // nothing opens at once, whatever the glyph still does
+        // The chevron is still drawn where it stood, fading ...
+        Assert.Contains(chevron, LogicalQuery.SelfAndDescendants<SwiftImage>(line)); Assert.InRange(chevron.Opacity, 0.001, 0.999);
+        Assert.Equal(stood, chevron.TranslatePoint(default, header)!.Value.X, 1);
+        // ... while the time is laid out at the card's edge and glides over from where it stood.
+        Assert.Equal(header.Bounds.Width, time.Bounds.Right, 1); Assert.True(timeShift.X < -1, $"the time glides back from where it stood: {timeShift.X}");
+        mount.Advance(800);
+        Assert.DoesNotContain(chevron, LogicalQuery.SelfAndDescendants<SwiftImage>(line)); Assert.Equal(2, header.Children.Count); Assert.Equal(0, timeShift.X, 3);
+        Assert.Equal(header.Bounds.Width, time.Bounds.Right, 1);
+    });
+
+    [Fact]
     [Trait("Req", "UI-CHAT-044")] // ThreadTimeline.swift:2157-2168,2278 (the thinking rows, only with the show-reasoning setting); TimelineRows.swift (reasoning is no row of its own)
     public void Thinking_rows_exist_only_behind_the_chevron_with_the_setting_on_indented_by_the_icon_column_and_arrive_softly() => ThreadTimelineRig.Run(headless, mount =>
     {

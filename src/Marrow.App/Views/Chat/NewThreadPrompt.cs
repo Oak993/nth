@@ -23,25 +23,36 @@ namespace Marrow.App.Views.Chat;
 /// <summary>:6-81 <c>struct NewThreadPrompt: View</c>: what a thread shows before its first message.</summary>
 public sealed class NewThreadPrompt : Decorator
 {
+    private readonly Guid threadID;
+    private string? projectName;
+    private AppModel? shownModel;
+    private StackPanel? stack;
+    private TextBlock? nameText;
+
     // :8-9 the view's inputs; :15-55 body
     public NewThreadPrompt(Guid threadID, string? projectName)
     {
-        this.Track(() => AppEnvironment.GetAppModel(this), model => Build(model, threadID, projectName));
+        this.threadID = threadID; this.projectName = projectName;
+        this.Track(() => AppEnvironment.GetAppModel(this), model => Build(model, threadID));
     }
 
-    private void Build(AppModel model, Guid threadID, string? projectName)
+    /// <summary>:9 <c>let projectName: String?</c> handed again (the reader picked another project in the prompt's picker, or the project was renamed): the same view, which words it says
+    /// changed, and it does not appear again (:50-53 `isVisible` stays true and `.onAppear` does not run). ED-NEW-parity-threadtimeline (3).</summary>
+    internal void Update(string? nextProjectName)
     {
-        // :17-21
-        var icon = SwiftImage.Named("droppy-logo")
-            .Resizable()
-            .Interpolation(BitmapInterpolationMode.HighQuality)
-            .AspectRatio(ContentMode.Fit);
-        icon.Width = 72;
-        icon.Height = 72;
-        AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw); // :21 .accessibilityHidden(true)
+        if (nextProjectName == projectName) return;
+        var renamed = projectName is { Length: > 0 } && nextProjectName is { Length: > 0 };
+        projectName = nextProjectName;
+        if (shownModel is not { } model || stack is not { } column) return; // not built yet: the build reads the name
+        if (renamed && nameText is { } text) text.Text = nextProjectName; // :27-29 the same button, its picker and its hover, the words it shows changed
+        else column.Children[1] = MakeLine(model); // a name where there was none, or none where there was one: the line's other branch
+    }
 
+    private Control MakeLine(AppModel model)
+    {
         // :22-45 the question line
         var line = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 0, VerticalAlignment = VerticalAlignment.Center };
+        nameText = null;
         if (projectName is { Length: > 0 })
         {
             line.Children.Add(MakeText("What should we build in ")); // :24
@@ -62,12 +73,28 @@ public sealed class NewThreadPrompt : Decorator
                 text.MaxLines = 1;
                 text.TextTrimming = TextTrimming.CharacterEllipsis;
             }
+        return TextScaling.Apply(line, 0.6); // :46 also reaches the text inside the project-name button.
+    }
 
-        var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 26, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
-        stack.Children.Add(icon);
-        stack.Children.Add(TextScaling.Apply(line, 0.6)); // :46 also reaches the text inside the project-name button.
+    private void Build(AppModel model, Guid threadID)
+    {
+        if (shownModel is not null) { shownModel = model; if (stack is { } shown) shown.Children[1] = MakeLine(model); return; } // another window's model: the line's picker reads it
+        shownModel = model;
+        // :17-21
+        var icon = SwiftImage.Named("droppy-logo")
+            .Resizable()
+            .Interpolation(BitmapInterpolationMode.HighQuality)
+            .AspectRatio(ContentMode.Fit);
+        icon.Width = 72;
+        icon.Height = 72;
+        AutomationProperties.SetAccessibilityView(icon, AccessibilityView.Raw); // :21 .accessibilityHidden(true)
 
-        var content = new Border { Padding = new Thickness(40, 0), Child = stack };
+        var column = new StackPanel { Orientation = Orientation.Vertical, Spacing = 26, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        column.Children.Add(icon);
+        column.Children.Add(MakeLine(model)); // :22-46 the question line
+        stack = column;
+
+        var content = new Border { Padding = new Thickness(40, 0), Child = column };
         HorizontalAlignment = HorizontalAlignment.Stretch;
         VerticalAlignment = VerticalAlignment.Stretch;
 
@@ -84,6 +111,7 @@ public sealed class NewThreadPrompt : Decorator
     private Control MakeProjectNameButton(AppModel model, Guid threadID, string projectName)
     {
         var text = new TextBlock { Text = projectName, MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis }; // :28-29 Text(verbatim: projectName)
+        nameText = text;
         SwiftFont.System(28, SwiftFont.Weight.Regular).Apply(text); // :43 the whole line shares one font
         text.Foreground = Chrome.PrimaryText.Brush(text); // :44
         var underline = new Line

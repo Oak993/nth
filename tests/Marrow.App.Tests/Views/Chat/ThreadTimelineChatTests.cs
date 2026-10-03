@@ -77,21 +77,25 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
     public void A_title_effort_or_mode_change_does_not_draw_the_timeline_again_and_a_value_it_was_handed_does()
         => WithChat((view, runtime, model, h, window, frames) =>
         {
-            var timeline = Timeline(view);
-            // An empty thread draws its prompt afresh whenever the timeline draws: the instance stands in for a render count.
-            var prompt = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(view));
-            var id = runtime.ThreadID;
-            // The thread's title, its effort and its mode change (the chat view re-renders for each, the timeline reads none of them).
+            // A thread with rows, so a pass of the body is work that leaves a trace: the timeline counts the passes of its body.
+            var turns = TimelineMount.Turns(3, sentences: 4).ToList();
+            h.Main.OnMain(() => SetEntries(runtime, turns)); Drain(h);
+            h.Main.OnMain(() => window.UpdateLayout()); Drain(h);
+            var timeline = Timeline(view); Assert.Equal(3, LogicalQuery.SelfAndDescendants<DisplayBlockView>(view).Count());
+            var id = runtime.ThreadID; var passes = timeline.DrawPasses; Assert.True(passes > 0);
+            // The thread's title, its effort and its mode change (the chat view re-renders for each, the timeline reads none of them): no pass of the body.
             h.Main.OnMain(() => model.UpdateThread(id, thread => thread with { Title = "A new title", HasCustomTitle = true })); Drain(h);
+            Assert.Equal(passes, timeline.DrawPasses);
             h.Main.OnMain(() => model.UpdateThread(id, thread => thread with { Effort = thread.Effort == "high" ? "low" : "high" })); Drain(h);
+            Assert.Equal(passes, timeline.DrawPasses);
             h.Main.OnMain(() => model.UpdateThread(id, thread => thread with { InteractionMode = InteractionMode.Plan })); Drain(h);
-            Assert.Same(timeline, Timeline(view)); Assert.Same(prompt, Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(view)));
-            // The project's name is one of the eight: it is handed down again, and the timeline follows it (the prompt reads "What should we build in <project>?").
+            Assert.Equal(passes, timeline.DrawPasses); Assert.Same(timeline, Timeline(view));
+            // The project's name is one of the eight: it is handed down again, and the timeline's body runs once for it.
             h.Main.OnMain(() => model.UpdateProject(model.Project(model.Thread(id)!.ProjectID)!.Id, project => project with { Name = "Renamed" })); Drain(h);
-            Assert.Same(timeline, Timeline(view));
-            var fresh = Assert.Single(LogicalQuery.SelfAndDescendants<NewThreadPrompt>(view));
-            Assert.NotSame(prompt, fresh);
-            Assert.Contains("Renamed", string.Concat(LogicalQuery.SelfAndDescendants<TextBlock>(fresh).Select(text => text.Text)), StringComparison.Ordinal);
+            Assert.Equal(passes + 1, timeline.DrawPasses); Assert.Same(timeline, Timeline(view));
+            // A title once more is still nothing to it.
+            h.Main.OnMain(() => model.UpdateThread(id, thread => thread with { Title = "Another title" })); Drain(h);
+            Assert.Equal(passes + 1, timeline.DrawPasses);
         });
 
     private static void SetEntries(ThreadRuntime runtime, IEnumerable<TimelineEntry> entries) =>

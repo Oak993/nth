@@ -82,6 +82,8 @@ public sealed class ThreadTimeline : Decorator
         presenter.GestureRecognizers.Add(new ScrollGestureRecognizer { CanVerticallyScroll = true, CanHorizontallyScroll = false });
         return presenter.RegisterInNameScope(scope);
     });
+    /// <summary>How many times the body has run (:98 `var body`): the render count PR-CHAT-160's `.equatable()` boundary is proven by (a title, an effort or a mode runs it no more).</summary>
+    internal int DrawPasses { get; private set; }
     private long? seenAutoStartedTurnToken; // :83-85
     private bool? seenRunning;
     private string? seenLastEntryID;
@@ -123,6 +125,7 @@ public sealed class ThreadTimeline : Decorator
         var host = new Border(); Child = host;
         void Draw()
         {
+            DrawPasses++;
             if (runtime.IsLoadingHistory)
             {
                 // :134-135; OD-0016 / ED-097. LoadingMark owns the 400 ms blank period and 0.2 s fade, and cancels its frames on detach.
@@ -140,11 +143,10 @@ public sealed class ThreadTimeline : Decorator
             if (blocks.Count == 0 && !runtime.IsRunning)
             {
                 // :136-141 the prompt is one view while the thread stays empty and idle, and `.onAppear` runs when it appears, not at every pass of the body: a pass that
-                // finds it shown (for the same project) leaves it, with its fade over, instead of replaying it. A new project name is a new prompt here.
-                if (host.Child is not NewThreadPrompt || promptProject != projectName)
-                {
-                    host.Child = new NewThreadPrompt(runtime.ThreadID, projectName); promptProject = projectName; scrollChrome.Update(0); scrollState.ShowsJumpButton = false;
-                }
+                // finds it shown leaves it, with its fade over, instead of replaying it, and a new project name is handed to it (NewThreadPrompt(threadID:projectName:) has no
+                // `.id`: it says other words, it does not appear again, and `.onAppear` does not run).
+                if (host.Child is NewThreadPrompt shown) { if (promptProject != projectName) { shown.Update(projectName); promptProject = projectName; } }
+                else { host.Child = new NewThreadPrompt(runtime.ThreadID, projectName); promptProject = projectName; scrollChrome.Update(0); scrollState.ShowsJumpButton = false; }
             }
             else
             {
@@ -1172,7 +1174,7 @@ public sealed class DisplayBlockView : Decorator
     // :1884-1924 body
     public DisplayBlockView(DisplayBlock block, ThreadRuntime runtime, RowContext context)
     {
-        shown = block;
+        shown = block; shownContext = context;
         // :1902-1935.
         if (block.HydraMergePhase is { } phase) { Child = new HydraMergeRow(runtime, phase); return; }
         switch (block)
@@ -1188,13 +1190,32 @@ public sealed class DisplayBlockView : Decorator
     }
 
     private DisplayBlock shown;
+    private RowContext shownContext;
 
-    /// <summary>:1896-1936 the same view with a new block: only a running turn's block, whose body (:1924) keeps the state of its parts (the working line's
-    /// expansion, its bar) while the entries change. Anything else is a different view.</summary>
+    /// <summary>:1896-1936, :332-334 the same view with a new block or a new context under the same id (`.id(block.id)` on an `.equatable()` row: the body runs again and every
+    /// @State inside it survives). The view is the same while the body's branch is: the merge pill (in either of its phases), a group, a turn that is running (or finished), the
+    /// working line, the heads' pills. A block whose branch changed, or whose directory a row was made with changed, is a different view (false). ED-NEW-parity-threadtimeline (3).</summary>
     internal bool TryUpdate(DisplayBlock next, RowContext nextContext)
     {
-        if (shown is not DisplayBlock.Turn { Summary: null } || next is not DisplayBlock.Turn { Summary: null } turn || Child is not TurnRunningBlock running || next.Id != shown.Id) return false;
-        running.Update(turn.Entries, turn.ShowsWorking, nextContext); shown = next; return true;
+        if (next.Id != shown.Id || nextContext.Chronological != shownContext.Chronological) return false;
+        var updated = false;
+        if (next.HydraMergePhase is { } phase) { if (Child is HydraMergeRow merge) { merge.Update(phase); updated = true; } } // :1902-1905 the pill morphs between its phases, it is not swapped
+        else if (Child is not HydraMergeRow)
+            switch (next)
+            {
+                case DisplayBlock.Group group when shown is DisplayBlock.Group && Child is TimelineGroupView view:
+                    updated = view.TryUpdate(group.Value, group.Summary, group.HasReply, nextContext); break;
+                case DisplayBlock.Turn { Summary: null } turn when shown is DisplayBlock.Turn { Summary: null } && Child is TurnRunningBlock running:
+                    running.Update(turn.Entries, turn.ShowsWorking, nextContext); updated = true; break;
+                case DisplayBlock.Turn { Summary: { } summary } turn when shown is DisplayBlock.Turn { Summary: not null } && Child is TurnFinishedBlock finished:
+                    var split = SplitTurnEntries(turn.Entries); finished.Update(summary, split.UserEntries, split.Content, nextContext.WorkingDirectory, nextContext.CanRewind); updated = true; break;
+                case DisplayBlock.Working working when shown is DisplayBlock.Working && Child is WorkingBlockView line && nextContext.WorkingDirectory == shownContext.WorkingDirectory:
+                    line.Update(working.LiveWork, null); updated = true; break;
+                case DisplayBlock.HeadsWorking heads when shown is DisplayBlock.HeadsWorking && Child is HydraHeadsWorkingRow pills:
+                    pills.Update(heads.Heads); updated = true; break;
+            }
+        if (updated) { shown = next; shownContext = nextContext; }
+        return updated;
     }
 
     // :1874-1882 private static func splitTurnEntries(_:) -> (userEntries:, content:)
@@ -1211,6 +1232,8 @@ public sealed class TurnRunningBlock : Decorator
     private readonly Dictionary<string, (TimelineGroup Group, TurnRow Row)> rowViews = [];
     private (TimelineGroup Group, TurnRow Row)? headsView;
     private WorkingBlockView? working;
+    private bool placed;
+    private RowContext? shownContext;
 
     /// <param name="runtime">:1931 <c>let runtime: ThreadRuntime</c>.</param>
     /// <param name="entries">:1932 <c>let entries: [TimelineEntry]</c>.</param>
@@ -1227,42 +1250,50 @@ public sealed class TurnRunningBlock : Decorator
     // (:1980-1984, :1985-1989 the heads after the rows, :1990-1999 the working line last). The working line is one view for as long as the turn runs.
     internal void Update(ValueList<TimelineEntry> entries, bool showsWorking, RowContext context)
     {
+        // The first body of a block places its views with it: the children of a view that comes in come with it and run no transition of their own (:1979-2001, :303-321 the
+        // block itself arrives like a row), and a thread that opens on a running turn opens in one frame. The bodies after it bring a row, the heads or the working line in
+        // with their transitions (:1983, :1988, :1998). ED-NEW-parity-threadtimeline (3).
+        var arrives = placed; placed = true;
+        var contextChanged = shownContext is { } before && before != context; shownContext = context;
         var partition = Partition(groupCache.Groups(entries)); var wanted = new List<Control>();
         var seen = new HashSet<string>(StringComparer.Ordinal);
         foreach (var group in partition.Rows)
         {
             seen.Add(group.Id);
             if (!rowViews.TryGetValue(group.Id, out var kept)) kept = default;
-            // :1980-1984 ForEach(groups): a group whose id stood and whose value changed is the same row with its new value, not a row that arrives.
-            if (kept.Row is not null && kept.Group != group) { kept.Row.Update(group, context); rowViews[group.Id] = kept = (group, kept.Row); }
+            // :1980-1984 ForEach(groups): a group whose id stood and whose value (or context) changed is the same row with its new value, not a row that arrives.
+            if (kept.Row is not null && (kept.Group != group || contextChanged)) { kept.Row.Update(group, context); rowViews[group.Id] = kept = (group, kept.Row); }
             else if (kept.Row is null)
             {
                 rowViews[group.Id] = kept = (group, new TurnRow(group, runtime, context).Transition(ThreadTimeline.RowTransition));
-                SwiftTransition.Insert(stack, stack.Children.Count, kept.Row);
+                if (arrives) SwiftTransition.Insert(stack, stack.Children.Count, kept.Row); else SwiftTransition.Place(stack, stack.Children.Count, kept.Row);
             }
             wanted.Add(kept.Row);
         }
         foreach (var gone in rowViews.Keys.Where(id => !seen.Contains(id)).ToArray()) { stack.Children.Remove(rowViews[gone].Row); rowViews.Remove(gone); }
         if (partition.Heads is { } heads)
         {
-            // :1985-1989 `if let heads`: the same view while there are heads, so a head joining the list changes its value and brings nothing in again; a list that
-            // begins with another head is another view.
-            if (headsView is { } shown && shown.Group.Id == heads.Id)
+            // :1985-1989 `if let heads`: the same view while there are heads (the branch is the identity, not the group's id), so a head joining or leaving the list changes its
+            // value and brings nothing in again.
+            if (headsView is { } shown)
             {
-                if (shown.Group != heads) { shown.Row.Update(heads, context); headsView = (heads, shown.Row); }
+                if (shown.Group != heads || contextChanged) { shown.Row.Update(heads, context); headsView = (heads, shown.Row); }
             }
             else
             {
-                if (headsView is { } old) stack.Children.Remove(old.Row);
                 headsView = (heads, new TurnRow(heads, runtime, context).Transition(ThreadTimeline.RowTransition));
-                SwiftTransition.Insert(stack, stack.Children.Count, headsView.Value.Row);
+                if (arrives) SwiftTransition.Insert(stack, stack.Children.Count, headsView.Value.Row); else SwiftTransition.Place(stack, stack.Children.Count, headsView.Value.Row);
             }
             wanted.Add(headsView.Value.Row);
         }
         else if (headsView is { } old) { stack.Children.Remove(old.Row); headsView = null; }
         if (showsWorking || partition.Work.Count != 0)
         {
-            if (working is null) { working = new WorkingBlockView(runtime, partition.Work, context.WorkingDirectory, context.Chronological, showsWorking ? null : entries); working.Transition(ThreadTimeline.RowTransition); SwiftTransition.Insert(stack, stack.Children.Count, working); }
+            if (working is null)
+            {
+                working = new WorkingBlockView(runtime, partition.Work, context.WorkingDirectory, context.Chronological, showsWorking ? null : entries); working.Transition(ThreadTimeline.RowTransition);
+                if (arrives) SwiftTransition.Insert(stack, stack.Children.Count, working); else SwiftTransition.Place(stack, stack.Children.Count, working);
+            }
             else working.Update(partition.Work, showsWorking ? null : entries);
             wanted.Add(working);
         }
@@ -1305,8 +1336,13 @@ public sealed class TurnRow : Decorator
 
     private readonly ThreadRuntime runtime;
 
-    /// <summary>The same row with a new group (the body of :2033-2036 run again for the new value).</summary>
-    internal void Update(TimelineGroup group, RowContext context) => Child = new TimelineGroupView(group, runtime, null, false, context);
+    /// <summary>The same row with a new group (the body of :2033-2036 run again for the new value): the group view in it takes the value in place, and is made again only where
+    /// the body's branch changed. ED-NEW-parity-threadtimeline (3).</summary>
+    internal void Update(TimelineGroup group, RowContext context)
+    {
+        if (Child is TimelineGroupView view && view.TryUpdate(group, null, false, context)) return;
+        Child = new TimelineGroupView(group, runtime, null, false, context);
+    }
 }
 
 /// <summary>:2039-2071 <c>struct TimelineGroupView: View</c>.</summary>
@@ -1320,6 +1356,7 @@ public sealed class TimelineGroupView : Decorator
     // :2036-2057 body
     public TimelineGroupView(TimelineGroup group, ThreadRuntime runtime, TurnSummary? summary, bool hasReply, RowContext context)
     {
+        shownGroup = group; shownSummary = summary; shownHasReply = hasReply; shownContext = context;
         // :2053-2070.
         Child = group switch
         {
@@ -1336,19 +1373,56 @@ public sealed class TimelineGroupView : Decorator
             },
             _ => null,
         };
+        this.runtime = runtime;
+    }
+
+    private readonly ThreadRuntime runtime;
+    private TimelineGroup shownGroup;
+    private TurnSummary? shownSummary;
+    private bool shownHasReply;
+    private RowContext shownContext;
+
+    /// <summary>:2053-2070 the body run again with a new value for the same group (its id stands): the branch's view is the same view, handed what changed (a work group its entries,
+    /// the heads' list its rows, a message row whether it can revert, a reply its summary); a group of another branch is a different view (false). ED-NEW-parity-threadtimeline (3).</summary>
+    internal bool TryUpdate(TimelineGroup group, TurnSummary? summary, bool hasReply, RowContext context)
+    {
+        if (context.WorkingDirectory != shownContext.WorkingDirectory) return false; // the rows below were made with the directory
+        switch (group)
+        {
+            case TimelineGroup.Work work when shownGroup is TimelineGroup.Work && Child is WorkGroup workGroup: workGroup.Update(work.Entries, work.StartsCollapsed); break;
+            case TimelineGroup.Heads heads when shownGroup is TimelineGroup.Heads && Child is HydraHeadsList list: list.Update(heads.Entries); break;
+            case TimelineGroup.Single single when shownGroup is TimelineGroup.Single before && ReferenceEquals(before.Value, single.Value):
+                switch (Child)
+                {
+                    case UserMessageRow user: user.SetCanRevert(context.CanRewind); break;
+                    case AssistantMessageRow reply: reply.SetSummary(summary); break;
+                    case WorkGroup tool when single.Value.TimelineEntryKind == TimelineEntry.Kind.Tool: tool.Update(new([single.Value]), false); break;
+                    case TurnEndRow when single.Value.Item.TimelineItemContent is TimelineItem.Content.TurnEnd end:
+                        if (!Equals(shownSummary, summary) || shownHasReply != hasReply || context != shownContext) Child = new TurnEndRow(end.Value, hasReply); break; // no state in it: made again with what it says
+                    default: break; // a plan, a checklist, a notice, a reply with nothing to say: the entry is all they hold, and it stands
+                }
+                break;
+            default: return false;
+        }
+        shownGroup = group; shownSummary = summary; shownHasReply = hasReply; shownContext = context;
+        return true;
     }
 }
 
 /// <summary>:2075-2197 <c>private struct WorkingIndicator: View</c>.</summary>
 public sealed class WorkingIndicator : Decorator
 {
-    private Action<ValueList<ThinkingStep>, ValueList<TimelineEntry>, ValueList<TimelineEntry>, bool>? applyInputs;
-    private readonly DateTimeOffset startedAtValue;
-    private readonly DateTimeOffset? finishedAtValue;
-    /// <summary>Whether this is the line for a turn that began at <paramref name="startedAt"/> (null: not known, as the app's clock gives it) and, for an earlier segment, ended at <paramref name="finishedAt"/>.</summary>
-    internal bool Matches(DateTimeOffset? startedAt, DateTimeOffset? finishedAt) => (startedAt is null || startedAt == startedAtValue) && finishedAt == finishedAtValue;
-    // :2080-2092. Updating view values retains the indicator's local expansion state.
-    internal void UpdateValues(ValueList<ThinkingStep> thinkingSteps, ValueList<TimelineEntry> liveWork, ValueList<TimelineEntry> turnEntries, bool showsCard) => applyInputs?.Invoke(thinkingSteps, liveWork, turnEntries, showsCard);
+    private Action<ValueList<ThinkingStep>, ValueList<TimelineEntry>, ValueList<TimelineEntry>, bool, DateTimeOffset, DateTimeOffset?>? applyInputs;
+    private DateTimeOffset startedAtValue;
+    /// <summary>The time the line counts from (:2065): the turn's start, or an earlier segment's first entry.</summary>
+    internal DateTimeOffset StartedAt => startedAtValue;
+    // :2065-2092. Updating view values retains the indicator's local expansion state, whatever the line's times become: a running line and an earlier segment's are the same view with
+    // other values (a live clock and a bar in motion, or a clock stopped), and a running line a Hydra note splits off goes on as it was, opened. ED-NEW-parity-threadtimeline (3).
+    internal void UpdateValues(ValueList<ThinkingStep> thinkingSteps, ValueList<TimelineEntry> liveWork, ValueList<TimelineEntry> turnEntries, bool showsCard, DateTimeOffset startedAt, DateTimeOffset? finishedAt) =>
+        applyInputs?.Invoke(thinkingSteps, liveWork, turnEntries, showsCard, startedAt, finishedAt);
+    internal void UpdateValues(ValueList<ThinkingStep> thinkingSteps, ValueList<TimelineEntry> liveWork, ValueList<TimelineEntry> turnEntries, bool showsCard) =>
+        UpdateValues(thinkingSteps, liveWork, turnEntries, showsCard, startedAtValue, finishedAtValue);
+    private DateTimeOffset? finishedAtValue;
     // :2083 private static let change = Animation.smooth(duration: 0.3)
     private static Animation Change => Animation.Smooth(duration: 0.3);
 
@@ -1400,7 +1474,7 @@ public sealed class WorkingIndicator : Decorator
         var chevronFade = new AnimatedDouble(opacity => chevron.Opacity = opacity);
         var inner = new StackPanel { Spacing = 10, Children = { header } };
         var frame = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = Brushes.Transparent, Child = inner, HorizontalAlignment = HorizontalAlignment.Left }; // :2147 .contentShape(RoundedRectangle(cornerRadius: TimelineMetrics.pillRadius, style: .continuous))
-        HydraWorkingTitle? title = null; string? titleText = null; HydraProgressBar? bar = null; ValueList<TimelineEntry>? barEntries = null; bool? barCard = null; var chevronShown = false; var drawn = false;
+        HydraWorkingTitle? title = null; string? titleText = null; bool? titleRunning = null; HydraProgressBar? bar = null; ValueList<TimelineEntry>? barEntries = null; bool? barCard = null; var chevronShown = false; var drawn = false; var leaving = 0;
         GrowingBody? opened = null; StackPanel? openedDetails = null; StackPanel? openedThinking = null; WorkSteps? openedSteps = null;
         Button button = null!;
         button = PlainControls.Button(frame, () =>
@@ -1417,11 +1491,11 @@ public sealed class WorkingIndicator : Decorator
         {
             var elapsed = Math.Max(0, (now - startedAt).TotalSeconds); var word = WorkingWords.Word(seed, (long)elapsed);
             var label = liveWork.Any(entry => entry.TimelineEntryKind == TimelineEntry.Kind.Tool) ? WorkGroupSummary.Text(liveWork) : running ? word + "\u2026" : "Earlier steps"; // :2100-2105
-            if (!force && titleText == label) return;
+            if (!force && titleText == label && titleRunning == running) return;
             // :2182 .animation(Self.change, value: label): a new label takes the place of the old one over the one motion for what changes on the line.
-            if (titleText != label)
+            if (titleText != label || titleRunning != running)
             {
-                var previous = title; title = new HydraWorkingTitle(label, running, TextAlignment.Left); titleText = label;
+                var previous = title; title = new HydraWorkingTitle(label, running, TextAlignment.Left); titleText = label; titleRunning = running;
                 if (previous is null) titleHost.Children.Add(title);
                 else Transaction.WithAnimation(Change, () => { SwiftTransition.Remove(titleHost, previous); SwiftTransition.Insert(titleHost, titleHost.Children.Count, title.Transition(SwiftTransition.Opacity)); });
             }
@@ -1432,12 +1506,28 @@ public sealed class WorkingIndicator : Decorator
             var motion = drawn ? Change : null;
             if (canExpand != chevronShown)
             {
-                chevronShown = canExpand;
-                if (canExpand) { turn.Set(isExpanded ? 90 : 0, null); header.Children.Add(chevron); }
-                else header.Children.Remove(chevron);
+                chevronShown = canExpand; leaving++;
+                var comingBack = header.Leaving.Remove(chevron); // a chevron still on its way out comes back from the opacity it has
+                if (canExpand) { turn.Set(isExpanded ? 90 : 0, null); if (!header.Children.Contains(chevron)) header.Children.Add(chevron); }
+                else if (motion is null) header.Children.Remove(chevron);
+                else
+                {
+                    // :2133 `.transition(.opacity)` under :2183 `.animation(Self.change, value: canExpand)`: the chevron fades out where it stood, in nobody's layout, and the
+                    // time glides over to its new place; it leaves the header when the fade is done.
+                    header.Leaving.Add(chevron); chevronFade.Set(0, motion);
+                    var token = leaving; var frames = FrameClock.Source.Current; var since = SwiftClock.Now; Action<TimeSpan>? tick = null;
+                    tick = _ =>
+                    {
+                        if (token != leaving) return;
+                        if ((SwiftClock.Now - since).TotalSeconds >= motion.Duration) { header.Leaving.Remove(chevron); header.Children.Remove(chevron); }
+                        else frames.RequestFrame(tick!);
+                    };
+                    frames.RequestFrame(tick);
+                }
+                header.InvalidateMeasure();
                 chevron.Measure(new Size(double.PositiveInfinity, double.PositiveInfinity));
                 var room = header.FillsTitle ? 8 + chevron.DesiredSize.Width : 0;
-                if (canExpand) { chevronFade.Set(0, null); chevronFade.Set(1, motion); }
+                if (canExpand) { if (!comingBack) chevronFade.Set(0, null); chevronFade.Set(1, motion); }
                 if (room > 0) { timeGlide.Set(canExpand ? room : -room, null); timeGlide.Set(0, motion); }
             }
             // :2138-2140 the bar is the card's; the badge is the line above alone. It is made again only when what it draws changed.
@@ -1475,7 +1565,19 @@ public sealed class WorkingIndicator : Decorator
             else if (opened is not null) { var closing = opened; opened = null; openedDetails = null; openedThinking = null; openedSteps = null; closing.Close(Transaction.Current, () => column.Children.Remove(closing)); }
             drawn = true;
         }
-        applyInputs = (thinking, work, entries, card) => { thinkingSteps = thinking; liveWork = work; turnEntries = entries; showsCard = card; canExpand = thinking.Count != 0 || work.Count != 0; Draw(); };
+        applyInputs = (thinking, work, entries, card, start, finish) =>
+        {
+            thinkingSteps = thinking; liveWork = work; turnEntries = entries; showsCard = card; canExpand = thinking.Count != 0 || work.Count != 0;
+            if (start != startedAt || finish != finishedAt)
+            {
+                // :2065,:2074 the line's times handed again (a running line a note splits off becomes an earlier segment's, finished): its clock and its bar are made again with
+                // them, and the line, its fold and its opened body are as they were.
+                startedAt = start; finishedAt = finish; startedAtValue = start; finishedAtValue = finish; running = finish is null;
+                var next = new HydraElapsedTime(start, finish, running) { RenderTransform = glide }; header.Children[header.Children.IndexOf(elapsedView)] = next; elapsedView = next;
+                if (bar is not null) { inner.Children.Remove(bar); bar = null; barEntries = null; barCard = null; }
+            }
+            Draw();
+        };
         Draw(); // :2185-2188. The source retains chronological, but ThreadTimeline always passes false.
         this.Task(() => FrontMonitor.Shared.Current.IsVisible && running, async active => { if (!active) return; while (await SwiftTask.TrySleep(TimeSpan.FromSeconds(1))) await MainActor.Run(() => { now = SwiftDate.Now; Draw(false); }); }); // :2189-2196
     }
@@ -1485,19 +1587,25 @@ public sealed class WorkingIndicator : Decorator
     {
         private bool fillsTitle;
         public bool FillsTitle { get => fillsTitle; set { if (fillsTitle == value) return; fillsTitle = value; InvalidateMeasure(); } }
+        /// <summary>Children on their way out (:2133 `.transition(.opacity)`): still drawn where they stood, in nobody's layout, so what is left lays out as if they were gone.</summary>
+        public HashSet<Control> Leaving { get; } = [];
+        private Control[] Present => Children.Where(child => !Leaving.Contains(child)).ToArray();
         private static double Baseline(Control child) => child switch { TextBlock text => text.TextLayout.TextLines.FirstOrDefault()?.Baseline ?? child.DesiredSize.Height, Decorator { Child: { } content } => Baseline(content), Panel panel when panel.Children.Count > 0 => Baseline(panel.Children[0]), _ => child.DesiredSize.Height };
         protected override Size MeasureOverride(Size availableSize)
         {
             foreach (var child in Children) child.Measure(new Size(double.PositiveInfinity, availableSize.Height));
-            var other = Children.Skip(1).Sum(child => child.DesiredSize.Width) + Math.Max(0, Children.Count - 1) * 8;
-            if (fillsTitle && double.IsFinite(availableSize.Width) && Children.Count > 0) Children[0].Measure(new Size(Math.Max(0, availableSize.Width - other), availableSize.Height));
-            var above = Children.Select(Baseline).DefaultIfEmpty().Max(); var below = Children.Select(child => child.DesiredSize.Height - Baseline(child)).DefaultIfEmpty().Max();
-            return new Size(fillsTitle && double.IsFinite(availableSize.Width) ? availableSize.Width : Children.Sum(child => child.DesiredSize.Width) + Math.Max(0, Children.Count - 1) * 8, above + below);
+            var present = Present;
+            var other = present.Skip(1).Sum(child => child.DesiredSize.Width) + Math.Max(0, present.Length - 1) * 8;
+            if (fillsTitle && double.IsFinite(availableSize.Width) && present.Length > 0) present[0].Measure(new Size(Math.Max(0, availableSize.Width - other), availableSize.Height));
+            var above = present.Select(Baseline).DefaultIfEmpty().Max(); var below = present.Select(child => child.DesiredSize.Height - Baseline(child)).DefaultIfEmpty().Max();
+            return new Size(fillsTitle && double.IsFinite(availableSize.Width) ? availableSize.Width : present.Sum(child => child.DesiredSize.Width) + Math.Max(0, present.Length - 1) * 8, above + below);
         }
         protected override Size ArrangeOverride(Size finalSize)
         {
-            var baseline = Children.Select(Baseline).DefaultIfEmpty().Max(); var x = 0.0; var other = Children.Skip(1).Sum(child => child.DesiredSize.Width) + Math.Max(0, Children.Count - 1) * 8;
-            for (var i = 0; i < Children.Count; i++) { var child = Children[i]; var width = i == 0 && fillsTitle ? Math.Max(0, finalSize.Width - other) : child.DesiredSize.Width; child.Arrange(new Rect(x, baseline - Baseline(child), width, child.DesiredSize.Height)); x += width + 8; } return finalSize;
+            var present = Present; var baseline = present.Select(Baseline).DefaultIfEmpty().Max(); var x = 0.0; var other = present.Skip(1).Sum(child => child.DesiredSize.Width) + Math.Max(0, present.Length - 1) * 8;
+            for (var i = 0; i < present.Length; i++) { var child = present[i]; var width = i == 0 && fillsTitle ? Math.Max(0, finalSize.Width - other) : child.DesiredSize.Width; child.Arrange(new Rect(x, baseline - Baseline(child), width, child.DesiredSize.Height)); x += width + 8; }
+            foreach (var child in Children.Where(Leaving.Contains)) child.Arrange(new Rect(fillsTitle ? finalSize.Width - child.DesiredSize.Width : x, baseline - Baseline(child), child.DesiredSize.Width, child.DesiredSize.Height));
+            return finalSize;
         }
     }
 }
@@ -1625,9 +1733,10 @@ public sealed class WorkingBlockView : Decorator
     {
         var thinking = earlierEntries is null && values.ShowReasoning ? values.Item3 : new([]); var entries = earlierEntries ?? TurnEntries(runtime);
         var startedAt = earlierEntries?.FirstOrDefault()?.Item.Date ?? runtime.TurnStartedAt; var finishedAt = earlierEntries?.LastOrDefault()?.Item.Date;
-        // :2100-2102 a running line and an earlier segment's are different lines (a live clock and a bar in motion, or a clock stopped): when which one it is
-        // changes, the line is made again; otherwise it is the same line with new values.
-        if (Child is WorkingIndicator indicator && indicator.Matches(startedAt, finishedAt)) indicator.UpdateValues(thinking, liveWork, entries, values.ShowsWorkingCard);
+        // :2261-2274 the line is one view for the life of the block: a running line and an earlier segment's are the same line with other times (a live clock and a bar in
+        // motion, or a clock stopped), and its @State, the fold above all, goes through the change. (`now`, the app's clock when the turn's start is not known, is the same
+        // line's own start: the source's `.now` is the moment the body ran.)
+        if (Child is WorkingIndicator indicator) indicator.UpdateValues(thinking, liveWork, entries, values.ShowsWorkingCard, startedAt ?? indicator.StartedAt, finishedAt);
         else Child = new WorkingIndicator(runtime, startedAt ?? SwiftDate.Now, WorkingWords.Seed(SwiftUUID.UuidString(runtime.ThreadID)), thinking, liveWork, entries, values.ShowsWorkingCard, finishedAt, chronological, workingDirectory);
     }
 
