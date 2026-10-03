@@ -113,7 +113,7 @@ internal sealed class TimelineMount
 internal static class ThreadTimelineRig
 {
     /// <summary>The timeline on an app model with one empty thread. <paramref name="showsMinimap"/> and <paramref name="columnHeight"/> are the caller's (ChatView's) inputs.</summary>
-    internal static void Run(HeadlessSession headless, Action<TimelineMount> check, double width = 960, double height = 480, bool showsMinimap = true, double? columnHeight = null) =>
+    internal static void Run(HeadlessSession headless, Action<TimelineMount> check, double width = 960, double height = 480, bool showsMinimap = true, double? columnHeight = null, bool layers = false) =>
         headless.OnUiThread(() =>
         {
             // LoginEnvironment.Load is completed once on a pool thread first, so a later Load().Wait() on the headless UI thread returns at once.
@@ -127,7 +127,7 @@ internal static class ThreadTimelineRig
             DiskWriter.Shared.WriteSynchronously(new ThreadDocument(id), Storage.ThreadURL(id));
             DocumentPrefetch.Shared.Warm([id], urgent: true)!.Completion.GetAwaiter().GetResult();
             var runtime = new ThreadRuntime(id, model);
-            Mount(store, model, runtime, frames, check, width, height, showsMinimap, columnHeight ?? height);
+            Mount(store, model, runtime, frames, check, width, height, showsMinimap, columnHeight ?? height, layers);
         });
 
     /// <summary>The timeline on a lead thread with head threads under it (TimelineRowsFinTeam), for the finished-head pills.</summary>
@@ -140,7 +140,7 @@ internal static class ThreadTimelineRig
             using var owned = store;
             AwaitHistory(store, runtime);
             using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
-            Mount(store, model, runtime, frames, check, width, height, true, height);
+            Mount(store, model, runtime, frames, check, width, height, true, height, false);
         });
 
     /// <summary>
@@ -160,7 +160,7 @@ internal static class ThreadTimelineRig
         }
     }
 
-    private static void Mount(AppModelHarness store, AppModel model, ThreadRuntime runtime, ManualFrameSource frames, Action<TimelineMount> check, double width, double height, bool showsMinimap, double columnHeight)
+    private static void Mount(AppModelHarness store, AppModel model, ThreadRuntime runtime, ManualFrameSource frames, Action<TimelineMount> check, double width, double height, bool showsMinimap, double columnHeight, bool layers)
     {
         var chrome = new ChromeScrollModel();
         var state = new TimelineScrollState();
@@ -168,7 +168,15 @@ internal static class ThreadTimelineRig
         var host = new Border();
         AppEnvironment.SetAppModel(host, model);
         host.Child = view;
-        var window = new Avalonia.Controls.Window { Content = host, Width = width, Height = height };
+        // With <paramref name="layers"/> the window has the overlay and popup layers a real one has, so a tooltip or a popover can open over the timeline (a window with none cannot open a popup).
+        Control content = host;
+        if (layers)
+        {
+            var manager = new Avalonia.Controls.Primitives.VisualLayerManager { EnableOverlayLayer = true, Child = host };
+            typeof(Avalonia.Controls.Primitives.VisualLayerManager).GetProperty("EnablePopupOverlayLayer", BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic)!.SetValue(manager, true);
+            content = manager;
+        }
+        var window = new Avalonia.Controls.Window { Content = content, Width = width, Height = height };
         AppEnvironment.SetWindowLiveResize(host, new Marrow.App.Window.WindowLiveResize(window));
         try
         {

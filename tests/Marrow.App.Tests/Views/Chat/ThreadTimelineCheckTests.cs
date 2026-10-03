@@ -1,5 +1,6 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.VisualTree;
 using Marrow.App.Tests.Fixtures;
 using Marrow.App.Views.Chat;
 using static Marrow.App.Tests.Fixtures.TimelineMount;
@@ -45,6 +46,25 @@ public sealed class ThreadTimelineCheckTests(HeadlessSession headless)
         Bump(monitor, mount.Window); mount.Advance(100);
         Assert.Equal(200, mount.Scroll.Offset.Y, 1); Assert.False(tracking.IsPinnedToBottom);
     });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-137")] // ThreadTimeline.swift:616-623 (another window coming on screen, a popover or a tooltip opening over the chat included, is not the reader coming back), :1290-1350
+    public void A_tooltip_opening_over_the_conversation_checks_nothing_and_moves_nobody() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(8, sentences: 8).ToList()); mount.Settle();
+        var tracking = mount.Field<TimelineScrollTracking>("tracking"); var monitor = FrontMonitor.Shared.Current;
+        mount.Scroll.Offset = new Vector(0, 200); mount.Advance(500); Assert.False(tracking.IsPinnedToBottom);
+        var offset = mount.Scroll.Offset.Y; var checks = tracking.CheckRequest; var revision = monitor.Revision;
+        // A real tooltip over a row of the conversation, in the popup layer of the window.
+        var text = mount.Rows[1].GetVisualDescendants().OfType<TextBlock>().First();
+        ToolTip.SetTip(text, "A tooltip over the conversation"); ToolTip.SetIsOpen(text, true); mount.Advance(300);
+        Assert.True(ToolTip.GetIsOpen(text), "the tooltip is open");
+        Assert.Contains(mount.Window.GetVisualDescendants().OfType<TextBlock>(), shown => shown.Text == "A tooltip over the conversation");
+        // It is not a window of the app, and the timeline did not take it for the reader coming back: no revision, no check, no scroll, nothing pinned.
+        Assert.Equal(revision, monitor.Revision); Assert.Equal(checks, tracking.CheckRequest); Assert.Equal(offset, mount.Scroll.Offset.Y, 3); Assert.False(tracking.IsPinnedToBottom);
+        ToolTip.SetIsOpen(text, false); mount.Advance(300);
+        Assert.Equal(revision, monitor.Revision); Assert.Equal(checks, tracking.CheckRequest); Assert.Equal(offset, mount.Scroll.Offset.Y, 3);
+    }, layers: true);
 
     [Fact]
     [Trait("Req", "PR-CHAT-137")] // ThreadTimeline.swift:770-803 (a viewport past the end of the conversation is never a valid place to be; a blank one is checked again a beat from now, three times, the last pinning the reader to the end)
