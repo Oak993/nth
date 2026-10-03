@@ -767,4 +767,77 @@ public sealed class TimelineRowsCdTests(HeadlessSession headless)
             finally { Close(window); }
         });
     });
+
+    // ---------------------------------------------------------------- the continuous corners (ED-181)
+
+    // Every pill, card and plate of these records is a RoundedRectangle(cornerRadius:, style: .continuous) in the source (the lines
+    // named below). The port draws them through SwiftShapes (ED-181), whose continuous curve is still circular arcs
+    // (MARROW_DEFERRED ED-181): this test pins what the code states, the radius and the .continuous style of each site, so that the
+    // records that rest on these shapes lack nothing but the curve itself. It carries no Req trait for that reason.
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof of the records whose only open clause is ED-181's curve: the radius and the .continuous style of each site
+    public void Every_pill_card_and_plate_of_the_timeline_rows_is_a_continuous_rounded_rectangle_of_the_radius_the_source_states() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        using var noNetwork = new NoLinkNetwork("gitlab.com");
+        h.Main.OnMain(() =>
+        {
+            h.Runtime.IsHydraMerging = true;
+            h.Runtime.HydraMergeStage = HydraMergeStage.Pushing.Words;
+            h.Runtime.RehearseTurn("Build the thing");
+            var briefEntry = h.Runtime.Entries.Last(candidate => candidate.TimelineEntryKind == TimelineEntry.Kind.User);
+            var brief = new HydraBriefRow(((TimelineItem.Content.User)briefEntry.Item.TimelineItemContent).Value, briefEntry, h.Runtime);
+            var turn = Guid.NewGuid();
+            var steps = new TurnFinishedBlock(h.Runtime, turn, Summary(turn) with { Duration = 64 }, ValueList<TimelineEntry>.Empty,
+                new ValueList<TimelineEntry>([ToolEntry(Call(ToolCall.Kind.Read, "Read a"), turn), Reply("```\nthe answer\n```")]), null, canUndo: false, chronological: true);
+            var plain = new Thickness(12, 8, 14, 8);
+            var sites = new (string Name, Control Root, Thickness Padding, double Radius)[]
+            {
+                ("tool badge :1817 (UI-CHAT-024, -056, -057)", ToolRowFor(h, Call(ToolCall.Kind.Mcp, "Context7 · resolve-library-id")), plain, 18),
+                ("departing head badge :1817", ToolRowFor(h, Call(ToolCall.Kind.Agent, "Pip: the merge popover", ToolCall.Status.Running)), plain, 18),
+                ("tool output plate :2155 (UI-CHAT-025)", new ToolDetailView(Call(ToolCall.Kind.Command, "cat") with { Output = "a\nb" }), new Thickness(10), 10),
+                ("plan badge :2263, ChatBadge.swift:45-49 (UI-CHAT-029)", new PlanCard(PlanEntry(ProposedPlan.State.Proposed), h.Runtime), plain, 18),
+                ("checklist card :2364 (UI-CHAT-033)", new TodoListRow(new TimelineEntry(new TimelineItem(null, Steps(("One", TodoStep.Status.Active))))), new Thickness(14), 18),
+                ("warning notice :2398-2402 (UI-CHAT-034, UI-RUNTIME-002)", new NoticeRow(NoticeEntry(Notice.Level.Warning, "careful")), plain, 18),
+                ("error notice :2398-2402 (UI-CHAT-034, UI-RUNTIME-003)", new NoticeRow(NoticeEntry(Notice.Level.Error, "broke")), plain, 18),
+                ("steps card :2660 (UI-CHAT-036, -059)", steps, new Thickness(14), 18),
+                ("file card :2818-2822 (UI-CHAT-037, UI-GIT-044)", new TurnFileCard(Files(2), canUndo: true, onRevert: () => { }, onReview: _ => { }), new Thickness(12, 6, 6, 6), 18),
+                ("heads report pill :313-316 (UI-CHAT-048)", new HydraReportRow(new UserMessage { Text = "## Hank: a\nbody", HydraHeads = new ValueList<long>([0]) }), plain, 18),
+                ("head brief pill :579-582 (UI-CHAT-051)", brief, plain, 18),
+                ("finished head pill :464-467 (UI-CHAT-052)", new FinishedHeadPill(TimelineRowsFinTeam.Head(0, HydraHeadInfo.Status.Completed)), plain, 18),
+                ("merge pill, merging :1012-1017 (UI-CHAT-053, UI-HYDRAMERGE-002)", new HydraMergeRow(h.Runtime, new HydraMergePhase.Merging()), plain, 18),
+                ("merge pill, outcome :1012-1017 (UI-CHAT-053)", new HydraMergeRow(h.Runtime, new HydraMergePhase.Outcome(new UserMessage { Text = "Hydra merge held.\nwhy" })), plain, 18),
+                ("delegation card :691-694 (UI-CHAT-054)", new HydraDelegationBlock("[{\"task\": \"Tidy\", \"prompt\": \"p\", \"name\": \"Hank\"}]", sent: true), plain, 18),
+            };
+            var panel = new StackPanel { Width = 700, Spacing = 20 };
+            foreach (var site in sites) panel.Children.Add(site.Root);
+            var window = Show(panel);
+            try
+            {
+                var failures = new List<string>();
+                foreach (var (name, root, padding, radius) in sites)
+                {
+                    var shape = Mounted<Border>(root).Concat(root is Border own ? [own] : []).FirstOrDefault(border => border.Padding == padding && SwiftShapes.GetCornerStyle(border) is not null);
+                    if (shape is null) { failures.Add($"{name}: no rounded rectangle of padding {padding} was drawn through SwiftShapes"); continue; }
+                    if (SwiftShapes.GetCornerStyle(shape) != RoundedCornerStyle.Continuous) failures.Add($"{name}: drawn {SwiftShapes.GetCornerStyle(shape)}, the source says .continuous");
+                    if (shape.CornerRadius != new CornerRadius(radius)) failures.Add($"{name}: radius {shape.CornerRadius}, the source says {radius}");
+                }
+                // ChatBadge.swift:65 .clipShape(RoundedRectangle(cornerRadius:, style: .continuous)) over the badge and its attention wave:
+                // the clip comes from the same helper (a StreamGeometry path, not a plain RectangleGeometry).
+                var layers = Assert.Single(Mounted<BadgeLayers>(sites[3].Root));
+                if (layers.Clip is not StreamGeometry) failures.Add($"plan badge clip :65: {layers.Clip?.GetType().Name ?? "none"}, not drawn through SwiftShapes");
+                else Assert.Equal(new Rect(0, 0, layers.Children[0].Bounds.Width, layers.Children[0].Bounds.Height), layers.Clip.Bounds);
+                // The diff block of an edit :2137-2140 is a plate drawn the same way (padding 0, clipped).
+                var diff = new ToolDetailView(Call(ToolCall.Kind.Edit, "e") with { Edits = new ValueList<FileEdit>([new FileEdit("src/a.swift", "@@ -1 +1 @@\n-a\n+b\n", 1, 1)]) });
+                var plate = Assert.Single(((StackPanel)diff.Child!).Children.OfType<Border>());
+                if (SwiftShapes.GetCornerStyle(plate) != RoundedCornerStyle.Continuous) failures.Add($"diff plate :2137: drawn {SwiftShapes.GetCornerStyle(plate)?.ToString() ?? "with no style"}, the source says .continuous");
+                if (plate.CornerRadius != new CornerRadius(10)) failures.Add($"diff plate :2137: radius {plate.CornerRadius}, the source says 10");
+                Assert.True(failures.Count == 0, string.Join(" | ", failures));
+            }
+            finally { Close(window); }
+        });
+    });
 }

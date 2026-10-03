@@ -167,7 +167,7 @@ public sealed class ChatBadge : Decorator
             Child = row,
             HorizontalAlignment = HorizontalAlignment.Left,
         };
-        pill.CornerRadius = new CornerRadius(TimelineMetrics.PillRadius); // :49 RoundedRectangle(cornerRadius:, style: .continuous)
+        pill.RoundedRectangle(TimelineMetrics.PillRadius, RoundedCornerStyle.Continuous); // :49 RoundedRectangle(cornerRadius:, style: .continuous), through the one helper of ED-181
 
         // :54-65
         var layers = new BadgeLayers(pill); // :49-50 the pill and, above it, the attention dot field
@@ -445,7 +445,7 @@ internal sealed class BadgeLayers : Panel
     protected override Size ArrangeOverride(Size finalSize)
     {
         var pillSize = Children.Count > 0 ? Children[0].DesiredSize : default;
-        Clip = new RectangleGeometry(new Rect(pillSize), CornerRadius.TopLeft, CornerRadius.TopLeft); // :65 clipped to the pill shape
+        Clip = SwiftShapes.RoundedRectangleGeometry(new Rect(pillSize), CornerRadius.TopLeft, RoundedCornerStyle.Continuous); // :65 .clipShape(RoundedRectangle(cornerRadius:, style: .continuous)), through the one helper of ED-181
         if (Children.Count > 0)
             Children[0].Arrange(new Rect(pillSize)); // :49-50 the pill keeps its intrinsic size at the leading edge
         for (var i = 1; i < Children.Count; i++)
