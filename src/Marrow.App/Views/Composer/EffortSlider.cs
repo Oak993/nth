@@ -226,7 +226,7 @@ public sealed class ModelEffortPanel : Decorator
     private AppModel model = null!;
     private readonly Panel pages = new();
     private bool? displayedModels;
-    private (ProviderKind Provider, string? Model, HydraPair? Pair, ModelOption? Option)? sliderKey;
+    private (ProviderKind Provider, string? Model, ModelOption? Option)? sliderKey;
     private EffortBrand? shownBrand; // OD-0090: the maker the last slider wore, so a model change crossfades from it
     /// <param name="threadID">:156 <c>let threadID: UUID</c>.</param>
     /// <param name="hasHistory">:157 <c>let hasHistory: Bool</c>.</param>
@@ -244,13 +244,13 @@ public sealed class ModelEffortPanel : Decorator
         {
             var (app, thread, showsModels, headsEffort) = snapshot; model = app;
             if (thread is null) { pages.Children.Clear(); displayedModels = null; return; } // :162
-            var key = (thread.Provider, thread.Model, model.HydraIsOn(thread) ? model.HydraPair(thread) : null, model.Providers.Model(thread.Model, thread.Provider));
-            // :163-185 the branch retains its view/state while only the bound effort or fast mode changes.
-            if (!showsModels && displayedModels == false && Equals(sliderKey, key))
+            var key = (thread.Provider, thread.Model, model.Providers.Model(thread.Model, thread.Provider));
+            // :163-185 the branch retains its view/state while only the bound effort or fast mode changes, and :196 while the
+            // pair the chat leads with (or its resolved heads effort) changes: the card is handed the new look.
+            if (!showsModels && displayedModels == false && Equals(sliderKey, key) && pages.Children.OfType<EffortSliderCard>().FirstOrDefault() is { } card)
             {
-                // Only the resolved heads effort can differ here: the caption is the one part of the card it reaches.
-                if (key.Item3 is { } keptPair && pages.Children.FirstOrDefault() is EffortSliderCard card)
-                    card.UpdateHeadsEffort(new EffortPairLook(keptPair, model.Providers, headsEffort));
+                var kept = model.HydraIsOn(thread) ? model.HydraPair(thread) : null;
+                card.UpdatePair(kept is null ? null : new EffortPairLook(kept, model.Providers, headsEffort));
                 return;
             }
             sliderKey = key;
@@ -289,7 +289,9 @@ public sealed class ModelEffortPanel : Decorator
             new Binding<bool>(() => model.Thread(thread.Id)?.FastMode ?? false, fast => { model.UpdateThread(thread.Id, current => current with { FastMode = fast }); Remember(thread.Id); }),
             () =>
             {
-                var leadEffort = pair?.OrchestratorEffort is { } effort && option?.Efforts.Contains(effort) == true ? effort : null;
+                // :219-224 read when it is tapped: the pair the chat leads with then (the card stays while that changes)
+                var leading = model.Thread(thread.Id) is { } now && model.HydraIsOn(now) ? model.HydraPair(now) : null;
+                var leadEffort = leading?.OrchestratorEffort is { } effort && option?.Efforts.Contains(effort) == true ? effort : null;
                 model.UpdateThread(thread.Id, current => current with { Effort = leadEffort, FastMode = false }); Remember(thread.Id);
             }, pairLook, () => state.ShowsModels = true, fadeFrom);
     }
@@ -353,7 +355,7 @@ public sealed class ModelList : Decorator
             var rows = new StackPanel { Spacing = 1 };
             if (pairs.Count > 0)
             {
-                rows.Children.Add(new PopoverSectionHeader("Pairs")); // :311
+                rows.Children.Add(new PopoverSectionHeader("Pairs") { Height = SectionHeaderHeight }); // :311; :273 the 22 the arithmetic reserves, whatever this line's font makes of its own
                 foreach (var pair in pairs)
                 {
                     var locked = hasHistory && pair.Provider != thread.Provider;
@@ -361,7 +363,7 @@ public sealed class ModelList : Decorator
                     rows.Children.Add(new HydraPairListRow(pair, HydraPairSummary.Title(pair, model.Providers), locked ? "New chats only" : detail, PairRowHeight,
                         model.LeadsWithHydraPair(pair, thread), !locked, () => onEnterPair?.Invoke(pair))); // :312-323
                 }
-                rows.Children.Add(new PopoverSectionHeader("Models")); // :325
+                rows.Children.Add(new PopoverSectionHeader("Models") { Height = SectionHeaderHeight }); // :325
             }
             foreach (var entry in entries)
             {
@@ -374,7 +376,7 @@ public sealed class ModelList : Decorator
                 var loading = EffortView.Text("Loading models…", SwiftFont.Body, Chrome.SecondaryText); loading.Margin = new Thickness(10); rows.Children.Add(loading); // :340-345
             }
             var backIcon = SwiftImage.SystemName("chevron.left").Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline, weight: SwiftFont.Weight.Semibold)).ForegroundStyle(Chrome.SecondaryText);
-            var back = PlainControls.Button(new Border { Width = 20, Height = 20, Child = backIcon }, onBack); ToolTip.SetTip(back, "Back"); // :290-299
+            var back = PlainControls.Button(new Border { Width = 20, Height = 20, Background = Brushes.Transparent, Child = backIcon }, onBack); ToolTip.SetTip(back, "Back"); // :290-299, :294 .contentShape(.rect): the whole frame takes the press
             var header = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6, Margin = new Thickness(8, 8, 8, 4), Children = { back, EffortView.Text("Select model", SwiftFont.Body, Chrome.SecondaryText) } };
             var scroll = new ScrollViewer { Content = rows, Height = Math.Min(pairsHeight + Math.Max(entries.Count, 1) * (rowHeight + 1), 440), HorizontalScrollBarVisibility = ScrollBarVisibility.Disabled };
             Child = new Border { Padding = new Thickness(6), Child = new StackPanel { Spacing = 0, Children = { header, scroll } } }; // :348-353
@@ -493,14 +495,22 @@ public sealed class EffortSliderCard : Decorator
     /// <param name="onReset">:517 <c>let onReset: () -> Void</c>; moves before onTitleTap (ED-095).</param>
     /// <param name="pair">:510 <c>var pair: EffortPairLook? = nil</c>.</param>
     /// <param name="onTitleTap">:516 <c>var onTitleTap: (() -> Void)?</c>.</param>
-    private TextBlock? pairCaption;
-
-    /// <summary>:191-197, :500-503 the body runs again with the pair's freshly resolved heads effort: the caption is the
-    /// only part of the look that reads it.</summary>
-    internal void UpdateHeadsEffort(EffortPairLook look)
+    // :510 `var pair: EffortPairLook?` is read again each time the parent's body runs: the chat may enter or leave a pair, and
+    // the pair's heads effort may resolve differently, while the card is on screen. The panel hands the new look to the card
+    // that stays (UpdatePair), and everything the pair reaches follows it in place.
+    private sealed class ViewState : MainActorModel
     {
-        if (pairCaption is { } caption && caption.Text != look.Caption) caption.Text = look.Caption;
+        private EffortPairLook? pair;
+
+        public EffortPairLook? Pair { get => Read(pair); set => Set(ref pair, value); }
     }
+
+    private readonly ViewState live = new();
+
+    /// <summary>:191-197, :510 the body runs again with the pair the chat leads with now (or none) and its heads effort
+    /// freshly resolved: the title's colours, the line under it, the track and the caption follow in place, the caption
+    /// joining or leaving the card on its soft-appear transition (:650).</summary>
+    internal void UpdatePair(EffortPairLook? look) => live.Pair = look;
 
     // :557-656 body
     public EffortSliderCard(
@@ -555,18 +565,27 @@ public sealed class EffortSliderCard : Decorator
         titleButton.HorizontalAlignment = HorizontalAlignment.Center; // :567 a VStack centres each child at its own width, so the hover plate fits the title
         centre.Children.Add(titleButton);
         var subtitle = new Grid { ColumnDefinitions = new ColumnDefinitions("Auto,*"), HorizontalAlignment = HorizontalAlignment.Center };
-        if (pair is not null)
+        string? subtitleOf = null; // the title the line under it shows now: a pair's, or null for the model's
+        bool subtitleMade = false;
+        void Subtitle(EffortPairLook? look)
         {
-            var mark = new HydraMarkImage { Width = 12, Height = 12 };
-            if (mark.Child is SwiftImage image) image.ForegroundStyle(Chrome.PrimaryText.Opacity(0.75));
-            subtitle.Children.Add(mark); // :602-605
+            if (subtitleMade && subtitleOf == look?.Title) return; // only the heads effort changed: the line is the same
+            subtitleMade = true; subtitleOf = look?.Title;
+            subtitle.Children.Clear();
+            if (look is not null)
+            {
+                var mark = new HydraMarkImage { Width = 12, Height = 12 };
+                if (mark.Child is SwiftImage image) image.ForegroundStyle(Chrome.PrimaryText.Opacity(0.75));
+                subtitle.Children.Add(mark); // :602-605
+            }
+            else if (provider is { } kind) subtitle.Children.Add(new ProviderIcon { Provider = kind, Size = 12, Width = 12, Height = 12 }); // :606-608 real provider artwork from Components.
+            var name = EffortView.Text(look?.Title ?? modelName, SwiftFont.Body, Chrome.PrimaryText.Opacity(0.7)); // :609-614
+            name.TextTrimming = TextTrimming.CharacterEllipsis;
+            name.Margin = new Thickness(subtitle.Children.Count == 0 ? 0 : 5, 0, 0, 0); // :599 HStack spacing, leaving a finite text column.
+            var scaledName = TextScaling.Apply(name, 0.85); // :614 minimumScaleFactor, ED-214.
+            Grid.SetColumn(scaledName, 1); subtitle.Children.Add(scaledName);
         }
-        else if (provider is { } kind) subtitle.Children.Add(new ProviderIcon { Provider = kind, Size = 12, Width = 12, Height = 12 }); // :606-608 real provider artwork from Components.
-        var name = EffortView.Text(pair?.Title ?? modelName, SwiftFont.Body, Chrome.PrimaryText.Opacity(0.7)); // :609-614
-        name.TextTrimming = TextTrimming.CharacterEllipsis;
-        name.Margin = new Thickness(subtitle.Children.Count == 0 ? 0 : 5, 0, 0, 0); // :599 HStack spacing, leaving a finite text column.
-        var scaledName = TextScaling.Apply(name, 0.85); // :614 minimumScaleFactor, ED-214.
-        Grid.SetColumn(scaledName, 1); subtitle.Children.Add(scaledName);
+        Subtitle(pair);
         centre.Children.Add(subtitle); header.Children.Add(centre); rows.Children.Add(header);
         var sliderSlot = new Panel(); rows.Children.Add(sliderSlot);
         if (efforts.Count == 0)
@@ -574,29 +593,55 @@ public sealed class EffortSliderCard : Decorator
             var note = EffortView.Text("This model has one reasoning level.", SwiftFont.Callout, Chrome.SecondaryText);
             note.Height = EffortSlider.ThumbSize; note.HorizontalAlignment = HorizontalAlignment.Center; sliderSlot.Children.Add(note); // :620-624
         }
-        if (pair is not null && efforts.Count > 0)
+        // :642-651 `if let pair, !efforts.isEmpty { Text(...).transition(.softAppear) }`: a transition runs only for a view that
+        // joins or leaves a card already on screen (SwiftUI). A card made with a pair has its caption whole from its first paint
+        // (reference runtime, 2-chat-use.mov 43.665-43.757 s, the popover growing out of its arrow).
+        Control? captionHost = null;
+        TextBlock? caption = null;
+        void Caption(EffortPairLook? look, bool onScreen)
         {
-            var caption = EffortView.Text(pair.Caption, SwiftFont.System(SwiftFont.TextStyle.Subheadline), Chrome.SecondaryText);
-            pairCaption = caption;
+            if (look is null || efforts.Count == 0)
+            {
+                if (captionHost is { } leaving)
+                {
+                    captionHost = null; caption = null;
+                    // Chrome.swift:957 the removal half of softAppear: opacity, easeOut(0.12)
+                    EffortView.Animate(leaving, Animation.EaseOut(0.12), progress =>
+                    {
+                        leaving.Opacity = 1 - Math.Clamp(progress, 0, 1);
+                        if (progress >= 1) rows.Children.Remove(leaving);
+                    });
+                }
+                return;
+            }
+            if (caption is not null) { if (caption.Text != look.Caption) caption.Text = look.Caption; return; }
+            caption = EffortView.Text(look.Caption, SwiftFont.System(SwiftFont.TextStyle.Subheadline), Chrome.SecondaryText);
             caption.Margin = new Thickness(0, -6, 0, 0); caption.TextTrimming = TextTrimming.CharacterEllipsis;
             var scaledCaption = TextScaling.Apply(caption, 0.9); // :648 (ED-214).
             scaledCaption.HorizontalAlignment = HorizontalAlignment.Center; // :558 a VStack centres each child at its own width
+            captionHost = scaledCaption;
             rows.Children.Add(scaledCaption);
-            // :650, UI/Chrome/Chrome.swift:940-944,960: animate the modifier's layer properties
-            // with its shared timing; the Bool modifier itself carries no interpolated animatable data.
-            EffortView.Animate(scaledCaption, Animation.SoftAppear, progress =>
-            {
-                scaledCaption.Opacity = Math.Clamp(progress, 0, 1);
-                scaledCaption.RenderTransform = new TranslateTransform(0, 4 * (1 - progress));
-            });
+            // :650, Chrome.swift:940-944,949-955,960: the insertion half of softAppear animates the modifier's layer properties on
+            // its shared timing (Animation.softAppear, smooth 0.32): opacity 0 to 1 and a 4 point rise (the Bool modifier itself
+            // carries no interpolated data, so the transition type snaps; the layer properties are what move)
+            if (onScreen)
+                EffortView.Animate(scaledCaption, Animation.SoftAppear, progress =>
+                {
+                    scaledCaption.Opacity = Math.Clamp(progress, 0, 1);
+                    scaledCaption.RenderTransform = new TranslateTransform(0, 4 * (1 - progress));
+                });
         }
+        Caption(pair, onScreen: false);
         Child = new Border { Padding = new Thickness(16, 14, 16, 16), Child = rows }; // :653-655
         string? previousTitle = null;
         var previousMaximum = false;
         var previousFast = false;
-        this.Track(() => (ResolvedIndex(), supportsFast && fastMode.Value, ActualThemeVariant), value =>
+        live.Pair = pair;
+        this.Track(() => (ResolvedIndex(), supportsFast && fastMode.Value, ActualThemeVariant, live.Pair), value =>
         {
-            var (index, fast, theme) = value;
+            var (index, fast, theme, pairNow) = value;
+            Subtitle(pairNow);
+            if (previousTitle is not null) Caption(pairNow, onScreen: true);
             var maximum = efforts.Count > 1 && index == efforts.Count - 1; // :527-529
             var nextTitle = efforts.Count == 0 ? "Standard" : ModelOption.EffortTitle(efforts[index]);
             // :574 .contentTransition(.numericText()) morphs the title inside the change's animation (the slider's
@@ -615,8 +660,8 @@ public sealed class EffortSliderCard : Decorator
             previousMaximum = maximum;
             previousFast = fast;
             // :543-555 AnyShapeStyle is represented by Avalonia's brush; every literal colour comes from Swift.
-            var titleBrush = pair is not null
-                ? EffortView.Gradient(new[] { brand.TitleColor }.Concat(pair.Brand.TitleColors).Concat(fast ? new[] { EffortPalette.Fast } : Array.Empty<SwiftColor>()), theme)
+            var titleBrush = pairNow is not null
+                ? EffortView.Gradient(new[] { brand.TitleColor }.Concat(pairNow.Brand.TitleColors).Concat(fast ? new[] { EffortPalette.Fast } : Array.Empty<SwiftColor>()), theme)
                 : maximum && fast ? EffortView.Gradient([brand.TitleColor, EffortPalette.Fast], theme)
                 : maximum ? EffortView.BrandTitle(brand, theme)
                 : (fast ? EffortPalette.Fast : EffortPalette.Title).Brush(title);
@@ -629,10 +674,10 @@ public sealed class EffortSliderCard : Decorator
             if (efforts.Count == 0) return;
             // :626-637 keep the gesture's own binding alive; changes to look/title update it without replacing the dragging view.
             if (sliderSlot.Children.FirstOrDefault() is EffortSlider existing)
-                existing.UpdateLook(fast, title.Text!, pair?.Brand);
+                existing.UpdateLook(fast, title.Text!, pairNow?.Brand);
             else sliderSlot.Children.Add(new EffortSlider(efforts.Count,
                 new Binding<int>(ResolvedIndex, chosen => Transaction.WithAnimation(Animation.Snappy(0.2), () => effort.Value = efforts[chosen])),
-                title.Text!, fast, brand, pair?.Brand, fadeFrom)); // OD-0090: a model change crossfades from the last maker's colours
+                title.Text!, fast, brand, pairNow?.Brand, fadeFrom)); // OD-0090: a model change crossfades from the last maker's colours
         });
     }
 }
