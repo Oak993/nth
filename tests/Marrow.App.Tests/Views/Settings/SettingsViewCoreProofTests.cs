@@ -254,6 +254,7 @@ public sealed class SettingsViewCoreProofTests(HeadlessSession headless)
         var models = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("Models")); var modelsButton = Nodes<Button>(models).Single(); var background = (Border)modelsButton.Content!;
         PointerOver(modelsButton); Frame(h, 50); Assert.NotEqual(SwiftColor.Clear.Resolve(background.ActualThemeVariant), ColorOf(background.Background)); Frame(h, 51); Assert.Equal(Chrome.Overlay(0.06).Resolve(background.ActualThemeVariant), ColorOf(background.Background));
         Click(modelsButton); Sync(); Assert.Single(Nodes<ModelsSettingsPage>(view));
+        Frame(h, 110); // Chrome.swift:729 the wash leaves General on Chrome.hover (easeOut 0.1 s): read the rows once its 0.1 s are over
         var general = Nodes<SidebarRow>(view).Single(r => Text(r).Contains("General")); var generalButton = Nodes<Button>(general).Single();
         Field<SettingsScrollTracker>(view, "scrollTracker").Note(); Sync(); Assert.False(rows.IsHitTestVisible);
         Press(generalButton); Assert.Single(Nodes<ModelsSettingsPage>(view)); // :182 real pointer hit testing blocks the click.

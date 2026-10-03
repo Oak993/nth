@@ -1079,6 +1079,7 @@ namespace Marrow.UI.Chrome
             bool isEmphasized = false,
             double accessoryWidth = 0)
         {
+            selected = isSelected;
             var state = new ViewState();
             var iconSlot = icon(); // :712
             iconSlot.Width = Chrome.IconSize; // :713 .frame(width:, alignment: .center)
@@ -1087,8 +1088,8 @@ namespace Marrow.UI.Chrome
             var text = new TextBlock { Text = title, MaxLines = 1, TextWrapping = TextWrapping.NoWrap, TextTrimming = TextTrimming.CharacterEllipsis }; // :714, :718-719 .lineLimit(1).truncationMode(.tail)
             void ApplyText()
             {
-                SwiftFont.System(SwiftFont.TextStyle.Body, weight: isSelected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
-                text.Foreground = Chrome.PrimaryText.Opacity(isSelected ? 1 : 0.92).Brush(text); // :718
+                SwiftFont.System(SwiftFont.TextStyle.Body, weight: selected || isEmphasized ? SwiftFont.Weight.Medium : SwiftFont.Weight.Regular).Apply(text); // :717
+                text.Foreground = Chrome.PrimaryText.Opacity(selected ? 1 : 0.92).Brush(text); // :718
             }
             ApplyText();
 
@@ -1110,14 +1111,24 @@ namespace Marrow.UI.Chrome
             }.RoundedRectangle(Chrome.RowCornerRadius, RoundedCornerStyle.Continuous);
             var fill = new AnimatedColor(shape);
             shape.Background = fill.Brush;
-            fill.Set(FillFor(isSelected, false), null);
+            fill.Set(FillFor(selected, false), null);
 
-            var button = new SelectableButton(isSelected) { Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
+            var button = new SelectableButton(() => selected) { Template = PlainButtonTemplate, Content = shape, Padding = default }; // :709, :730
             button.Click += (_, _) => action();
             button.Track(() => state.IsHovering, hovering =>
             {
-                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(isSelected, hovering), Transaction.Current)); // :729
+                Transaction.WithAnimation(Chrome.Hover, () => fill.Set(FillFor(selected, hovering), Transaction.Current)); // :729
             });
+            // :729 `.background { shape.fill(fill).animation(Chrome.hover, value: isSelected) }`: a new isSelected eases the
+            // fill on Chrome.hover whatever transaction carried it (the modifier's own curve for a change of its value), from
+            // where the fill is drawn now. The title's weight and opacity (:717-718) and the trait (:738) have no animation
+            // of their own and take the new value under the change's transaction; every caller that changes a row's
+            // selection (SettingsView.swift:149, `page = item` and its other writes) carries none, so they change at once.
+            applySelection = () =>
+            {
+                ApplyText();
+                fill.Set(FillFor(selected, state.IsHovering), Chrome.Hover);
+            };
             var overlay = new Panel { Children = { button } };
             // :731-737 `.overlay(alignment: .trailing) { accessory }` comes BEFORE `.onHover`, so the hover region is the
             // button together with its overlaid accessory: the pointer resting on the ellipsis or the plus is still on the
@@ -1155,6 +1166,22 @@ namespace Marrow.UI.Chrome
         }
 
         private readonly Action refreshAccessory;
+        private readonly Action applySelection;
+        private bool selected;
+
+        /// <summary>:683 <c>let isSelected: Bool</c>, handed in anew when the view that owns the row renders it again under
+        /// the same identity (SettingsView.swift:148-149, a ForEach over the pages, so a page keeps its row): the fill eases
+        /// to the new state on Chrome.hover (:729), the title and the trait take it at once (:717-718, :738).</summary>
+        public bool IsSelected
+        {
+            get => selected;
+            set
+            {
+                if (selected == value) return;
+                selected = value;
+                applySelection();
+            }
+        }
 
         /// <summary>The accessory closure asked again with the row's own hover state: SwiftUI re-reads
         /// <c>accessory(isHovering)</c> whenever the view that owns the row renders, so a caller whose accessory reads its
@@ -1187,7 +1214,7 @@ namespace Marrow.UI.Chrome
         // state; :738 `.accessibilityAddTraits(isSelected ? [.isSelected, .isButton] : .isButton)` is exposed through
         // ISelectionItemProvider, the platform's own selectable-item automation pattern, alongside the button's
         // invoke behaviour.
-        private sealed class SelectableButton(bool isSelected) : Button
+        private sealed class SelectableButton(Func<bool> isSelected) : Button
         {
             protected override AutomationPeer OnCreateAutomationPeer() => new Peer(this, isSelected);
 
@@ -1197,10 +1224,10 @@ namespace Marrow.UI.Chrome
                 if (IsEffectivelyEnabled) OnClick();
             }
 
-            private sealed class Peer(Control owner, bool isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
+            private sealed class Peer(Control owner, Func<bool> isSelected) : ControlAutomationPeer(owner), ISelectionItemProvider, IInvokeProvider
             {
                 protected override AutomationControlType GetAutomationControlTypeCore() => AutomationControlType.Button;
-                bool ISelectionItemProvider.IsSelected => isSelected;
+                bool ISelectionItemProvider.IsSelected => isSelected();
                 ISelectionProvider? ISelectionItemProvider.SelectionContainer => null;
                 void ISelectionItemProvider.AddToSelection() { }
                 void ISelectionItemProvider.RemoveFromSelection() { }

@@ -136,6 +136,8 @@ public sealed class SettingsView : Decorator
     private readonly ChromeScrollModel scrollChrome = new();
     private readonly SettingsScrollTracker scrollTracker = new();
     private readonly StackPanel rows = new() { Spacing = 1, Margin = new Thickness(Chrome.ListInset, 12, Chrome.ListInset, 8) }; // :147,179-181
+    private readonly Dictionary<SettingsPage, SidebarRow> pageRows = new(); // :148 the row each listed page keeps under its ForEach id
+    private Control? noResults; // :166-177 the "No results" block while it shows
     private readonly Control sidebar;
     private readonly Border detail = new();
     private readonly Border frame;
@@ -193,36 +195,61 @@ public sealed class SettingsView : Decorator
             if (pages.Count > 0 && !pages.Contains(state.Page)) state.Page = pages[0];
             RebuildSidebar();
         });
-        this.Track(() => state.Page, _ => { RebuildSidebar(); RebuildDetail(); });
-        this.Track(() => UpdateChecker.Shared.UpdateAvailable, _ => RebuildSidebar());
+        this.Track(() => state.Page, _ => { SelectRows(); RebuildDetail(); });
+        this.Track(() => UpdateChecker.Shared.UpdateAvailable, _ => { pageRows.Remove(SettingsPage.About); RebuildSidebar(); }); // :158-162 the About row's icon reads it
         this.Track(() => { var model = AppEnvironment.GetAppModel(this); _ = model.Threads; return model.ArchivedThreads.Count; }, count => { if (state.Page == SettingsPage.Archive && (count == 0) != (pageStack is null)) RebuildDetail(); }); // :198 observe the collection behind the computed archive count; the page's ScrollView identity is its page (:231), so only the empty placeholder swap rebuilds.
         rows.Track(() => scrollTracker.IsFrozen, value => rows.IsHitTestVisible = !value); // :182
         DetachedFromVisualTree += (_, _) => scrollTracker.End(); // :117
     }
 
-    // :148-177
+    // :148-177. `ForEach(visiblePages) { item in SidebarRow(title:, isSelected: page == item, ...) }`: a page keeps its row
+    // under its ForEach id while it stays listed (its hover with it), and a new pass hands the row its isSelected, which
+    // eases the row's fill on Chrome.hover (Chrome.swift:729; 1-settings-tour.mov 47.765-47.85 s). A page that leaves the
+    // list drops its row and its state; one that comes back is built anew. Kept rows stay where they are in the panel
+    // (the pages keep their declaration order, :4-15), so a new pass only takes out and puts in the rows that change.
     private void RebuildSidebar()
     {
-        rows.Children.Clear();
-        foreach (var page in VisiblePages)
+        var pages = VisiblePages;
+        foreach (var gone in pageRows.Keys.Where(page => !pages.Contains(page)).ToList()) pageRows.Remove(gone);
+        var wanted = new List<Control>();
+        foreach (var page in pages) wanted.Add(RowFor(page));
+        if (pages.Count == 0) wanted.Add(noResults ??= NoResults());
+        else noResults = null;
+        for (var i = rows.Children.Count - 1; i >= 0; i--)
+            if (!wanted.Contains(rows.Children[i])) rows.Children.RemoveAt(i);
+        for (var i = 0; i < wanted.Count; i++)
+            if (i >= rows.Children.Count || !ReferenceEquals(rows.Children[i], wanted[i])) rows.Children.Insert(i, wanted[i]);
+        SelectRows();
+    }
+
+    // :149 `isSelected: page == item`, handed to every listed row on each pass.
+    private void SelectRows()
+    {
+        foreach (var (page, row) in pageRows) row.IsSelected = state.Page == page;
+    }
+
+    private SidebarRow RowFor(SettingsPage page)
+    {
+        if (pageRows.TryGetValue(page, out var kept)) return kept;
+        var none = new Border(); // :149 SidebarRow(title:isSelected:action:icon:) has an EmptyView accessory: one view, whatever the hover
+        var row = new SidebarRow(page.Title, () => state.Page = page, () =>
         {
-            var none = new Border(); // :149 SidebarRow(title:isSelected:action:icon:) has an EmptyView accessory: one view, whatever the hover
-            var row = new SidebarRow(page.Title, () => state.Page = page, () =>
-            {
-                var badge = new SidebarIconBadge(() => page == SettingsPage.Hydra
-                    ? new HydraMarkImage { Width = Chrome.SymbolSize * 1.15, Height = Chrome.SymbolSize * 1.15 }
-                    : new SidebarSymbol(page.Symbol, page == SettingsPage.General ? 1.15 : 1)); // :151-157
-                if (page != SettingsPage.About || !UpdateChecker.Shared.UpdateAvailable) return badge;
-                return new Panel { Children = { badge, new UpdateAvailableDot { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top } } }; // :159-163
-            }, _ => none, isSelected: state.Page == page);
-            rows.Children.Add(row);
-        }
-        if (VisiblePages.Count == 0)
-        {
-            var noResults = new TextBlock { Text = "No results", Foreground = Chrome.PrimaryText.Opacity(0.92).Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold));
-            var note = new TextBlock { Text = "Try a setting or a provider name.", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline));
-            rows.Children.Add(new StackPanel { Spacing = 6, Margin = new Thickness(8, 14, 8, 0), Children = { noResults, note } }); // :166-177
-        }
+            var badge = new SidebarIconBadge(() => page == SettingsPage.Hydra
+                ? new HydraMarkImage { Width = Chrome.SymbolSize * 1.15, Height = Chrome.SymbolSize * 1.15 }
+                : new SidebarSymbol(page.Symbol, page == SettingsPage.General ? 1.15 : 1)); // :151-157
+            if (page != SettingsPage.About || !UpdateChecker.Shared.UpdateAvailable) return badge;
+            return new Panel { Children = { badge, new UpdateAvailableDot { HorizontalAlignment = HorizontalAlignment.Right, VerticalAlignment = VerticalAlignment.Top } } }; // :159-163
+        }, _ => none, isSelected: state.Page == page);
+        pageRows[page] = row;
+        return row;
+    }
+
+    // :166-177
+    private Control NoResults()
+    {
+        var title = new TextBlock { Text = "No results", Foreground = Chrome.PrimaryText.Opacity(0.92).Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Body, weight: SwiftFont.Weight.Semibold));
+        var note = new TextBlock { Text = "Try a setting or a provider name.", Foreground = Chrome.SecondaryText.Brush(this) }.Font(SwiftFont.System(SwiftFont.TextStyle.Subheadline));
+        return new StackPanel { Spacing = 6, Margin = new Thickness(8, 14, 8, 0), Children = { title, note } };
     }
 
     // :196-215

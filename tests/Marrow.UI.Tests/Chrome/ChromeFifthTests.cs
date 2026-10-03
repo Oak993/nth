@@ -617,6 +617,73 @@ public sealed class ChromeFifthTests(HeadlessSession headless)
         finally { window.Close(); }
     });
 
+    // Chrome.swift:729 `.background { shape.fill(fill).animation(Chrome.hover, value: isSelected) }`: a row handed a new
+    // isSelected (SettingsView.swift:149 `isSelected: page == item`, the row kept under its ForEach id) eases its fill to the
+    // new state (:741-745) on Chrome.hover, easeOut 0.1 s, whatever transaction carried the change: `.animation(_:value:)`
+    // puts its own curve on a change of its value, so a change carried by none and one carried by another curve both ease
+    // on it. The title's weight and opacity (:717-718) and the selected trait (:738) have no animation of their own, and the
+    // change here carries none, so they take the new value at once; the trait is the one the row's peer reports.
+    [Fact]
+    [Trait("Req", "PR-WIN-200")] // Chrome.swift:717-718, :729, :738, :741-745: a selection change eases the fill on Chrome.hover
+    public void SidebarRow_handed_a_new_selection_eases_its_fill_on_chrome_hover_and_sets_its_title_and_trait_at_once() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        var time = new ManualTimeProvider();
+        using var source = FrameClock.Source.Override(frames);
+        using var clock = SwiftClock.Provider.Override(time);
+        var row = new SidebarRow("Chat", () => { }, () => new TextBlock());
+        var window = Show(new StackPanel { Width = 300, Children = { row } }, ThemeVariant.Light);
+        void Step(double seconds)
+        {
+            time.Advance(TimeSpan.FromSeconds(seconds));
+            frames.Advance(TimeSpan.FromSeconds(seconds));
+            Dispatcher.UIThread.RunJobs();
+        }
+        try
+        {
+            var shape = row.GetVisualDescendants().OfType<Border>().First(b => b.CornerRadius.TopLeft == Chrome.RowCornerRadius);
+            var title = row.GetVisualDescendants().OfType<TextBlock>().Single(t => t.Text == "Chat");
+            var button = row.GetVisualDescendants().OfType<Button>().First();
+            var provider = Assert.IsAssignableFrom<ISelectionItemProvider>(ControlAutomationPeer.CreatePeerForElement(button).GetProvider<ISelectionItemProvider>());
+            var selected = Label(0.12, ThemeVariant.Light); // :742
+            var p = Animation.EaseOut(0.1).Progress(0.05); // :729 Chrome.hover, half way through
+            byte Alpha() => Effective(shape.Background).A;
+            Assert.False(row.IsSelected);
+            Assert.False(provider.IsSelected);
+            Assert.Equal(0, Alpha()); // :744 clear
+
+            row.IsSelected = true; // no transaction
+            Dispatcher.UIThread.RunJobs();
+            Assert.True(row.IsSelected);
+            Assert.Equal(FontWeight.Medium, TextElement.GetFontWeight(title)); // :717 at once
+            AssertColor(Label(1, ThemeVariant.Light), Effective(title.Foreground)); // :718 at once
+            Assert.True(provider.IsSelected); // :738 the peer it had reports the new state
+            Assert.Equal(0, Alpha()); // the fill has not jumped
+            Step(0.05);
+            Assert.InRange((int)Alpha(), (int)Math.Round(selected.A * p) - 1, (int)Math.Round(selected.A * p) + 1); // part way on easeOut 0.1 s
+            Assert.InRange(Alpha(), (byte)1, (byte)(selected.A - 1));
+            Step(0.06);
+            AssertColor(selected, Effective(shape.Background));
+
+            Transaction.WithAnimation(Animation.Linear(1), () => row.IsSelected = false); // another curve in force
+            Dispatcher.UIThread.RunJobs();
+            Assert.Equal(FontWeight.Regular, TextElement.GetFontWeight(title)); // :717
+            AssertColor(Label(0.92, ThemeVariant.Light), Effective(title.Foreground)); // :718
+            Assert.False(provider.IsSelected); // :738
+            Step(0.05);
+            Assert.InRange((int)Alpha(), (int)Math.Round(selected.A * (1 - p)) - 1, (int)Math.Round(selected.A * (1 - p)) + 1); // on Chrome.hover, not the linear 1 s
+            Assert.InRange(Alpha(), (byte)1, (byte)(selected.A - 1));
+            Step(0.06);
+            Assert.Equal(0, Alpha()); // :744 clear again after 0.1 s
+
+            row.IsSelected = false; // the same value: nothing moves
+            Dispatcher.UIThread.RunJobs();
+            Step(0.05);
+            Assert.Equal(0, Alpha());
+        }
+        finally { window.Close(); }
+    });
+
     // ---- PR-WIN-201: RowAccessoryIcon ----
 
     [Fact]
