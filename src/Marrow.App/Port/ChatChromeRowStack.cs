@@ -59,6 +59,7 @@ internal sealed class ChatChromeRowStack : StackPanel
     /// now, on <paramref name="animation"/> (a control that arrives has no old place and comes in at its own).</summary>
     internal void Glide(Animation animation)
     {
+        if (Bounds.Width <= 0) return; // nothing has been drawn yet: there is no old place to glide from.
         glide = animation;
         glideStart = SwiftClock.Now;
         glideFrames = FrameClock.Source.Current;

@@ -151,6 +151,44 @@ public sealed class ChatViewParityAppearTests(HeadlessSession headless)
     public void The_Hydra_button_leaves_on_an_ease_out_fade_of_0_12_seconds_without_sinking() =>
         AssertLeaves<HydraButton>(sidebarHoldsButtons: true, hydra: true, model => model.Settings.HydraEnabled = false);
 
+    // The row's glide starts from where the controls were drawn: a row that has not been laid out yet has drawn nothing, so a change of the window
+    // buttons' owner before its first layout puts the controls at their places at once (they do not sweep in from the row's start).
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // ChatView.swift:1179; ED-NEW-parity-chatview (1)
+    public void A_row_that_has_not_been_laid_out_yet_places_its_controls_at_once_when_the_window_buttons_move()
+    {
+        ChatHeadlessFixtures.Run(headless, () =>
+        {
+            using var h = new AppModelHarness();
+            var model = h.MakeModel();
+            using var actor = MainActor.Executor.Override(AvaloniaMainExecutor.Instance);
+            var time = new ManualTimeProvider(new DateTimeOffset(2026, 10, 3, 0, 0, 0, TimeSpan.Zero));
+            using var timeScope = SwiftClock.Provider.Override(time);
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var (row, window) = h.Main.OnMain(() =>
+            {
+                model.Settings.SidebarFloats = false;
+                model.Settings.HydraEnabled = false;
+                model.Sidebar.NoteLaidOutWidth(400);
+                var runtime = model.Runtime(model.NewThread(model.AddProject(new Project("P", h.NewFolder("p")).Url))!.Id);
+                var built = new ChatChromeRow(model, runtime, new ChromeScrollModel(), "T", null, h.Scratch, new GitStatusModel());
+                model.Sidebar.NoteLaidOutWidth(0); // the buttons leave the sidebar before anything is drawn.
+                return (built, new AvaloniaWindow { Content = built, Width = 1400, Height = 300 });
+            });
+            h.Main.RunUntilIdle();
+            h.Main.OnMain(() => { ChatHeadlessFixtures.Track(window); window.Show(); });
+            Step(h, window, time, frames, 0);
+            double NewThreadX() => h.Main.OnMain(() => LogicalQuery.SelfAndDescendants<ChromeCircleButton>(row).Single(control =>
+                (ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(control).First()) as string ?? "").StartsWith("New thread", StringComparison.Ordinal))
+                .TranslatePoint(default, window)!.Value.X);
+            var first = NewThreadX();
+            Assert.Equal(14 + 42, first, 1); // after the Threads button's slot, on the very first frame.
+            Step(h, window, time, frames, 500);
+            Assert.Equal(first, NewThreadX(), 1);
+        });
+    }
+
     // The toggle capsule (ChatView.swift:1164-1172): the buttons keep their identity across a refresh, and the "on" circle of each fades in and out
     // where its flag changes: the terminal's on the panel slide (the column's `.animation(Chrome.panelSlide, value: runtime.isTerminalVisible)`, :290),
     // the Changes button's, which the Mac snaps, on the hover curve (OD-0076).
