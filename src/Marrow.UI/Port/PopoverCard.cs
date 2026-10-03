@@ -326,11 +326,18 @@ public sealed class PopoverCard : Decorator, Avalonia.Rendering.ICustomHitTest
     internal static (PopoverTipEdge Edge, double Offset) Aim(Rect card, Rect anchor, PopoverTipEdge preferred)
     {
         // A popup flips along the axis it was placed on, never across it: above or below for a tip on the top or bottom,
-        // left or right for one on the side; the card's middle against the anchor's says which.
+        // left or right for one on the side. The tip turns only once the card's body (the card less the tip's room) is
+        // wholly on the other side of the anchor; a card pushed over its anchor keeps the edge it has (turning by the
+        // middles, each turn moved the card's rooms, the middles crossed back and the layout never settled).
         var vertical = preferred is PopoverTipEdge.Top or PopoverTipEdge.Bottom;
-        var edge = vertical
-            ? (card.Center.Y < anchor.Center.Y ? PopoverTipEdge.Bottom : PopoverTipEdge.Top)
-            : (card.Center.X < anchor.Center.X ? PopoverTipEdge.Right : PopoverTipEdge.Left);
+        const double slack = 0.5;
+        var edge = preferred switch
+        {
+            PopoverTipEdge.Bottom => card.Top >= anchor.Bottom - slack ? PopoverTipEdge.Top : PopoverTipEdge.Bottom,
+            PopoverTipEdge.Top => card.Bottom <= anchor.Top + slack ? PopoverTipEdge.Bottom : PopoverTipEdge.Top,
+            PopoverTipEdge.Right => card.Left >= anchor.Right - slack ? PopoverTipEdge.Left : PopoverTipEdge.Right,
+            _ => card.Right <= anchor.Left + slack ? PopoverTipEdge.Right : PopoverTipEdge.Left,
+        };
         var length = vertical ? card.Width : card.Height;
         var at = vertical ? anchor.Center.X - card.Left : anchor.Center.Y - card.Top;
         var least = TipHalfWidth + TipShoulderRadius;

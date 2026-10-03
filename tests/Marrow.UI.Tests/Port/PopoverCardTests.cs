@@ -417,6 +417,30 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         Assert.True(Enumerable.Range(0, image.Width).All(x => image.GetPixel(x, lastRow).Alpha <= 3), "the shadow is cut by the popup's edge under the tip");
     });
 
+    // A card pushed over its anchor (a popup slid back on screen with no room on either side) keeps the edge it has: it
+    // turns only once its body is wholly on the other side. Turning by the centres, the card's shadow room and tip room
+    // moved with each turn, the centres crossed again, and the layout never settled ("Infinite layout loop detected",
+    // found through the card-wrapping recording presenter: ComposerViewComponentsTests, MCPSettingsPageProofsMcpATests).
+    [Theory]
+    [Trait("Decision", "ED-238")] // OD-0095
+    [InlineData(PopoverTipEdge.Bottom)]
+    [InlineData(PopoverTipEdge.Top)]
+    [InlineData(PopoverTipEdge.Right)]
+    public void A_card_over_its_anchor_settles_on_the_edge_it_has(PopoverTipEdge edge) => headless.OnUiThread(() =>
+    {
+        var anchor = new Border { Width = 40, Height = 30, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var card = new PopoverCard { Child = new Border { Width = 120, Height = 50 }, TipEdge = edge, Anchor = anchor, ShadowRoom = true, HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center };
+        var window = new Window { Width = 400, Height = 300, Content = new Panel { Children = { anchor, card } } };
+        window.Show();
+        try
+        {
+            Dispatcher.UIThread.RunJobs();
+            for (var i = 0; i < 5; i++) { window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); }
+            Assert.Equal(edge, card.TipEdge);
+        }
+        finally { window.Close(); }
+    });
+
     // An anchor whose window is gone (closed, or never shown: a row a refresh rebuilt while its popover was open) leaves
     // the card as it is; following it must never throw out of a layout pass (found through the card-wrapping recording
     // presenter: MCPSettingsPageProofsMcpATests, "Visual does not belong to a visual tree" from PointToScreen).
