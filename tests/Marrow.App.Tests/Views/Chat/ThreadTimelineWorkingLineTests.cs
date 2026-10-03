@@ -72,6 +72,9 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         // The card (:2144-2147): 380 wide, 14 leading and trailing, 11 above and below, a continuous rounded rectangle at the pill's radius for the hit shape.
         Assert.Equal(380, frame.Bounds.Width, 3); Assert.Equal(new Thickness(14, 11), frame.Padding); Assert.Equal(TimelineMetrics.PillRadius, frame.CornerRadius.TopLeft);
         Assert.NotNull(frame.Background);
+        // :2178-2181 the fill behind it is the card's own width (the stack it backs hugs what it holds), not the row's: the cousin's card is 380 wide on a 820 column.
+        var shell = LogicalQuery.SelfAndDescendants<Border>(line).First(border => border.CornerRadius.TopLeft == TimelineMetrics.PillRadius);
+        Assert.Equal(380, shell.Bounds.Width, 3); Assert.True(line.Bounds.Width > 380, "on a row wider than the card");
         // :2122 an HStack aligned on the first text baseline, spacing 8; :2124 the title takes the full width, so the time and the chevron sit at the trailing edge.
         Assert.Equal(frame.Bounds.Width - 28, header.Bounds.Width, 3);
         Assert.Equal(title.Bounds.Right + 8, time.Bounds.Left, 1); Assert.Equal(time.Bounds.Right + 8, chevron.Bounds.Left, 1); Assert.Equal(header.Bounds.Width, chevron.Bounds.Right, 1);
@@ -79,7 +82,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         // :2121 the inner column has spacing 10: the bar sits 10 under the header row.
         var bar = LogicalQuery.SelfAndDescendants<HydraProgressBar>(line).Single();
         Assert.Equal(10, bar.TranslatePoint(default, frame)!.Value.Y - (header.TranslatePoint(default, frame)!.Value.Y + header.Bounds.Height), 1);
-        var cardWidth = line.Bounds.Width;
+        var cardWidth = Frame(line).Bounds.Width;
         // :2144-2147 the badge (the setting off): the pill's own insets, no fixed width, no bar, the title as wide as its words.
         mount.Model.Settings.ShowsWorkingCard = false; mount.Advance(300);
         Assert.Same(line, Line(mount));
@@ -91,7 +94,7 @@ public sealed class ThreadTimelineWorkingLineTests(HeadlessSession headless)
         Assert.Equal(frame.Padding.Left + header.Bounds.Width + frame.Padding.Right, frame.Bounds.Width, 1);
         Assert.Equal(BaselineY(title, header), BaselineY(time, header), 0.3);
         mount.Model.Settings.ShowsWorkingCard = true; mount.Advance(300);
-        Assert.Equal(cardWidth, line.Bounds.Width, 3);
+        Assert.Equal(cardWidth, Frame(line).Bounds.Width, 3);
         // :2107-2119 the press opens it over .snappy(duration: 0.24) and asks the timeline to follow the end; pressing it again closes it over the same animation and asks nothing.
         var tracking = mount.Field<TimelineScrollTracking>("tracking");
         mount.Scroll.Offset = new Vector(0, 100); mount.Advance(400); tracking.IsPinnedToBottom = false; tracking.EndActivity();

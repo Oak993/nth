@@ -1289,7 +1289,7 @@ public sealed class WorkingIndicator : Decorator
         startedAtValue = startedAt; finishedAtValue = finishedAt;
         var isExpanded = chronological; var showsAllSteps = chronological; var now = SwiftDate.Now;
         var canExpand = thinkingSteps.Count != 0 || liveWork.Count != 0; var running = finishedAt is null;
-        var shell = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = SwiftColor.Quaternary.Opacity(0.32).Brush(this) }; Child = shell;
+        var shell = new Border { CornerRadius = new CornerRadius(TimelineMetrics.PillRadius), Background = SwiftColor.Quaternary.Opacity(0.32).Brush(this), HorizontalAlignment = HorizontalAlignment.Left }; Child = shell; // :2178-2181 the fill is the card's own width: the stack it backs hugs what it holds, it is not the row's width
         var column = new StackPanel(); shell.Child = column; // :2106 VStack(spacing: rowSpacing): the opened body brings that space with it, so it grows and folds with the body
         // The line's own parts live across renders, as SwiftUI keeps the views of a body that runs again: the label and its time go on ticking, the
         // bar keeps its state, and what changes (:2182-2183 the label and whether there is anything to open) changes in place under `change`.
