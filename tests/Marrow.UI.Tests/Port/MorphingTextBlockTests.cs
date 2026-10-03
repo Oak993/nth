@@ -119,6 +119,32 @@ public sealed class MorphingTextBlockTests(HeadlessSession headless)
         Assert.All(end, glyph => Assert.Equal(0, glyph.Opacity, 3));
     }
 
+    // SOURCE FACT, measured every frame by the round-1 review (2-chat-use.mov, High -> Extra High at 34.84 s, the slider's
+    // snappy 0.2 change; review\kept_high_touches_chevron_34.72-34.97.png): the gap between the kept "High" and the chevron
+    // (the label's frame) is 9 px at rest, then 1, 3, 4, 6, 7 at 34.865, 34.887, 34.907, 34.928, 34.950 s, and settles back.
+    // The chevron rides the frame, which follows the change's own curve from 34.860 s (fitted on the chevron alone, within
+    // 0.4 px); the label grew by 42 px, so the gap is 9 + 42 * (frame's progress - the kept letters' progress). The kept
+    // letters' own curve, fitted to all five frames, must give those gaps within 2 px (each edge is read to the pixel;
+    // the fit's worst frame is 1.5 off), and give the gap back at the end.
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-111")]
+    public void The_kept_letters_run_ahead_of_the_labels_frame_as_the_video_measures()
+    {
+        var change = Animation.Snappy(0.2);
+        const double start = 34.8604;
+        var frames = new (double Time, double Gap)[] { (34.865, 1), (34.887, 3), (34.907, 4), (34.928, 6), (34.950, 7) };
+        double Gap(double seconds)
+        {
+            var kept = MorphingTextBlock.Glyphs("High", "Extra High", seconds, change).Single(glyph => glyph.OldIndex == 0);
+            return 9 + 42 * (change.Progress(seconds) - kept.Progress);
+        }
+        foreach (var (time, gap) in frames)
+            Assert.True(Math.Abs(Gap(time - start) - gap) <= 2, $"at {time} s the gap is {Gap(time - start):F1} px; the video's {gap}");
+        Assert.InRange(Gap(0), 1, 9 - 42 * 0.02); // ahead from the change's first frame, never touching
+        for (var ms = 100; ms <= 400; ms += 20) Assert.InRange(Gap(ms / 1000.0), 8, 10); // and back to the gap at rest
+        Assert.Equal(1.0, MorphingTextBlock.Glyphs("High", "Extra High", MorphingTextBlock.Length(change), change).Single(glyph => glyph.OldIndex == 0).Progress); // exactly home
+    }
+
     // A letter a change keeps is drawn by the text renderer through the whole change as at rest: the same weight and
     // edges on the frame the change takes it over, every frame while it runs, and the frame it hands it back (round 1
     // drew it as an outline, greyscale and thinner, so it snapped at both ends; REVIEW ede6bf6fa). "2024" -> "2025" keeps

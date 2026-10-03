@@ -57,6 +57,15 @@ public class MorphingTextBlock : TextBlock
     internal const double SpreadShare = 0.55; // the letters' turns, first to last, as a share of the change's duration
     internal const double ArrivalShare = 0.15; // how long, as a share of the duration, the first new letter waits
 
+    // The kept letters run ahead of the label's frame (video, High -> Extra High at 34.84 s, every frame: the gap between
+    // the kept "High" and the chevron goes 9, 1, 3, 4, 6, 7, then back to 9; "High" makes a third of its way before the
+    // chevron moves). ENGINEERING DECISION, fitted to those five frames (worst frame 1.5 px off, the frame's curve fitted on the
+    // chevron alone within 0.4 px): the kept letters run the change's own curve 23 ms ahead of the frame, drawn out by
+    // 1.22 (for the slider's snappy 0.2 spring, a 0.244 spring of the same damping), so they lead it at once, most at
+    // about 20 ms, and meet it again without passing it.
+    internal const double KeptLead = 0.023;
+    internal const double KeptStretch = 1.22;
+
     private Morph? morph;
     private IFrameSource? frames;
     private Action<TimeSpan>? tick;
@@ -543,7 +552,8 @@ public class MorphingTextBlock : TextBlock
     /// <summary>Every character of a change at <paramref name="seconds"/> into it (see the file note for the rules).</summary>
     internal static List<GlyphState> Glyphs(string oldText, string newText, double seconds, Animation animation)
     {
-        var shared = animation.Progress(Math.Min(seconds, animation.Duration));
+        var keptTime = (seconds + KeptLead) / KeptStretch; // the kept letters' own clock (see KeptLead)
+        var shared = keptTime >= animation.Duration - 1e-9 ? 1 : animation.Progress(keptTime);
         var pairs = KeptLetters(oldText, newText);
         var result = new List<GlyphState>();
         var keptOld = new HashSet<int>(pairs.Select(pair => pair.Old));
