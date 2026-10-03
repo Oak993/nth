@@ -406,7 +406,13 @@ internal sealed class SmallSwitch : Control
         IBrush trackBrush = tint.Value == 1 ? Chrome.AccentNSColor.Brush(this) : tint.Value == 0 ? Chrome.Overlay(0.10).Brush(this) : new SolidColorBrush(TrackNow());
         context.DrawRectangle(trackBrush, null, track, TrackHeight / 2, TrackHeight / 2);
         var knob = KnobNow();
-        context.DrawRectangle(Brushes.White, null, knob, KnobHeight / 2, KnobHeight / 2);
+        // Pressed, the knob turns into the Mac's glass lens (CATALOGUE settings.switch-toggle): the port's held-knob look, the one the
+        // transparency slider's knob takes while dragged (PortControlThemes.SliderTemplate: white at 0x30, a 1 px white at 0x55 rim,
+        // alphas UNVERIFIED), faded in with the widening.
+        var lens = widen.Value;
+        IBrush fill = lens == 0 ? Brushes.White : new SolidColorBrush(Color.FromArgb((byte)Math.Round(255 - (255 - 0x30) * lens), 255, 255, 255));
+        Pen? rim = lens == 0 ? null : new Pen(new SolidColorBrush(Color.FromArgb((byte)Math.Round(0x55 * lens), 255, 255, 255)), 1);
+        context.DrawRectangle(fill, rim, knob, KnobHeight / 2, KnobHeight / 2);
     }
 }
 
