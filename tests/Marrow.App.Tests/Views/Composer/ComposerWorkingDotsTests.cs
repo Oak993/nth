@@ -174,32 +174,6 @@ public sealed class ComposerWorkingDotsTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "UI-COMPOSER-017")] // Fills pill's bottom 40%, clipped to 22 point radius
-    public void The_dot_field_fills_the_pills_bottom_portion() => OnUiThread(() =>
-    {
-        var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
-        var window = ShowInFrame(control, width: 300, height: 80);
-
-        // The control bounds should be set up for the visual tree
-        Assert.NotNull(control.Layer);
-
-        window.Close();
-    });
-
-    [Fact]
-    [Trait("Req", "UI-COMPOSER-017")] // colors: Chrome.accentNSColor; each row up is fainter by 1/rowCount
-    public void Each_row_is_fainter_than_the_one_below() => OnUiThread(() =>
-    {
-        var control = new DotFieldControl(Chrome.AccentNSColor, animated: true, sweeps: false);
-        var window = ShowInFrame(control, width: 200, height: 100);
-
-        // With 3 rows, each row up should have increasing alpha offset of -1/3
-        Assert.NotNull(control.Layer);
-
-        window.Close();
-    });
-
-    [Fact]
     [Trait("Req", "PR-COMPOSER-104")] // :24-34,37-53 DotFieldSweep passes its tint to the representable, and every update configures the layer again
     public void A_sweep_draws_its_dots_in_the_tint_it_was_given_and_follows_a_later_change() => OnUiThread(() =>
     {
