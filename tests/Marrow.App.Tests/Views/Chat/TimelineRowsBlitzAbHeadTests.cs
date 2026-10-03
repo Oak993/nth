@@ -931,4 +931,61 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
         }
         finally { ShellWorkspace.OpenWithDefaultApp = previous; }
     });
+
+    // ---- PR-HYDRAMERGE-108: the report parsed as the pill appears ----
+
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-108")] // TimelineRows.swift:1028-1033 + MarkdownView.swift:135-148, :204-219; ENGINEERING DECISION: first-open latency is shown by the cache's state at the tap, not by a wall clock under a shared load
+    public void A_tap_on_an_outcome_pill_whose_report_was_warmed_opens_on_the_blocks_already_parsed_and_a_cold_tap_parses_then() => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        var presenter = new RecordingPresenter();
+        using var seam = Presentation.Presenter.Override(presenter);
+        var nonce = Guid.NewGuid().ToString("N");
+        var warmBody = "```\nwarm report " + nonce + "\n```";
+        var coldBody = "```\ncold report " + nonce + "\n```";
+        var panel = new StackPanel { Spacing = 16 };
+        AvaloniaWindow window = null!;
+        HydraMergeRow warmRow = null!;
+        Button Title(Control row) => Mounted<Button>(row).Single(button => Texts(button).Contains("Held back"));
+        h.Main.OnMain(() =>
+        {
+            _ = AppCurrentEvent.CurrentWindow; // warms the lazy event subscription before Show presses its key
+            Assert.Equal([warmBody, coldBody], MarkdownView.WarmTexts([warmBody, coldBody])); // nothing is cached yet
+            warmRow = new HydraMergeRow(h.Runtime, new HydraMergePhase.Outcome(new UserMessage { Text = "Held back.\n" + warmBody }));
+            panel.Children.Add(warmRow);
+            window = Show(panel);
+        });
+        // The pill appeared and its task parsed the report off the main thread; the main actor has the blocks.
+        h.Main.Loop.RunUntil(() => MarkdownView.WarmTexts([warmBody]).Count == 0, AppModelHarness.Bound);
+        ValueList<MarkdownBlock> warm = default!;
+        h.Main.OnMain(() =>
+        {
+            Assert.Empty(MarkdownView.WarmTexts([warmBody]));
+            warm = MarkdownView.Blocks(warmBody); // a cache hit: the blocks the warm parse made
+            Click(window, Title(warmRow));
+        });
+        h.Main.OnMain(() =>
+        {
+            Settle(window);
+            var shown = presenter.Calls.Last(call => call.Presented);
+            var views = LogicalQuery.SelfAndDescendants<MarkdownBlockView>(PopoverHost.Content(shown.Popup)!).ToList();
+            Assert.Equal(warm.Count, views.Count);
+            // The tap found them: the popover is drawn from those very blocks, not from a parse of its own.
+            for (var i = 0; i < warm.Count; i++) Assert.Same(warm[i], views[i].Block);
+            Assert.Empty(MarkdownView.WarmTexts([warmBody]));
+            Click(window, Title(warmRow)); // closes it again
+        });
+        // A cold report (nothing warmed it): opening it parses now, on the main actor, and caches what it parsed.
+        h.Main.OnMain(() =>
+        {
+            Assert.Equal([coldBody], MarkdownView.WarmTexts([coldBody]));
+            var popover = new HydraReportPopover(coldBody);
+            Assert.Empty(MarkdownView.WarmTexts([coldBody]));
+            Assert.Same(MarkdownView.Blocks(coldBody)[0], LogicalQuery.SelfAndDescendants<MarkdownBlockView>(popover).First().Block);
+        });
+        h.Main.OnMain(() => Close(window));
+    });
 }
