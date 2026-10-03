@@ -785,11 +785,11 @@ public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResi
         // sidebar, settings and composer move together.
         var zoomed = new AppZoomModifier(Percent(Model.Settings.AppZoom)).Body(content);
         Popovers.SetIsCapsuleButtonBorderShape(zoomed, true); // :176 .buttonBorderShape(.capsule)
-        var tinted = new ThemeTint(Model.Settings.Theme).Body(zoomed); // :177
+        var tinted = new ThemeTint(Model.Settings.Theme, Model.Settings.Accent).Body(zoomed); // :177
         // The body reads model.settings.appZoom (:175) and model.settings.theme (:177), so SwiftUI evaluates it again
         // when either changes; AppZoomModifier keeps its layout and ThemeTint its view when they are evaluated again.
         tinted.Track(() => Model.Settings.AppZoom, percent => new AppZoomModifier(Percent(percent)).Body(content));
-        tinted.Track(() => Model.Settings.Theme, theme => new ThemeTint(theme).Body(zoomed));
+        tinted.Track(() => (Model.Settings.Theme, Model.Settings.Accent), pair => new ThemeTint(pair.Theme, pair.Accent).Body(zoomed)); // and the accent (OD-0088)
         return tinted;
     }
 
@@ -801,7 +801,8 @@ public sealed record HostedEnvironment(AppModel Model, WindowLiveResize LiveResi
 /// <summary>:181-193 <c>private struct ThemeTint: ViewModifier</c>: tints prominent glass buttons, toggles and progress
 /// views with the theme's accent. System/Light/Dark keep the system control accent.</summary>
 /// <param name="Theme">:184 <c>let theme: AppTheme</c>.</param>
-internal sealed record ThemeTint(AppTheme Theme)
+/// <param name="Accent">PORT-ONLY (OD-0088, ED-250): the user's accent (AppSettings.Accent).</param>
+internal sealed record ThemeTint(AppTheme Theme, string Accent = AccentPalette.WindowsId)
 {
     // :186-192 func body(content: Content) -> some View
     public Control Body(Control content)
@@ -809,7 +810,9 @@ internal sealed record ThemeTint(AppTheme Theme)
         // :187-191 One branch, never two: an `if` here made the whole window's content a different view once a theme
         // with an accent replaced one without, so every page was built afresh and Settings jumped back to its top on a
         // theme change. A nil tint keeps the system accent.
-        Popovers.SetTint(content, Theme.Spec().Accent);
+        // DEVIATION OD-0088 (ED-250): a picked accent tints the window; the default keeps theme.spec.accent, nil for
+        // System, Light and Dark as in the source.
+        Popovers.SetTint(content, AccentPalette.Pick(Accent) ?? Theme.Spec().Accent);
         return content;
     }
 }

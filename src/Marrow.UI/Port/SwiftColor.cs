@@ -5,6 +5,7 @@ using Avalonia.Platform;
 using Avalonia.Styling;
 using Avalonia.Threading;
 using Marrow.Core.Port;
+using Marrow.UI.Theme;
 
 namespace Marrow.UI.Port;
 
@@ -24,16 +25,19 @@ namespace Marrow.UI.Port;
 /// <summary>SwiftUI <c>Color</c> and AppKit <c>NSColor</c> (ED-092).</summary>
 public sealed class SwiftColor
 {
-    private enum Kind { Fixed, Pair, Accent }
+    // Live (PORT-ONLY, OD-0088, ED-250): the app's accent as it is now (Chrome.accent: the spec's accent, the user's pick
+    // or the theme's, else the system's), read again whenever it is resolved, so a brush follows a later pick.
+    private enum Kind { Fixed, Pair, Accent, Live }
 
     private readonly Kind kind;
     private readonly double red;
     private readonly double green;
     private readonly double blue;
-    // Fixed: the colour's alpha. Accent: the factor applied to the accent's own alpha.
+    // Fixed: the colour's alpha. Accent and Live: the factor applied to the accent's own alpha.
     private readonly double alpha;
     private readonly SwiftColor? light;
     private readonly SwiftColor? dark;
+    private readonly Func<SwiftColor>? live;
 
     /// <summary>
     /// <c>Color(red:green:blue:opacity:)</c>, <c>Color(.sRGB, red:green:blue:opacity:)</c> and
@@ -58,13 +62,20 @@ public sealed class SwiftColor
     {
     }
 
-    private SwiftColor(Kind kind, double alpha, SwiftColor? light, SwiftColor? dark)
+    private SwiftColor(Kind kind, double alpha, SwiftColor? light, SwiftColor? dark, Func<SwiftColor>? live = null)
     {
         this.kind = kind;
         this.alpha = alpha;
         this.light = light;
         this.dark = dark;
+        this.live = live;
     }
+
+    /// <summary>
+    /// PORT-ONLY (OD-0088, ED-250): a colour that is whatever <paramref name="current"/> returns when it is resolved, and a
+    /// brush that follows it when ThemeManager posts a change (the accent eases there over 0.32 s, SPEC 6.4).
+    /// </summary>
+    internal static SwiftColor Live(Func<SwiftColor> current) => new(Kind.Live, 1, null, null, current);
 
     /// <summary>
     /// Core/Models/MCP.swift:255-263 <c>Color(rgb:)</c>: the low 24 bits as red, green, blue, each masked with
@@ -200,6 +211,7 @@ public sealed class SwiftColor
     {
         Kind.Fixed => new SwiftColor(red, green, blue, alpha * opacity),
         Kind.Pair => new SwiftColor(Kind.Pair, 1, light!.Opacity(opacity), dark!.Opacity(opacity)),
+        Kind.Live => new SwiftColor(Kind.Live, alpha * opacity, null, null, live),
         _ => new SwiftColor(Kind.Accent, alpha * opacity, null, null),
     };
 
@@ -211,6 +223,10 @@ public sealed class SwiftColor
     /// </summary>
     public SwiftColor Mix(SwiftColor other, double factor)
     {
+        // Live (ED-250): the accent as it is now, mixed as that colour would be.
+        if (kind == Kind.Live) return live!().Opacity(alpha).Mix(other, factor);
+        if (other.kind == Kind.Live) return Mix(other.live!().Opacity(other.alpha), factor);
+
         // Handle dynamic colors (appearance pairs) by mixing both light and dark members
         if (kind == Kind.Pair)
         {
@@ -262,7 +278,7 @@ public sealed class SwiftColor
 
     private bool UsesAccent => kind switch
     {
-        Kind.Accent => true,
+        Kind.Accent or Kind.Live => true,
         Kind.Pair => light!.UsesAccent || dark!.UsesAccent,
         _ => false,
     };
@@ -271,48 +287,17 @@ public sealed class SwiftColor
     {
         Kind.Fixed => Color.FromArgb(Byte(alpha), Byte(red), Byte(green), Byte(blue)),
         Kind.Pair => (IsDark(theme) ? dark! : light!).Resolve(theme, accent),
-        _ => Faded(Legible(accent(), IsDark(theme)), alpha),
+        Kind.Live => Faded(live!().Resolve(theme, accent), alpha),
+        _ => Faded(AccentPalette.Lift(accent(), IsDark(theme)), alpha),
     };
 
-    // ED-238. The accent keeps the user's Windows colour unless it has under 3:1 contrast against the appearance's window
-    // background (macOS 27 UI Kit, Window backgrounds: Dark #1E1E1E, Light #FFFFFF; OD-0045), the way AppKit's accent is
-    // always one that reads (Graphite is a mid grey); then it is mixed toward white (Dark) or black (Light) by the smallest
-    // 1/255 step that reaches 3:1, WCAG 2.x's contrast for a UI component. An opaque black accent therefore reads as
-    // #686868 on Dark and stays black on Light.
-    private const double MinimumAccentContrast = 3;
-
-    private static Color Legible(Color accent, bool dark)
-    {
-        var window = dark ? Color.FromRgb(0x1E, 0x1E, 0x1E) : Colors.White;
-        if (Contrast(accent, window) >= MinimumAccentContrast) return accent;
-        var pole = dark ? (byte)255 : (byte)0;
-        for (var step = 1; step <= 255; step++)
-        {
-            var candidate = Color.FromArgb(accent.A, Toward(accent.R, pole, step), Toward(accent.G, pole, step), Toward(accent.B, pole, step));
-            if (Contrast(candidate, window) >= MinimumAccentContrast) return candidate;
-        }
-        return Color.FromArgb(accent.A, pole, pole, pole);
-    }
-
-    private static byte Toward(byte channel, byte pole, int step) =>
-        (byte)Math.Round(channel + (pole - channel) * (step / 255.0), MidpointRounding.AwayFromZero);
-
-    private static double Contrast(Color a, Color b)
-    {
-        var (first, second) = (Luminance(a), Luminance(b));
-        return (Math.Max(first, second) + 0.05) / (Math.Min(first, second) + 0.05);
-    }
-
-    // WCAG 2.x relative luminance of an sRGB colour (alpha ignored).
-    private static double Luminance(Color color)
-    {
-        static double Linear(byte channel)
-        {
-            var value = channel / 255.0;
-            return value <= 0.04045 ? value / 12.92 : Math.Pow((value + 0.055) / 1.055, 2.4);
-        }
-        return 0.2126 * Linear(color.R) + 0.7152 * Linear(color.G) + 0.0722 * Linear(color.B);
-    }
+    // ED-238 (3), amended by ED-250 (OD-0088): the Windows accent is drawn as the accent picker's lift makes it
+    // (AccentPalette.Lift, SPEC 3.2): kept when it has 3.1:1 on the Settings card and 3:1 on the appearance's window
+    // background (macOS 27 UI Kit, Window backgrounds: Dark #1E1E1E, Light #FFFFFF; OD-0045), else its OKLCH lightness
+    // moves at fixed hue to the first colour that has both. ED-238's mix toward white or black is replaced; its floor
+    // (3:1 on the window) still holds for every accent. An opaque black accent reads as #9C9C9C on Dark and stays black
+    // on Light; the headless #0078D7 becomes #409FFF on Dark and #0073CF on Light. A theme's own accent (AppTheme.Accent)
+    // and a palette pick do not go through the system accent and are drawn as given.
 
     private static Color Faded(Color accent, double factor) =>
         Color.FromArgb(Byte(accent.A / 255.0 * factor), accent.R, accent.G, accent.B);
@@ -349,6 +334,9 @@ public sealed class SwiftColor
         private readonly Control control;
         private IPlatformSettings? settings;
         private Color? accent;
+        private bool followsTheme;
+        private IFrameSource? frames;
+        private Action<TimeSpan>? pending;
 
         public BrushBinding(SwiftColor color, SolidColorBrush brush, Control control)
         {
@@ -373,15 +361,72 @@ public sealed class SwiftColor
             settings = PlatformSettings;
             accent = CurrentAccent();
             settings.ColorValuesChanged += OnColorValuesChanged;
+            if (color.UsesLive && !followsTheme)
+            {
+                followsTheme = true;
+                ThemeManager.DidChange += OnThemeChanged;
+            }
             Update();
         }
 
         private void Unsubscribe()
         {
+            if (followsTheme)
+            {
+                followsTheme = false;
+                ThemeManager.DidChange -= OnThemeChanged;
+            }
+            Stop();
             if (settings is null) return;
             settings.ColorValuesChanged -= OnColorValuesChanged;
             settings = null;
             accent = null;
+        }
+
+        // ED-250 (SPEC 6.4): the app's accent changed (a pick or a theme): the brush eases to it over 0.32 s, CSS `ease`,
+        // on the frame clock; at once under Reduce Motion or with no frame clock.
+        private void OnThemeChanged()
+        {
+            // The control's own thread: a change posted from elsewhere (ThemeManager is set from any actor) waits for it.
+            if (control.CheckAccess()) Ease();
+            else control.Dispatcher.Post(() => { if (followsTheme) Ease(); });
+        }
+
+        private static readonly Animation AccentChange = Animation.TimingCurve(0.25, 0.1, 0.25, 1, duration: 0.32);
+
+        private void Ease()
+        {
+            Stop();
+            var to = Resolved();
+            if (brush.Color == to || !FrameClock.IsBound || EnvironmentValues.GetAccessibilityReduceMotion(control))
+            {
+                brush.Color = to;
+                return;
+            }
+            var from = brush.Color;
+            var start = SwiftClock.Now;
+            var span = TimeSpan.FromSeconds(AccentChange.Duration);
+            var source = FrameClock.Source.Current;
+            Action<TimeSpan>? tick = null;
+            tick = _ =>
+            {
+                var now = SwiftClock.Now;
+                var done = FrameClock.IsComplete(start, now, span);
+                var target = Resolved();
+                brush.Color = done ? target : PremultipliedMix(from, target, AccentChange.Progress((now - start).TotalSeconds));
+                if (done) pending = null;
+                else source.RequestFrame(tick!);
+            };
+            frames = source;
+            pending = tick;
+            source.RequestFrame(tick);
+        }
+
+        private void Stop()
+        {
+            if (pending is { } frame) frames?.CancelFrame(frame);
+            pending = null;
+            frames = null;
         }
 
         // On Windows the event carries the values GetColorValues then returns; take the accent it carries.
@@ -392,7 +437,33 @@ public sealed class SwiftColor
             else Dispatcher.UIThread.Post(Update);
         }
 
-        private void Update() =>
-            brush.Color = color.Resolve(control.ActualThemeVariant, () => accent ?? CurrentAccent());
+        private Color Resolved() => color.Resolve(control.ActualThemeVariant, () => accent ?? CurrentAccent());
+
+        private void Update()
+        {
+            Stop();
+            brush.Color = Resolved();
+        }
+    }
+
+    private bool UsesLive => kind switch
+    {
+        Kind.Live => true,
+        Kind.Pair => light!.UsesLive || dark!.UsesLive,
+        _ => false,
+    };
+
+    /// <summary>Two colours mixed per channel in sRGB, premultiplied with alpha (as a browser interpolates a colour).</summary>
+    public static Color PremultipliedMix(Color from, Color to, double progress)
+    {
+        double a0 = from.A / 255.0, a1 = to.A / 255.0;
+        var a = a0 + (a1 - a0) * progress;
+        byte Channel(byte c0, byte c1)
+        {
+            if (a <= 0) return 0;
+            var premultiplied = c0 / 255.0 * a0 + (c1 / 255.0 * a1 - c0 / 255.0 * a0) * progress;
+            return (byte)Math.Clamp(Math.Round(premultiplied / a * 255, MidpointRounding.AwayFromZero), 0, 255);
+        }
+        return Color.FromArgb((byte)Math.Clamp(Math.Round(a * 255, MidpointRounding.AwayFromZero), 0, 255), Channel(from.R, to.R), Channel(from.G, to.G), Channel(from.B, to.B));
     }
 }

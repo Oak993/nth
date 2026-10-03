@@ -169,6 +169,9 @@ public static class FrameClock
     /// <summary>The frame source. Marrow.App sets the process default (an <see cref="AvaloniaFrameSource"/>) at start-up.</summary>
     public static Ambient<IFrameSource> Source { get; } = new(new UnboundFrameSource());
 
+    /// <summary>PORT-ONLY (ED-250): whether a frame source is bound (an app window's, or a test's), so a transition can run.</summary>
+    public static bool IsBound => Source.Current is not UnboundFrameSource;
+
     // ED-117 (2): a span S from instant s is complete at a frame when (SwiftClock.Now - s) + 1 ms >= S, in ticks.
     internal static bool IsComplete(ContinuousInstant since, ContinuousInstant now, TimeSpan span) =>
         (now - since).Ticks + TimeSpan.TicksPerMillisecond >= span.Ticks;

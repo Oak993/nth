@@ -130,12 +130,14 @@ namespace Marrow.UI.Chrome
         public static SwiftColor SecondaryText { get; } = PrimaryText.Opacity(0.7); // :79
         private static SwiftColor SystemAccent { get; } = SwiftColor.ControlAccentColor; // :80
 
-        // :85 PR-WIN-209: the theme's accent, or the system control accent for System/Light/Dark.
-        public static SwiftColor Accent => ThemeManager.Spec.Accent ?? SystemAccent;
+        // :85 PR-WIN-209: the theme's accent, or the system control accent for System/Light/Dark. DEVIATION OD-0088
+        // (ED-250): the spec's accent is the user's pick when it is not the default; the value is ThemeManager.Accent, the
+        // spec's accent ?? SystemAccent read whenever it is resolved, so what was drawn with it follows a later change.
+        public static SwiftColor Accent => ThemeManager.Accent;
 
         // :87 accentNSColor: NSColor is SwiftColor too (ED-092); the AppKit twin falls back to the control accent
-        // directly rather than to a wrapped copy (PR-WIN-209), so it is the same as Accent under ED-092.
-        public static SwiftColor AccentNSColor => ThemeManager.Spec.Accent ?? SwiftColor.ControlAccentColor;
+        // directly rather than to a wrapped copy (PR-WIN-209), so it is the same as Accent under ED-092 (and ED-250).
+        public static SwiftColor AccentNSColor => ThemeManager.Accent;
 
         // :91 PR-WIN-209: re-read on every access, never cached.
         public static SwiftColor Success => ThemeManager.Spec.Success;

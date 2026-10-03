@@ -38,7 +38,8 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
     private const double Frame = 1.0 / 60;
 
     private static readonly string[] PageTitles = ["General", "Hydra", "Appearance", "Providers", "MCP", "Models", "Source control", "Shortcuts", "Archive", "About"];
-    private static readonly string[] CardRowTitles = ["Theme", "Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"];
+    // OD-0088 (ED-250): the Appearance page starts with the Look card; its rows are Theme and Accent.
+    private static readonly string[] CardRowTitles = ["Theme", "Accent"];
 
     // SPEC.md section 2 and section 3's 60 Hz samples.
     private static readonly double[] GlassAt60Hz = [0.698, 0.912, 0.976, 0.997, 1.0];
@@ -64,16 +65,24 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         var heading = Assert.IsAssignableFrom<StackPanel>(section.Child).Children[0];
         Assert.Contains(Nodes<TextBlock>(heading), text => text.Text == "Appearance");
         items.Add((1, "title Appearance", [heading]));
+        // OD-0088 (ED-250): the first card is the Look card (Port/LookCard.cs), whose blocks are, top to bottom, the mini
+        // window, the Theme row with the divider below it, the Accent row and the Signature fold (shut, 0 tall); the
+        // source's first card, now without its Theme row, follows whole, then the picture card.
+        var look = Assert.Single(Nodes<Marrow.App.Port.LookCard>(view));
         var card1 = Nodes<ChromeCard>(view).First();
+        Assert.Same(look.Card, card1);
         var cardRows = Nodes<ChromeRow>(card1);
         var dividers = Nodes<ChromeRowDivider>(card1);
-        Assert.Equal(5, cardRows.Length);
-        Assert.Equal(4, dividers.Length);
-        for (var r = 0; r < 5; r++)
-        {
-            Assert.Contains(Nodes<TextBlock>(cardRows[r]), text => text.Text == CardRowTitles[r]);
-            items.Add((2 + r, CardRowTitles[r], r < 4 ? [cardRows[r], dividers[r]] : [cardRows[r]]));
-        }
+        Assert.Equal(2, cardRows.Length);
+        Assert.Single(dividers);
+        for (var r = 0; r < 2; r++) Assert.Contains(Nodes<TextBlock>(cardRows[r]), text => text.Text == CardRowTitles[r]);
+        items.Add((2, "look mini window", [look.Mini]));
+        items.Add((3, "Theme", [cardRows[0], dividers[0]]));
+        items.Add((4, "Accent", [cardRows[1]]));
+        items.Add((5, "look fold", [look.Fold]));
+        var rowsCard = Nodes<ChromeCard>(view)[1];
+        Assert.Equal(["Transparency", "Sidebar", "Activity list", "Open the sidebar at launch"], Nodes<ChromeRow>(rowsCard).Select(row => Nodes<TextBlock>(row).First().Text));
+        items.Add((6, "rows card", [rowsCard]));
         var card2 = Assert.Single(Nodes<ChromeCard>(Assert.Single(Nodes<WallpaperCard>(view))));
         items.Add((7, "picture card", [card2]));
         return ([backdrop, wash, tint], card1, items);
@@ -435,16 +444,22 @@ public sealed class SettingsRiseTests(HeadlessSession headless) : SettingsWindow
         using var rig = new SettingsRiseRig();
         manager.Model.Settings.SidebarMode = SidebarMode.PanelOnly; // the launch row is drawn at 0.5 (SettingsView.swift:449-450)
         var (_, view) = Open(manager, rig);
+        // OD-0088 (ED-250): the launch row is now inside the card that rises whole (block 6, after the Look card's blocks), so
+        // that card is given an opacity of its own here (as the launch row had as a block) and the row keeps its 0.5 inside it.
+        var block = Parts(view).Items.Single(item => item.Name == "rows card").Parts[0];
+        var launch = Nodes<ChromeRow>(block).Single(row => Nodes<TextBlock>(row).First().Text == "Open the sidebar at launch");
+        block.Opacity = 0.5;
         ToGlassReady(rig);
-        var launch = Parts(view).Items.Single(item => item.Name == "Open the sidebar at launch").Parts[0];
         for (var k = 1; k <= 15; k++)
         {
             rig.At(k * Frame);
-            Expect(launch, 0.5 * SpecRise.Item(6, k * Frame), SpecRise.Offset * (1 - SpecRise.Item(6, k * Frame)), $"launch row at G+{k}/60");
+            Expect(block, 0.5 * SpecRise.Item(6, k * Frame), SpecRise.Offset * (1 - SpecRise.Item(6, k * Frame)), $"rows card at G+{k}/60");
+            Assert.Equal(0.5, launch.Opacity);
         }
         rig.At(SpecRise.OpenDone);
+        Assert.Equal(0.5, block.Opacity);
+        Assert.Null(block.RenderTransform);
         Assert.Equal(0.5, launch.Opacity);
-        Assert.Null(launch.RenderTransform);
     });
 
     [Fact]

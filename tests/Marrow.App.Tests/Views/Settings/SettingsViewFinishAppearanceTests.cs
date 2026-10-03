@@ -31,13 +31,15 @@ public sealed class SettingsViewFinishAppearanceTests(HeadlessSession headless) 
     public void Theme_picker_lists_system_then_the_dark_and_light_themes_with_swatches_and_a_check_and_selects_immediately_by_click()
     {
         var table = SettingsThemeTable.All;
-        With(() => new AppearanceSettingsPage(), (view, model, h, w) =>
+        // DEVIATION OD-0088 (ED-250): the capsule is no longer on the page (the Look card's Theme row replaces it); it is
+        // hosted beside the page, and the page's Theme detail is the Look card's.
+        With(ThemePickerHost.Page, (view, model, h, w) =>
         {
             try
             {
                 // AppTheme.swift:14-41 the 26 cases in declaration order; the port's enum carries the same raw values in the same order.
                 Assert.Equal(table.Select(t => t.Raw), SwiftEnum<AppTheme>.AllCases.Select(SwiftEnum<AppTheme>.RawValue));
-                var row = Row(view, "Theme"); var picker = Assert.Single(Nodes<ThemePickerButton>(row)); var button = Assert.Single(Nodes<Button>(picker)); CheckRow(row, "Theme", "Follows Windows"); Assert.Equal(AppTheme.System, model.Settings.Theme);
+                var look = Assert.Single(Nodes<Marrow.App.Port.LookCard>(view)); var picker = Assert.Single(Nodes<ThemePickerButton>(view)); var button = Assert.Single(Nodes<Button>(picker)); Assert.Equal(ThemePickerHost.Detail(AppTheme.System), look.ThemeDetail.Text); Assert.Equal(AppTheme.System, model.Settings.Theme);
                 // :1168-1189 the capsule: 12pt either side, 6pt between swatch (14 x 14), name (.system(12.5) medium, one line) and chevron (8 bold secondary), 28pt high, fitted to its content.
                 var stack = Assert.Single(Nodes<StackPanel>(picker), s => s.Height == 28); var swatch = Assert.Single(Nodes<ThemeSwatch>(picker)); var title = Assert.Single(Nodes<TextBlock>(picker)); var chevron = Assert.Single(Nodes<SwiftImage>(picker));
                 Assert.Equal(28, picker.Bounds.Height, 3); Assert.Equal(new Size(14, 14), swatch.Bounds.Size); Assert.Equal(12, TopLeft(swatch, picker).X, 3); Assert.Equal(6, TopLeft(title, picker).X - (TopLeft(swatch, picker).X + 14), 3); Assert.Equal(6, TopLeft(chevron, picker).X - (TopLeft(title, picker).X + title.Bounds.Width), 3); Assert.Equal(picker.Bounds.Width - 12, TopLeft(chevron, picker).X + chevron.Bounds.Width, 3);
@@ -63,7 +65,7 @@ public sealed class SettingsViewFinishAppearanceTests(HeadlessSession headless) 
                     var itemButton = Assert.Single(Nodes<Button>(Nodes<PopoverItem>(popup.Child!).Single(i => Text(i).First() == entry.Name))); itemButton.BringIntoView(); Drain(w); /* the menu scrolls: the far items are out of view until brought in */ Click(w, itemButton); Tick(h, 150);
                     Assert.False(popup.IsOpen); Assert.Equal(Theme(entry.Raw), model.Settings.Theme); Assert.Equal(Theme(entry.Raw), ThemeManager.Current); Assert.Equal(entry.Raw, h.Defaults.Object("appTheme"));
                     // OD-0008 B2: upstream AppTheme.swift:78 reads "Follows your Mac"; the port names its OS.
-                    row = Row(view, "Theme"); CheckRow(row, "Theme", entry.Raw == "system" ? "Follows Windows" : entry.Detail); picker = Assert.Single(Nodes<ThemePickerButton>(row)); button = Assert.Single(Nodes<Button>(picker)); title = Assert.Single(Nodes<TextBlock>(picker)); swatch = Assert.Single(Nodes<ThemeSwatch>(picker)); popup = Assert.Single(Nodes<Popup>(picker));
+                    Assert.Equal(ThemePickerHost.Detail(Theme(entry.Raw)), look.ThemeDetail.Text); picker = Assert.Single(Nodes<ThemePickerButton>(view)); button = Assert.Single(Nodes<Button>(picker)); title = Assert.Single(Nodes<TextBlock>(picker)); swatch = Assert.Single(Nodes<ThemeSwatch>(picker)); popup = Assert.Single(Nodes<Popup>(picker));
                     Assert.Equal(entry.Name, title.Text); Assert.Equal(new Size(14, 14), swatch.Bounds.Size); var fill = Assert.IsType<LinearGradientBrush>(swatch.Fill); var variant = swatch.ActualThemeVariant;
                     if (entry.Raw == "system") Assert.Equal(new[] { 0.0, 0.5, 0.5, 1.0 }, fill.GradientStops.Select(s => s.Offset));
                     else
@@ -83,9 +85,9 @@ public sealed class SettingsViewFinishAppearanceTests(HeadlessSession headless) 
     [Trait("Req", "UI-SETTINGS-017")] // App/Views/Settings/SettingsView.swift:1172 HStack(spacing: 6), centre alignment by default
     public void Theme_picker_capsule_puts_the_swatch_the_name_and_the_chevron_on_the_28_point_centre_line()
     {
-        With(() => new AppearanceSettingsPage(), (view, model, h, w) =>
+        With(ThemePickerHost.Page, (view, model, h, w) => // OD-0088 (ED-250): the capsule beside the page
         {
-            var picker = Assert.Single(Nodes<ThemePickerButton>(Row(view, "Theme")));
+            var picker = Assert.Single(Nodes<ThemePickerButton>(view));
             var stack = Assert.Single(Nodes<StackPanel>(picker), s => s.Height == 28);
             // An HStack centres each child vertically; the stretched name drew in the top 16 points of the 28-point capsule.
             foreach (Control child in new Control[] { Assert.Single(Nodes<ThemeSwatch>(picker)), Assert.Single(Nodes<TextBlock>(picker)), Assert.Single(Nodes<SwiftImage>(picker)) })
@@ -140,7 +142,7 @@ public sealed class SettingsViewFinishAppearanceTests(HeadlessSession headless) 
         {
             var s = model.Settings;
             // Appearance :444-452: "Open the sidebar at launch" is dimmed and inert while only the panel is shown.
-            Click(w, RowButton(view, "Appearance")); var open = Row(view, "Open the sidebar at launch"); var toggle = Assert.Single(Nodes<SmallSwitch>(open)); Assert.Empty(Text(Assert.Single(Nodes<SettingsSwitch>(open)))); var start = model.Sidebar.StartsOpen;
+            Click(w, RowButton(view, "Appearance")); var open = Row(view, "Open the sidebar at launch"); var presenter = Avalonia.VisualTree.VisualExtensions.FindAncestorOfType<Avalonia.Controls.Presenters.ScrollContentPresenter>(open)!; presenter.Offset = new Vector(0, presenter.Extent.Height - presenter.Viewport.Height); Drain(w); Tick(h, 200); Drain(w); /* OD-0088: below the Look card the row starts out of view: scrolled to it, and past the scroll's 150 ms input freeze (SettingsScrollTracker) */ var toggle = Assert.Single(Nodes<SmallSwitch>(open)); Assert.Empty(Text(Assert.Single(Nodes<SettingsSwitch>(open)))); var start = model.Sidebar.StartsOpen;
             Assert.True(open.IsEnabled); Assert.Equal(1, open.Opacity, 6); Click(w, toggle); Assert.Equal(!start, model.Sidebar.StartsOpen); Assert.Equal(!start, h.Defaults.Object("sidebarStartsOpen")); Click(w, toggle); Assert.Equal(start, model.Sidebar.StartsOpen);
             s.SidebarMode = SidebarMode.PanelOnly; Drain(w); Assert.False(open.IsEnabled); Assert.Equal(0.5, open.Opacity, 6); Click(w, toggle); Assert.Equal(start, model.Sidebar.StartsOpen); Assert.True(toggle.Focus() || !toggle.IsEffectivelyEnabled); Press(w, Key.Space); Assert.Equal(start, model.Sidebar.StartsOpen);
             s.SidebarMode = SidebarMode.Floating; Drain(w); Assert.True(open.IsEnabled); Assert.Equal(1, open.Opacity, 6); Click(w, toggle); Assert.Equal(!start, model.Sidebar.StartsOpen);

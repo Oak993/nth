@@ -431,8 +431,10 @@ internal sealed class AppearanceSettingsPage : Decorator
         this.Track(() => AppEnvironment.GetAppModel(this), model =>
         {
             var settings = model.Settings;
-            var theme = new ChromeRow("Theme", () => new ThemePickerButton(new Binding<AppTheme>(() => settings.Theme, value => settings.Theme = value))); // :424-426
-            theme.Track(() => settings.Theme, value => SettingsRowDetails.Update(theme, value.Detail()));
+            // DEVIATION OD-0088 (ED-250): the Theme row (:424-426, ThemePickerButton :1155-1212) is replaced by the Look card,
+            // the page's first card: a mini window, the Theme segmented control with the named-theme menu and the Accent row
+            // (Port/LookCard.cs). The source's first card keeps its other rows.
+            var look = new LookCard(settings) { ZIndex = 1 }; // its theme menu hangs over the cards below
             var sidebar = new ChromeRow("Sidebar", () => new ChromeVisualPicker<SidebarMode, Control>(SwiftEnum<SidebarMode>.AllCases.Select(mode => (mode, mode.Title)).ToArray(), new Binding<SidebarMode>(() => settings.SidebarMode, value => settings.SidebarMode = value), mode => SwiftImage.SystemName(mode == SidebarMode.Column ? "sidebar.left" : mode == SidebarMode.Floating ? "macwindow.on.rectangle" : "macwindow"))); // :432-436
             sidebar.Track(() => settings.SidebarMode, value => SettingsRowDetails.Update(sidebar, value.Detail));
             var activity = new ChromeRow("Activity list", () => new ChromeVisualPicker<ActivityThreadStyle, Control>(SwiftEnum<ActivityThreadStyle>.AllCases.Select(style => (style, style.Title)).ToArray(), new Binding<ActivityThreadStyle>(() => settings.ActivityThreadStyle, value => settings.ActivityThreadStyle = value), style => SwiftImage.SystemName(style == ActivityThreadStyle.Icon ? "list.bullet" : "text.alignleft"))); // :438-442
@@ -440,8 +442,8 @@ internal sealed class AppearanceSettingsPage : Decorator
             var open = new ChromeRow("Open the sidebar at launch", () => new SettingsSwitch(new Binding<bool>(() => model.Sidebar.StartsOpen, value => model.Sidebar.StartsOpen = value)), "Collapsed otherwise; the list button in the toolbar shows and hides it any time"); // :444-448
             open.Track(() => settings.SidebarMode, mode => { open.IsEnabled = mode != SidebarMode.PanelOnly; open.Opacity = mode == SidebarMode.PanelOnly ? 0.5 : 1; }); // :449-450
             var rows = new StackPanel();
-            foreach (var row in new Control[] { theme, new ChromeRow("Transparency", () => new BackdropOpacitySlider(new Binding<double>(() => settings.BackdropOpacity, value => settings.BackdropOpacity = value)), "How much shows through the window"), sidebar, activity, open }) { if (rows.Children.Count > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(row); }
-            host.Child = new ChromeSection("Appearance", () => new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { new ChromeCard(() => rows), new WallpaperCard(), new AppZoomCard(new Binding<long>(() => settings.AppZoom, value => settings.AppZoom = value)) } }); // :452-454
+            foreach (var row in new Control[] { new ChromeRow("Transparency", () => new BackdropOpacitySlider(new Binding<double>(() => settings.BackdropOpacity, value => settings.BackdropOpacity = value)), "How much shows through the window"), sidebar, activity, open }) { if (rows.Children.Count > 0) rows.Children.Add(new ChromeRowDivider()); rows.Children.Add(row); }
+            host.Child = new ChromeSection("Appearance", () => new StackPanel { Spacing = Chrome.SectionHeaderSpacing, Children = { look, new ChromeCard(() => rows), new WallpaperCard(), new AppZoomCard(new Binding<long>(() => settings.AppZoom, value => settings.AppZoom = value)) } }); // :452-454
         });
     }
 }
@@ -995,7 +997,8 @@ internal sealed class ProjectMarksRow : Decorator
     }
 }
 
-/// <summary>:1182-1232 <c>private struct ThemePickerButton: View</c>: the theme menu.</summary>
+/// <summary>:1182-1232 <c>private struct ThemePickerButton: View</c>: the theme menu. DEVIATION OD-0088 (ED-250): no longer on
+/// the Appearance page, whose Look card (Port/LookCard.cs) replaces the Theme row; kept as the source's twin.</summary>
 internal sealed class ThemePickerButton : Decorator
 {
     // :1183 @Binding var selection: AppTheme; :1191-1225 body

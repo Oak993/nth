@@ -1,0 +1,1199 @@
+{
+ "title": "Marrow accent palette, Classic and Signature",
+ "date": "2026-10-02",
+ "ruling": "OD-0081 (OD-0075, OD-0076, OD-0069)",
+ "surfaces": {
+  "dark": {
+   "card": "#4D4C4B",
+   "reference": "#1E1E1E"
+  },
+  "light": {
+   "card": "#D1CFCF",
+   "reference": "#FFFFFF"
+  }
+ },
+ "contrastTarget": {
+  "card": 3.1,
+  "reference": 3.0,
+  "why": "headroom: the real card is translucent and moves with the wallpaper; at 3:1 exactly, four accents fell under 3:1 on the measured median card pixel (#4D4C4C dark, #D1CFCE light)"
+ },
+ "liftMethod": "OKLCH: lightness moves in 0.0005 steps (up on dark, down on light) at fixed hue; chroma kept unless sRGB cannot hold it at that lightness (then reduced to the gamut edge); the first 8-bit colour reaching 3.1:1 on the card AND 3:1 on the reference panel is taken.",
+ "distinctness": {
+  "metric": "CIEDE2000 between the drawn hexes, per appearance",
+  "threshold": 10.0,
+  "dark": {
+   "minAll": {
+    "a": "Purple",
+    "b": "Orchid",
+    "de00": 10.3
+   },
+   "closest5": [
+    {
+     "a": "Purple",
+     "b": "Orchid",
+     "de00": 10.3
+    },
+    {
+     "a": "Teal",
+     "b": "Ocean",
+     "de00": 10.3
+    },
+    {
+     "a": "Denim",
+     "b": "Lilac",
+     "de00": 10.5
+    },
+    {
+     "a": "Sage",
+     "b": "Alpine",
+     "de00": 10.5
+    },
+    {
+     "a": "Alpine",
+     "b": "Mint",
+     "de00": 11.2
+    }
+   ],
+   "windowsAccentPreview": [
+    {
+     "a": "Windows accent",
+     "b": "Blue",
+     "de00": 1.2
+    },
+    {
+     "a": "Windows accent",
+     "b": "Ocean",
+     "de00": 14.1
+    },
+    {
+     "a": "Windows accent",
+     "b": "Indigo",
+     "de00": 15.7
+    }
+   ],
+   "pairsBelowThreshold": []
+  },
+  "light": {
+   "minAll": {
+    "a": "Purple",
+    "b": "Orchid",
+    "de00": 10.8
+   },
+   "closest5": [
+    {
+     "a": "Purple",
+     "b": "Orchid",
+     "de00": 10.8
+    },
+    {
+     "a": "Rose",
+     "b": "Coral",
+     "de00": 10.9
+    },
+    {
+     "a": "Graphite",
+     "b": "Slate",
+     "de00": 11.0
+    },
+    {
+     "a": "Teal",
+     "b": "Ocean",
+     "de00": 11.1
+    },
+    {
+     "a": "Ocean",
+     "b": "Slate",
+     "de00": 11.2
+    }
+   ],
+   "windowsAccentPreview": [
+    {
+     "a": "Windows accent",
+     "b": "Blue",
+     "de00": 5.2
+    },
+    {
+     "a": "Windows accent",
+     "b": "Ocean",
+     "de00": 8.6
+    },
+    {
+     "a": "Windows accent",
+     "b": "Slate",
+     "de00": 14.0
+    }
+   ],
+   "pairsBelowThreshold": []
+  }
+ },
+ "themeClash": {
+  "rule": "every Signature colour at least 10 CIEDE2000 from each named theme accent of the same appearance, so picking it over that theme (D3) changes the accent to a different named colour",
+  "floor": 10.0,
+  "exceptions": [
+   {
+    "id": "indigo",
+    "appearance": "dark",
+    "why": "at most 8.6-8.8 from Kanagawa and Dracula: no indigo at 3.1:1 on the dark card gets further from both"
+   }
+  ],
+  "nearest": [
+   {
+    "name": "Indigo",
+    "appearance": "dark",
+    "nearestTheme": "Kanagawa",
+    "de00": 8.6,
+    "belowFloor": [
+     {
+      "theme": "Kanagawa",
+      "de00": 8.6
+     },
+     {
+      "theme": "Dracula",
+      "de00": 8.8
+     },
+     {
+      "theme": "Tokyo Night",
+      "de00": 9.6
+     }
+    ],
+    "exception": "at most 8.6-8.8 from Kanagawa and Dracula: no indigo at 3.1:1 on the dark card gets further from both"
+   },
+   {
+    "name": "Ocean",
+    "appearance": "dark",
+    "nearestTheme": "One Dark",
+    "de00": 10.2,
+    "belowFloor": []
+   },
+   {
+    "name": "Indigo",
+    "appearance": "light",
+    "nearestTheme": "Catppuccin Latte",
+    "de00": 10.5,
+    "belowFloor": []
+   },
+   {
+    "name": "Coral",
+    "appearance": "light",
+    "nearestTheme": "Claude Light",
+    "de00": 10.6,
+    "belowFloor": []
+   },
+   {
+    "name": "Ocean",
+    "appearance": "light",
+    "nearestTheme": "GitHub Light",
+    "de00": 10.7,
+    "belowFloor": []
+   },
+   {
+    "name": "Sage",
+    "appearance": "dark",
+    "nearestTheme": "Everforest",
+    "de00": 10.8,
+    "belowFloor": []
+   },
+   {
+    "name": "Slate",
+    "appearance": "dark",
+    "nearestTheme": "Night Owl",
+    "de00": 11.0,
+    "belowFloor": []
+   },
+   {
+    "name": "Lilac",
+    "appearance": "dark",
+    "nearestTheme": "Catppuccin Mocha",
+    "de00": 11.1,
+    "belowFloor": []
+   },
+   {
+    "name": "Rose",
+    "appearance": "dark",
+    "nearestTheme": "Rosé Pine",
+    "de00": 11.2,
+    "belowFloor": []
+   },
+   {
+    "name": "Denim",
+    "appearance": "dark",
+    "nearestTheme": "Kanagawa",
+    "de00": 11.3,
+    "belowFloor": []
+   },
+   {
+    "name": "Bronze",
+    "appearance": "dark",
+    "nearestTheme": "Ayu",
+    "de00": 12.0,
+    "belowFloor": []
+   },
+   {
+    "name": "Orchid",
+    "appearance": "dark",
+    "nearestTheme": "Rosé Pine",
+    "de00": 12.8,
+    "belowFloor": []
+   },
+   {
+    "name": "Slate",
+    "appearance": "light",
+    "nearestTheme": "GitHub Light",
+    "de00": 14.9,
+    "belowFloor": []
+   },
+   {
+    "name": "Coral",
+    "appearance": "dark",
+    "nearestTheme": "Gruvbox",
+    "de00": 15.0,
+    "belowFloor": []
+   },
+   {
+    "name": "Bronze",
+    "appearance": "light",
+    "nearestTheme": "Gruvbox Light",
+    "de00": 15.0,
+    "belowFloor": []
+   },
+   {
+    "name": "Mint",
+    "appearance": "dark",
+    "nearestTheme": "Matrix",
+    "de00": 16.0,
+    "belowFloor": []
+   },
+   {
+    "name": "Alpine",
+    "appearance": "dark",
+    "nearestTheme": "Everforest",
+    "de00": 17.4,
+    "belowFloor": []
+   },
+   {
+    "name": "Rose",
+    "appearance": "light",
+    "nearestTheme": "Claude Light",
+    "de00": 17.7,
+    "belowFloor": []
+   },
+   {
+    "name": "Lilac",
+    "appearance": "light",
+    "nearestTheme": "Catppuccin Latte",
+    "de00": 17.8,
+    "belowFloor": []
+   },
+   {
+    "name": "Denim",
+    "appearance": "light",
+    "nearestTheme": "GitHub Light",
+    "de00": 17.9,
+    "belowFloor": []
+   },
+   {
+    "name": "Orchid",
+    "appearance": "light",
+    "nearestTheme": "Catppuccin Latte",
+    "de00": 23.0,
+    "belowFloor": []
+   },
+   {
+    "name": "Mint",
+    "appearance": "light",
+    "nearestTheme": "Solarized Light",
+    "de00": 29.8,
+    "belowFloor": []
+   },
+   {
+    "name": "Sage",
+    "appearance": "light",
+    "nearestTheme": "Claude Light",
+    "de00": 36.9,
+    "belowFloor": []
+   },
+   {
+    "name": "Alpine",
+    "appearance": "light",
+    "nearestTheme": "Solarized Light",
+    "de00": 41.6,
+    "belowFloor": []
+   }
+  ]
+ },
+ "groups": [
+  {
+   "id": "classic",
+   "name": "Classic",
+   "ids": [
+    "win",
+    "blue",
+    "purple",
+    "pink",
+    "red",
+    "orange",
+    "yellow",
+    "green",
+    "teal",
+    "graphite"
+   ]
+  },
+  {
+   "id": "signature",
+   "name": "Signature",
+   "ids": [
+    "ocean",
+    "denim",
+    "indigo",
+    "lilac",
+    "orchid",
+    "rose",
+    "coral",
+    "bronze",
+    "sage",
+    "alpine",
+    "mint",
+    "slate"
+   ]
+  }
+ ],
+ "accents": [
+  {
+   "id": "win",
+   "name": "Windows accent",
+   "group": "classic",
+   "note": "",
+   "dark": {
+    "base": "#0067C0",
+    "hex": "#4B9FFC",
+    "lifted": true,
+    "liftL": 0.1775,
+    "card": 3.13,
+    "reference": 6.08,
+    "shiftFromBase": 20.5,
+    "oklch": [
+     0.694,
+     0.16,
+     253.1
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#0067C0",
+    "hex": "#0067C0",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.66,
+    "reference": 5.67,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.515,
+     0.161,
+     253.3
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "blue",
+   "name": "Blue",
+   "group": "classic",
+   "note": "",
+   "dark": {
+    "base": "#0A84FF",
+    "hex": "#4F9DFF",
+    "lifted": true,
+    "liftL": 0.0675,
+    "card": 3.1,
+    "reference": 6.03,
+    "shiftFromBase": 7.7,
+    "oklch": [
+     0.693,
+     0.164,
+     255.4
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#007AFF",
+    "hex": "#006DE6",
+    "lifted": true,
+    "liftL": -0.045,
+    "card": 3.13,
+    "reference": 4.85,
+    "shiftFromBase": 5.5,
+    "oklch": [
+     0.557,
+     0.202,
+     257.5
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "purple",
+   "name": "Purple",
+   "group": "classic",
+   "note": "",
+   "dark": {
+    "base": "#A550A7",
+    "hex": "#D47CD5",
+    "lifted": true,
+    "liftL": 0.1425,
+    "card": 3.12,
+    "reference": 6.07,
+    "shiftFromBase": 15.6,
+    "oklch": [
+     0.712,
+     0.157,
+     326.7
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#953D96",
+    "hex": "#953D96",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 4.0,
+    "reference": 6.2,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.513,
+     0.162,
+     327.2
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "pink",
+   "name": "Pink",
+   "group": "classic",
+   "note": "",
+   "dark": {
+    "base": "#F74F9E",
+    "hex": "#FF63A9",
+    "lifted": true,
+    "liftL": 0.036,
+    "card": 3.1,
+    "reference": 6.04,
+    "shiftFromBase": 4.0,
+    "oklch": [
+     0.718,
+     0.2,
+     355.5
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#F74F9E",
+    "hex": "#D2277F",
+    "lifted": true,
+    "liftL": -0.101,
+    "card": 3.12,
+    "reference": 4.84,
+    "shiftFromBase": 11.5,
+    "oklch": [
+     0.579,
+     0.214,
+     355.6
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "red",
+   "name": "Red",
+   "group": "classic",
+   "note": "",
+   "dark": {
+    "base": "#FF5257",
+    "hex": "#FF6C6B",
+    "lifted": true,
+    "liftL": 0.033,
+    "card": 3.1,
+    "reference": 6.04,
+    "shiftFromBase": 4.6,
+    "oklch": [
+     0.713,
+     0.18,
+     23.2
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#E0383E",
+    "hex": "#D72E37",
+    "lifted": true,
+    "liftL": -0.0235,
+    "card": 3.12,
+    "reference": 4.84,
+    "shiftFromBase": 2.9,
+    "oklch": [
+     0.575,
+     0.204,
+     24.1
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "orange",
+   "name": "Orange",
+   "group": "classic",
+   "note": "",
+   "dark": {
+    "base": "#F7821B",
+    "hex": "#F7821B",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.33,
+    "reference": 6.48,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.725,
+     0.174,
+     54.0
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#F7821B",
+    "hex": "#B35900",
+    "lifted": true,
+    "liftL": -0.1615,
+    "card": 3.12,
+    "reference": 4.83,
+    "shiftFromBase": 17.2,
+    "oklch": [
+     0.563,
+     0.142,
+     53.6
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "yellow",
+   "name": "Yellow",
+   "group": "classic",
+   "note": "",
+   "dark": {
+    "base": "#FFC600",
+    "hex": "#FFC600",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 5.44,
+    "reference": 10.58,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.854,
+     0.175,
+     87.5
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#9D6A00",
+    "hex": "#9A6800",
+    "lifted": true,
+    "liftL": -0.007,
+    "card": 3.11,
+    "reference": 4.82,
+    "shiftFromBase": 0.9,
+    "oklch": [
+     0.556,
+     0.117,
+     75.8
+    ],
+    "character": "changed",
+    "characterNote": "takes Gold (OKLCH hue 76) in light: no yellow reaches 3.1:1 on the #D1CFCF card, and the Yellow hue there reads olive"
+   }
+  },
+  {
+   "id": "green",
+   "name": "Green",
+   "group": "classic",
+   "note": "",
+   "dark": {
+    "base": "#62BA46",
+    "hex": "#62BA46",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.52,
+    "reference": 6.85,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.709,
+     0.175,
+     138.9
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#62BA46",
+    "hex": "#2E8300",
+    "lifted": true,
+    "liftL": -0.171,
+    "card": 3.1,
+    "reference": 4.81,
+    "shiftFromBase": 18.2,
+    "oklch": [
+     0.537,
+     0.169,
+     138.9
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "teal",
+   "name": "Teal",
+   "group": "classic",
+   "note": "",
+   "dark": {
+    "base": "#40C8E0",
+    "hex": "#40C8E0",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 4.31,
+    "reference": 8.38,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.771,
+     0.118,
+     212.0
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#1F93A8",
+    "hex": "#007D91",
+    "lifted": true,
+    "liftL": -0.069,
+    "card": 3.12,
+    "reference": 4.84,
+    "shiftFromBase": 8.1,
+    "oklch": [
+     0.542,
+     0.095,
+     214.0
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "graphite",
+   "name": "Graphite",
+   "group": "classic",
+   "note": "",
+   "dark": {
+    "base": "#8C8C8C",
+    "hex": "#9C9C9C",
+    "lifted": true,
+    "liftL": 0.0515,
+    "card": 3.12,
+    "reference": 6.07,
+    "shiftFromBase": 5.3,
+    "oklch": [
+     0.693,
+     0.0,
+     89.9
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#8C8C8C",
+    "hex": "#727272",
+    "lifted": true,
+    "liftL": -0.0865,
+    "card": 3.1,
+    "reference": 4.81,
+    "shiftFromBase": 9.9,
+    "oklch": [
+     0.552,
+     0.0,
+     89.9
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "ocean",
+   "name": "Ocean",
+   "group": "signature",
+   "note": "sea blue, between Blue and Teal; deep sea in light",
+   "dark": {
+    "base": "#00A9D4",
+    "hex": "#00A9D4",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.11,
+    "reference": 6.05,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.683,
+     0.129,
+     224.4
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#2A6686",
+    "hex": "#2A6686",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 4.05,
+    "reference": 6.28,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.486,
+     0.08,
+     235.2
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "denim",
+   "name": "Denim",
+   "group": "signature",
+   "note": "faded denim in dark, raw indigo denim in light",
+   "dark": {
+    "base": "#979AB6",
+    "hex": "#979AB6",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.11,
+    "reference": 6.04,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.693,
+     0.041,
+     280.4
+    ],
+    "character": "changed",
+    "characterNote": "a faded, greyed denim: a deep blue cannot reach 3.1:1 on #4D4C4B"
+   },
+   "light": {
+    "base": "#3C447E",
+    "hex": "#3C447E",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 5.83,
+    "reference": 9.05,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.41,
+     0.097,
+     275.4
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "indigo",
+   "name": "Indigo",
+   "group": "signature",
+   "note": "blue-violet, between Blue and Purple",
+   "dark": {
+    "base": "#948FFF",
+    "hex": "#948FFF",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.11,
+    "reference": 6.06,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.703,
+     0.161,
+     283.5
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#5341BD",
+    "hex": "#5341BD",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 4.74,
+    "reference": 7.35,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.471,
+     0.186,
+     283.2
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "lilac",
+   "name": "Lilac",
+   "group": "signature",
+   "note": "muted lilac, the quiet violet",
+   "dark": {
+    "base": "#AD92BD",
+    "hex": "#AD92BD",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.11,
+    "reference": 6.05,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.699,
+     0.069,
+     312.8
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#82679B",
+    "hex": "#82679B",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.1,
+    "reference": 4.81,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.56,
+     0.084,
+     307.6
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "orchid",
+   "name": "Orchid",
+   "group": "signature",
+   "note": "orchid pink in dark, deep orchid in light",
+   "dark": {
+    "base": "#E298C6",
+    "hex": "#E298C6",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.89,
+    "reference": 7.57,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.767,
+     0.106,
+     342.1
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#733E67",
+    "hex": "#733E67",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 5.18,
+    "reference": 8.03,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.444,
+     0.093,
+     336.0
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "rose",
+   "name": "Rose",
+   "group": "signature",
+   "note": "dusty rose, softer than Pink",
+   "dark": {
+    "base": "#D9969B",
+    "hex": "#D9969B",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.58,
+    "reference": 6.98,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.74,
+     0.081,
+     14.3
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#A85966",
+    "hex": "#A85966",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.16,
+    "reference": 4.9,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.561,
+     0.104,
+     10.5
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "coral",
+   "name": "Coral",
+   "group": "signature",
+   "note": "warm coral; a red terracotta in light",
+   "dark": {
+    "base": "#FF9B7E",
+    "hex": "#FF9B7E",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 4.18,
+    "reference": 8.13,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.786,
+     0.127,
+     37.0
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#9C5345",
+    "hex": "#9C5345",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.62,
+    "reference": 5.62,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.526,
+     0.1,
+     32.0
+    ],
+    "character": "changed",
+    "characterNote": "a red terracotta: Claude Light (#C15F3C) and Gruvbox Light (#AF3A03) hold the lighter coral-terracotta ground"
+   }
+  },
+  {
+   "id": "bronze",
+   "name": "Bronze",
+   "group": "signature",
+   "note": "the warm metal: caramel bronze in dark, dark bronze in light",
+   "dark": {
+    "base": "#C89152",
+    "hex": "#C89152",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.11,
+    "reference": 6.06,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.697,
+     0.104,
+     68.4
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#7F4A00",
+    "hex": "#7F4A00",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 4.7,
+    "reference": 7.29,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.461,
+     0.104,
+     65.0
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "sage",
+   "name": "Sage",
+   "group": "signature",
+   "note": "grey-green, the calmest green",
+   "dark": {
+    "base": "#86A481",
+    "hex": "#86A481",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.12,
+    "reference": 6.07,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.686,
+     0.06,
+     141.1
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#647852",
+    "hex": "#647852",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.11,
+    "reference": 4.83,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.546,
+     0.061,
+     130.8
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "alpine",
+   "name": "Alpine",
+   "group": "signature",
+   "note": "deep fir green",
+   "dark": {
+    "base": "#53AC8F",
+    "hex": "#53AC8F",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.13,
+    "reference": 6.09,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.681,
+     0.097,
+     169.6
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#005136",
+    "hex": "#005136",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 6.07,
+    "reference": 9.42,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.385,
+     0.084,
+     162.6
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  },
+  {
+   "id": "mint",
+   "name": "Mint",
+   "group": "signature",
+   "note": "fresh mint in dark; deep jade in light",
+   "dark": {
+    "base": "#59D6B9",
+    "hex": "#59D6B9",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 4.79,
+    "reference": 9.32,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.798,
+     0.119,
+     175.3
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#007C6D",
+    "hex": "#007C6D",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.3,
+    "reference": 5.12,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.525,
+     0.095,
+     180.5
+    ],
+    "character": "changed",
+    "characterNote": "reads deep jade rather than mint"
+   }
+  },
+  {
+   "id": "slate",
+   "name": "Slate",
+   "group": "signature",
+   "note": "blue-grey neutral, the cool partner of Graphite",
+   "dark": {
+    "base": "#AABCD4",
+    "hex": "#AABCD4",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 4.43,
+    "reference": 8.62,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.789,
+     0.04,
+     255.6
+    ],
+    "character": "kept",
+    "characterNote": ""
+   },
+   "light": {
+    "base": "#5C687D",
+    "hex": "#5C687D",
+    "lifted": false,
+    "liftL": 0.0,
+    "card": 3.63,
+    "reference": 5.63,
+    "shiftFromBase": 0.0,
+    "oklch": [
+     0.515,
+     0.036,
+     261.6
+    ],
+    "character": "kept",
+    "characterNote": ""
+   }
+  }
+ ],
+ "alternatives": []
+}

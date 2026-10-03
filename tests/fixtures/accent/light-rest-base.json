@@ -1,0 +1,165 @@
+{
+ "still": "rest-base",
+ "note": "Theme Light, accent Windows accent (default), Signature line shut",
+ "sample": {
+  "card": [
+   237,
+   89,
+   520,
+   237
+  ],
+  "ringC": {
+   "x": 0,
+   "o": 1,
+   "s": 1
+  },
+  "ringS": {
+   "x": 0,
+   "o": 0,
+   "s": 0.8
+  },
+  "fold": {
+   "h": 0,
+   "o": 0,
+   "rowY": -6
+  },
+  "more": {
+   "cls": "more",
+   "ringO": 0,
+   "ringS": 0.9,
+   "lab": [
+    {
+     "t": "More",
+     "o": 1
+    }
+   ],
+   "labW": 27,
+   "chvO": 0.8,
+   "chvW": 7,
+   "chvML": 0,
+   "chvT": null,
+   "dotW": 0,
+   "dotMR": -3,
+   "dotO": 0,
+   "dotS": 0.4,
+   "dotC": "rgba(0, 0, 0, 0)",
+   "mpBg": "rgba(255, 255, 255, 0.55)",
+   "mpT": null,
+   "color": "rgba(28, 28, 30, 0.68)",
+   "outline": "rgba(0, 0, 0, 0)"
+  },
+  "pill": {
+   "l": 63,
+   "w": 50,
+   "bg": "rgb(255, 255, 255)"
+  },
+  "segs": [
+   {
+    "w": 61,
+    "color": "rgba(28, 28, 30, 0.68)",
+    "t": null,
+    "outline": "rgba(0, 0, 0, 0)",
+    "lab": [
+     {
+      "t": "System",
+      "o": 1
+     }
+    ],
+    "labW": 39
+   },
+   {
+    "w": 50,
+    "color": "rgb(28, 28, 30)",
+    "t": null,
+    "outline": "rgba(0, 0, 0, 0)",
+    "lab": [
+     {
+      "t": "Light",
+      "o": 1
+     }
+    ],
+    "labW": 28
+   },
+   {
+    "w": 48,
+    "color": "rgba(28, 28, 30, 0.68)",
+    "t": null,
+    "outline": "rgba(0, 0, 0, 0)",
+    "lab": [
+     {
+      "t": "Dark",
+      "o": 1
+     }
+    ],
+    "labW": 26
+   },
+   {
+    "w": 106,
+    "color": "rgba(28, 28, 30, 0.68)",
+    "t": null,
+    "outline": "rgba(0, 0, 0, 0)",
+    "lab": [
+     {
+      "t": "More themes",
+      "o": 1
+     }
+    ],
+    "labW": 73
+   }
+  ],
+  "themeDetail": [
+   {
+    "t": "Light · Windows accent",
+    "o": 1
+   }
+  ],
+  "accDetail": [
+   {
+    "t": "Windows accent · #0067C0 · default",
+    "o": 0
+   },
+   {
+    "t": "Windows accent · default",
+    "o": 1
+   }
+  ],
+  "mini": {
+   "ac": "rgb(0, 103, 192)",
+   "aon": "rgb(255, 255, 255)",
+   "surf": "rgb(255, 255, 255)",
+   "ink": "rgb(28, 28, 30)"
+  },
+  "win": {
+   "cls": "win wl",
+   "tx": "rgb(28, 28, 30)",
+   "tx2": "rgba(28, 28, 30, 0.68)",
+   "pac": "rgb(0, 103, 192)",
+   "tint": "rgba(0, 0, 0, 0)",
+   "cap": "rgba(255, 255, 255, 0.55)",
+   "cardfill": "rgba(0, 0, 0, 0.03)",
+   "ring": "rgba(0, 0, 0, 0.78)",
+   "lightBackdrop": 1
+  },
+  "pop": {
+   "o": 0,
+   "t": {
+    "a": 0.96,
+    "b": 0,
+    "e": 0,
+    "f": -4
+   },
+   "vis": "hidden"
+  },
+  "sw": [
+   {
+    "i": 0,
+    "name": "Windows accent",
+    "scale": 1,
+    "outline": "rgba(0, 0, 0, 0)",
+    "winDot": 1
+   }
+  ],
+  "firstSwatch": "rgb(0, 103, 192)",
+  "focus": null
+ }
+}
