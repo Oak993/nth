@@ -73,7 +73,7 @@ public sealed class WindowCornerWedgeTests(HeadlessSession headless)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [Trait("Req", "PR-WIN-062")] // OD-0075; Chrome.swift:8 windowCornerRadius 26, :211-215 the scrim
+    [Trait("Decision", "ED-236")] // OD-0075; Chrome.swift:8 windowCornerRadius 26, :211-215 the scrim
     public void The_four_corners_outside_the_26_point_curve_wear_the_scrim_and_the_rest_of_the_window_is_untouched(bool dark) => headless.OnUiThread(() =>
     {
         const int width = 300, height = 200;
@@ -89,7 +89,7 @@ public sealed class WindowCornerWedgeTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-WIN-062")] // OD-0075; the same shape the window's content is clipped to (RootView.swift:66-67)
+    [Trait("Decision", "ED-236")] // OD-0075; the same shape the window's content is clipped to (RootView.swift:66-67)
     public void The_wedge_is_the_exact_complement_of_the_shape_the_content_is_clipped_to() => headless.OnUiThread(() =>
     {
         var size = new Size(300, 200);
@@ -123,7 +123,7 @@ public sealed class WindowCornerWedgeTests(HeadlessSession headless)
     [InlineData(true, 0.97, 0.9556)]
     [InlineData(true, 0.98, 1.0)]
     [InlineData(false, 1.0, 1.0)]
-    [Trait("Req", "PR-WIN-062")] // OD-0075; Chrome.swift:211-215 the scrim, :220-224 the solid window
+    [Trait("Decision", "ED-236")] // OD-0075; Chrome.swift:211-215 the scrim, :220-224 the solid window
     public void The_wedge_follows_the_backdrop_opacity_and_goes_solid_with_the_window(bool dark, double setting, double alpha) => headless.OnUiThread(() =>
     {
         var wedge = new WindowCornerWedge(0.5); // built at one opacity, then told the setting as the window tells it
@@ -135,7 +135,7 @@ public sealed class WindowCornerWedgeTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-WIN-062")] // OD-0075
+    [Trait("Decision", "ED-236")] // OD-0075
     public void The_wedge_redraws_when_the_theme_or_the_setting_changes_and_takes_no_pointer() => headless.OnUiThread(() =>
     {
         var wedge = new WindowCornerWedge(0.5);

@@ -2404,14 +2404,11 @@ public sealed class ComposerViewTests(HeadlessSession headless)
             {
                 Pump(h, window);
                 h.Main.OnMain(() => Type(view, "/"));
-                // A launch is not instant, and nothing says when "never" has been long enough: give one that would happen a second and a half, pumping.
+                // The composer asks for the commands as soon as the slash is typed, in a main-actor job that one pump runs; LoadCommands registers its load
+                // in commandLoads before its first await (ProviderRegistry.swift:781), so a launch that was attempted is in the map by now: there is nothing to
+                // wait for, and no clock to wait on. (A launch that completed and left the map would have been recorded by the stand-in instead.)
+                Pump(h, window);
                 var loads = InFlightCommandLoads(h);
-                var deadline = DateTime.UtcNow.AddSeconds(1.5);
-                while (DateTime.UtcNow < deadline && script.CommandListings().Count == 0 && loads.Count == 0)
-                {
-                    Pump(h, window);
-                    System.Threading.Thread.Sleep(25);
-                }
                 Assert.Empty(loads);
                 Assert.Empty(script.CommandListings());
                 Assert.DoesNotContain(script.RecordedCalls(), call => call.Contains("--no-session-persistence"));

@@ -56,7 +56,7 @@ public sealed class WindowManagerCornerWedgeTests(HeadlessSession headless) : Se
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [Trait("Req", "UI-SETTINGS-001")] // App/Views/Settings/SettingsView.swift:118-122; OD-0075
+    [Trait("Decision", "ED-236")] // App/Views/Settings/SettingsView.swift:118-122; OD-0075
     public void The_settings_windows_four_corners_outside_the_26_point_curve_wear_its_scrim(bool dark) => WithManager((_, manager) =>
     {
         manager.Model.Settings.BackdropOpacity = 0.5;
@@ -66,7 +66,7 @@ public sealed class WindowManagerCornerWedgeTests(HeadlessSession headless) : Se
     });
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-001")] // UI/Chrome/Chrome.swift:211-224; OD-0075
+    [Trait("Decision", "ED-236")] // UI/Chrome/Chrome.swift:211-224; OD-0075
     public void The_settings_corner_scrim_follows_the_backdrop_opacity_the_theme_and_the_solid_window() => WithManager((_, manager) =>
     {
         manager.Model.Settings.BackdropOpacity = 0.25;
@@ -83,7 +83,7 @@ public sealed class WindowManagerCornerWedgeTests(HeadlessSession headless) : Se
     });
 
     [Fact]
-    [Trait("Req", "UI-SETTINGS-001")] // App/Views/Settings/SettingsView.swift:118-122; OD-0074 (Rise fades the glass in)
+    [Trait("Decision", "ED-236")] // App/Views/Settings/SettingsView.swift:118-122; OD-0074 (Rise fades the glass in)
     public void The_wedge_sits_under_the_clipped_frame_takes_no_pointer_and_fades_in_with_the_glass_of_the_Rise_open() => WithManager((_, manager) =>
     {
         manager.ShowSettings(SettingsPage.Archive);

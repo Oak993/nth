@@ -70,8 +70,7 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:64-68; UI/Chrome/Chrome.swift:8, :211-215
-    [Trait("Req", "UI-LAUNCH-001")] // App/Window/WindowManager.swift:62-69 the main window's surface; OD-0075
+    [Trait("Decision", "ED-236")] // App/Views/RootView.swift:64-68; UI/Chrome/Chrome.swift:8, :211-215; App/Window/WindowManager.swift:62-69 the main window's surface; OD-0075
     public void The_main_windows_four_corners_outside_the_26_point_curve_wear_its_scrim(bool dark)
     {
         headless.OnUiThread(() =>
@@ -95,8 +94,7 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-062")] // UI/Chrome/Chrome.swift:211-224
-    [Trait("Req", "UI-LAUNCH-001")] // OD-0075
+    [Trait("Decision", "ED-236")] // UI/Chrome/Chrome.swift:211-224; OD-0075
     public void The_corner_scrim_follows_the_backdrop_opacity_the_theme_and_the_solid_window()
     {
         headless.OnUiThread(() =>
@@ -128,7 +126,7 @@ public sealed class RootViewCornerWedgeTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Req", "PR-WIN-062")] // App/Views/RootView.swift:66-68 (the glass and its edge stop at the window's own curve)
+    [Trait("Decision", "ED-236")] // App/Views/RootView.swift:66-68 (the glass and its edge stop at the window's own curve)
     public void The_wedge_sits_beneath_the_windows_clip_so_the_glass_still_stops_at_the_curve_and_takes_no_pointer()
     {
         headless.OnUiThread(() =>
