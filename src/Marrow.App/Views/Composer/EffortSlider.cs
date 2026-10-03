@@ -951,8 +951,6 @@ public sealed class EffortSlider : Decorator
     /// <summary>jewel-knob.html:813: a drawn frame moves the knob's springs by at most this, s.</summary>
     internal const double MaxStep = 0.05;
 
-    private bool IsFast => currentEffect is { } effect && TrackEffect.IsFast(effect.Look);
-
     /// <summary>
     /// The knob's light still has somewhere to go: the shaped signal has not reached the bolt's, or the fast effect the
     /// signal reads is still fading in (its opacity scales the signal, so its next value is not the one read). Under reduce
