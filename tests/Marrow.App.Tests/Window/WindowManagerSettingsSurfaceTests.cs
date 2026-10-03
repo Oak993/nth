@@ -51,7 +51,8 @@ public sealed class WindowManagerSettingsSurfaceTests(HeadlessSession headless) 
             var view = View(manager);
             Assert.Equal(new Avalonia.Size(780, 580), window.ClientSize);
             Assert.Equal(780, view.Width); Assert.Equal(580, view.Height);
-            var frame = Assert.IsType<Border>(view.Child);
+            // OD-0075: the frame is the first layer; under it (ZIndex -1) the wedge between the window's rectangle and the 26 pt shape (WindowManagerCornerWedgeTests).
+            var frame = Assert.IsType<Border>(Assert.IsType<Panel>(view.Child).Children[0]);
             Assert.Equal(new CornerRadius(26), frame.CornerRadius); // Literal oracle; I01 changes production 26 to 25.
             // STOP CONTINUOUS-CORNERS: SwiftShapes currently uses circular arcs for this
             // Continuous marker (ED-181); this assertion is not a continuous-geometry oracle.
