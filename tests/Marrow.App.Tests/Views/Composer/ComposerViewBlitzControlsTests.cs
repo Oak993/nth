@@ -592,4 +592,26 @@ public sealed partial class ComposerViewTests
             Close(h, window);
         });
     }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-015")] // App/Views/Composer/ComposerTextView.swift:234-274 (the NSTextView draws its own text and insertion point)
+    [Trait("Rule", "R-TEST-4")] // The text view's drawing; the growth and the scroll: the two tests above
+    public void A_text_view_with_the_keyboard_draws_its_insertion_point_and_one_without_it_draws_nothing_while_empty()
+    {
+        headless.OnUiThread(() =>
+        {
+            var idle = new ComposerTextViewHarness(placeholder: "", takesFocusOnAppear: false);
+            idle.Layout();
+            var area = new Rect(0, 0, idle.View.Bounds.Width, ComposerTextViewHarness.ComposerHeight);
+            Assert.Null(Ink.Bounds(idle.Window, area));
+            var focused = new ComposerTextViewHarness(placeholder: "", takesFocusOnAppear: true);
+            focused.Layout();
+            focused.Focus();
+            ComposerTextViewHarness.Pump();
+            var caret = Ink.Bounds(focused.Window, area);
+            Assert.NotNull(caret);
+            Assert.InRange(caret!.Value.Width, 1, 3); // the one point bar, not a line of text
+            Assert.True(caret.Value.Height >= 14);
+        });
+    }
 }

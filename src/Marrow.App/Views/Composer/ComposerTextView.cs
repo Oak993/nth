@@ -222,6 +222,7 @@ public sealed class ComposerNSTextView : TextBox
                 [!Avalonia.Controls.Presenters.TextPresenter.CaretIndexProperty] = box[!TextBox.CaretIndexProperty],
             }.RegisterInNameScope(scope);
             PlainControls.FieldBrushes(box, presenter);
+            presenter.HideCaret(); // the box shows it when it takes the keyboard, as TextBox's own template does
             return new Border { Background = Brushes.Transparent, [!Border.PaddingProperty] = box[!TemplatedControl.PaddingProperty], Child = presenter };
         });
         CornerRadius = new CornerRadius(0);
