@@ -1869,7 +1869,7 @@ namespace Marrow.UI.Chrome
             // y402: (22,66,72) over (43,86,92), white at 0.09-0.11) and light card S 141.5 (frames/gap-R2-05, black at 0.10);
             // CATALOGUE static.settings-light-theme says the same (row separators 10 % light, 9-10 % dark). The label colour is 0.85 opaque,
             // so Overlay(0.12) is the line at 0.102 (alpha 26).
-            line.BorderBrush = Chrome.Overlay(0.12).Brush(line);
+            var ink = new AnimatedColor(line); ink.Set(Chrome.Overlay(0.12), null); line.BorderBrush = ink.Brush; // a colour that follows an appearance turnover (ED-254)
             Child = line;
             Margin = new Thickness(16, 0, 0, 0); // :1085 .padding(.leading, 16)
         }
