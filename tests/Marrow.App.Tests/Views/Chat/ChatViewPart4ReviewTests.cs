@@ -123,7 +123,7 @@ public sealed class ChatViewPart4ReviewTests(HeadlessSession headless)
     [Fact]
     [Trait("Req", "PR-CHAT-176")] // App/Views/Chat/ChatView.swift:1147-1151,1203-1214
     [Trait("Req", "UI-CHAT-076")] // App/Views/Chat/ChatView.swift:1203-1214
-    public void Updating_the_title_input_cuts_to_the_new_text_without_replacing_its_button()
+    public void Updating_the_title_input_of_a_title_not_yet_drawn_takes_the_new_text_in_place_without_replacing_its_button()
     {
         ChatHeadlessFixtures.Run(headless, () =>
         {

@@ -1356,7 +1356,7 @@ internal sealed class ChatChromeRow : Decorator
         updateInputs = (nextTitle, nextProject, nextDirectory) =>
         {
             title = nextTitle; project = nextProject; directory = nextDirectory;
-            titleView.UpdateTitle(title); // :1147-1151 no title animation.
+            titleView.UpdateTitle(title); // :1147-1151 no title animation on the Mac; the words crossfade (OD-0076, ED-NEW-parity-chatview (14)).
             Build();
         };
         void Drop(Control old)
@@ -1561,8 +1561,15 @@ internal sealed class ChatChromeRow : Decorator
 /// (which drags the window from this row's gaps) never swallows the click.</summary>
 internal sealed class ChatChromeTitle : Decorator
 {
-    private readonly TextBlock titleText = new();
+    private TextBlock titleText = new();
     private string currentTitle;
+    private Panel? wordsHost; // the words on screen; a crossfade's leaving words sit in wordsLayer, over them, out of the layout.
+    private Canvas? wordsLayer;
+    private bool shownEmpty;
+
+    // OD-0076 (content that swaps crossfades), ED-NEW-parity-chatview (14): the Mac's title Text takes new words with no animation
+    // (ChatView.swift:1147-1151); the port fades the old words out and the new ones in on one ease-out of the Mac's motion language.
+    private static Animation WordsSwap => Animation.EaseOut(duration: 0.2);
 
     private sealed class ViewState : MainActorModel
     {
@@ -1583,20 +1590,16 @@ internal sealed class ChatChromeTitle : Decorator
     {
         currentTitle = title;
         var state = new ViewState();
-        var text = new TextBlock
-        {
-            Text = title.Length == 0 ? "New thread" : title, // :1203
-            MaxLines = 1, // :1206
-            TextTrimming = TextTrimming.CharacterEllipsis, // :1207 .truncationMode(.tail)
-        };
+        var text = NewWords(title);
         titleText = text;
-        SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold).Apply(text); // :1204
-        text.Foreground = (title.Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(text); // :1205
+        shownEmpty = title.Length == 0;
+        wordsLayer = new Canvas { IsHitTestVisible = false }; // no size of its own: the leaving words take no room
+        wordsHost = new Panel { Children = { text, wordsLayer } };
         var padded = new Border
         {
             Padding = new Thickness(0, 6), // :1208
             Background = Brushes.Transparent, // :1209 .contentShape(.rect)
-            Child = text,
+            Child = wordsHost,
         };
         var button = PlainControls.Button(padded, () => state.IsPresented = !state.IsPresented); // :1199-1202
         button.HorizontalContentAlignment = HorizontalAlignment.Left;
@@ -1616,13 +1619,51 @@ internal sealed class ChatChromeTitle : Decorator
         HorizontalAlignment = HorizontalAlignment.Stretch; // :1238 .frame(maxWidth: .infinity, alignment: .leading)
     }
 
-    // :1147-1151,1203-1205 title input changes cut directly; the button/popover state keeps its identity.
+    // :1203-1207 the words, their face and their colour.
+    private static TextBlock NewWords(string title)
+    {
+        var text = new TextBlock
+        {
+            Text = title.Length == 0 ? "New thread" : title, // :1203
+            MaxLines = 1, // :1206
+            TextTrimming = TextTrimming.CharacterEllipsis, // :1207 .truncationMode(.tail)
+        };
+        SwiftFont.System(SwiftFont.TextStyle.Title3, weight: SwiftFont.Weight.Semibold).Apply(text); // :1204
+        text.Foreground = (title.Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(text); // :1205
+        return text;
+    }
+
+    // :1147-1151,1203-1205 a title input change: the Mac's Text takes the new words with no animation, and the button/popover state keeps
+    // its identity. OD-0076 (owner-ruled deviation, the lead's decision for PR-CHAT-176 / UI-CHAT-076): on a drawn title the old words
+    // fade out where they stand while the new ones fade in; Reduce Motion, or words not yet laid out, cut.
     internal void UpdateTitle(string title)
     {
         currentTitle = title;
         if (Child is ChatChromeTitle body) body.UpdateTitle(title);
-        titleText.Text = title.Length == 0 ? "New thread" : title;
-        titleText.Foreground = (title.Length == 0 ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(titleText);
+        var empty = title.Length == 0;
+        var shown = empty ? "New thread" : title;
+        if (titleText.Text == shown && shownEmpty == empty) return; // the words on screen are these: a refresh that leaves the title as it is changes nothing
+        if (wordsHost is null || wordsLayer is null || titleText.Bounds.Width <= 0
+            || Chrome.ReduceMotionPlatform.Current.AccessibilityDisplayShouldReduceMotion)
+        {
+            titleText.Text = shown;
+            titleText.Foreground = (empty ? Chrome.SecondaryText : Chrome.PrimaryText).Brush(titleText);
+            shownEmpty = empty;
+            return;
+        }
+        var leaving = titleText;
+        var arriving = NewWords(title);
+        shownEmpty = empty;
+        titleText = arriving;
+        // The leaving words keep the width they were laid out at (so their own truncation) and take no room.
+        leaving.Width = leaving.Bounds.Width;
+        wordsHost.Children.Remove(leaving);
+        wordsLayer.Children.Add(leaving);
+        Transaction.WithAnimation(WordsSwap, () =>
+        {
+            SwiftTransition.RemoveContinuing(wordsLayer, leaving); // words still arriving leave from where they have got to
+            SwiftTransition.Insert(wordsHost, 0, arriving);
+        });
     }
 
     // :1219-1229, extracted so a test can inspect the menu without a real popup (headless cannot open one).
