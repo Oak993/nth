@@ -294,13 +294,12 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     // STOP App.Views.Chat.ThreadTimeline #3
-    // Kind: platform dependency. Swift: ThreadTimeline.swift:1303-1323,1347-1350. Record: PR-CHAT-137 (native occlusion only).
-    // Missing: Avalonia's visible/active/minimized window events do not report a visible window fully covered by another app.
-    // Needed: the Windows window-layer occlusion signal. Identity-scoped activation/visibility bumps are ported; no invented occlusion state.
-    // STOP App.Views.Chat.ThreadTimeline #4
-    // Kind: dependency. Swift: ThreadTimeline.swift:211-217. Record: PR-CHAT-156 (per-timeline mention click only).
-    // Missing: MarkdownView has a global OpenUrl callback, not an inherited per-timeline open-URL action.
-    // Needed: the UI-layer inherited link hook; mention personas/targets are supplied without replacing a global callback.
+    // Kind: platform dependency. Swift: ThreadTimeline.swift:1303-1323,1347-1350. Record: PR-CHAT-137 (a window wholly covered by another application's, then uncovered, only).
+    // Missing: neither Avalonia nor Windows reports that a visible window stopped being fully covered by other windows (macOS's didChangeOcclusionState): when the covering
+    // window goes away with no activation, show or restore event for this one, nothing tells the timeline its reader may be back. The app coming to the front (activation of a
+    // window while none was visible), a window becoming visible or restored, and every other window's activation are ported and proven by
+    // ThreadTimelineMountedTests.The_timeline_checks_itself_when_the_app_or_its_own_window_comes_back_and_not_when_another_window_does.
+    // Needed: a Windows occlusion tracker (SetWinEventHook over the top-level windows, as Chromium's native occlusion tracker does); no occlusion state is invented here.
 
     [Fact]
     [Trait("Req", "PR-CHAT-192")] // App/Views/Chat/ThreadTimeline.swift:270-278,595-603,1804-1811
@@ -376,10 +375,6 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
         var request = new QuestionRequest("q", new([new QuestionRequest.Question("choice", "Header", "Choose", new([]), false, false, false)])); typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { Reply("reply", Turn) })); typeof(ThreadRuntime).GetProperty("Questions")!.SetValue(runtime, new ValueList<QuestionRequest>(new[] { request })); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); var badge = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(view).Single(); Assert.Equal("question-q", badge.Name); var stack = Assert.IsType<StackPanel>(badge.Parent); Assert.Same(badge, stack.Children[^1]);
     });
 
-    // STOP App.Views.Chat.ThreadTimeline #5
-    // Kind: dependency. Swift: ChatView.swift:108-111; ThreadTimeline.swift:26-35,180. Records: PR-CHAT-160/UI-CHAT-003 (caller mounting/free-width flag only).
-    // Missing: external ChatView is still a skeleton. Needed: caller memoization and free-width/docked-side showsMinimap expression; the timeline honors its supplied flag.
-
     [Fact]
     [Trait("Req", "UI-CHAT-001")] // App/Views/Chat/ThreadTimeline.swift:416-422
     public void A_short_row_still_gets_the_full_eight_hundred_twenty_point_column_and_leading_alignment() => WithTimeline((view, _, _, _, _) =>
@@ -445,13 +440,6 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
         var running = (HeadPills)method.Invoke(null, [heads, cut])!; Assert.Equal(new[] { 1, 2, 3 }, running.Earlier); Assert.Equal(new[] { 4 }, running.Later);
         var idle = (HeadPills)method.Invoke(null, [heads, null])!; Assert.Empty(idle.Earlier); Assert.Equal(new[] { 1, 2, 3, 4, 3 }, idle.Later);
     });
-
-    // STOP App.Views.Chat.ThreadTimeline #1
-    // Kind: dependency. Swift: ThreadTimeline.swift:104-107,186-197,1886-1934,2049-2065.
-    // Records: PR-CHAT-021/022/026/027/034/035/039/045/046 (rendering/integration only).
-    // Missing: external TimelineRows message/work/head/finished-turn constructors and FinishedHeads are MARROW_STUB.
-    // Needed: TimelineRows unit implementations. Owned finish sorting/partition, grouping, metadata, cache and layout are independently covered.
-    // No fabricated row content or fabricated finished-head roster substitutes for those sites.
 
     [Fact]
     [Trait("Req", "PR-CHAT-028")] // App/Views/Chat/ThreadTimeline.swift:1566-1593

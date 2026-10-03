@@ -18,7 +18,7 @@ using Marrow.UI.Common;
 using Marrow.UI.Port;
 
 // Source: DroppyCode/App/Views/Chat/ThreadTimeline.swift (B3 52bc792), :1-2327.
-// B3 owned behavior is ported. Exact external/platform gaps are documented in ThreadTimelineTests STOP #1-5.
+// B3 owned behavior is ported. The one platform gap left (a window uncovered with no event of its own) is documented in ThreadTimelineTests STOP #3.
 // Forms (ED-095): a SwiftUI View is a Decorator whose constructor builds `body`; a ViewModifier is a sealed record with
 // `Control Body(Control content)`; an NSViewRepresentable/NSView is a Control; NSWindow is Avalonia's Window. An enum
 // with associated values is an abstract record with nested sealed records (R-ENUM-2); where a case's labelled value
@@ -131,14 +131,13 @@ public sealed class ThreadTimeline : Decorator
             var lastID = runtime.Questions.LastOrDefault() is { } question ? "question-" + question.Id : blocks.LastOrDefault()?.Id;
             if (seenLastEntryID != lastID) { seenLastEntryID = lastID; NoteArrival(lastID, blocks); }
             MarkdownView.SetHydraMentionPersonas(this, TimelineBlockCache.Cache(runtime.ThreadID).MentionPersonas(modelInputs.Heads, modelInputs.Roster));
-            MarkdownView.SetHydraMentionTargets(this, MentionTargets(modelInputs.Heads)); // :123-131,209-210. URL hook remains STOP #4.
+            MarkdownView.SetHydraMentionTargets(this, MentionTargets(modelInputs.Heads)); // :123-131,209-210; the open-URL action for them is set in the constructor (:209-217).
             if (blocks.Count == 0 && !runtime.IsRunning)
             {
                 host.Child = new NewThreadPrompt(runtime.ThreadID, projectName); scrollChrome.Update(0); scrollState.ShowsJumpButton = false; // :136-141
             }
             else
             {
-                // STOP #1: external row rendering is not substituted by fabricated content.
                 var rows = new StackPanel { Spacing = TimelineMetrics.RowSpacing };
                 var rewindable = modelInputs.Rewindable.ToHashSet();
                 foreach (var id in laidOutRows.Keys) tracking.SetVisible(id, false); laidOutRows.Clear();
@@ -1091,7 +1090,7 @@ public sealed class DisplayBlockView : Decorator
     public DisplayBlockView(DisplayBlock block, ThreadRuntime runtime, RowContext context)
     {
         shown = block;
-        // :1902-1935. STOP #1 only at external leaf constructors; dispatch and arguments are owned.
+        // :1902-1935.
         if (block.HydraMergePhase is { } phase) { Child = new HydraMergeRow(runtime, phase); return; }
         switch (block)
         {
@@ -1223,7 +1222,7 @@ public sealed class TimelineGroupView : Decorator
     // :2036-2057 body
     public TimelineGroupView(TimelineGroup group, ThreadRuntime runtime, TurnSummary? summary, bool hasReply, RowContext context)
     {
-        // :2053-2070. Every external leaf retains its exact arguments; STOP #1 until TimelineRows ports it.
+        // :2053-2070.
         Child = group switch
         {
             TimelineGroup.Work work => new WorkGroup(work.Entries, runtime, context.WorkingDirectory, work.StartsCollapsed),

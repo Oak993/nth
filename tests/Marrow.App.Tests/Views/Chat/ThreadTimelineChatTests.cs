@@ -222,4 +222,27 @@ public sealed class ThreadTimelineChatTests(HeadlessSession headless)
             h.Main.OnMain(() => scroll.Offset = new Vector(0, 0)); Settle(h, frames, window, 200);
             Assert.Equal(0, chrome.Progress); Assert.Empty(layer.Children);
         });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-158 (the slide happens only on a measured pane with no resize, no panel or sidebar hold and no thread switch); ChatView.swift:122-123,713-720,737-771. The slide mechanism itself is ChatViewPart1Tests' and ChatViewFollowupTests'.
+    public void A_dock_slides_the_conversation_only_when_nothing_holds_the_slide()
+        => WithChat((view, runtime, model, h, window, frames) =>
+        {
+            double Offset() => ChatView.GetReserveSlideOffset(Timeline(view));
+            void Dock(bool on) { h.Main.OnMain(() => model.Settings.ShowsUsagePanel = on); Drain(h); }
+            void Rest() { Settle(h, frames, window, 1500); }
+            // Normal: the padding is the final reserve at once and the conversation glides over on its offset.
+            Dock(true); Assert.True(Offset() < 0, $"offset {Offset()}"); Rest(); Assert.Equal(0, Offset());
+            Dock(false); Assert.True(Offset() > 0); Rest();
+            // A window being dragged to a new size: no glide, the offset is 0 from the first frame.
+            var resize = AppEnvironment.GetWindowLiveResize(view);
+            typeof(WindowLiveResize).GetProperty(nameof(WindowLiveResize.IsActive))!.SetValue(resize, true);
+            Dock(true); Assert.Equal(0, Offset()); Assert.True(Timeline(view).Margin.Left > 0, "the padding still lands in one layout");
+            typeof(WindowLiveResize).GetProperty(nameof(WindowLiveResize.IsActive))!.SetValue(resize, false);
+            Dock(false); Rest();
+            // The sidebar being dragged: held too.
+            h.Main.OnMain(() => model.Sidebar.BeginDrag()); Drain(h);
+            Dock(true); Assert.Equal(0, Offset());
+            h.Main.OnMain(() => model.Sidebar.EndDrag()); Drain(h);
+        });
 }
