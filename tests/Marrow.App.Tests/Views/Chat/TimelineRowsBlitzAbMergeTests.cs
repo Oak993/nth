@@ -327,6 +327,53 @@ public sealed class TimelineRowsBlitzAbMergeTests(HeadlessSession headless)
         }
     });
 
+    [Fact]
+    [Trait("Req", "PR-HYDRAMERGE-102")] // TimelineRows.swift:838-839: a step change animates over .smooth(duration: 0.5), a mode change over .smooth(duration: 0.45)
+    [Trait("Req", "PR-CHAT-151")] // :821-840 one interpolated drawing: the three values arrive together
+    public void A_step_change_takes_half_a_second_and_a_mode_change_forty_five_hundredths_and_the_three_values_arrive_together() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        double Elapsed(Func<HydraMergeTrackBody, bool> arrived, Action<HydraMergeTrack> change, int step, HydraMergeTrack.Mode mode)
+        {
+            HydraMergeTrack track = null!;
+            AvaloniaWindow window = null!;
+            HydraMergeTrackBody Body() => LogicalQuery.SelfAndDescendants<HydraMergeTrackBody>(track).Single();
+            runtime.OnMain(() =>
+            {
+                track = new HydraMergeTrack(step, 7, mode);
+                window = Show(track);
+                change(track);
+            });
+            frames.Advance(TimeSpan.Zero);
+            var milliseconds = 0;
+            var moved = false;
+            while (!runtime.OnMain(() => arrived(Body())) && milliseconds < 2000)
+            {
+                runtime.AdvanceMilliseconds(10);
+                frames.Advance(TimeSpan.FromMilliseconds(10));
+                milliseconds += 10;
+                runtime.OnMain(() => { var (position, (done, resting)) = Body().AnimatableData; moved |= position > 0.01 || done > 0.01 || resting > 0.01; });
+            }
+            Assert.True(moved);
+            runtime.OnMain(() => Close(window));
+            return milliseconds;
+        }
+        // 0 -> 5 while running: only the position moves, over 0.5 s.
+        var stepTime = Elapsed(body => body.AnimatableData.Position >= 5 - 1e-6, track => track.Update(5, 7, HydraMergeTrack.Mode.Running), 0, HydraMergeTrack.Mode.Running);
+        Assert.InRange(stepTime, 500, 520);
+        // Running -> resting on the last dot: the mode changes, over 0.45 s, and the done and rest values reach 1 together.
+        var modeTime = Elapsed(body => body.AnimatableData.Outcome.Resting >= 1 - 1e-6, track => track.Update(6, 7, HydraMergeTrack.Mode.Resting), 6, HydraMergeTrack.Mode.Running);
+        Assert.InRange(modeTime, 450, 470);
+        var doneTime = Elapsed(body => body.AnimatableData.Outcome.Done >= 1 - 1e-6, track => track.Update(6, 7, HydraMergeTrack.Mode.Done), 6, HydraMergeTrack.Mode.Running);
+        Assert.InRange(doneTime, 450, 470);
+        // A step and a mode change at once take the mode's 0.45 s (:838-839 the change that moved is the mode).
+        var bothTime = Elapsed(body => body.AnimatableData.Position >= 6 - 1e-6, track => track.Update(6, 7, HydraMergeTrack.Mode.Resting), 0, HydraMergeTrack.Mode.Running);
+        Assert.InRange(bothTime, 450, 470);
+    });
+
     // ---- PR-CHAT-150, PR-HYDRAMERGE-107: the pill morphing from the merge to its note, frame by frame ----
 
     [Fact]
