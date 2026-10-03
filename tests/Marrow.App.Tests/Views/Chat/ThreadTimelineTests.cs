@@ -42,8 +42,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-021")] // App/Views/Chat/ThreadTimeline.swift:416-420
-    [Trait("Req", "PR-CHAT-022")] // App/Views/Chat/ThreadTimeline.swift:325,421-422
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-021 and PR-CHAT-022 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:416-420; App/Views/Chat/ThreadTimeline.swift:325,421-422
     public void Column_uses_shared_top_inset_exact_outer_padding_cap_and_a_bottom_flex_spacer() => WithTimeline((view, _, _, _, _) =>
     {
         var rows = new Border { Height = 40 }; var column = Invoke<Control>(view, "CreateColumn", rows, 480.0, null); column.Measure(new Size(960, 480)); column.Arrange(new Rect(0, 0, 960, 480)); var content = LogicalQuery.SelfAndDescendants<Border>(column).Single(border => border.MaxWidth == 820); Assert.Equal(new Thickness(20, Chrome.ContentTopInset, 20, 18), content.Margin); Assert.Equal(480, column.MinHeight); Assert.True(rows.TranslatePoint(default, column)!.Value.Y >= 400);
@@ -67,8 +66,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-045")] // App/Views/Chat/ThreadTimeline.swift:1804-1811,257-268
-    [Trait("Req", "PR-CHAT-046")] // App/Views/Chat/ThreadTimeline.swift:366-382
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-045 and PR-CHAT-046 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:1804-1811,257-268; App/Views/Chat/ThreadTimeline.swift:366-382
     public void History_window_starts_at_three_moves_back_twenty_four_and_anchors_on_identity() => WithTimeline((view, _, _, _, _) =>
     {
         Assert.Equal(3, TimelineWindow.FirstPaint); Assert.Equal(24, TimelineWindow.Initial); Assert.Equal(24, TimelineWindow.Page); Assert.Equal(96, typeof(TimelineWindow).GetField("EagerLimit")!.GetRawConstantValue()); var blocks = Enumerable.Range(0, 60).Select(i => (DisplayBlock)new DisplayBlock.Merging("b" + i)).ToArray(); Assert.Equal(57, Invoke<int>(view, "WindowStartIndex", (object)blocks)); Invoke<object?>(view, "LoadEarlier", blocks, 24); Assert.Equal(36, Invoke<int>(view, "WindowStartIndex", (object)blocks)); Assert.Equal(36, Invoke<int>(view, "WindowStartIndex", (object)blocks.Append(new DisplayBlock.Merging("append")).ToArray()));
@@ -164,9 +162,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-117")] // App/Views/Chat/ThreadTimeline.swift:2096-2097,2121-2149
-    [Trait("Req", "PR-CHAT-121")] // App/Views/Chat/ThreadTimeline.swift:2107-2119,2152-2176
-    [Trait("Req", "PR-CHAT-125")] // App/Views/Chat/ThreadTimeline.swift:330,2185-2188
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-117 and PR-CHAT-121 and PR-CHAT-125 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:2096-2097,2121-2149; App/Views/Chat/ThreadTimeline.swift:2107-2119,2152-2176; App/Views/Chat/ThreadTimeline.swift:330,2185-2188
     public void Working_card_and_badge_keep_source_insets_and_thinking_starts_folded() => WithTimeline((_, runtime, _, _, _) =>
     {
         var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([]), new([]), true); var badge = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([]), new([]), new([]), false); var cardShell = LogicalQuery.SelfAndDescendants<Border>(card).Single(border => border.Width == 380); Assert.Equal(new Thickness(14, 11), cardShell.Padding); var badgeShell = LogicalQuery.SelfAndDescendants<Border>(badge).Single(border => border.Padding == new Thickness(TimelineMetrics.PillLeading, TimelineMetrics.PillVertical, TimelineMetrics.PillTrailing, TimelineMetrics.PillVertical)); Assert.True(double.IsNaN(badgeShell.Width)); Assert.Empty(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card)); Assert.Equal("Show these steps", ToolTip.GetTip(LogicalQuery.SelfAndDescendants<Button>(card).Single()));
@@ -218,14 +214,14 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-137")] // App/Views/Chat/ThreadTimeline.swift:1290-1350
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-137 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:1290-1350
     public void Front_bumps_concern_only_the_uncovered_window_unless_the_bump_is_app_wide() => OnMain(() =>
     {
         var monitor = FrontMonitor.Shared.Current; var first = new Avalonia.Controls.Window(); var other = new Avalonia.Controls.Window(); Invoke<object?>(monitor, "Bump", first); Assert.True(monitor.Concerns(first)); Assert.False(monitor.Concerns(other)); Assert.False(monitor.Concerns(null)); var revision = monitor.Revision; Invoke<object?>(monitor, "Bump", (object?)null); Assert.Equal(revision + 1, monitor.Revision); Assert.True(monitor.Concerns(other));
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-137")] // App/Views/Chat/ThreadTimeline.swift:1337-1340 refreshVisibility on the window becoming key
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-137 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:1337-1340 refreshVisibility on the window becoming key
     public void Front_visibility_follows_the_window_becoming_active_even_when_no_activation_event_comes_after_it() => headless.OnUiThread(() =>
     {
         using var actor = Marrow.Core.Port.MainActor.Executor.Override(Marrow.UI.Port.AvaloniaMainExecutor.Instance);
@@ -247,14 +243,13 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-156")] // App/Views/Chat/ThreadTimeline.swift:147-155,1784-1795
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-156 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:147-155,1784-1795
     public void Mention_targets_choose_newest_same_persona_and_persona_cache_keys_only_indices_and_roster() => OnMain(() =>
     {
         var project = AppModelSamples.Project("project", "C:\\fixture"); var old = AppModelSamples.Thread(project) with { CreatedAt = DateTimeOffset.UnixEpoch, Hydra = new HydraHeadInfo(1, "old", HydraHeadInfo.Kind.Droppy, HydraHeadInfo.Origin.Delegated) }; var newer = old with { Id = Guid.NewGuid(), CreatedAt = DateTimeOffset.UnixEpoch.AddSeconds(1), Hydra = old.Hydra! with { Task = "new" } }; var map = (ValueMap<string, HydraMentionTarget>)typeof(ThreadTimeline).GetMethod("MentionTargets", BindingFlags.Static | BindingFlags.NonPublic)!.Invoke(null, [new[] { newer, old }])!; Assert.Equal(newer.Id, map[old.Hydra!.Persona.Name].ThreadID); var cache = new TimelineBlockCache(); var personas = cache.MentionPersonas([old], false); Assert.Equal(new[] { old.Hydra.Persona }, personas); Assert.Same(personas, cache.MentionPersonas([newer], false)); Assert.Equal(HydraRoster.Personas, cache.MentionPersonas([], true));
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-160")] // App/Views/Chat/ThreadTimeline.swift:26-35
     [Trait("Req", "PR-CHAT-162")] // App/Views/Chat/ThreadTimeline.swift:451-457,840-851
     public void Timeline_equivalence_checks_all_handed_values_and_resize_settle_never_unpins() => WithTimeline((view, runtime, chrome, state, _) =>
     {
@@ -294,13 +289,45 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     // STOP App.Views.Chat.ThreadTimeline #3
-    // Kind: platform dependency. Swift: ThreadTimeline.swift:1303-1323,1347-1350. Record: PR-CHAT-137 (native occlusion only).
-    // Missing: Avalonia's visible/active/minimized window events do not report a visible window fully covered by another app.
-    // Needed: the Windows window-layer occlusion signal. Identity-scoped activation/visibility bumps are ported; no invented occlusion state.
-    // STOP App.Views.Chat.ThreadTimeline #4
-    // Kind: dependency. Swift: ThreadTimeline.swift:211-217. Record: PR-CHAT-156 (per-timeline mention click only).
-    // Missing: MarkdownView has a global OpenUrl callback, not an inherited per-timeline open-URL action.
-    // Needed: the UI-layer inherited link hook; mention personas/targets are supplied without replacing a global callback.
+    // Kind: platform dependency. Swift: ThreadTimeline.swift:1303-1323,1347-1350. Record: PR-CHAT-137 (a window wholly covered by another application's, then uncovered, only).
+    // Missing: neither Avalonia nor Windows reports that a visible window stopped being fully covered by other windows (macOS's didChangeOcclusionState): when the covering
+    // window goes away with no activation, show or restore event for this one, nothing tells the timeline its reader may be back. The app coming to the front (activation of a
+    // window while none was visible), a window becoming visible or restored, and every other window's activation are ported and proven by
+    // ThreadTimelineMountedTests.The_timeline_checks_itself_when_the_app_or_its_own_window_comes_back_and_not_when_another_window_does.
+    // Needed: a Windows occlusion tracker (SetWinEventHook over the top-level windows, as Chromium's native occlusion tracker does); no occlusion state is invented here.
+
+    // STOP App.Views.Chat.ThreadTimeline #6
+    // Kind: owner decision. Swift: TimelineRows.swift:2589-2715 (the fold), ThreadTimeline.swift:1907-1926. Records: PR-CHAT-104 (windows_path: the fold is a change of what the block shows in the same frame, no transition), PR-CHAT-117/121 (the working card's open and close).
+    // Missing: OD-0076 ("nothing on screen changes by a cut") beats the source where it snaps, and its transition audit has no entry for the turn-end swap (running block to folded block, one frame on the reference
+    // runtime, CATALOGUE.md C 125.743-125.78) or for the turn header's chevron fold; the port cuts as the Mac does (ThreadTimelineFoldTests proves the swap in one pass, the TimelineRows tests the fold).
+    // Needed: the owner's ruling on those two entries; no transition is invented here.
+
+    // STOP App.Views.Chat.ThreadTimeline #7
+    // Kind: shared symbol metrics. Swift: ThreadTimeline.swift:2129-2135 (the chevron joins the header, the time glides over to make room). Record: UI-CHAT-043.
+    // Missing: on the reference runtime the time's left edge moves 17 points when the chevron comes (8 of spacing and a 9 point symbol, 2-chat-use.mov 95.803-96.078); the port's chevron.right is 12 wide
+    // at the same font, so the whole shift is 20 and the time sits 3 points further left than the Mac's whenever a chevron is shown. The curve is the Mac's (smooth 0.3 s, ThreadTimelineWorkingLineTests).
+    // Needed: a per-symbol advance for chevron.right at caption2. ED-182 draws every symbol in a square of 1.2 times the font's size (SwiftImage.SymbolSide), shared by every symbol in the app; not changed here.
+
+    // STOP App.Views.Chat.ThreadTimeline #8
+    // Kind: reference capture. Swift: Chrome.swift:581-629, ThreadTimeline.swift:488,1376. Record: PR-CHAT-159 (capture comparison at travel 0, 20 and 44 in both themes).
+    // Missing: the reference runtime shows the veil only at full travel in the cousin's dark theme (2-chat-use.mov 8.403, none on short threads), so the falloff over its 72 points is compared (ThreadTimelineVeilTests)
+    // and the formula of its level through the travel is proven against the pixels, but the level at full travel (0.525 here, 0.46 there: the theme's surface alpha and wallpaper are the cousin's), travel 20 and
+    // the light theme have no reference frame; the Acrylic backdrop behind it needs a real window (OD-0014, OD-0005).
+    // Needed: a capture of a thread scrolled to 20 points and a light-theme chat on the reference runtime.
+
+    // STOP App.Views.Chat.ThreadTimeline #9
+    // Kind: real window and shared behaviour. Swift: ThreadTimeline.swift:359-440. Record: UI-CHAT-001.
+    // Missing: OD-0013 (the live-resize edge strip must be fixed: probe P4b on a real window, not a headless run) and OD-0071 (soft weighted scrolling in every scroll area: the shared SoftScroll unit's, not this view's).
+    // The column's geometry, its four states, the hidden indicators and the wheel are proven (ThreadTimelineMountedTests).
+    // Needed: probe P4b's outcome and the soft-scroll unit's merge.
+
+    // STOP App.Views.Chat.ThreadTimeline #10
+    // Kind: owner decision. Swift: ThreadTimeline.swift:132-135 (the loading branch is `Color.clear`, then the content), :317-321,339 (a row's removal is `.identity`, whatever a row's own transition says). Records: PR-CHAT-027, PR-CHAT-045, UI-CHAT-001.
+    // Missing: OD-0076 ("nothing on screen changes by a cut") beats the source where it snaps, and its transition audit has no entry for two changes the port still cuts as the Mac does: the loading mark's swap with
+    // the content (a thread opens in one frame on the reference runtime, CATALOGUE.md C 164.452-164.640; the first pass places its rows whole, ThreadTimelineDrawTests, and the mark is replaced by what the thread shows,
+    // the loading state of ThreadTimelineMountedTests) and the rows that leave at once when their blocks leave the window or the thread (the drop-back of a followed run, ThreadTimelineDrawTests). The swap between the
+    // empty thread's prompt and the timeline is not one of them: it crossfades in both directions (ThreadTimelineReviewRound3Tests).
+    // Needed: the owner's ruling on those two entries (what the loading mark hands over to, and how rows that leave go); no transition is invented here.
 
     [Fact]
     [Trait("Req", "PR-CHAT-192")] // App/Views/Chat/ThreadTimeline.swift:270-278,595-603,1804-1811
@@ -333,63 +360,55 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     [InlineData("Project: Hydra did not merge", false)]
     [InlineData("Hydra", false)]
     [Trait("Req", "PR-HYDRAMERGE-087")] // App/Views/Chat/ThreadTimeline.swift:1645-1652
-    [Trait("Req", "UI-HYDRAMERGE-031")] // App/Views/Chat/ThreadTimeline.swift:1645-1652
     public void Multi_project_prefix_is_not_normalized_and_legacy_literal_Hydra_titles_keep_the_pill(string title, bool expected) => OnMain(() =>
     {
         Assert.Equal(expected, DisplayBlock.IsMergeOutcome(new UserMessage { Text = title + "\nbody", HydraHeads = new([]) }));
     });
 
     [Fact]
-    [Trait("Req", "UI-CHAT-001")] // App/Views/Chat/ThreadTimeline.swift:416-449,1365-1384
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-001 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:416-449,1365-1384
     public void Scroll_metrics_cap_travel_and_short_content_reports_zero_distance() => OnMain(() =>
     {
         var method = typeof(ScrollMetrics).GetMethod("From", BindingFlags.NonPublic | BindingFlags.Static)!; var shortContent = (ScrollMetrics)method.Invoke(null, [400.0, 480.0, 50.0, 12.0, 18.0, 290.0])!; Assert.Equal(0, shortContent.Travel); Assert.Equal(0, shortContent.DistanceFromBottom); var tall = (ScrollMetrics)method.Invoke(null, [800.0, 480.0, 500.0, 12.0, 18.0, 740.0])!; Assert.Equal(350, tall.Travel); Assert.Equal(-162, tall.DistanceFromBottom);
     });
 
     [Fact]
-    [Trait("Req", "UI-CHAT-002")] // App/Views/Chat/ThreadTimeline.swift:364-383
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-002 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:364-383
     public void Earlier_pill_has_chat_callout_on_text_and_icon_and_exact_capsule_insets() => WithTimeline((view, _, _, _, _) =>
     {
         var pill = Invoke<Button>(view, "EarlierPill", 42, (Action)(() => { })); Assert.Equal(Avalonia.Layout.HorizontalAlignment.Center, pill.HorizontalAlignment); Assert.Equal(new Thickness(0, 20, 0, 0), pill.Margin); var frame = LogicalQuery.SelfAndDescendants<Border>(pill).Single(border => border.Padding == new Thickness(14, 7)); Assert.True(frame.CornerRadius.TopLeft >= 14); Assert.Equal(SwiftColor.Quaternary.Opacity(0.5).Resolve(pill.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(frame.Background).Color); var text = LogicalQuery.SelfAndDescendants<TextBlock>(pill).Single(); Assert.Equal("Show 42 earlier messages", text.Text); Assert.Equal(12, text.FontSize); var icon = LogicalQuery.SelfAndDescendants<SwiftImage>(pill).Single(); Assert.Equal(ChatFont.Chat(SwiftFont.TextStyle.Callout), SwiftImage.GetFont(icon));
     });
 
     [Fact]
-    [Trait("Req", "UI-CHAT-003")] // App/Views/Chat/ThreadTimeline.swift:179-208
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:179-208
     public void Rail_is_an_unframed_thirty_point_overlay_below_the_titlebar() => WithTimeline((view, _, _, _, _) =>
     {
         var blocks = Blocks(new[] { User("first"), User("second") }); var rail = Invoke<Control?>(view, "CreateRail", blocks, true, 600.0); Assert.NotNull(rail); Assert.Equal(30, rail.Width); Assert.Equal(new Thickness(0, WindowChrome.TitlebarHeight, 0, 0), rail.Margin); Assert.Equal(Avalonia.Layout.HorizontalAlignment.Left, rail.HorizontalAlignment); Assert.Null(Invoke<Control?>(view, "CreateRail", blocks, false, 600.0));
     });
 
     [Fact]
-    [Trait("Req", "UI-CHAT-043")] // App/Views/Chat/ThreadTimeline.swift:2121-2196
-    [Trait("Req", "UI-CHAT-044")] // App/Views/Chat/ThreadTimeline.swift:2157-2168
-    [Trait("Req", "UI-CHAT-069")] // App/Views/Chat/ThreadTimeline.swift:2104,2123
-    public void Working_thinking_opens_with_source_color_typography_indent_and_unconditional_follow() => WithTimeline((view, runtime, _, _, _) =>
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 and UI-CHAT-044 and UI-CHAT-069 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:2121-2196; App/Views/Chat/ThreadTimeline.swift:2157-2168; App/Views/Chat/ThreadTimeline.swift:2104,2123
+    public void Working_thinking_opens_with_source_color_typography_indent_and_unconditional_follow() => WithTimeline((view, runtime, _, _, h) =>
     {
-        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([]), new([]), true, SwiftDate.Now); var icon = LogicalQuery.SelfAndDescendants<SwiftImage>(card).Single(); Assert.Equal(SwiftColor.Tertiary.Resolve(icon.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(icon.Foreground).Color); var title = LogicalQuery.SelfAndDescendants<TextBlock>(card).Single(text => text.Text == "Earlier steps"); Assert.Equal(13, title.FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, title.FontWeight); var follows = 0; ThreadTimeline.SetRevealTimelineEnd(card, new TimelineRevealBox { Follow = () => follows++ }); var button = LogicalQuery.SelfAndDescendants<Button>(card).Single(); button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Assert.Equal(1, follows); var markdown = LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card).Single(); Assert.Equal(12, Marrow.UI.Markdown.MarkdownView.GetMarkdownPointSize(markdown)); Assert.True(Marrow.UI.Markdown.MarkdownView.GetMarkdownDimmed(markdown)); var stack = Assert.IsType<StackPanel>(markdown.Parent); Assert.Equal(new Thickness(24, 0, 0, 0), stack.Margin); Assert.Equal(20, stack.Spacing); Assert.Equal(90, Assert.IsType<Avalonia.Media.RotateTransform>(LogicalQuery.SelfAndDescendants<SwiftImage>(card).Single().RenderTransform).Angle);
+        var card = new WorkingIndicator(runtime, SwiftDate.Now, 1, new([new ThinkingStep("thought", false)]), new([]), new([]), true, SwiftDate.Now); var icon = LogicalQuery.SelfAndDescendants<SwiftImage>(card).Single(); Assert.Equal(SwiftColor.Tertiary.Resolve(icon.ActualThemeVariant), Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(icon.Foreground).Color); var title = LogicalQuery.SelfAndDescendants<TextBlock>(card).Single(text => text.Text == "Earlier steps"); Assert.Equal(13, title.FontSize); Assert.Equal(Avalonia.Media.FontWeight.Medium, title.FontWeight); var follows = 0; ThreadTimeline.SetRevealTimelineEnd(card, new TimelineRevealBox { Follow = () => follows++ }); var button = LogicalQuery.SelfAndDescendants<Button>(card).Single(); button.RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Assert.Equal(1, follows); var markdown = LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(card).Single(); Assert.Equal(12, Marrow.UI.Markdown.MarkdownView.GetMarkdownPointSize(markdown)); Assert.True(Marrow.UI.Markdown.MarkdownView.GetMarkdownDimmed(markdown)); var stack = Assert.IsType<StackPanel>(markdown.Parent); Assert.Equal(new Thickness(24, 0, 0, 0), stack.Margin); Assert.Equal(20, stack.Spacing); h.Main.AdvanceMilliseconds(600); ((ManualFrameSource)FrameClock.Source.Current).Advance(TimeSpan.FromMilliseconds(600)); Assert.Equal(90, Assert.IsType<Avalonia.Media.RotateTransform>(LogicalQuery.SelfAndDescendants<SwiftImage>(card).Single().RenderTransform).Angle); // the chevron turns over the one animation (:2111-2118 snappy 0.24 s), so it has arrived after it
     });
 
     [Fact]
-    [Trait("Req", "UI-CHAT-060")] // App/Views/Chat/ThreadTimeline.swift:345,393-397,665-672
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-060 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:345,393-397,665-672
     public void Question_badge_follows_blocks_and_uses_question_prefixed_row_identity() => WithTimeline((view, runtime, _, _, _) =>
     {
         var request = new QuestionRequest("q", new([new QuestionRequest.Question("choice", "Header", "Choose", new([]), false, false, false)])); typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { Reply("reply", Turn) })); typeof(ThreadRuntime).GetProperty("Questions")!.SetValue(runtime, new ValueList<QuestionRequest>(new[] { request })); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); var badge = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(view).Single(); Assert.Equal("question-q", badge.Name); var stack = Assert.IsType<StackPanel>(badge.Parent); Assert.Same(badge, stack.Children[^1]);
     });
 
-    // STOP App.Views.Chat.ThreadTimeline #5
-    // Kind: dependency. Swift: ChatView.swift:108-111; ThreadTimeline.swift:26-35,180. Records: PR-CHAT-160/UI-CHAT-003 (caller mounting/free-width flag only).
-    // Missing: external ChatView is still a skeleton. Needed: caller memoization and free-width/docked-side showsMinimap expression; the timeline honors its supplied flag.
-
     [Fact]
-    [Trait("Req", "UI-CHAT-001")] // App/Views/Chat/ThreadTimeline.swift:416-422
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-001 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:416-422
     public void A_short_row_still_gets_the_full_eight_hundred_twenty_point_column_and_leading_alignment() => WithTimeline((view, _, _, _, _) =>
     {
         var rows = new Border { Height = 40 }; var column = Invoke<Control>(view, "CreateColumn", rows, 480.0, null); column.Measure(new Size(960, 480)); column.Arrange(new Rect(0, 0, 960, 480)); var content = LogicalQuery.SelfAndDescendants<Border>(column).Single(border => border.MaxWidth == 820); Assert.Equal(820, content.Bounds.Width); Assert.Equal(70, rows.TranslatePoint(default, column)!.Value.X);
     });
 
     [Fact]
-    [Trait("Req", "UI-CHAT-043")] // App/Views/Chat/ThreadTimeline.swift:2089-2092,2107-2119,2155-2176,2185-2188
-    [Trait("Req", "UI-CHAT-044")] // App/Views/Chat/ThreadTimeline.swift:2157-2168,2303-2314
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-043 and UI-CHAT-044 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:2089-2092,2107-2119,2155-2176,2185-2188; App/Views/Chat/ThreadTimeline.swift:2157-2168,2303-2314
     public void Streaming_thinking_keeps_the_same_working_indicator_and_its_open_state() => WithTimeline((view, runtime, _, _, _) =>
     {
         var model = AppEnvironment.GetAppModel(view); ((Decorator)view.Parent!).Child = null; model.Settings.ShowReasoning = true; var entry = Reason("thinking", Turn); typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { entry })); var work = new WorkingBlockView(runtime, new([]), null); var host = new Border { Child = work }; AppEnvironment.SetAppModel(host, model); var window = new Avalonia.Controls.Window { Content = host, Width = 600, Height = 400 }; try { window.Show(); Avalonia.Threading.Dispatcher.UIThread.RunJobs(); var indicator = Assert.IsType<WorkingIndicator>(work.Child); LogicalQuery.SelfAndDescendants<Button>(indicator).Single().RaiseEvent(new Avalonia.Interactivity.RoutedEventArgs(Button.ClickEvent)); Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(indicator)); entry.Item = entry.Item with { TimelineItemContent = new TimelineItem.Content.Reasoning(new ReasoningBlock { Text = "more thinking", IsStreaming = true }) }; Avalonia.Threading.Dispatcher.UIThread.RunJobs(); Assert.Same(indicator, work.Child); Assert.Single(LogicalQuery.SelfAndDescendants<Marrow.UI.Markdown.MarkdownView>(indicator)); } finally { window.Close(); }
@@ -418,11 +437,12 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
 
     [Fact]
     [Trait("Req", "PR-CHAT-050")] // App/Views/Chat/ThreadTimeline.swift:317-321; UI/Chrome/Chrome.swift:940-944
-    [Trait("Req", "UI-CHAT-060")] // App/Views/Chat/ThreadTimeline.swift:393-397
     public void A_new_question_visibly_soft_appears_and_keeps_its_identity_across_an_unrelated_redraw() => WithTimeline((view, runtime, _, _, h) =>
     {
         var frames = new ManualFrameSource(); using var clock = FrameClock.Source.Override(frames);
         typeof(ThreadRuntime).GetProperty("Entries")!.SetValue(runtime, new ValueList<TimelineEntry>(new[] { Reply("reply", Turn) }));
+        // The thread is on screen before the question comes: a view joining a stack that is already shown arrives with its transition (a first pass places its views with the stack).
+        Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         var request = new QuestionRequest("q", new([new QuestionRequest.Question("choice", "Header", "Choose", new([]), false, false, false)]));
         typeof(ThreadRuntime).GetProperty("Questions")!.SetValue(runtime, new ValueList<QuestionRequest>(new[] { request })); Avalonia.Threading.Dispatcher.UIThread.RunJobs();
         var badge = LogicalQuery.SelfAndDescendants<Marrow.App.Views.Composer.QuestionBadgeRow>(view).Single();
@@ -434,8 +454,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-034")] // App/Views/Chat/ThreadTimeline.swift:104-110,1608-1614
-    [Trait("Req", "PR-CHAT-035")] // App/Views/Chat/ThreadTimeline.swift:108-110,1615-1617
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-034 and PR-CHAT-035 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:104-110,1608-1614; App/Views/Chat/ThreadTimeline.swift:108-110,1615-1617
     public void Finished_head_partition_uses_finish_order_a_strict_cut_and_index_membership() => OnMain(() =>
     {
         var cut = DateTimeOffset.FromUnixTimeSeconds(100);
@@ -445,13 +464,6 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
         var running = (HeadPills)method.Invoke(null, [heads, cut])!; Assert.Equal(new[] { 1, 2, 3 }, running.Earlier); Assert.Equal(new[] { 4 }, running.Later);
         var idle = (HeadPills)method.Invoke(null, [heads, null])!; Assert.Empty(idle.Earlier); Assert.Equal(new[] { 1, 2, 3, 4, 3 }, idle.Later);
     });
-
-    // STOP App.Views.Chat.ThreadTimeline #1
-    // Kind: dependency. Swift: ThreadTimeline.swift:104-107,186-197,1886-1934,2049-2065.
-    // Records: PR-CHAT-021/022/026/027/034/035/039/045/046 (rendering/integration only).
-    // Missing: external TimelineRows message/work/head/finished-turn constructors and FinishedHeads are MARROW_STUB.
-    // Needed: TimelineRows unit implementations. Owned finish sorting/partition, grouping, metadata, cache and layout are independently covered.
-    // No fabricated row content or fabricated finished-head roster substitutes for those sites.
 
     [Fact]
     [Trait("Req", "PR-CHAT-028")] // App/Views/Chat/ThreadTimeline.swift:1566-1593
@@ -472,7 +484,6 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-027")] // App/Views/Chat/ThreadTimeline.swift:136
     [Trait("Req", "PR-CHAT-032")] // App/Views/Chat/ThreadTimeline.swift:1577-1602
     [Trait("Req", "PR-CHAT-033")] // App/Views/Chat/ThreadTimeline.swift:1503
     public void Running_always_has_exactly_one_working_line_in_the_turn_or_as_a_standalone_block() => OnMain(() =>
@@ -481,8 +492,7 @@ public sealed class ThreadTimelineTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Req", "PR-CHAT-034")] // App/Views/Chat/ThreadTimeline.swift:1608-1614
-    [Trait("Req", "PR-CHAT-035")] // App/Views/Chat/ThreadTimeline.swift:1615-1617
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-034 and PR-CHAT-035 (a unit-level check of its structure; the mounted proofs are the ThreadTimeline*Tests classes): App/Views/Chat/ThreadTimeline.swift:1608-1614; App/Views/Chat/ThreadTimeline.swift:1615-1617
     public void Finished_head_pills_obey_all_insertion_guards_order_and_trailing_identity() => OnMain(() =>
     {
         var pills = new HeadPills { Earlier = new([2, 1]), Later = new([3]) }; var blocks = Blocks(new[] { User("u", Turn) }, true, pills: pills); Assert.Equal(new[] { "hydra-heads-working", "turn-12345678-ABCD-1234-ABCD-123456789ABC-u", "hydra-heads-working-tail" }, blocks.Select(block => block.Id)); Assert.Equal(new[] { 2, 1 }, Assert.IsType<DisplayBlock.HeadsWorking>(blocks[0]).Heads); Assert.DoesNotContain(Blocks(new[] { Tool("head", Turn, true) }, true, pills: pills), block => block is DisplayBlock.HeadsWorking { Trailing: false }); Assert.Equal("hydra-heads-working", Blocks([], pills: pills).Single().Id);

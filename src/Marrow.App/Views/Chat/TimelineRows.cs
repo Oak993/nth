@@ -181,7 +181,8 @@ public sealed class UserMessageRow : Decorator
 {
     private readonly TimelineEntry entry;   // :65
     private readonly ThreadRuntime runtime; // :66
-    private readonly bool canRevert;        // :69
+    private bool canRevert;                 // :69, handed again by a pass of the timeline's body (SetCanRevert)
+    private TimelineItem.Content? built;    // the content the body was last made from
 
     // :71-72 @State private var isHovering = false, isConfirmingRevert = false (both read by the body).
     private sealed class ViewState : MainActorModel
@@ -213,9 +214,8 @@ public sealed class UserMessageRow : Decorator
     {
         this.entry = entry;
         this.runtime = runtime;
-        this.canRevert = canRevert;
+        this.canRevert = canRevert; revertable.Value = canRevert;
 
-        TimelineItem.Content? built = null;
         void Build(TimelineItem.Content content)
         {
             if (ReferenceEquals(content, built)) return;
@@ -229,9 +229,28 @@ public sealed class UserMessageRow : Decorator
         DetachedFromVisualTree += (_, _) => editor.Close();
     }
 
+    /// <summary>The row handed whether its message can be edited again (:67-69, decided by the timeline, which flips it for every row at every turn start and end on a provider that
+    /// rewinds): the same row and the same body. `canRevert` reaches two places of the body only, the hover line's pencil (:131 `if canRevert`) and the right-click menu's entry
+    /// (:168-178, read when the menu opens); the attachment strip with its preview, the quote chips, the bubble's selectable text, a brief's popover and the row's hover, its
+    /// pending confirmation and its editor stand where they are, as views whose place in the body does not change keep their @State. ED-255 (3).</summary>
+    internal void SetCanRevert(bool next)
+    {
+        if (canRevert == next) return;
+        canRevert = next; revertable.Value = next;
+        if (hoverLine is { } line) FillHoverLine(line.Line, line.Message, line.IsEditing);
+    }
+
+    // :168 the menu's snapshot of `canRevert`, held outside the row so the popover's builder reads it when the menu opens without capturing the row (the source's
+    // capture list keeps the row out of the builder for the same reason).
+    private sealed class RevertFlag { public bool Value; }
+    private readonly RevertFlag revertable = new();
+    // The hover line of the body on show (null for a Hydra report or brief), so a new `canRevert` changes its pencil and nothing else.
+    private (StackPanel Line, UserMessage Message, Func<bool> IsEditing)? hoverLine;
+
     // :79-199
     private Control? Body(TimelineItem.Content content)
     {
+        hoverLine = null;
         if (content is TimelineItem.Content.User { Value.IsFromHydra: true } report) return new HydraReportRow(report.Value); // :79-80
         if (content is TimelineItem.Content.User { Value.IsHydraBrief: true } brief) return new HydraBriefRow(brief.Value, entry, runtime); // :81-82
         if (content is not TimelineItem.Content.User user) return null; // :83
@@ -270,12 +289,13 @@ public sealed class UserMessageRow : Decorator
         var hover = state;
         row.OnHover(hovering => hover.IsHovering = hovering);
         // :168-178 .rightClickPopover { [message, canRevert, confirming = $menuRequests.confirmRevert] in ... }: snapshots
-        // only; the revert intent goes through the binding alone.
+        // only; the revert intent goes through the binding alone. The flag is the one the row holds when the menu opens (a body run
+        // again with a new `canRevert` hands the modifier a new snapshot), read from its box, not from the row.
         var requests = menuRequests;
         var text = message.Text;
-        var revertable = canRevert;
+        var flag = revertable;
         var confirming = new Binding<bool>(() => requests.ConfirmRevert, value => requests.ConfirmRevert = value);
-        row.RightClickPopover(() => MessageActions(text, revertable, confirming));
+        row.RightClickPopover(() => MessageActions(text, flag.Value, confirming));
         // :179-183 the room for the hover line lives inside the row but is taken back out of its height, so the
         // controls show up in the gap to the next row. (6 = the VStack's spacing above them.)
         row.Margin = new Thickness(0, 0, 0, -(TimelineMetrics.HoverLineHeight + 6));
@@ -390,6 +410,17 @@ public sealed class UserMessageRow : Decorator
             Height = TimelineMetrics.HoverLineHeight, // :160
             HorizontalAlignment = HorizontalAlignment.Right,
         };
+        hoverLine = (line, message, isEditing);
+        FillHoverLine(line, message, isEditing);
+        // :161 .opacity(isHovering || isEditing ? 1 : 0)
+        line.Track(() => state.IsHovering || isEditing(), shown => line.Opacity = shown ? 1 : 0);
+        return line;
+    }
+
+    // :131-159 what the hover line holds: the pencil when the message can be edited (the line itself, its room and its fade stand whatever `canRevert` says).
+    private void FillHoverLine(StackPanel line, UserMessage message, Func<bool> isEditing)
+    {
+        line.Children.Clear();
         if (canRevert && entry.TurnID is { } turnID) // :131
         {
             var target = runtime;
@@ -417,9 +448,6 @@ public sealed class UserMessageRow : Decorator
                 SyncEditor(isEditing());
             })));
         }
-        // :161 .opacity(isHovering || isEditing ? 1 : 0)
-        line.Track(() => state.IsHovering || isEditing(), shown => line.Opacity = shown ? 1 : 0);
-        return line;
     }
 
     // :202-206 private func revert(restoreFiles:), used by the confirmation dialog's two buttons (:192-193).
@@ -588,7 +616,8 @@ public sealed class HydraReportRow : Decorator
 /// <summary>:393-434 <c>struct HydraHeadsWorkingRow: View</c>.</summary>
 public sealed class HydraHeadsWorkingRow : Decorator
 {
-    private readonly ValueList<int> requestedHeads;
+    private ValueList<int> requestedHeads;
+    private readonly ThreadRuntime runtime;
     private readonly StackPanel headsColumn = new() { Spacing = 6, HorizontalAlignment = HorizontalAlignment.Left };
     private readonly Dictionary<long, (HydraHeadInfo Head, Control View)> shownHeads = [];
     /// <param name="heads">:395 <c>let heads: [Int]</c>.</param>
@@ -596,12 +625,21 @@ public sealed class HydraHeadsWorkingRow : Decorator
     // :398-418 body
     public HydraHeadsWorkingRow(ValueList<int> heads, ThreadRuntime runtime)
     {
-        requestedHeads = heads;
+        requestedHeads = heads; this.runtime = runtime;
         var column = headsColumn;
         Child = column;
         Padding = new Thickness(0, 0, 96, 0);
         this.Track(() => AppEnvironment.GetAppModel(this).Helpers(runtime.ThreadID)
             .Where(thread => thread.IsHydraHead).ToArray(), team => ApplyTeam(team)); // :401-403
+    }
+
+    /// <summary>The row handed its heads again (:395, the block's value changed under the same id: a head finished): the same row, the pills already in it the same views (an open
+    /// report stays open), a pill that joined gliding in beside them under the list's own animation (:411-415 ForEach(finished, id: \.index)). ED-255 (3).</summary>
+    internal void Update(ValueList<int> heads)
+    {
+        if (requestedHeads.Equals(heads)) return;
+        requestedHeads = heads;
+        ApplyTeam(AppEnvironment.GetAppModel(this).Helpers(runtime.ThreadID).Where(thread => thread.IsHydraHead).ToArray());
     }
 
     // :401-418 body after the environment lookup.
@@ -620,7 +658,7 @@ public sealed class HydraHeadsWorkingRow : Decorator
             for (var i = 0; i < finished.Count; i++)
             {
                 var head = finished[i];
-                if (shown.TryGetValue(head.Index, out var prior) && prior.Head == head) continue;
+                if (shown.TryGetValue(head.Index, out var prior) && prior.View is FinishedHeadPill shownPill) { shownPill.Update(head); shown[head.Index] = (head, shownPill); continue; } // the same pill, the new record
                 if (prior.View is not null) SwiftTransition.Remove(column, prior.View);
                 var pill = new FinishedHeadPill(head).Transition(SwiftTransition.SettleGlide);
                 shown[head.Index] = (head, pill);
@@ -656,18 +694,39 @@ public sealed class FinishedHeadPill : Decorator
     // :443-475 body
     public FinishedHeadPill(HydraHeadInfo head)
     {
-        var suffix = head.HydraHeadInfoStatus == HydraHeadInfo.Status.Failed ? " failed" : head.HydraHeadInfoStatus == HydraHeadInfo.Status.Stopped ? " was stopped" : " finished working";
+        this.head = head;
+        var box = this.box;
+        button = PlainControls.Button(TimelineRows.Pill(Label()), () => box.Showing = !box.Showing);
+        ToolTip.SetTip(button, "Show the report");
+        Child = button.BadgePopover(new Binding<bool>(() => box.Showing, value => box.Showing = value), () => new HydraHeadReportPopover(this.head));
+        AutomationProperties.SetName(this, this.head.Persona.Name + Suffix);
+    }
+
+    private HydraHeadInfo head;
+    private readonly Button button;
+    private readonly ReportState box = new(); // :441 @State isShowingReport
+    private string Suffix => head.HydraHeadInfoStatus == HydraHeadInfo.Status.Failed ? " failed" : head.HydraHeadInfoStatus == HydraHeadInfo.Status.Stopped ? " was stopped" : " finished working";
+
+    // :449-466 the glyph, the name and what became of the head, and the chevron.
+    private Control Label()
+    {
         var text = new TextBlock { MaxLines = 1, TextTrimming = TextTrimming.CharacterEllipsis };
-        (HydraNameStyle.Text(head.Persona, Chrome.PrimaryText.Opacity(0.75)) + new StyledText(suffix))
+        (HydraNameStyle.Text(head.Persona, Chrome.PrimaryText.Opacity(0.75)) + new StyledText(Suffix))
             .Font(ChatFont.Chat(SwiftFont.TextStyle.Callout, SwiftFont.Weight.Medium)).Render(text);
         var row = new HStack { Spacing = 8 }; // HStack :452: its children share one centre line
         row.Children.Add(new HydraGlyph(head.Persona, 18, status: head.HydraHeadInfoStatus));
         row.Children.Add(text); row.Children.Add(TimelineRows.Chevron());
-        var box = new ReportState();
-        var button = PlainControls.Button(TimelineRows.Pill(row), () => box.Showing = !box.Showing);
-        ToolTip.SetTip(button, "Show the report");
-        Child = button.BadgePopover(new Binding<bool>(() => box.Showing, value => box.Showing = value), () => new HydraHeadReportPopover(head));
-        AutomationProperties.SetName(this, head.Persona.Name + suffix);
+        return row;
+    }
+
+    /// <summary>The pill handed its head again (:439, `ForEach(finished, id: \.index)`: a head whose record changed under its index is the same view with the new value, and its @State
+    /// stays): its words and glyph follow the head, the report it opens is the head's as it is, and an open report stays open. ED-255 (3).</summary>
+    internal void Update(HydraHeadInfo next)
+    {
+        if (head == next) return;
+        head = next;
+        button.Content = TimelineRows.Pill(Label());
+        AutomationProperties.SetName(this, head.Persona.Name + Suffix);
     }
     private sealed class ReportState : MainActorModel // :441
     {
@@ -1554,7 +1613,7 @@ public sealed class AssistantMessageRow : Decorator
     // whenever the text or the streaming flag moves (MarkdownView's .equatable(), :1364), the hover state surviving.
     public AssistantMessageRow(TimelineEntry entry, TurnSummary? summary, ThreadRuntime runtime)
     {
-        AssistantMessage? built = null;
+        this.summary = summary; this.runtime = runtime;
         void Build(TimelineItem.Content content)
         {
             if (content is not TimelineItem.Content.Assistant assistant) // :1362
@@ -1566,10 +1625,22 @@ public sealed class AssistantMessageRow : Decorator
             var message = assistant.Value;
             if (built is { } previous && previous.Text == message.Text && previous.IsStreaming == message.IsStreaming) return;
             built = message;
-            Child = Body(message, summary, runtime, state);
+            Child = Body(message, this.summary, runtime, state);
         }
         Build(entry.Item.TimelineItemContent);
         this.Track(() => entry.Item.TimelineItemContent, Build);
+    }
+
+    private TurnSummary? summary; // :1355-1357, handed again by a pass of the timeline's body (SetSummary)
+    private readonly ThreadRuntime runtime;
+    private AssistantMessage? built;
+
+    /// <summary>The row handed its turn's summary again: the same row, its hover kept, its line saying the new summary. ED-255 (3).</summary>
+    internal void SetSummary(TurnSummary? next)
+    {
+        if (Equals(summary, next)) return;
+        summary = next;
+        if (built is { } message) Child = Body(message, summary, runtime, state);
     }
 
     // :1363-1388
@@ -1935,9 +2006,36 @@ public sealed class HydraHeadsList : Decorator
     // :1569-1576 body
     public HydraHeadsList(ValueList<TimelineEntry> entries, ThreadRuntime runtime, string? workingDirectory = null)
     {
-        var column = new StackPanel { Spacing = 8, HorizontalAlignment = HorizontalAlignment.Left };
-        foreach (var entry in entries) column.Children.Add(new ToolRow(entry, runtime, workingDirectory));
+        this.runtime = runtime; this.workingDirectory = workingDirectory;
+        foreach (var entry in entries) { var row = new ToolRow(entry, runtime, workingDirectory); rows.Add((entry, row)); column.Children.Add(row); }
         Child = column;
+    }
+
+    private readonly ThreadRuntime runtime;
+    private readonly string? workingDirectory;
+    private readonly StackPanel column = new() { Spacing = 8, HorizontalAlignment = HorizontalAlignment.Left };
+    private readonly List<(TimelineEntry Entry, ToolRow Row)> rows = [];
+
+    /// <summary>:1572 <c>ForEach(entries)</c> run again with the list as it is now: a row whose entry stands is the same view (its expansion, its head's popover, its anchor), a head
+    /// that joined gets a row at its place, one that went loses its row. ED-255 (3).</summary>
+    internal void Update(ValueList<TimelineEntry> entries)
+    {
+        var kept = rows.ToList(); var next = new List<(TimelineEntry Entry, ToolRow Row)>();
+        foreach (var entry in entries)
+        {
+            var at = kept.FindIndex(pair => ReferenceEquals(pair.Entry, entry));
+            if (at >= 0) { next.Add(kept[at]); kept.RemoveAt(at); }
+            else next.Add((entry, new ToolRow(entry, runtime, workingDirectory)));
+        }
+        foreach (var gone in kept) SwiftTransition.Remove(column, gone.Row);
+        rows.Clear(); rows.AddRange(next);
+        for (var index = 0; index < next.Count; index++)
+        {
+            var row = next[index].Row; var container = SwiftTransition.Container(row); var at = column.Children.IndexOf(container);
+            if (at == index) continue;
+            if (at >= 0) column.Children.Move(at, index);
+            else SwiftTransition.Insert(column, Math.Min(index, column.Children.Count), row);
+        }
     }
 }
 
@@ -3065,25 +3163,35 @@ public sealed class MutedRoundGlyph : Decorator
 /// <summary>:2480-2716 <c>struct TurnFinishedBlock: View</c>.</summary>
 public sealed class TurnFinishedBlock : Decorator
 {
+    // The block's inputs (:2481-2491): a pass of the timeline's body hands them again under the same id (Update), and the body is read again with the
+    // @State below kept. ED-255 (3).
     private readonly ThreadRuntime runtime;            // :2481
     private readonly Guid turnID;                      // :2482
-    private readonly TurnSummary summary;              // :2483
-    private readonly ValueList<TimelineEntry> content; // :2485-2487
-    private readonly string? workingDirectory;         // :2488
-    private readonly bool canUndo;                     // :2489-2491
+    private TurnSummary summary;                       // :2483
+    private ValueList<TimelineEntry> userEntries;      // :2484
+    private ValueList<TimelineEntry> content;          // :2485-2487
+    private string? workingDirectory;                  // :2488
+    private bool canUndo;                              // :2489-2491
+    private int contentVersion;                        // bumped when the entries or the directory the steps and the answer are made from changed
+    private int directoryVersion;                      // bumped when the directory the heads' rows are made with changed
+    private List<(TimelineEntry Entry, UserMessageRow Row)> userRows = [];
+    private TextBlock? headerLabel;
 
     // :2497 @State private var isExpanded: Bool and :2523 @State private var legacyChanges: FileChangeSummary?, both read
-    // by the body.
+    // by the body; Revision stands for the inputs the body is handed again.
     private sealed class ViewState : MainActorModel
     {
         private bool isExpanded;
         private FileChangeSummary? legacyChanges;
+        private int revision;
 
         public ViewState(bool isExpanded) => this.isExpanded = isExpanded;
 
         public bool IsExpanded { get => Read(isExpanded); set => Set(ref isExpanded, value); }
 
         public FileChangeSummary? LegacyChanges { get => Read(legacyChanges); set => Set(ref legacyChanges, value); }
+
+        public int Revision { get => Read(revision); set => Set(ref revision, value); }
     }
 
     private readonly ViewState state;
@@ -3109,6 +3217,7 @@ public sealed class TurnFinishedBlock : Decorator
         this.runtime = runtime; // :2500
         this.turnID = turnID; // :2501
         this.summary = summary; // :2502
+        this.userEntries = userEntries; // :2503
         this.content = content; // :2504
         this.workingDirectory = workingDirectory; // :2505
         this.canUndo = canUndo; // :2506
@@ -3117,8 +3226,7 @@ public sealed class TurnFinishedBlock : Decorator
         state = new ViewState(chronological);
 
         var stack = new StackPanel { Orientation = Orientation.Vertical, Spacing = 0 }; // :2598
-        foreach (var entry in userEntries) // :2599-2602
-            stack.Children.Add(new UserMessageRow(entry, runtime, canUndo) { Margin = new Thickness(0, 0, 0, TimelineMetrics.RowSpacing) });
+        SyncUserRows(stack); // :2599-2602
         stack.Children.Add(Header()); // :2603-2622
 
         // :2624-2701 if showsBody { the rule; the steps or the answer; the heads; the file card }
@@ -3132,12 +3240,16 @@ public sealed class TurnFinishedBlock : Decorator
         stack.Children.Add(cardHost);
 
         Control? middle = null;
-        (bool ShowsBody, bool Expanded)? middleKey = null;
+        (bool ShowsBody, bool Expanded, int Version)? middleKey = null;
         FileChangeSummary? shownChanges = null;
+        var shownDirectoryVersion = 0;
         Derived? rendered = null;
-        stack.Track(() => (state.IsExpanded, state.LegacyChanges), value =>
+        stack.Track(() => (state.IsExpanded, state.LegacyChanges, state.Revision), value =>
         {
-            var (expanded, legacy) = value;
+            var (expanded, legacy, _) = value;
+            // The inputs as this pass of the body was handed them: the fields, not the constructor's parameters (which the closure would capture) of the first.
+            var summary = this.summary; var canUndo = this.canUndo; var workingDirectory = this.workingDirectory;
+            SyncUserRows(stack); headerLabel!.Text = TurnEndRow.Label(summary); // :2599-2602, :2610
             var turn = DerivedFor(expanded); // :2590-2591
             rendered = turn;
             var showsHeads = turn.HeadEntries.Count != 0; // :2592
@@ -3150,18 +3262,21 @@ public sealed class TurnFinishedBlock : Decorator
             ruleHost.Child = showsBody ? ruleHost.Child ?? Rule() : null;
 
             // :2631-2680 the full steps in a filled card, or the folded turn's answer, plans and notices.
-            if (middleKey != (showsBody, expanded))
+            if (middleKey != (showsBody, expanded, contentVersion))
             {
-                middleKey = (showsBody, expanded);
+                middleKey = (showsBody, expanded, contentVersion);
                 if (middle is { } previous) SwiftTransition.Remove(middleHost, previous);
                 middle = !showsBody ? null : expanded ? Steps(turn, showsHeads) : turn.HasResponse ? Answer(turn) : null;
                 if (middle is { } next) SwiftTransition.Insert(middleHost, middleHost.Children.Count, next);
             }
 
-            // :2682-2686 the heads the turn sent out stay in view under the response, folded or not.
+            // :2682-2686 the heads the turn sent out stay in view under the response, folded or not: one list for as long as there are heads, whose rows follow the heads.
             if (showsBody && showsHeads)
             {
-                headsHost.Child ??= new HydraHeadsList(turn.HeadEntries, runtime, workingDirectory);
+                if (headsHost.Child is HydraHeadsList && shownDirectoryVersion != directoryVersion) headsHost.Child = null;
+                if (headsHost.Child is HydraHeadsList shownHeads) shownHeads.Update(turn.HeadEntries);
+                else headsHost.Child = new HydraHeadsList(turn.HeadEntries, runtime, workingDirectory);
+                shownDirectoryVersion = directoryVersion;
                 headsHost.Child.Margin = new Thickness(0, 0, 0, hasFiles ? TimelineMetrics.RowSpacing : 0); // :2685
             }
             else
@@ -3169,10 +3284,11 @@ public sealed class TurnFinishedBlock : Decorator
                 headsHost.Child = null;
             }
 
-            // :2688-2700 the file card, when the turn's summary has files.
+            // :2688-2700 the file card, when the turn's summary has files: the same card while the files stand, handed whether the turn can be reverted.
             if (showsBody && hasFiles && changes is { } files)
             {
-                if (!ReferenceEquals(shownChanges, files)) cardHost.Child = FileCard(files);
+                if (!Equals(shownChanges, files)) cardHost.Child = FileCard(files);
+                else if (cardHost.Child is TurnFileCard shownCard) shownCard.SetCanUndo(canUndo);
                 shownChanges = files;
             }
             else
@@ -3184,7 +3300,7 @@ public sealed class TurnFinishedBlock : Decorator
 
         // :2703-2706 .onChange(of: key, initial: true): store the value the body just computed,
         // after the render callback; DerivedFor itself only reads the previously committed cache.
-        stack.Track(() => new DerivedKey(content.ToArray(), state.IsExpanded), key =>
+        stack.Track(() => { _ = state.Revision; return new DerivedKey(this.content.ToArray(), state.IsExpanded); }, key =>
         {
             if (rendered is not null && (derived is null || !derived.Value.Key.Equals(key)))
                 derived = (key, rendered);
@@ -3204,10 +3320,45 @@ public sealed class TurnFinishedBlock : Decorator
         Child = stack;
     }
 
+    /// <summary>The block handed its inputs again under the same id (:1896-1912, :2589): its @State (the fold, the files worked out once), the header and the rows that stand
+    /// are the same views. What changed is read by the body that runs again: the summary's line, the user rows (each handed whether it can revert), the steps or the answer
+    /// when the turn's entries changed, the heads' list, and the file card's revert button. ED-255 (3).</summary>
+    internal void Update(TurnSummary nextSummary, ValueList<TimelineEntry> nextUserEntries, ValueList<TimelineEntry> nextContent, string? nextWorkingDirectory, bool nextCanUndo)
+    {
+        var sameContent = content.Count == nextContent.Count && content.Zip(nextContent).All(pair => ReferenceEquals(pair.First, pair.Second));
+        if (!sameContent || workingDirectory != nextWorkingDirectory) contentVersion++;
+        if (workingDirectory != nextWorkingDirectory) directoryVersion++;
+        summary = nextSummary; userEntries = nextUserEntries; content = nextContent; workingDirectory = nextWorkingDirectory; canUndo = nextCanUndo;
+        state.Revision++;
+    }
+
+    // :2599-2602 ForEach(userEntries) { UserMessageRow }: a row whose entry stands is the same view, handed whether it can revert; one that joined or left comes or goes.
+    private void SyncUserRows(StackPanel stack)
+    {
+        var next = new List<(TimelineEntry Entry, UserMessageRow Row)>(); var kept = userRows.ToList();
+        foreach (var entry in userEntries)
+        {
+            var at = kept.FindIndex(pair => ReferenceEquals(pair.Entry, entry));
+            UserMessageRow row;
+            if (at >= 0) { row = kept[at].Row; kept.RemoveAt(at); row.SetCanRevert(canUndo); }
+            else row = new UserMessageRow(entry, runtime, canUndo) { Margin = new Thickness(0, 0, 0, TimelineMetrics.RowSpacing) };
+            next.Add((entry, row));
+        }
+        foreach (var gone in kept) stack.Children.Remove(gone.Row);
+        for (var index = 0; index < next.Count; index++)
+        {
+            var at = stack.Children.IndexOf(next[index].Row);
+            if (at == index) continue;
+            if (at >= 0) stack.Children.Move(at, index); else stack.Children.Insert(index, next[index].Row);
+        }
+        userRows = next;
+    }
+
     // :2603-2622 the header: the turn-end line and a chevron that turns down while the steps show.
     private Button Header()
     {
         var label = new TextBlock { Text = TurnEndRow.Label(summary) }; // :2610
+        headerLabel = label;
         ChatFont.Chat(SwiftFont.TextStyle.Callout).Apply(label); // :2611
         label.Foreground = Chrome.SecondaryText.Brush(label); // :2612
         var chevron = SwiftImage.SystemName("chevron.right").Font(ChatFont.Chat(SwiftFont.TextStyle.Caption2, SwiftFont.Weight.Semibold)); // :2613-2614
@@ -3462,14 +3613,8 @@ public sealed class TurnFileCard : Decorator
         // that is a child of the stack of its own would add a spacing gap (8 points) after its button (UI-CHAT-037).
         row.Children.Add(Hosted(files, PlainControls.Popover(files, new Binding<bool>(() => box.IsShowingFiles, value => box.IsShowingFiles = value), () => FilesPopover().PresentedChrome())));
         row.Children.Add(new Control { Width = 20, Height = 1 }); // :2768
-        if (canUndo)
-        {
-            var revert = PlainControls.Button(new MutedRoundGlyph("arrow.uturn.backward"), () => box.IsConfirmingRevert = true);
-            revert.Focusable = false;
-            ToolTip.SetTip(revert, "Revert this turn's files and conversation");
-            row.Children.Add(Hosted(revert, PlainControls.Popover(revert,
-                new Binding<bool>(() => box.IsConfirmingRevert, value => box.IsConfirmingRevert = value), RevertConfirmation))); // :2777
-        }
+        cardRow = row;
+        if (canUndo) row.Children.Add(revertSlot = RevertSlot());
         var anchorBox = new WeakReference<WeakView>(reviewAnchor);
         var review = PlainControls.Button(new MutedRoundGlyph("plusminus"), () =>
         {
@@ -3496,6 +3641,31 @@ public sealed class TurnFileCard : Decorator
 
     // A button and the popover it hangs from, as one slot of the card's row.
     private static Panel Hosted(Button button, Avalonia.Controls.Primitives.Popup popup) => new() { Children = { button, popup } };
+
+    private StackPanel? cardRow;
+    private Control? revertSlot;
+
+    // :2770-2779 the revert button and the confirmation it opens.
+    private Control RevertSlot()
+    {
+        var box = state;
+        var revert = PlainControls.Button(new MutedRoundGlyph("arrow.uturn.backward"), () => box.IsConfirmingRevert = true);
+        revert.Focusable = false;
+        ToolTip.SetTip(revert, "Revert this turn's files and conversation");
+        var slot = Hosted(revert, PlainControls.Popover(revert,
+            new Binding<bool>(() => box.IsConfirmingRevert, value => box.IsConfirmingRevert = value), RevertConfirmation)); // :2777
+        slot.VerticalAlignment = VerticalAlignment.Center;
+        return slot;
+    }
+
+    /// <summary>The card handed whether the turn can be reverted again (:2722, decided by the timeline, which flips it at every turn start and end on a provider that rewinds): the same
+    /// card, its files popover and its review anchor kept, the revert button (:2770 `if canUndo`) coming or going in its place. ED-255 (3).</summary>
+    internal void SetCanUndo(bool next)
+    {
+        if (cardRow is not { } row || (revertSlot is not null) == next) return;
+        if (next) { revertSlot = RevertSlot(); row.Children.Insert(2, revertSlot); }
+        else { row.Children.Remove(revertSlot!); revertSlot = null; state.IsConfirmingRevert = false; }
+    }
 
     // :2777-2798
     private Control RevertConfirmation()

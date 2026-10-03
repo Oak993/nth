@@ -97,6 +97,7 @@ public sealed class TextScalingSitesTests(HeadlessSession headless)
             var prompt = new NewThreadPrompt(Guid.NewGuid(), "An exceptionally long project name with another long suffix");
             var host = new Border { Child = prompt }; AppEnvironment.SetAppModel(host, model);
             var window = new Avalonia.Controls.Window { Width = 340, Height = 260, Content = host };
+            using var frames = FrameClock.Source.Override(new ManualFrameSource()); // the prompt fades in on the frame clock as it attaches (NewThreadPrompt.swift:50-53)
             window.Show(); Dispatcher.UIThread.RunJobs();
             var texts = prompt.GetVisualDescendants().OfType<TextBlock>().ToArray();
             Assert.Equal(3, texts.Length);
