@@ -104,9 +104,15 @@ public sealed class EffortTitleButtonTests(HeadlessSession headless)
             Assert.True(midway.A > 0 && midway.A < plate8.A, $"40 ms into Chrome.hover the plate is at {midway}, not on its way to {plate8}");
             Advance(80);
             Assert.Equal(plate8, ColourOf(plate.Background));
+            // And back over Chrome.hover when the pointer leaves (:592-594 withAnimation(Chrome.hover) both ways; final review
+            // round 4: as first written only "clear 120 ms after" was read, and a plate cleared at once, mutant F4, passed).
             window.MouseMove(new Point(2, 398), RawInputModifiers.None);
             Dispatcher.UIThread.RunJobs();
-            Advance(120);
+            Advance(40);
+            var fading = ColourOf(plate.Background);
+            var along = plate8.A * (1 - Chrome.Hover.Progress(0.04));
+            Assert.True(fading.A > 0 && fading.A < plate8.A && Math.Abs(fading.A - along) <= 1.5, $"40 ms after the pointer leaves the plate is at {fading}, not on Chrome.hover's way back ({along:F1} of {plate8.A})");
+            Advance(80);
             Assert.Equal(0, ColourOf(plate.Background).A);
             // Clicking it switches the popover to the model list.
             Assert.Empty(panel.GetVisualDescendants().OfType<ModelList>());

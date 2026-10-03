@@ -51,11 +51,17 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
     // (reference runtime, 2-chat-use.mov 35.10-35.21 s, study effort-title-2026-10-03): when the title changes text and
     // colour together (Extra High -> Max), the arriving letters wear the new colour from their first frame (an orange
     // "M", R/G 1.4 over the glass, beside the pink leaving "High"); only a colour change without a new text fades.
+    // Final review round 4 (finding 3): as first written this read only the title's Foreground, the new colour whatever is
+    // drawn (mutants C1, every letter in the new colour, and C2, the arriving ones in the old, survived it); it now reads the
+    // letters the title draws, by the line each comes from, as the card sets text and colour (EffortSlider.cs).
     [Fact]
     [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574), not the button clauses; re-traited in final round 3
     public void A_title_that_morphs_into_new_letters_draws_them_in_the_new_colour_at_once() => headless.OnUiThread(() =>
     {
-        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new Marrow.Testing.ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
         var effort = new ObservableStringBox { Value = "high" };
         var card = new EffortSliderCard("Sonnet", ProviderKind.Claude, new ValueList<string>(["low", "medium", "high", "max"]), "medium", false,
             effort.AsBinding(), Binding<bool>.Constant(false), () => { });
@@ -65,14 +71,108 @@ public sealed class EffortTitleMorphTests(HeadlessSession headless)
         try
         {
             var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
+            var old = Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground).Color;
             Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => effort.Value = "max");
             Dispatcher.UIThread.RunJobs();
             Assert.True(title.IsMorphing);
             var brush = Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground);
             Assert.Equal(EffortBrand.Create(ProviderKind.Claude).TitleColor.Resolve(title.ActualThemeVariant), brush.Color); // :551 brand.title at Max
+            Assert.NotEqual(old, brush.Color);
+            // The first frame an arriving letter of "Max" is drawn, and 110 ms in (video 35.15 s: an orange "M" beside the
+            // pink leaving "High"): every letter of "Max" in the new colour, every leaving letter of "High" in the old.
+            var first = -1;
+            for (var ms = 1; ms <= 110; ms++)
+            {
+                clock.Advance(TimeSpan.FromMilliseconds(1));
+                frames.Advance(TimeSpan.FromMilliseconds(1));
+                Dispatcher.UIThread.RunJobs();
+                var drawn = DrawnColours(title);
+                if (first < 0 && drawn.ContainsKey("Max")) first = ms;
+                if (ms != first && ms != 110) continue;
+                var seen = $"{ms} ms: {Show(drawn)}";
+                Assert.True(drawn.TryGetValue("Max", out var arriving) && arriving.SetEquals([brush.Color]), $"an arriving letter of \"Max\" is not drawn in the new colour {brush.Color}: {seen}");
+                Assert.True(drawn.TryGetValue("High", out var leaving) && leaving.SetEquals([old]), $"a leaving letter of \"High\" is not drawn in the old colour {old}: {seen}");
+            }
+            Assert.True(first > 0, "no letter of \"Max\" is drawn within 110 ms");
         }
         finally { window.Close(); }
     });
+
+    // The same through a takeover, as the card is dragged back down (video 35.635-35.807 s, Max -> Extra High taken over by
+    // Extra High -> High at 35.753 s: the leaving "x" of "Max" still orange beside the pink "Ext"): the leaving letters of the
+    // change taken over keep that change's old colour (mutant C3, drawn in the colour of now, and E3c, not drawn at all, were
+    // killed by no test of the card's).
+    [Fact]
+    [Trait("Decision", "ED-238")] // a part of PR-COMPOSER-111: the numericText morph (EffortSlider.swift:574) through a takeover, with :582-583's colour
+    public void The_leaving_letters_of_a_change_taken_over_keep_that_changes_old_colour() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new Marrow.Testing.ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        var effort = new ObservableStringBox { Value = "max" };
+        var card = new EffortSliderCard("Sonnet", ProviderKind.Claude, new ValueList<string>(["low", "medium", "high", "xhigh", "max"]), "medium", false,
+            effort.AsBinding(), Binding<bool>.Constant(false), () => { });
+        var window = new Avalonia.Controls.Window { Width = 360, Height = 200, Content = card };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        void Advance(int milliseconds)
+        {
+            for (var ms = 0; ms < milliseconds; ms++)
+            {
+                clock.Advance(TimeSpan.FromMilliseconds(1));
+                frames.Advance(TimeSpan.FromMilliseconds(1));
+                Dispatcher.UIThread.RunJobs();
+            }
+        }
+        try
+        {
+            var title = Assert.Single(card.GetVisualDescendants().OfType<MorphingTextBlock>());
+            var brand = Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground).Color;
+            Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => effort.Value = "xhigh"); // 35.635 s
+            Dispatcher.UIThread.RunJobs();
+            var plain = Assert.IsAssignableFrom<Avalonia.Media.ISolidColorBrush>(title.Foreground).Color;
+            Assert.NotEqual(brand, plain);
+            Advance(118);
+            Transaction.WithAnimation(Animation.Snappy(duration: 0.2), () => effort.Value = "high"); // 35.753 s, the takeover
+            Dispatcher.UIThread.RunJobs();
+            Advance(34); // 35.787 s
+            var drawn = DrawnColours(title);
+            var seen = Show(drawn);
+            Assert.True(drawn.TryGetValue("Max", out var max) && max.SetEquals([brand]), $"the leaving letters of \"Max\" are not drawn in their old colour {brand}: {seen}");
+            Assert.True(drawn.TryGetValue("Extra High", out var extra) && extra.SetEquals([plain]), $"the letters of \"Extra High\" are not drawn in {plain}: {seen}");
+            Assert.True(drawn.TryGetValue("High", out var high) && high.SetEquals([plain]), $"the letters of \"High\" are not drawn in {plain}: {seen}");
+        }
+        finally { window.Close(); }
+    });
+
+    // The colours the title draws its letters in now, by the line each glyph run comes from (a change draws every letter as a
+    // run of one, carrying its line's text), read from what it pushes into a recording.
+    private static Dictionary<string, HashSet<Avalonia.Media.Color>> DrawnColours(MorphingTextBlock title)
+    {
+        var recording = new Avalonia.Media.DrawingGroup();
+        using (var context = recording.Open()) title.Render(context);
+        var result = new Dictionary<string, HashSet<Avalonia.Media.Color>>();
+        void Walk(Avalonia.Media.Drawing drawing)
+        {
+            switch (drawing)
+            {
+                case Avalonia.Media.DrawingGroup group:
+                    foreach (var child in group.Children) Walk(child);
+                    break;
+                case Avalonia.Media.GlyphRunDrawing { GlyphRun: { } run } glyphs:
+                    var line = run.Characters.ToString();
+                    if (!result.TryGetValue(line, out var set)) result[line] = set = [];
+                    set.Add(glyphs.Foreground is Avalonia.Media.ISolidColorBrush solid ? solid.Color : Avalonia.Media.Colors.Transparent);
+                    break;
+            }
+        }
+        Walk(recording);
+        return result;
+    }
+
+    private static string Show(Dictionary<string, HashSet<Avalonia.Media.Color>> drawn) =>
+        string.Join("; ", drawn.Select(pair => $"\"{pair.Key}\" {string.Join(",", pair.Value)}"));
 
     // SOURCE FACT (reference runtime, 2-chat-use.mov 35.12-35.29 s): as "Extra High" narrows to "Max", the leaving "High"
     // is carried right past the chevron and fades there, raised; a plain SwiftUI button does not clip its label.

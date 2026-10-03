@@ -409,7 +409,11 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         int Alpha(double x, double y) => image.GetPixel((int)(margin + x), (int)(margin + y)).Alpha;
         // Left of the card, halfway down, going out: darkest by the outline, gone by its reach.
         var left = Enumerable.Range(1, (int)margin).Select(d => Alpha(-d, 50)).ToList();
-        Assert.True(left[0] >= 30 && left[0] <= PopoverCard.ShadowPeak * 255 + 2, $"by the outline: {left[0]}");
+        // Against the decided numbers (ED-238 round 2 (5): 0.22 black at the outline, sigma 3.5), not PopoverCard.ShadowPeak
+        // itself (final review round 4: bounded by the constant, a shadow twice as dark, mutant K8, passed): half a point out
+        // 0.22 e^(-0.25 / 24.5) x 255 = 55.5, one sigma (3.5 pt) out 0.22 e^(-1/2) x 255 = 34.
+        Assert.True(left[0] >= 45 && left[0] <= 0.22 * 255 + 2, $"by the outline: {left[0]} (decided 55.5)");
+        Assert.InRange(left[3], 26, 42); // 3.5 pt out, decided 34
         for (var i = 1; i < left.Count; i++) Assert.True(left[i] <= left[i - 1], $"falls off: {string.Join(",", left)}");
         Assert.True(left[^1] <= 2, $"gone by its reach: {left[^1]}");
         // Above the card the same (the drop makes it a little fainter), and beside the tip's side as beside the card.
@@ -420,6 +424,17 @@ public sealed class PopoverCardTests(HeadlessSession headless)
         // On the tip's side it has faded out by the popup's last row, under the point too.
         var lastRow = (int)host.Bounds.Height - 1;
         Assert.True(Enumerable.Range(0, image.Width).All(x => image.GetPixel(x, lastRow).Alpha <= 3), "the shadow is cut by the popup's edge under the tip");
+        // And it gets there a row at a time, never ending on a hard line above the edge (final review round 4: read only on
+        // the last row, a fade squeezed into a hundredth of a point, mutant K2, passed): 4, 6 and 8 pt either side of the point,
+        // from 2 pt under the tip's side down to the last row, no step larger than the falloff's steepest (0.22 x 255 x e^-1/2
+        // / 3.5 = 9.7 levels a point) and the 5 pt fade's (0.22 x 255 / 5 = 11.2) together, a level for rounding: 22.
+        foreach (var beside in new[] { -8, -6, -4, 4, 6, 8 })
+        {
+            var columnX = (int)(margin + tip.X + beside);
+            var top = (int)(margin + 102 + (PopoverCard.TipHeight - Math.Abs(beside)) + 2);
+            var fade = Enumerable.Range(top, lastRow - top + 1).Select(y => (int)image.GetPixel(columnX, y).Alpha).ToList();
+            for (var i = 1; i < fade.Count; i++) Assert.True(fade[i - 1] - fade[i] <= 22, $"the shadow {beside:+0;-0} pt beside the tip ends on a hard line: {string.Join(",", fade)}");
+        }
     });
 
     // NSPopover.show(relativeTo: rect, of: view, ...) points its arrow at the rect, not at the view's middle: the composer's

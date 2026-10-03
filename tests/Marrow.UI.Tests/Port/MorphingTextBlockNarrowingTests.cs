@@ -27,6 +27,103 @@ public sealed class MorphingTextBlockNarrowingTests(HeadlessSession headless)
         return kept.Select(glyph => glyph.Progress).Distinct().Single();
     }
 
+    // Each letter of the line <paramref name="line"/> as drawn now, by its index: its opacity (its copies' opacities added up,
+    // over 1.69 for a blurred letter's seventeen copies, MorphingTextBlock.DrawBlurred), its size (1 its own) and how far its
+    // middle is below its place on the line, in font sizes.
+    private static Dictionary<int, (double Opacity, double Scale, double Rise)> Drawn(DrawnMorphingTextBlock label, string line)
+    {
+        var recording = new DrawingGroup();
+        using (var context = recording.Open()) label.DrawInto(context);
+        var middle = label.TextLayout.TextLines[0].Height / 2;
+        var copies = new Dictionary<int, List<(double Opacity, double Scale, Point At)>>();
+        void Walk(Drawing drawing, double opacity, Matrix outer, Matrix place)
+        {
+            switch (drawing)
+            {
+                case DrawingGroup group:
+                    var inner = opacity * (group.IsSet(DrawingGroup.OpacityProperty) ? group.Opacity : 1);
+                    var own = group.Transform?.Value ?? Matrix.Identity;
+                    foreach (var child in group.Children) Walk(child, inner, own * outer, own);
+                    break;
+                case GlyphRunDrawing { GlyphRun: { } run } when run.Characters.ToString() == line:
+                    var cluster = run.GlyphInfos[0].GlyphCluster;
+                    if (!copies.TryGetValue(cluster, out var list)) copies[cluster] = list = [];
+                    list.Add((opacity, outer.M22, new Point(0, middle - place.M32).Transform(outer)));
+                    break;
+            }
+        }
+        Walk(recording, 1, Matrix.Identity, Matrix.Identity);
+        return copies.ToDictionary(pair => pair.Key, pair =>
+        {
+            var sum = pair.Value.Sum(copy => copy.Opacity);
+            var centre = pair.Value.Average(copy => copy.At.Y);
+            return (pair.Value.Count >= 17 ? sum / 1.69 : sum, pair.Value[0].Scale, (centre - middle) / label.FontSize);
+        });
+    }
+
+    // ED-238 final round 1 (7): a kept letter taken over from an unfinished change eases once, from where it is. Its first
+    // test reads only where the letter is along the line; with its opacity jumping to whole or its place below the line to the
+    // line at the takeover (mutants E6, E9), the unit's own tests passed (final review round 4). Taken over while it is half
+    // arrived, every kept letter carries on from its fade, size and place below the line, with no jump, and is whole, full
+    // size and on the line once the change has run.
+    [Fact]
+    [Trait("Decision", "ED-238")] // the kept letters a takeover carries (MorphingTextBlock.Resolve, the carried kept letters)
+    public void A_kept_letter_taken_over_half_arrived_carries_on_from_its_fade_size_and_place_with_no_jump() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var source = FrameClock.Source.Override(frames);
+        var clock = new ManualTimeProvider();
+        using var time = SwiftClock.Provider.Override(clock);
+        var label = new DrawnMorphingTextBlock { Text = "Max", FontSize = 17, FontWeight = FontWeight.Medium, Foreground = Brushes.White, MaxLines = 1, GrowthAnchor = 0.5 };
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4, HorizontalAlignment = HorizontalAlignment.Center, Children = { label, new Border { Width = 6, Height = 12 } } };
+        var window = new Window { Width = 300, Height = 60, Background = Brushes.Black, Content = row };
+        window.Show();
+        Dispatcher.UIThread.RunJobs();
+        void Advance(int milliseconds)
+        {
+            for (var ms = 0; ms < milliseconds; ms++)
+            {
+                clock.Advance(TimeSpan.FromMilliseconds(1));
+                frames.Advance(TimeSpan.FromMilliseconds(1));
+                Dispatcher.UIThread.RunJobs();
+                window.UpdateLayout();
+            }
+        }
+        try
+        {
+            label.SetText("Extra High", Animation.Snappy(0.2));
+            Dispatcher.UIThread.RunJobs();
+            Advance(180); // the "H", "i" and "g" of "High" part way in, the "h" not yet begun
+            var before = Drawn(label, "Extra High");
+            label.SetText("High", Animation.Snappy(0.2));
+            Dispatcher.UIThread.RunJobs();
+            Advance(1);
+            var after = Drawn(label, "High");
+            string Show(Dictionary<int, (double Opacity, double Scale, double Rise)> letters, int from) => string.Join(" ", Enumerable.Range(from, 4)
+                .Select(i => letters.TryGetValue(i, out var s) ? $"{"High"[i - from]}: {s.Opacity:F2} size {s.Scale:F2} low {s.Rise:F3}" : $"{"High"[i - from]}: not drawn"));
+            var seen = $"before the takeover {Show(before, 6)}; 1 ms after {Show(after, 0)}";
+            var carried = 0;
+            for (var i = 0; i < 4; i++)
+            {
+                if (!before.TryGetValue(6 + i, out var was))
+                {
+                    Assert.True(!after.TryGetValue(i, out var now) || now.Opacity <= 0.02, $"\"{"High"[i]}\", not drawn before the takeover, jumps in: {seen}");
+                    continue;
+                }
+                carried++;
+                Assert.True(was.Opacity is > 0.05 and < 0.95 && was.Scale < 0.95 && was.Rise > 0.02, $"\"{"High"[i]}\" is not part way in before the takeover: {seen}");
+                Assert.True(after.TryGetValue(i, out var then), $"\"{"High"[i]}\" is not drawn after the takeover: {seen}");
+                Assert.True(Math.Abs(then.Opacity - was.Opacity) <= 0.03, $"\"{"High"[i]}\"'s fade jumps at the takeover: {seen}");
+                Assert.True(Math.Abs(then.Scale - was.Scale) <= 0.03, $"\"{"High"[i]}\"'s size jumps at the takeover: {seen}");
+                Assert.True(Math.Abs(then.Rise - was.Rise) <= 0.02, $"\"{"High"[i]}\"'s place below the line jumps at the takeover: {seen}");
+            }
+            Assert.True(carried >= 2, $"only {carried} kept letters part way in at the takeover: {seen}");
+            Advance((int)Math.Ceiling(MorphingTextBlock.Length(Animation.Snappy(0.2)) * 1000) - 1);
+            Assert.False(label.IsMorphing);
+        }
+        finally { window.Close(); Dispatcher.UIThread.RunJobs(); }
+    });
+
     [Theory]
     [Trait("Decision", "ED-238")] // the kept letters' fitted clocks (MorphingTextBlock.KeptLead, NarrowingKeptLead)
     [InlineData(0.02)]
