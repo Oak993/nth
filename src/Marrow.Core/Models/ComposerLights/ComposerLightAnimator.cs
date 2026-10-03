@@ -285,6 +285,19 @@ public sealed class ComposerLightAnimator
         a.C1 = C(0); a.C2 = C(1); a.K1 = C(2); a.K2 = C(3); a.N1 = C(4); a.N2 = C(5);
     }
 
+    /// <summary>
+    /// A still at given phases (the playground's __bbT hook and its paused aura clock): the beam at
+    /// <paramref name="beamSeconds"/> (its hue swing at <paramref name="hueSeconds"/>), the aura <paramref name="auraTurns"/>
+    /// turns in with its breathing at <paramref name="breathPhase"/>.
+    /// </summary>
+    public void Still(double beamSeconds, double hueSeconds, double auraTurns, double breathPhase, double now)
+    {
+        var b = settings.Beam;
+        clock.SetBeamTime(beamSeconds, hueSeconds, BorderBeamMath.Duration(b, w, h, ComposerRadius), b.StaticColors || b.Palette == BeamPalette.Mono, !BeamDark(b));
+        clock.SetAuraPhase(auraTurns, breathPhase, settings.Aura.Breathing);
+        Produce(now);
+    }
+
     /// <summary>The opacity of slot <paramref name="i"/>'s cross-fade at a time (tests).</summary>
     public double SlotOpacity(int i, double now) => slotAlpha[i].Value(now);
 

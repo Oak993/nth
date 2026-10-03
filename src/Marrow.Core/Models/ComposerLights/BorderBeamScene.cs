@@ -248,6 +248,7 @@ public static class BorderBeamScene
         if (mono) { sigma = 6; f.FilterBloom = false; f.HueOnBloom = false; }
         else if (c.Static) { sigma = 0; f.FilterBloom = false; f.HueOnBloom = false; }
         else { sigma = v.Blur; f.FilterBloom = true; f.HueOnBloom = true; f.HueBloom = v.Hb + (v.Hr + 10) * clock.HueSwing8; }
+        f.BloomSigma = sigma;   // the layer box's blurred edge
         if (!(c.Faithful && SpikesBad(c))) Spikes(f.Ellipses, c, s, w, h, X, Wv, Hv, SP, SP2, MUL, sigma);
     }
 
