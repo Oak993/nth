@@ -423,9 +423,14 @@ public sealed class VeiledText : Decorator
     // StreamVeil.swift:243-244.
     private void OnEnvironmentChanged(object? sender, AvaloniaPropertyChangedEventArgs e)
     {
-        if (e.Property == StreamVeil.MarkdownVeiledProperty ||
-            e.Property == MarkdownView.MarkdownDimmedProperty)
+        if (e.Property == StreamVeil.MarkdownVeiledProperty)
             Redraw();
+        else if (e.Property == MarkdownView.MarkdownDimmedProperty)
+            // PORT-ONLY (UI-THEME-047): a change of \.markdownDimmed says nothing about whether the reply is still arriving. A block that is dimmed on
+            // its own (a quote's blocks, MarkdownView.swift:364) gets the value while it is still outside the markdown view that sets \.markdownVeiled
+            // (:84, :100), so the veiled value read here is the default; taking it for the reply's answer made the settled branch forget a kept
+            // veil's text before every flush, and a quoted paragraph never faded.
+            Redraw(environmentKnown: false);
     }
 
     // StreamVeil.swift:273-279. `environmentKnown` is PORT-ONLY: the first draw runs in the constructor, before this control has a parent, so

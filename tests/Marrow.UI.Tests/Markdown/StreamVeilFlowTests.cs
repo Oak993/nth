@@ -393,4 +393,83 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
         Assert.Equal(5, spans.Count);
         Assert.Equal(Alpha(0.03 * 1.9 / (0.412 * 0.7 * 0.7 * 0.7 * 0.7 * 3)), spans[4].Alpha, 6);
     }
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:311, :423-426 (a link run that arrives is drawn in the accent at the chunk's alpha)
+    public void A_link_that_arrives_is_drawn_in_the_accent_at_the_chunks_alpha_and_the_prose_beside_it_in_the_primary_colour() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
+        FreshVeilClock();
+        var host = new StreamVeilFlowHost(runtime, $"Read [notes]({Local})");
+        try
+        {
+            host.Flush(runtime, $"Read [notes]({Local}) and [more]({Local})");
+            Tick(runtime, frames, 100); // a quarter through the 0.40 s fade of the first chunk
+            var runs = host.Decorator.GetVisualDescendants().OfType<TextBlock>().SelectMany(block => block.Inlines!.OfType<Run>()).Where(run => !string.IsNullOrEmpty(run.Text)).ToArray();
+            Assert.Equal(["Read ", "notes", " and ", "more"], runs.Select(run => run.Text));
+            var theme = host.Decorator.GetVisualDescendants().OfType<TextBlock>().First().ActualThemeVariant;
+            var accent = Marrow.UI.Chrome.Chrome.Accent.Resolve(theme);
+            // The words that were already there are untouched, the old link in the accent at full strength.
+            var old = Assert.IsAssignableFrom<ISolidColorBrush>(runs[1].Foreground);
+            Assert.Equal(accent, old.Color);
+            Assert.Equal(1, old.Opacity * old.Color.A / 255.0, 0.001);
+            // :423-426 the link that arrived keeps the accent it is drawn in, only thinner: its alpha is the chunk's (:93, a quarter of the way through).
+            var arriving = Assert.IsAssignableFrom<ISolidColorBrush>(runs[3].Foreground);
+            Assert.Equal(Color.FromRgb(accent.R, accent.G, accent.B), Color.FromRgb(arriving.Color.R, arriving.Color.G, arriving.Color.B));
+            Assert.Equal(Alpha(0.25), arriving.Opacity * arriving.Color.A / 255.0, 0.01);
+            // The prose beside it dissolves in the same chunk, in the colour its run had (:424-425), at the same alpha.
+            var prose = Assert.IsAssignableFrom<ISolidColorBrush>(runs[2].Foreground);
+            Assert.Equal(Alpha(0.25), prose.Opacity * prose.Color.A / 255.0, 0.01);
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            host.Window.Close();
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/MarkdownView.swift:87 (ForEach(..., id: \.offset): a block keeps its place), :334-353 (list items and their blocks), :359-364 (the blocks of a quote, dimmed)
+    public void Every_paragraph_list_item_nested_item_and_quote_block_keeps_a_veil_of_its_own_through_the_flushes() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
+        FreshVeilClock();
+        var host = new StreamVeilFlowHost(runtime, "First\n\nSecond\n\n- a\n- b\n  - deep\n  1. step\n\n> quoted\n>\n> then\n");
+        try
+        {
+            Assert.Equal(["First", "Second", "a", "b", "deep", "step", "quoted", "then"], Texts(Runs(host.Decorator)));
+            // One flush appends to both paragraphs, to the second item of the list and to both lists nested in it, and to both blocks of the quote
+            // (dimmed: the quote's blocks get \.markdownDimmed before they are under the markdown view that says the reply is streaming): each tail
+            // is its own chunk at its own place, and every place that did not grow shows nothing arriving.
+            host.Flush(runtime, "First one\n\nSecond two\n\n- a\n- b more\n  - deep down\n  1. step two\n\n> quoted again\n>\n> then more\n");
+            var runs = Runs(host.Decorator);
+            Assert.Equal(["First", " one", "Second", " two", "a", "b", " more", "deep", " down", "step", " two", "quoted", " again", "then", " more"], Texts(runs));
+            var arriving = new[] { 1, 3, 6, 8, 10, 12, 14 };
+            for (var index = 0; index < runs.Length; index++)
+            {
+                if (arriving.Contains(index)) Assert.True(runs[index].Opacity < 0.01, $"'{runs[index].Text}' has just arrived");
+                else Assert.True(runs[index].Opacity > 0.5, $"'{runs[index].Text}' was already there");
+            }
+
+            // A flush that grows only the FIRST item of the list leaves the other places' veils alone: their tails carry on from where they were.
+            Tick(runtime, frames, 100);
+            host.Flush(runtime, "First one\n\nSecond two\n\n- a, then\n- b more\n  - deep down\n  1. step two\n\n> quoted again\n>\n> then more\n");
+            var next = Runs(host.Decorator);
+            Assert.Equal(["First", " one", "Second", " two", "a", ", then", "b", " more", "deep", " down", "step", " two", "quoted", " again", "then", " more"], Texts(next));
+            Assert.True(next[5].Opacity < 0.01, "the new tail of the first item has just arrived");
+            foreach (var carried in new[] { 1, 3, 7, 9, 11, 13, 15 })
+                Assert.True(next[carried].Opacity > 0.01 && next[carried].Opacity < next[0].Opacity, $"'{next[carried].Text}' is already dissolving");
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            host.Window.Close();
+        }
+    });
 }
