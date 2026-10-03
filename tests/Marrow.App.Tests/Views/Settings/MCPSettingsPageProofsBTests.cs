@@ -501,9 +501,8 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
     public void Custom_setup_retry_and_save_exercise_source_defined_glass_data_and_setup_presentation() => Ui(async (model, _, _) =>
     {
         await Task.Yield();
-        // STOP opencode-proofs-mcp-b #1: UI-MCP-040 UI-MCP-041 UI-MCP-063.
-        // Missing F.GlassMaterial (ED-180 explicitly says tracked incomplete, not a finished substitute),
-        // and native .small/default prominent-button type/metrics (OD-0001); data below is only a subset.
+        // The pill's size and tint are proven in MCPSettingsPageActionPillTests (UI-MCP-024, 041, and the size of 040, 063);
+        // this keeps the untinted-window data and the setup presentation.
         var custom = Custom(); var guide = new MCPSetupGuide("Setup", "Reason", new[] { "Step" }, "Open", "", null);
         foreach (var failed in new[] { false, true })
         {
@@ -512,7 +511,7 @@ public sealed class MCPSettingsPageProofsBTests(HeadlessSession headless)
             try
             {
                 var button = Button(row, failed ? "Try again" : "Fix it");
-                TextStyle(TextAt(button, failed ? "Try again" : "Fix it"), 11, FontWeight.Normal, Chrome.PrimaryText);
+                TextStyle(TextAt(button, failed ? "Try again" : "Fix it"), 11, FontWeight.Normal, failed ? Chrome.PrimaryText : SwiftColor.White); // an untinted window: neutral glass for .glass, the accent fill under white for .glassProminent
                 var effect = Nodes<Border>(button).Select(SwiftGlass.GetEffect).Single(e => e is not null)!;
                 if (failed)
                 {

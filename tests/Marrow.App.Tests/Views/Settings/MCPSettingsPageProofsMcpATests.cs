@@ -100,9 +100,8 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
     [InlineData("Fix it", false, false, false)]
     [InlineData("Connect", false, false, true)]
     [Trait("Rule", "R-TEST-2")] // MCPSettingsPage.swift:328-348,505-507; ED-180 source-defined surroundings only
-    // STOP opencode-proofs-mcp-a #3: UI-MCP-024 UI-MCP-025 UI-MCP-028 UI-MCP-029 UI-MCP-030 UI-MCP-037.
-    // Native .controlSize(.small) metrics/type have no approved measured mapping (OD-0001).
-    // Native small-control geometry and typography still have no measured approved mapping; the material has now landed on impl/b2.
+    // The small control's metrics and the tinted look are measured on the reference video and proven in MCPSettingsPageActionPillTests
+    // (UI-MCP-024 and the records that share its button); this theory keeps the untinted-window data: the neutral glass, the primary label.
     public void Actions_keep_source_labels_primary_colour_and_glass_effect_data_in_each_branch(string label, bool oauth, bool failed, bool custom)
     {
         Ui((model, _, _, _) =>
@@ -110,7 +109,7 @@ public sealed class MCPSettingsPageProofsMcpATests(HeadlessSession headless)
             var setup = new MCPSetupGuide("Setup", "Reason", new[] { "Step" }, "Open", "", null);
             State(model, custom ? "custom-example" : "offline", label == "Fix it" ? new MCPConnectionState.NeedsSetup(setup) : failed ? new MCPConnectionState.Failed("Rejected") : new MCPConnectionState.NotConnected());
             Control owner = custom ? new MCPCustomRow(Custom()) : new MCPServerCard(Entry(transport: oauth ? new MCPTransport.Oauth("https://example.invalid") : null)); using var window = Attach(owner, model);
-            var button = Button(owner, label); Colour(Text(button, label).Foreground, Chrome.PrimaryText, button);
+            var button = Button(owner, label); Colour(Text(button, label).Foreground, label == "Fix it" ? SwiftColor.White : Chrome.PrimaryText, button); // the prominent glass is always accent-filled under a white label
             Assert.Contains(Nodes<Border>(button), b => SwiftGlass.GetEffect(b) is { IsInteractive: true } effect && (effect.TintColor is not null) == (label == "Fix it"));
             if (label == "Fix it")
             {

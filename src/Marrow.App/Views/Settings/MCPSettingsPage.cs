@@ -171,22 +171,23 @@ public sealed class MCPSettingsPage : Decorator
     internal static Control ActionButton(string title, Action action, bool prominent = false, bool regular = false)
     {
         var label = Text(title, regular ? 13 : 11, Chrome.PrimaryText); var height = regular ? RegularControlHeight : SmallControlHeight;
-        if (prominent) return WelcomeView.GlassProminentButton(label, height, action);
         label.VerticalAlignment = VerticalAlignment.Center;
-        var surface = new TintedGlassPill(label) { Child = label, Background = Brushes.Transparent, Height = height, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0) }.Capsule(RoundedCornerStyle.Continuous); // :328-330 keep the interactive material's full hit area while ED-180 is deferred
-        SwiftGlass.SetEffect(surface, GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive());
-        return PlainControls.Button(surface, action);
+        var surface = new TintedGlassPill(label, prominent) { Child = label, Background = Brushes.Transparent, Height = height, Padding = new Thickness(Chrome.CapsuleHorizontalPadding, 0) }.Capsule(RoundedCornerStyle.Continuous); // :328-330 keep the interactive material's full hit area while ED-180 is deferred
+        surface.Apply(); return PlainControls.Button(surface, action);
     }
-    // The `.glass` capsule: filled with the window's tint at full strength under a white label when the window is tinted.
-    private sealed class TintedGlassPill(TextBlock label) : Border
+    // The capsule: filled with the window's tint at full strength under a white label when the window is tinted. `.glassProminent`
+    // is always tinted: by the window's tint, else by the accent (ENGINEERING DECISION, its look UNVERIFIED).
+    private sealed class TintedGlassPill(TextBlock label, bool prominent) : Border
     {
         protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e) { base.OnAttachedToVisualTree(e); Apply(); }
         protected override void OnPropertyChanged(AvaloniaPropertyChangedEventArgs change) { base.OnPropertyChanged(change); if (change.Property == Popovers.TintProperty) Apply(); }
-        private void Apply()
+        public void Apply()
         {
-            var tint = Popovers.GetTint(this);
+            var tint = Popovers.GetTint(this) ?? (prominent ? Chrome.Accent : null);
             Background = tint is null ? Brushes.Transparent : tint.Brush(this);
             label.Foreground = (tint is null ? Chrome.PrimaryText : SwiftColor.White).Brush(label);
+            var glass = GlassEffect.Regular(GlassShape.Capsule(RoundedCornerStyle.Continuous)).Interactive();
+            SwiftGlass.SetEffect(this, prominent && tint is not null ? glass.Tint(tint, 0.3) : glass);
         }
     }
     // :169-179,543-553
