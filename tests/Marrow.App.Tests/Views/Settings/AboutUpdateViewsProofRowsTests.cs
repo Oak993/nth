@@ -153,6 +153,7 @@ public sealed class AboutUpdateViewsProofRowsTests(HeadlessSession headless)
     [Trait("Req", "UI-UPDATE-016")] // App/Views/Settings/AboutUpdateViews.swift:749-762; MarkdownView's own link path
     public void Raw_fallback_markdown_link_opens_through_the_real_text_hit_test() => headless.OnUiThread(() =>
     {
+        using var noNetwork = new NoLinkNetwork("example.com"); // R-TEST-10: the release notes' link asks example.com for its favicon when it appears (found by the network audit with the cache's short-cuts off, ED-256 (10))
         using var runtime = new TestRuntime(); using var main = MainActor.Executor.Override(AvaloniaMainExecutor.Instance); using var frames = FrameClock.Source.Override(new ManualFrameSource());
         const string url = "https://example.com/about-update-notes";
         var checker = new UpdateChecker(ReleaseFeed.Running("1.7.0"), [], ""); Set(checker, nameof(UpdateChecker.Update), AboutUpdateViewsProofLifecycleTests.Release("Raw [release link](" + url + ")"));
