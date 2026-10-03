@@ -71,14 +71,27 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
 
     private static Rect Box(Control control, Visual to) => new(control.TranslatePoint(default, to)!.Value, control.Bounds.Size);
 
+    // ED-253: and on a page scrolled under the pane's top veil (PaneTopVeil, Chrome.swift:579-628), whose gradients turn over
+    // with the rest.
     [Theory]
-    [InlineData("dark")]
-    [InlineData("light")]
+    [InlineData("dark", 0)]
+    [InlineData("light", 0)]
+    [InlineData("dark", 60)]
+    [InlineData("light", 60)]
     [Trait("Decision", "ED-251")]
-    public void The_theme_control_turns_the_whole_settings_window_over_in_point_32_seconds_and_nothing_cuts(string appearance) =>
+    [Trait("Decision", "ED-253")]
+    public void The_theme_control_turns_the_whole_settings_window_over_in_point_32_seconds_and_nothing_cuts(string appearance, double scrolled) =>
         Open(appearance == "dark" ? AppTheme.Dark : AppTheme.Light, (rig, window, card, model) =>
         {
             var dark = appearance == "dark";
+            if (scrolled > 0)
+            {
+                var page = Nodes<ScrollViewer>((Control)window.Content!).Single(s => s.GetVisualDescendants().Contains(card));
+                page.Offset = new Vector(0, scrolled);
+                Drain(window);
+                Step(rig, window, 60);
+                Assert.True(Nodes<PaneTopVeil>((Control)window.Content!).Single().GetVisualDescendants().OfType<Border>().Any(b => b.Background is LinearGradientBrush), "the veil is drawn");
+            }
             var title = Nodes<TextBlock>(card.ThemeRow).Single(t => t.Text == "Theme");
             var captions = window.GetVisualDescendants().OfType<CaptionButton>().ToArray();
             Assert.Equal(3, captions.Length);
@@ -92,15 +105,21 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
             var frames = new List<(byte[] Pixels, int Width, int Height, int Stride)> { Capture(window) };
             var titles = new List<Color> { ((ISolidColorBrush)title.Foreground!).Color };
             var darkness = new List<double[]> { captions.Select(c => c.Darkness).ToArray() };
+            // The veil's two fades (their top colour), when the page is scrolled under it.
+            var fades = Nodes<PaneTopVeil>((Control)window.Content!).Single().GetVisualDescendants().OfType<Border>().Where(b => b.Background is LinearGradientBrush).ToArray();
+            Color[] Fades() => fades.Select(b => ((LinearGradientBrush)b.Background!).GradientStops[0].Color).ToArray();
+            var veil = new List<Color[]> { Fades() };
             for (var k = 1; k <= 24; k++)
             {
                 Step(rig, window);
                 frames.Add(Capture(window));
                 titles.Add(((ISolidColorBrush)title.Foreground!).Color);
                 darkness.Add(captions.Select(c => c.Darkness).ToArray());
+                veil.Add(Fades());
             }
             Step(rig, window, 40);
             var end = Capture(window);
+            var veilEnd = Fades();
             var titleTo = ((ISolidColorBrush)title.Foreground!).Color;
             Assert.NotEqual(titleFrom, titleTo);
 
@@ -143,7 +162,9 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
             // the Look card's fill (below its Accent row's words) and the mini window's surface.
             var cardFill = card.TranslatePoint(new Point(40, card.Bounds.Height - 4), window)!.Value;
             var miniSurface = card.Mini.TranslatePoint(new Point(118, 124), window)!.Value;
-            foreach (var (name, point) in new[] { ("window", new Point(450, 8)), ("card fill", cardFill), ("mini surface", miniSurface) })
+            // Scrolled, the window's top is drawn under the veil: two layers each on the curve, which a pixel there does not follow
+            // exactly; the veil's own colours are checked below instead.
+            foreach (var (name, point) in new[] { ("window", new Point(450, 8)), ("card fill", cardFill), ("mini surface", miniSurface) }.Where(s => scrolled == 0 || s.Item1 != "window"))
             {
                 var (px, py) = ((int)point.X, (int)point.Y);
                 for (var k = 0; k < frames.Count; k++)
@@ -166,6 +187,20 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
                 Assert.True(Math.Abs(seen.R - expected.R) <= 1 && Math.Abs(seen.A / 255.0 - expected.A) <= 1.0 / 255 + 1e-9, $"title frame {k}: {seen}, curve {expected}");
                 foreach (var value in darkness[k])
                     Assert.Equal(dark ? 1 - p : p, value, 3);
+            }
+
+            // The veil's fades, frame by frame on the curve from what they showed to the new appearance's (ED-253).
+            Assert.Equal(scrolled > 0 ? 2 : 0, fades.Length);
+            for (var f = 0; f < fades.Length; f++)
+            {
+                var (from, to) = (veil[0][f], veilEnd[f]);
+                Assert.NotEqual(from, to);
+                for (var k = 0; k < veil.Count; k++)
+                {
+                    var expected = CssCurve.Mix((from.R, from.G, from.B, from.A / 255.0), (to.R, to.G, to.B, to.A / 255.0), Ease(k));
+                    var seen = veil[k][f];
+                    Assert.True(Math.Abs(seen.R - expected.R) <= 1 && Math.Abs(seen.B - expected.B) <= 1 && Math.Abs(seen.A / 255.0 - expected.A) <= 1.0 / 255 + 1e-9, $"veil fade {f} frame {k}: {seen}, curve {expected}");
+                }
             }
         });
 
@@ -204,5 +239,32 @@ public sealed class LookCardTurnoverTests(HeadlessSession headless) : SettingsWi
             Assert.True(Math.Abs(seen.R - expected.R) <= 1 && Math.Abs(seen.B - expected.B) <= 1, $"frame {k}: {seen}, curve {expected}");
         }
         Assert.Equal(to, ((ISolidColorBrush)tint.Background!).Color);
+    });
+
+    // ED-253: the veil's tint is Chrome.glassTint (Chrome.swift:589, 30 % in dark) read as it is drawn, so on a scrolled page a
+    // named theme of the same appearance turns it to its surface too, easing 0.32 s from the last theme's.
+    [Fact]
+    [Trait("Decision", "ED-253")]
+    public void On_a_scrolled_page_a_named_theme_turns_the_veil_tint_to_its_surface_easing_in() => Open(AppTheme.Dark, (rig, window, card, model) =>
+    {
+        var page = Nodes<ScrollViewer>((Control)window.Content!).Single(s => s.GetVisualDescendants().Contains(card));
+        page.Offset = new Vector(0, 60);
+        Drain(window);
+        Step(rig, window, 60);
+        var tint = Nodes<PaneTopVeil>((Control)window.Content!).Single().GetVisualDescendants().OfType<Border>().Where(b => b.Background is LinearGradientBrush).Last();
+        Color Top() => ((LinearGradientBrush)tint.Background!).GradientStops[0].Color;
+        var from = Top();
+        Assert.Equal(AppTheme.Dark.Spec().Surface.Opacity(0.30).Resolve(ThemeVariant.Dark), from);
+        var to = SwiftColor.Hex("282A36").Opacity(0.30).Resolve(ThemeVariant.Dark); // Dracula's surface
+        model.Settings.Theme = AppTheme.Dracula;
+        Drain(window);
+        for (var k = 0; k <= 22; k++)
+        {
+            if (k > 0) Step(rig, window);
+            var expected = CssCurve.Mix((from.R, from.G, from.B, from.A / 255.0), (to.R, to.G, to.B, to.A / 255.0), Ease(k));
+            var seen = Top();
+            Assert.True(Math.Abs(seen.R - expected.R) <= 1 && Math.Abs(seen.B - expected.B) <= 1, $"frame {k}: {seen}, curve {expected}");
+        }
+        Assert.Equal(to, Top());
     });
 }
