@@ -121,7 +121,7 @@ public sealed class TimelineRowsFinHeadStepsTests(HeadlessSession headless)
                 // :1900-1901, :1922, :1978-1983, :1984-1990, :1999-2000 .textSelection(.enabled): the pointer is an I-beam over each of the
                 // five selectable lines (PR-CHAT-166 windows_path; a SelectableTextBlock has no cursor of its own with no control theme).
                 // A selection in each of them is drawn, in the system's selected-text colour (a SelectableTextBlock has no SelectionBrush with
-                // no control theme loaded, so a drag would select text that is never painted; ED-NEW-parity-timelinerows (5)).
+                // no control theme loaded, so a drag would select text that is never painted; ED-256 (5)).
                 var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
                 Assert.NotEqual(0, system.A);
                 foreach (var selectable in new[] { task, reply, brief, notice, report })

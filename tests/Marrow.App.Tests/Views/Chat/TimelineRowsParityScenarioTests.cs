@@ -604,7 +604,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     [Trait("Req", "PR-CHAT-166")] // TimelineRows.swift:119-123, :633, :1364; MarkdownView.swift:318, :1131, :1229; LinkParagraphView.swift:4-8, :312-313
     public void A_drag_selects_inside_the_block_it_starts_in_across_a_reply_its_code_block_and_a_bubble() => headless.OnUiThread(() =>
     {
-        using var noNetwork = new NoLinkNetwork("hover-hand.com", "hover-hand-report.com"); // R-TEST-10, ED-NEW-parity-timelinerows (10)
+        using var noNetwork = new NoLinkNetwork("hover-hand.com", "hover-hand-report.com"); // R-TEST-10, ED-256 (10)
         using var h = Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         AvaloniaWindow window = null!;
@@ -657,7 +657,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                     Assert.Equal(whole, text.SelectedText);
                     // ... and the selection is drawn: in the system's selected-text colour, as every other text of the timeline draws it (a
                     // SelectableTextBlock has no SelectionBrush with no control theme loaded, so a selection made but never drawn is no
-                    // selection to the reader; ED-NEW-parity-timelinerows (5), review round 4).
+                    // selection to the reader; ED-256 (5), review round 4).
                     Assert.True((text.SelectionBrush as Avalonia.Media.ISolidColorBrush)?.Color == system,
                         $"\"{whole}\": the selection is drawn with {text.SelectionBrush?.ToString() ?? "no brush (nothing is drawn)"}");
                 }
@@ -687,7 +687,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
                 var texts = tool.GetVisualDescendants().OfType<SelectableTextBlock>().ToArray();
                 Assert.Equal(["cat notes.txt", "the printed result"], texts.Select(text => text.Text ?? "").ToArray());
                 // Review round 4: a selection in either is drawn too, in the system's selected-text colour (a SelectableTextBlock has
-                // no SelectionBrush with no control theme loaded; ED-NEW-parity-timelinerows (5)).
+                // no SelectionBrush with no control theme loaded; ED-256 (5)).
                 var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
                 Assert.NotEqual(0, system.A);
                 foreach (var text in texts)
@@ -753,7 +753,7 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     [Trait("Req", "PR-HYDRAMERGE-090")] // TimelineRows.swift:1111-1120, :607-640
     public void The_merged_note_opens_the_merge_card_and_the_merge_failed_note_the_generic_report(string text, bool merged) => headless.OnUiThread(() =>
     {
-        // No network (R-TEST-10; ED-NEW-parity-timelinerows (10)): the merge card and the open report's paragraph ask gitlab.com for its
+        // No network (R-TEST-10; ED-256 (10)): the merge card and the open report's paragraph ask gitlab.com for its
         // favicon, which is a seeded in-flight fetch here, and the rig refuses anything else.
         using var noNetwork = new NoLinkNetwork("gitlab.com");
         using var h = Harness();
@@ -884,13 +884,13 @@ public sealed class TimelineRowsParityScenarioTests(HeadlessSession headless)
     // names for the first time arrives, so the icon reaches it through that redraw. No network: the host's fetch is a seeded
     // in-flight task (NoLinkNetwork.Pending, R-TEST-10). The text of either bubble is selectable (:123), and a selection in it is drawn in the system's
     // selected-text colour (the link text's NSTextView, LinkParagraphView.swift:312-313, like the veiled text;
-    // ED-NEW-parity-timelinerows (5)).
+    // ED-256 (5)).
     [Fact]
     [Trait("Req", "PR-CHAT-077")] // TimelineRows.swift:118-129; MarkdownView.swift (B3) :1065-1164; LinkParagraphView.swift:36-58, :134-150, :312-313
     public void The_bubble_renders_its_words_with_the_answers_inline_renderer_so_a_bare_domain_is_a_link() => headless.OnUiThread(() =>
     {
         const string host = "bubble-favicon.com";
-        using var noNetwork = new NoLinkNetwork(); // R-TEST-10, ED-NEW-parity-timelinerows (10): the host's fetch is the one it names below
+        using var noNetwork = new NoLinkNetwork(); // R-TEST-10, ED-256 (10): the host's fetch is the one it names below
         using var h = Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var icon = new Avalonia.Media.Imaging.WriteableBitmap(new PixelSize(4, 4), new Vector(96, 96),

@@ -153,7 +153,7 @@ public sealed class TimelineRowsFinMergeOutcomeTests(HeadlessSession headless)
     [Trait("Req", "UI-CHAT-050")] // TimelineRows.swift:607-639 the report panel
     public void The_report_opens_the_merge_card_for_a_leading_address_that_parses_with_a_files_line_and_the_460_point_report_otherwise(string body, bool merge) => headless.OnUiThread(() =>
     {
-        // No network (R-TEST-10; ED-NEW-parity-timelinerows (10)). The merge card and the merge-failed row's link paragraph both ask
+        // No network (R-TEST-10; ED-256 (10)). The merge card and the merge-failed row's link paragraph both ask
         // gitlab.com for its favicon, and a report is measured in a hidden window first (PopoverScroll.MeasuredHeight: attached,
         // detached, its ask cancelled), so the host is named here for every row: the rig fails the test if anything else is asked.
         using var noNetwork = new NoLinkNetwork("gitlab.com");

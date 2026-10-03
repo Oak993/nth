@@ -58,7 +58,7 @@ public static class TimelineRows
 {
     /// <summary>A text a row lets the reader select (.textSelection(.enabled): :2121, :2124, :2152, :2394 and the head popover's
     /// :1900, :1922, :1982, :1989, :2000), made by the one recipe every selectable text of the chat shares (VeiledText.SelectableText,
-    /// ED-NEW-parity-timelinerows (5)). The I-beam over it: SOURCE FACT for the notice's message, which the reference video shows
+    /// ED-256 (5)). The I-beam over it: SOURCE FACT for the notice's message, which the reference video shows
     /// under the pointer at 2-chat-use.mov 14.74 s (CATALOG segment 15, "Pointer becomes an I-beam over message text"); the other
     /// sites carry the same modifier. A selection drawn in the system's selected-text colour, as on the Mac. A SelectableTextBlock has
     /// neither a cursor nor a SelectionBrush of its own (no control theme is loaded), so without them a drag selected text that was
@@ -238,7 +238,7 @@ public sealed class UserMessageRow : Decorator
         // still out of the tree once the timeline's redraw is over: ThreadTimeline.Draw takes every kept row out of its old
         // stack and puts it into a new one inside one synchronous pass, and an entry that arrives while the editor is open
         // must not close it (its @State, MessageEditor.swift:26-29, would be built anew). The same reading of onDisappear
-        // as BadgePopoverCoordinator.Disappear and the row menu (PR-CHAT-080). ENGINEERING DECISION ED-NEW-parity-timelinerows.
+        // as BadgePopoverCoordinator.Disappear and the row menu (PR-CHAT-080). ENGINEERING DECISION ED-256.
         // This covers the row's own close only: the editor's real Popup hangs from the AttachmentAnchorCapture inside this row and
         // closes itself in the very Remove call that takes the row out of its stack, and the anchor capture opens it again on a new
         // MessageEditor, until ThreadTimeline.Draw keeps its kept rows in place (ThreadTimeline.swift:384-391; STOP #11).
@@ -437,7 +437,7 @@ public sealed class UserMessageRow : Decorator
             })));
         }
         // :161 .opacity(isHovering || isEditing ? 1 : 0). The Mac cuts here (2-chat-use.mov 23.415-24.187 s, catalogue
-        // hover.message-edit-pencil); OD-0076 rules every change transitioned (ENGINEERING DECISION ED-NEW-parity-timelinerows), so the line fades in the Mac's own hover
+        // hover.message-edit-pencil); OD-0076 rules every change transitioned (ENGINEERING DECISION ED-256), so the line fades in the Mac's own hover
         // language for a message's hover line (the reply row's :1381 easeOut 0.12), and reduce motion stills it.
         var opacity = new AnimatedOpacity(line, state.IsHovering || isEditing() ? 1 : 0);
         line.Track(() => state.IsHovering || isEditing(), shown => opacity.Set(shown ? 1 : 0,
@@ -2583,7 +2583,7 @@ public sealed class ToolStatusIcon : Decorator
 }
 
 /// <summary>
-/// PORT-ONLY (ED-NEW-parity-timelinerows (7)). A selectable text whose line limit (<see cref="TextBlock.MaxLines"/>) ends its last
+/// PORT-ONLY (ED-256 (7)). A selectable text whose line limit (<see cref="TextBlock.MaxLines"/>) ends its last
 /// line in its <see cref="TextBlock.TextTrimming"/> ellipsis whenever more text follows, as a SwiftUI Text cut by <c>.lineLimit</c>
 /// shows (<c>truncationMode</c> .tail, the default): the tool detail's <c>.lineLimit(12)</c>, TimelineRows.swift:2125. Avalonia
 /// 12.1.2's TextLayout collapses the last line only when the cut falls inside a wrapped line (TextLineBreak.IsSplit); a cut at a hard
@@ -2659,7 +2659,7 @@ public sealed class ToolDetailView : Decorator
             var text = VeiledText.SelectableText(new LineLimitedSelectableText(), wraps: true);
             // :2125 .lineLimit(12) counts the wrapped lines; a Text it cuts ends its last line in an ellipsis (SwiftUI's
             // truncationMode .tail, the default; RequestCards.cs:111 takes a lineLimit the same way), wherever the cut falls, at a
-            // hard line break too (ED-NEW-parity-timelinerows (7); LineLimitedSelectableText).
+            // hard line break too (ED-256 (7); LineLimitedSelectableText).
             text.Text = detail; text.MaxLines = 12; text.TextTrimming = TextTrimming.CharacterEllipsis;
             ChatFont.Chat(SwiftFont.TextStyle.Caption, design: SwiftFont.Design.Monospaced).Apply(text); // :2122
             text.Foreground = Chrome.SecondaryText.Brush(text); // :2123
@@ -2887,7 +2887,7 @@ public sealed class PlanCard : Decorator
     // turn's other rows arrive (PR-CHAT-113). The port builds a block's rows anew whenever the block changes, so the
     // identity's state is held per plan entry and place here, and every card built for them reads it. A card in another
     // place (the finished turn's steps, its folded answer: :2642, :2672) is another view in SwiftUI, a new @State with its
-    // own coordinator, as the running block's card going away closes its popover. ENGINEERING DECISION ED-NEW-parity-timelinerows.
+    // own coordinator, as the running block's card going away closes its popover. ENGINEERING DECISION ED-256.
     private sealed class Identity
     {
         public readonly ViewState State = new();

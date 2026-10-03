@@ -26,7 +26,7 @@ namespace Marrow.App.Tests.Views.Chat;
 // whose PlacementTarget is the row's own AttachmentAnchorCapture (PromptEditorPopover.Show, target = the anchor view), and the unit
 // itself measured that a real Popup closes itself inside the Remove call that takes its placement target out of the tree (STOP #11,
 // TimelineRowsTests; the "Same defect class" note of the round-2 fix report says a deferred check "would not show on a real
-// timeline" for a popover anchored to a view in the row). ED-NEW-parity-timelinerows (1) names only the row menu as affected and
+// timeline" for a popover anchored to a view in the row). ED-256 (1) names only the row menu as affected and
 // lists the editor's survival under the overlay presenter as owed on the native app; the overlay presenter runs headless here
 // (TimelineRowsPrPopupPresenter, as TimelineRowsParityScenarioTests use it). Measured with this harness by the reviewer
 // (2026-10-03, a probe not committed): a Hydra note's report, whose popover hangs from the window, stays open with the same content
@@ -145,12 +145,12 @@ public sealed class TimelineRowsParityReview3Tests(HeadlessSession headless)
     // PR-CHAT-166 ("Selection works within the block under the pointer"; TimelineRows.swift:2124 the tool's detail, :2152 its output,
     // :2394 a notice's message, each .textSelection(.enabled)). A SelectableTextBlock's SelectionBrush is null with no control theme
     // loaded (the app loads none: PortControlThemes; ParagraphTextPresenter and VeiledText.SelectableText set it for that reason), so
-    // a drag over these lines selects text that is never drawn. ED-NEW-parity-timelinerows (5) decides that every such text, the
+    // a drag over these lines selects text that is never drawn. ED-256 (5) decides that every such text, the
     // timeline's own lines included (:2121, :2124, :2152, :2394, ...), is made by the one recipe with the system's selected-text
     // colour; the round-2 fix gave it to the veiled text and the table cells only, and these sites still set the I-beam alone
     // (TimelineRows.cs ToolDetailView, NoticeRow; HydraHeadStepsPopover.Selectable the same).
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-166: TimelineRows.swift:2121-2124, :2150-2152, :2394; ED-NEW-parity-timelinerows (5)
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-166: TimelineRows.swift:2121-2124, :2150-2152, :2394; ED-256 (5)
     public void REVIEW_A_selection_in_a_notice_and_in_a_tools_detail_and_output_is_drawn_in_the_system_selected_text_colour() => headless.OnUiThread(() =>
     {
         using var h = TimelineRowsPrSupport.Harness();

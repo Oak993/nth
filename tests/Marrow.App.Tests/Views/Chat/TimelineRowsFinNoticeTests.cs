@@ -157,7 +157,7 @@ public sealed class TimelineRowsFinNoticeTests(HeadlessSession headless)
                 Assert.Equal(FirstBaseline(text, window), GlyphBaseline(glyph, window), 0.5);
                 Assert.True(Left(text, window) + text.Bounds.Width <= Left(host, window) + 360 - (isInfo ? 0 : 14) + 0.5, "the message runs past the pill's trailing inset");
                 // :2394 .textSelection(.enabled): the message selects, and a selection is drawn in the system's selected-text colour (a
-                // SelectableTextBlock has no SelectionBrush with no control theme loaded; ED-NEW-parity-timelinerows (5); review round 4).
+                // SelectableTextBlock has no SelectionBrush with no control theme loaded; ED-256 (5); review round 4).
                 var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
                 Assert.NotEqual(0, system.A);
                 text.SelectAll();

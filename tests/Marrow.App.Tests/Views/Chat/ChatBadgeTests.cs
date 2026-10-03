@@ -530,7 +530,7 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
     // view that is only moved (ThreadTimeline.Draw takes each kept row out of its stack and puts it into a new one in one
     // pass) keeps its open popover, and one that has left the tree for good closes it.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatBadge.swift:93-111, :109; PR-CHAT-143's pill (the timeline half is TimelineRowsParityReview2Tests); ED-NEW-parity-timelinerows
+    [Trait("Rule", "R-TEST-4")] // ChatBadge.swift:93-111, :109; PR-CHAT-143's pill (the timeline half is TimelineRowsParityReview2Tests); ED-256
     public void A_badgePopover_pill_that_is_moved_keeps_its_open_popover_and_one_that_has_left_the_tree_closes_it()
     {
         headless.OnUiThread(() =>
@@ -579,7 +579,7 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
     // The popover stays whole while it closes (the closing animation draws it) and lets go only once it has closed; the next opening
     // sets both again.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatBadge.swift:156-167; ED-NEW-parity-timelinerows
+    [Trait("Rule", "R-TEST-4")] // ChatBadge.swift:156-167; ED-256
     public void A_popover_keeps_its_content_while_it_closes_lets_go_when_it_has_closed_and_opens_again()
     {
         headless.OnUiThread(() =>
@@ -619,7 +619,7 @@ public sealed class ChatBadgeTests(HeadlessSession headless)
     // going (the platform keeps some of them reachable, measured 2026-10-03), so the held references are read instead: no field of the
     // coordinator is a window while the popover is open and none after it has closed.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // ChatBadge.swift:119; ED-NEW-parity-timelinerows
+    [Trait("Rule", "R-TEST-4")] // ChatBadge.swift:119; ED-256
     public void A_coordinator_holds_the_window_it_was_shown_in_only_weakly()
     {
         headless.OnUiThread(() =>

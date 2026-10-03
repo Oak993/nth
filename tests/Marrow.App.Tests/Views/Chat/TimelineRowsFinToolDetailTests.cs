@@ -64,7 +64,7 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                 Assert.Single(Column(emptyDetail).Children);
                 Assert.DoesNotContain(Mounted<SelectableTextBlock>(withoutDetail), block => block.MaxLines == 12);
                 // :2124 .textSelection(.enabled): the detail selects, and a selection is drawn in the system's selected-text colour (a
-                // SelectableTextBlock has no SelectionBrush with no control theme loaded; ED-NEW-parity-timelinerows (5); review round 4).
+                // SelectableTextBlock has no SelectionBrush with no control theme loaded; ED-256 (5); review round 4).
                 var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
                 Assert.NotEqual(0, system.A);
                 detail.SelectAll();
@@ -104,7 +104,7 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                 Assert.Equal(Mono, text.FontFamily);
                 Paints(text.Foreground, SwiftColor.Primary, text, "output text");
                 // :2152 .textSelection(.enabled): the output selects, and a selection is drawn in the system's selected-text colour
-                // (ED-NEW-parity-timelinerows (5); review round 4).
+                // (ED-256 (5); review round 4).
                 var system = SwiftColor.SelectedTextBackgroundColor.Resolve(window.ActualThemeVariant);
                 Assert.NotEqual(0, system.A);
                 text.SelectAll();
@@ -162,7 +162,7 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
     // line wraps at the width the row offers (:2121-2125; :2150-2155 inside the .frame(maxWidth: .infinity) plate, padded 10).
     // The detail's .lineLimit(12) counts the lines it wraps into, and a Text cut by its line limit ends its last line in an
     // ellipsis (SwiftUI's truncationMode .tail, the default; the port's convention for a lineLimit with no truncationMode,
-    // RequestCards.cs:111 and CommandPalette.cs:346; ED-NEW-parity-timelinerows (7)). The output has no line limit: all of its
+    // RequestCards.cs:111 and CommandPalette.cs:346; ED-256 (7)). The output has no line limit: all of its
     // wrapped lines show.
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101, UI-CHAT-027 and UI-CHAT-025 (long lines wrap; the detail stops at twelve wrapped lines): TimelineRows.swift:2120-2126, :2149-2155
@@ -196,14 +196,14 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
         });
     });
 
-    // Review round 5: ED-NEW-parity-timelinerows (7) ends a detail cut by its .lineLimit(12) (:2125) in an ellipsis wherever the cut
+    // Review round 5: ED-256 (7) ends a detail cut by its .lineLimit(12) (:2125) in an ellipsis wherever the cut
     // falls, at a hard line break too (a multi-line command, a heredoc), so the reader can tell the text goes on. Here: the twelfth
     // line keeps all its words, and takes the ellipsis after them, when both fit the row (thirteen short lines). A detail of exactly
     // twelve lines is not cut and shows no ellipsis, and neither does a line above the cut. The third case is a line wider than the
     // row, which wraps: its twelfth wrapped line is cut inside the line, Avalonia's own collapse of a split line (the code of (7) is
     // not on that path); the twelfth line that fills the row at a hard line break, the code's own cut, is the next test's.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-NEW-parity-timelinerows (7): TimelineRows.swift:2120-2126
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-256 (7): TimelineRows.swift:2120-2126
     public void A_detail_cut_at_a_hard_line_break_ends_its_twelfth_line_in_an_ellipsis_and_one_of_exactly_twelve_lines_is_not_cut() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -246,13 +246,13 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
         });
     });
 
-    // ED-NEW-parity-timelinerows (7), the branch of LineLimitedSelectableText that is its own code: the twelfth line ends at a hard line
+    // ED-256 (7), the branch of LineLimitedSelectableText that is its own code: the twelfth line ends at a hard line
     // break, so Avalonia's TextLayout does not collapse it (only a split line is), and the line is as wide as the row, so its words and
     // the ellipsis do not both fit. It is cut short to fit, with its ellipsis, as a wrapped line is. The width of one monospaced
     // character comes from a one-line detail of the same face; n of them are the most that fit 500 points. Controls: with no line
     // after it that line is the twelfth of exactly twelve, kept whole in 500 points, and one more character would not fit.
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-NEW-parity-timelinerows (7): TimelineRows.swift:2120-2126
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-256 (7): TimelineRows.swift:2120-2126
     public void A_twelfth_line_that_fills_the_row_and_ends_at_a_hard_line_break_is_cut_short_to_fit_its_ellipsis() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -375,7 +375,7 @@ public sealed class TimelineRowsFinToolDetailTests(HeadlessSession headless)
                         // :2117-2119 the preview is the first thing in the detail, above the detail text.
                         var rows = Column(view).Children;
                         var preview = Assert.IsType<ToolImagePreview>(rows[0]);
-                        // The detail text: a SelectableTextBlock whose line limit also cuts at a hard line break (ED-NEW-parity-timelinerows (7)).
+                        // The detail text: a SelectableTextBlock whose line limit also cuts at a hard line break (ED-256 (7)).
                         Assert.IsAssignableFrom<SelectableTextBlock>(Assert.IsType<LineLimitedSelectableText>(rows[1]));
                         Assert.Equal(480, preview.Bounds.Width, 0.5); // as wide as the row
                         Assert.Equal(20, Top(rows[1], window) - (Top(preview, window) + preview.Bounds.Height), 0.5);

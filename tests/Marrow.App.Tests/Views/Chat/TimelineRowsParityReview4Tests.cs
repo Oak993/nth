@@ -33,7 +33,7 @@ public sealed class TimelineRowsParityReview4Tests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-166 and PR-CHAT-077 (a bubble with a link): TimelineRows.swift:119-123; MarkdownView.swift:1134-1191; LinkParagraphView.swift:312-313
     public void REVIEW_A_selection_in_a_sent_bubble_with_a_bare_domain_is_drawn_in_the_system_selected_text_colour() => headless.OnUiThread(() =>
     {
-        // No network (R-TEST-10; ED-NEW-parity-timelinerows (10); the assertions untouched): the bubble's link paragraph asks for its
+        // No network (R-TEST-10; ED-256 (10); the assertions untouched): the bubble's link paragraph asks for its
         // host's favicon, which awaits an in-flight fetch the rig seeds instead of example.com itself; the rig refuses anything else.
         using var noNetwork = new NoLinkNetwork("example.com");
         using var h = TimelineRowsPrSupport.Harness();
@@ -62,7 +62,7 @@ public sealed class TimelineRowsParityReview4Tests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-HYDRAMERGE-090 and PR-CHAT-166 (the generic report's link paragraph): TimelineRows.swift:607-640, :633, :1111-1120
     public void REVIEW_A_selection_in_the_merge_failed_notes_generic_report_is_drawn_in_the_system_selected_text_colour() => headless.OnUiThread(() =>
     {
-        // No network (R-TEST-10; ED-NEW-parity-timelinerows (10); the assertions untouched): the shown report's link paragraph asks for
+        // No network (R-TEST-10; ED-256 (10); the assertions untouched): the shown report's link paragraph asks for
         // its host's favicon, which awaits an in-flight fetch the rig seeds instead of gitlab.com itself; the rig refuses anything else.
         using var noNetwork = new NoLinkNetwork("gitlab.com");
         using var h = TimelineRowsPrSupport.Harness();
@@ -108,7 +108,7 @@ public sealed class TimelineRowsParityReview4Tests(HeadlessSession headless)
     {
         const string host = "example.com";
         const string text = "see example.com for it";
-        using var noNetwork = new NoLinkNetwork(); // R-TEST-10, ED-NEW-parity-timelinerows (10): the host's fetch is the one it names below
+        using var noNetwork = new NoLinkNetwork(); // R-TEST-10, ED-256 (10): the host's fetch is the one it names below
         using var h = TimelineRowsPrSupport.Harness();
         using var frames = FrameClock.Source.Override(new ManualFrameSource());
         var icon = new Avalonia.Media.Imaging.WriteableBitmap(new Avalonia.PixelSize(4, 4), new Avalonia.Vector(96, 96),

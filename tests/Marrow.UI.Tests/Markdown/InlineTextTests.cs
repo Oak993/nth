@@ -13,7 +13,7 @@ namespace Marrow.UI.Tests.Markdown;
 // hint-less link decision (PR-THEME-186, new at B3). LinkParagraphView and StreamVeil's VeiledText(segments:)
 // have both landed since this note was first written, so the constructor now completes in either branch;
 // PR-THEME-144's hover wiring (now UI.Markdown.LinkHover, N9) is exercised by that unit's own tests; the cases at the end hold
-// InlineText's environment (ED-NEW-parity-timelinerows (9)), the last of them the mentions its hover reads when the pointer moves.
+// InlineText's environment (ED-256 (9)), the last of them the mentions its hover reads when the pointer moves.
 [Collection("Headless")]
 public sealed class InlineTextTests(HeadlessSession headless)
 {
@@ -274,7 +274,7 @@ public sealed class InlineTextTests(HeadlessSession headless)
     // (\.hydraMentionTargets), :1074-1075), so the pointer over the name of a head that joined after the paragraph was built shows that
     // head's card (:26-31, HydraHeadHoverPopover.show). Since the port keeps the paragraph when they change (the test above), its hover,
     // attached once, must read what the ancestor holds when the pointer moves, not the values the body built it with
-    // (ED-NEW-parity-timelinerows (9); scoped check of review round 6, mutant H2). The host sets new objects, as ThreadTimeline does
+    // (ED-256 (9); scoped check of review round 6, mutant H2). The host sets new objects, as ThreadTimeline does
     // (ThreadTimeline.cs:128-129). The card is presented through the recorder (R-VIEW-9) on the test's own clock, 250 ms after the
     // move (HydraHeadHoverPopover.swift:22-37). No network: the host's icon is in the cache (R-TEST-10).
     [Fact]

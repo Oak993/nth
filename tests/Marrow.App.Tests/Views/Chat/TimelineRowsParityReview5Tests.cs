@@ -27,7 +27,7 @@ public sealed class TimelineRowsParityReview5Tests(HeadlessSession headless)
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-HYDRAMERGE-090 (a markdown point size of 12, link text included): TimelineRows.swift:607-640, :631; MarkdownView.swift:801-806, :1071, :1094, :1114
     public void REVIEW_A_report_paragraph_with_a_link_is_drawn_at_the_reports_12_point_markdown_size() => headless.OnUiThread(() =>
     {
-        // No network (R-TEST-10; ED-NEW-parity-timelinerows (10); the assertions untouched): the shown report's link paragraph asks for
+        // No network (R-TEST-10; ED-256 (10); the assertions untouched): the shown report's link paragraph asks for
         // its host's favicon, which awaits an in-flight fetch the rig seeds instead of gitlab.com itself; the rig refuses anything else.
         using var noNetwork = new NoLinkNetwork("gitlab.com");
         using var h = TimelineRowsPrSupport.Harness();
@@ -50,14 +50,14 @@ public sealed class TimelineRowsParityReview5Tests(HeadlessSession headless)
         finally { if (window is not null) h.Main.OnMain(() => TimelineRowsPrSupport.Close(window)); }
     });
 
-    // ED-NEW-parity-timelinerows (7) decides that the detail's .lineLimit(12) (TimelineRows.swift:2125) cuts its twelfth line with an
+    // ED-256 (7) decides that the detail's .lineLimit(12) (TimelineRows.swift:2125) cuts its twelfth line with an
     // ellipsis ("the cut last line ends in an ellipsis", SwiftUI's default truncationMode .tail). The port does so only when the cut
     // falls inside a wrapped line: a detail cut at a hard line break (a multi-line command, a heredoc: twenty short lines) ends its
     // twelfth line with no ellipsis, so the reader cannot tell the command goes on. Whether the Mac draws the ellipsis there is owed
     // a native check (no frame of the reference video shows a detail past twelve lines); this test holds the port to its own ED (7),
     // which either the code or the ED must change to meet. Fails alone, twice, at 050a3040f: "the twelfth line is cut with no ellipsis".
     [Fact]
-    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-NEW-parity-timelinerows (7): TimelineRows.swift:2120-2126
+    [Trait("Rule", "R-TEST-4")] // Partial proof PR-CHAT-101 (the detail capped at twelve lines), ED-256 (7): TimelineRows.swift:2120-2126
     public void REVIEW_A_tool_detail_cut_at_a_hard_line_break_ends_its_twelfth_line_in_an_ellipsis() => headless.OnUiThread(() =>
     {
         using var h = TimelineRowsPrSupport.Harness();

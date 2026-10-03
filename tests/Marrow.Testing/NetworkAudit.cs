@@ -4,7 +4,7 @@ using Marrow.Core.Port;
 namespace Marrow.Testing;
 
 /// <summary>
-/// PORT-ONLY test audit (R-TEST-10; ED-NEW-parity-timelinerows (10)). With the environment variable named by
+/// PORT-ONLY test audit (R-TEST-10; ED-256 (10)). With the environment variable named by
 /// <see cref="LogVariable"/> set to a file path, the test process's own HTTP client (URLSession.Transport's process default, the
 /// handler every flow without an override of its own uses) is a fail-closed handler: a request to a host that is not loopback
 /// never reaches a socket (it is refused in process, as a refused connection), and its method and address are appended to that

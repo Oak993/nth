@@ -1204,7 +1204,7 @@ public sealed class LinkParagraphViewTests(HeadlessSession headless)
     // The paragraph draws into its own SelectableTextBlock (LinkTextView's constructor), which has no SelectionBrush of its own
     // with no control theme loaded (Avalonia 12.1.2), so a drag selected text that was never painted (a sent bubble with a bare
     // domain, a report paragraph with a link). It takes the attach-time brush the veiled text takes (StreamVeil.cs
-    // VeiledText.SelectableText; ED-NEW-parity-timelinerows (5)).
+    // VeiledText.SelectableText; ED-256 (5)).
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof PR-THEME-140 (selectable: a selection is drawn): DroppyCode/UI/Markdown/LinkParagraphView.swift:312-313
     public void A_selection_in_a_link_paragraph_is_drawn_in_the_system_selected_text_colour() => headless.OnUiThread(() =>

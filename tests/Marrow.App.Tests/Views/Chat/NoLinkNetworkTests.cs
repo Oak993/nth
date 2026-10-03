@@ -10,7 +10,7 @@ using static Marrow.App.Tests.Views.Chat.TimelineRowsPrSupport;
 
 namespace Marrow.App.Tests.Views.Chat;
 
-// ED-NEW-parity-timelinerows (10): the rig every test that shows link text takes (NoLinkNetwork). Its claims, held by these tests:
+// ED-256 (10): the rig every test that shows link text takes (NoLinkNetwork). Its claims, held by these tests:
 // main-actor work a test starts runs under the rig's HTTP client; a link host nobody named reaches that client, is refused in
 // process and fails the test that showed it; a host whose ask was cancelled before it went out (a popover measured off screen is
 // attached and detached in one turn) leaves nothing on the wire but is reported all the same; a named host asks nothing of the client.
@@ -27,7 +27,7 @@ public sealed class NoLinkNetworkTests(HeadlessSession headless)
     }
 
     [Fact]
-    [Trait("Rule", "R-TEST-10")] // The rig's own proof: main-actor work started in the test's flow runs under the rig's HTTP client (ED-NEW-parity-timelinerows (10))
+    [Trait("Rule", "R-TEST-10")] // The rig's own proof: main-actor work started in the test's flow runs under the rig's HTTP client (ED-256 (10))
     public void Main_actor_work_the_test_started_runs_under_the_rigs_http_client() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -51,7 +51,7 @@ public sealed class NoLinkNetworkTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-10")] // The rig's own proof: a shown link host nobody named reaches the fail-closed client, is refused in process, and disposing the rig fails the test (ED-NEW-parity-timelinerows (10))
+    [Trait("Rule", "R-TEST-10")] // The rig's own proof: a shown link host nobody named reaches the fail-closed client, is refused in process, and disposing the rig fails the test (ED-256 (10))
     public void A_link_host_nobody_named_reaches_the_fail_closed_client_and_is_reported() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -77,7 +77,7 @@ public sealed class NoLinkNetworkTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-10")] // The rig's own proof: an ask cancelled before it went out sends nothing and is reported all the same, as the cache learns the host (ED-NEW-parity-timelinerows (10))
+    [Trait("Rule", "R-TEST-10")] // The rig's own proof: an ask cancelled before it went out sends nothing and is reported all the same, as the cache learns the host (ED-256 (10))
     public void A_link_host_whose_ask_was_cancelled_before_it_went_out_sends_nothing_and_is_reported() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
@@ -98,7 +98,7 @@ public sealed class NoLinkNetworkTests(HeadlessSession headless)
     });
 
     [Fact]
-    [Trait("Rule", "R-TEST-10")] // The rig's own proof: a named host awaits its in-flight seed, the fail-closed client sees nothing, and the cache keeps no trace of it (ED-NEW-parity-timelinerows (10))
+    [Trait("Rule", "R-TEST-10")] // The rig's own proof: a named host awaits its in-flight seed, the fail-closed client sees nothing, and the cache keeps no trace of it (ED-256 (10))
     public void A_named_link_host_asks_nothing_of_the_client_and_leaves_no_trace_in_the_favicon_cache() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();

@@ -8,7 +8,7 @@ using Xunit;
 namespace Marrow.App.Tests.Fixtures;
 
 /// <summary>
-/// PORT-ONLY test rig (R-TEST-10; ED-NEW-parity-timelinerows (10)). A test that shows link text (a markdown link, a bare domain, a
+/// PORT-ONLY test rig (R-TEST-10; ED-256 (10)). A test that shows link text (a markdown link, a bare domain, a
 /// video link) makes InlineText ask the host's favicon (FaviconCache.Image, MarkdownView.swift:914-953), which without a seed goes
 /// out to https://host/favicon.ico, or, when the asking task was cancelled first (a popover measured off screen is attached and
 /// detached in one turn), ends in the cache's failed set, which a later test for the same host then finds. This rig keeps all of that

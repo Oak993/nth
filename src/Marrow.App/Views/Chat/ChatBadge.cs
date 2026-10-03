@@ -38,7 +38,7 @@ public sealed class ChatBadge : Decorator
         BadgePopoverCoordinator? coordinator = null)
     {
         this.detail = detail;
-        // :20-21 @State private var coordinator. PORT-ONLY (ED-NEW-parity-timelinerows, not ED-095, which covers only the order of parameters): a host whose own view identity outlives the badge
+        // :20-21 @State private var coordinator. PORT-ONLY (ED-256, not ED-095, which covers only the order of parameters): a host whose own view identity outlives the badge
         // control (PlanCard, kept by ForEach(groups) in SwiftUI while the port rebuilds the block that holds it) hands in
         // the coordinator it keeps for that identity, so a popover that is open stays the same popover.
         var held = coordinator ?? new BadgePopoverCoordinator();
@@ -83,7 +83,7 @@ public sealed class ChatBadge : Decorator
         HorizontalAlignment = HorizontalAlignment.Stretch;
     }
 
-    /// <summary>PORT-ONLY (ED-NEW-parity-timelinerows, not ED-095, which covers only the order of parameters): the host's body ran again with new values for the same badge. In SwiftUI the badge
+    /// <summary>PORT-ONLY (ED-256, not ED-095, which covers only the order of parameters): the host's body ran again with new values for the same badge. In SwiftUI the badge
     /// keeps its identity across its host's re-renders, so its @State coordinator (:20) and an open popover survive while
     /// the label shows the new values; the popover keeps the content it was opened with (:138-147 setFixedContent) and
     /// the next opening builds the new detail. Hosts whose values change under an open badge call this instead of
@@ -220,7 +220,7 @@ public static class ChatBadgeExtensions
         // reading of onDisappear as ChatBadge's own (:74-75): gone only if still out of the tree once the pass is over, so a
         // row the timeline merely re-parents (ThreadTimeline.Draw; the Hydra report, heads and brief pills,
         // TimelineRows.swift:293, :470, :583) keeps its open popover (PR-CHAT-143). ENGINEERING DECISION
-        // ED-NEW-parity-timelinerows.
+        // ED-256.
         host.AttachedToVisualTree += (_, _) => coordinator.Appear(host, () => isPresented.Value = false);
         host.DetachedFromVisualTree += (_, _) => coordinator.Disappear(host);
         return host;
@@ -242,7 +242,7 @@ public sealed class BadgePopoverCoordinator
     private readonly Popup popover = new(); // :118
     private Rect? anchorRect; // :119
     // :121 private weak var shownIn: NSWindow?: weak, so a coordinator the host keeps (PlanCard's identity outlives the badge,
-    // TimelineRows.cs) never keeps a closed window alive. ENGINEERING DECISION ED-NEW-parity-timelinerows (the source's weak).
+    // TimelineRows.cs) never keeps a closed window alive. ENGINEERING DECISION ED-256 (the source's weak).
     private WeakReference<Avalonia.Controls.Window>? shownInWindow;
     private Rect shownRect; // :122
     private bool isShown;
@@ -262,7 +262,7 @@ public sealed class BadgePopoverCoordinator
         OnClose = onClose;
     }
 
-    /// <summary>:75 <c>.onDisappear { coordinator.close() }</c>. ENGINEERING DECISION ED-NEW-parity-timelinerows: SwiftUI's onDisappear fires when the view
+    /// <summary>:75 <c>.onDisappear { coordinator.close() }</c>. ENGINEERING DECISION ED-256: SwiftUI's onDisappear fires when the view
     /// has left the hierarchy; it never fires for a view that merely moved. The port's timeline lays its rows out again
     /// by taking each kept row out of its old stack and putting it into a new one (ThreadTimeline.Draw), so a badge is
     /// detached and attached again inside one synchronous pass. The badge has disappeared only if, once the pass is over,
@@ -346,7 +346,7 @@ public sealed class BadgePopoverCoordinator
         // A closed NSPopover lets go of its content view controller and its positioning view; the Popup keeps its Child and
         // its PlacementTarget until told otherwise, and a coordinator a host keeps for longer than the badge (PlanCard's
         // identity, as long as the thread keeps the entry) would hold the window and the frozen detail tree. ENGINEERING
-        // DECISION ED-NEW-parity-timelinerows. The next Show sets both again.
+        // DECISION ED-256. The next Show sets both again.
         popover.PlacementTarget = null;
         popover.Child = null;
         if (isShown)

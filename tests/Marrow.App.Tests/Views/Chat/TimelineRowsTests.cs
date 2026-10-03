@@ -748,7 +748,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
                 {
                     var detail = new ToolDetailView(Call(kind, path) with { Detail = "image detail" }, h.Project.Path);
                     Assert.Single(LogicalQuery.SelfAndDescendants<ToolImagePreview>(detail));
-                    // The detail text is the SelectableTextBlock whose line limit also cuts at a hard line break (ED-NEW-parity-timelinerows (7)).
+                    // The detail text is the SelectableTextBlock whose line limit also cuts at a hard line break (ED-256 (7)).
                     Assert.Equal(new[] { typeof(ToolImagePreview), typeof(LineLimitedSelectableText) }, Assert.IsType<StackPanel>(detail.Child).Children.Select(child => child.GetType()));
                     Assert.IsAssignableFrom<SelectableTextBlock>(Assert.IsType<StackPanel>(detail.Child).Children[1]);
                 }
@@ -4652,7 +4652,7 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // call that takes its placement target out of the tree (probed 2026-10-03 with the overlay presenter, the row's handler disabled
 // too), and ThreadTimeline.Draw takes every kept row out of its stack and puts it into a new one on each change of the thread.
 // So on the real timeline every popover whose placement target is a view inside a row closes when another row arrives, whatever
-// the row's own handler does (the handlers' deferred reading of onDisappear, ED-NEW-parity-timelinerows (1), covers only their
+// the row's own handler does (the handlers' deferred reading of onDisappear, ED-256 (1), covers only their
 // own close). Corrected by round 3 of the adversarial review (2026-10-03), which found the list too short: the message editor
 // (PromptEditorPopover, target the AttachmentAnchorCapture behind the pencil, :148-155), the row menu (MessagePopoverMenu, target
 // the row's content, MessagePopoverMenu.swift:6-18), the attachment previews of AttachmentStrip and ToolRow
@@ -4693,17 +4693,17 @@ public sealed class TimelineRowsTests(HeadlessSession headless)
 // cells are selectable with the I-beam and the selected-text colour (PR-CHAT-166); a coordinator a host keeps lets go of its window
 // and detail once its popover has closed (weak shownIn, ChatBadge.swift:119); the head popover's I-beam is asserted (it was
 // unproven: a mutant that removed it survived). Not claimed, UNRESOLVED: a drag across the cells of one table (the Mac's behaviour is
-// not in the reference video). Owed on the native app, recorded in ED-NEW-parity-timelinerows: an open report and plan popover
+// not in the reference video). Owed on the native app, recorded in ED-256: an open report and plan popover
 // surviving a real row arrival; the I-beam and the selection colour over table cells and the head popover's lines; the memory of a
 // closed secondary window after a plan popover was opened in it. (Round 3 removed "the editor" from this list: its survival under
 // the overlay presenter runs headless and fails, above.)
 // Round 3 fixes (2026-10-03): a selection in a notice's message, a tool's detail and output and the head popover's five lines is
-// drawn in the system's selected-text colour (they took only the I-beam of ED-NEW-parity-timelinerows (5)'s recipe; now they are
+// drawn in the system's selected-text colour (they took only the I-beam of ED-256 (5)'s recipe; now they are
 // made by it, VeiledText.SelectableText through TimelineRows.SelectableText); PR-CHAT-080 is back in this note (above); the B2
 // citations of MarkdownBlockSelection are re-pointed to B3 (MarkdownView.swift:854-863, the live branch :858).
 // Round 4 fixes (2026-10-03): a selection in text with a link (a sent bubble with a bare domain, a report paragraph with a link)
 // is drawn: LinkTextView's own SelectableTextBlock takes the attach-time SelectionBrush (LinkParagraphView.swift:312-313;
-// ED-NEW-parity-timelinerows (5), corrected to cover link text); a favicon that lands after its bubble is on screen is drawn in
+// ED-256 (5), corrected to cover link text); a favicon that lands after its bubble is on screen is drawn in
 // front of the link: InlineText's faviconRevision is real state and LinkParagraphView.Update runs updateNSView
 // (MarkdownView.swift:1077, :1114 at B3; LinkParagraphView.swift:36-58); a tool's detail and output wrap at the row's width,
 // the detail cut at its twelfth wrapped line with an ellipsis (:2121-2125, :2150-2155; ED (7); PR-CHAT-101 stays in this

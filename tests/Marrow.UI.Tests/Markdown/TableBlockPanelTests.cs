@@ -132,7 +132,7 @@ public sealed class TableBlockPanelTests(HeadlessSession headless)
     // environment value has no writer, dead_code.md 30), so every cell's text, header and body, is selectable in its own block, with
     // the I-beam over it (PR-CHAT-166 windows_path) and a selection drawn in the system's selected-text colour (a SelectableTextBlock
     // draws none with no control theme loaded). Selection runs within one cell: whether a Mac drag runs on across cells of the grid is
-    // UNRESOLVED (ED-NEW-parity-timelinerows).
+    // UNRESOLVED (ED-256).
     [Fact]
     [Trait("Rule", "R-TEST-4")] // Partial proof of PR-THEME-126 and PR-CHAT-166 for the table block, no drag across cells: MarkdownView.swift:1308, :854-863
     public void Every_header_and_body_cell_is_selectable_text_with_the_I_beam_and_a_selection_in_the_system_colour() => headless.OnUiThread(() =>
