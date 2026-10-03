@@ -70,6 +70,30 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
         return distances.OrderByDescending(distance => distance).Take(8).Average() / full;
     }
 
+    // The mean distance from the backdrop of the eight strongest pixels in the area.
+    private static double RawPeak(BlitzAbFrame frame, Rect area, Color backdrop)
+    {
+        var distances = new List<int>();
+        for (var x = (int)Math.Floor(area.Left); x < (int)Math.Ceiling(area.Right); x++)
+            for (var y = (int)Math.Floor(area.Top); y < (int)Math.Ceiling(area.Bottom); y++)
+                distances.Add(BlitzAbFrame.Distance(frame.At(x, y), backdrop));
+        return distances.OrderByDescending(distance => distance).Take(8).Average();
+    }
+
+    // The same words in the same font drawn alone in the ink the source gives them, in a window of their own: what the ink of a line should be
+    // however thin its strokes are (a short word at 10 points has no stem that reaches the full colour).
+    private static void IsInkedLike(BlitzAbFrame frame, Rect area, Color backdrop, string text, SwiftFont font, SwiftColor ink, ThemeVariant theme, string because)
+    {
+        var label = new TextBlock { Text = text };
+        font.Apply(label);
+        label.Foreground = ink.Brush(label);
+        var reference = 0.0;
+        BlitzAbRender.Render(new Border { Padding = new Thickness(8), Child = label }, theme, backdrop, 480, 60, (window, shot) => reference = RawPeak(shot, BlitzAbRender.BoxIn(label, window), backdrop));
+        var drawn = RawPeak(frame, area, backdrop);
+        Assert.True(reference > 60, $"{because}: the reference line is barely inked ({reference})");
+        Assert.InRange(drawn / reference, 0.92, 1.08);
+    }
+
     // ---- PR-CHAT-148: the thinking shimmer ----
 
     [Fact]
@@ -514,6 +538,200 @@ public sealed class TimelineRowsBlitzAbHeadTests(HeadlessSession headless)
                     });
                 });
             }
+        }
+    });
+
+    // ---- PR-CHAT-154: the head-steps popover ----
+
+    private static Control StepsBody(HydraHeadInfo? head, IReadOnlyList<TimelineEntry> steps) =>
+        Assert.IsAssignableFrom<Control>(typeof(HydraHeadStepsPopover).GetMethod("Body", System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic)!.Invoke(null, [head, steps]));
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-154")] // TimelineRows.swift:1877-1931, :1934-1952, :1955-2006, :2008-2025; OD-0098: the popover of a finished head with every kind of step, drawn in both themes
+    public void The_head_steps_popover_draws_the_header_the_task_every_kind_of_step_and_the_report_in_their_inks_at_440_points_in_both_themes() => headless.OnUiThread(() =>
+    {
+        using var runtime = new TestRuntime();
+        using var locale = SwiftFormatters.CurrentLocale.Override("en_US");
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        runtime.OnMain(() =>
+        {
+            foreach (var (theme, backdrop) in Themes)
+            {
+                var start = DateTimeOffset.FromUnixTimeSeconds(1_800_000_000);
+                var head = TimelineRowsFinTeam.Head(0, HydraHeadInfo.Status.Completed) with { Task = "Tidy the popover", Summary = "the report words", StartedAt = start, FinishedAt = start.AddSeconds(64), ToolCalls = 2 };
+                var steps = new TimelineEntry[]
+                {
+                    ToolEntry(Call(ToolCall.Kind.Read, "Read the popover")),
+                    Reply("what the head said"),
+                    UserEntry("steer it on", null),
+                    NoticeEntry(Notice.Level.Error, "it broke"),
+                };
+                var body = StepsBody(head, steps);
+                BlitzAbRender.Render(new Border { Padding = new Thickness(24), Child = body }, theme, backdrop, 520, 480, (window, frame) =>
+                {
+                    var primary = ChromeTokens.PrimaryText.Resolve(theme);
+                    var box = BlitzAbRender.BoxIn(Mounted<Border>(body).First(border => border.Padding == new Thickness(16)), window); // :1927-1930 .padding(16).frame(width: 440)
+                    var because = $"{theme}";
+                    // :1927-1930 a 440-point panel padded 16, its sections 16 apart.
+                    Assert.Equal(440, box.Width, 0.5);
+                    var glyph = Assert.Single(Mounted<HydraGlyph>(body));
+                    var glyphBox = BlitzAbRender.BoxIn(glyph, window);
+                    Assert.Equal(22, glyphBox.Width, 0.5);
+                    Assert.Equal(box.Left + 16, glyphBox.Left, 0.5);
+                    Assert.Equal(box.Top + 16, glyphBox.Top, 0.5);
+                    // :1934-1952 the header: the name at headline in the primary ink, the status line at caption in the secondary ink on the trailing side.
+                    var name = BlitzAbRender.BoxIn(TextNamed(body, "Hank"), window);
+                    Assert.Equal(glyphBox.Right + 8, name.Left, 0.5);
+                    IsInkedLike(frame, name, backdrop, "Hank", ChatFont.Chat(SwiftFont.TextStyle.Headline), ChromeTokens.PrimaryText, theme, $"{because}: the name");
+                    var status = BlitzAbRender.BoxIn(TextNamed(body, "Done · 2 tools · 1m 4s"), window); // :2010-2025, the middle dot U+00B7
+                    Assert.Equal(box.Right - 16, status.Right, 1.5);
+                    BlitzAbRender.TextIsColour(frame, status, backdrop, ChromeTokens.SecondaryText.Resolve(theme), $"{because}: the status line", slack: 14, closest: 110); // thin caption strokes: no brighter than the secondary ink, and some pixel near it
+                    // :1896-1902 the task, :1917-1924 the report: callout in the primary ink, under their sections.
+                    var task = BlitzAbRender.BoxIn(Assert.Single(Mounted<SelectableTextBlock>(body), text => text.Text == "Tidy the popover"), window);
+                    Assert.Equal(glyphBox.Bottom + 16, task.Top, 1.5);
+                    IsInkedLike(frame, task, backdrop, "Tidy the popover", ChatFont.Chat(SwiftFont.TextStyle.Callout), ChromeTokens.PrimaryText, theme, $"{because}: the task");
+                    // :2050 the section titles in the secondary ink, the steps 20 apart (:1904) under "Steps".
+                    var stepsTitle = BlitzAbRender.BoxIn(TextNamed(body, "Steps"), window);
+                    Assert.Equal(16, stepsTitle.Top - task.Bottom, 1.5);
+                    BlitzAbRender.TextIsColour(frame, stepsTitle, backdrop, ChromeTokens.SecondaryText.Resolve(theme), $"{because}: the section title", slack: 14, closest: 110);
+                    // :1960-1976 a tool step: the icon column 16 wide and 8 before its label at callout in the secondary ink.
+                    var tool = BlitzAbRender.BoxIn(TextNamed(body, "Read the popover"), window);
+                    Assert.Equal(box.Left + 16 + 16 + 8, tool.Left, 1.5);
+                    IsInkedLike(frame, tool, backdrop, "Read the popover", ChatFont.Chat(SwiftFont.TextStyle.Callout), ChromeTokens.SecondaryText, theme, $"{because}: the tool step");
+                    // :1978-1990 a reply in the primary ink, a later brief in the secondary, each selectable and 20 below the step before.
+                    var reply = BlitzAbRender.BoxIn(Assert.Single(Mounted<SelectableTextBlock>(body), text => text.Text == "what the head said"), window);
+                    Assert.Equal(20, reply.Top - tool.Bottom, 1.5);
+                    IsInkedLike(frame, reply, backdrop, "what the head said", ChatFont.Chat(SwiftFont.TextStyle.Callout), ChromeTokens.PrimaryText, theme, $"{because}: the reply");
+                    var brief = BlitzAbRender.BoxIn(Assert.Single(Mounted<SelectableTextBlock>(body), text => text.Text == "steer it on"), window);
+                    Assert.Equal(20, brief.Top - reply.Bottom, 1.5);
+                    IsInkedLike(frame, brief, backdrop, "steer it on", ChatFont.Chat(SwiftFont.TextStyle.Callout), ChromeTokens.SecondaryText, theme, $"{because}: the later brief");
+                    // :1991-2002, :2050-2064 a notice: the level's glyph and its message in the level's colour (an error is the danger colour).
+                    var notice = BlitzAbRender.BoxIn(Assert.Single(Mounted<SelectableTextBlock>(body), text => text.Text == "it broke"), window);
+                    Assert.Equal(20, notice.Top - brief.Bottom, 1.5);
+                    IsInkedLike(frame, notice, backdrop, "it broke", ChatFont.Chat(SwiftFont.TextStyle.Callout), ChromeTokens.Danger, theme, $"{because}: the notice");
+                    var noticeGlyph = BlitzAbRender.BoxIn(Assert.Single(Mounted<SwiftImage>(body), image => image.SymbolName == "exclamationmark.octagon"), window);
+                    Assert.Equal(box.Left + 16, noticeGlyph.Left - (16 - noticeGlyph.Width) / 2, 1.5);
+                    BlitzAbRender.InkIsColour(frame, noticeGlyph, backdrop, ChromeTokens.Danger.Resolve(theme), $"{because}: the notice's glyph", most: 1.6);
+                    // :1917-1924 the report: its own section 16 below the steps, 8 under its title, the text in the primary ink.
+                    var reportTitle = BlitzAbRender.BoxIn(TextNamed(body, "Report"), window);
+                    Assert.Equal(16, reportTitle.Top - notice.Bottom, 1.5);
+                    var report = BlitzAbRender.BoxIn(Assert.Single(Mounted<SelectableTextBlock>(body), text => text.Text == "the report words"), window);
+                    Assert.Equal(8, report.Top - reportTitle.Bottom, 1.5);
+                    IsInkedLike(frame, report, backdrop, "the report words", ChatFont.Chat(SwiftFont.TextStyle.Callout), ChromeTokens.PrimaryText, theme, $"{because}: the report");
+                    // The panel ends 16 under the report.
+                    Assert.Equal(box.Bottom - 16, report.Bottom, 1.5);
+                });
+            }
+        });
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-154")] // TimelineRows.swift:1884-1931: the head's own runtime read straight from the model, so the list grows while the head works, to 520 points and then scrolls
+    public void While_the_head_works_the_open_popover_grows_with_each_step_it_takes_up_to_520_points_and_then_scrolls() => headless.OnUiThread(() =>
+    {
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        using var genie = ChromeTokens.ReduceMotionPlatform.Override(new FakeGeniePlatform());
+        foreach (var (theme, backdrop) in Themes)
+        {
+            var (store, app, lead) = TimelineRowsFinTeam.Make(TimelineRowsFinTeam.Head(0, HydraHeadInfo.Status.Running) with { Task = "Tidy the popover" });
+            using (store)
+            {
+                HydraHeadStepsPopover view = null!;
+                ThreadRuntime head = null!;
+                AvaloniaWindow window = null!;
+                store.Main.OnMain(() =>
+                {
+                    var id = app.Threads.Single(thread => thread.IsHydraHead).Id;
+                    app.UpdateThread(id, thread => thread with { Hydra = thread.Hydra! with { HydraHeadInfoStatus = HydraHeadInfo.Status.Running } });
+                    head = app.Runtime(id);
+                    view = new HydraHeadStepsPopover(id);
+                    var host = new Border { Padding = new Thickness(24), Child = view };
+                    AppEnvironment.SetAppModel(host, app);
+                    window = BlitzAbRender.Open(host, theme, backdrop, 520, 640);
+                });
+                double Height() => Mounted<ScrollViewer>(view).Single().Bounds.Height; // the panel: the view itself fills the window it is mounted in
+                var heights = new List<double>();
+                store.Main.OnMain(() =>
+                {
+                    Settle(window);
+                    Assert.Equal(440, BlitzAbRender.BoxIn(view, window).Width, 0.5);
+                    Assert.Contains("No steps yet.", Texts(view));
+                    Assert.Contains(Texts(view), text => text.StartsWith("Working", StringComparison.Ordinal)); // :2010-2012 a head at work
+                    heights.Add(Height());
+                });
+                for (var step = 1; step <= 5; step++)
+                {
+                    var n = step;
+                    store.Main.OnMain(() => head.Rehearse(new ProviderEvent.ToolStarted($"{theme}-step-{n}", Call(ToolCall.Kind.Read, $"Read file {n}", ToolCall.Status.Completed))));
+                    store.Main.OnMain(() =>
+                    {
+                        Settle(window);
+                        Assert.Contains(Texts(view), text => text.EndsWith($"file {n}", StringComparison.Ordinal));
+                        Assert.DoesNotContain("No steps yet.", Texts(view));
+                        heights.Add(Height());
+                    });
+                }
+                store.Main.OnMain(() =>
+                {
+                    // The first step takes the place of the empty line; each next one adds the row spacing of 20 and its own line: the same each time.
+                    Assert.True(heights[1] >= heights[0] - 4, $"{theme}: {string.Join(", ", heights)}");
+                    var increments = heights.Skip(2).Zip(heights.Skip(1), (after, before) => after - before).ToList();
+                    Assert.True(increments.All(increment => increment is >= 28 and <= 60), $"{theme}: the popover is {string.Join(", ", heights)} tall after each step; the scroller {Mounted<ScrollViewer>(view).Single().Height}, its extent {Mounted<ScrollViewer>(view).Single().Extent.Height}");
+                    Assert.Equal(increments[0], increments[^1], 1.0);
+                    Assert.True(heights[^1] < 520);
+                    BlitzAbRender.Capture(window);
+                    var box = BlitzAbRender.BoxIn(Mounted<ScrollViewer>(view).Single(), window);
+                    var last = BlitzAbRender.BoxIn(Mounted<TextBlock>(view).Single(text => text.Text!.EndsWith("file 5", StringComparison.Ordinal)), window);
+                    Assert.True(last.Bottom <= box.Bottom - 16 + 1, $"{theme}: the last step ends at {last.Bottom} in a popover to {box.Bottom}");
+                });
+                // Many more steps: the panel stops at 520 and scrolls.
+                store.Main.OnMain(() => { for (var step = 6; step <= 60; step++) head.Rehearse(new ProviderEvent.ToolStarted($"{theme}-step-{step}", Call(ToolCall.Kind.Read, $"Read file {step}", ToolCall.Status.Completed))); });
+                store.Main.OnMain(() =>
+                {
+                    Settle(window);
+                    Assert.Equal(520, Height(), 0.5);
+                    var scroller = Assert.Single(Mounted<ScrollViewer>(view));
+                    Assert.True(scroller.Extent.Height > 520, $"{theme}: the steps are {scroller.Extent.Height} tall in a 520-point panel");
+                    BlitzAbRender.Shut(window);
+                });
+            }
+        }
+    });
+
+    [Fact]
+    [Trait("Req", "PR-CHAT-154")] // TimelineRows.swift:1856-1871: a row that did not send a head mounts no popover, no state and no anchor at all; the row that did mounts one
+    public void A_row_that_did_not_send_a_head_mounts_no_popover_and_one_that_did_hangs_the_steps_from_its_badge() => headless.OnUiThread(() =>
+    {
+        using var frameSeam = FrameClock.Source.Override(new ManualFrameSource());
+        var (store, app, runtime) = TimelineRowsFinTeam.Make(TimelineRowsFinTeam.Head(3, HydraHeadInfo.Status.Completed));
+        using (store)
+        {
+            store.Main.OnMain(() =>
+            {
+                var headID = app.Threads.Single(thread => thread.IsHydraHead).Id;
+                var linkedEntry = ToolEntry(Call(ToolCall.Kind.Agent, "Tidy the popover"));
+                runtime.RehearseHydraHead(linkedEntry.Id, headID);
+                var linked = new ToolRow(linkedEntry, runtime);
+                var departing = new ToolRow(ToolEntry(Call(ToolCall.Kind.Agent, "Pip: the merge popover", ToolCall.Status.Running)), runtime);
+                var plain = new ToolRow(ToolEntry(Call(ToolCall.Kind.Read, "Read a file")), runtime);
+                var column = new StackPanel { Spacing = 14 };
+                foreach (var row in new Control[] { linked, departing, plain }) column.Children.Add(row);
+                var host = new Border { Padding = new Thickness(24), Child = column };
+                AppEnvironment.SetAppModel(host, app);
+                var window = BlitzAbRender.Open(host, ThemeVariant.Dark, Color.FromRgb(24, 24, 27), 560, 200);
+                try
+                {
+                    Settle(window);
+                    Assert.Single(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Primitives.Popup>(linked)); // the steps popover, hung from the badge
+                    Assert.Empty(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Primitives.Popup>(departing)); // a head still going out: nothing to open yet
+                    Assert.Empty(LogicalQuery.SelfAndDescendants<Avalonia.Controls.Primitives.Popup>(plain));
+                    Assert.Empty(LogicalQuery.SelfAndDescendants<AttachmentAnchorCapture>(departing));
+                    Assert.Empty(LogicalQuery.SelfAndDescendants<Button>(departing)); // not tappable: no steps to open
+                    Assert.Equal("Show the head's steps", ToolTip.GetTip(Assert.Single(Mounted<Button>(linked))));
+                }
+                finally { BlitzAbRender.Shut(window); }
+            });
         }
     });
 }
