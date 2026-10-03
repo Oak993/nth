@@ -1,5 +1,7 @@
 using Avalonia;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
+using Avalonia.LogicalTree;
 
 namespace Marrow.UI.Port;
 
@@ -42,11 +44,30 @@ public static class WindowTransients
                 Open.RemoveAt(i);
                 continue;
             }
-            if (!ReferenceEquals(TopLevel.GetTopLevel(owner), window)) continue;
+            if (!ReferenceEquals(WindowOf(owner), window)) continue;
             Open.RemoveAt(i);
             entry.Dismiss();
             return true;
         }
         return false;
+    }
+
+    /// <summary>
+    /// The window <paramref name="visual"/> is over. A popover's content is in a top level of its own (a PopupRoot), whose
+    /// logical parent is its popup, opened over the top level of the popup's placement target (Popup.Open: PlacementTarget,
+    /// else its nearest logical ancestor control); a popover opened inside another popover (the MCP editor's Kind picker) is
+    /// over that one's. Each popup's top level is walked up to the window that owns it (ED-253, round 4).
+    /// </summary>
+    public static TopLevel? WindowOf(Visual visual)
+    {
+        var top = TopLevel.GetTopLevel(visual);
+        for (var hop = 0; hop < 64 && top is PopupRoot { Parent: Popup popup }; hop++)
+        {
+            var placement = popup.PlacementTarget ?? popup.FindLogicalAncestorOfType<Control>();
+            var next = placement is null ? null : TopLevel.GetTopLevel(placement);
+            if (next is null || ReferenceEquals(next, top)) break;
+            top = next;
+        }
+        return top;
     }
 }
