@@ -177,6 +177,10 @@ public sealed class BubbleLanes(int seed, double width, double height)
 
     public int Seed => seed;
 
+    /// <summary>How many times a look into the past went further back than a lane's history and started it again (tests:
+    /// the history's cost; the bubbles found are the same either way).</summary>
+    internal int Restarts { get; private set; }
+
     /// <summary>How many bubbles the track has: about one per 32 px, between 4 and 24.</summary>
     public int Count => lanes.Length;
     public double Width => width;
@@ -195,7 +199,7 @@ public sealed class BubbleLanes(int seed, double width, double height)
                 var p = (time - old.Start) / old.Rise.Duration;
                 return p is >= 0 and < 1 ? (old.Rise, p, old.K) : null;
             }
-            kept[i] = 0;
+            kept[i] = 0; Restarts++;
         }
         if (lane is not { } current || time < current.Start)
         {

@@ -90,6 +90,17 @@ public sealed class EffortSliderJewelMaterialTests
         Assert.Same(claude, JewelMaterial.Mix(claude, openAI, 0));
     }
 
+    [Fact]
+    [Trait("Decision", "ED-252")] // knob-variants.js:302 mixMaterial: fx too (mixObj), here to a blue liquid whose material takes a smaller share of the lightning (DeepSeek: 0.36 / 0.15)
+    public void A_model_change_to_a_blue_liquid_mixes_the_lightnings_share_too()
+    {
+        var claude = JewelMaterial.For(EffortBrand.Claude);
+        var deepseek = JewelMaterial.For(EffortBrand.Deepseek);
+        Assert.NotEqual(claude.FxCharge, deepseek.FxCharge);
+        foreach (var step in JewelFixtures.Expected.GetProperty("mixBlue").EnumerateArray())
+            AssertMaterial(step.GetProperty("material"), JewelMaterial.Mix(claude, deepseek, step.GetProperty("u").GetDouble()));
+    }
+
     private static void AssertMaterial(JsonElement expected, JewelMaterial material)
     {
         Assert.Equal(expected.GetProperty("liquid").GetString(), JewelColor.Hex(material.Liquid));
