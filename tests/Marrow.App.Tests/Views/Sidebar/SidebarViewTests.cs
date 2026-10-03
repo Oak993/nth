@@ -247,7 +247,7 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   on the same default opacity transition when the head count crosses twelve (:1535 snappy, the card's row count changes
 //   with it): The_head_cards_chevron_fades_in_when_the_card_becomes_capped_and_out_when_it_stops_being.
 // - The engineering decisions this pass made (the system red pair, the leaving glyphs' layer over the card, row state handed
-//   in place) are ED-NEW-parity-sidebarview in porting/engineering_decisions.md (a placeholder the lead numbers at merge; a
+//   in place) are ED-258 in porting/engineering_decisions.md (a placeholder the lead numbers at merge; a
 //   Decision trait cannot carry it, Traceability wants ED-nnn). That entry also records the checks OWED on a native window.
 // - Mutation sweep, finishing the reviewer's (E:\Droppy\work\parity\evidence\SidebarView\review\mutants_round1.txt,
 //   _round2, _round3, _round3b): 68 more mutants over the claimed records (PR-SIDEBAR-134's glide gate, UI-GIT-057,
@@ -268,7 +268,7 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   card's measured width land before its click (a pass that took both ran without the click's transaction).
 // - UI-SIDEBAR-058, PR-SIDEBAR-126, PR-WIN-200: SidebarRow swapped its accessory by a cut where Chrome.swift:735-737 flips
 //   the hover inside withAnimation(Chrome.hover); it now keeps a control its closure hands back and crossfades a new one in
-//   (ED-NEW-parity-sidebarview (4)), and ProjectRow keeps its branch's view (:1115-1133): the count Text changes in place, the
+//   (ED-258 (4)), and ProjectRow keeps its branch's view (:1115-1133): the count Text changes in place, the
 //   ellipsis-and-plus HStack keeps its button, and its accessory follows the live project's expansion
 //   (REVIEW_Round2_A_search_results_project_row_crossfades_its_count_out..., ChromeFifthTests.SidebarRow_hover_eases_its_fill_
 //   crossfades_a_new_accessory_and_leaves_one_handed_back_alone). Project_count_is_tabular_... follows the fade to its end.
@@ -296,7 +296,7 @@ namespace Marrow.App.Tests.Views.Sidebar;
 // - PR-WIN-200 ('with the selection change animated on the 0.1-second hover curve', Chrome.swift:729): SidebarRow took
 //   isSelected once and SettingsView built every row again on a page change, so the wash moved by a cut (1-settings-tour.mov
 //   47.765-47.85 s eases it over about 0.1 s). SidebarRow.IsSelected now hands a kept row its selection, easing the fill on
-//   Chrome.hover whatever the transaction; SettingsView keeps a row per listed page (ED-NEW-parity-sidebarview (5);
+//   Chrome.hover whatever the transaction; SettingsView keeps a row per listed page (ED-258 (5);
 //   SidebarRowSelectionReviewTests, SettingsSidebarSelectionTests, ChromeFifthTests.SidebarRow_handed_a_new_selection_...).
 //   Three Settings tests that read a row right after a click had encoded the cut; they now read it after Chrome.hover's 0.1 s.
 // - The kept helper's isLast was proven one way only (RR6, RR7 survived the namespace):
@@ -10494,7 +10494,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
         control.GetSelfAndVisualAncestors().OfType<Visual>().TakeWhile(v => !ReferenceEquals(v, root)).Aggregate(1d, (o, v) => o * v.Opacity);
 
     // A head card's leaving glyphs and chevrons fade on the canvas layer over the card, which takes no input
-    // (ED-NEW-parity-sidebarview (2)); the live ones sit in the card's own rows.
+    // (ED-258 (2)); the live ones sit in the card's own rows.
     private static bool OnGhostLayer(Control control) => control.GetVisualAncestors().OfType<Canvas>().Any(canvas => !canvas.IsHitTestVisible);
 
     private static List<Button> ChevronButtons(Control card) => LogicalQuery.SelfAndDescendants<Button>(card)
@@ -11352,7 +11352,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     // ---- Review round 2 (pass 2): the proofs the round asked for, each against the mutant that survived it ----
     // (mutants RA1-RA16 in E:\Droppy\work\parity\evidence\SidebarView\review\mutants_review2.txt)
 
-    // The leaving glyphs' layer (ED-NEW-parity-sidebarview (2)) is the card's own area under the card's clip (:1521
+    // The leaving glyphs' layer (ED-258 (2)) is the card's own area under the card's clip (:1521
     // .clipShape): a leaving glyph is drawn whole while the shrinking card still holds its row, and cut by the card's edge
     // once the card has shrunk past it, where SwiftUI's clip cuts it (RA1: the layer keeps no height and hides every leaver;
     // RA2: the layer does not clip and leavers draw outside the card).
@@ -11890,7 +11890,7 @@ public sealed class SidebarViewTests(HeadlessSession headless)
 
     // :1378-1380 the status branch is ActivityStatus(thread:) over the live thread: a helper that turns unread while the pointer
     // is elsewhere draws the 7 pt dot (:2421-2425), in the danger colour once its last turn failed (:2423). The status the row
-    // keeps while its branch holds (ED-NEW-parity-sidebarview (3)) is drawn again for that (mutant R4M9: never drawn again).
+    // keeps while its branch holds (ED-258 (3)) is drawn again for that (mutant R4M9: never drawn again).
     [Fact]
     [Trait("Req", "UI-SIDEBAR-033")]
     public void A_helper_rows_status_follows_its_thread_turning_unread_and_then_failed() => headless.OnUiThread(() =>

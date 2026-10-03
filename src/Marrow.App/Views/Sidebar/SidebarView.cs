@@ -682,7 +682,7 @@ public sealed class SidebarView : Decorator
     };
 
     // A surviving row takes its item's new value in place where its view can; the others are rebuilt where they stand
-    // (ENGINEERING DECISION ED-NEW-parity-sidebarview (3): SwiftUI keeps a row's @State under its ForEach id; the thread
+    // (ENGINEERING DECISION ED-258 (3): SwiftUI keeps a row's @State under its ForEach id; the thread
     // and stub rows and the activity headers still rebuild, UNRESOLVED there).
     private static bool UpdateItemView(Control control, SidebarItem item)
     {
@@ -2686,7 +2686,7 @@ internal sealed class HeadCardsRow : Decorator
         card.Background = Chrome.Overlay(0.04).Brush(card); // :1520
         card.ClipToBounds = true; // :1521 .clipShape: while the card grows its lower rows show only as its edge reaches them
         // (2-chat-use.mov 5.33-5.53 s, CATALOGUE sidebar.activity-grid-expand)
-        // PORT-ONLY (ENGINEERING DECISION ED-NEW-parity-sidebarview (2), UI-SIDEBAR-038 review, 2-chat-use.mov 5.33-5.40 s CATALOGUE sidebar.activity-grid-expand):
+        // PORT-ONLY (ENGINEERING DECISION ED-258 (2), UI-SIDEBAR-038 review, 2-chat-use.mov 5.33-5.40 s CATALOGUE sidebar.activity-grid-expand):
         // a view that leaves under SwiftUI's default .opacity transition no longer takes part in the layout the others
         // settle into, it fades where it stood while the card clips it. A control Avalonia keeps in its panel until it has
         // faded would hold its slot, and a whole leaving row would hold the chevron down and let it jump up at the end.
