@@ -883,7 +883,14 @@ public enum HapticPattern { Generic, Alignment, LevelChange }
 
 public static class Haptics
 {
-    public static void Perform(HapticPattern pattern) { } // :484-486
+    /// <summary>PORT-ONLY (ED-NEW-aboutupdateviews): where each haptic goes. The shipped sink does nothing
+    /// (port_impacts X6: no sound or animation substitutes for it); a test overrides it for its own flow so the
+    /// call sites of the Swift (AboutUpdateViews.swift:804,809,812) and their times can be observed.</summary>
+    public static Ambient<Action<HapticPattern>> Sink { get; } = new((Action<HapticPattern>)Ignore);
+
+    public static void Perform(HapticPattern pattern) => Sink.Current(pattern); // :484-486
+
+    private static void Ignore(HapticPattern pattern) { }
 }
 
 /// <summary>ShortcutRecordingSession (:489-676). @MainActor @Observable final class. PR-SETTINGS-217,
