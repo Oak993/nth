@@ -432,4 +432,120 @@ public sealed class ThreadTimelineMountedTests(HeadlessSession headless)
         }
         Assert.Null(PillText(mount));
     });
+
+    private static TimelineMinimapColumn? Rail(TimelineMount mount) => LogicalQuery.SelfAndDescendants<TimelineMinimapColumn>(mount.View).SingleOrDefault();
+
+    private static void UpdateInputs(TimelineMount mount, bool showsMinimap, double columnHeight) =>
+        typeof(ThreadTimeline).GetMethod("UpdateInputs", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!.Invoke(mount.View, ["Project", null, false, columnHeight, showsMinimap]);
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (the rail's frame, its overlay and when it shows); ThreadTimeline.swift:176-208
+    public void The_rail_is_a_thirty_point_overlay_below_the_titlebar_that_takes_no_layout_and_shows_with_two_sent_messages_and_the_flag() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        // Fewer than two sent messages: no rail (:180).
+        mount.Settle();
+        mount.SetEntries(new[] { User("only", Guid.NewGuid(), "one message") }); mount.Settle();
+        Assert.Null(Rail(mount));
+        var turns = Turns(2, sentences: 14).ToList();
+        mount.SetEntries(turns); mount.Settle();
+        var rail = Rail(mount)!; Assert.NotNull(rail);
+        // :191-193 30 wide, full height below the title bar (WindowChrome.titlebarHeight), at the leading edge of the pane.
+        Assert.Equal(30, rail.Bounds.Width); Assert.Equal(WindowChrome.TitlebarHeight, rail.Bounds.Top, 3); Assert.Equal(mount.Scroll.Bounds.Height, rail.Bounds.Bottom, 3);
+        Assert.Equal(0, rail.TranslatePoint(default, mount.Window)!.Value.X, 0.5);
+        // :176 it floats: the rows are where they are with and without it.
+        var rowX = mount.Rows[0].TranslatePoint(default, mount.Scroll)!.Value.X; var rowW = mount.Rows[0].Bounds.Width;
+        // :187 the ticks centre in the full column height less the title bar, whatever the pane's own height is.
+        var ticks = LogicalQuery.SelfAndDescendants<Button>(rail).ToList();
+        Assert.Equal(2, ticks.Count);
+        UpdateInputs(mount, true, 700); mount.Advance(100);
+        rail = Rail(mount)!; ticks = LogicalQuery.SelfAndDescendants<Button>(rail).ToList();
+        var middle = (ticks[0].TranslatePoint(default, rail)!.Value.Y + ticks[1].TranslatePoint(new Point(0, ticks[1].Bounds.Height), rail)!.Value.Y) / 2;
+        Assert.Equal((700 - WindowChrome.TitlebarHeight) / 2, middle, 1);
+        // :180 the flag: a panel docked on the leading side takes the rail's edge.
+        UpdateInputs(mount, false, 700); mount.Advance(1000);
+        Assert.Null(Rail(mount));
+        Assert.Equal(rowX, mount.Rows[0].TranslatePoint(default, mount.Scroll)!.Value.X, 3); Assert.Equal(rowW, mount.Rows[0].Bounds.Width, 3);
+        UpdateInputs(mount, true, 700); mount.Advance(1000);
+        Assert.NotNull(Rail(mount));
+        Assert.Equal(rowX, mount.Rows[0].TranslatePoint(default, mount.Scroll)!.Value.X, 3);
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 and PR-CHAT-158 (the rail cancels the slide's padding and its offset); ThreadTimeline.swift:201-207
+    public void The_rail_stays_on_the_columns_leading_edge_through_every_frame_of_a_panel_slide() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(2, sentences: 14).ToList()); mount.Settle();
+        var rail = Rail(mount)!;
+        // ReserveSlide (ChatView.swift:747-768) pads the timeline by the reserve at its final width at once and carries it over with a transform that glides to 0.
+        foreach (var (leading, offset) in new[] { (0.0, 0.0), (160.0, -80.0), (160.0, -33.5), (160.0, 0.0), (0.0, 0.0), (240.0, 120.0) })
+        {
+            ChatView.SetReserveSlideLeading(mount.View, leading); ChatView.SetReserveSlideOffset(mount.View, offset);
+            mount.View.Margin = new Thickness(leading, 0, 0, 0); mount.View.RenderTransform = new Avalonia.Media.TranslateTransform(offset, 0);
+            mount.Advance(50);
+            Assert.Equal(0, rail.TranslatePoint(default, mount.Window)!.Value.X, 0.5);
+            // The conversation itself moved with the slide: its column is centred in what the padding leaves (the scroll view's own width is that).
+            Assert.Equal(leading + offset + Math.Max(0, (mount.Scroll.Bounds.Width - 860) / 2) + 20, mount.Rows[0].TranslatePoint(default, mount.Window)!.Value.X, 0.6);
+        }
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003; ThreadTimeline.swift:179-200 (the rail fades with the panel slide; the same rail goes on across a redraw)
+    public void The_rail_fades_in_and_out_on_the_panel_slide_and_survives_a_redraw_with_its_state() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(2, sentences: 14).ToList()); mount.Settle();
+        var rail = Rail(mount)!;
+        Assert.Equal(1, rail.Opacity);
+        // A redraw that changes no tick: the same rail (its hover and its scrub go on), still fully drawn.
+        mount.Model.Settings.ShowReasoning = !mount.Model.Settings.ShowReasoning; mount.Advance(100);
+        Assert.Same(rail, Rail(mount));
+        // :200 Chrome.panelSlide: the flag turning off fades the rail out over the slide, then it is gone.
+        UpdateInputs(mount, false, 480);
+        Assert.Same(rail, Rail(mount)); Assert.Equal(1, rail.Opacity);
+        mount.Advance((int)(Chrome.PanelSlide.Duration * 1000 / 2)); Assert.InRange(rail.Opacity, 0.01, 0.99);
+        mount.Advance((int)(Chrome.PanelSlide.Duration * 1000)); Assert.Null(Rail(mount));
+        // And turning on again fades it in from nothing.
+        UpdateInputs(mount, true, 480);
+        var fresh = Rail(mount)!; Assert.Equal(0, fresh.Opacity);
+        mount.Advance((int)(Chrome.PanelSlide.Duration * 1000 / 2)); Assert.InRange(fresh.Opacity, 0.01, 0.99);
+        mount.Advance((int)(Chrome.PanelSlide.Duration * 1000)); Assert.Equal(1, fresh.Opacity);
+        // :198-199 held while the window is dragged: no fade then.
+        var resize = AppEnvironment.GetWindowLiveResize(mount.View); resize.IsPaneResizing = true;
+        UpdateInputs(mount, false, 480); Assert.Null(Rail(mount));
+        UpdateInputs(mount, true, 480); Assert.Equal(1, Rail(mount)!.Opacity);
+        resize.IsPaneResizing = false;
+        // A new message changes the ticks: the rail is the same place with new content, not a new rail fading in.
+        var before = Rail(mount); mount.SetEntries(Turns(3, sentences: 14).ToList()); mount.Advance(100);
+        Assert.NotNull(Rail(mount)); Assert.Equal(1, Rail(mount)!.Opacity); Assert.Equal(3, LogicalQuery.SelfAndDescendants<Button>(Rail(mount)!).Count());
+    });
+
+    [Fact]
+    [Trait("Rule", "R-TEST-4")] // Partial proof UI-CHAT-003 (a tick's release is one 0.35 s smooth glide to the landing block, a scrub is unanimated); ThreadTimeline.swift:188,224-252
+    public void A_jump_to_a_block_glides_over_a_third_of_a_second_and_a_scrub_lands_at_once() => ThreadTimelineRig.Run(headless, mount =>
+    {
+        mount.SetEntries(Turns(8, sentences: 14).ToList()); mount.Settle();
+        var blocks = mount.Blocks(); var target = blocks[5].Id;
+        var jump = typeof(ThreadTimeline).GetMethod("Jump", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var all = (IReadOnlyList<DisplayBlock>)blocks.Select(block => block.Block).ToList();
+        double Where() => mount.Scroll.Offset.Y;
+        ToTheEnd(mount); var start = Where();
+        jump.Invoke(mount.View, [target, all, false]); mount.Advance(0);
+        var landed = Where();
+        Assert.True(landed < start - 50, $"the scrub moved the view from {start} to {landed}");
+        // Back to the end, then the release's glide.
+        ToTheEnd(mount); start = Where(); Assert.Equal(mount.Scroll.Extent.Height - mount.Scroll.Viewport.Height, start, 1);
+        jump.Invoke(mount.View, [target, all, true]);
+        var samples = new List<double> { Where() };
+        for (var step = 0; step < 8; step++) { mount.Advance(50); samples.Add(Where()); }
+        Assert.Equal(start, samples[0], 2);
+        var travel = start - landed;
+        Assert.True(samples.Zip(samples.Skip(1), (a, b) => a - b).All(delta => delta >= -0.01), "the glide goes one way");
+        Assert.True(samples[1] > samples[2] && samples[2] > samples[4], $"it is under way at 100 and 200 ms: {string.Join(", ", samples)}");
+        Assert.True(samples[3] < start - 0.2 * travel && samples[3] > landed + 0.1 * travel, $"mid-glide at 150 ms: {string.Join(", ", samples)}");
+        // .smooth(duration: 0.35): a third of a second, not a snap and not a drift: most of the way left at 100 ms, the last tenth not yet gone at 250 ms.
+        Assert.True(samples[2] - landed > 0.65 * travel, $"at 100 ms: {string.Join(", ", samples)}");
+        Assert.InRange(samples[5] - landed, 0.05 * travel, 0.3 * travel);
+        // It arrives by its duration, and settles into the block a moment after it.
+        Assert.True(samples[7] - landed < 0.05 * travel, $"at 350 ms it is within a twentieth of the block: {string.Join(", ", samples)}");
+        mount.Advance((int)(Animation.Smooth(0.35).Duration * 1000)); Assert.Equal(landed, Where(), 1);
+    });
 }

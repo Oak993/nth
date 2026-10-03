@@ -212,9 +212,22 @@ public sealed class ThreadTimeline : Decorator
                 drawnColumn = column; drawnSentinel = sentinel; drawnEarlier = earlier; drawnBlocks = blocks;
                 if (!ReferenceEquals(scroll.Content, column)) scroll.Content = column;
                 var overlay = scrollOverlay!;
-                if (currentRail is not null) overlay.Children.Remove(currentRail);
-                currentRail = CreateRail(blocks, showsMinimap, columnHeight);
-                if (currentRail is not null) overlay.Children.Add(currentRail);
+                var nextRail = CreateRail(blocks, showsMinimap, columnHeight);
+                // :190 .equatable(): a rail whose inputs did not change is not drawn again, so its hover and its scrub go on across a redraw.
+                if (currentRail is TimelineMinimapColumn oldRail && nextRail is TimelineMinimapColumn newRail && TimelineMinimapColumn.InputsEqual(oldRail, newRail)) nextRail = oldRail;
+                if (!ReferenceEquals(nextRail, currentRail))
+                {
+                    var previous = currentRail; currentRail = nextRail;
+                    // :195-200 `.transition(.opacity)` under `.animation(Chrome.panelSlide, value: showsMinimap)`: the rail fades in and out with the slide of the
+                    // panel that takes its edge, held while the window is dragged (a fresh slide every frame lagged the chat behind the window). A rail whose
+                    // ticks changed is the same view with new content, not a new rail.
+                    var fades = (previous is null) != (nextRail is null) && !AppEnvironment.GetWindowLiveResize(this).IsReshaping;
+                    Transaction.WithAnimation(fades ? Chrome.PanelSlide : null, () =>
+                    {
+                        if (previous is not null) SwiftTransition.Remove(overlay, previous);
+                        if (nextRail is not null) SwiftTransition.Insert(overlay, overlay.Children.Count, nextRail);
+                    });
+                }
                 if (!ReferenceEquals(host.Child, overlay)) host.Child = overlay;
                 MainActor.Post(() =>
                 {
@@ -359,7 +372,19 @@ public sealed class ThreadTimeline : Decorator
     // :180-200. Width gating belongs to ChatView, which supplies showsMinimap.
     private static bool ShouldShowMinimap(bool enabled, IReadOnlyList<DisplayBlock> blocks) => enabled && blocks.Count(block => block.HasUserMessage) > 1;
     // :179-208
-    private Control? CreateRail(IReadOnlyList<DisplayBlock> blocks, bool enabled, double columnHeight) => !ShouldShowMinimap(enabled, blocks) ? null : new TimelineMinimapColumn(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight), (id, animated) => Jump(id, blocks, animated)) { Width = 30, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, WindowChrome.TitlebarHeight, 0, 0), RenderTransform = new TranslateTransform(-ChatView.GetReserveSlideLeading(this) - ChatView.GetReserveSlideOffset(this), 0) };
+    private Control? CreateRail(IReadOnlyList<DisplayBlock> blocks, bool enabled, double columnHeight)
+    {
+        if (!ShouldShowMinimap(enabled, blocks)) return null;
+        var rail = new TimelineMinimapColumn(blocks, tracking, Math.Max(0, columnHeight - WindowChrome.TitlebarHeight), (id, animated) => Jump(id, blocks, animated)) { Width = 30, HorizontalAlignment = HorizontalAlignment.Left, Margin = new Thickness(0, WindowChrome.TitlebarHeight, 0, 0) };
+        // :201-207 the rail belongs to the column's leading edge, not to the conversation that re-centres beside a docked panel: the padding the slide adds
+        // (reserveSlideLeading, snapped at once) and the glide that carries the rows (reserveSlideOffset, every frame of it) are both cancelled, live.
+        var cancel = new TranslateTransform(); rail.RenderTransform = cancel;
+        void Follow() => cancel.X = -ChatView.GetReserveSlideLeading(rail) - ChatView.GetReserveSlideOffset(rail);
+        rail.PropertyChanged += (_, change) => { if (change.Property == ChatView.ReserveSlideLeadingProperty || change.Property == ChatView.ReserveSlideOffsetProperty) Follow(); };
+        rail.AttachedToVisualTree += (_, _) => Follow();
+        Follow();
+        return rail;
+    }
     // :114
     private static string? MergeID(bool merging, string? noteID) => merging ? noteID ?? "hydra-merging" : null;
     // :167-172
