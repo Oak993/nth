@@ -188,4 +188,41 @@ public sealed class TimelineRowsParityReview2Tests(HeadlessSession headless)
         Assert.DoesNotContain(scene.Presenter.Calls.Skip(calls), call => ReferenceEquals(call.Popup, editor) && !call.Presented);
         Assert.Same(content, editor.Child); // the same MessageEditor, its @State as the reader left it
     });
+
+    // PR-CHAT-166: "Selection works within the block under the pointer" and, per its windows_path, "Per-block selection is always
+    // on" with an I-beam over prose. A reply's table is one of its blocks: MarkdownView.swift:1287-1308 TableBlock puts the grid
+    // of cell Texts under .modifier(MarkdownBlockSelection()), whose live branch is .textSelection(.enabled) (:854-862; the
+    // environment value has no writer), as the prose (:318), the inline text (:1131) and the code (:1229) are. The parity pass
+    // made those three selectable (VeiledText) and named the table among them (TimelineRowsParityScenarioTests, the drag test's
+    // comment), but MarkdownView.cs TableBlock still draws every cell as a plain TextBlock: a drag over a cell selects nothing.
+    [Fact]
+    [Trait("Req", "PR-CHAT-166")] // MarkdownView.swift:1287-1308, :854-862; TimelineRows.swift:1364
+    public void REVIEW_A_drag_selects_inside_a_table_cell_of_a_reply_as_inside_its_other_blocks() => headless.OnUiThread(() =>
+    {
+        using var h = TimelineRowsPrSupport.Harness();
+        using var frames = FrameClock.Source.Override(new ManualFrameSource());
+        Avalonia.Controls.Window window = null!;
+        try
+        {
+            h.Main.OnMain(() =>
+            {
+                var reply = new AssistantMessageRow(TimelineRowsPrSupport.Reply("Before the table.\n\n| Name | Value |\n|---|---|\n| alpha | the second cell |\n"), null, h.Runtime);
+                window = TimelineRowsPrSupport.Show(reply);
+                var table = Assert.Single(reply.GetVisualDescendants().OfType<Marrow.UI.Markdown.TableBlock>());
+                var cell = table.GetVisualDescendants().OfType<TextBlock>().Single(text => text.Text == "the second cell");
+                var start = cell.TranslatePoint(new Point(1, cell.Bounds.Height / 2), window)!.Value;
+                var end = cell.TranslatePoint(new Point(cell.Bounds.Width - 1, cell.Bounds.Height / 2), window)!.Value;
+                window.MouseMove(start, RawInputModifiers.None);
+                window.MouseDown(start, MouseButton.Left, RawInputModifiers.None);
+                window.MouseMove(new Point((start.X + end.X) / 2, start.Y), RawInputModifiers.LeftMouseButton);
+                window.MouseMove(end, RawInputModifiers.LeftMouseButton);
+                window.MouseUp(end, MouseButton.Left, RawInputModifiers.None);
+                Dispatcher.UIThread.RunJobs();
+                Assert.Equal("the second cell", (cell as SelectableTextBlock)?.SelectedText);
+                TimelineRowsPrSupport.Hover(window, cell);
+                Assert.Equal("Ibeam", cell.Cursor?.ToString());
+            });
+        }
+        finally { if (window is not null) h.Main.OnMain(() => TimelineRowsPrSupport.Close(window)); }
+    });
 }
