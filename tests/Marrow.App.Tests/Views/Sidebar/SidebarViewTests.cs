@@ -254,6 +254,8 @@ namespace Marrow.App.Tests.Views.Sidebar;
 //   UI-HYDRAMERGE-030, UI-SIDEBAR-004, -007, -025, -033, -034, -038, -039, -040, -041, -042, -059) and the fixed defects
 //   D1a and D2-D14, every one killed: D6a (Red's dark member) by SwiftColorTests, the others by the Views.Sidebar namespace.
 //   One survived at first, D8a (the folded stub's fill set with no animation): its test now checks the fill mid-fade.
+// - PR-SIDEBAR-126's hover fill was proven only by FillFor's value: A_project_rows_hover_fill_is_drawn_on_a_real_hover_and_
+//   kept_while_the_pointer_rests_on_its_ellipsis proves it on the live row (mutants H2b and P126 in _round3c, both killed).
 
 [Collection("Headless")]
 public sealed class SidebarViewTests(HeadlessSession headless)
@@ -10345,6 +10347,52 @@ public sealed class SidebarViewTests(HeadlessSession headless)
                 Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "More"); // :1118 still offered
                 Assert.Single(LogicalQuery.SelfAndDescendants<Button>(row), b => ToolTip.GetTip(b) as string == "New thread in Alpha"); // :1119-1125
             });
+        }
+        finally { harness.Main.OnMain(() => window.Close()); }
+    });
+
+    // PR-SIDEBAR-126 "the row's own hover fill is the label colour at 0.06" on the live path, not only FillFor's value: a real
+    // hover of the project row draws it once Chrome.hover's ease has run (Chrome.swift:729, :743), and it stays while the
+    // pointer rests on the overlaid ellipsis, as the hover covers the overlay (:731-737).
+    [Fact]
+    [Trait("Req", "PR-SIDEBAR-126")] // Chrome.swift:729, :731-737, :741-745 via SidebarView.swift:1097-1133
+    public void A_project_rows_hover_fill_is_drawn_on_a_real_hover_and_kept_while_the_pointer_rests_on_its_ellipsis() => headless.OnUiThread(() =>
+    {
+        var manual = new ManualFrameSource();
+        using var frames = FrameClock.Source.Override(manual);
+        using var harness = new AppModelHarness();
+        var project = NewProject(harness, "Alpha");
+        var thread = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [thread]);
+        Control row = null!;
+        AvaloniaWindow window = null!;
+        Border shape = null!;
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { manual.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Color FillNow() => ((ISolidColorBrush)shape.Background!).Color;
+        harness.Main.OnMain(() =>
+        {
+            row = ShownProjectRow(model, project, 1);
+            window = WindowOf(row);
+            shape = LogicalQuery.SelfAndDescendants<Border>(row).First(b => b.Height == 28 && b.Padding.Right > 40);
+            Assert.Equal(0, FillNow().A); // :744 clear while the pointer is elsewhere
+            window.MouseMove(row.TranslatePoint(new Point(10, 10), window)!.Value); // onto the icon
+        });
+        try
+        {
+            Tick(300);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant), FillNow()); // :743 hovered, never selected
+                var more = LogicalQuery.SelfAndDescendants<Button>(row).Single(b => ToolTip.GetTip(b) as string == "More");
+                window.MouseMove(more.TranslatePoint(new Point(more.Bounds.Width / 2, more.Bounds.Height / 2), window)!.Value); // onto the ellipsis
+            });
+            Tick(300);
+            Tick(300);
+            harness.Main.OnMain(() => Assert.Equal(Chrome.Overlay(0.06).Resolve(shape.ActualThemeVariant), FillNow())); // still the row's hover
         }
         finally { harness.Main.OnMain(() => window.Close()); }
     });
