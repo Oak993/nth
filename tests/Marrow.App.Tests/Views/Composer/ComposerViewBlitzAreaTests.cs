@@ -246,4 +246,98 @@ public sealed partial class ComposerViewTests
             Close(h, window);
         });
     }
+
+    // ---- PR-COMPOSER-003 (:56) ----
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "PR-COMPOSER-003")] // App/Views/Composer/ComposerView.swift:56; porting/extracts/chrome-design-tokens.md:287-291
+    [Trait("Rule", "R-TEST-4")] // The stack's own re-layout (the cards that stay, the area's height) is not animated: see the unit's notes
+    public void A_card_arriving_and_a_card_resolved_fade_along_the_panel_slide_spring_or_with_reduced_motion_its_ease_out_of_018(bool reduceMotion)
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            using var motion = Chrome.ReduceMotionPlatform.Override(new FakeGeniePlatform { AccessibilityDisplayShouldReduceMotion = reduceMotion });
+            var curve = reduceMotion ? Animation.EaseOut(duration: 0.18) : Animation.Spring(response: 0.32, dampingFraction: 0.9);
+            var runtime = Unresolved(h);
+            var area = h.Main.OnMain(() => new ComposerArea(runtime, null, showsChanges: false));
+            var window = h.Main.OnMain(() => Show(area, h.App, 500));
+            Pump(h, window);
+            // The two curves the record names, at the instants this test reads.
+            Assert.Equal(curve.Progress(0.03), Chrome.PanelSlide.Progress(0.03), 9);
+            Assert.Equal(curve.Progress(0.08), Chrome.PanelSlide.Progress(0.08), 9);
+            Assert.Equal(reduceMotion ? 0.18 : curve.Duration, Chrome.PanelSlide.Duration, 9);
+
+            h.Main.OnMain(() => runtime.Rehearse(new ProviderEvent.Approval(Approval("only"))));
+            Pump(h, window);
+            var row = h.Main.OnMain(() => (Control)One<ApprovalCard>(area).Parent!);
+            Assert.Equal(0, h.Main.OnMain(() => row.Opacity));
+            h.Main.Advance(TimeSpan.FromSeconds(0.03));
+            h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(0.03)));
+            Assert.InRange(curve.Progress(0.03), 0.001, 0.999);
+            Assert.Equal(curve.Progress(0.03), h.Main.OnMain(() => row.Opacity), 3);
+            h.Main.Advance(TimeSpan.FromSeconds(0.05));
+            h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(0.05)));
+            Assert.Equal(curve.Progress(0.08), h.Main.OnMain(() => row.Opacity), 3);
+            h.Main.Advance(TimeSpan.FromSeconds(0.12));
+            h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(0.12)));
+            if (reduceMotion) Assert.Equal(1, h.Main.OnMain(() => row.Opacity)); // 0.20 s: the 0.18 s ease-out is over
+            else Assert.NotEqual(1, h.Main.OnMain(() => row.Opacity)); // the spring is still settling at 0.20 s
+            h.Main.Advance(TimeSpan.FromSeconds(3));
+            h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(3)));
+            Assert.Equal(1, h.Main.OnMain(() => row.Opacity));
+
+            // Resolved: the same curve, run the other way, and nothing of the card is left.
+            h.Main.OnMain(() => runtime.Rehearse(new ProviderEvent.RequestResolved("only")));
+            Pump(h, window);
+            h.Main.Advance(TimeSpan.FromSeconds(0.03));
+            h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(0.03)));
+            Assert.Equal(1 - curve.Progress(0.03), h.Main.OnMain(() => row.Opacity), 3);
+            h.Main.Advance(TimeSpan.FromSeconds(3));
+            h.Main.OnMain(() => frames.Advance(TimeSpan.FromSeconds(3)));
+            Pump(h, window);
+            h.Main.OnMain(() => Assert.Empty(LogicalQuery.SelfAndDescendants<ApprovalCard>(area)));
+            Close(h, window);
+        });
+    }
+
+    [Fact]
+    [Trait("Req", "PR-COMPOSER-003")] // App/Views/Composer/ComposerView.swift:56 .animation(Chrome.panelSlide, value: runtime.approvals.map(\.id))
+    [Trait("Rule", "R-TEST-4")] // The curves: the test above
+    public void Changing_a_request_without_changing_the_id_list_runs_no_animation_and_keeps_the_card_where_it_is()
+    {
+        headless.OnUiThread(() =>
+        {
+            using var h = RuntimeHarness();
+            var frames = new ManualFrameSource();
+            using var frameScope = FrameClock.Source.Override(frames);
+            var runtime = Unresolved(h);
+            h.Main.OnMain(() => runtime.Rehearse(new ProviderEvent.Approval(Approval("same"))));
+            var area = h.Main.OnMain(() => new ComposerArea(runtime, null, showsChanges: false));
+            var window = h.Main.OnMain(() => Show(area, h.App, 500));
+            Pump(h, window);
+            var (row, card) = h.Main.OnMain(() => ((Control)One<ApprovalCard>(area).Parent!, One<ApprovalCard>(area)));
+            Assert.Equal(0, frames.Pending);
+            Assert.Equal(1, h.Main.OnMain(() => row.Opacity));
+            var top = h.Main.OnMain(() => Frame(row, Stack(area)).Y);
+
+            // The same id, new words: the card is drawn again in its row, at once, asking for no frame at all.
+            h.Main.OnMain(() => runtime.Rehearse(new ProviderEvent.Approval(Approval("same") with { Title = "changed words" })));
+            Pump(h, window);
+            h.Main.OnMain(() =>
+            {
+                Assert.Same(row, (Control)One<ApprovalCard>(area).Parent!);
+                Assert.NotSame(card, One<ApprovalCard>(area));
+                Assert.Contains(LogicalQuery.SelfAndDescendants<TextBlock>(area), text => text.Text == "changed words");
+                Assert.Equal(1, row.Opacity);
+                Assert.Equal(top, Frame(row, Stack(area)).Y);
+            });
+            Assert.Equal(0, frames.Pending);
+            Close(h, window);
+        });
+    }
 }
