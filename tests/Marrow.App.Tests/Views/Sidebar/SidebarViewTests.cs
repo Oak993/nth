@@ -8099,6 +8099,76 @@ public sealed class SidebarViewTests(HeadlessSession headless)
     });
 
     [Fact]
+    [Trait("Req", "UI-SIDEBAR-059")] // SidebarView.swift:317-325 rowTransition, :1064-1076 AnyTransition.sidebarRow
+    [Trait("Req", "PR-SIDEBAR-019")] // :114-117 the list's animations also carry the rows' own transitions: a settled row's plain opacity rides panelSlide
+    public void Mounted_rows_fade_in_after_the_delay_leave_on_the_short_fade_and_a_settled_row_fades_in_on_the_lists_panelSlide() => headless.OnUiThread(() =>
+    {
+        using var harness = new AppModelHarness();
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
+        var project = NewProject(harness, "Alpha");
+        var kept = NewThread(project, "Kept", 0);
+        var model = Model(harness, [project], [kept]);
+        harness.Main.OnMain(() => model.Settings.SettledCollapsed = false);
+        SidebarView view = null!;
+        harness.Main.OnMain(() => view = Attached(model));
+        var window = WindowOf(view);
+        void Tick(int ms)
+        {
+            harness.Main.AdvanceMilliseconds(ms);
+            harness.Main.OnMain(() => { frames.Advance(TimeSpan.FromMilliseconds(ms)); window.UpdateLayout(); Dispatcher.UIThread.RunJobs(); });
+        }
+        Control ContainerOf(string title) => ListPanel(view).Children.Single(c => c.GetLogicalDescendants().OfType<Button>().Any(b => AutomationProperties.GetName(b) == title));
+        bool Listed(string title) => ListPanel(view).Children.Any(c => c.GetLogicalDescendants().OfType<Button>().Any(b => AutomationProperties.GetName(b) == title));
+        try
+        {
+            Tick(1600);
+            ChatThread added = null!;
+            harness.Main.OnMain(() => added = model.NewThread(project)!); // a plain write: the row's own transition times it
+            Tick(0);
+            var insertion = Animation.EaseIn(0.18);
+            harness.Main.OnMain(() => Assert.Equal(0d, ContainerOf(added.Title).Opacity)); // :1072 nothing during the 0.12 s delay
+            Tick(100);
+            harness.Main.OnMain(() => Assert.Equal(0d, ContainerOf(added.Title).Opacity));
+            Tick(110); // 0.21 s: 0.09 s into the 0.18 s easeIn
+            harness.Main.OnMain(() => Assert.Equal(insertion.Progress(0.09), ContainerOf(added.Title).Opacity, 2));
+            Tick(200);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(1d, ContainerOf(added.Title).Opacity);
+                model.Delete(added.Id); // :1073 removal: easeOut 0.06 s
+            });
+            Tick(30);
+            harness.Main.OnMain(() =>
+            {
+                Assert.True(Listed(added.Title)); // still leaving
+                Assert.Equal(1 - Animation.EaseOut(0.06).Progress(0.03), ContainerOf(added.Title).Opacity, 2);
+            });
+            Tick(60);
+            harness.Main.OnMain(() =>
+            {
+                Assert.False(Listed(added.Title)); // gone once faded
+                Transaction.WithAnimation(Chrome.PanelSlide, () => model.Settle(kept.Id, sounds: false)); // :1910 settle()'s own withAnimation(Chrome.panelSlide)
+            });
+            // :319-320 a settled row's transition is plain .opacity, so it rides the animation that carried the change:
+            // the panelSlide spring (response 0.32, damping fraction 0.9), not the open rows' delayed easeIn.
+            Tick(90);
+            harness.Main.OnMain(() => Assert.Equal(Animation.Spring(response: 0.32, dampingFraction: 0.9).Progress(0.09), ContainerOf("Kept").Opacity, 2));
+            Tick(1600);
+            harness.Main.OnMain(() =>
+            {
+                Assert.Equal(1d, ContainerOf("Kept").Opacity);
+                model.Settings.SettledCollapsed = true; // a plain write: only the list's own :117 .animation(panelSlide, value: settledCollapsed) can time it
+            });
+            Tick(90); // the settled row leaves on its plain opacity, carried by the list's panelSlide
+            harness.Main.OnMain(() => Assert.Equal(1 - Animation.Spring(response: 0.32, dampingFraction: 0.9).Progress(0.09), ContainerOf("Kept").Opacity, 2));
+            Tick(1600);
+            harness.Main.OnMain(() => Assert.False(Listed("Kept")));
+        }
+        finally { harness.Main.OnMain(() => Close(view)); }
+    });
+
+    [Fact]
     [Trait("Req", "PR-SIDEBAR-019")] // App/Views/Sidebar/SidebarView.swift:114-117: only those three values carry the animation
     public void A_change_to_none_of_the_three_values_moves_the_rows_without_a_slide() => headless.OnUiThread(() =>
     {
