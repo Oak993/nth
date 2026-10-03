@@ -238,6 +238,61 @@ public sealed class TimelineRowsStreamVeilTests(HeadlessSession headless)
         h.Main.OnMain(() => Close(window));
     });
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Req", "UI-THEME-047")] // DroppyCode/App/Views/Chat/ThreadTimeline.swift:2156-2168 (ForEach over the steps: each step keeps its own @State, StreamVeil.swift:245)
+    public void Each_thinking_step_keeps_a_veil_of_its_own_so_words_arriving_in_the_second_veil_only_there(bool firstStillStreaming) => headless.OnUiThread(() =>
+    {
+        using var h = Harness();
+        var frames = new ManualFrameSource();
+        using var frameSeam = FrameClock.Source.Override(frames);
+        FreshVeilClock();
+        WorkingIndicator indicator = null!;
+        Avalonia.Controls.Window window = null!;
+        const string first = "First I read the file"; // longer than the second step's words, so a veil that was shared would reach into it
+        void Steps(string second) =>
+            indicator.UpdateValues(new ValueList<ThinkingStep>([new ThinkingStep(first, firstStillStreaming), new ThinkingStep(second, true)]), new([]), new([]), false);
+        h.Main.OnMain(() =>
+        {
+            indicator = new WorkingIndicator(h.Runtime, SwiftDate.Now, 1, new ValueList<ThinkingStep>([new ThinkingStep(first, firstStillStreaming), new ThinkingStep("Then", true)]), new([]), new([]), false, chronological: true);
+            window = Show(indicator);
+        });
+        MarkdownView Step(int index) => Mounted<MarkdownView>(indicator).ElementAt(index);
+        Assert.Equal(2, Mounted<MarkdownView>(indicator).Count());
+        var settled = Runs(Step(1))[0].Opacity; // what a step shows when it attaches is the baseline: the dimmed primary colour
+
+        // A step that has finished is drawn as prose runs (MarkdownView.swift:71-83), not as veiled text; one that still streams is veiled text.
+        void FirstStepIsOneSettledRun()
+        {
+            if (!firstStillStreaming) { Assert.Empty(Runs(Step(0))); return; }
+            Assert.Equal(first, Assert.Single(Runs(Step(0))).Text);
+            Assert.Equal(settled, Runs(Step(0))[0].Opacity, 0.001);
+        }
+
+        // The second step grows: its words dissolve and the first step, which gained nothing, is untouched.
+        h.Main.OnMain(() => { Steps("Then I edit"); Settle(window); });
+        Assert.Equal(["Then", " I edit"], Runs(Step(1)).Select(run => run.Text));
+        Assert.Equal(settled, Runs(Step(1))[0].Opacity, 0.001);
+        Assert.Equal(0, Runs(Step(1))[1].Opacity, 0.001);
+        FirstStepIsOneSettledRun();
+
+        // It grows again while its first words are still dissolving (the first step is built again for every flush, with a veil in flight): the
+        // words that arrived before carry on, only the new ones start from nothing, and none of it reaches the first step.
+        Tick(h, frames, window, 100);
+        h.Main.OnMain(() => { Steps("Then I edit it"); Settle(window); });
+        var second = Runs(Step(1));
+        Assert.Equal(["Then", " I edit", " it"], second.Select(run => run.Text));
+        Assert.Equal(settled, second[0].Opacity, 0.001);
+        Assert.InRange(second[1].Opacity, 0.01, settled - 0.01);
+        Assert.Equal(0, second[2].Opacity, 0.001);
+        FirstStepIsOneSettledRun();
+
+        Tick(h, frames, window, 1000);
+        Assert.Equal(["Then I edit it"], Runs(Step(1)).Select(run => run.Text));
+        h.Main.OnMain(() => Close(window));
+    });
+
     [Fact]
     [Trait("Req", "UI-THEME-047")] // DroppyCode/UI/Markdown/StreamVeil.swift:18-19 (what is on screen when a veil attaches is the baseline)
     public void The_thinking_steps_adopt_what_they_show_when_they_are_opened_again() => headless.OnUiThread(() =>

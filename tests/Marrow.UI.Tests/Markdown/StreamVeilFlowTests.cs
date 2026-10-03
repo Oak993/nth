@@ -244,33 +244,58 @@ public sealed class StreamVeilFlowTests(HeadlessSession headless)
     public void A_veiled_text_the_flush_replaced_feeds_the_veil_nothing_more() => headless.OnUiThread(() =>
     {
         using var runtime = new TestRuntime();
-        using var frameScope = FrameClock.Source.Override(new ManualFrameSource());
+        var frames = new ManualFrameSource();
+        using var frameScope = FrameClock.Source.Override(frames);
         using var scrollScope = ScrollActivity.Shared.Override(new ScrollActivity());
         FreshVeilClock();
         var veils = new MarkdownVeils();
         var scope = veils.Root.Child("b0");
+        VeiledText older = null!, newer = null!;
+        Window window = null!;
         runtime.OnMain(() =>
         {
-            var older = new VeiledText("Hello", scope);
-            var newer = new VeiledText("Hello there", scope); // the next flush's text takes the place over
-            var window = Show(new StackPanel { Children = { newer, older } });
-            try
-            {
-                StreamVeil.SetMarkdownVeiled(newer, true); // the environment arrives: the newer text is the baseline
-                Pump();
-                Assert.Equal(["Hello there"], Texts(Runs(newer)));
-                // The older one is told the environment too (it is still in the tree while the swap is under way), with its shorter text:
-                // it would rewrite the veil's text and make the newer one's next evaluation register " there" as arriving.
-                StreamVeil.SetMarkdownVeiled(older, true);
-                MarkdownView.SetMarkdownDimmed(newer, true); // the newer one evaluates again
-                Pump();
-                Assert.Equal(["Hello there"], Texts(Runs(newer))); // one settled run: nothing arrived
-            }
-            finally
-            {
-                window.Close();
-            }
+            // The older text is on screen with the place's veil: "Hello" is the baseline.
+            older = new VeiledText("Hello", scope);
+            var panel = new StackPanel { Children = { older } };
+            window = Show(panel);
+            StreamVeil.SetMarkdownVeiled(older, true);
+            Pump();
+            Assert.Equal(["Hello"], Texts(Runs(older)));
+            // The next flush's text takes the place over while the older one is still in the tree (a thinking step leaving through a transition
+            // while the step that replaced it is already there): " there" arrives.
+            newer = new VeiledText("Hello there", scope);
+            panel.Children.Add(newer);
+            StreamVeil.SetMarkdownVeiled(newer, true);
+            Pump();
         });
+        try
+        {
+            var atFlush = Runs(newer);
+            Assert.Equal(["Hello", " there"], Texts(atFlush));
+            var settled = atFlush[0].Opacity;
+            Assert.Equal(0, atFlush[1].Opacity, 0.001);
+            Tick(runtime, frames, 100); // the first chunk fades over 0.40 s: a quarter through
+            Assert.Equal(settled * Alpha(0.25), Runs(newer)[1].Opacity, 0.01);
+
+            // The older text is told its environment again, with its shorter text: toggling \.markdownVeiled makes it evaluate. Were it to feed the veil,
+            // " there" would be gone from the veil's text, and the newer text's next evaluation would register it as arriving all over again.
+            runtime.OnMain(() =>
+            {
+                StreamVeil.SetMarkdownVeiled(older, false);
+                Pump();
+                StreamVeil.SetMarkdownVeiled(older, true);
+                Pump();
+            });
+            Tick(runtime, frames, 100);
+            // The fade carried on from where it was (half way through at 0.2 s); it did not start again from nothing.
+            Assert.Equal(["Hello", " there"], Texts(Runs(newer)));
+            Assert.Equal(settled * Alpha(0.5), Runs(newer)[1].Opacity, 0.01);
+        }
+        finally
+        {
+            Tick(runtime, frames, 1000);
+            runtime.OnMain(window.Close);
+        }
     });
 
     [Theory]
